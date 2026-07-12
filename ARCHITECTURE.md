@@ -59,7 +59,7 @@ All vendored under `libs/`:
 - AceGUI-3.0
 - AceConfig-3.0 (pulls in AceConfigRegistry / AceConfigCmd / AceConfigDialog)
 
-`embeds.xml` is the load manifest referenced from `ConsumableMaster.toc`. The TOC's `## Interface:` line is `120000, 120001, 120005`.
+`embeds.xml` is the load manifest referenced from `ConsumableMaster.toc`. The TOC's `## Interface:` line is `120007`.
 
 ## Load order
 

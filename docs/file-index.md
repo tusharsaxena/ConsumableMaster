@@ -52,7 +52,7 @@ Loaded between `MacroManager` and `settings/`. Each file calls `AceGUI:RegisterW
 
 - `embeds.xml` — XML manifest pulled in by `ConsumableMaster.toc`; loads LibStub + every Ace3 sub-library before any addon source.
 - `libs/` — vendored Ace3 + LibStub. Tracked in git (standard WoW addon practice).
-- `ConsumableMaster.toc` — Interface line (`120000, 120001, 120005`), version, SavedVariables, file load order. Order is dependency order, not alphabetical.
+- `ConsumableMaster.toc` — Interface line (`120007`), version, SavedVariables, file load order. Order is dependency order, not alphabetical.
 
 ## Top-level docs
 

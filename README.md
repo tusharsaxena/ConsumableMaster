@@ -1,6 +1,6 @@
 # Ka0s Consumable Master
 
-![wow](https://img.shields.io/badge/WoW-Midnight_12.0.5-orange)
+![wow](https://img.shields.io/badge/WoW-Midnight_12.0.7-orange)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
