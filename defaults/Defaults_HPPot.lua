@@ -10,7 +10,8 @@
 -- cross-checked via in-game /cm dump item on a level-90 character.
 -- Last refresh: 2026-04-22. See defaults/README.md to re-run.
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.HP_POT = {

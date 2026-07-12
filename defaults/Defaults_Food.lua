@@ -15,7 +15,8 @@
 -- Source: in-game Silvermoon innkeeper vendor stock (Midnight 12.0).
 -- Last refresh: 2026-04-23. See defaults/README.md to re-run.
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.FOOD = {

@@ -62,7 +62,8 @@
 --
 -- Last refreshed: 2026-04-21 from archon.gg (WoW Midnight 12.0).
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.STAT_PRIORITY = {

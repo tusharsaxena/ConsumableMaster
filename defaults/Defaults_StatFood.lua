@@ -12,7 +12,8 @@
 -- Source: Method.gg Midnight consumables list + Warcraft Wiki cooking
 -- recipes, 2026-04-22. See defaults/README.md to re-run.
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.STAT_FOOD = {

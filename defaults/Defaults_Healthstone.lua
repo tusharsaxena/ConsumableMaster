@@ -4,7 +4,8 @@
 -- with warlock level; 5512 is the classic evergreen id kept as a safety net.
 -- Source: Wowhead, 2026-04.
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.HS = {

@@ -1,24 +1,44 @@
 ## Interface: 120007
 ## Title: Ka0s Consumable Master
 ## Notes: Auto-managed account-wide consumable macros.
-## Author: Ka0s
+## Author: add1kted2ka0s
 ## Version: 1.4.0
-## SavedVariables: ConsumableMasterDB
 ## IconTexture: Interface\Icons\inv_cooking_100_roastduck
+## Category-enUS: Combat
+## SavedVariables: ConsumableMasterDB
 ## DefaultState: enabled
-## Category-enUS: Action Bars & Buttons
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
 ## X-License: MIT
+## X-Standard: Ka0s WoW Addon Standard v1.0.0
+## X-Curse-Project-ID: 1522944
 
+# Libraries
 embeds.xml
 
-# Core.lua first: it creates the `KCM` addon object (via AceAddon:NewAddon)
-# and publishes it on `_G.KCM`. Every other file assumes `_G.KCM` exists at
-# load time. Pipeline + event handlers are defined at the top level here but
-# only *referenced* from events/OnEnable, which run after every file below
-# has loaded — so no file-order constraint on the bodies.
-Core.lua
-Debug.lua
+# Locales
+locales\enUS.lua
 
+# Core
+# Namespace.lua first: names the private addon table (`local addonName, NS = ...`).
+# ConsumableMaster.lua promotes NS to the AceAddon object and owns the DB
+# bootstrap + recompute pipeline. Constants (KCM.PREFIX / KCM.Say), Compat (spec
+# + spell API seam), State (session-only flags), and Database (SV migrations)
+# load next; the pure engine modules (SpecHelper → Classifier) follow.
+core\Namespace.lua
+core\ConsumableMaster.lua
+core\Bus.lua
+core\Constants.lua
+core\Compat.lua
+core\State.lua
+core\Database.lua
+core\Debug.lua
+core\SpecHelper.lua
+core\TooltipCache.lua
+core\BagScanner.lua
+core\Classifier.lua
+core\SlashCommands.lua
+
+# Defaults
 defaults\Categories.lua
 defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
@@ -30,25 +50,22 @@ defaults\Defaults_Healthstone.lua
 defaults\Defaults_CombatPot.lua
 defaults\Defaults_Flask.lua
 
-SpecHelper.lua
-TooltipCache.lua
-BagScanner.lua
-Classifier.lua
-Ranker.lua
-Selector.lua
-MacroManager.lua
-KCMIconButton.lua
-KCMScoreButton.lua
-KCMMacroDragIcon.lua
-KCMItemRow.lua
+# Modules
+modules\Ranker.lua
+modules\Selector.lua
+modules\MacroManager.lua
+modules\DebugLog.lua
+modules\KCMIconButton.lua
+modules\KCMScoreButton.lua
+modules\KCMMacroDragIcon.lua
+modules\KCMItemRow.lua
 
+# Settings
 # settings/Panel.lua first: it creates KCM.Settings.{Helpers, Schema, builders}
 # and exposes KCM.Settings.RegisterTab, which the per-tab modules below call.
 # It also publishes the KCM.Options shim (Register/Refresh/RequestRefresh/Open)
-# so Core / Debug / SlashCommands / Pipeline keep working unchanged.
+# so the core / pipeline callers keep working unchanged.
 settings\Panel.lua
 settings\General.lua
 settings\StatPriority.lua
 settings\Category.lua
-
-SlashCommands.lua

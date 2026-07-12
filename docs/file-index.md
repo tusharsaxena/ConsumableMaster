@@ -57,6 +57,7 @@ Loaded between `MacroManager` and `settings/`. Each file calls `AceGUI:RegisterW
 ## Top-level docs
 
 - `README.md` — user-facing.
-- `CLAUDE.md` — engineer working notes (hard rules + response style + doc index).
-- `ARCHITECTURE.md` — design overview + invariants + doc index.
+- `CLAUDE.md` — stub (tier + layout + gate + pointer into `docs/`).
+- `docs/agent-context.md` — engineer working notes (hard rules + response style + doc index).
+- `docs/ARCHITECTURE.md` — design overview + invariants + message-bus catalogue + doc index.
 - `docs/*.md` — topic chunks (this file is one of them).

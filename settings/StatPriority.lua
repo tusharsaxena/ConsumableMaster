@@ -15,7 +15,9 @@
 --   seed default (Defaults_StatPriority.lua) or the class-primary fallback
 --   if no seed exists.
 
-local KCM    = _G.KCM
+local _, NS = ...
+local KCM = NS
+local L      = KCM.L
 local H      = KCM.Settings.Helpers
 local AceGUI = LibStub("AceGUI-3.0")
 
@@ -27,14 +29,14 @@ O._viewedSpec = O._viewedSpec or nil
 -- pin survives respec. Re-armed only by the auto-resolve path.
 if O._viewedSpecAuto == nil then O._viewedSpecAuto = true end
 
-local PRIMARY_OPTIONS   = { STR = "Strength", AGI = "Agility", INT = "Intellect" }
+local PRIMARY_OPTIONS   = { STR = L["Strength"], AGI = L["Agility"], INT = L["Intellect"] }
 local PRIMARY_SORTING   = { "STR", "AGI", "INT" }
 local SECONDARY_OPTIONS = {
-    [""]        = "(none)",
-    CRIT        = "Critical Strike",
-    HASTE       = "Haste",
-    MASTERY     = "Mastery",
-    VERSATILITY = "Versatility",
+    [""]        = L["(none)"],
+    CRIT        = L["Critical Strike"],
+    HASTE       = L["Haste"],
+    MASTERY     = L["Mastery"],
+    VERSATILITY = L["Versatility"],
 }
 local SECONDARY_SORTING = { "", "CRIT", "HASTE", "MASTERY", "VERSATILITY" }
 
@@ -61,7 +63,7 @@ O.ResolveViewedSpec = resolveViewedSpec
 
 local specLabelCache = {}
 local function formatSpec(specKey)
-    if not specKey then return "(no active spec)" end
+    if not specKey then return L["(no active spec)"] end
     local cached = specLabelCache[specKey]
     if cached then return cached end
 
@@ -76,9 +78,9 @@ local function formatSpec(specKey)
     end
 
     local specName, specIcon
-    if GetNumSpecializationsForClassID and GetSpecializationInfoForClassID then
-        for i = 1, (GetNumSpecializationsForClassID(classID) or 0) do
-            local sid, name, _, icon = GetSpecializationInfoForClassID(classID, i)
+    if KCM.Compat.GetNumSpecializationsForClassID and KCM.Compat.GetSpecializationInfoForClassID then
+        for i = 1, (KCM.Compat.GetNumSpecializationsForClassID(classID) or 0) do
+            local sid, name, _, icon = KCM.Compat.GetSpecializationInfoForClassID(classID, i)
             if sid == specID then specName = name; specIcon = icon; break end
         end
     end
@@ -194,11 +196,11 @@ local function render(ctx)
     local scroll  = H.EnsureScroll(ctx)
     local specKey = resolveViewedSpec()
 
-    H.Section(ctx, "Selection")
+    H.Section(ctx, L["Selection"])
     local values, sorting = specSelectorValues()
     makeDropdown(scroll, {
-        label   = "Viewing spec",
-        tooltip = "Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Stat Food and Flask tabs.",
+        label   = L["Viewing spec"],
+        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Stat Food and Flask tabs."],
         values  = values,
         sorting = sorting,
         value   = O._viewedSpec,
@@ -209,9 +211,9 @@ local function render(ctx)
         end,
     })
 
-    H.Section(ctx, "Priority")
+    H.Section(ctx, L["Priority"])
     if not specKey then
-        H.Label(ctx, "|cffff8800No spec selected.|r Pick one above to edit its stat priority.", "medium")
+        H.Label(ctx, L["|cffff8800No spec selected.|r Pick one above to edit its stat priority."], "medium")
         return
     end
 
@@ -221,8 +223,8 @@ local function render(ctx)
     -- dropdown column lines up with the secondary rows below.
     local row1 = newPairRow(scroll)
     makeDropdown(row1, {
-        label         = "Primary stat",
-        tooltip       = "Dominant stat for this spec. Primary-stat consumables always beat secondary-stat ones regardless of magnitude.",
+        label         = L["Primary stat"],
+        tooltip       = L["Dominant stat for this spec. Primary-stat consumables always beat secondary-stat ones regardless of magnitude."],
         values        = PRIMARY_OPTIONS,
         sorting       = PRIMARY_SORTING,
         value         = cur.primary,
@@ -242,9 +244,9 @@ local function render(ctx)
     local rows = { row2, row2, row3, row3 }
     for i = 1, 4 do
         makeDropdown(rows[i], {
-            label         = ("Secondary stat #%d"):format(i),
-            tooltip       = "Secondary stat ranked at position " .. i
-                            .. ". Position 1 weighs the most; leave as (none) to truncate the list.",
+            label         = (L["Secondary stat #%d"]):format(i),
+            tooltip       = L["Secondary stat ranked at position "] .. i
+                            .. L[". Position 1 weighs the most; leave as (none) to truncate the list."],
             values        = SECONDARY_OPTIONS,
             sorting       = SECONDARY_SORTING,
             value         = cur.secondary[i],
@@ -260,8 +262,8 @@ local function render(ctx)
 
     H.AddSpacer(scroll, 8)
     H.Button(ctx, {
-        text    = "Reset stat priority",
-        tooltip = "Drop user override for this spec. The Ranker falls back to the seed default (Defaults_StatPriority.lua) or the class-primary fallback if no seed exists.",
+        text    = L["Reset stat priority"],
+        tooltip = L["Drop user override for this spec. The Ranker falls back to the seed default (Defaults_StatPriority.lua) or the class-primary fallback if no seed exists."],
         onClick = function()
             if not (KCM.db and KCM.db.profile and specKey) then return end
             KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
@@ -279,9 +281,9 @@ local function Build(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then
         return nil
     end
-    local ctx = H.CreatePanel("KCMStatPriorityPanel", "Stat Priority", { panelKey = "statpriority" })
+    local ctx = H.CreatePanel("KCMStatPriorityPanel", L["Stat Priority"], { panelKey = "statpriority" })
     H.SetRenderer(ctx, render)
-    return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, "Stat Priority")
+    return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, L["Stat Priority"])
 end
 
 if KCM.Settings and KCM.Settings.RegisterTab then

@@ -1,0 +1,18 @@
+# Packager config for Ka0s Consumable Master.
+# Libraries are vendored under libs/ (no externals fetched at package time).
+
+package-as: ConsumableMaster
+
+enable-nolib-creation: no
+
+ignore:
+  - audit
+  - docs
+  - reviews
+  - tests
+  - .luacheckrc
+  - .pkgmeta
+  - .gitignore
+  - .gitattributes
+  - "*.bak"
+  - media/screenshots

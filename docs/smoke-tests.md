@@ -1,6 +1,6 @@
 # Smoke tests
 
-The addon has no automated tests — every behaviour is event-driven against Blizzard APIs that aren't reachable from a Lua test harness. Validation is manual, in-game. This file is the canonical playbook.
+A headless unit-test harness now covers the **pure** layer (Classifier, Ranker, Selector, ID sentinels, schema validation, MacroManager body builders, the message bus, DebugLog formatters) plus a full-addon TOC-order load check — run it with `lua5.1 tests/run.lua` and lint with `luacheck .` (see [../README.md#testing](../README.md#testing)). Everything the harness can't reach — event-driven behaviour against Blizzard APIs, frame/UI rendering, taint, action-bar icons — is still validated **manually, in-game**. This file is the canonical playbook for that manual pass.
 
 Two flavours:
 

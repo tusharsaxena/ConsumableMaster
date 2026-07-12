@@ -159,6 +159,17 @@ Hovering the **blue info button** on any row shows the per-item score breakdown,
 | `/cm reset` or "Reset all priorities" says it didn't work. | Saved variables haven't initialized — reload and try again. Only happens during a failed initial load. |
 | I want to restore a seed list (after manually removing items). | **Reset category** on the category's page wipes that category's added / blocked / pinned entries; **Reset all priorities** (General page) wipes everything across all categories. |
 
+## Testing
+
+Two gates guard every change; both must be green before a commit.
+
+| Gate | Command | What it does |
+|------|---------|--------------|
+| Headless harness | `lua5.1 tests/run.lua` | Runs the pure-layer unit suites (classifier, ranker, selector, ID sentinels, schema, macro-body builders, bus) against a `wow_mock.lua` stub of the WoW API — no client needed. |
+| Lint | `luacheck .` | Static analysis across the addon (`libs/`, `audit/`, `tests/`, `reviews/` excluded). |
+
+Runtime behaviour still needs a client. The manual in-game smoke-test playbook — a quick post-change smoke plus the full section-by-section suite — lives at [docs/smoke-tests.md](./docs/smoke-tests.md).
+
 ## Issues and feature requests
 
 All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/consumablemaster/issues](https://github.com/tusharsaxena/consumablemaster/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.

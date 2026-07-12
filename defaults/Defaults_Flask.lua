@@ -15,7 +15,8 @@
 -- Source: Method.gg Midnight consumables list, 2026-04-22.
 -- See defaults/README.md to re-run the refresh.
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.FLASK = {

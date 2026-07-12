@@ -11,7 +11,9 @@
 --      SlashCommands, Pipeline)
 --   KCM.Settings.Helpers + KCM.Settings.Schema  (SlashCommands /cm list/get/set)
 
-local KCM = _G.KCM
+local _, NS = ...
+local KCM = NS
+local L = KCM.L
 local AceGUI = LibStub("AceGUI-3.0")
 
 KCM.Settings         = KCM.Settings         or {}
@@ -35,7 +37,7 @@ KCM.Settings.Helpers = Helpers
 KCM.Options = KCM.Options or {}
 local O = KCM.Options
 
-local PANEL_TITLE   = "Ka0s Consumable Master"
+local PANEL_TITLE   = L["Ka0s Consumable Master"]
 local PADDING_X     = 16
 local HEADER_TOP    = 20
 local HEADER_HEIGHT = 54
@@ -44,8 +46,10 @@ local SECTION_TOP_SPACER    = 10
 local SECTION_BOTTOM_SPACER = 6
 local SECTION_HEADING_H     = 26
 local ROW_VSPACER           = 8
+local DEFAULTS_W            = 110    -- top-right per-page Defaults button (standard §6.5)
+local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (standard §6.8)
 
-local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\screenshots\consumemaster.logo.tga]]
+local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
 local LOGO_PIXELS  = 300
 
 -- ---------------------------------------------------------------------
@@ -97,7 +101,7 @@ local _validSections = { general = true }
 local _validTypes    = { bool = true, number = true, string = true, color = true }
 
 local function _printSchemaError(prefix, msg)
-    print("|cff00ffff[CM]|r |cffff0000schema error|r: " .. prefix .. ": " .. msg)
+    print(KCM.PREFIX .. " |cffff0000schema error|r: " .. prefix .. ": " .. msg)
 end
 
 function Helpers.ValidateSchema()
@@ -182,6 +186,23 @@ local function buildHeader(panel, title, opts)
     divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_HEIGHT)
     divider:SetVertexColor(titleFS:GetTextColor())
 
+    -- Top-right per-page Defaults button (standard §6.5). Rendered only when
+    -- the page supplies opts.defaultsAction; wired to that page's own reset.
+    if opts.defaultsAction then
+        local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+        btn:SetSize(DEFAULTS_W, 22)
+        btn:SetText(_G.DEFAULTS or L["Defaults"])
+        btn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP + 4)
+        btn:SetScript("OnClick", function()
+            if InCombatLockdown and InCombatLockdown() then return end
+            local ok, err = pcall(opts.defaultsAction)
+            if not ok then
+                print(KCM.PREFIX .. " defaults action failed: " .. tostring(err))
+            end
+        end)
+        panel.defaultsButton = btn
+    end
+
     return titleFS, divider
 end
 
@@ -237,7 +258,7 @@ function Helpers.SetRenderer(ctx, fn)
             elseif HideUIPanel and SettingsPanel then
                 HideUIPanel(SettingsPanel)
             end
-            print("|cff00ffff[CM]|r cannot open settings during combat. Try again after combat ends.")
+            print(KCM.PREFIX .. " cannot open settings during combat. Try again after combat ends.")
             return
         end
         if ctx._rendered then return end
@@ -396,7 +417,7 @@ local function fireOnChange(def, value)
     if def.onChange then
         local ok, err = pcall(def.onChange, value)
         if not ok then
-            print("|cff00ffff[CM]|r onChange for " .. tostring(def.path)
+            print(KCM.PREFIX .. " onChange for " .. tostring(def.path)
                   .. " failed: " .. tostring(err))
         end
     end
@@ -458,9 +479,9 @@ local function makeCheckbox(ctx, def, parent, relativeWidth)
     end
 
     cb:SetCallback("OnValueChanged", function(_, _, value)
-        local v = value and true or false
-        Helpers.Set(def.path, v)
-        fireOnChange(def, v)
+        -- Route through the one validate→write→onChange→refresh seam so the
+        -- widget path and the /cm set path share identical wiring (standard §4.5).
+        Helpers.SetAndRefresh(def.path, value and true or false)
     end)
 
     attachTooltip(cb, def.label, def.tooltip)
@@ -491,7 +512,7 @@ local function makeButton(parent, spec, relativeWidth)
         if not spec.onClick then return end
         local ok, err = pcall(spec.onClick)
         if not ok then
-            print("|cff00ffff[CM]|r button onClick failed: " .. tostring(err))
+            print(KCM.PREFIX .. " button onClick failed: " .. tostring(err))
         end
     end)
     if spec.disabled then btn:SetDisabled(true) end
@@ -517,9 +538,66 @@ function Helpers.ButtonPair(ctx, leftSpec, rightSpec)
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     row:SetHeight(28)
-    if leftSpec  then makeButton(row, leftSpec,  0.5) end
-    if rightSpec then makeButton(row, rightSpec, 0.5) end
+    if leftSpec  then makeButton(row, leftSpec,  BUTTON_PAIR_REL) end
+    if rightSpec then makeButton(row, rightSpec, BUTTON_PAIR_REL) end
     scroll:AddChild(row)
+end
+
+-- Two-column paired grid for the schema-driven body (standard §6.6). Each item
+-- is either a schema def (rendered via RenderField) or a custom descriptor with
+-- a `make(ctx, parent, relWidth)` function. Items render two-per-row at 0.5
+-- relative width, flushing the SimpleGroup at two children; an item flagged
+-- `wide = true` breaks onto its own full-width row.
+function Helpers.Grid(ctx, items)
+    local scroll = ensureScroll(ctx)
+    local row, count = nil, 0
+    local function newRow()
+        local r = AceGUI:Create("SimpleGroup")
+        r:SetLayout("Flow")
+        r:SetFullWidth(true)
+        return r
+    end
+    local function flush()
+        if row then scroll:AddChild(row); row = nil; count = 0 end
+    end
+    local function renderInto(item, parent, relW)
+        if item.make then item.make(ctx, parent, relW)
+        else Helpers.RenderField(ctx, item, parent, relW) end
+    end
+    for _, item in ipairs(items) do
+        if item.wide then
+            flush()
+            local r = newRow()
+            renderInto(item, r, nil)
+            scroll:AddChild(r)
+        else
+            if not row then row = newRow() end
+            renderInto(item, row, 0.5)
+            count = count + 1
+            if count == 2 then flush() end
+        end
+    end
+    flush()
+end
+
+-- A checkbox backed by an arbitrary get/set pair (e.g. session-only State
+-- flags that aren't in the AceDB schema). Registered with the panel's
+-- refreshers so RefreshAllPanels re-syncs it.
+function Helpers.CustomCheckbox(ctx, parent, relWidth, spec)
+    parent = parent or ensureScroll(ctx)
+    local cb = AceGUI:Create("CheckBox")
+    cb:SetLabel(spec.label or "")
+    applyWidth(cb, relWidth)
+    cb:SetValue(spec.get() and true or false)
+    cb:SetCallback("OnValueChanged", function(_, _, value)
+        spec.set(value and true or false)
+    end)
+    attachTooltip(cb, spec.label, spec.tooltip)
+    parent:AddChild(cb)
+    ctx.refreshers[#ctx.refreshers + 1] = function()
+        cb:SetValue(spec.get() and true or false)
+    end
+    return cb
 end
 
 -- AceGUI Label with optional fontSize hint ("medium" maps to GameFontHighlight,
@@ -553,19 +631,52 @@ function Helpers.RefreshAllPanels()
         if ctx._rendered and ctx._renderFn then
             local ok, err = pcall(ctx._renderFn, ctx)
             if not ok then
-                print("|cff00ffff[CM]|r panel render failed: " .. tostring(err))
+                print(KCM.PREFIX .. " panel render failed: " .. tostring(err))
             end
         end
     end
 end
 
+-- Validate a value against a schema row's declared type, clamping numbers to
+-- min/max. Returns the coerced value, or nil + reason on a type mismatch.
+local function validateSchemaValue(def, value)
+    local t = def.type
+    if t == "bool" then
+        if type(value) ~= "boolean" then return nil, "expected boolean" end
+    elseif t == "number" then
+        if type(value) ~= "number" then return nil, "expected number" end
+        if def.min then value = math.max(def.min, value) end
+        if def.max then value = math.min(def.max, value) end
+    elseif t == "string" then
+        if type(value) ~= "string" then return nil, "expected string" end
+    elseif t == "color" then
+        if type(value) ~= "table" then return nil, "expected color table" end
+    end
+    return value
+end
+Helpers.ValidateSchemaValue = validateSchemaValue
+
+-- The single mutation seam for schema-backed settings: validate → write →
+-- fire onChange → refresh panels. Both the panel widgets and /cm set route
+-- through here (standard §4.5). Returns true on success.
 function Helpers.SetAndRefresh(path, value)
     local def = Helpers.FindSchema(path)
     if not def then return false end
-    if not Helpers.Set(def.path, value) then return false end
-    fireOnChange(def, value)
+    local coerced, reason = validateSchemaValue(def, value)
+    if coerced == nil and value ~= nil then
+        print(KCM.PREFIX .. " invalid value for " .. tostring(path) .. ": " .. tostring(reason))
+        return false
+    end
+    if not Helpers.Set(def.path, coerced) then return false end
+    fireOnChange(def, coerced)
     Helpers.RefreshAllPanels()
     return true
+end
+
+-- Published unified setter (standard §4.5): NS.Schema:Set(path, value).
+KCM.Schema = KCM.Schema or {}
+function KCM.Schema:Set(path, value)
+    return Helpers.SetAndRefresh(path, value)
 end
 
 -- ---------------------------------------------------------------------
@@ -577,12 +688,14 @@ end
 KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     panel    = "general", section = "general", group = "General",
     path     = "enabled", type    = "bool",
-    label    = "Enable",
-    tooltip  = "Master enable for the addon. When off, the recompute pipeline is a no-op — macros keep their last-written body and stop updating with bag / spec / combat events.",
-    default  = true,
+    label    = L["Enable"],
+    tooltip  = L["Master enable for the addon. When off, the recompute pipeline is a no-op — macros keep their last-written body and stop updating with bag / spec / combat events."],
+    -- Default sourced from the AceDB defaults constant, not a duplicated
+    -- literal, so the schema and the seeded profile can never drift (standard §4.5).
+    default  = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.enabled,
     onChange = function(v)
         local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-        print("|cff00ffff[CM]|r Master enable " .. state)
+        print(KCM.PREFIX .. " Master enable " .. state)
         -- Off→on: kick a recompute so macros refresh against the current
         -- bag / spec state immediately rather than waiting for the next
         -- event. Off→off is harmless (RequestRecompute schedules a run
@@ -593,17 +706,10 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     end,
 }
 
-KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
-    panel    = "general", section = "general", group = "General",
-    path     = "debug",   type    = "bool",
-    label    = "Debug mode",
-    tooltip  = "Print per-event diagnostics to chat. Same as /cm debug.",
-    default  = false,
-    onChange = function(v)
-        local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-        print("|cff00ffff[CM]|r Debug mode " .. state)
-    end,
-}
+-- The debug flag is deliberately NOT a schema row: it is session-only state
+-- (KCM.State.debug, default off, never persisted) driven by DebugLog. The
+-- General page renders it as a custom State-backed checkbox instead (CM-14 /
+-- standard §12.5).
 
 -- ---------------------------------------------------------------------
 -- About content (parent canvas). Logo + addon notes + slash command list.
@@ -655,7 +761,7 @@ function Helpers.BuildAboutContent(ctx)
     local heading = AceGUI:Create("Heading")
     heading:SetFullWidth(true)
     heading:SetHeight(SECTION_HEADING_H)
-    heading:SetText("Slash Commands")
+    heading:SetText(L["Slash Commands"])
     if heading.label and heading.label.SetFontObject and _G.GameFontNormalLarge then
         heading.label:SetFontObject(_G.GameFontNormalLarge)
     end
@@ -721,7 +827,7 @@ local function registerPanel()
             if ok and sub then
                 KCM.Settings.sub[key] = sub
             elseif not ok then
-                print("|cff00ffff[CM]|r settings tab '" .. key .. "' failed: " .. tostring(sub))
+                print(KCM.PREFIX .. " settings tab '" .. key .. "' failed: " .. tostring(sub))
             end
         end
     end
@@ -800,7 +906,7 @@ function O.Open()
     -- Settings UI is protected during combat — opening will silently fail
     -- mid-fight. Surface a chat notice instead so the user knows why.
     if InCombatLockdown and InCombatLockdown() then
-        print("|cff00ffff[CM]|r cannot open settings during combat. Try again after combat ends.")
+        print(KCM.PREFIX .. " cannot open settings during combat. Try again after combat ends.")
         return false
     end
 
@@ -815,7 +921,7 @@ function O.Open()
         expandMainCategory()
         return true
     end
-    print("|cff00ffff[CM]|r settings panel unavailable on this client; use /cm.")
+    print(KCM.PREFIX .. " settings panel unavailable on this client; use /cm.")
     return false
 end
 
@@ -830,3 +936,24 @@ bootstrap:SetScript("OnEvent", function(self, event, arg1)
         self:UnregisterAllEvents()
     end
 end)
+
+-- ---------------------------------------------------------------------
+-- Bus receivers (standard §4.4). The options layer owns the sole
+-- subscriptions to PANEL_REFRESH (debounced rebuild of any open page) and
+-- SPEC_CHANGED (retrack the Stat Priority page to the new spec when the page
+-- is auto-tracking). Each is registered on its own target — never two on one.
+-- ---------------------------------------------------------------------
+if KCM.NewBusTarget and KCM.MSG then
+    local optionsTarget = KCM.NewBusTarget()
+    KCM._optionsBusTarget = optionsTarget
+    optionsTarget:RegisterMessage(KCM.MSG.PANEL_REFRESH, function()
+        if O.RequestRefresh then O.RequestRefresh()
+        elseif O.Refresh then O.Refresh() end
+    end)
+    optionsTarget:RegisterMessage(KCM.MSG.SPEC_CHANGED, function()
+        if O._viewedSpecAuto and KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
+            local _, _, key = KCM.SpecHelper.GetCurrent()
+            if key then O._viewedSpec = key end
+        end
+    end)
+end

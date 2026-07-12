@@ -9,12 +9,13 @@
 -- Every execute path is shared with the slash commands so behaviour stays
 -- identical regardless of entry point.
 
-local KCM    = _G.KCM
+local _, NS = ...
+local KCM = NS
+local L      = KCM.L
 local H      = KCM.Settings.Helpers
-local AceGUI = LibStub("AceGUI-3.0")
 
 local function inCombatNotice(label)
-    print(("|cff00ffff[CM]|r in combat — %s deferred until regen."):format(label))
+    print((KCM.PREFIX .. " in combat — %s deferred until regen."):format(label))
 end
 
 local function doForceResync()
@@ -43,7 +44,7 @@ local function doForceRewriteMacros()
     if KCM.Pipeline and KCM.Pipeline.Recompute then
         KCM.Pipeline.Recompute("options_rewrite")
     end
-    print("|cff00ffff[CM]|r rewrote all macros. If action bar icons still look stale, /reload to force the bars to refresh.")
+    print(KCM.PREFIX .. " rewrote all macros. If action bar icons still look stale, /reload to force the bars to refresh.")
     H.RefreshAllPanels()
 end
 
@@ -55,9 +56,9 @@ local function doResetAll()
 end
 
 StaticPopupDialogs["KCM_RESET_ALL"] = {
-    text         = "Reset ALL ConsumableMaster customization to defaults? This wipes added/blocked/pinned items and stat-priority overrides. Discovered items from bag scans are preserved.",
-    button1      = "Yes",
-    button2      = "No",
+    text         = L["Reset ALL ConsumableMaster customization to defaults? This wipes added/blocked/pinned items and stat-priority overrides. Discovered items from bag scans are preserved."],
+    button1      = L["Yes"],
+    button2      = L["No"],
     timeout      = 0,
     whileDead    = true,
     hideOnEscape = true,
@@ -68,33 +69,46 @@ local function render(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
 
-    -- General: paired [Enable] | [Debug] schema-driven row so the slash
-    -- command path uses the same write+refresh wiring as the toggles.
-    H.Section(ctx, "General")
+    -- General: two-column paired grid (standard §6.6). [Enable] is the
+    -- schema-backed master toggle; [Debug console] is a session-only State
+    -- checkbox (KCM.State.debug, never persisted) that also opens the console.
+    H.Section(ctx, L["General"])
     local enabledDef = H.FindSchema("enabled")
-    local debugDef   = H.FindSchema("debug")
-    local row = AceGUI:Create("SimpleGroup")
-    row:SetLayout("Flow")
-    row:SetFullWidth(true)
-    if enabledDef then H.RenderField(ctx, enabledDef, row, 0.5) end
-    if debugDef   then H.RenderField(ctx, debugDef,   row, 0.5) end
-    scroll:AddChild(row)
+    local debugConsole = {
+        make = function(c, parent, relW)
+            H.CustomCheckbox(c, parent, relW, {
+                label   = L["Debug console"],
+                tooltip = L["Open the on-screen debug console and stream diagnostics to it. Session-only — resets to off every login. Same as /cm debug."],
+                get     = function() return KCM.DebugLog and KCM.DebugLog.IsEnabled() end,
+                set     = function(v)
+                    if KCM.DebugLog and KCM.DebugLog.SetEnabled then
+                        KCM.DebugLog.SetEnabled(v)
+                        if v and KCM.DebugLog.Show then KCM.DebugLog.Show() end
+                    else
+                        KCM.State = KCM.State or {}
+                        KCM.State.debug = v
+                    end
+                end,
+            })
+        end,
+    }
+    H.Grid(ctx, { enabledDef, debugConsole })
 
-    H.Section(ctx, "Maintenance")
+    H.Section(ctx, L["Maintenance"])
     H.ButtonPair(ctx,
         {
-            text    = "Force resync",
-            tooltip = "Invalidate the tooltip cache, re-run auto-discovery against your bags, and recompute every category's pick. Same as /cm resync. Blocked in combat.",
+            text    = L["Force resync"],
+            tooltip = L["Invalidate the tooltip cache, re-run auto-discovery against your bags, and recompute every category's pick. Same as /cm resync. Blocked in combat."],
             onClick = doForceResync,
         },
         {
-            text    = "Force rewrite macros",
-            tooltip = "Clear cached macro fingerprints and re-issue every KCM macro (body + stored icon). Use this if a macro's action-bar icon looks stale. Same as /cm rewritemacros. Blocked in combat.",
+            text    = L["Force rewrite macros"],
+            tooltip = L["Clear cached macro fingerprints and re-issue every KCM macro (body + stored icon). Use this if a macro's action-bar icon looks stale. Same as /cm rewritemacros. Blocked in combat."],
             onClick = doForceRewriteMacros,
         })
     H.Button(ctx, {
-        text    = "Reset all priorities",
-        tooltip = "Wipe all added/blocked/pinned items and stat-priority overrides. Seed defaults are restored. This cannot be undone.",
+        text    = L["Reset all priorities"],
+        tooltip = L["Wipe all added/blocked/pinned items and stat-priority overrides. Seed defaults are restored. This cannot be undone."],
         onClick = function() StaticPopup_Show("KCM_RESET_ALL") end,
     })
 
@@ -106,9 +120,13 @@ local function Build(mainCategory)
         return nil
     end
 
-    local ctx = H.CreatePanel("KCMGeneralPanel", "General", { panelKey = "general" })
+    local ctx = H.CreatePanel("KCMGeneralPanel", L["General"], {
+        panelKey = "general",
+        -- Top-right Defaults button (standard §6.5) → this page's reset.
+        defaultsAction = function() StaticPopup_Show("KCM_RESET_ALL") end,
+    })
     H.SetRenderer(ctx, render)
-    return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, "General")
+    return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, L["General"])
 end
 
 if KCM.Settings and KCM.Settings.RegisterTab then

@@ -22,7 +22,9 @@
 -- via Selector mutators (AddItem / Block / MoveUp / MoveDown). Every mutation
 -- calls afterMutation so the macro pipeline and panels stay in sync.
 
-local KCM    = _G.KCM
+local _, NS = ...
+local KCM = NS
+local L      = KCM.L
 local H      = KCM.Settings.Helpers
 local AceGUI = LibStub("AceGUI-3.0")
 
@@ -43,7 +45,7 @@ local OWNED_ICON     = "|TInterface\\RaidFrame\\ReadyCheck-Ready:20|t"
 local NOT_OWNED_ICON = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:20|t"
 local PICK_ICON      = "|TInterface\\COMMON\\FavoritesIcon:20|t"
 
-local ADD_KIND_OPTIONS = { ITEM = "Item", SPELL = "Spell" }
+local ADD_KIND_OPTIONS = { ITEM = L["Item"], SPELL = L["Spell"] }
 local ADD_KIND_SORTING = { "ITEM", "SPELL" }
 
 -- ---------------------------------------------------------------------
@@ -51,20 +53,7 @@ local ADD_KIND_SORTING = { "ITEM", "SPELL" }
 -- ---------------------------------------------------------------------
 
 local function spellNameByID(id)
-    if not id then return nil end
-    if C_Spell and C_Spell.GetSpellName then
-        local n = C_Spell.GetSpellName(id)
-        if n and n ~= "" then return n end
-    end
-    if C_Spell and C_Spell.GetSpellInfo then
-        local info = C_Spell.GetSpellInfo(id)
-        if info and info.name and info.name ~= "" then return info.name end
-    end
-    if GetSpellInfo then
-        local n = GetSpellInfo(id)
-        if n and n ~= "" then return n end
-    end
-    return nil
+    return KCM.Compat and KCM.Compat.GetSpellName and KCM.Compat.GetSpellName(id) or nil
 end
 
 local function isOwned(id)
@@ -127,8 +116,8 @@ end
 -- the catKey/specKey/composite payload as the fourth arg (popup.data).
 StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
     text         = "%s",
-    button1      = "Yes",
-    button2      = "No",
+    button1      = L["Yes"],
+    button2      = L["No"],
     timeout      = 0,
     whileDead    = true,
     hideOnEscape = true,
@@ -180,7 +169,7 @@ local function makeIconBtn(parent, opts)
         btn:SetCallback("OnClick", function()
             local ok, err = pcall(opts.onClick)
             if not ok then
-                print("|cff00ffff[CM]|r icon-button onClick failed: " .. tostring(err))
+                print(KCM.PREFIX .. " icon-button onClick failed: " .. tostring(err))
             end
         end)
     end
@@ -289,16 +278,16 @@ local function renderSingle(ctx, cat)
 
     if cat.specAware then
         H.Label(ctx,
-            ("Spec-aware. Viewing: %s."):format(O.FormatSpec and O.FormatSpec(specKey) or tostring(specKey)),
+            (L["Spec-aware. Viewing: %s."]):format(O.FormatSpec and O.FormatSpec(specKey) or tostring(specKey)),
             "medium")
     end
 
     -- Add by ID (kind selector | ID input, paired 50/50)
-    H.Section(ctx, "Add item or spell by ID")
+    H.Section(ctx, L["Add item or spell by ID"])
     local addRow = newRow(scroll)
     makeDropdown(addRow, {
-        label         = "Type",
-        tooltip       = "Choose whether the ID belongs to an item (default — anything in bags) or a spell (class abilities like Recuperate). Auto-discovery already handles items in your bags; use this to seed something you don't currently carry, or any castable spell.",
+        label         = L["Type"],
+        tooltip       = L["Choose whether the ID belongs to an item (default — anything in bags) or a spell (class abilities like Recuperate). Auto-discovery already handles items in your bags; use this to seed something you don't currently carry, or any castable spell."],
         values        = ADD_KIND_OPTIONS,
         sorting       = ADD_KIND_SORTING,
         value         = O._addKind[cat.key] or "ITEM",
@@ -308,31 +297,31 @@ local function renderSingle(ctx, cat)
         end,
     })
     makeEditBox(addRow, {
-        label         = "ID",
-        tooltip       = "Enter an itemID or spellID to add to this category. Press Enter to add.",
+        label         = L["ID"],
+        tooltip       = L["Enter an itemID or spellID to add to this category. Press Enter to add."],
         relativeWidth = 0.6,
         maxLetters    = 12,
         onSubmit = function(text)
             local id = tonumber(text)
             if not id or id <= 0 then
-                print("|cff00ffff[CM]|r expected a positive numeric ID; got: " .. tostring(text))
+                print(KCM.PREFIX .. " expected a positive numeric ID; got: " .. tostring(text))
                 return
             end
             local kind = O._addKind[cat.key] or "ITEM"
             if kind == "SPELL" then
                 if not spellNameByID(id) then
-                    print("|cff00ffff[CM]|r unknown spellID: " .. id)
+                    print(KCM.PREFIX .. " unknown spellID: " .. id)
                     return
                 end
             else
                 if C_Item and C_Item.GetItemInfoInstant
                    and not C_Item.GetItemInfoInstant(id) then
-                    print("|cff00ffff[CM]|r unknown itemID: " .. id)
+                    print(KCM.PREFIX .. " unknown itemID: " .. id)
                     return
                 end
             end
             if cat.specAware and not specKey then
-                print("|cff00ffff[CM]|r spec-aware category: no active spec — can't add.")
+                print(KCM.PREFIX .. " spec-aware category: no active spec — can't add.")
                 return
             end
             local storedID = (kind == "SPELL") and KCM.ID.AsSpell(id) or id
@@ -343,15 +332,15 @@ local function renderSingle(ctx, cat)
     })
 
     -- Priority list
-    H.Section(ctx, "Priority list")
+    H.Section(ctx, L["Priority list"])
     H.Label(ctx,
-        ("%s in bags    %s not in bags    %s picked in macro"):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
+        (L["%s in bags    %s not in bags    %s picked in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
         "medium")
     H.AddSpacer(scroll, 4)
 
     if cat.specAware and not specKey then
         H.Label(ctx,
-            "|cffff8800No active spec.|r Spec-aware categories need a resolvable spec to display a priority list.",
+            L["|cffff8800No active spec.|r Spec-aware categories need a resolvable spec to display a priority list."],
             "medium")
     else
         local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
@@ -361,7 +350,7 @@ local function renderSingle(ctx, cat)
 
         if #priority == 0 then
             H.Label(ctx,
-                "|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery.",
+                L["|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery."],
                 "medium")
         else
             -- Ranker context shared across rows so every score tooltip uses
@@ -382,8 +371,8 @@ local function renderSingle(ctx, cat)
                 local explain = KCM.Ranker and KCM.Ranker.Explain
                     and KCM.Ranker.Explain(cat.key, rowID, rankerCtx) or nil
                 local scoreTitle = explain
-                    and ("Rank score: %s"):format(formatNumber(explain.score))
-                    or "Rank score"
+                    and (L["Rank score: %s"]):format(formatNumber(explain.score))
+                    or L["Rank score"]
 
                 local row = newRow(scroll, 28)
                 makeItemRow(row, {
@@ -398,8 +387,8 @@ local function renderSingle(ctx, cat)
                 })
                 makeIconBtn(row, {
                     image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-                    label    = "Move up",
-                    tooltip  = "Move higher in priority",
+                    label    = L["Move up"],
+                    tooltip  = L["Move higher in priority"],
                     disabled = isFirst,
                     onClick  = function()
                         if KCM.Selector and KCM.Selector.MoveUp
@@ -410,8 +399,8 @@ local function renderSingle(ctx, cat)
                 })
                 makeIconBtn(row, {
                     image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-                    label    = "Move down",
-                    tooltip  = "Move lower in priority",
+                    label    = L["Move down"],
+                    tooltip  = L["Move lower in priority"],
                     disabled = isLast,
                     onClick  = function()
                         if KCM.Selector and KCM.Selector.MoveDown
@@ -423,8 +412,8 @@ local function renderSingle(ctx, cat)
                 makeIconBtn(row, {
                     image    = "atlas:transmog-icon-remove",
                     size     = 22,
-                    label    = "Remove",
-                    tooltip  = "Remove from this category. Blocks the item so auto-discovery won't re-add it.",
+                    label    = L["Remove"],
+                    tooltip  = L["Remove from this category. Blocks the item so auto-discovery won't re-add it."],
                     onClick  = function()
                         if KCM.Selector and KCM.Selector.Block
                             and KCM.Selector.Block(cat.key, rowID, specKey) then
@@ -439,14 +428,14 @@ local function renderSingle(ctx, cat)
     -- Inline reset
     H.AddSpacer(scroll, 12)
     H.Button(ctx, {
-        text    = "Reset category",
-        tooltip = "Clear added/blocked items and pin overrides for this category"
-                  .. (cat.specAware and " (viewed spec only)" or "")
-                  .. ". Discovered items (from bag scans) are preserved.",
+        text    = L["Reset category"],
+        tooltip = L["Clear added/blocked items and pin overrides for this category"]
+                  .. (cat.specAware and L[" (viewed spec only)"] or "")
+                  .. L[". Discovered items (from bag scans) are preserved."],
         onClick = function()
-            local prompt = ("Reset %s%s to defaults?"):format(
+            local prompt = (L["Reset %s%s to defaults?"]):format(
                 cat.displayName,
-                cat.specAware and " (viewed spec)" or "")
+                cat.specAware and L[" (viewed spec)"] or "")
             StaticPopup_Show("KCM_RESET_CATEGORY", prompt, nil, {
                 catKey    = cat.key,
                 specKey   = specKey,
@@ -475,12 +464,12 @@ local function renderComposite(ctx, cat)
     H.AddSpacer(scroll, 6)
 
     H.Label(ctx,
-        "Composite macro. Toggle and order the contributing categories below — each category's own ranking and pick logic is edited on its individual panel.",
+        L["Composite macro. Toggle and order the contributing categories below — each category's own ranking and pick logic is edited on its individual panel."],
         "medium")
 
     local sections = {
-        { key = "inCombat",    orderField = "orderInCombat",    label = "In Combat"     },
-        { key = "outOfCombat", orderField = "orderOutOfCombat", label = "Out of Combat" },
+        { key = "inCombat",    orderField = "orderInCombat",    label = L["In Combat"]     },
+        { key = "outOfCombat", orderField = "orderOutOfCombat", label = L["Out of Combat"] },
     }
 
     for _, section in ipairs(sections) do
@@ -488,7 +477,7 @@ local function renderComposite(ctx, cat)
         local orderArr = cfg[section.orderField] or {}
 
         if #orderArr == 0 then
-            H.Label(ctx, "|cffff8800(no sub-categories)|r", "medium")
+            H.Label(ctx, L["|cffff8800(no sub-categories)|r"], "medium")
         else
             for i, ref in ipairs(orderArr) do
                 local refCat = KCM.Categories.Get(ref)
@@ -508,8 +497,8 @@ local function renderComposite(ctx, cat)
                     fallbackName = refLabel,
                 }, ITEM_ROW_RW_COMPOSITE)
                 makeCheckbox(row, {
-                    label    = "Enabled",
-                    tooltip  = ("Include %s in the macro body."):format(refLabel),
+                    label    = L["Enabled"],
+                    tooltip  = (L["Include %s in the macro body."]):format(refLabel),
                     value    = (cfg.enabled == nil) or (cfg.enabled[rowRef] ~= false),
                     width    = CHECK_W,
                     onChange = function(v)
@@ -520,8 +509,8 @@ local function renderComposite(ctx, cat)
                 })
                 makeIconBtn(row, {
                     image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-                    label    = "Move up",
-                    tooltip  = "Move higher in section order",
+                    label    = L["Move up"],
+                    tooltip  = L["Move higher in section order"],
                     disabled = (rowIndex == 1) or (rowSize <= 1),
                     onClick  = function()
                         local arr = cfg[sectionOrderField]
@@ -532,8 +521,8 @@ local function renderComposite(ctx, cat)
                 })
                 makeIconBtn(row, {
                     image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-                    label    = "Move down",
-                    tooltip  = "Move lower in section order",
+                    label    = L["Move down"],
+                    tooltip  = L["Move lower in section order"],
                     disabled = (rowIndex == rowSize) or (rowSize <= 1),
                     onClick  = function()
                         local arr = cfg[sectionOrderField]
@@ -549,10 +538,10 @@ local function renderComposite(ctx, cat)
     -- Inline reset
     H.AddSpacer(scroll, 12)
     H.Button(ctx, {
-        text    = "Reset category",
-        tooltip = "Restore enabled flags and section order to defaults.",
+        text    = L["Reset category"],
+        tooltip = L["Restore enabled flags and section order to defaults."],
         onClick = function()
-            local prompt = ("Reset %s to defaults?"):format(cat.displayName)
+            local prompt = (L["Reset %s to defaults?"]):format(cat.displayName)
             StaticPopup_Show("KCM_RESET_CATEGORY", prompt, nil, {
                 catKey    = cat.key,
                 composite = true,
