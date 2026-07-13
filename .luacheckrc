@@ -1,8 +1,8 @@
 -- Luacheck configuration for Ka0s Consumable Master.
 -- Run:  luacheck .
 -- Vendored libs, the frozen audit bundle, the review bundle, and the test
--- harness are excluded (libs are third-party; audit/reviews are docs; tests
--- run under their own mock and set globals deliberately).
+-- harness are excluded (libs are third-party; the audit/review bundles under
+-- docs/ are docs; tests run under their own mock and set globals deliberately).
 
 std = "lua51"
 max_line_length = false
@@ -10,8 +10,8 @@ codes = true
 
 exclude_files = {
     "libs/",
-    "audit/",
-    "reviews/",
+    "docs/audits/",
+    "docs/reviews/",
     "tests/",
 }
 

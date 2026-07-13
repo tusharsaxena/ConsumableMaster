@@ -6,9 +6,7 @@ package-as: ConsumableMaster
 enable-nolib-creation: no
 
 ignore:
-  - audit
-  - docs
-  - reviews
+  - docs        # includes docs/audits/ and docs/reviews/ bundles
   - tests
   - .luacheckrc
   - .pkgmeta

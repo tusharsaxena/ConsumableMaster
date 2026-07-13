@@ -166,7 +166,7 @@ Two gates guard every change; both must be green before a commit.
 | Gate | Command | What it does |
 |------|---------|--------------|
 | Headless harness | `lua5.1 tests/run.lua` | Runs the pure-layer unit suites (classifier, ranker, selector, ID sentinels, schema, macro-body builders, bus) against a `wow_mock.lua` stub of the WoW API — no client needed. |
-| Lint | `luacheck .` | Static analysis across the addon (`libs/`, `audit/`, `tests/`, `reviews/` excluded). |
+| Lint | `luacheck .` | Static analysis across the addon (`libs/`, `docs/audits/`, `docs/reviews/`, `tests/` excluded). |
 
 Runtime behaviour still needs a client. The manual in-game smoke-test playbook — a quick post-change smoke plus the full section-by-section suite — lives at [docs/smoke-tests.md](./docs/smoke-tests.md).
 
