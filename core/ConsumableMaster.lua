@@ -6,7 +6,7 @@ local KCM = NS
 local addon = LibStub("AceAddon-3.0"):NewAddon(NS, addonName, "AceEvent-3.0", "AceConsole-3.0")
 NS.addon = addon
 
-KCM.VERSION = "1.4.0"
+KCM.VERSION = "1.5.0"
 
 -- Priority-list entries are opaque numeric IDs. Positive = itemID; negative
 -- is a spell-sentinel whose absolute value is the spellID. Using a disjoint

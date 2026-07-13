@@ -12,7 +12,7 @@ Blizzard renamed several consumable subTypes in Midnight. The underlying `classI
 | `"Flask"` / `"Phial"` | `"Flasks & Phials"` |
 | `"Food & Drink"` | unchanged |
 
-The matcher strings live as `ST_*` constants at the top of `Classifier.lua`:
+The matcher strings live as `ST_*` constants at the top of `core/Classifier.lua`:
 
 ```lua
 local ST_POTION      = "Potions"
@@ -49,7 +49,7 @@ WoW Midnight marks certain protected returns as opaque tokens that error if Lua 
 
 ## Stored macro icon vs `#showtooltip`
 
-WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartender) only let `#showtooltip` drive the action-bar button's icon when the macro's stored icon is the `?` sentinel (fileID `134400`, exposed as `DYNAMIC_ICON` in `MacroManager.lua`). Any other stored icon overrides `#showtooltip` on the bar.
+WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartender) only let `#showtooltip` drive the action-bar button's icon when the macro's stored icon is the `?` sentinel (fileID `134400`, exposed as `DYNAMIC_ICON` in `modules/MacroManager.lua`). Any other stored icon overrides `#showtooltip` on the bar.
 
 Consequence: active macro bodies must store `DYNAMIC_ICON`; empty-state bodies must drop `#showtooltip` entirely and store `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
 
@@ -66,7 +66,7 @@ local main = Settings.RegisterCanvasLayoutCategory(panel, PANEL_TITLE)
 KCM._settingsCategoryID = main:GetID()
 ```
 
-`/cm config` (in `SlashCommands.lua`) uses the parent's ID stored in `KCM._settingsCategoryID` to land on the About splash.
+`/cm config` (in `core/SlashCommands.lua`) uses the parent's ID stored in `KCM._settingsCategoryID` to land on the About splash.
 
 ## Forcing a parent category to render expanded in the AddOns sidebar
 

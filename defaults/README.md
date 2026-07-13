@@ -81,7 +81,7 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
    - Potion of Devoured Dreams (241294) restores mana but also has a combat effect — Method.gg lists it under mana potions, wiki under void combat potions. We seed it as `MP_POT` because that's the primary effect; the Classifier may also match it as `CMBT_POT`.
    - Void-Shrouded Tincture (241302) is invisibility — classifier-wise a short-duration potion, but not a throughput buff. Do NOT seed in `CMBT_POT`.
 
-3. **Verify subType strings.** If Blizzard renames a subtype (as they did from `"Potion"` → `"Potions"` and merged `"Flask"` + `"Phial"` into `"Flasks & Phials"` in Midnight), update the constants at the top of `Classifier.lua`:
+3. **Verify subType strings.** If Blizzard renames a subtype (as they did from `"Potion"` → `"Potions"` and merged `"Flask"` + `"Phial"` into `"Flasks & Phials"` in Midnight), update the constants at the top of `core/Classifier.lua`:
    ```lua
    local ST_POTION      = "Potions"
    local ST_FOOD        = "Food & Drink"
@@ -89,7 +89,7 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
    ```
    Confirm with `/cm dump item <id>` — the `instant:` line shows the live subType string for any bag item.
 
-4. **Check for new stat-buff phrasings.** The TooltipCache parser matches specific stat names ("Critical Strike", "Haste", etc.) AND the wildcard phrasing `"<amount> of your highest secondary stat"`. If a new potion reads differently (e.g. `"of your primary stat"` or `"of a random secondary stat"`), extend `parseStatBuffs` in `TooltipCache.lua` and the corresponding special case in `Ranker.statWeight`.
+4. **Check for new stat-buff phrasings.** The TooltipCache parser matches specific stat names ("Critical Strike", "Haste", etc.) AND the wildcard phrasing `"<amount> of your highest secondary stat"`. If a new potion reads differently (e.g. `"of your primary stat"` or `"of a random secondary stat"`), extend `parseStatBuffs` in `core/TooltipCache.lua` and the corresponding special case in `modules/Ranker.lua`'s `statWeight`.
 
 5. **Quality tier variants.** Midnight consumables come in multiple quality tiers — e.g. the Method.gg-listed ID is often the base quality and users may carry a `+1` / `+2` variant (different itemID, same name, different stat amount). The Classifier matches all tiers because they share subType; auto-discovery picks them up. You do NOT need to seed every tier — seed the base ID only.
 

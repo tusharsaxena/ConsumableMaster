@@ -1,28 +1,35 @@
 # Debug & diagnostics
 
-The toggle, the dump targets, and the schema-driven slash CLI. All chat output is prefixed with the cyan `|cff00ffff[CM]|r` tag — no raw `print(...)` calls.
+The debug console, the dump targets, and the schema-driven slash CLI. All chat output is prefixed with the cyan `|cff00ffff[CM]|r` tag (`KCM.PREFIX`) — no raw `print(...)` calls.
 
-## Toggle verbose logging
+## Toggle the debug console
 
-`/cm debug` flips `KCM.db.profile.debug`. Internally it routes through `Settings.Helpers.SetAndRefresh("debug", nextValue)` so the panel checkbox, `/cm debug`, and `/cm set debug true|false` all share one write+notify+refresh path. Calls to `KCM.Debug.Print(fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
+`/cm debug [on|off]` drives `KCM.State.debug` (declared in `core/State.lua`) via `KCM.DebugLog.SetEnabled(on)`. The flag is **session-only** — default off, **never persisted**, and it resets to off on every login — so a session left with debug on doesn't leak into the next one. There is no `db.profile.debug`, no `debug` schema row, and no `Settings.Helpers.SetAndRefresh("debug")` path. Calls to `KCM.Debug.Print(fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
 
-`Debug.lua` is the only sanctioned chokepoint for gated logging:
+`modules/DebugLog.lua` owns the on-screen console — a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia). The header carries Copy / Clear / Toggle controls. `core/Debug.lua` routes diagnostics into it:
 
 ```lua
-KCM.Debug.IsOn()      -- bool
-KCM.Debug.Toggle()    -- flips db.profile.debug, prints state, refreshes panel
-KCM.Debug.Print(fmt, ...)  -- formatted print prefixed with [CM], no-op when off
+KCM.Debug.IsOn()      -- bool; reads KCM.State.debug
+KCM.Debug.Toggle()    -- routes through DebugLog:SetEnabled, prints state
+KCM.Debug.Print(fmt, ...)  -- formatted line to the console, no-op when off
+KCM.Debug.Log(fmt, ...)    -- unconditional console line
+
+KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()
+KCM.DebugLog.AddLine(text) / Show() / Hide()
+KCM.DebugLog.FormatPlain(...) / FormatColored(...)   -- pure formatters
 ```
 
-Don't introduce raw `print(...)` calls. Three sanctioned chat paths:
+`KCM.Debug.Print` / `Log` write to the **console**; chat is a fallback only when the console frame is unavailable.
 
-- `say()` (in `SlashCommands.lua`) — slash output, dump rows, help. Always prepends `[CM]`.
-- `KCM.Debug.Print(...)` — gated diagnostics.
-- Inline `print("|cff00ffff[CM]|r ...")` — only for one-shot warnings (oversized macro body, give-up notice on flush failure, etc.) where neither helper fits.
+Don't introduce raw `print(...)` calls. Three sanctioned output paths:
+
+- `say()` (in `core/SlashCommands.lua`, `= print(KCM.PREFIX .. " " .. s)`) — slash output, dump rows, help. Always prepends `[CM]`.
+- `KCM.Debug.Print(...)` — gated diagnostics into the console.
+- Inline `KCM.PREFIX`-prefixed `print(...)` — only for one-shot warnings (oversized macro body, give-up notice on flush failure, etc.) where neither helper fits.
 
 ## Dump internals
 
-`/cm dump <target>` — inspect runtime state. `DUMP_TARGETS` in `SlashCommands.lua` is the single source of truth; adding a row makes it appear in `/cm dump` help automatically.
+`/cm dump <target>` — inspect runtime state. `DUMP_TARGETS` in `core/SlashCommands.lua` is the single source of truth; adding a row makes it appear in `/cm dump` help automatically.
 
 | Target | What it shows |
 |--------|---------------|
@@ -47,23 +54,23 @@ Scalar settings live as rows in `KCM.Settings.Schema` (declared in `settings/Pan
 | Slash | Effect |
 |-------|--------|
 | `/cm list` | Every schema row, grouped by panel, with current value. |
-| `/cm get <path>` | Single-row read (e.g. `/cm get debug`). |
-| `/cm set <path> <value>` | Type-validated write through `Helpers.SetAndRefresh`; same code path as the panel widget. |
+| `/cm get <path>` | Single-row read (e.g. `/cm get enabled`). |
+| `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. |
 
-Adding a new scalar = one schema row. Row shape:
+`KCM.Schema:Set(path, value)` is the unified validate → write → onChange → refresh seam — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row. Row shape:
 
 ```lua
 Schema[#Schema + 1] = {
     panel    = "general", section = "general", group = "General",
-    path     = "debug",   type    = "bool",
-    label    = "Debug mode",
-    tooltip  = "Print per-event diagnostics to chat. Same as /cm debug.",
-    default  = false,
+    path     = "enabled", type    = "bool",
+    label    = "Enable",
+    tooltip  = "Master toggle. When off, the recompute pipeline is a no-op.",
+    default  = KCM.dbDefaults.profile.enabled,   -- default sourced from dbDefaults
     onChange = function(v) ... end,    -- optional
 }
 ```
 
-`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. Two rows are wired today: `general.enabled` (master toggle; `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately) and `general.debug` (verbose chat logging via `KCM.Debug.Print`).
+`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. Only one row is wired today: `general.enabled` (master toggle; `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately). Debug is **not** a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug`.
 
 ## List-shaped state — verb namespaces
 
@@ -79,7 +86,7 @@ All three namespaces dispatch through `findCommand` against an ordered `*_COMMAN
 
 ## Per-category recompute log
 
-`Core.lua` has a commented-out per-category recompute log (search for "Pipeline.RecomputeOne" near `KCM.Debug.Print`). It fires `N × M` times during login (N categories × M `GET_ITEM_INFO_RECEIVED` events) and floods chat. Uncomment only for short debugging sessions, then re-comment.
+`core/ConsumableMaster.lua` has a commented-out per-category recompute log (search for "Pipeline.RecomputeOne" near `KCM.Debug.Print`). It fires `N × M` times during login (N categories × M `GET_ITEM_INFO_RECEIVED` events) and floods chat. Uncomment only for short debugging sessions, then re-comment.
 
 ## Smoke testing
 

@@ -11,17 +11,18 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
      emptyText="/run print('|cff00ffff[CM]|r no new thing in bags')" },
    ```
    Set `specAware=true` if the category needs per-spec buckets.
-2. Add a matcher in `Classifier.lua`'s `matchers` table — predicate against `subType` + parsed tooltip.
-3. Add a scorer in `Ranker.lua`'s `scorers` table — return a numeric score; higher wins.
+2. Add a matcher in `core/Classifier.lua`'s `matchers` table — predicate against `subType` + parsed tooltip.
+3. Add a scorer in `modules/Ranker.lua`'s `scorers` table — return a numeric score; higher wins.
 4. Add a branch in `Ranker.Explain` for the score-button tooltip — produces `{ {label, value, note?}, ... }` rows that mirror the scorer's additive terms.
 5. Create `defaults/Defaults_New.lua`:
    ```lua
-   local KCM = _G.KCM
+   local _, NS = ...
+   local KCM = NS
    KCM.SEED = KCM.SEED or {}
    KCM.SEED.NEW = { itemID1, itemID2, ... }
    ```
-6. Add the file to `ConsumableMaster.toc` in dependency order (after `Categories.lua`, before runtime modules).
-7. Update `dbDefaults.profile.categories` in `Core.lua` so AceDB creates the bucket:
+6. Add the file to `ConsumableMaster.toc` in the `# Defaults` section (after `Categories.lua`, before the `# Modules` section).
+7. Update `dbDefaults.profile.categories` in `core/ConsumableMaster.lua` so AceDB creates the bucket:
    ```lua
    NEW = { added = {}, blocked = {}, pins = {}, discovered = {} },   -- non-spec
    NEW = { bySpec = {} },                                              -- spec-aware
@@ -40,7 +41,7 @@ Composites compose other categories' picks via `[combat]` / `[nocombat]` macro c
      emptyText="/run print('|cff00ffff[CM]|r no AIO new option available')" },
    ```
    `inCombat` / `outOfCombat` ref keys must be existing single-category keys (e.g. `"HS"`, `"HP_POT"`, `"FOOD"`).
-2. Add a bucket to `dbDefaults.profile.categories` in `Core.lua`:
+2. Add a bucket to `dbDefaults.profile.categories` in `core/ConsumableMaster.lua`:
    ```lua
    NEW_AIO = {
        enabled          = { REF1=true, REF2=true, REF3=true },
@@ -62,13 +63,13 @@ Updating a defaults file is a zero-migration upgrade for existing users — the 
 ## Fix a misclassification
 
 1. Run `/cm dump item <id>` to see the live `subType` + parsed tooltip.
-2. **Wrong subType?** Midnight may have renamed the string. Edit the `ST_*` constants at the top of `Classifier.lua`:
+2. **Wrong subType?** Midnight may have renamed the string. Edit the `ST_*` constants at the top of `core/Classifier.lua`:
    ```lua
    local ST_POTION      = "Potions"
    local ST_FOOD        = "Food & Drink"
    local ST_FLASK_PHIAL = "Flasks & Phials"
    ```
-3. **Tooltip parse missing a field?** Check `PATTERNS` in `TooltipCache.lua`. Watch for non-breaking spaces (U+00A0 — Lua `%s` does not match) and `|4singular:plural;` grammar escapes. Both are normalized in `normalizeTooltipText`; don't bypass it.
+3. **Tooltip parse missing a field?** Check `PATTERNS` in `core/TooltipCache.lua`. Watch for non-breaking spaces (U+00A0 — Lua `%s` does not match) and `|4singular:plural;` grammar escapes. Both are normalized in `normalizeTooltipText`; don't bypass it.
 4. Re-run `/cm dump item <id>` to confirm the fix.
 5. Run `/cm resync` to rebuild the candidate set, then `/cm dump pick <catKey>` to confirm the item now lands where expected.
 
@@ -76,6 +77,6 @@ For the Midnight-specific gotcha catalog see [midnight-quirks.md](./midnight-qui
 
 ## Verify a behavior change in-game
 
-There are no automated tests; validation is manual. Use the [Quick smoke](./smoke-tests.md#quick-smoke) recipe in [smoke-tests.md](./smoke-tests.md) for the post-change minimum, and the [targeted-by-change-area lookup](./smoke-tests.md#targeted-by-change-area) at the bottom of that file for which sections of the full suite map to your change.
+The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (9 suites) and `luacheck .` before committing. In-game behavior still needs manual validation: use the [Quick smoke](./smoke-tests.md#quick-smoke) recipe in [smoke-tests.md](./smoke-tests.md) for the post-change minimum, and the [targeted-by-change-area lookup](./smoke-tests.md#targeted-by-change-area) at the bottom of that file for which sections of the full suite map to your change.
 
 If you can only reason about the change from code and cannot test it in WoW, say so explicitly — don't claim it works.

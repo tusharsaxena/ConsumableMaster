@@ -74,7 +74,7 @@ If both sides end up empty, the body falls through to `buildEmptyBody` and the c
 
 ## Action-bar icon convention
 
-Two stored-icon constants in `MacroManager.lua`:
+Two stored-icon constants in `modules/MacroManager.lua`:
 
 ```lua
 local DEFAULT_ICON = 7704166   -- cooking pot

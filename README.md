@@ -58,10 +58,10 @@ Install the addon with the Addon Manager of your choice (or drop the folder into
 | `/cm resync` | Force a full rescan: re-discover, recompute picks, rewrite macros where the pick changed. |
 | `/cm rewritemacros` | Force an unconditional rewrite of every KCM macro body + icon. Use when an action-bar icon looks stale. |
 | `/cm reset` | Confirm-and-reset every priority list and stat override to defaults. |
-| `/cm debug` | Toggle verbose logging. |
+| `/cm debug` | Toggle the on-screen debug console (accepts `on`\|`off`). |
 | `/cm version` | Print the addon version. |
 | `/cm list` | List every schema-driven setting and its current value, grouped by panel. |
-| `/cm get <path>` | Print one setting's value (e.g. `/cm get debug`). |
+| `/cm get <path>` | Print one setting's value (e.g. `/cm get enabled`). |
 | `/cm set <path> <value>` | Set a setting; flows through the same path the panel widget uses. |
 | `/cm priority <cat> list\|add\|remove\|up\|down\|reset [<id>]` | Per-category priority-list editor. `<id>` accepts `12345` (item) or `s:5512` (spell). Composite categories use `/cm aio` instead. |
 | `/cm stat list\|primary\|secondary\|reset [<specKey>]` | Per-spec stat-priority editor. `<specKey>` is `<classID>_<specID>` or `CLASS:SPEC` (e.g. `SHAMAN:ENHANCEMENT`); defaults to current spec. |
@@ -79,7 +79,7 @@ Two sections, top to bottom.
 *General*
 
 *   **Enable** — master toggle. When off, the recompute pipeline is a no-op: macros keep their last-written body and stop updating with bag / spec / combat events. Toggle back on and macros refresh against current state immediately. Persists in saved variables.
-*   **Debug mode** — toggle verbose chat logging. Equivalent to `/cm debug`.
+*   **Debug console** — open the on-screen debug console (session-only; not persisted). Equivalent to `/cm debug`.
 
 *Maintenance*
 
@@ -180,6 +180,7 @@ If you're contributing or validating a build, the manual smoke-test playbook liv
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.5.0 | 2026-07-13 | On-screen debug console (movable window with Copy/Clear) opened via `/cm debug` or the General → Debug console toggle, with `/cm debug on/off`; debug logging is now session-only (resets each login) and streams to the console instead of chat; Interface updated to 120007 (Midnight 12.0.7); full compliance rework to the Ka0s WoW Addon Standard v1.0.0 (Tier 2) — private namespace, `core/`/`modules/` layout, message bus, spec/spell compat seam, locale module, and a headless test harness + `luacheck` gate; AceConfig dependency removed. |
 | 1.4.0 | 2026-05-03 | Settings UI migrated to a KickCD-style canvas with Blizzard sub-categories, breadcrumb chevron, and About landing page; slash UX rebranded to `/cm` with cyan `[CM]` chat prefix; schema-driven `/cm list/get/set` CLI; master enable toggle; Stat Priority auto-tracks the active spec; combat-time panel opens blocked at OnShow; secondary-stat dedupe; comprehensive smoke-test playbook in `docs/smoke-tests.md`. |
 | 1.3.0 | 2026-04-25 | Composite macros `KCM_HP_AIO` and `KCM_MP_AIO` that switch sub-category picks by combat state; AIO Health / AIO Mana settings pages with per-side toggle and reorder; empty-side fallback chat notice; `/cm dump pick hp_aio`/`mp_aio`. |
 | 1.2.1 | 2026-04-25 | Fixed login Lua error by replacing the removed `LEARNED_SPELL_IN_TAB` event with its modern equivalent. |

@@ -4,13 +4,14 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ## AceDB profile (one profile, account-wide)
 
-`KCM.dbDefaults.profile` (declared in `Core.lua`):
+`KCM.dbDefaults` (declared in `core/ConsumableMaster.lua`). `schemaVersion` lives in the account-wide **global** tree; everything else is in the profile:
 
 ```
+db.global
+└── schemaVersion        1          -- migration marker; see core/Database.lua
+
 db.profile
-├── schemaVersion        1
 ├── enabled              boolean    -- master enable; gates Pipeline.Recompute
-├── debug                boolean
 ├── categories
 │   ├── FOOD  │ DRINK │ HP_POT │ MP_POT │ HS    ← single-pick, non-spec-aware
 │   │   ├── added       { [id] = true }                  -- user-added items + spells
@@ -55,7 +56,7 @@ Seeds live in `KCM.SEED.<CATKEY>` Lua constants, **not** in SavedVariables — t
 
 ### Migrations
 
-`schemaVersion` stays at `1`. The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below). A real `Migrations.lua` shim only lands when an actually-incompatible change is introduced.
+`db.global.schemaVersion` stays at `1`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` and is the one place version-gated migrations land. The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below), so it needs no explicit migration step.
 
 ## Composite bucket shape
 
@@ -82,7 +83,7 @@ Priority-list entries are **opaque numeric IDs** that the pipeline treats unifor
 - **Positive** → itemID.
 - **Negative** → spell sentinel. The spell's ID is `math.abs(id)`.
 
-Conversions and predicates live in `KCM.ID` (declared in `Core.lua`):
+Conversions and predicates live in `KCM.ID` (declared in `core/ConsumableMaster.lua`):
 
 ```lua
 KCM.ID.AsSpell(spellID)  -- returns -spellID
@@ -157,7 +158,7 @@ There isn't one. `/cm resync` does a full rescan but **does not** include a GC s
 
 ## Reset path
 
-`KCM.ResetAllToDefaults(reason)` in `Core.lua` is the one place that wipes `categories` + `statPriority` back to `dbDefaults`. Both the Options "Reset all priorities" button and `/cm reset`'s StaticPopup delegate to it so semantics stay identical regardless of entry point.
+`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that wipes `categories` + `statPriority` back to `dbDefaults`. Both the Options "Reset all priorities" button and `/cm reset`'s StaticPopup delegate to it so semantics stay identical regardless of entry point.
 
 After the DB wipe, the function drives a full resync: `TooltipCache.InvalidateAll` → `RunAutoDiscovery` → `Pipeline.Recompute`. Macro writes that land in combat defer via the pending queue, so this is safe to run without a combat guard.
 

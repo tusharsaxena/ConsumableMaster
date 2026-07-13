@@ -5,7 +5,10 @@ The recompute path: how events become macro writes. Coalescing, the per-pass sco
 ## Pull-based, frame-coalesced
 
 ```
-event ──▶ RequestRecompute(reason)
+event ──▶ bus:SendMessage(KCM.MSG.RECOMPUTE, reason)
+            │  the pipeline owns the only subscriber; it forwards to ↓
+            ▼
+          RequestRecompute(reason)
             │  sets _recomputePending, schedules C_Timer.After(0, ...)
             │  multiple events in the same frame collapse to one run
             ▼
@@ -25,9 +28,10 @@ event ──▶ RequestRecompute(reason)
             │  else:
             │      Debug.Print("skipped writes (disabled)")  -- macros keep
             │                                                -- last-written body
-            │  Options.RequestRefresh()                  -- always: panel rebuild
+            │  bus:SendMessage(KCM.MSG.PANEL_REFRESH)    -- always: panel rebuild
+            │                                            -- (options receiver debounces;
             │                                            -- still hydrates [Loading]
-            │                                            -- rows while addon is off
+            │                                            -- rows while addon is off)
             ▼
           per-category:
               Selector.GetEffectivePriority(catKey, specKey, scoreCache)
@@ -40,7 +44,7 @@ event ──▶ RequestRecompute(reason)
 
 ## Coalescing — `RequestRecompute`
 
-Defined in `Core.lua` (`KCM.Pipeline.RequestRecompute`):
+Event handlers don't call the pipeline directly — they publish `KCM.MSG.RECOMPUTE` onto `KCM.bus`. The pipeline owns the single subscriber (on its own `NewBusTarget()`) and forwards to `RequestRecompute`. Defined in `core/ConsumableMaster.lua` (`KCM.Pipeline.RequestRecompute`):
 
 ```lua
 function P.RequestRecompute(reason)
@@ -60,7 +64,7 @@ function P.RequestRecompute(reason)
 end
 ```
 
-`C_Timer.After(0, ...)` defers to end-of-frame, which collapses a flurry of events (e.g. multiple `BAG_UPDATE_DELAYED` during loot) into a single pipeline run. Event handlers should call `RequestRecompute`, not `Recompute` directly — except the rare direct paths (`KCM.ResetAllToDefaults`, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
+`C_Timer.After(0, ...)` defers to end-of-frame, which collapses a flurry of events (e.g. multiple `BAG_UPDATE_DELAYED` during loot) into a single pipeline run. Event handlers publish `KCM.MSG.RECOMPUTE` (which lands in `RequestRecompute`), never `Recompute` directly — except the rare direct paths (`KCM.ResetAllToDefaults`, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
 
 ## Per-category isolation — `pcall`
 
@@ -96,16 +100,16 @@ Tooltip / bag / spec state can shift between events. A persistent cache would se
 
 ## Events
 
-Wired in `Core:OnEnable`:
+Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handlers publish `KCM.MSG.RECOMPUTE` onto the bus rather than calling the pipeline directly — the pipeline's own subscriber turns that into `RequestRecompute` (shown below as the effect):
 
 | Event | Handler | What it does |
 |-------|---------|--------------|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`, then `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. |
-| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + `RequestRecompute`. |
-| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | `RequestRecompute`. |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`, then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. |
+| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + publish `RECOMPUTE`. |
+| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
 | `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes. |
-| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + `RequestRecompute`; non-bag items → `Options.RequestRefresh` only. See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
-| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | `RequestRecompute("learned_spell")`. Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
+| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → `Options.RequestRefresh` only. See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
+| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
 
 ### GIIR bag/non-bag split
 
@@ -142,10 +146,10 @@ No protected API is called during combat. Selector, Ranker, Classifier, BagScann
 
 ## First-run / defaults seeding
 
-`Core:OnInitialize`:
+`OnInitialize` (`core/ConsumableMaster.lua`):
 
-1. `self.db = LibStub("AceDB-3.0"):New("ConsumableMasterDB", KCM.dbDefaults, true)`.
-2. `schemaVersion` is set to `1` on fresh install.
+1. `self.db = LibStub("AceDB-3.0"):New("ConsumableMasterDB", KCM.dbDefaults, true)`, then `core/Database.lua`'s `RunMigrations()`.
+2. `db.global.schemaVersion` is set to `1` on fresh install.
 3. Defaults files are Lua constants (`KCM.SEED.<CAT> = { ... }`), **not** copied into SavedVariables. The candidate set is computed at recompute time as `(seed ∪ added ∪ discovered) − blocked`.
 4. Stat-priority defaults follow the same model: `KCM.SEED.STAT_PRIORITY[<spec>]`. Only user overrides go into SavedVariables.
 5. The first recompute happens after `PLAYER_ENTERING_WORLD`, post-discovery and post-sweep.

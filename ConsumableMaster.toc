@@ -2,7 +2,7 @@
 ## Title: Ka0s Consumable Master
 ## Notes: Auto-managed account-wide consumable macros.
 ## Author: add1kted2ka0s
-## Version: 1.4.0
+## Version: 1.5.0
 ## IconTexture: Interface\Icons\inv_cooking_100_roastduck
 ## Category-enUS: Combat
 ## SavedVariables: ConsumableMasterDB

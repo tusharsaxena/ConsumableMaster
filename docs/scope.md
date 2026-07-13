@@ -38,7 +38,7 @@ Decisions made during requirements review and v1.0.0 launch — these are settle
 - **Macro adoption.** If a `KCM_*`-named macro pre-exists when the addon first runs, the addon adopts it (rewrites the body on next event). The addon never renames user macros and never calls `DeleteMacro` on a `KCM_*` slot.
 - **Reset confirmation.** Blizzard `StaticPopupDialogs` yes/no popup, registered with `preferredIndex = 3` to dodge the popup-slot taint cascade that affects slots 1 / 2 when other addons have used them earlier in the session.
 - **Conjured / vendor food handling.** The candidate set is built dynamically via the classifier (subType + tooltip) and ordered by the ranker (parsed heal/mana, ilvl, quality, conjured bonus). Defaults ship a known-good seed; auto-discovery handles new items. No static "small seed list" approach.
-- **Cyan `[CM]` chat prefix.** All addon chat output goes through the `say()` helper in `SlashCommands.lua` and wears the cyan `|cff00ffff[CM]|r` tag. Raw `print(...)` calls are banned.
+- **Cyan `[CM]` chat prefix.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth for the cyan `|cff00ffff[CM]|r` tag; one-shot chat routes through `KCM.Say`, and `core/SlashCommands.lua`'s `say()` helper prepends it to every slash line. Raw `print(...)` calls are banned.
 
 ## Where the contract lives
 
