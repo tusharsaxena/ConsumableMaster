@@ -1156,23 +1156,28 @@ local COMMANDS = {
         end},
     {"version",       "Print addon version",
         function() say(("version %s"):format(tostring(KCM.VERSION or "?"))) end},
-    {"debug",         "Toggle the debug console — `/cm debug [on|off]`",
+    {"debug",         "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`",
         function(rest)
             local arg = (rest or ""):match("^(%S*)"):lower()
             local DL = KCM.DebugLog
             if arg == "on" or arg == "off" then
+                -- DL.SetEnabled is the single seam: it owns the chat ack, the
+                -- console transition line, and the options-panel refresh (§5).
                 local want = (arg == "on")
                 if DL and DL.SetEnabled then
                     DL.SetEnabled(want)
                     if want and DL.Show then DL.Show() end
-                    say("debug console " .. (want and "on" or "off"))
                 elseif KCM.State then
                     KCM.State.debug = want
                 end
-                if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
-            elseif KCM.Debug and KCM.Debug.Toggle then
-                KCM.Debug.Toggle()
-                if DL and DL.IsEnabled and DL.IsEnabled() and DL.Show then DL.Show() end
+            else
+                -- Bare `/cm debug` toggles the window only; the flag is untouched
+                -- (debug-logging-§5), so capture can be armed independently.
+                if DL and DL.Toggle_Window then
+                    DL.Toggle_Window()
+                else
+                    say("Debug console unavailable.")
+                end
             end
         end},
     {"resync",        "Force macros to resync from bags",

@@ -17,16 +17,18 @@ function KCM.Debug.IsOn()
 end
 
 function KCM.Debug.Toggle()
-    local on
+    -- Route through the DebugLog seam, which owns the single write path: flip the
+    -- flag → refresh header → chat ack → console transition line → options refresh
+    -- (standard debug-logging-§5). Don't ack again here or the line prints twice.
     if KCM.DebugLog and KCM.DebugLog.Toggle then
-        on = KCM.DebugLog.Toggle()
-    else
-        KCM.State = KCM.State or {}
-        KCM.State.debug = not KCM.State.debug
-        on = KCM.State.debug
+        return KCM.DebugLog.Toggle()
     end
-    local state = on and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-    print(PREFIX .. "Debug mode " .. state)
+    -- Fallback before the console module has loaded (very early boot): flip the
+    -- flag and ack to chat so the toggle still does something.
+    KCM.State = KCM.State or {}
+    KCM.State.debug = not KCM.State.debug
+    local on = KCM.State.debug
+    print(PREFIX .. "Debug mode " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
     if KCM.Options and KCM.Options.Refresh then
         KCM.Options.Refresh()
     end

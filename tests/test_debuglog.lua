@@ -13,25 +13,29 @@ h.suite("DebugLog formatters", function(t)
     assert(loadfile("modules/DebugLog.lua"))("ConsumableMaster", KCM)
     local DL = KCM.DebugLog
 
-    -- FormatPlain: "timeStr [tag] msg", no color escapes.
-    t.eq(DL.FormatPlain("Ranker", "hello", "12:00:01"),
-        "12:00:01 [Ranker] hello", "plain full")
-    t.eq(DL.FormatPlain(nil, "hello", "12:00:01"),
-        "12:00:01 hello", "plain nil tag omits segment")
-    t.eq(DL.FormatPlain("Ranker", nil, "12:00:01"),
-        "12:00:01 [Ranker] ", "plain nil msg treated as empty")
-    t.falsy(DL.FormatPlain("Ranker", "hello", "12:00:01"):find("|c", 1, true),
+    -- Standard line shape (debug-logging-§3): "<ts> | [<tag>] <msg>".
+    -- FormatPlain: no colour escapes.
+    t.eq(DL.FormatPlain("12:00:01", "Ranker", "hello"),
+        "12:00:01 | [Ranker] hello", "plain full")
+    t.eq(DL.FormatPlain("12:00:01", nil, "hello"),
+        "12:00:01 | hello", "plain nil tag omits [tag] segment")
+    t.eq(DL.FormatPlain("12:00:01", "", "hello"),
+        "12:00:01 | hello", "plain empty tag omits [tag] segment")
+    t.eq(DL.FormatPlain("12:00:01", "Ranker", nil),
+        "12:00:01 | [Ranker] ", "plain nil msg treated as empty")
+    t.falsy(DL.FormatPlain("12:00:01", "Ranker", "hello"):find("|c", 1, true),
         "plain has no color codes")
 
-    -- FormatColored: grey time, cyan [tag], default msg.
-    t.eq(DL.FormatColored("Ranker", "hello", "12:00:01"),
-        "|cff80808012:00:01|r |cff00ffff[Ranker]|r hello", "colored full")
-    t.eq(DL.FormatColored(nil, "hello", "12:00:01"),
-        "|cff80808012:00:01|r hello", "colored nil tag omits segment")
-    t.eq(DL.FormatColored("Ranker", nil, "12:00:01"),
-        "|cff80808012:00:01|r |cff00ffff[Ranker]|r ", "colored nil msg empty")
+    -- FormatColored: steel-blue (6f8faf) timestamp, tan/gold (c9a66b) [tag],
+    -- default-white msg; "||" renders one literal pipe separator.
+    t.eq(DL.FormatColored("12:00:01", "Ranker", "hello"),
+        "|cff6f8faf12:00:01|r || |cffc9a66b[Ranker]|r hello", "colored full")
+    t.eq(DL.FormatColored("12:00:01", nil, "hello"),
+        "|cff6f8faf12:00:01|r || hello", "colored nil tag omits [tag] segment")
+    t.eq(DL.FormatColored("12:00:01", "Ranker", nil),
+        "|cff6f8faf12:00:01|r || |cffc9a66b[Ranker]|r ", "colored nil msg empty")
 
-    -- Enabled-state API drives KCM.State.debug.
+    -- Enabled-state API drives KCM.State.debug through the single SetEnabled seam.
     DL.SetEnabled(false)
     t.falsy(DL.IsEnabled(), "disabled reads false")
     t.falsy(KCM.State.debug, "SetEnabled(false) clears State.debug")
