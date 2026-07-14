@@ -58,7 +58,7 @@ Install the addon with the Addon Manager of your choice (or drop the folder into
 | `/cm resync` | Force a full rescan: re-discover, recompute picks, rewrite macros where the pick changed. |
 | `/cm rewritemacros` | Force an unconditional rewrite of every KCM macro body + icon. Use when an action-bar icon looks stale. |
 | `/cm reset` | Confirm-and-reset every priority list and stat override to defaults. |
-| `/cm debug` | Toggle the on-screen debug console (accepts `on`\|`off`). |
+| `/cm debug` | Toggle the debug console window; `on`\|`off` set logging on/off. |
 | `/cm version` | Print the addon version. |
 | `/cm list` | List every schema-driven setting and its current value, grouped by panel. |
 | `/cm get <path>` | Print one setting's value (e.g. `/cm get enabled`). |
@@ -79,7 +79,7 @@ Two sections, top to bottom.
 *General*
 
 *   **Enable** — master toggle. When off, the recompute pipeline is a no-op: macros keep their last-written body and stop updating with bag / spec / combat events. Toggle back on and macros refresh against current state immediately. Persists in saved variables.
-*   **Debug console** — open the on-screen debug console (session-only; not persisted). Equivalent to `/cm debug`.
+*   **Debug console** — enable the on-screen debug console (session-only; not persisted). Equivalent to `/cm debug on`.
 
 *Maintenance*
 

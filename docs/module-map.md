@@ -81,8 +81,8 @@ modules/MacroManager.lua  The ONLY module that calls CreateMacro / EditMacro.
 
 modules/DebugLog.lua  On-screen debug console (ConsumableMasterDebugWindow,
                    ScrollingMessageFrame, JetBrains Mono via LibSharedMedia).
-                   DL.SetEnabled / IsEnabled / Toggle / AddLine / Show / Hide
-                   + pure DL.FormatPlain / FormatColored.
+                   DL.SetEnabled / IsEnabled / Toggle / AddLine / Show / Hide /
+                   Toggle_Window / ShowCopy + pure DL.FormatPlain / FormatColored.
 
 settings/         Settings UI framework + per-tab modules.
 ├── Panel.lua            Helpers.CreatePanel (gold title + atlas divider),
@@ -270,13 +270,13 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 
 ```lua
 KCM.Debug.IsOn() -> bool                      -- reads KCM.State.debug (session-only)
-KCM.Debug.Toggle()                            -- routes through DebugLog:SetEnabled
-KCM.Debug.Print(fmt, ...)                     -- conditional; early-returns when off
-KCM.Debug.Log(fmt, ...)                       -- unconditional console line
+KCM.Debug.Toggle()                            -- routes through DebugLog.Toggle -> SetEnabled
+KCM.Debug.Print(fmt, ...)                     -- tagless; early-returns when off
+KCM.Debug.Log(tag, fmt, ...)                  -- tag-first; early-returns when off
 
-KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()
-KCM.DebugLog.AddLine(text) / Show() / Hide()
-KCM.DebugLog.FormatPlain(...) / FormatColored(...)   -- pure formatters
+KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
+KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()
+KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
 ```
 
 Diagnostics route to the on-screen console (`ConsumableMasterDebugWindow`); chat is a fallback only when the console is unavailable. See [debug.md](./debug.md).

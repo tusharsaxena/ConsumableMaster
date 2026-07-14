@@ -4,19 +4,19 @@ The debug console, the dump targets, and the schema-driven slash CLI. All chat o
 
 ## Toggle the debug console
 
-`/cm debug [on|off]` drives `KCM.State.debug` (declared in `core/State.lua`) via `KCM.DebugLog.SetEnabled(on)`. The flag is **session-only** — default off, **never persisted**, and it resets to off on every login — so a session left with debug on doesn't leak into the next one. There is no `db.profile.debug`, no `debug` schema row, and no `Settings.Helpers.SetAndRefresh("debug")` path. Calls to `KCM.Debug.Print(fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
+`/cm debug on|off` drives `KCM.State.debug` (declared in `core/State.lua`) through the single `KCM.DebugLog.SetEnabled(on)` seam; **bare `/cm debug` toggles the console window only, leaving the flag untouched** (so capture can be armed independently of whether the window is open). The flag is **session-only** — default off, **never persisted**, and it resets to off on every login — so a session left with debug on doesn't leak into the next one. There is no `db.profile.debug`, no `debug` schema row, and no `Settings.Helpers.SetAndRefresh("debug")` path. Calls to `KCM.Debug.Print(fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
 
-`modules/DebugLog.lua` owns the on-screen console — a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia). The header carries Copy / Clear / Toggle controls. `core/Debug.lua` routes diagnostics into it:
+`modules/DebugLog.lua` owns the on-screen console — a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia), styled like the addon's own frames (title bar + 1px divider, dark skin, flat text buttons). The title bar carries a left-aligned **Debug: ON/OFF** state toggle (green ON / red OFF) plus Copy / Clear / close; **Copy** opens a separate read-through window for `Ctrl+C`. `core/Debug.lua` routes diagnostics into it:
 
 ```lua
 KCM.Debug.IsOn()      -- bool; reads KCM.State.debug
-KCM.Debug.Toggle()    -- routes through DebugLog:SetEnabled, prints state
-KCM.Debug.Print(fmt, ...)  -- formatted line to the console, no-op when off
-KCM.Debug.Log(fmt, ...)    -- unconditional console line
+KCM.Debug.Toggle()    -- routes through DebugLog.Toggle -> SetEnabled (owns the ack)
+KCM.Debug.Print(fmt, ...)       -- tagless line to the console, no-op when off
+KCM.Debug.Log(tag, fmt, ...)    -- tag-first line to the console, no-op when off
 
-KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()
-KCM.DebugLog.AddLine(text) / Show() / Hide()
-KCM.DebugLog.FormatPlain(...) / FormatColored(...)   -- pure formatters
+KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
+KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()
+KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
 ```
 
 `KCM.Debug.Print` / `Log` write to the **console**; chat is a fallback only when the console frame is unavailable.
