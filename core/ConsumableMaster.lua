@@ -210,19 +210,18 @@ end
 -- false for items whose tooltip isn't loaded yet. Without the retry, an
 -- item present in bags from /reload silently gets skipped on first
 -- discovery pass and never re-enters the candidate set until bags change.
-local function discoverOne(itemID, reason, nowUnix)
+local function discoverOne(itemID, reason, nowUnix, outNew)
     if not (itemID and KCM.Classifier and KCM.Classifier.MatchAny
             and KCM.Selector and KCM.Selector.MarkDiscovered) then
         return 0
     end
     local added = 0
     local hits = KCM.Classifier.MatchAny(itemID)
-    if KCM.Debug and KCM.Debug.Print and #hits == 0 then
-        -- Per-bag-item trace. We only log the zero-hit case because a
-        -- successful discovery already prints "Discovered:" below.
-        KCM.Debug.Print("discoverOne: id=%d no category match (reason=%s)",
-            itemID, tostring(reason))
-    end
+    -- Zero-hit (item isn't a consumable we manage) is the common case on every
+    -- bag update and is intentionally NOT logged per-item — the bulk pass in
+    -- runAutoDiscovery emits one summary line instead. When `outNew` is passed
+    -- (bulk pass) we collect discovered IDs there for that summary; when it's
+    -- nil (standalone item_info_received retry) we print the per-item line.
     nowUnix = nowUnix or time()
     for _, catKey in ipairs(hits) do
         local cat = KCM.Categories.Get(catKey)
@@ -239,7 +238,9 @@ local function discoverOne(itemID, reason, nowUnix)
             end
             if KCM.Selector.MarkDiscovered(catKey, itemID, specKey, nowUnix) then
                 added = added + 1
-                if KCM.Debug and KCM.Debug.Print then
+                if outNew then
+                    outNew[#outNew + 1] = itemID
+                elseif KCM.Debug and KCM.Debug.Print then
                     KCM.Debug.Print("Discovered: %s id=%d (reason=%s)",
                         catKey, itemID, tostring(reason))
                 end
@@ -254,8 +255,22 @@ local function runAutoDiscovery(reason)
     local counts = KCM.BagScanner.Scan()
     local discovered = 0
     local nowUnix = time()
+    -- Only build the scanned/new lists when debug is on (standard §12 zero-alloc
+    -- gate) — this runs on every BAG_UPDATE_DELAYED. `newIds`, when non-nil, is
+    -- the accumulator discoverOne fills instead of printing per-item lines.
+    local debugOn = KCM.Debug and KCM.Debug.IsOn and KCM.Debug.IsOn()
+    local scanned = debugOn and {} or nil
+    local newIds  = debugOn and {} or nil
     for id in pairs(counts) do
-        discovered = discovered + discoverOne(id, reason, nowUnix)
+        if scanned then scanned[#scanned + 1] = id end
+        discovered = discovered + discoverOne(id, reason, nowUnix, newIds)
+    end
+    if debugOn and KCM.Debug.Log then
+        table.sort(scanned)
+        table.sort(newIds)
+        KCM.Debug.Log(reason,
+            "Scanned %d items, %d new discovered. Scanned=[%s]. New Discovered=[%s]",
+            #scanned, #newIds, table.concat(scanned, ","), table.concat(newIds, ","))
     end
     return discovered
 end
