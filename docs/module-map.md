@@ -120,8 +120,10 @@ KCM:OnEnable()                               -- event subscriptions
 KCM.Pipeline.RequestRecompute(reason)        -- frame-coalesced entry point
 KCM.Pipeline.Recompute(reason)               -- iterates categories, with pcall + score cache
 KCM.Pipeline.RecomputeOne(catKey, scoreCache, reason)  -- single category
-KCM.Pipeline.RunAutoDiscovery(reason) -> n   -- bag scan + classifier + MarkDiscovered
-KCM.Pipeline.DiscoverOne(itemID, reason, nowUnix?)  -- one-id retry path
+KCM.Pipeline.RunAutoDiscovery(reason) -> n   -- bag scan + classifier + MarkDiscovered;
+                                             --   one summary debug line per pass
+KCM.Pipeline.DiscoverOne(itemID, reason, nowUnix?, outNew?)  -- one-id retry path;
+                                             --   outNew (bulk pass) collects discovered IDs
 
 -- Sentinel helpers (also see data-model.md)
 KCM.ID.AsSpell(spellID)  -> negative
