@@ -133,6 +133,7 @@ StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
             cfg.enabled          = CopyTable(defaults.enabled or {})
             cfg.orderInCombat    = CopyTable(defaults.orderInCombat or {})
             cfg.orderOutOfCombat = CopyTable(defaults.orderOutOfCombat or {})
+            if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset %s", data.catKey) end
             afterMutation("options_aio_reset_cat")
         else
             local bucket = KCM.Selector and KCM.Selector.GetBucket
@@ -141,6 +142,7 @@ StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
             bucket.added   = {}
             bucket.blocked = {}
             bucket.pins    = {}
+            if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset %s", data.catKey) end
             afterMutation("options_reset_cat")
         end
     end,

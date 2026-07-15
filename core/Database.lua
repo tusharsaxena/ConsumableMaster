@@ -22,9 +22,13 @@ function D.RunMigrations()
     if not (db and db.global) then return end
     local g = db.global
     g.schemaVersion = g.schemaVersion or 1
+    local from = g.schemaVersion
 
     -- Future migrations go here, e.g.:
     --   if g.schemaVersion < 2 then ... ; g.schemaVersion = 2 end
 
     g.schemaVersion = D.CURRENT_SCHEMA
+    if KCM.State and KCM.State.debug and from ~= g.schemaVersion then
+        KCM.Debug("DB", "migrated schema v%s -> v%s", from, g.schemaVersion)
+    end
 end

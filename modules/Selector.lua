@@ -291,6 +291,10 @@ function S.AddItem(catKey, itemID, specKey)
         bucket.added[itemID] = true
         changed = true
     end
+    if changed and KCM.State and KCM.State.debug then
+        KCM.Debug("Prio", "add %s id=%s%s", catKey, itemID,
+            specKey and (" spec=" .. tostring(specKey)) or "")
+    end
     return changed
 end
 
@@ -307,6 +311,10 @@ function S.Block(catKey, itemID, specKey)
     end
     if bucket.blocked[itemID] then return false end
     bucket.blocked[itemID] = true
+    if KCM.State and KCM.State.debug then
+        KCM.Debug("Prio", "block %s id=%s%s", catKey, itemID,
+            specKey and (" spec=" .. tostring(specKey)) or "")
+    end
     return true
 end
 
@@ -382,8 +390,8 @@ function S.SweepStaleDiscovered(nowUnix)
             touchedCats = touchedCats + 1
         end
     end
-    if KCM.Debug and KCM.Debug.Print then
-        KCM.Debug.Print("GC: swept %d entries across %d categories", totalSwept, touchedCats)
+    if totalSwept > 0 and KCM.State and KCM.State.debug then
+        KCM.Debug("GC", "swept %s entries across %s categories", totalSwept, touchedCats)
     end
     return totalSwept, touchedCats
 end
@@ -415,6 +423,9 @@ local function movePinned(catKey, itemID, delta, specKey)
         table.insert(newPins, { itemID = id, position = i })
     end
     bucket.pins = newPins
+    if KCM.State and KCM.State.debug then
+        KCM.Debug("Prio", "%s %s id=%s", delta < 0 and "move-up" or "move-down", catKey, itemID)
+    end
     return true
 end
 

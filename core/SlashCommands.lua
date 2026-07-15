@@ -796,6 +796,7 @@ local function priorityReset(cat)
     bucket.added   = {}
     bucket.blocked = {}
     bucket.pins    = {}
+    if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset %s", cat.key) end
     say(("reset %s%s — added/blocked/pins cleared (discovered items preserved).")
         :format(cat.key, cat.specAware and (" (spec " .. tostring(specKey) .. ")") or ""))
     afterMutation("slash_priority_reset")

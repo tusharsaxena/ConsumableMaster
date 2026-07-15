@@ -81,6 +81,9 @@ function Helpers.Set(path, value)
     local parent, key = Helpers.Resolve(path)
     if not parent then return false end
     parent[key] = value
+    if KCM.State and KCM.State.debug then
+        KCM.Debug("Set", "%s = %s", tostring(path), tostring(value))
+    end
     return true
 end
 

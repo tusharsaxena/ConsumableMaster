@@ -76,10 +76,11 @@ function KCM:OnInitialize()
     -- bootstrap in settings/Panel.lua. AceAddon OnInitialize runs before
     -- PLAYER_LOGIN, so Settings.RegisterAddOnCategory may not be ready
     -- here on every client build — relying on the bootstrap is more robust.
-    if KCM.Debug and KCM.Debug.Print then
-        KCM.Debug.Print("Initialized (version %s, debug=%s)", KCM.VERSION,
-            tostring(KCM.State and KCM.State.debug))
-    end
+    --
+    -- No boot summary is emitted here: the debug flag is session-only and off at
+    -- login, so a load-time line would be gated off and never render. The
+    -- lifecycle summary rides the DebugLog.SetEnabled seam instead, as the [Init]
+    -- line emitted on debug-enable (debug-logging-§5/§8).
 end
 
 -- ---------------------------------------------------------------------------
@@ -109,18 +110,10 @@ function P.RecomputeOne(catKey, scoreCache, reason)
         -- and idempotent, so calling it again per sub-cat inside
         -- SetCompositeMacro is fine — and the same scoreCache flows through
         -- so any item that overlaps multiple categories isn't re-parsed).
-        KCM.MacroManager.SetCompositeMacro(cat, scoreCache)
-        return
+        return KCM.MacroManager.SetCompositeMacro(cat, scoreCache)
     end
     local pick = KCM.Selector.PickBestForCategory(catKey, nil, scoreCache)
-    KCM.MacroManager.SetMacro(cat.macroName, pick, catKey)
-    -- Verbose per-category recompute log is commented out — it fires N×M
-    -- times during login (N categories × M GET_ITEM_INFO_RECEIVED events)
-    -- and drowns the chat. Uncomment for debugging pick resolution.
-    -- if KCM.Debug and KCM.Debug.Print then
-    --     KCM.Debug.Print("Pipeline.RecomputeOne: %s -> %s (reason=%s)",
-    --         catKey, tostring(pick), tostring(reason))
-    -- end
+    return KCM.MacroManager.SetMacro(cat.macroName, pick, catKey)
 end
 
 function P.Recompute(reason)
@@ -139,17 +132,26 @@ function P.Recompute(reason)
         -- `[catKey][id]` memoizes the per-category score. Passing nil (as
         -- /cm dump / panel renders do) falls back to the uncached path.
         local scoreCache = { fields = {} }
+        local rewrote, skipped, total = 0, 0, 0
         for _, cat in ipairs(KCM.Categories.LIST) do
             -- Isolate each category so one bad scorer can't break the
             -- other seven macros. One pcall per category per recompute
             -- (8 per frame at peak) is cheap.
-            local ok, err = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
-            if not ok and KCM.Debug and KCM.Debug.Print then
-                KCM.Debug.Print("Recompute %s failed: %s", cat.key, tostring(err))
+            total = total + 1
+            local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
+            if not ok then
+                if KCM.State and KCM.State.debug then KCM.Debug("Macro", "%s recompute failed: %s", cat.key, tostring(res)) end
+            elseif res == "unchanged" then
+                skipped = skipped + 1
+            elseif res ~= nil then
+                rewrote = rewrote + 1   -- created / edited / deferred
             end
         end
-    elseif KCM.Debug and KCM.Debug.Print then
-        KCM.Debug.Print("Pipeline.Recompute skipped writes (disabled): reason=%s", tostring(reason))
+        if KCM.State and KCM.State.debug then
+            KCM.Debug("Calc", "%s", KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped))
+        end
+    elseif KCM.State and KCM.State.debug then
+        KCM.Debug("Calc", "skipped writes (disabled): reason=%s", tostring(reason))
     end
     -- Pipeline → panel refresh crosses a feature boundary, so it is published
     -- on the bus (standard §4.4); the options layer owns the sole PANEL_REFRESH
@@ -240,8 +242,8 @@ local function discoverOne(itemID, reason, nowUnix, outNew)
                 added = added + 1
                 if outNew then
                     outNew[#outNew + 1] = itemID
-                elseif KCM.Debug and KCM.Debug.Print then
-                    KCM.Debug.Print("Discovered: %s id=%d (reason=%s)",
+                elseif KCM.State and KCM.State.debug then
+                    KCM.Debug("Scan", "discovered %s id=%s (reason=%s)",
                         catKey, itemID, tostring(reason))
                 end
             end
@@ -265,12 +267,11 @@ local function runAutoDiscovery(reason)
         if scanned then scanned[#scanned + 1] = id end
         discovered = discovered + discoverOne(id, reason, nowUnix, newIds)
     end
-    if debugOn and KCM.Debug.Log then
+    if debugOn and KCM.Debug then
         table.sort(scanned)
         table.sort(newIds)
-        KCM.Debug.Log(reason,
-            "Scanned %d items, %d new discovered. Scanned=[%s]. New Discovered=[%s]",
-            #scanned, #newIds, table.concat(scanned, ","), table.concat(newIds, ","))
+        KCM.Debug("Scan", "reason=%s scanned %s items, %s new. Scanned=[%s]. New=[%s]",
+            reason, #scanned, #newIds, table.concat(scanned, ","), table.concat(newIds, ","))
     end
     return discovered
 end
@@ -278,6 +279,12 @@ end
 -- Expose for manual invocation from /cm resync and tests.
 KCM.Pipeline.RunAutoDiscovery = runAutoDiscovery
 KCM.Pipeline.DiscoverOne      = discoverOne
+
+-- Pure recompute-summary formatter (debug-logging-§8/§9, unit-tested).
+function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
+    return ("reason=%s rewrote %s/%s (skipped %s)"):format(
+        tostring(reason), tostring(rewrote), tostring(total), tostring(skipped))
+end
 
 -- Wipe every user customization and restore from dbDefaults. Preserves
 -- macroState so live macros aren't orphaned. Shared by the Options panel's
@@ -307,6 +314,7 @@ function KCM.ResetAllToDefaults(reason)
     KCM.db.profile.categories   = CopyTable(defaults.categories or {})
     KCM.db.profile.statPriority = CopyTable(defaults.statPriority or {})
     reason = reason or "reset_all"
+    if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
     if KCM.TooltipCache and KCM.TooltipCache.InvalidateAll then
         KCM.TooltipCache.InvalidateAll()
     end
@@ -349,8 +357,8 @@ end
 function KCM:OnRegenEnabled()
     if KCM.MacroManager and KCM.MacroManager.FlushPending then
         local n = KCM.MacroManager.FlushPending()
-        if n > 0 and KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("FlushPending applied %d macro(s)", n)
+        if n > 0 and KCM.State and KCM.State.debug then
+            KCM.Debug("Macro", "flushed %s pending macro(s) on regen", n)
         end
     end
 end

@@ -4,6 +4,9 @@
 -- persisted — standard §12.5) and is owned by DebugLog. Emitted diagnostics go
 -- to the on-screen DebugLog console (standard §12); if the console module
 -- hasn't loaded yet (very early boot) they fall back to the chat frame.
+--
+-- KCM.Debug is itself callable: KCM.Debug("Tag", "%s -> %s", a, b). KCM.Debug.Log
+-- is a tag-first alias of the same callable.
 
 local _, NS = ...
 local KCM = NS
@@ -35,25 +38,30 @@ function KCM.Debug.Toggle()
     return on
 end
 
--- Zero-alloc gate BEFORE any string.format (standard §12). Diagnostics route
--- to the console; the optional `tag` groups related lines there.
-local function emit(tag, fmt, ...)
-    if not KCM.Debug.IsOn() then return end
-    local ok, msg = pcall(string.format, fmt, ...)
-    if not ok then msg = tostring(fmt) end
-    if KCM.DebugLog and KCM.DebugLog.AddLine then
-        KCM.DebugLog.AddLine(tag, msg)
-    else
-        print(PREFIX .. (tag and ("[" .. tag .. "] ") or "") .. msg)
-    end
-end
+-- Callable sink (debug-logging-§4): KCM.Debug("Tag", "%s -> %s", a, b).
+-- Zero-alloc gate is the FIRST statement; every vararg is stringified through
+-- the secret-safe KCM.SafeToString so a combat "secret" can't raise here, which
+-- is why all call-site placeholders are %s (never %d/%f).
+local mt = {
+    __call = function(_, tag, fmt, ...)
+        if not KCM.Debug.IsOn() then return end
+        local n = select("#", ...)
+        local msg = fmt
+        if n > 0 then
+            local parts = {}
+            for i = 1, n do parts[i] = KCM.SafeToString((select(i, ...))) end
+            msg = tostring(fmt):format(unpack(parts))
+        end
+        if KCM.DebugLog and KCM.DebugLog.AddLine then
+            KCM.DebugLog.AddLine(tag, msg)
+        else
+            print(PREFIX .. "[" .. tostring(tag) .. "] " .. tostring(msg))
+        end
+    end,
+}
+setmetatable(KCM.Debug, mt)
 
--- Legacy tagless entry used across the addon.
-function KCM.Debug.Print(fmt, ...)
-    return emit(nil, fmt, ...)
-end
-
--- Tag-first entry (standard §12): KCM.Debug.Log("pipeline", "%s -> %s", a, b).
+-- Tag-first alias (retained for already-tagged call sites and tests).
 function KCM.Debug.Log(tag, fmt, ...)
-    return emit(tag, fmt, ...)
+    return KCM.Debug(tag, fmt, ...)
 end

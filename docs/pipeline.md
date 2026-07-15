@@ -26,8 +26,8 @@ event ──▶ bus:SendMessage(KCM.MSG.RECOMPUTE, reason)
             │                 pick = Selector.PickBestForCategory(cat.key, nil, scoreCache)
             │                 MacroManager.SetMacro(cat.macroName, pick, cat.key)
             │  else:
-            │      Debug.Print("skipped writes (disabled)")  -- macros keep
-            │                                                -- last-written body
+            │      KCM.Debug("Calc", "skipped writes (disabled): reason=%s", reason)
+            │                                                -- macros keep last-written body
             │  bus:SendMessage(KCM.MSG.PANEL_REFRESH)    -- always: panel rebuild
             │                                            -- (options receiver debounces;
             │                                            -- still hydrates [Loading]
@@ -71,8 +71,8 @@ end
 ```lua
 for _, cat in ipairs(KCM.Categories.LIST) do
     local ok, err = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
-    if not ok and KCM.Debug and KCM.Debug.Print then
-        KCM.Debug.Print("Recompute %s failed: %s", cat.key, tostring(err))
+    if not ok and KCM.State and KCM.State.debug then
+        KCM.Debug("Macro", "%s recompute failed: %s", cat.key, tostring(err))
     end
 end
 ```

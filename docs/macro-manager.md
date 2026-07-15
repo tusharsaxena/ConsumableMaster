@@ -103,7 +103,7 @@ SetMacro(name, id, catKey):
     body = BuildBody(catKey, id)
     if #body > 255:
         body = empty-state stub
-        emit one-shot oversize warning to chat + Debug.Print
+        emit one-shot oversize warning to chat + [Macro]-tagged KCM.Debug(...)
         effectiveItemID = nil       -- so iconFor returns DEFAULT_ICON
     icon = iconFor(effectiveItemID)
     state   = macroState[name]
@@ -165,7 +165,7 @@ Bounded to **3 attempts** before giving up, with a one-time chat notice. Prevent
 | Item classifies into no category | Allowed — user knows best. Enters candidate set with score=0 from `Ranker`; sorted last. |
 | Spec-aware category without a current spec | `GetEffectivePriority` returns `{}`; `PickBestForCategory` returns nil; empty-state body written. No-op edge. |
 | Tooltip never loads | `TooltipCache.Get` returns the `pending=true` marker; Ranker scores 0 until `GET_ITEM_INFO_RECEIVED` fires the retry. |
-| Body > 255 bytes | Falls back to empty-state stub; emits one-shot chat warning + `Debug.Print` naming the category. Silent truncation is gone — it corrupted `/use` lines in v1.0.x. |
+| Body > 255 bytes | Falls back to empty-state stub; emits one-shot chat warning + a `[Macro]`-tagged `KCM.Debug(...)` line naming the category. Silent truncation is gone — it corrupted `/use` lines in v1.0.x. |
 | Spell name unresolvable | `buildActiveBody` writes `"#showtooltip\n/run print('|cff00ffff[CM]|r spell %d name unavailable')"`. `PLAYER_SPECIALIZATION_CHANGED` / `BAG_UPDATE_DELAYED` / `GET_ITEM_INFO_RECEIVED` / `LEARNED_SPELL_IN_SKILL_LINE` will retrigger recompute when state changes. |
 | Locked items in bags (mailing / splitting / equipping) | `BagScanner.Scan` counts them — lock is transient ownership, not absence. Macro does not flap. |
 | Drag-icon tooltip for spell pick | `KCMMacroDragIcon` reads `macroState.lastItemID` and forks on `KCM.ID.IsSpell` to call `SetSpellByID` vs `SetItemByID`. |

@@ -16,3 +16,11 @@ KCM.PREFIX = "|cff00ffff[CM]|r"
 function KCM.Say(msg)
     print(KCM.PREFIX .. " " .. tostring(msg))
 end
+
+-- Secret-safe stringifier (events-frames-taint-§8 / debug-logging-§4). A
+-- combat-protected "secret" value errors on any Lua touch, so tostring it under
+-- pcall — the debug sink then can never raise mid-combat when one reaches a line.
+function KCM.SafeToString(v)
+    local ok, s = pcall(tostring, v)
+    return ok and s or "<secret>"
+end

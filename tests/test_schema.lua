@@ -46,4 +46,33 @@ h.suite("schema", function(t)
     t.falsy(Helpers.FindSchema("no_such_path"), "FindSchema on unknown path is nil")
     t.eq(Helpers.Get("does.not.exist"), nil, "Get on unresolvable path is nil")
     t.falsy(Helpers.Set("does.not.exist", 1), "Set on unresolvable path returns false")
+
+    -- [Set] logging at the write seam (debug-logging-§10)
+    do
+        if not KCM.State then assert(loadfile("core/State.lua"))("ConsumableMaster", KCM) end
+        assert(loadfile("modules/DebugLog.lua"))("ConsumableMaster", KCM)
+        assert(loadfile("core/Debug.lua"))("ConsumableMaster", KCM)
+
+        local captured = {}
+        local realAdd = KCM.DebugLog.AddLine
+        KCM.DebugLog.AddLine = function(tag, msg) captured[#captured + 1] = { tag = tag, msg = msg } end
+
+        local origEnabled = Helpers.Get("enabled")
+        KCM.State.debug = true
+        for i = #captured, 1, -1 do captured[i] = nil end     -- clear before the single write
+        Helpers.Set("enabled", false)
+        local setLines = {}
+        for _, c in ipairs(captured) do if c.tag == "Set" then setLines[#setLines + 1] = c end end
+        t.eq(#setLines, 1, "exactly one [Set] line per settings write (no re-echo)")
+        t.eq(setLines[1] and setLines[1].msg, "enabled = false", "[Set] line shows path = value")
+
+        -- gated off: no [Set] line when debug is disabled
+        KCM.State.debug = false
+        local n0 = #captured
+        Helpers.Set("enabled", true)
+        t.eq(#captured, n0, "no [Set] line captured when debug is off")
+
+        KCM.DebugLog.AddLine = realAdd
+        Helpers.Set("enabled", origEnabled)
+    end
 end)

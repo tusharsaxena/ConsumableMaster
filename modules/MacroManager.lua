@@ -284,8 +284,8 @@ function M.SetMacro(macroName, itemID, catKey)
         -- once per catKey per session. Full oversized body goes to Debug for
         -- troubleshooting.
         local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
-        if KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("MacroManager: %s body exceeds %d bytes: %s",
+        if KCM.State and KCM.State.debug then
+            KCM.Debug("Macro", "%s body exceeds %s bytes: %s",
                 tostring(catKey), MACRO_BODY_LIMIT, body)
         end
         if catKey and not alreadyWarnedOversized[catKey] then
@@ -324,17 +324,13 @@ function M.SetMacro(macroName, itemID, catKey)
             catKey   = catKey,
             attempts = attempts,
         }
-        if KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("MacroManager: deferred %s (combat)", macroName)
-        end
+        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "deferred %s (combat)", macroName) end
         return "deferred"
     end
 
     local result, err = doEdit(macroName, icon, body, catKey)
     if result == "error" then
-        if KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("MacroManager: %s failed — %s", macroName, tostring(err))
-        end
+        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "%s failed — %s", macroName, tostring(err)) end
         return "error", err
     end
 
@@ -345,10 +341,6 @@ function M.SetMacro(macroName, itemID, catKey)
         lastCat    = catKey,
     }
     pendingUpdates[macroName] = nil
-    if KCM.Debug and KCM.Debug.Print then
-        KCM.Debug.Print("MacroManager: %s %s (item=%s icon=%s)",
-            macroName, result, tostring(itemID), tostring(icon))
-    end
     return result
 end
 
@@ -380,8 +372,8 @@ function M.SetCompositeMacro(cat, scoreCache)
     local effectiveActive = activeBody ~= nil
 
     if #body > MACRO_BODY_LIMIT then
-        if KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("MacroManager: %s composite body exceeds %d bytes: %s",
+        if KCM.State and KCM.State.debug then
+            KCM.Debug("Macro", "%s composite body exceeds %s bytes: %s",
                 tostring(catKey), MACRO_BODY_LIMIT, body)
         end
         if catKey and not alreadyWarnedOversized[catKey] then
@@ -419,17 +411,13 @@ function M.SetCompositeMacro(cat, scoreCache)
             cat      = cat,           -- drives composite dispatch in FlushPending
             attempts = attempts,
         }
-        if KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("MacroManager: deferred %s composite (combat)", macroName)
-        end
+        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "deferred %s composite (combat)", macroName) end
         return "deferred"
     end
 
     local result, err = doEdit(macroName, icon, body, catKey)
     if result == "error" then
-        if KCM.Debug and KCM.Debug.Print then
-            KCM.Debug.Print("MacroManager: %s failed — %s", macroName, tostring(err))
-        end
+        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "%s failed — %s", macroName, tostring(err)) end
         return "error", err
     end
 
@@ -440,10 +428,6 @@ function M.SetCompositeMacro(cat, scoreCache)
         lastCat    = catKey,
     }
     pendingUpdates[macroName] = nil
-    if KCM.Debug and KCM.Debug.Print then
-        KCM.Debug.Print("MacroManager: %s %s (composite icon=%s)",
-            macroName, result, tostring(icon))
-    end
     return result
 end
 
@@ -475,8 +459,8 @@ function M.FlushPending()
             entry.attempts = (entry.attempts or 0) + 1
             if entry.attempts >= MAX_FLUSH_ATTEMPTS then
                 print((KCM.PREFIX .. " gave up on %s after %d failed writes — check /cm debug output."):format(name, entry.attempts))
-                if KCM.Debug and KCM.Debug.Print then
-                    KCM.Debug.Print("FlushPending: dropped %s after %d attempts (last err=%s)",
+                if KCM.State and KCM.State.debug then
+                    KCM.Debug("Macro", "dropped %s after %s attempts (last err=%s)",
                         name, entry.attempts, tostring(result))
                 end
             else

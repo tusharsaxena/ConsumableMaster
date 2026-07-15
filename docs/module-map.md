@@ -18,8 +18,9 @@ core/Bus.lua ───── Closed message bus. KCM.bus (AceEvent embed),
                    KCM.NewBusTarget(), KCM.MSG.{RECOMPUTE, PANEL_REFRESH,
                    SPEC_CHANGED}. Each receiver owns its own target.
 
-core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say. Single source of
-                   truth for chat output styling.
+core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say + KCM.SafeToString
+                   (secret-safe stringify for the debug sink). Single source
+                   of truth for chat output styling.
 
 core/Compat.lua ── Spec + spell API seam. GetSpecialization /
                    GetSpecializationInfo / GetNumSpecializationsForClassID /
@@ -32,9 +33,9 @@ core/State.lua ─── Session-only runtime flags. KCM.State.debug (default of
 core/Database.lua  RunMigrations() — runs right after AceDB:New; owns
                    db.global.schemaVersion.
 
-core/Debug.lua ─── KCM.Debug.IsOn / Toggle / Print / Log — routes gated
-                   diagnostics to the on-screen console (chat fallback only
-                   if the console is absent).
+core/Debug.lua ─── KCM.Debug(tag, fmt, ...) callable sink + IsOn / Toggle / Log
+                   alias — routes gated diagnostics to the on-screen console
+                   (chat fallback only if the console is absent).
 
 defaults/         Seed data only. Evaluated at load; writes to
 ├── Categories.lua        KCM.Categories.LIST + KCM.Categories.BY_KEY
@@ -124,6 +125,9 @@ KCM.Pipeline.RunAutoDiscovery(reason) -> n   -- bag scan + classifier + MarkDisc
                                              --   one summary debug line per pass
 KCM.Pipeline.DiscoverOne(itemID, reason, nowUnix?, outNew?)  -- one-id retry path;
                                              --   outNew (bulk pass) collects discovered IDs
+
+-- Pure debug-summary formatter (frame-free, unit-tested; see debug.md)
+KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped) -> string -- [Calc] line
 
 -- Sentinel helpers (also see data-model.md)
 KCM.ID.AsSpell(spellID)  -> negative
@@ -275,8 +279,8 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 ```lua
 KCM.Debug.IsOn() -> bool                      -- reads KCM.State.debug (session-only)
 KCM.Debug.Toggle()                            -- routes through DebugLog.Toggle -> SetEnabled
-KCM.Debug.Print(fmt, ...)                     -- tagless; early-returns when off
-KCM.Debug.Log(tag, fmt, ...)                  -- tag-first; early-returns when off
+KCM.Debug(tag, fmt, ...)                      -- callable sink; gated, secret-safe; early-returns when off
+KCM.Debug.Log(tag, fmt, ...)                  -- retained tag-first alias of the same callable
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()

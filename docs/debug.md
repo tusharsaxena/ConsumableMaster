@@ -4,27 +4,44 @@ The debug console, the dump targets, and the schema-driven slash CLI. All chat o
 
 ## Toggle the debug console
 
-`/cm debug on|off` drives `KCM.State.debug` (declared in `core/State.lua`) through the single `KCM.DebugLog.SetEnabled(on)` seam; **bare `/cm debug` toggles the console window only, leaving the flag untouched** (so capture can be armed independently of whether the window is open). The flag is **session-only** — default off, **never persisted**, and it resets to off on every login — so a session left with debug on doesn't leak into the next one. There is no `db.profile.debug`, no `debug` schema row, and no `Settings.Helpers.SetAndRefresh("debug")` path. Calls to `KCM.Debug.Print(fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
+`/cm debug on|off` drives `KCM.State.debug` (declared in `core/State.lua`) through the single `KCM.DebugLog.SetEnabled(on)` seam; **bare `/cm debug` toggles the console window only, leaving the flag untouched** (so capture can be armed independently of whether the window is open). The flag is **session-only** — default off, **never persisted**, and it resets to off on every login — so a session left with debug on doesn't leak into the next one. There is no `db.profile.debug`, no `debug` schema row, and no `Settings.Helpers.SetAndRefresh("debug")` path. Calls to `KCM.Debug(tag, fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
 
 `modules/DebugLog.lua` owns the on-screen console — a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia), styled like the addon's own frames (title bar + 1px divider, dark skin, flat text buttons). The title bar carries a left-aligned **Debug: ON/OFF** state toggle (green ON / red OFF) plus Copy / Clear / close; **Copy** opens a separate read-through window for `Ctrl+C`. `core/Debug.lua` routes diagnostics into it:
 
 ```lua
 KCM.Debug.IsOn()      -- bool; reads KCM.State.debug
 KCM.Debug.Toggle()    -- routes through DebugLog.Toggle -> SetEnabled (owns the ack)
-KCM.Debug.Print(fmt, ...)       -- tagless line to the console, no-op when off
-KCM.Debug.Log(tag, fmt, ...)    -- tag-first line to the console, no-op when off
+KCM.Debug(tag, fmt, ...)        -- callable sink: gated, secret-safe line to the console
+KCM.Debug.Log(tag, fmt, ...)    -- retained tag-first alias of the same callable
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()
 KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
 ```
 
-`KCM.Debug.Print` / `Log` write to the **console**; chat is a fallback only when the console frame is unavailable.
+`KCM.Debug` is gated on `KCM.State.debug` as its first, zero-alloc statement, and every vararg is passed through `KCM.SafeToString` before formatting — so it's safe to call unconditionally and format placeholders are always `%s` (never `%d`/`%f`, since a combat "secret" value must never hit a numeric formatter). It writes to the **console**; chat is a fallback only when the console frame is unavailable.
+
+### Tags
+
+Functional-area tags in use today:
+
+- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), written at the `DebugLog.SetEnabled` seam right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/§8)
+- `DB` — schema migration, only logged when one actually runs
+- `Scan` — auto-discovery pass summary (reason in content)
+- `Calc` — recompute pass summary (reason + rewrote/total/skipped)
+- `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply)
+- `GC` — stale-discovered sweep
+- `Set` — settings write at `Helpers.Set`
+- `Prio` — priority-list mutations (add/block/move) and category/all resets
+
+Every settings change logs once as `[Set] <path> = <value>` at `Helpers.Set`; repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
+
+The `DebugLog.SetEnabled` seam prints a **colour-coded** chat ack through `KCM.Say` — `debug logging |cff40ff40ON|r` (green) / `|cffff4040OFF|r` (red) — matching the title-bar `Debug: ON/OFF` toggle so the flag reads identically in chat and on the console (debug-logging-§5).
 
 Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 
 - `say()` (in `core/SlashCommands.lua`, `= print(KCM.PREFIX .. " " .. s)`) — slash output, dump rows, help. Always prepends `[CM]`.
-- `KCM.Debug.Print(...)` — gated diagnostics into the console.
+- `KCM.Debug(tag, ...)` — gated diagnostics into the console.
 - Inline `KCM.PREFIX`-prefixed `print(...)` — only for one-shot warnings (oversized macro body, give-up notice on flush failure, etc.) where neither helper fits.
 
 ## Dump internals
@@ -86,7 +103,7 @@ All three namespaces dispatch through `findCommand` against an ordered `*_COMMAN
 
 ## Per-category recompute log
 
-`core/ConsumableMaster.lua` has a commented-out per-category recompute log (search for "Pipeline.RecomputeOne" near `KCM.Debug.Print`). It fires `N × M` times during login (N categories × M `GET_ITEM_INFO_RECEIVED` events) and floods chat. Uncomment only for short debugging sessions, then re-comment.
+Recompute no longer logs per-category — the old per-category `Pipeline.RecomputeOne` block (which fired `N × M` times during login: N categories × M `GET_ITEM_INFO_RECEIVED` events) was deleted. Each recompute pass now emits exactly one `[Calc]` summary line (reason + rewrote/total/skipped counts), gated on `KCM.State.debug`.
 
 ## Smoke testing
 

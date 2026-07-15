@@ -53,8 +53,9 @@ end
 -- Console view: timestamp muted steel-blue (6f8faf), [tag] muted tan/gold
 -- (c9a66b); the `|` separator and content stay default white. (`||` renders one
 -- literal pipe inside a colour-coded string.) The plain Copy buffer mirrors the
--- same line with no colour codes. A nil/empty tag omits the `[tag]` segment —
--- CM's legacy tagless KCM.Debug.Print keeps reading cleanly rather than as `[]`.
+-- same line with no colour codes. A nil/empty tag omits the `[tag]` segment so
+-- any untagged line still reads cleanly rather than as `[]`, even though every
+-- call site today passes a functional-area tag.
 
 local function hasTag(tag)
     return tag ~= nil and tag ~= ""
@@ -104,12 +105,30 @@ function DL.SetEnabled(on)
     on = on and true or false
     if KCM.State then KCM.State.debug = on end
     DL.RefreshHeader()
-    local pfx = (KCM.PREFIX and (KCM.PREFIX .. " ")) or ""
-    print(pfx .. "debug console " .. (on and "on" or "off"))
+    -- Colour-coded chat ack through the shared [CM] printer (debug-logging-§5):
+    -- ON green (40ff40) / OFF red (ff4040), mirroring the title-bar Debug: ON/OFF
+    -- toggle so the flag reads identically in chat and on the console header.
+    if KCM.Say then
+        KCM.Say("debug logging " .. (on and "|cff40ff40ON|r" or "|cffff4040OFF|r"))
+    end
     -- Bracket every capture session at both ends. Written through the raw
     -- append (DL.AddLine is ungated), so the "logging disabled" line still lands
     -- after KCM.State.debug has flipped off — the flag-gated sink would swallow it.
     DL.AddLine("Debug", on and "logging enabled" or "logging disabled")
+    -- On enable, emit a one-line [Init] session summary immediately after the
+    -- bracket (debug-logging-§5/§8): addon + version, schema version, active
+    -- profile, so a pasted log self-identifies which build/schema/profile it came
+    -- from. Written through the raw DL.AddLine (not the gated KCM.Debug sink) so it
+    -- lands the instant debug turns on. It rides the SetEnabled seam, not login,
+    -- because the session-only flag is off at login — a load-time summary would be
+    -- gated off and never render. Every value goes through the secret-safe
+    -- stringifier per debug-logging-§4 (version/schema/profile are all plain).
+    if on and KCM.db and KCM.db.global then
+        local s = KCM.SafeToString or tostring
+        local profileKey = KCM.db.GetCurrentProfile and KCM.db:GetCurrentProfile() or "?"
+        DL.AddLine("Init", ("%s v%s, schema v%s, profile '%s'"):format(
+            "Consumable Master", s(KCM.VERSION), s(KCM.db.global.schemaVersion), s(profileKey)))
+    end
     if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
     return on
 end
