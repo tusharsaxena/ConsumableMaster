@@ -33,11 +33,11 @@ Twelve sections, each numbered so you can call out which one failed when reporti
 
 ### 1. Cold boot
 
-Tests: AceDB defaults populate, all 10 macros create, no errors at login.
+Tests: AceDB defaults populate, all 12 macros create, no errors at login.
 
 1. **Fresh-install path:** quit the game; delete `WTF/Account/<acct>/SavedVariables/ConsumableMasterDB.lua`; log in.
 2. Expect: no Lua errors, no `[CM]` chat warnings beyond the one-shot debug-state line if `debug=true`.
-3. Open the macro UI → **General Macros** tab. Expect 10 macros named exactly: `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_HP_AIO`, `KCM_MP_AIO`.
+3. Open the macro UI → **General Macros** tab. Expect 12 macros named exactly: `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_HP_AIO`, `KCM_MP_AIO`.
 4. Each macro's stored icon should be either the picked item's texture (if you own a candidate) or the cooking-pot fallback (`fileID 7704166`). Never the `?` sentinel rendered as a static texture — that's the icon-convention bug.
 5. `/cm dump pick food` (and any spec-aware key) — confirms the pipeline ran post-PEW.
 6. Re-login (no SavedVariables wipe) — same checks. Existing buckets should be respected; no duplicate macros created.
@@ -85,7 +85,7 @@ Tests: spec-aware macros update on `PLAYER_SPECIALIZATION_CHANGED`, score cache 
 
 1. Open `KCM_FLASK` body, note the picked flask.
 2. Switch specs via the talents UI (loadout selector or the spec dropdown).
-3. Within ~1 frame, expect: `KCM_FLASK` / `KCM_CMBT_POT` / `KCM_STAT_FOOD` bodies update against the new spec's stat priority. Non-spec-aware macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`) stay unchanged.
+3. Within ~1 frame, expect: `KCM_FLASK` / `KCM_CMBT_POT` / `KCM_STAT_FOOD` / `KCM_WPN_ENCH` bodies update against the new spec's stat priority. Non-spec-aware macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`) stay unchanged.
 4. Open the **Stat Priority** panel; viewing-spec dropdown shows the new spec's icon + name. Primary + secondary fields populate from the override / seed / class fallback in that order.
 5. `/cm dump pick flask` — score breakdown should weight stats per the new spec's priority.
 
@@ -105,7 +105,7 @@ Tests: macro writes that hit combat queue, flush on regen, retry counter respect
 Tests: `/cm config` lands on About with sub-pages expanded; General-page checkboxes write through schema; resets fire StaticPopup.
 
 1. Close the Settings panel. Run `/cm config`.
-2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 12 sub-pages visible (General, Stat Priority, 8 categories, 2 AIO).
+2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 14 sub-pages visible (General, Stat Priority, 10 categories, 2 AIO).
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
 4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -139,7 +139,7 @@ Tests: drag icon, Add by ID (item + spell), priority list (up / down / X), score
 7. Click the blue info button — tooltip shows the per-item score breakdown from `Ranker.Explain`. Numbers should match `/cm dump pick <cat>` exactly.
 8. Click X on a row — item removed from priority list AND added to the blocked set (auto-discovery won't re-add).
 9. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved.
-10. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
+10. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
 
 ### 10. Settings panel — composite (HP_AIO / MP_AIO)
 

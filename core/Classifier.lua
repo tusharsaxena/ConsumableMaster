@@ -1,6 +1,6 @@
 -- Classifier.lua — Per-category match predicates.
 --
--- Given an itemID, decide which of the 8 managed categories (if any) it
+-- Given an itemID, decide which of the 10 managed categories (if any) it
 -- belongs to. Used by:
 --   * Selector (M5) — auto-discover bag items and slot them into categories.
 --   * SlashCommands (/cm dump / /cm rank) — debug introspection.
@@ -35,6 +35,12 @@ local ST_FLASK_PHIAL = "Flasks & Phials"
 local HEALTHSTONE_IDS = {
     [5512]   = true,  -- Classic healthstone (legacy fallback)
     [224464] = true,  -- Modern healthstone (auto-scales with warlock level)
+}
+
+-- Vantus runes share a generic subType, so match by itemID like healthstones.
+-- One universal rune per raid tier; keep in sync with Defaults_Vantus.lua.
+local VANTUS_IDS = {
+    [245880] = true,  -- Vantus Rune: Radiant
 }
 
 -- Combat potions have a short buff (≤60s). Flasks/elixirs run for minutes
@@ -97,6 +103,17 @@ local matchers = {
     FLASK = function(_, _, subType)
         return subType == ST_FLASK_PHIAL
     end,
+    -- Weapon enhancements (oils, whetstones, weightstones) all report subType
+    -- "Other" (classID 0 / subclass 8), a catch-all too broad to key on. They
+    -- are identified by the tooltip's weapon-application effect — "Coat your
+    -- weapon", "Sharpens your bladed weapon", "Weights your … weapon" — captured
+    -- as tt.isWeaponEnhance by TooltipCache. Covers stat and proc effects.
+    WPN_ENCH = function(_, tt)
+        return tt and tt.isWeaponEnhance == true
+    end,
+    VANTUS = function(itemID)
+        return VANTUS_IDS[itemID] == true
+    end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -117,6 +134,9 @@ function C.Match(catKey, itemID)
 
     if catKey == "HS" then
         return isHealthstone(itemID)
+    end
+    if catKey == "VANTUS" then
+        return VANTUS_IDS[itemID] == true
     end
 
     -- GetItemInfoInstant is synchronous and returns subType from the
@@ -140,7 +160,9 @@ function C.Match(catKey, itemID)
     -- GET_ITEM_INFO_RECEIVED does not fire for items the client already
     -- had cached — so the bulk PEW / BAG_UPDATE_DELAYED passes would both
     -- skip the item and never retry. Classifying on subType alone makes
-    -- FLASK discovery deterministic on the first bag scan.
+    -- FLASK discovery deterministic on the first bag scan. WPN_ENCH can't use
+    -- this shortcut — its subType "Other" is uninformative — so it flows to
+    -- the tooltip-gated path below and hydrates through the same retry seam.
     if catKey == "FLASK" then
         return fn(itemID, nil, subType) == true
     end

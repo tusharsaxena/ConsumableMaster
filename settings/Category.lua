@@ -5,7 +5,7 @@
 --
 -- Single category layout:
 --   1. KCMMacroDragIcon row.
---   2. Spec-aware subheader (FLASK / STAT_FOOD only): "Spec-aware. Viewing: <spec>."
+--   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
 --   3. Section "Add item or spell by ID" — Type dropdown | ID input (paired).
 --   4. Section "Priority list" — legend label + one row per item:
 --        KCMItemRow | KCMScoreButton | up | down | X

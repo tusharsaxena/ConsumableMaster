@@ -13,12 +13,12 @@ db.global
 db.profile
 ├── enabled              boolean    -- master enable; gates Pipeline.Recompute
 ├── categories
-│   ├── FOOD  │ DRINK │ HP_POT │ MP_POT │ HS    ← single-pick, non-spec-aware
+│   ├── FOOD  │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS ← single-pick, non-spec-aware
 │   │   ├── added       { [id] = true }                  -- user-added items + spells
 │   │   ├── blocked     { [id] = true }                  -- never enters candidate set
 │   │   ├── pins        { { id = N, position = K }, ... } -- override Ranker order
 │   │   └── discovered  { [id] = unixTimestamp }         -- last-seen-in-bags
-│   ├── STAT_FOOD │ CMBT_POT │ FLASK            ← single-pick, spec-aware
+│   ├── STAT_FOOD │ CMBT_POT │ FLASK │ WPN_ENCH  ← single-pick, spec-aware
 │   │   └── bySpec
 │   │       └── ["<classID>_<specID>"]
 │   │           ├── added

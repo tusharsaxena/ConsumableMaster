@@ -175,6 +175,36 @@ test("Ranker: FLASK stat-aware primary buff outweighs equal-amount secondary", f
     t.truthy(flaskPrim > flaskSec, "primary-stat flask beats equal-amount secondary buff")
 end)
 
+test("Ranker: WPN_ENCH stat-aware primary buff outweighs equal-amount secondary", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    local sp = { primary = "STR", secondary = { "CRIT", "HASTE", "MASTERY" } }  -- N = 3
+    mock.setItem(4301, { subType = "Other", quality = 4, ilvl = 30,
+        tt = { statBuffs = { { stat = "STR",  amount = 5 } } } })
+    mock.setItem(4302, { subType = "Other", quality = 4, ilvl = 30,
+        tt = { statBuffs = { { stat = "CRIT", amount = 5 } } } })
+    local ctxSpec = { specPriority = sp }
+    local prim = R.Score("WPN_ENCH", 4301, ctxSpec, nil)
+    local sec  = R.Score("WPN_ENCH", 4302, ctxSpec, nil)
+    t.eq(prim, 1000 * 5 + 30 + 400, "WPN_ENCH primary buff score")
+    t.eq(sec,  300 * 5 + 30 + 400, "WPN_ENCH secondary buff score")
+    t.truthy(prim > sec, "primary-stat weapon enchant beats equal-amount secondary")
+end)
+
+test("Ranker: VANTUS prefers higher ilvl (current tier) then quality", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(4401, { subType = "Other", quality = 4, ilvl = 600, tt = {} })  -- current tier
+    mock.setItem(4402, { subType = "Other", quality = 4, ilvl = 500, tt = {} })  -- old tier
+    local cur = R.Score("VANTUS", 4401, nil, nil)
+    local old = R.Score("VANTUS", 4402, nil, nil)
+    t.eq(cur, 600 + 400, "VANTUS current-tier score = ilvl + quality*100")
+    t.eq(old, 500 + 400, "VANTUS old-tier score")
+    t.truthy(cur > old, "higher-ilvl vantus rune wins")
+end)
+
 test("Ranker: SortCandidates orders by score desc, ties by id asc", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock

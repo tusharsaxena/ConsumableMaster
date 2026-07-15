@@ -200,6 +200,41 @@ test("classifier: unrecognized subtype with empty tt matches nothing", function(
     t.falsy(C.Match("FLASK", 1801), "unknown subtype not FLASK")
 end)
 
+-- ---- WPN_ENCH: weapon enhancements flagged by the tooltip's weapon effect -
+test("classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance flag", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local C    = KCM.Classifier
+
+    -- Weapon enhancements (oils/whetstones/weightstones) report subType "Other";
+    -- they are identified by the weapon-application effect (tt.isWeaponEnhance),
+    -- not subType.
+    mock.setItem(1901, { subType = "Other", tt = { isWeaponEnhance = true, hasStatBuff = true } })
+    t.truthy(C.Match("WPN_ENCH", 1901), "WPN_ENCH positive via isWeaponEnhance")
+    t.eqList(C.MatchAny(1901), { "WPN_ENCH" }, "MatchAny weapon enhancement -> {WPN_ENCH}")
+
+    -- negative: a plain "Other" consumable without the weapon-enhance effect
+    mock.setItem(1902, { subType = "Other", tt = { hasStatBuff = true } })
+    t.falsy(C.Match("WPN_ENCH", 1902), "WPN_ENCH negative for Other without isWeaponEnhance")
+    -- negative: a flask is not a weapon enchant
+    mock.setItem(1903, { subType = "Flasks & Phials", tt = {} })
+    t.falsy(C.Match("WPN_ENCH", 1903), "WPN_ENCH negative for flask")
+end)
+
+-- ---- VANTUS: hard-coded itemIDs regardless of tt -------------------------
+test("classifier: VANTUS matches whitelisted rune IDs regardless of item data", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local C    = KCM.Classifier
+
+    t.truthy(C.Match("VANTUS", 245880), "VANTUS positive 245880 (no item data)")
+    t.contains(C.MatchAny(245880), "VANTUS", "MatchAny includes VANTUS for 245880")
+
+    -- negative: an ordinary item id is not a vantus rune
+    mock.setItem(1951, { subType = "Potions", tt = { healValue = 4000 } })
+    t.falsy(C.Match("VANTUS", 1951), "VANTUS negative for ordinary potion")
+end)
+
 -- ---- Guard / edge cases --------------------------------------------------
 test("classifier: guard and edge cases for nil/unknown inputs", function(t)
     local KCM  = h.loader.loadPure()

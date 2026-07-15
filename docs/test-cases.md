@@ -20,7 +20,11 @@ whenever the suite changes.
 - a target hears a message, then goes silent after unregister
 - RECOMPUTE routes to Pipeline.RequestRecompute
 
-### test_classifier.lua (11)
+### test_categories.lua (1)
+
+- Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
+
+### test_classifier.lua (13)
 
 - classifier: FOOD matches Food & Drink with heal and no stat buff
 - classifier: DRINK matches Food & Drink with mana and no stat buff
@@ -32,6 +36,8 @@ whenever the suite changes.
 - classifier: FLASK matches on subtype alone
 - classifier: MatchAny never yields composite categories
 - classifier: unrecognized subtype with empty tt matches nothing
+- classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance flag
+- classifier: VANTUS matches whitelisted rune IDs regardless of item data
 - classifier: guard and edge cases for nil/unknown inputs
 
 ### test_compat.lua (5)
@@ -73,7 +79,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macromanager.lua (9)
+### test_macromanager.lua (11)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -84,6 +90,8 @@ whenever the suite changes.
 - MacroManager: BuildCompositeBody with only in-combat picks adds the out-of-combat /run fallback
 - MacroManager: BuildCompositeBody with only out-of-combat pick adds the in-combat /run fallback
 - MacroManager: BuildCompositeBody uses a spell pick's localized name in the /castsequence
+- MacroManager: BuildBody emits the two-slot weapon-enchant body for WPN_ENCH
+- MacroManager: BuildBody VANTUS uses the default single /use body
 
 ### test_pipeline.lua (5)
 
@@ -93,7 +101,7 @@ whenever the suite changes.
 - Pipeline.Recompute writes a macro body pointing at the owned pick
 - Pipeline.Recompute skips macro writes when the addon is disabled
 
-### test_ranker.lua (13)
+### test_ranker.lua (15)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -106,6 +114,8 @@ whenever the suite changes.
 - Ranker: HS preference table prefers modern stone and sorts it first
 - Ranker: _statWeight ranks stats by spec priority
 - Ranker: FLASK stat-aware primary buff outweighs equal-amount secondary
+- Ranker: WPN_ENCH stat-aware primary buff outweighs equal-amount secondary
+- Ranker: VANTUS prefers higher ilvl (current tier) then quality
 - Ranker: SortCandidates orders by score desc, ties by id asc
 - Ranker: spell sentinel sorts first and empty input is safe
 
@@ -159,11 +169,12 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
 
-### test_tooltipcache.lua (4)
+### test_tooltipcache.lua (5)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
 - TooltipCache: parses mana-only drink with no healValue
+- TooltipCache: flags weapon enhancements via the 'your <weapon>' effect
 - TooltipCache: parses combined percentage 'health and mana' form
 
 ## Totals
@@ -172,19 +183,20 @@ whenever the suite changes.
 |-------|------:|
 | test_bagscanner.lua | 5 |
 | test_bus.lua | 3 |
-| test_classifier.lua | 11 |
+| test_categories.lua | 1 |
+| test_classifier.lua | 13 |
 | test_compat.lua | 5 |
 | test_database.lua | 4 |
 | test_debuglog.lua | 8 |
 | test_id.lua | 6 |
 | test_load.lua | 1 |
-| test_macromanager.lua | 9 |
+| test_macromanager.lua | 11 |
 | test_pipeline.lua | 5 |
-| test_ranker.lua | 13 |
+| test_ranker.lua | 15 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 8 |
 | test_selector.lua | 8 |
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
-| test_tooltipcache.lua | 4 |
-| **Total** | **109** |
+| test_tooltipcache.lua | 5 |
+| **Total** | **117** |

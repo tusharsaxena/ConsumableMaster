@@ -4,11 +4,11 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-109%2F109_passing-green)
+![Tests](https://img.shields.io/badge/Tests-117%2F117_passing-green)
 
 ![alt text](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
-An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across eight categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
+An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across ten categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
 
 Whenever you loot something better, change spec, reload, or drop out of combat, Consumable Master updates each macro to use your best current pick — the right item, or the right spell for class abilities like Recuperate. The macros are account-wide, so one set is shared by all your characters. They're matched by name rather than by slot, so you can move them around your macro list freely and they'll keep working alongside your own macros.
 
@@ -19,11 +19,13 @@ Whenever you loot something better, change spec, reload, or drop out of combat, 
 | 3  |Healing potion                                               |<code>KCM_HP_POT</code> |No          |
 | 4  |Mana potion                                                  |<code>KCM_MP_POT</code> |No          |
 | 5  |Warlock healthstone                                          |<code>KCM_HS</code> |No          |
-| 6  |Flask                                                        |<code>KCM_FLASK</code> |<strong>Yes</strong> |
-| 7  |Combat potion (throughput)                                   |<code>KCM_CMBT_POT</code> |<strong>Yes</strong> |
-| 8  |Stat food                                                    |<code>KCM_STAT_FOOD</code> |<strong>Yes</strong> |
-| 9  |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
-| 10 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
+| 6  |Vantus rune (raid Versatility)                               |<code>KCM_VANTUS</code> |No          |
+| 7  |Flask                                                        |<code>KCM_FLASK</code> |<strong>Yes</strong> |
+| 8  |Combat potion (throughput)                                   |<code>KCM_CMBT_POT</code> |<strong>Yes</strong> |
+| 9  |Stat food                                                    |<code>KCM_STAT_FOOD</code> |<strong>Yes</strong> |
+| 10 |Weapon enchant (oil / stone, main + off hand)                |<code>KCM_WPN_ENCH</code> |<strong>Yes</strong> |
+| 11 |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
+| 12 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
 If a better pick comes up while you're in combat, the macro updates the moment you leave — WoW doesn't allow macro changes mid-fight.
 
@@ -89,16 +91,16 @@ Settings live at **Escape → Options → AddOns → Consumable Master** (or typ
 
 **Stat Priority**
 
-One page that controls the three spec-aware categories (Stat Food, Combat Potion, Flask).
+One page that controls the four spec-aware categories (Stat Food, Combat Potion, Flask, Weapon Enchant).
 
-*   **Viewing spec** — pick which spec you're editing. This also sets which spec is shown on the three spec-aware category pages. Specs show their class icon and name (e.g. "Shaman — Enhancement").
+*   **Viewing spec** — pick which spec you're editing. This also sets which spec is shown on the four spec-aware category pages. Specs show their class icon and name (e.g. "Shaman — Enhancement").
 *   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
 *   **Secondary stat #1 … #4** — your preferred secondary stats in order (Crit, Haste, Mastery, Versatility). #1 counts the most. Leave a slot as `(none)` to stop there; anything not listed counts as zero.
 *   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
 
 **Per-category pages**
 
-Each of the eight single macros has its own page. Spec-aware pages show the viewed spec at the top.
+Each of the ten single macros has its own page. Spec-aware pages show the viewed spec at the top.
 
 *   **Draggable macro icon** — the small icon under the title. Drag it onto a bar to place the macro.
 *   **Add item or spell by ID** — choose **Item** or **Spell**, paste the ID, press Enter. A bad ID gives a chat error and keeps your text so you can fix the typo.
@@ -111,7 +113,7 @@ Each of the eight single macros has its own page. Spec-aware pages show the view
 
 **AIO Health / AIO Mana**
 
-Two combo pages (after Stat Food). `KCM_HP_AIO` uses your Healthstone then Healing Potion in combat, and your Food pick out of combat. `KCM_MP_AIO` uses your Mana Potion in combat and your Drink out of combat. Each page has an *In Combat* and an *Out of Combat* section; you can turn each sub-category on or off and reorder it within its section. Each row shows the current pick on the left and its controls on the right. The actual ranking is set on each category's own page.
+Two combo pages (after Weapon Enchant). `KCM_HP_AIO` uses your Healthstone then Healing Potion in combat, and your Food pick out of combat. `KCM_MP_AIO` uses your Mana Potion in combat and your Drink out of combat. Each page has an *In Combat* and an *Out of Combat* section; you can turn each sub-category on or off and reorder it within its section. Each row shows the current pick on the left and its controls on the right. The actual ranking is set on each category's own page.
 
 ## How picking & ranking works
 

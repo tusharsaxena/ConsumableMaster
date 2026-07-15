@@ -4,7 +4,7 @@
 -- Higher = better. Selector (M5) uses SortCandidates to order the
 -- effective list; Options UI (M6) shows the same ordering.
 --
--- The stat-aware categories (STAT_FOOD / CMBT_POT / FLASK) need a
+-- The stat-aware categories (STAT_FOOD / CMBT_POT / FLASK / WPN_ENCH) need a
 -- specPriority in ctx: { primary = "AGI"|"STR"|"INT", secondary = {..} }.
 -- Non-spec categories ignore ctx entirely.
 --
@@ -242,6 +242,16 @@ local scorers = {
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
+    WPN_ENCH = function(itemID, ctx, scoreCache)
+        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        return scoreByStatPriority(tt, ctx and ctx.specPriority)
+             + ilvl
+             + quality * QUALITY_WEIGHT
+    end,
+    VANTUS = function(itemID, ctx, scoreCache)
+        local quality, ilvl = itemFields(itemID, scoreCache)
+        return ilvl + quality * QUALITY_WEIGHT
+    end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -418,7 +428,14 @@ function R.Explain(catKey, itemID, ctx)
         return result
     end
 
-    if catKey == "STAT_FOOD" or catKey == "CMBT_POT" or catKey == "FLASK" then
+    if catKey == "VANTUS" then
+        pushBase()
+        result.score   = ilvl + qualityScore
+        result.summary = "Current-tier rune preferred (ilvl + quality)."
+        return result
+    end
+
+    if catKey == "STAT_FOOD" or catKey == "CMBT_POT" or catKey == "FLASK" or catKey == "WPN_ENCH" then
         local specPriority = ctx and ctx.specPriority
         local statTotal    = 0
         for _, sb in ipairs(tt.statBuffs or {}) do

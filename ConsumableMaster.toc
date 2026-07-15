@@ -49,6 +49,8 @@ defaults\Defaults_MPPot.lua
 defaults\Defaults_Healthstone.lua
 defaults\Defaults_CombatPot.lua
 defaults\Defaults_Flask.lua
+defaults\Defaults_Vantus.lua
+defaults\Defaults_WpnEnch.lua
 
 # Modules
 modules\Ranker.lua

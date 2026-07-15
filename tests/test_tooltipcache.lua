@@ -58,6 +58,27 @@ test("TooltipCache: parses mana-only drink with no healValue", function(t)
     t.falsy(drink.healValue, "mana-only: no healValue")
 end)
 
+-- ---- Weapon enhancements: oils "Coat", whetstones "Sharpen" --------------
+test("TooltipCache: flags weapon enhancements via the 'your <weapon>' effect", function(t)
+    local TC, mock = newTC()
+    -- Real Thalassian Phoenix Oil (243733): "Coat your weapon with …".
+    local oil = parse(TC, mock, 243733, {
+        "Thalassian Phoenix Oil",
+        "Use: Coat your weapon with Thalassian Phoenix Oil, increasing your Critical Strike and Haste by 13 for 120 min.",
+    })
+    t.truthy(oil.isWeaponEnhance, "oil: isWeaponEnhance set from 'Coat your weapon'")
+    t.truthy(oil.hasStatBuff, "oil: hasStatBuff set from the CRIT/HASTE buff")
+    t.eq(oil.buffDurationSec, 7200, "oil: 120 min -> 7200s buff duration")
+
+    -- Whetstone phrasing puts an adjective between "your" and "weapon".
+    local stone = parse(TC, mock, 237370, {
+        "Refulgent Whetstone",
+        "Use: Sharpens your bladed weapon, increasing Attack Power by 10 for 2 hours.",
+    })
+    t.truthy(stone.isWeaponEnhance, "whetstone: isWeaponEnhance set from 'your bladed weapon'")
+    t.eq(stone.buffDurationSec, 7200, "whetstone: 2 hours -> 7200s buff duration")
+end)
+
 -- ---- Regression: combined percentage form (already worked) --------------
 test("TooltipCache: parses combined percentage 'health and mana' form", function(t)
     local TC, mock = newTC()

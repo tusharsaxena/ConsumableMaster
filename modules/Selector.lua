@@ -10,7 +10,7 @@
 --                    (v1.0.0 stored `true`; reader treats both as "present")
 --   pins[cat]      : array of { itemID = X, position = N }
 --
--- Spec-aware categories (STAT_FOOD, CMBT_POT, FLASK) swap the four fields for
+-- Spec-aware categories (STAT_FOOD, CMBT_POT, FLASK, WPN_ENCH) swap the four fields for
 -- a bySpec[<classID>_<specID>] sub-table holding the same shape.
 
 local _, NS = ...
@@ -188,7 +188,7 @@ end
 -- Effective priority
 -- ---------------------------------------------------------------------------
 -- Full pipeline: candidate set → Ranker.SortCandidates (spec-aware ctx for
--- STAT_FOOD / CMBT_POT / FLASK) → pin merge. Returns an array of itemIDs
+-- STAT_FOOD / CMBT_POT / FLASK / WPN_ENCH) → pin merge. Returns an array of itemIDs
 -- ordered by effective rank (best first).
 
 function S.GetEffectivePriority(catKey, specKey, scoreCache)

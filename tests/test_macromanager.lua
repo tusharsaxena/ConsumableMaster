@@ -129,3 +129,18 @@ test("MacroManager: BuildCompositeBody uses a spell pick's localized name in the
     t.truthy(body5:find("/castsequence [combat] reset=combat Recuperate, item:171267", 1, true),
         "spell pick contributes its localized name to the /castsequence line")
 end)
+
+test("MacroManager: BuildBody emits the two-slot weapon-enchant body for WPN_ENCH", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    t.eq(M.BuildBody("WPN_ENCH", 245678),
+        "#showtooltip\n/use item:245678\n/use 16\n/use item:245678\n/use 17",
+        "WPN_ENCH item pick → ready + apply to slots 16 and 17")
+end)
+
+test("MacroManager: BuildBody VANTUS uses the default single /use body", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    t.eq(M.BuildBody("VANTUS", 245880), "#showtooltip\n/use item:245880",
+        "VANTUS item pick → default single /use item body")
+end)

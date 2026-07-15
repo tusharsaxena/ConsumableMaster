@@ -77,6 +77,15 @@ KCM.Categories.LIST = {
         emptyText   = emptyMacro("no healthstone in bags"),
     },
     {
+        key         = "VANTUS",
+        macroName   = "KCM_VANTUS",
+        displayName = "Vantus Rune",
+        specAware   = false,
+        rankerKey   = "VANTUS",
+        classifier  = "VANTUS",
+        emptyText   = emptyMacro("no vantus rune in bags"),
+    },
+    {
         key         = "FLASK",
         macroName   = "KCM_FLASK",
         displayName = "Flask",
@@ -102,6 +111,15 @@ KCM.Categories.LIST = {
         rankerKey   = "STAT_FOOD",
         classifier  = "STAT_FOOD",
         emptyText   = emptyMacro("no stat food for this spec"),
+    },
+    {
+        key         = "WPN_ENCH",
+        macroName   = "KCM_WPN_ENCH",
+        displayName = "Weapon Enchant",
+        specAware   = true,
+        rankerKey   = "WPN_ENCH",
+        classifier  = "WPN_ENCH",
+        emptyText   = emptyMacro("no weapon enchant for this spec"),
     },
     {
         key         = "HP_AIO",

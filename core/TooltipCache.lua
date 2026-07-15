@@ -20,7 +20,7 @@
 --   hasStatBuff                    -- true if any statBuffs captured
 --   -- Metadata
 --   buffDurationSec                -- Well-Fed / flask / stat-buff duration
---   isConjured, isFeast            -- classifier flags
+--   isConjured, isFeast, isWeaponEnhance  -- classifier flags
 --   minLevel                       -- required player level (0 if none)
 --   itemName                       -- plain name for friendly dumps
 --   pending = true                 -- tooltip data not loaded yet; retry later
@@ -62,6 +62,12 @@ local PATTERNS = {
     -- Flags
     conjuredExact = "^Conjured Item$",
     feastSubstr   = "Feast",
+    -- Temporary weapon enhancement application. Oils "Coat", whetstones
+    -- "Sharpen", weightstones "Weight" — the common thread is "your <weapon>"
+    -- with an optional weapon adjective ("bladed"/"blunt"/"two-handed").
+    -- Matched as a Lua pattern on lowercased text (letters/space/hyphen only,
+    -- so a comma or clause break stops the run and prevents over-matching).
+    weaponEnhance = "your [%a%s%-]-weapon",
     perSecond     = "every second",
     cooldownSub   = "Cooldown",     -- skip duration parse on cooldown lines
 
@@ -291,6 +297,7 @@ local function parseLines(lines)
 
             if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
             if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
+            if txt:lower():find(PATTERNS.weaponEnhance) then result.isWeaponEnhance = true end
 
             parseDuration(txt, result)
             parseStatBuffs(txt, result)

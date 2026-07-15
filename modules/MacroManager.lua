@@ -55,7 +55,7 @@ local function spellNameFor(spellID)
     return KCM.Compat and KCM.Compat.GetSpellName and KCM.Compat.GetSpellName(spellID) or nil
 end
 
-local function buildActiveBody(id)
+local function buildActiveBody(catKey, id)
     if KCM.ID and KCM.ID.IsSpell(id) then
         local spellID = KCM.ID.SpellID(id)
         local name = spellNameFor(spellID)
@@ -64,6 +64,12 @@ local function buildActiveBody(id)
         -- book hasn't hydrated). Emit a user-visible stub so the macro
         -- exists and the failure is observable rather than silent.
         return ("#showtooltip\n/run print('%s spell %d name unavailable')"):format(KCM.PREFIX, spellID or 0)
+    end
+    -- Weapon enchants apply to a weapon slot: ready the item, apply to main-hand
+    -- (16), ready again, apply to off-hand (17). The off-hand line harmlessly
+    -- no-ops when the off-hand can't take an enhancement (2H / shield / empty).
+    if catKey == "WPN_ENCH" then
+        return ("#showtooltip\n/use item:%d\n/use 16\n/use item:%d\n/use 17"):format(id, id)
     end
     return ("#showtooltip\n/use item:%d"):format(id)
 end
@@ -80,7 +86,7 @@ local function buildEmptyBody(cat)
 end
 
 function M.BuildBody(catKey, itemID)
-    if itemID then return buildActiveBody(itemID) end
+    if itemID then return buildActiveBody(catKey, itemID) end
     local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
     return buildEmptyBody(cat)
 end

@@ -3,7 +3,8 @@
 -- Selection: full-width spec dropdown (class+spec icon markup, sorted by
 --   stripped class name so the texture markup doesn't pollute the order).
 --   The selector is the single source of truth for KCM.Options._viewedSpec —
---   spec-aware category panels (Flask, Stat Food) read it on each render.
+--   spec-aware category panels (Stat Food, Combat Potion, Flask, Weapon Enchant)
+--   read it on each render.
 --
 -- Priority: paired 50/50 layout —
 --    Primary stat   | (empty)
@@ -200,7 +201,7 @@ local function render(ctx)
     local values, sorting = specSelectorValues()
     makeDropdown(scroll, {
         label   = L["Viewing spec"],
-        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Stat Food and Flask tabs."],
+        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Stat Food, Combat Potion, Flask, and Weapon Enchant tabs."],
         values  = values,
         sorting = sorting,
         value   = O._viewedSpec,

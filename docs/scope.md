@@ -4,9 +4,9 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 
 ## In scope
 
-- **Account-wide consumable macros** — eight single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
+- **Account-wide consumable macros** — ten single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, VANTUS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
 - **Auto-rewriting macro bodies** based on bag contents, spec, and a per-category scorer.
-- **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD against per-spec stat priority (primary + ordered secondary).
+- **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH against per-spec stat priority (primary + ordered secondary).
 - **Spell entries** (e.g. Recuperate as a Food entry) via opaque-numeric IDs (positive = item, negative = spell sentinel).
 - **Settings panel** integrated into Blizzard's AddOns settings + matching `/cm` slash CLI for every panel-shaped operation.
 - **Auto-discovery** from bag scans, bounded by a 30-day stale-discovered sweep.

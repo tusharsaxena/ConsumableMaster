@@ -38,9 +38,11 @@ KCM.dbDefaults = {
             HP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
             MP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
             HS        = { added = {}, blocked = {}, pins = {}, discovered = {} },
+            VANTUS    = { added = {}, blocked = {}, pins = {}, discovered = {} },
             STAT_FOOD = { bySpec = {} },
             CMBT_POT  = { bySpec = {} },
             FLASK     = { bySpec = {} },
+            WPN_ENCH  = { bySpec = {} },
             -- Composite categories. No item buckets (added/blocked/pins/
             -- discovered) — picks come from the underlying single categories
             -- at recompute time. `enabled[ref]` toggles a sub-category in/out

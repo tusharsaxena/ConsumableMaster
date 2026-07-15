@@ -23,11 +23,12 @@ KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
 KCM.Settings.main    = nil
 
--- Canonical tab order. General + Stat Priority lead, then the eight single
+-- Canonical tab order. General + Stat Priority lead, then the ten single
 -- categories, then the two composites — matches the CLAUDE.md panel order.
 KCM.Settings.order = KCM.Settings.order or {
     "general", "statpriority",
-    "food", "drink", "hp_pot", "mp_pot", "hs", "flask", "cmbt_pot", "stat_food",
+    "food", "drink", "hp_pot", "mp_pot", "hs", "vantus",
+    "flask", "cmbt_pot", "stat_food", "wpn_ench",
     "hp_aio", "mp_aio",
 }
 
