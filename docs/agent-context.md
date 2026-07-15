@@ -24,7 +24,7 @@ User-facing reference: [README.md](../README.md). Design overview + invariants: 
 - **Priority-list entries are opaque numeric IDs.** Positive = itemID, negative = `KCM.ID.AsSpell(spellID)` sentinel. Only `MacroManager`, `Ranker.Score`'s spell shortcut, and the UI fork on the sign — every other layer treats IDs as plain table keys. Keep it that way; no new side channels.
 - **Composite categories don't pick items — they compose other categories' picks.** HP_AIO and MP_AIO carry `composite=true` + `components = { inCombat={...}, outOfCombat={...} }`. The pipeline branches on `cat.composite` and dispatches to `MacroManager.SetCompositeMacro`. Composites have no `added/blocked/pins/discovered` buckets.
 - **Cyan `[CM]` chat prefix on all addon output.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth; route one-shot chat through `KCM.Say(msg)`. Gated verbose logging goes through `KCM.Debug(tag, fmt, ...)` into the on-screen console. **No raw `print(...)` calls** outside those seams.
-- **Keep the test inventory & badge in sync with the suite.** When the suite changes — a case added, removed, or renamed, or the pass count moves (i.e. whenever a failing test is resolved) — regenerate `docs/test-cases.md` via `lua5.1 tests/run.lua --list` **and** update the README `tests` badge count **in the same change**, not as a follow-up. See [Keeping the inventory & badge in sync](#keeping-the-inventory--badge-in-sync).
+- **Static README badges move with their source of truth, in the same change.** Both `[WoW]` and `[Tests]` are static shields.io badges that go stale silently. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate the inventory via `lua5.1 tests/run.lua --list` and bump the `Tests-<X>%2F<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: the badge and the TOC MUST show the same number and move together on every patch bump (via `wow-addon:bump-interface`). Never defer a badge update to a follow-up. See [Keeping the inventory & badge in sync](#keeping-the-inventory--badge-in-sync).
 
 ## Message bus
 
@@ -64,7 +64,9 @@ When the suite changes — a case added, removed, or renamed, or the pass count 
 lua5.1 tests/run.lua --list > docs/test-cases.md   # regenerate the inventory
 ```
 
-then bump the `![tests](…tests-<PASS>%2F<TOTAL>_passing…)` badge in [README.md](../README.md) to the new numbers. Verify sync with `diff <(lua5.1 tests/run.lua --list) docs/test-cases.md` (no output = in sync).
+then bump the `![Tests](…Tests-<PASS>%2F<TOTAL>_passing-green)` badge in [README.md](../README.md) to the new numbers. Verify sync with `diff <(lua5.1 tests/run.lua --list) docs/test-cases.md` (no output = in sync).
+
+The `[WoW]` badge (`![WoW](…WoW-<Expansion>_<X.Y.Z>-purple)`) follows the same discipline against a different source: it MUST show the same number as the TOC `## Interface:` line and move with it on every patch bump (`wow-addon:bump-interface`).
 
 ## Module publishing pattern
 

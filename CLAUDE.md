@@ -34,7 +34,7 @@ luacheck .              # lint
 
 Both must be green before committing. Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
-**Test inventory & badge (Hard rule).** When the suite changes — a case added/removed/renamed, or the pass count moves (i.e. whenever a failing test is resolved) — regenerate `docs/test-cases.md` (`lua5.1 tests/run.lua --list > docs/test-cases.md`) **and** update the README `tests` badge count **in the same change**, not as a follow-up. Details: [docs/agent-context.md](./docs/agent-context.md#keeping-the-inventory--badge-in-sync).
+**Static badges (Hard rule).** The README `[WoW]` and `[Tests]` badges are static and go stale silently — update each in the same change that moves its source. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate (`lua5.1 tests/run.lua --list > docs/test-cases.md`) and bump the `Tests-<X>/<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: both MUST show the same number and move together on every patch bump. Never defer to a follow-up. Details: [docs/agent-context.md](./docs/agent-context.md#keeping-the-inventory--badge-in-sync).
 
 ## Full agent brief
 
