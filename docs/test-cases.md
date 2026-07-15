@@ -101,7 +101,7 @@ whenever the suite changes.
 - Pipeline.Recompute writes a macro body pointing at the owned pick
 - Pipeline.Recompute skips macro writes when the addon is disabled
 
-### test_ranker.lua (15)
+### test_ranker.lua (16)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -118,6 +118,7 @@ whenever the suite changes.
 - Ranker: VANTUS prefers higher ilvl (current tier) then quality
 - Ranker: SortCandidates orders by score desc, ties by id asc
 - Ranker: spell sentinel sorts first and empty input is safe
+- Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
 
 ### test_runner_list.lua (4)
 
@@ -169,13 +170,14 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
 
-### test_tooltipcache.lua (5)
+### test_tooltipcache.lua (6)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
 - TooltipCache: parses mana-only drink with no healValue
 - TooltipCache: flags weapon enhancements via the 'your <weapon>' effect
 - TooltipCache: parses combined percentage 'health and mana' form
+- TooltipCache: parses Attack Power and Spell Power as AP/SP stats
 
 ## Totals
 
@@ -192,11 +194,11 @@ whenever the suite changes.
 | test_load.lua | 1 |
 | test_macromanager.lua | 11 |
 | test_pipeline.lua | 5 |
-| test_ranker.lua | 15 |
+| test_ranker.lua | 16 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 8 |
 | test_selector.lua | 8 |
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
-| test_tooltipcache.lua | 5 |
-| **Total** | **117** |
+| test_tooltipcache.lua | 6 |
+| **Total** | **119** |

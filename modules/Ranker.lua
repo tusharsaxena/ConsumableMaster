@@ -87,7 +87,10 @@ end
 --   unranked        → 0
 local function statWeight(stat, specPriority)
     if not stat or not specPriority then return 0 end
-    if stat == specPriority.primary then return PRIMARY_WEIGHT end
+    local p = specPriority.primary
+    if stat == "AP" then return (p == "STR" or p == "AGI") and PRIMARY_WEIGHT or 0 end
+    if stat == "SP" then return (p == "INT") and PRIMARY_WEIGHT or 0 end
+    if stat == p then return PRIMARY_WEIGHT end
     local sec = specPriority.secondary
     if not sec then return 0 end
     local n = #sec

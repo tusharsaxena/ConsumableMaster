@@ -87,6 +87,8 @@ local PATTERNS = {
 -- Longest token first to avoid any sub-token shadowing.
 local STAT_TOKENS = {
     { token = "Critical Strike", tag = "CRIT"        },
+    { token = "Attack Power",    tag = "AP"          },
+    { token = "Spell Power",     tag = "SP"          },
     { token = "Versatility",     tag = "VERSATILITY" },
     { token = "Intellect",       tag = "INT"         },
     { token = "Strength",        tag = "STR"         },

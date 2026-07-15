@@ -86,3 +86,19 @@ test("TooltipCache: parses combined percentage 'health and mana' form", function
     t.eq(pct.healPct, 5, "combined pct: healPct parsed")
     t.eq(pct.manaPct, 5, "combined pct: manaPct parsed")
 end)
+
+-- ---- Attack Power and Spell Power parsing ------------------------------------
+test("TooltipCache: parses Attack Power and Spell Power as AP/SP stats", function(t)
+    local TC, mock = newTC()
+    local stone = parse(TC, mock, 237370, {
+        "Refulgent Whetstone",
+        "Use: Sharpens your bladed weapon, increasing Attack Power by 10 for 2 hours.",
+    })
+    t.eq(#stone.statBuffs, 1, "one stat buff parsed")
+    t.eq(stone.statBuffs[1].stat, "AP", "Attack Power -> AP")
+    t.eq(stone.statBuffs[1].amount, 10, "AP amount")
+
+    local sp = parse(TC, mock, 999001, { "X", "Use: increasing Spell Power by 42 for 1 hour." })
+    t.eq(sp.statBuffs[1].stat, "SP", "Spell Power -> SP")
+    t.eq(sp.statBuffs[1].amount, 42, "SP amount")
+end)

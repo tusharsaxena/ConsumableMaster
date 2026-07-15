@@ -239,3 +239,13 @@ test("Ranker: spell sentinel sorts first and empty input is safe", function(t)
     t.eq(#eIds, 0, "empty candidate set -> empty ids")
     t.eq(#eRows, 0, "empty candidate set -> empty rows")
 end)
+
+test("Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors", function(t)
+    local KCM = h.loader.loadPure()
+    local W = KCM.Ranker._statWeight
+    t.eq(W("AP", { primary = "STR" }), 1000, "AP -> primary for STR")
+    t.eq(W("AP", { primary = "AGI" }), 1000, "AP -> primary for AGI")
+    t.eq(W("AP", { primary = "INT" }), 0, "AP -> 0 for INT")
+    t.eq(W("SP", { primary = "INT" }), 1000, "SP -> primary for INT")
+    t.eq(W("SP", { primary = "STR" }), 0, "SP -> 0 for STR")
+end)
