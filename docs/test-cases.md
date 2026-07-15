@@ -138,7 +138,7 @@ whenever the suite changes.
 - schema: unknown paths resolve to nil/false
 - schema: [Set] logs exactly one line at the write seam, gated by debug
 
-### test_selector.lua (8)
+### test_selector.lua (9)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -148,6 +148,7 @@ whenever the suite changes.
 - Selector: a known spell entry counts as owned and is picked
 - Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
 - Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
+- Selector: PickBestForSlot filters by weapon affinity + ownership
 
 ### test_slash.lua (8)
 
@@ -202,9 +203,9 @@ whenever the suite changes.
 | test_ranker.lua | 16 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 8 |
-| test_selector.lua | 8 |
+| test_selector.lua | 9 |
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
 | test_tooltipcache.lua | 7 |
 | test_weaponslots.lua | 1 |
-| **Total** | **121** |
+| **Total** | **122** |

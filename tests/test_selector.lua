@@ -165,3 +165,29 @@ test("Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySp
     t.truthy(ob, "explicit spec key resolves a bucket")
     t.ne(ob, bucket, "different spec key → different bucket")
 end)
+
+-- ---------------------------------------------------------------
+-- PickBestForSlot: weapon-affinity-filtered pick per slot
+-- ---------------------------------------------------------------
+test("Selector: PickBestForSlot filters by weapon affinity + ownership", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+
+    -- Candidates: a bladed whetstone, a blunt weightstone, an any oil.
+    mock.setItem(6001, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "bladed", statBuffs = { { stat = "AP", amount = 10 } } } })
+    mock.setItem(6002, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "blunt",  statBuffs = { { stat = "AP", amount = 15 } } } })
+    mock.setItem(6003, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any",    statBuffs = { { stat = "CRIT", amount = 9 } } } })
+    for _, id in ipairs({ 6001, 6002, 6003 }) do S.AddItem("WPN_ENCH", id) end
+    mock.setBag(6001, 1); mock.setBag(6002, 1); mock.setBag(6003, 1)
+
+    -- Main hand is a sword (bladed): whetstone or oil eligible, weightstone not.
+    mock.setItem(6100, { subType = "Two-Handed Swords" }); mock.setEquipped(16, 6100)
+    local mh = S.PickBestForSlot("WPN_ENCH", 16, nil)
+    t.truthy(mh == 6001 or mh == 6003, "bladed slot picks whetstone or oil, never the weightstone")
+    t.ne(mh, 6002, "weightstone not eligible on a bladed weapon")
+
+    -- Empty off-hand -> nil.
+    mock.setEquipped(17, nil)
+    t.eq(S.PickBestForSlot("WPN_ENCH", 17, nil), nil, "no weapon in slot -> nil")
+end)

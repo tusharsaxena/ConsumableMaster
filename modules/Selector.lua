@@ -250,6 +250,26 @@ function S.PickBestForCategory(catKey, specKey, scoreCache)
     return nil
 end
 
+-- Best owned enhancement for one weapon slot (16 main / 17 off). Filters the
+-- effective priority list to enhancements whose weaponAffinity matches the
+-- equipped weapon ("any" always matches); returns nil when the slot holds no
+-- enhanceable weapon or the player owns no eligible enhancement.
+function S.PickBestForSlot(catKey, slot, scoreCache)
+    local affinity = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(slot)
+    if not affinity then return nil end
+    local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
+    for _, id in ipairs(S.GetEffectivePriority(catKey, nil, scoreCache)) do
+        if not (KCM.ID and KCM.ID.IsSpell(id)) then
+            local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(id)
+            local aff = (tt and tt.weaponAffinity) or "any"
+            if (aff == "any" or aff == affinity) and hasItem and hasItem(id) then
+                return id
+            end
+        end
+    end
+    return nil
+end
+
 -- ---------------------------------------------------------------------------
 -- DB-mutating operations
 -- ---------------------------------------------------------------------------
