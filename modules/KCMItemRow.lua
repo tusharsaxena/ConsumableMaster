@@ -9,7 +9,8 @@
 --   3. Surface a "currently picked" glyph without leaning on `<- pick` text.
 --
 -- Acquired via `AceGUI:Create("KCMItemRow")` in settings/Category.lua, then
--- configured with `:SetCustomData({ itemID, owned, isPick, fallbackName })`.
+-- configured with `:SetCustomData({ itemID, owned, isPick, pickMH, pickOH,
+-- applicable, fallbackName })`.
 -- The SetText / SetFontObject methods are no-op stubs so the widget tolerates
 -- any AceGUI consumer that pre-emptively calls them on every child.
 
@@ -45,6 +46,11 @@ local QUALITY_GAP   = 1  -- tighter gap between quality glyph and name
 -- padded row buttons (score / delete, both 22).
 local PICK_SIZE     = 22
 local QUALITY_SIZE  = 14
+local HAND_TAG_GAP   = 2
+-- Reserved width budget for handTag ("MH+OH" is the widest string it shows)
+-- so applyLabelWidth can keep the label from overlapping it on perHand rows.
+local HAND_TAG_WIDTH = 40
+local NOT_APPLICABLE_ALPHA = 0.4
 
 local function iconForItem(itemID)
     if not itemID or not (C_Item and C_Item.GetItemInfoInstant) then
@@ -108,6 +114,9 @@ local function applyLabelWidth(widget)
         leftOffset = leftOffset + QUALITY_SIZE + QUALITY_GAP
     end
     local rightOffset = PICK_SIZE + ICON_GAP
+    if widget.handTag and widget.handTag:IsShown() then
+        rightOffset = rightOffset + HAND_TAG_WIDTH + HAND_TAG_GAP
+    end
     widget.label:SetWidth(math.max(20, w - leftOffset - rightOffset))
 end
 
@@ -142,6 +151,9 @@ local methods = {
         self.itemID = nil
         self.owned  = false
         self.isPick = false
+        self.pickMH = false
+        self.pickOH = false
+        self.applicable = true
         self.fallbackName = nil
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
@@ -157,22 +169,53 @@ local methods = {
 
     -- Receives the option table's `arg` field. Expected shape:
     --   { itemID = <number>, owned = <bool>, isPick = <bool>,
+    --     pickMH = <bool?>, pickOH = <bool?>, applicable = <bool?>,
     --     fallbackName = <string?> }
     -- fallbackName is rendered when itemID is nil, so a row that's logically
     -- "for the Healthstone sub-category but currently has no pick" still
     -- identifies itself instead of showing "[Loading]".
+    -- pickMH/pickOH are the per-hand pick flags used by perHand categories
+    -- (Weapon Enchant); non-perHand pages leave them nil and rely solely on
+    -- isPick, preserving the original single-star behavior. applicable
+    -- defaults to true so non-perHand rows never dim.
     ["SetCustomData"] = function(self, data)
         if type(data) ~= "table" then return end
         self.itemID = data.itemID
         self.owned  = data.owned  and true or false
         self.isPick = data.isPick and true or false
+        self.pickMH = data.pickMH and true or false
+        self.pickOH = data.pickOH and true or false
+        self.applicable = (data.applicable == nil) and true or (data.applicable and true or false)
         self.fallbackName = data.fallbackName
         self:RefreshDisplay()
     end,
 
     ["RefreshDisplay"] = function(self)
         self.ownedTex:SetTexture(self.owned and OWNED_TEX or NOT_OWNED_TEX)
-        if self.isPick then self.pickTex:Show() else self.pickTex:Hide() end
+        if self.isPick or self.pickMH or self.pickOH then
+            self.pickTex:Show()
+        else
+            self.pickTex:Hide()
+        end
+
+        if self.pickMH and self.pickOH then
+            -- ASCII "MH+OH" rather than a middle-dot glyph: WoW's default
+            -- font (Friz Quadrata TT) has narrow Unicode coverage and
+            -- renders unsupported glyphs as tofu dots (see feedback notes
+            -- on WoW glyph rendering). ASCII is guaranteed to render.
+            self.handTag:SetText("MH+OH")
+            self.handTag:Show()
+        elseif self.pickMH then
+            self.handTag:SetText("MH")
+            self.handTag:Show()
+        elseif self.pickOH then
+            self.handTag:SetText("OH")
+            self.handTag:Show()
+        else
+            self.handTag:Hide()
+        end
+
+        self.frame:SetAlpha(self.applicable and 1.0 or NOT_APPLICABLE_ALPHA)
 
         local spellID = isSpellEntry(self.itemID) and spellIDFromEntry(self.itemID) or nil
 
@@ -253,6 +296,13 @@ local function Constructor()
     pickTex:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     pickTex:Hide()
 
+    -- Per-hand marker ("MH" / "OH" / "MH+OH") for perHand categories (Weapon
+    -- Enchant). Sits just left of pickTex; hidden for every non-perHand page
+    -- since RefreshDisplay only shows it when pickMH/pickOH is set.
+    local handTag = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    handTag:SetPoint("RIGHT", pickTex, "LEFT", -HAND_TAG_GAP, 0)
+    handTag:Hide()
+
     local label = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     label:SetJustifyH("LEFT")
     label:SetJustifyV("MIDDLE")
@@ -273,6 +323,7 @@ local function Constructor()
         itemTex    = itemTex,
         qualityTex = qualityTex,
         pickTex    = pickTex,
+        handTag    = handTag,
         label      = label,
         type       = Type,
     }

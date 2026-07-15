@@ -333,11 +333,35 @@ local function renderSingle(ctx, cat)
         end,
     })
 
+    -- Per-hand picks + affinity (Weapon Enchant only). Computed once up front
+    -- so both the header note and the per-row pickMH/pickOH/applicable flags
+    -- below use the same numbers.
+    local mh, oh, mhAff, ohAff
+    if cat.perHand then
+        mh = KCM.Selector and KCM.Selector.PickBestForSlot
+            and KCM.Selector.PickBestForSlot(cat.key, 16) or nil
+        oh = KCM.Selector and KCM.Selector.PickBestForSlot
+            and KCM.Selector.PickBestForSlot(cat.key, 17) or nil
+        mhAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(16) or nil
+        ohAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(17) or nil
+    end
+
     -- Priority list
     H.Section(ctx, L["Priority list"])
-    H.Label(ctx,
-        (L["%s in bags    %s not in bags    %s picked in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
-        "medium")
+    if cat.perHand then
+        local mhAffName = mhAff or L["(none)"]
+        local ohAffName = ohAff or L["(none)"]
+        H.Label(ctx,
+            (L["Main hand: %s | Off hand: %s"]):format(mhAffName, ohAffName),
+            "medium")
+        H.Label(ctx,
+            (L["%s in bags    %s not in bags    %s picked (MH/OH) in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
+            "medium")
+    else
+        H.Label(ctx,
+            (L["%s in bags    %s not in bags    %s picked in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
+            "medium")
+    end
     H.AddSpacer(scroll, 4)
 
     if cat.specAware and not specKey then
@@ -347,7 +371,7 @@ local function renderSingle(ctx, cat)
     else
         local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
             and KCM.Selector.GetEffectivePriority(cat.key, specKey)) or {}
-        local pick     = KCM.Selector and KCM.Selector.PickBestForCategory
+        local pick     = (not cat.perHand) and KCM.Selector and KCM.Selector.PickBestForCategory
             and KCM.Selector.PickBestForCategory(cat.key, specKey) or nil
 
         if #priority == 0 then
@@ -376,11 +400,23 @@ local function renderSingle(ctx, cat)
                     and (L["Rank score: %s"]):format(formatNumber(explain.score))
                     or L["Rank score"]
 
+                local rowPickMH, rowPickOH, rowApplicable
+                if cat.perHand then
+                    rowPickMH = (mh and rowID == mh) and true or false
+                    rowPickOH = (oh and rowID == oh) and true or false
+                    local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(rowID)
+                    local aff = (tt and tt.weaponAffinity) or "any"
+                    rowApplicable = (aff == "any" or aff == mhAff or aff == ohAff)
+                end
+
                 local row = newRow(scroll, 28)
                 makeItemRow(row, {
-                    itemID = rowID,
-                    owned  = isOwned(rowID),
-                    isPick = (pick and rowID == pick) and true or false,
+                    itemID     = rowID,
+                    owned      = isOwned(rowID),
+                    isPick     = (pick and rowID == pick) and true or false,
+                    pickMH     = rowPickMH,
+                    pickOH     = rowPickOH,
+                    applicable = cat.perHand and rowApplicable or nil,
                 }, ITEM_ROW_RW_SINGLE)
                 makeScoreBtn(row, {
                     image   = "Interface\\FriendsFrame\\InformationIcon",
