@@ -9,7 +9,7 @@
 ## DefaultState: enabled
 ## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
 ## X-License: MIT
-## X-Standard: Ka0s WoW Addon Standard v1.0.0
+## X-Standard: https://github.com/tusharsaxena/WowAddonStandards
 ## X-Curse-Project-ID: 1522944
 
 # Libraries
