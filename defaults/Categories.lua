@@ -19,6 +19,13 @@
 --                 db.profile.categories[<key>].enabled / orderInCombat /
 --                 orderOutOfCombat. Sub-categories are locked to their
 --                 section.
+--
+-- Fields (per-hand — perHand=true):
+--   perHand     : true routes the pipeline through Selector.PickBestForSlot
+--                 (main hand = 16, off hand = 17) and
+--                 MacroManager.SetWeaponEnchantMacro instead of the
+--                 single-pick path, so each hand gets an affinity-matched
+--                 weapon enchant.
 
 local _, NS = ...
 local KCM = NS
@@ -117,6 +124,7 @@ KCM.Categories.LIST = {
         macroName   = "KCM_WPN_ENCH",
         displayName = "Weapon Enchant",
         specAware   = true,
+        perHand     = true,
         rankerKey   = "WPN_ENCH",
         classifier  = "WPN_ENCH",
         emptyText   = emptyMacro("no weapon enchant for this spec"),

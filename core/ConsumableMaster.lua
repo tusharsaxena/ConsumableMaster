@@ -114,6 +114,14 @@ function P.RecomputeOne(catKey, scoreCache, reason)
         -- so any item that overlaps multiple categories isn't re-parsed).
         return KCM.MacroManager.SetCompositeMacro(cat, scoreCache)
     end
+    if cat.perHand then
+        -- Per-hand categories (weapon enchants) don't have one "best" pick;
+        -- each equipped weapon gets its own affinity-filtered pick and the
+        -- two feed a single macro body (main hand = slot 16, off hand = 17).
+        local mh = KCM.Selector.PickBestForSlot(catKey, 16, scoreCache)
+        local oh = KCM.Selector.PickBestForSlot(catKey, 17, scoreCache)
+        return KCM.MacroManager.SetWeaponEnchantMacro(cat, mh, oh)
+    end
     local pick = KCM.Selector.PickBestForCategory(catKey, nil, scoreCache)
     return KCM.MacroManager.SetMacro(cat.macroName, pick, catKey)
 end
@@ -394,6 +402,14 @@ function KCM:OnLearnedSpell()
     requestRecompute("learned_spell")
 end
 
+function KCM:OnEquipmentChanged(event, slotID)
+    -- Only main hand (16) / off hand (17) swaps affect the per-hand weapon
+    -- enchant pick; every other equipment slot is a no-op here.
+    if slotID == 16 or slotID == 17 then
+        requestRecompute("equip")
+    end
+end
+
 function KCM:OnEnable()
     self:RegisterEvent("PLAYER_ENTERING_WORLD",         "OnPlayerEnteringWorld")
     self:RegisterEvent("BAG_UPDATE_DELAYED",            "OnBagUpdateDelayed")
@@ -401,4 +417,5 @@ function KCM:OnEnable()
     self:RegisterEvent("PLAYER_REGEN_ENABLED",          "OnRegenEnabled")
     self:RegisterEvent("GET_ITEM_INFO_RECEIVED",        "OnItemInfoReceived")
     self:RegisterEvent("LEARNED_SPELL_IN_SKILL_LINE",   "OnLearnedSpell")
+    self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged")
 end

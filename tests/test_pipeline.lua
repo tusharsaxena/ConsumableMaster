@@ -75,3 +75,24 @@ test("Pipeline.Recompute skips macro writes when the addon is disabled", functio
     KCM.Pipeline.Recompute("test")
     t.eq(mock.macros["KCM_FOOD"], nil, "no macro written while disabled")
 end)
+
+test("Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMacro", function(t)
+    local KCM, mock = load()
+    local S = KCM.Selector
+
+    -- A bladed whetstone the player owns; equipped weapons are both bladed
+    -- so the main-hand pick resolves to this item.
+    mock.setItem(6201, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "bladed", statBuffs = { { stat = "AP", amount = 10 } } } })
+    S.AddItem("WPN_ENCH", 6201)
+    mock.setBag(6201, 1)
+
+    mock.setItem(6300, { subType = "One-Handed Swords" }); mock.setEquipped(16, 6300)
+    mock.setItem(6301, { subType = "One-Handed Swords" }); mock.setEquipped(17, 6301)
+
+    KCM.Pipeline.RecomputeOne("WPN_ENCH", nil, "test")
+
+    local state = KCM.db.profile.macroState["KCM_WPN_ENCH"]
+    t.truthy(state and state.lastBody, "WPN_ENCH macro body was written")
+    t.truthy(state.lastBody:find("/use 16", 1, true), "body applies the main-hand enchant")
+    t.truthy(state.lastBody:find("6201", 1, true), "body references the bladed pick")
+end)

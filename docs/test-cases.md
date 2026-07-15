@@ -93,13 +93,14 @@ whenever the suite changes.
 - MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither
 - MacroManager: BuildBody VANTUS uses the default single /use body
 
-### test_pipeline.lua (5)
+### test_pipeline.lua (6)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
 - Pipeline.RunAutoDiscovery keeps a user-blocked item out of candidates
 - Pipeline.Recompute writes a macro body pointing at the owned pick
 - Pipeline.Recompute skips macro writes when the addon is disabled
+- Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMacro
 
 ### test_ranker.lua (16)
 
@@ -199,7 +200,7 @@ whenever the suite changes.
 | test_id.lua | 6 |
 | test_load.lua | 1 |
 | test_macromanager.lua | 11 |
-| test_pipeline.lua | 5 |
+| test_pipeline.lua | 6 |
 | test_ranker.lua | 16 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 8 |
@@ -208,4 +209,4 @@ whenever the suite changes.
 | test_spechelper.lua | 7 |
 | test_tooltipcache.lua | 7 |
 | test_weaponslots.lua | 1 |
-| **Total** | **122** |
+| **Total** | **123** |
