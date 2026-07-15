@@ -8,9 +8,9 @@
 
 ![alt text](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
-An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. Keeps a fixed set of account-wide global macros pointed at the single best consumable currently in your bags, across eight categories plus two combat-conditional combo macros — so you never rebuild a food / flask / potion macro again.
+An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across eight categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
 
-Every time you loot a better food, swap spec, reload, or leave combat, Ka0s Consumable Master rewrites each macro to point at the best current pick — `/use item:<id>` for items or `/cast <spell>` for spell entries (class abilities like Recuperate). The macros live in the **account-wide** pool (identified by name — the addon never hardcodes a slot), so they're shared across every character, survive slot reordering, and coexist with every other macro in your list.
+Whenever you loot something better, change spec, reload, or drop out of combat, Consumable Master updates each macro to use your best current pick — the right item, or the right spell for class abilities like Recuperate. The macros are account-wide, so one set is shared by all your characters. They're matched by name rather than by slot, so you can move them around your macro list freely and they'll keep working alongside your own macros.
 
 | #  |Category                                                     |Macro         |Spec-aware? |
 | -- |------------------------------------------------------------ |------------- |----------- |
@@ -25,7 +25,7 @@ Every time you loot a better food, swap spec, reload, or leave combat, Ka0s Cons
 | 9  |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
 | 10 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
-Macro writes that would land during combat are queued and applied when you leave combat — the addon never calls a protected macro API in combat.
+If a better pick comes up while you're in combat, the macro updates the moment you leave — WoW doesn't allow macro changes mid-fight.
 
 ## Screenshots
 
@@ -47,147 +47,130 @@ Macro writes that would land during combat are queued and applied when you leave
 
 ## Usage
 
-Install the addon with the Addon Manager of your choice (or drop the folder into `Interface/AddOns`) and log in. The addon initializes on `PLAYER_ENTERING_WORLD` — bags are scanned, owned items are discovered, and all `KCM_*` macros are written. Drag any of the macros onto your action bars from the macro UI, or use the draggable icon at the top of each category page in the settings panel.
+Install it with your addon manager (or drop the folder into `Interface/AddOns`) and log in. On login, Consumable Master scans your bags, finds your consumables, and writes all its macros. Drag any macro onto your action bars from the macro window, or from the draggable icon at the top of each category page in the settings.
 
 ### Slash commands
 
-`/cm` is the short form; `/consumablemaster` is a long-form alias that accepts the same subcommands. Every chat line the addon emits — slash output, in-combat notices, the empty-state stub fired when a macro has no usable pick — is prefixed with a cyan `[CM]` tag for easy filtering.
+`/cm` is the short command; `/consumablemaster` does the same thing. Everything the addon prints to chat is tagged with a cyan `[CM]` so it's easy to spot.
 
 | Command | What it does |
 |---------|--------------|
-| `/cm` | Show help. |
-| `/cm config` | Open the settings panel (priority lists, spec selector, add-by-ID). |
-| `/cm resync` | Force a full rescan: re-discover, recompute picks, rewrite macros where the pick changed. |
-| `/cm rewritemacros` | Force an unconditional rewrite of every KCM macro body + icon. Use when an action-bar icon looks stale. |
-| `/cm reset` | Confirm-and-reset every priority list and stat override to defaults. |
-| `/cm debug` | Toggle the debug console window; `on`\|`off` set logging on/off. |
-| `/cm version` | Print the addon version. |
-| `/cm list` | List every schema-driven setting and its current value, grouped by panel. |
-| `/cm get <path>` | Print one setting's value (e.g. `/cm get enabled`). |
-| `/cm set <path> <value>` | Set a setting; flows through the same path the panel widget uses. |
-| `/cm priority <cat> list\|add\|remove\|up\|down\|reset [<id>]` | Per-category priority-list editor. `<id>` accepts `12345` (item) or `s:5512` (spell). Composite categories use `/cm aio` instead. |
-| `/cm stat list\|primary\|secondary\|reset [<specKey>]` | Per-spec stat-priority editor. `<specKey>` is `<classID>_<specID>` or `CLASS:SPEC` (e.g. `SHAMAN:ENHANCEMENT`); defaults to current spec. |
-| `/cm aio <key> list\|toggle\|up\|down\|reset` | Composite-category editor for `HP_AIO` / `MP_AIO`. Sub-categories are locked to their section, so `up` / `down` infer the section from where the ref appears. |
-| `/cm dump <target>` | Inspect internal state. Targets: `categories`, `statpriority`, `bags`, `item <id>`, `pick <catKey>`. |
+| `/cm` | Show the list of commands. |
+| `/cm config` | Open the settings panel. |
+| `/cm resync` | Rescan your bags and update any macro whose best pick changed. |
+| `/cm rewritemacros` | Rewrite every macro and its icon. Use this if an action-bar icon looks stale. |
+| `/cm reset` | Reset every priority list and stat choice back to defaults (asks first). |
+| `/cm debug` | Open or close the debug window; add `on` or `off` to turn logging on or off. |
+| `/cm version` | Show the addon version. |
+| `/cm list` | List every setting and its current value. |
+| `/cm get <path>` | Show one setting's value (e.g. `/cm get enabled`). |
+| `/cm set <path> <value>` | Change a setting from chat. |
+| `/cm priority <cat> list\|add\|remove\|up\|down\|reset [<id>]` | Edit a category's priority list from chat. `<id>` is an item ID like `12345` or a spell like `s:5512`. |
+| `/cm stat list\|primary\|secondary\|reset [<specKey>]` | Edit a spec's stat priority from chat. Defaults to your current spec. |
+| `/cm aio <key> list\|toggle\|up\|down\|reset` | Edit the combo macros (`HP_AIO` / `MP_AIO`). |
+| `/cm dump <target>` | Show internal details for troubleshooting (`categories`, `bags`, `item <id>`, `pick <catKey>`, …). |
 
 ### Settings panel
 
-Settings live at **Escape → Options → AddOns → Consumable Master** (or `/cm config`). One parent category ("Ka0s Consumable Master") with sub-pages for every panel below.
+Settings live at **Escape → Options → AddOns → Consumable Master** (or type `/cm config`).
 
 **General**
 
-Two sections, top to bottom.
-
 *General*
 
-*   **Enable** — master toggle. When off, the recompute pipeline is a no-op: macros keep their last-written body and stop updating with bag / spec / combat events. Toggle back on and macros refresh against current state immediately. Persists in saved variables.
-*   **Debug console** — enable the on-screen debug console (session-only; not persisted). Equivalent to `/cm debug on`.
+*   **Enable** — the master on/off switch. When it's off, your macros stop updating and keep whatever they last had. Turn it back on and they refresh right away. Remembered between sessions.
+*   **Debug console** — open the on-screen debug window. Same as `/cm debug on`. It's off again each login.
 
 *Maintenance*
 
-*   **Force resync** — invalidate the tooltip cache, re-run auto-discovery against your bags, and recompute every category's pick. Macros are re-issued only when the pick or body actually changes. Equivalent to `/cm resync`. Blocked in combat.
-*   **Force rewrite macros** — unconditionally re-issue every `KCM_*` macro (body + stored icon), bypassing the "unchanged" cache. Use when an action-bar icon looks stale (e.g. ElvUI held the previous static texture across an upgrade). Equivalent to `/cm rewritemacros`. Blocked in combat. A `/reload` afterwards guarantees the action-bar framework re-queries every button.
-*   **Reset all priorities** — with confirmation, wipe every added / blocked / pinned entry and every stat-priority override. Seed defaults are restored.
+*   **Force resync** — rescan your bags and recheck every category's best pick. Macros only change if the pick actually changed. Same as `/cm resync`. Not available in combat.
+*   **Force rewrite macros** — rewrite every macro and its icon, even ones that didn't change. Use this when an action-bar icon looks stale (some bar addons hold the old icon across an upgrade). Same as `/cm rewritemacros`. Not available in combat. A `/reload` afterwards makes sure your bars redraw.
+*   **Reset all priorities** — wipe every added, blocked, and pinned item and every stat choice, restoring the defaults. Asks first.
 
 **Stat Priority**
 
-One shared page that drives the three spec-aware categories (Stat Food, Combat Potion, Flask).
+One page that controls the three spec-aware categories (Stat Food, Combat Potion, Flask).
 
-*   **Viewing spec** — selects which spec's stat priority you're editing. Also controls which spec's list shows on the three spec-aware category pages. Specs render with their class icon and human-readable name (e.g. "Shaman — Enhancement"), not raw class/spec IDs.
-*   **Primary stat** — the dominant stat for the spec. Primary-stat consumables always beat secondary-stat ones regardless of magnitude.
-*   **Secondary stat #1 … #4** — ordered preference for secondary stats (Crit / Haste / Mastery / Versatility). Position 1 weighs most. Leave slots as `(none)` to truncate the list — a truncated list ranks unlisted secondaries at 0.
-*   **Reset stat priority** — drop the user override for the viewed spec; falls back to the seed default for that spec.
+*   **Viewing spec** — pick which spec you're editing. This also sets which spec is shown on the three spec-aware category pages. Specs show their class icon and name (e.g. "Shaman — Enhancement").
+*   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
+*   **Secondary stat #1 … #4** — your preferred secondary stats in order (Crit, Haste, Mastery, Versatility). #1 counts the most. Leave a slot as `(none)` to stop there; anything not listed counts as zero.
+*   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
 
 **Per-category pages**
 
-Each of the eight single-category macros has its own page. Spec-aware pages show the viewed spec at the top.
+Each of the eight single macros has its own page. Spec-aware pages show the viewed spec at the top.
 
-*   **Draggable macro icon** — the small icon below the title. Drag it onto an action bar to place the `KCM_*` macro.
-*   **Add item or spell by ID** — pick **Item** or **Spell**, paste the ID, press Enter. Invalid IDs are rejected with a chat error; the typed text persists so you can fix the typo without re-entering it.
-*   **Priority list** — one row per candidate, ordered by effective rank:
-    *   Status glyphs: green check (owned in bags / spell known), red (not owned), yellow star (currently picked by the macro).
-    *   **Blue info button** — hover for the per-item score breakdown.
-    *   **↑ / ↓** — reorder. Pinning an item overrides the automatic ranking for that row.
-    *   **×** — remove the entry. Also blocks it so auto-discovery won't re-add it.
-*   **Reset category** — clears this category's added / blocked / pinned entries (the viewed spec's bucket only, for spec-aware categories). Auto-discovered items are preserved.
+*   **Draggable macro icon** — the small icon under the title. Drag it onto a bar to place the macro.
+*   **Add item or spell by ID** — choose **Item** or **Spell**, paste the ID, press Enter. A bad ID gives a chat error and keeps your text so you can fix the typo.
+*   **Priority list** — one row per candidate, in ranked order:
+    *   Icons show status: green check (you own it / know the spell), red (you don't), yellow star (currently used by the macro).
+    *   **Blue info button** — hover to see why an item scored where it did.
+    *   **↑ / ↓** — reorder. Moving an item pins it above the automatic ranking.
+    *   **×** — remove and block it, so it won't get auto-added again.
+*   **Reset category** — clear this category's added, blocked, and pinned items (for spec-aware pages, just the viewed spec). Auto-found items stay.
 
 **AIO Health / AIO Mana**
 
-Two composite pages (after Stat Food) that combine other categories' picks under combat conditionals — `KCM_HP_AIO` runs Healthstone → Healing Potion in combat and the Food pick out of combat; `KCM_MP_AIO` runs Mana Potion in combat and Drink out of combat. Each page has *In Combat* and *Out of Combat* sections; sub-categories are locked to their section but can be toggled on/off and reordered within it. Each row shows the current pick preview on the left and the toggle + reorder controls on the right. Ranking lives on each individual category's page, not here.
+Two combo pages (after Stat Food). `KCM_HP_AIO` uses your Healthstone then Healing Potion in combat, and your Food pick out of combat. `KCM_MP_AIO` uses your Mana Potion in combat and your Drink out of combat. Each page has an *In Combat* and an *Out of Combat* section; you can turn each sub-category on or off and reorder it within its section. Each row shows the current pick on the left and its controls on the right. The actual ranking is set on each category's own page.
 
 ## How picking & ranking works
 
-Each macro is rebuilt by a four-step pipeline:
+Each macro is built in four steps:
 
-1.  **Build the candidate set** — the union of the shipped seed list, items / spells you've manually added, and items auto-discovered from your bags, minus anything you've blocked with **×**.
-2.  **Score every candidate** — a per-category scorer reads the tooltip and produces a number; higher is better:
-    *   **Food / Drink** — heal or mana value, with bonuses for conjured items and %-based restores (so Midnight %-based food outranks flat tiers).
-    *   **HP / MP potions** — raw heal or mana value. **Immediate restores beat heal-over-time pots unless the HOT's total exceeds the best immediate by more than 20%**, so a slightly-bigger HOT doesn't win over an instant heal in an emergency.
-    *   **Stat Food / Combat Potion / Flask** — weighted match against the active spec's stat priority. Primary-stat consumables always beat secondary-stat ones; within secondary, earlier positions weigh more.
-    *   **Healthstone** — small preference table (modern auto-leveling stones beat legacy ones).
-    *   **Spell entries** — a fixed score that ranks above every item, so a class ability (e.g. Recuperate as a Food entry) sits at the top of its category by default. You can pin items above it if you prefer.
-3.  **Apply pins** — when you reorder rows with ↑ / ↓, those positions override the score for those rows.
-4.  **Walk the list** — pick the first entry you actually own (item in bags, or spell known on your character). If you own none, the macro prints a friendly cyan `[CM] no <category>` stub when clicked.
+1.  **Gather the candidates** — everything in the built-in default list, anything you added by hand, and anything found in your bags, minus anything you blocked with **×**.
+2.  **Score each candidate** — higher is better:
+    *   **Food / Drink** — how much it heals or restores, with a bonus for conjured items and percentage-based ones (so Midnight's %-based food beats older flat food).
+    *   **HP / MP potions** — how much they restore. An instant potion beats a heal-over-time one unless the heal-over-time total is more than 20% bigger, so a slightly larger slow heal won't win in an emergency.
+    *   **Stat Food / Combat Potion / Flask** — how well it matches your spec's stat priority. Primary stat always beats secondary; among secondary stats, earlier choices count more.
+    *   **Healthstone** — a small preference for modern auto-leveling stones over old ones.
+    *   **Spell entries** — class abilities (like Recuperate as a Food entry) score above every item, so they sit at the top by default. You can pin items above them if you prefer.
+3.  **Apply your pins** — any rows you reordered with ↑ / ↓ override the score.
+4.  **Pick the first one you have** — the first item you own or spell you know. If you have none, clicking the macro prints a friendly `[CM] no <category>` note.
 
-Hovering the **blue info button** on any row shows the per-item score breakdown, so you can see exactly why an entry landed where it did.
+Hover the **blue info button** on any row to see exactly why it landed where it did.
 
 ## FAQ
 
 | Question | Answer |
 |----------|--------|
-| Will this delete or overwrite my existing macros? | No. The `KCM_*` macros are identified by **name**, never by slot, and the addon only ever touches macros it owns. Your custom macros — including anything already in the account-wide pool — are never read, moved, or deleted. If you delete a `KCM_*` macro by hand, the next pipeline run recreates it. |
-| Do the macros work across all my characters? | Yes — they're written to the **account-wide** macro pool (slots 1–120). One set of macros is shared across every character on the account. Priority lists, added/blocked entries, and stat-priority overrides also persist account-wide with a single profile by default. |
-| Why are some categories per-spec and others aren't? | Flask, Combat Potion, and Stat Food are **spec-aware** because their value depends on your stat priority. Food, Drink, HP Potion, MP Potion, and Healthstone rank the same regardless of spec, so they share one priority list. |
-| How do I add an item or spell the addon doesn't know about? | Open the category's page, use **Add item or spell by ID** at the top. Pick **Item** or **Spell**, paste the ID, press Enter. Invalid IDs are rejected with a chat error and you keep your typed text so you can fix typos without re-entering. |
-| How do I force a specific item to always win? | Use the **↑ / ↓** buttons on its row to move it to the position you want. Pinned positions override the automatic ranking. |
-| How do I permanently remove an item? | Use the **×** button on its row. That blocks the item so auto-discovery won't re-add it. **Reset category** (or **Reset all priorities** in General) clears the blocklist again. |
-| Does it work with ElvUI / Bartender / other action-bar addons? | Yes — the `KCM_*` macros are plain Blizzard macros. If the picked item's icon doesn't show on the bar, see the Troubleshooting entry below; a one-time **Force rewrite macros** + `/reload` is occasionally needed on upgrade. |
-| Can I use this in a non-English client? | No — **English only**. Item subtype matching and tooltip parsing both rely on English strings; localization is explicitly out of scope. |
-| Will new patch flasks / potions work automatically? | Usually yes — auto-discovery scans your bags and classifies anything matching by type and tooltip, so a freshly-looted new-tier flask joins the candidate set on the next bag update. If a patch renames a subtype or reformats tooltip numbers, please file an issue. |
-| Why does a smaller-instant HP potion beat a bigger heal-over-time potion? | By design. Immediate restores outrank HOT pots unless the HOT's total is **more than 20% larger** than the best immediate. Immediate value is usually what you want in an emergency. You can override by pinning the HOT above the immediate. |
+| Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Your macros are never read, moved, or deleted. If you delete one of its macros by hand, it's recreated on the next update. |
+| Do the macros work across all my characters? | Yes. They're **account-wide**, so one set is shared by every character. Your priority lists and stat choices are shared account-wide too. |
+| Why are some categories per-spec and others aren't? | Flask, Combat Potion, and Stat Food depend on your stat priority, which changes with your spec, so they're spec-aware. Food, Drink, HP Potion, MP Potion, and Healthstone rank the same for every spec, so they share one list. |
+| How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, paste the ID, press Enter. |
+| How do I force a specific item to always win? | Use **↑ / ↓** on its row to move it where you want. A moved (pinned) item overrides the automatic ranking. |
+| How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
+| Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |
+| Can I use this in a non-English client? | No — **English only**. It matches items and reads tooltips using English text, so other languages aren't supported. |
+| Will new patch flasks / potions work automatically? | Usually yes. It scans your bags and recognizes anything that matches by type and tooltip, so a freshly-looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
+| Why does a smaller instant HP potion beat a bigger heal-over-time one? | By design — an instant restore is usually what you want in an emergency. It only loses if the heal-over-time total is more than 20% bigger. You can override this by pinning the heal-over-time potion above the instant one. |
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| Action bar shows the cooking-pot icon instead of the picked item's icon. | Run **Settings → General → Force rewrite macros** (or `/cm rewritemacros`) then `/reload`. Some action-bar frameworks cache textures until the button re-renders. |
-| Macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick <catKey>` (e.g. `/cm dump pick FLASK`). The output lists every candidate with its score, owned status, and pick marker. If the item isn't listed, it's blocked or its tooltip hasn't loaded yet — `/cm dump item <id>` shows the parse status. |
-| I just looted a better food / flask but the macro didn't update. | Give it a frame — bag updates are debounced. If still nothing, `/cm resync` forces a full rescan. If the change happened in combat, the macro write defers until you leave combat (a hard restriction of the protected macro API). |
-| My macro body changed but my action bar didn't. | `/reload`. Some action-bar frameworks cache action-button textures and don't re-query on every macro update. A reload forces a full re-draw. |
-| Swapped specs but `KCM_FLASK` / `KCM_CMBT_POT` / `KCM_STAT_FOOD` didn't update. | Run `/cm resync`. Verify the viewed spec on the **Stat Priority** page matches your current spec. |
-| `/cm dump item <id>` shows a subType the addon doesn't classify. | Most likely a patch renamed the subtype string. Please file an issue with the `subType` from the dump output. |
-| Chat prints "macro body exceeds 255 bytes" once on login. | Blizzard caps macro bodies at 255 characters. The addon falls back to the empty-state stub for that category rather than write a corrupted truncated body. Please report this with the category key. |
-| "gave up on `KCM_X` after 3 failed writes". | The macro write is being rejected three times across combat flushes — almost always a Blizzard bug or another addon tainting the macro APIs. Run `/cm debug`, reproduce, and file an issue with the debug log. |
-| `/cm reset` or "Reset all priorities" says it didn't work. | Saved variables haven't initialized — reload and try again. Only happens during a failed initial load. |
-| I want to restore a seed list (after manually removing items). | **Reset category** on the category's page wipes that category's added / blocked / pinned entries; **Reset all priorities** (General page) wipes everything across all categories. |
-
-## Testing
-
-Two gates guard every change; both must be green before a commit.
-
-| Gate | Command | What it does |
-|------|---------|--------------|
-| Headless harness | `lua5.1 tests/run.lua` | Runs the headless unit suites — classifier, ranker, selector, ID sentinels, schema, macro-body builders, message bus, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, and the `/cm` slash dispatcher — plus a full-addon TOC-order load check against a `wow_mock.lua` stub of the WoW API (no client needed). See [docs/test-cases.md](./docs/test-cases.md) for the full case inventory. |
-| Lint | `luacheck .` | Static analysis across the addon (`libs/`, `docs/audits/`, `docs/reviews/`, `tests/` excluded). |
-
-The **`Tests` badge** above reflects the current pass count. The authoritative inventory of every suite and case lives in [docs/test-cases.md](./docs/test-cases.md), generated by the runner's non-executing list mode (`lua5.1 tests/run.lua --list`). Regenerate it and bump the badge together whenever the suite changes.
-
-Runtime behaviour still needs a client. The manual in-game smoke-test playbook — a quick post-change smoke plus the full section-by-section suite — lives at [docs/smoke-tests.md](./docs/smoke-tests.md).
+| Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Settings → General → Force rewrite macros** (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
+| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick <catKey>` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it's blocked or its tooltip hasn't loaded yet. |
+| I just looted a better food / flask but the macro didn't update. | Give it a second — bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
+| My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
+| Swapped specs but the flask / combat-potion / stat-food macro didn't update. | Run `/cm resync`, and check the viewed spec on the **Stat Priority** page matches your current spec. |
+| `/cm dump item <id>` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
+| Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
+| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
+| `/cm reset` or "Reset all priorities" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
+| I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General) clears everything. |
 
 ## Issues and feature requests
 
-All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/consumablemaster/issues](https://github.com/tusharsaxena/consumablemaster/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.
-
-If you're contributing or validating a build, the manual smoke-test playbook lives at [docs/smoke-tests.md](./docs/smoke-tests.md).
+Bugs, feature requests, and planned work are all tracked on GitHub: [github.com/tusharsaxena/consumablemaster/issues](https://github.com/tusharsaxena/consumablemaster/issues). Please file reports there rather than in comments — the issue tracker is where the project's to-do list lives.
 
 ## Version History
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.5.0 | 2026-07-13 | On-screen debug console (movable window with Copy/Clear) opened via `/cm debug` or the General → Debug console toggle, with `/cm debug on/off`; debug logging is now session-only (resets each login) and streams to the console instead of chat; Interface updated to 120007 (Midnight 12.0.7); full compliance rework to the Ka0s WoW Addon Standard v1.0.0 (Tier 2) — private namespace, `core/`/`modules/` layout, message bus, spec/spell compat seam, locale module, and a headless test harness + `luacheck` gate; AceConfig dependency removed. |
-| 1.4.0 | 2026-05-03 | Settings UI migrated to a KickCD-style canvas with Blizzard sub-categories, breadcrumb chevron, and About landing page; slash UX rebranded to `/cm` with cyan `[CM]` chat prefix; schema-driven `/cm list/get/set` CLI; master enable toggle; Stat Priority auto-tracks the active spec; combat-time panel opens blocked at OnShow; secondary-stat dedupe; comprehensive smoke-test playbook in `docs/smoke-tests.md`. |
-| 1.3.0 | 2026-04-25 | Composite macros `KCM_HP_AIO` and `KCM_MP_AIO` that switch sub-category picks by combat state; AIO Health / AIO Mana settings pages with per-side toggle and reorder; empty-side fallback chat notice; `/cm dump pick hp_aio`/`mp_aio`. |
-| 1.2.1 | 2026-04-25 | Fixed login Lua error by replacing the removed `LEARNED_SPELL_IN_TAB` event with its modern equivalent. |
-| 1.2.0 | 2026-04-24 | Action-bar icons now render on ElvUI, Bartender, and other action-bar addons; new `/cm rewritemacros` command (also Settings → General → Force rewrite macros) for unconditional rewrites; category drag-icon widget shows the picked item/spell texture. |
-| 1.1.0 | 2026-04-24 | Correctness pass from PE review: locked items no longer flap macros, scorers are isolated, oversized macro bodies fall back gracefully, combat-deferral retries are bounded; per-recompute score cache; 30-day discovery GC; spell-name hydration without reload; category tab reorder; empty-state fallback icon. |
-| 1.0.0 | 2026-04-24 | Initial release: ten account-wide auto-rewriting macros across eight single-pick categories, spell entries in priority lists, item/spell kind selector, custom AceGUI priority rows, per-row score tooltip, consolidated `/cm dump pick` and `dump item`, debounced refreshes with non-bag recompute skip, memoized options tree, ClearTarget taint fix. |
+| 1.5.0 | 2026-07-13 | New on-screen debug console — a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`). Debug logging now resets each login. Updated for World of Warcraft: Midnight (12.0.7). |
+| 1.4.0 | 2026-05-03 | Redesigned settings panel with Blizzard sub-categories and an About page; slash commands moved to `/cm` with a cyan `[CM]` chat tag; new `/cm list`, `/cm get`, and `/cm set` commands; master enable toggle; Stat Priority now follows your active spec automatically. |
+| 1.3.0 | 2026-04-25 | New combo macros `KCM_HP_AIO` and `KCM_MP_AIO` that switch picks based on whether you're in combat, with AIO Health and AIO Mana settings pages to toggle and reorder each side. |
+| 1.2.1 | 2026-04-25 | Fixed a Lua error on login. |
+| 1.2.0 | 2026-04-24 | Action-bar icons now show correctly on ElvUI, Bartender, and other bar addons; new `/cm rewritemacros` command (and Settings → General → Force rewrite macros); category drag icons now show the picked item's texture. |
+| 1.1.0 | 2026-04-24 | Stability fixes: pinned items no longer cause macros to flip back and forth, over-long macros fall back cleanly instead of breaking, and spell names appear without a reload. Category tabs can be reordered, and empty categories show a fallback icon. |
+| 1.0.0 | 2026-04-24 | Initial release: auto-updating account-wide macros across eight categories, spell entries in priority lists, an item/spell picker, and a per-row score tooltip that explains each ranking. |
