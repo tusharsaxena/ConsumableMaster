@@ -110,6 +110,7 @@ Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handler
 | `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes. |
 | `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → `Options.RequestRefresh` only. See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
+| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` | Ignored except for slot 16 (main hand) / 17 (off hand); on a main-hand or off-hand swap, publish `RECOMPUTE` (`"equip"`) so `KCM_WPN_ENCH` re-derives each hand's weapon-type affinity (`core/WeaponSlots.lua`) and re-picks per hand. |
 
 ### GIIR bag/non-bag split
 

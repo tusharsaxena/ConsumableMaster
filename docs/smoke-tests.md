@@ -1,6 +1,6 @@
 # Smoke tests
 
-A headless unit-test harness now covers the addon's logic — Classifier, Ranker, Selector, ID sentinels, schema validation, MacroManager body builders, the message bus, DebugLog formatters, TooltipCache parsing, SpecHelper resolution, the spec/spell Compat seam, BagScanner, SavedVariables migrations, the recompute pipeline, and the `/cm` slash dispatcher — plus a full-addon TOC-order load check — run it with `lua5.1 tests/run.lua` and lint with `luacheck .` (see [../README.md#testing](../README.md#testing), full case inventory in [test-cases.md](./test-cases.md)). Everything the harness can't reach — event-driven behaviour against Blizzard APIs, frame/UI rendering, taint, action-bar icons — is still validated **manually, in-game**. This file is the canonical playbook for that manual pass.
+A headless unit-test harness now covers the addon's logic — Classifier, Ranker, Selector, WeaponSlots, ID sentinels, schema validation, MacroManager body builders, the message bus, DebugLog formatters, TooltipCache parsing, SpecHelper resolution, the spec/spell Compat seam, BagScanner, SavedVariables migrations, the recompute pipeline, and the `/cm` slash dispatcher — plus a full-addon TOC-order load check — run it with `lua5.1 tests/run.lua` and lint with `luacheck .` (see [../README.md#testing](../README.md#testing), full case inventory in [test-cases.md](./test-cases.md)). Everything the harness can't reach — event-driven behaviour against Blizzard APIs, frame/UI rendering, taint, action-bar icons — is still validated **manually, in-game**. This file is the canonical playbook for that manual pass.
 
 Two flavours:
 
@@ -61,6 +61,15 @@ Tests: body builders produce correct `/use item:<id>` or `/cast <Spell>`; action
 3. Click the bar slot — the consumable activates (or the spell starts casting).
 4. Block the current pick via the priority-list × button. Within ~1 frame, the body re-points at the next-best owned candidate; the action-bar icon updates.
 5. Empty the category (delete every owned candidate, block the rest): body switches to `/run print('|cff00ffff[CM]|r no <category> in bags')` with the cooking-pot icon.
+
+### 3a. Macro writes — Weapon Enchant (per-hand, weapon-type aware)
+
+Tests: `KCM_WPN_ENCH` picks and applies independently per hand, filtered by the equipped weapon's bladed/blunt/any affinity; recomputes on weapon swap without a reload.
+
+1. Equip a bladed weapon (e.g. a sword) in the main hand. Confirm `/cm dump pick wpn_ench` shows a whetstone (bladed) as the main-hand pick; a weightstone (blunt) candidate is present in the dump but excluded from the pick. On the **Weapon Enchant** settings page, the whetstone row shows the yellow star + an "MH" affinity marker, and weightstone rows are dimmed as not-applicable to the current main hand.
+2. Swap to a blunt weapon (e.g. a mace) in the same slot. Within ~1 frame of `PLAYER_EQUIPMENT_CHANGED`, expect: no `/reload` needed — the macro body switches to the weightstone, the action-bar icon updates, and the settings page's star/dim markers flip to match.
+3. Dual-wield two weapons of different types (e.g. sword main hand, mace off hand). Confirm the macro body applies a whetstone to slot 16 and a weightstone to slot 17 (a `/use item:<id>` + `/use 16` line pair, then a `/use item:<id>` + `/use 17` pair), i.e. each hand gets its own independently-scored pick. The settings page marks the whetstone row "MH" and the weightstone row "OH" (not both on one row).
+4. Equip a two-handed weapon (main hand only, no off-hand item). Confirm the macro body only references slot 16 — no `/use 17` line — and the settings page shows only an "MH" marker on the picked row, with no off-hand affinity shown.
 
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
 
@@ -197,6 +206,7 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 | BagScanner | §2 |
 | Selector mutators | §9 (priority list buttons), §11 (`/cm priority`) |
 | MacroManager body builders | §3, §4 |
+| Weapon Enchant (`core/WeaponSlots.lua`, per-hand pick) | §3a, §9 step 10 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
 | Settings UI framework (`settings/Panel.lua`) | §7 + spot-check §8, §9, §10 |

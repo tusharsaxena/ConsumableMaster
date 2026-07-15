@@ -15,7 +15,7 @@ Twelve account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_M
 
 | Folder | Holds |
 |--------|-------|
-| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier), SlashCommands |
+| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), SlashCommands |
 | `modules/` | Ranker, Selector, MacroManager, DebugLog console, the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + per-tab pages |
@@ -106,7 +106,7 @@ All vendored under `libs/`:
 
 1. `# Libraries` — `embeds.xml`
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `BagScanner` → `Classifier` → `SlashCommands`
+3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `SlashCommands`
 4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `StatPriority.lua` → `Category.lua`

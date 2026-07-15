@@ -23,7 +23,7 @@ Whenever you loot something better, change spec, reload, or drop out of combat, 
 | 7  |Flask                                                        |<code>KCM_FLASK</code> |<strong>Yes</strong> |
 | 8  |Combat potion (throughput)                                   |<code>KCM_CMBT_POT</code> |<strong>Yes</strong> |
 | 9  |Stat food                                                    |<code>KCM_STAT_FOOD</code> |<strong>Yes</strong> |
-| 10 |Weapon enchant (oil / stone, main + off hand)                |<code>KCM_WPN_ENCH</code> |<strong>Yes</strong> |
+| 10 |Weapon enchant (oil / stone, per hand, weapon-type aware)    |<code>KCM_WPN_ENCH</code> |<strong>Yes</strong> |
 | 11 |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
 | 12 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
@@ -124,6 +124,7 @@ Each macro is built in four steps:
     *   **Food / Drink** — how much it heals or restores, with a bonus for conjured items and percentage-based ones (so Midnight's %-based food beats older flat food).
     *   **HP / MP potions** — how much they restore. An instant potion beats a heal-over-time one unless the heal-over-time total is more than 20% bigger, so a slightly larger slow heal won't win in an emergency.
     *   **Stat Food / Combat Potion / Flask** — how well it matches your spec's stat priority. Primary stat always beats secondary; among secondary stats, earlier choices count more.
+    *   **Weapon Enchant** — checks each equipped weapon separately. Attack Power oils/stones score highest for Strength/Agility specs and Spell Power ones score highest for Intellect specs, since that's each spec's real throughput stat; other oils still rank by your stat priority. Each enhancement is also tagged bladed (whetstone), blunt (weightstone), or any (oil) from its tooltip, and only ones that match your main-hand or off-hand weapon's type are considered for that hand. The macro applies the best matching enhancement to each hand independently — dual-wielding a sword and a mace can end up with a whetstone on one hand and a weightstone on the other — and drops a hand entirely if it's empty or has nothing valid to apply. Swapping weapons updates the macro right away, no reload needed.
     *   **Healthstone** — a small preference for modern auto-leveling stones over old ones.
     *   **Spell entries** — class abilities (like Recuperate as a Food entry) score above every item, so they sit at the top by default. You can pin items above them if you prefer.
 3.  **Apply your pins** — any rows you reordered with ↑ / ↓ override the score.
