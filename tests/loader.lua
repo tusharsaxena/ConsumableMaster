@@ -58,6 +58,7 @@ L.PURE_LAYER = {
     "defaults/Defaults_Flask.lua",
     "defaults/Defaults_WpnEnch.lua",
     "SpecHelper.lua",
+    "core/WeaponSlots.lua",
     "Classifier.lua",
     "Ranker.lua",
     "Selector.lua",

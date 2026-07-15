@@ -102,3 +102,13 @@ test("TooltipCache: parses Attack Power and Spell Power as AP/SP stats", functio
     t.eq(sp.statBuffs[1].stat, "SP", "Spell Power -> SP")
     t.eq(sp.statBuffs[1].amount, 42, "SP amount")
 end)
+
+test("TooltipCache: weaponAffinity from bladed/blunt/plain phrasing", function(t)
+    local TC, mock = newTC()
+    local wh = parse(TC, mock, 237370, { "W", "Use: Sharpens your bladed weapon, increasing Attack Power by 10 for 2 hours." })
+    t.eq(wh.weaponAffinity, "bladed", "bladed -> bladed")
+    local we = parse(TC, mock, 237369, { "W", "Use: Balances your blunt weapon, increasing Attack Power by 15 for 2 hours." })
+    t.eq(we.weaponAffinity, "blunt", "blunt -> blunt")
+    local oil = parse(TC, mock, 243733, { "O", "Use: Coat your weapon in oil, increasing your Critical Strike and Haste by 13 for 120 min." })
+    t.eq(oil.weaponAffinity, "any", "plain 'your weapon' -> any")
+end)

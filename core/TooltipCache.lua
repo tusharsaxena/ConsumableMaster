@@ -21,6 +21,7 @@
 --   -- Metadata
 --   buffDurationSec                -- Well-Fed / flask / stat-buff duration
 --   isConjured, isFeast, isWeaponEnhance  -- classifier flags
+--   weaponAffinity                 -- "bladed" | "blunt" | "any" (weapon enhance only)
 --   minLevel                       -- required player level (0 if none)
 --   itemName                       -- plain name for friendly dumps
 --   pending = true                 -- tooltip data not loaded yet; retry later
@@ -62,12 +63,6 @@ local PATTERNS = {
     -- Flags
     conjuredExact = "^Conjured Item$",
     feastSubstr   = "Feast",
-    -- Temporary weapon enhancement application. Oils "Coat", whetstones
-    -- "Sharpen", weightstones "Weight" — the common thread is "your <weapon>"
-    -- with an optional weapon adjective ("bladed"/"blunt"/"two-handed").
-    -- Matched as a Lua pattern on lowercased text (letters/space/hyphen only,
-    -- so a comma or clause break stops the run and prevents over-matching).
-    weaponEnhance = "your [%a%s%-]-weapon",
     perSecond     = "every second",
     cooldownSub   = "Cooldown",     -- skip duration parse on cooldown lines
 
@@ -299,7 +294,22 @@ local function parseLines(lines)
 
             if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
             if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
-            if txt:lower():find(PATTERNS.weaponEnhance) then result.isWeaponEnhance = true end
+
+            -- Temporary weapon enhancement application. Oils "Coat", whetstones
+            -- "Sharpen", weightstones "Weight" — the common thread is "your
+            -- <weapon>" with an optional weapon adjective ("bladed"/"blunt"/
+            -- "two-handed"). Captured on lowercased text (letters/space/hyphen
+            -- only, so a comma or clause break stops the run and prevents
+            -- over-matching) so the adjective itself can be inspected for
+            -- affinity ("bladed" -> whetstone, "blunt" -> weightstone,
+            -- anything else -> "any", e.g. plain oils).
+            local wmid = txt:lower():match("your ([%a%s%-]-)weapon")
+            if wmid then
+                result.isWeaponEnhance = true
+                if wmid:find("bladed", 1, true) then result.weaponAffinity = "bladed"
+                elseif wmid:find("blunt", 1, true) then result.weaponAffinity = "blunt"
+                elseif not result.weaponAffinity then result.weaponAffinity = "any" end
+            end
 
             parseDuration(txt, result)
             parseStatBuffs(txt, result)

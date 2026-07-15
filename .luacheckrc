@@ -50,7 +50,7 @@ read_globals = {
     "NUM_BAG_SLOTS", "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "GetNumClasses",
     -- Combat / unit
     "InCombatLockdown", "UnitClass", "UnitLevel", "UnitName", "UnitGUID",
-    "IsPlayerSpell", "IsSpellKnown", "PlayerHasToy",
+    "IsPlayerSpell", "IsSpellKnown", "PlayerHasToy", "GetInventoryItemID",
     -- Spec APIs (wrapped by core/Compat.lua)
     "GetSpecialization", "GetSpecializationInfo", "GetNumSpecializations",
     "GetSpecializationInfoForClassID", "GetNumSpecializationsForClassID",

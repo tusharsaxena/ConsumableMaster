@@ -170,7 +170,7 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
 
-### test_tooltipcache.lua (6)
+### test_tooltipcache.lua (7)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -178,6 +178,11 @@ whenever the suite changes.
 - TooltipCache: flags weapon enhancements via the 'your <weapon>' effect
 - TooltipCache: parses combined percentage 'health and mana' form
 - TooltipCache: parses Attack Power and Spell Power as AP/SP stats
+- TooltipCache: weaponAffinity from bladed/blunt/plain phrasing
+
+### test_weaponslots.lua (1)
+
+- WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil
 
 ## Totals
 
@@ -200,5 +205,6 @@ whenever the suite changes.
 | test_selector.lua | 8 |
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
-| test_tooltipcache.lua | 6 |
-| **Total** | **119** |
+| test_tooltipcache.lua | 7 |
+| test_weaponslots.lua | 1 |
+| **Total** | **121** |

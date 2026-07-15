@@ -34,6 +34,7 @@ core\Database.lua
 core\Debug.lua
 core\SpecHelper.lua
 core\TooltipCache.lua
+core\WeaponSlots.lua
 core\BagScanner.lua
 core\Classifier.lua
 core\SlashCommands.lua

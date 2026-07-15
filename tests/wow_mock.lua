@@ -16,6 +16,8 @@
 --   M.setSpell(id, { name=, known= })
 --   M.setSpec(classID, specIndex, specID, specName)  -- current player spec
 --   M.setCombat(bool)          -- InCombatLockdown() return
+--   M.setEquipped(slot, itemID) -- equip an item into a paperdoll slot (16 main
+--       hand / 17 off hand); drives GetInventoryItemID for WeaponSlots
 --
 -- The message bus stub is keyed by (message, target) per the standard's
 -- anti-pattern #33 so future NS.bus receivers are testable.
@@ -33,12 +35,14 @@ M.spells   = {}   -- id -> { name, known }
 M.spec     = { classID = 7, specIndex = 1, specID = 263, specName = "Enhancement" }
 M.inCombat = false
 M.output   = {}   -- captured print() lines
+M.equipped = {}   -- slot -> itemID (main-hand 16 / off-hand 17)
 
 function M.reset()
     M.items, M.bags, M.bagSlots, M.spells = {}, {}, {}, {}
     M.spec     = { classID = 7, specIndex = 1, specID = 263, specName = "Enhancement" }
     M.inCombat = false
     M.output   = {}
+    M.equipped = {}
     M.macros   = {}       -- name -> { icon, body }
     M.busReg   = {}       -- "message" -> { [target] = callback }
 end
@@ -70,6 +74,8 @@ function M.setSpec(classID, specIndex, specID, specName)
 end
 
 function M.setCombat(v) M.inCombat = v and true or false end
+
+function M.setEquipped(slot, id) M.equipped[slot] = id end
 
 -- ---------------------------------------------------------------------------
 -- Permissive frame + widget stubs
@@ -266,6 +272,7 @@ function M.install(NS)
         local s = M.spells[spellID]
         return s and s.name or nil
     end
+    _G.GetInventoryItemID = function(_, slot) return M.equipped[slot] end
 
     -- Macro APIs
     _G.GetMacroIndexByName = function(name) return M.macros[name] and M.macros[name].idx or 0 end
