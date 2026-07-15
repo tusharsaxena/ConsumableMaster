@@ -365,6 +365,7 @@ end
 -- when neither hand has a pick.
 function M.SetWeaponEnchantMacro(cat, mhPick, ohPick)
     if not cat then return "error", "no category" end
+    if not KCM.db or not KCM.db.profile then return "error", "db not ready" end
     local body = buildWeaponEnchantBody(mhPick, ohPick)
     local iconItemID = mhPick or ohPick
     if not body then body = buildEmptyBody(cat); iconItemID = nil end

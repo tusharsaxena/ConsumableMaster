@@ -342,8 +342,8 @@ local function renderSingle(ctx, cat)
             and KCM.Selector.PickBestForSlot(cat.key, 16) or nil
         oh = KCM.Selector and KCM.Selector.PickBestForSlot
             and KCM.Selector.PickBestForSlot(cat.key, 17) or nil
-        mhAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(16) or nil
-        ohAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(17) or nil
+        mhAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity and KCM.WeaponSlots.SlotAffinity(16) or nil
+        ohAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity and KCM.WeaponSlots.SlotAffinity(17) or nil
     end
 
     -- Priority list
@@ -409,6 +409,9 @@ local function renderSingle(ctx, cat)
                     rowApplicable = (aff == "any" or aff == mhAff or aff == ohAff)
                 end
 
+                local applicableArg
+                if cat.perHand then applicableArg = rowApplicable end
+
                 local row = newRow(scroll, 28)
                 makeItemRow(row, {
                     itemID     = rowID,
@@ -416,7 +419,7 @@ local function renderSingle(ctx, cat)
                     isPick     = (pick and rowID == pick) and true or false,
                     pickMH     = rowPickMH,
                     pickOH     = rowPickOH,
-                    applicable = cat.perHand and rowApplicable or nil,
+                    applicable = applicableArg,
                 }, ITEM_ROW_RW_SINGLE)
                 makeScoreBtn(row, {
                     image   = "Interface\\FriendsFrame\\InformationIcon",

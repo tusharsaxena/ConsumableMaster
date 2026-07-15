@@ -17,7 +17,7 @@
 local _, NS = ...
 local KCM = NS
 
-local Type, Version = "KCMItemRow", 2
+local Type, Version = "KCMItemRow", 3
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
