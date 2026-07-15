@@ -34,6 +34,8 @@ luacheck .              # lint
 
 Both must be green before committing. Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
+**Test inventory & badge (Hard rule).** When the suite changes — a case added/removed/renamed, or the pass count moves (i.e. whenever a failing test is resolved) — regenerate `docs/test-cases.md` (`lua5.1 tests/run.lua --list > docs/test-cases.md`) **and** update the README `tests` badge count **in the same change**, not as a follow-up. Details: [docs/agent-context.md](./docs/agent-context.md#keeping-the-inventory--badge-in-sync).
+
 ## Full agent brief
 
 The detailed working notes — hard rules, module-publishing pattern, response

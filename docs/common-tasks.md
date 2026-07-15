@@ -77,6 +77,6 @@ For the Midnight-specific gotcha catalog see [midnight-quirks.md](./midnight-qui
 
 ## Verify a behavior change in-game
 
-The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (10 suites) and `luacheck .` before committing. In-game behavior still needs manual validation: use the [Quick smoke](./smoke-tests.md#quick-smoke) recipe in [smoke-tests.md](./smoke-tests.md) for the post-change minimum, and the [targeted-by-change-area lookup](./smoke-tests.md#targeted-by-change-area) at the bottom of that file for which sections of the full suite map to your change.
+The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `luacheck .` before committing. In-game behavior still needs manual validation: use the [Quick smoke](./smoke-tests.md#quick-smoke) recipe in [smoke-tests.md](./smoke-tests.md) for the post-change minimum, and the [targeted-by-change-area lookup](./smoke-tests.md#targeted-by-change-area) at the bottom of that file for which sections of the full suite map to your change.
 
 If you can only reason about the change from code and cannot test it in WoW, say so explicitly — don't claim it works.

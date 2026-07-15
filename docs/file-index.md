@@ -71,7 +71,7 @@ Each tab module registers a builder via `KCM.Settings.RegisterTab(key, builder)`
 - `embeds.xml` — XML manifest pulled in by `ConsumableMaster.toc`; loads LibStub + every Ace3 sub-library (+ LibSharedMedia) before any addon source.
 - `libs/` — vendored Ace3 + LibStub + LibSharedMedia. Tracked in git (standard WoW addon practice).
 - `ConsumableMaster.toc` — Interface line (`120007`), version, SavedVariables, file load order. Sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`; order within a section is dependency order, not alphabetical.
-- `tests/` — headless harness (`lua5.1 tests/run.lua`, 10 suites) over the pure layer; `wow_mock.lua` stubs the WoW API + bus.
+- `tests/` — headless harness (`lua5.1 tests/run.lua`; suite inventory in [test-cases.md](./test-cases.md)) over the pure layer; `wow_mock.lua` stubs the WoW API + bus.
 
 ## Top-level docs
 

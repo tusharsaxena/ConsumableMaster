@@ -24,6 +24,7 @@ User-facing reference: [README.md](../README.md). Design overview + invariants: 
 - **Priority-list entries are opaque numeric IDs.** Positive = itemID, negative = `KCM.ID.AsSpell(spellID)` sentinel. Only `MacroManager`, `Ranker.Score`'s spell shortcut, and the UI fork on the sign — every other layer treats IDs as plain table keys. Keep it that way; no new side channels.
 - **Composite categories don't pick items — they compose other categories' picks.** HP_AIO and MP_AIO carry `composite=true` + `components = { inCombat={...}, outOfCombat={...} }`. The pipeline branches on `cat.composite` and dispatches to `MacroManager.SetCompositeMacro`. Composites have no `added/blocked/pins/discovered` buckets.
 - **Cyan `[CM]` chat prefix on all addon output.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth; route one-shot chat through `KCM.Say(msg)`. Gated verbose logging goes through `KCM.Debug(tag, fmt, ...)` into the on-screen console. **No raw `print(...)` calls** outside those seams.
+- **Keep the test inventory & badge in sync with the suite.** When the suite changes — a case added, removed, or renamed, or the pass count moves (i.e. whenever a failing test is resolved) — regenerate `docs/test-cases.md` via `lua5.1 tests/run.lua --list` **and** update the README `tests` badge count **in the same change**, not as a follow-up. See [Keeping the inventory & badge in sync](#keeping-the-inventory--badge-in-sync).
 
 ## Message bus
 
@@ -52,6 +53,18 @@ Full catalogue lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 ## Testing & lint gate
 
 Headless harness under `tests/` runs with **`lua5.1 tests/run.lua`** (a `wow_mock.lua` stubs the WoW API + a `(message,target)`-keyed bus so receivers are testable). Lint with **`luacheck .`**. Both must be green before committing. Manual in-game validation: [smoke-tests.md](./smoke-tests.md).
+
+The **authoritative test count** lives in [test-cases.md](./test-cases.md) — a generated inventory of every suite and case, produced by the runner's non-executing `--list` mode (`lua5.1 tests/run.lua --list`). Don't hardcode counts in prose; link to that file instead.
+
+### Keeping the inventory & badge in sync
+
+When the suite changes — a case added, removed, or renamed, or the pass count moves (i.e. whenever a failing test is resolved) — regenerate the inventory and update the README `tests` badge **in the same change**, never as a follow-up:
+
+```
+lua5.1 tests/run.lua --list > docs/test-cases.md   # regenerate the inventory
+```
+
+then bump the `![tests](…tests-<PASS>%2F<TOTAL>_passing…)` badge in [README.md](../README.md) to the new numbers. Verify sync with `diff <(lua5.1 tests/run.lua --list) docs/test-cases.md` (no output = in sync).
 
 ## Module publishing pattern
 
@@ -101,4 +114,5 @@ Topic-specific detail lives in `docs/`. Read on demand — these are not auto-lo
 | AceDB schema + opaque IDs + composites + GC | [data-model.md](./data-model.md) | Adding a category, persistent state changes. |
 | MacroManager — body builders, composite assembly, flush retry, icons | [macro-manager.md](./macro-manager.md) | Anything touching macro writes. |
 | Smoke tests (quick + full suite + targeted-by-change-area lookup) | [smoke-tests.md](./smoke-tests.md) | After any code change; before any release. |
+| Test-case inventory (generated — authoritative count) | [test-cases.md](./test-cases.md) | Checking coverage; regenerate after any suite change. |
 | Seed reference + refresh procedure | [../defaults/README.md](../defaults/README.md) | Patch-day seed updates. |
