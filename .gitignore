@@ -1,6 +1,7 @@
 # Claude Code local state
 .claude/settings.local.json
 .claude/.credentials*
+.superpowers/
 
 # OS cruft (WSL + Windows dual access)
 .DS_Store
