@@ -55,10 +55,9 @@ end
 h._currentFile = nil
 
 if listMode then
-    io.write(h.formatInventory(h._suites))
+    io.write(h.formatInventory(h._tests))
     os.exit(0)
 end
 
-h.run()
-local ok = h.report()
+local ok = h.run()
 os.exit(ok and 0 or 1)

@@ -5,13 +5,18 @@
 -- through to the pipeline's coalescing entry point.
 
 local h = require("harness")
+local test = h.test
 
-h.suite("message bus", function(t)
+test("bus, NewBusTarget, and message catalogue are published", function(t)
     local KCM = h.loader.loadPure()
 
     t.truthy(KCM.bus, "KCM.bus published")
     t.truthy(KCM.NewBusTarget, "NewBusTarget published")
     t.truthy(KCM.MSG and KCM.MSG.RECOMPUTE, "message catalogue published")
+end)
+
+test("a target hears a message, then goes silent after unregister", function(t)
+    local KCM = h.loader.loadPure()
 
     -- A receiver on its own target hears a message sent on KCM.bus.
     local got = {}
@@ -26,6 +31,10 @@ h.suite("message bus", function(t)
     target:UnregisterMessage(KCM.MSG.PANEL_REFRESH)
     KCM.bus:SendMessage(KCM.MSG.PANEL_REFRESH, "again")
     t.eqList(got, { "hello" }, "unregistered receiver goes silent")
+end)
+
+test("RECOMPUTE routes to Pipeline.RequestRecompute", function(t)
+    local KCM = h.loader.loadPure()
 
     -- The pipeline's RECOMPUTE receiver (registered by Bus.lua) forwards to
     -- RequestRecompute. Stub RequestRecompute to capture the reason.

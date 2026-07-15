@@ -6,8 +6,9 @@
 -- It is the regression guard for the Tier-2 folder move + namespace migration.
 
 local h = require("harness")
+local test = h.test
 
-h.suite("full addon load (TOC order)", function(t)
+test("full addon loads in TOC order and publishes core handles", function(t)
     local ok, err = pcall(h.loader.loadFullAddon)
     t.truthy(ok, "addon loads in TOC order without error: " .. tostring(err))
     if ok then

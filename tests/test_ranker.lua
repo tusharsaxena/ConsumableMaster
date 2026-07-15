@@ -1,28 +1,33 @@
 -- tests/test_ranker.lua — unit suite for Ranker.lua scoring + sorting.
 
 local h = require("harness")
+local test = h.test
 
-h.suite("ranker", function(t)
-    local KCM  = h.loader.loadPure()
-    local mock = h.loader.mock
-    local R    = KCM.Ranker
-    local AsSpell = KCM.ID.AsSpell
+local SPELL_SCORE     = 1e9
+local CONJURED_BONUS  = 1e6
+local IMMEDIATE_BONUS = 1e8
 
-    local SPELL_SCORE      = 1e9
-    local CONJURED_BONUS   = 1e6
-    local IMMEDIATE_BONUS  = 1e8
-
-    -- ---- spell sentinel scores SPELL_SCORE for any category ---------------
-    local spell = AsSpell(1231411)
-    t.eq(R.Score("FOOD",  spell, nil, nil), SPELL_SCORE, "spell sentinel -> SPELL_SCORE (FOOD)")
+test("Ranker: spell sentinel scores SPELL_SCORE for any category", function(t)
+    local KCM = h.loader.loadPure()
+    local R   = KCM.Ranker
+    local spell = KCM.ID.AsSpell(1231411)
+    t.eq(R.Score("FOOD",   spell, nil, nil), SPELL_SCORE, "spell sentinel -> SPELL_SCORE (FOOD)")
     t.eq(R.Score("HP_POT", spell, nil, nil), SPELL_SCORE, "spell sentinel -> SPELL_SCORE (HP_POT)")
-    t.eq(R.Score("FLASK", spell, nil, nil), SPELL_SCORE, "spell sentinel -> SPELL_SCORE (FLASK)")
-    -- nil guards
+    t.eq(R.Score("FLASK",  spell, nil, nil), SPELL_SCORE, "spell sentinel -> SPELL_SCORE (FLASK)")
+end)
+
+test("Ranker: nil/unknown guards score 0", function(t)
+    local KCM = h.loader.loadPure()
+    local R   = KCM.Ranker
     t.eq(R.Score(nil, 1, nil, nil), 0, "nil catKey -> 0")
     t.eq(R.Score("FOOD", nil, nil, nil), 0, "nil itemID -> 0")
     t.eq(R.Score("NOPE", 1, nil, nil), 0, "unknown category -> 0")
+end)
 
-    -- ---- FOOD / DRINK additive scoring + conjured bonus -------------------
+test("Ranker: FOOD conjured bonus beats higher flat-value non-conjured", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     -- Non-conjured with high flat heal vs conjured with tiny flat heal:
     -- conjured (1e6) must win despite a much larger raw value.
     mock.setItem(2001, { subType = "Food & Drink", quality = 4, ilvl = 50,
@@ -36,7 +41,12 @@ h.suite("ranker", function(t)
     t.eq(sBig, 50000 + 50 + 400, "FOOD flat-value additive score")
     t.eq(sConj, 100 + CONJURED_BONUS + 1 + 100, "FOOD conjured additive score")
     t.truthy(sConj > sBig, "conjured food beats higher flat-value non-conjured")
+end)
 
+test("Ranker: FOOD healPct dominates and healValue+healValueAvg are additive", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     -- healPct dominates flat tiers (pct * 1e4)
     mock.setItem(2003, { subType = "Food & Drink", quality = 1, ilvl = 1,
         tt = { healPct = 60 } })
@@ -46,7 +56,12 @@ h.suite("ranker", function(t)
     mock.setItem(2004, { subType = "Food & Drink", quality = 1, ilvl = 1,
         tt = { healValue = 200, healValueAvg = 300 } })
     t.eq(R.Score("FOOD", 2004, nil, nil), 200 + 300 + 1 + 100, "FOOD healValue + healValueAvg")
+end)
 
+test("Ranker: DRINK conjured bonus beats higher flat-value non-conjured", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     -- DRINK mirror: conjured drink beats high flat-mana non-conjured
     mock.setItem(2101, { subType = "Food & Drink", quality = 3, ilvl = 20,
         tt = { manaValue = 40000 } })
@@ -57,8 +72,12 @@ h.suite("ranker", function(t)
     t.eq(dBig, 40000 + 20 + 300, "DRINK flat additive score")
     t.eq(dConj, 50 + CONJURED_BONUS + 1 + 100, "DRINK conjured additive score")
     t.truthy(dConj > dBig, "conjured drink beats higher flat-value non-conjured")
+end)
 
-    -- ---- HP_POT / MP_POT immediate bonus ---------------------------------
+test("Ranker: immediate HP pot outranks similar-amount HOT pot", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     -- Immediate pot vs a heal-over-time pot of similar amount. HOT is gated:
     -- it only earns the immediate bonus if its amount exceeds the best
     -- immediate by > 20%. Similar amount => HOT loses.
@@ -78,7 +97,14 @@ h.suite("ranker", function(t)
     t.eq(sImm, 10000 + IMMEDIATE_BONUS + 10 + 200, "immediate pot gets immediate bonus")
     t.eq(sHot, 10000 + 10 + 200, "similar HOT pot denied immediate bonus")
     t.truthy(sImm > sHot, "immediate HP pot scores above HOT")
+end)
 
+test("Ranker: HOT HP pot earns immediate bonus only past the 20% threshold", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(3001, { subType = "Potions", quality = 2, ilvl = 10,
+        tt = { healValue = 10000 } })                                  -- immediate baseline
     -- A HOT pot whose amount clears the 20% threshold DOES earn the bonus.
     mock.setItem(3003, { subType = "Potions", quality = 2, ilvl = 10,
         tt = { healValue = 100000, healOverSec = 5 } })                -- HOT >> best immediate
@@ -87,16 +113,24 @@ h.suite("ranker", function(t)
         true, "large HOT pot clears 20% threshold")
     t.eq(R._qualifiesForImmediateBonus({ healValue = 10000, healOverSec = 5 }, "HP", ctxBig),
         false, "similar HOT pot fails 20% threshold")
+end)
 
-    -- MP pot mirror.
+test("Ranker: immediate MP pot outranks similar-amount HOT pot", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     mock.setItem(3101, { subType = "Potions", quality = 2, ilvl = 10,
         tt = { manaValue = 8000 } })
     mock.setItem(3102, { subType = "Potions", quality = 2, ilvl = 10,
         tt = { manaValue = 8000, manaOverSec = 6 } })
     local mpIds = R.SortCandidates("MP_POT", { 3101, 3102 }, nil, nil)
     t.eqList(mpIds, { 3101, 3102 }, "immediate MP pot outranks similar-amount HOT pot")
+end)
 
-    -- ---- HS preference table ---------------------------------------------
+test("Ranker: HS preference table prefers modern stone and sorts it first", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     mock.setItem(224464, { subType = "Potions", quality = 3, ilvl = 40 })
     mock.setItem(5512,    { subType = "Potions", quality = 1, ilvl = 5 })
     t.eq(R.Score("HS", 224464, nil, nil), 1000 + 40, "HS modern preference + ilvl")
@@ -105,8 +139,11 @@ h.suite("ranker", function(t)
         "224464 outranks 5512")
     local hsIds = R.SortCandidates("HS", { 5512, 224464 }, nil, nil)
     t.eqList(hsIds, { 224464, 5512 }, "HS sort puts modern first")
+end)
 
-    -- ---- R._statWeight ---------------------------------------------------
+test("Ranker: _statWeight ranks stats by spec priority", function(t)
+    local KCM = h.loader.loadPure()
+    local R   = KCM.Ranker
     local sp = { primary = "AGI", secondary = { "CRIT", "HASTE", "MASTERY" } }  -- N = 3
     t.eq(R._statWeight("AGI", sp), 1000, "primary -> 1000")
     t.eq(R._statWeight("CRIT", sp), 300, "secondary[1] -> 100*N")
@@ -119,8 +156,13 @@ h.suite("ranker", function(t)
     t.eq(R._statWeight("CRIT", { primary = "STR" }), 0, "no secondary table -> 0")
     t.eq(R._statWeight("TOP_SECONDARY", { primary = "STR", secondary = {} }), 0,
         "TOP_SECONDARY with empty secondary -> 0")
+end)
 
-    -- Stat-aware scorer wiring (FLASK): primary buff outweighs secondary.
+test("Ranker: FLASK stat-aware primary buff outweighs equal-amount secondary", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    local sp = { primary = "AGI", secondary = { "CRIT", "HASTE", "MASTERY" } }  -- N = 3
     mock.setItem(4001, { subType = "Flasks & Phials", quality = 4, ilvl = 30,
         tt = { statBuffs = { { stat = "AGI", amount = 5 } } } })
     mock.setItem(4002, { subType = "Flasks & Phials", quality = 4, ilvl = 30,
@@ -131,8 +173,12 @@ h.suite("ranker", function(t)
     t.eq(flaskPrim, 1000 * 5 + 30 + 400, "FLASK primary buff score")
     t.eq(flaskSec, 300 * 5 + 30 + 400, "FLASK secondary buff score")
     t.truthy(flaskPrim > flaskSec, "primary-stat flask beats equal-amount secondary buff")
+end)
 
-    -- ---- SortCandidates ordering: score desc, ties by id asc -------------
+test("Ranker: SortCandidates orders by score desc, ties by id asc", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
     -- Same base (quality 1 -> 100, ilvl 1) so only healValue drives score.
     mock.setItem(10, { subType = "Food & Drink", tt = { healValue = 1000 } })
     mock.setItem(20, { subType = "Food & Drink", tt = { healValue = 2000 } })
@@ -144,6 +190,15 @@ h.suite("ranker", function(t)
     t.eq(#rows, 4, "rows parallel to ids")
     t.truthy(rows[1].score >= rows[2].score, "rows[1] >= rows[2] score")
     t.eq(rows[1].id, 20, "rows carry id")
+end)
+
+test("Ranker: spell sentinel sorts first and empty input is safe", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    local AsSpell = KCM.ID.AsSpell
+    mock.setItem(10, { subType = "Food & Drink", tt = { healValue = 1000 } })
+    mock.setItem(20, { subType = "Food & Drink", tt = { healValue = 2000 } })
 
     -- Spell sentinel outranks every item in a sorted list.
     local sIds = R.SortCandidates("FOOD", { 20, AsSpell(999), 10 }, nil, nil)
