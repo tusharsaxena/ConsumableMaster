@@ -44,6 +44,13 @@ local PATTERNS = {
     healFlat  = "Restores ([%d,]+) health",
     manaRange = "Restores ([%d,]+) to ([%d,]+) mana",
     manaFlat  = "Restores ([%d,]+) mana",
+    -- Combined flat food-and-drink, e.g. "Restores 35,000 health and 30,000
+    -- mana over 20 sec" (Chalcocite Lava Cake). The mana clause is introduced
+    -- by "and", not "Restores", so `manaFlat`'s "Restores"-anchored pattern
+    -- misses it. The health side is still captured by `healFlat`'s prefix
+    -- match; this pattern recovers the mana side so the item classifies as
+    -- both Food and Drink.
+    manaCombinedFlat = "health and ([%d,]+) mana",
 
     -- Midnight %-based food/drink. Test combined first because
     -- "...of your maximum health and mana" contains "...of your maximum health"
@@ -263,7 +270,7 @@ local function parseFlatMana(line, result)
         if a and b then result.manaValueAvg = (a + b) / 2 end
         return
     end
-    local v = line:match(PATTERNS.manaFlat)
+    local v = line:match(PATTERNS.manaCombinedFlat) or line:match(PATTERNS.manaFlat)
     if v then result.manaValue = toNumberCommas(v) end
 end
 

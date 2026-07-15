@@ -205,8 +205,10 @@ KCM.BagScanner.HasItem(itemID) -> bool, count     -- single C_Item.GetItemCount 
 ```lua
 KCM.TooltipCache.Get(itemID) -> { healValue, healValueAvg, healOverSec,
                                   manaValue, manaValueAvg, manaOverSec,
+                                  healPct, manaPct, isPctPerSecond, pctOverDurationSec,
                                   isConjured, hasStatBuff, isFeast, buffDurationSec,
-                                  statBuffs = { {stat, amount}, ... } }
+                                  statBuffs = { {stat, amount}, ... },
+                                  minLevel, itemName, pending }
 KCM.TooltipCache.Invalidate(itemID)
 KCM.TooltipCache.InvalidateAll()
 KCM.TooltipCache.IsUsableByPlayer(itemID) -> bool

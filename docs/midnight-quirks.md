@@ -28,6 +28,11 @@ If another rename lands, edit these constants. `Classifier.MatchAny(id)` returns
 
 - **`|4singular:plural;` grammar escapes.** Strings like `"for 1 |4hour:hrs;"` are not pre-substituted. `TooltipCache.normalizeTooltipText` strips them before the regex pass. Don't bypass `normalizeTooltipText`.
 - **Non-breaking spaces (U+00A0) between numbers and units.** Tooltip lines like `"Restores 241,303 health"` use NBSP in the position you'd expect a regular space. Lua's `%s` pattern class does NOT match NBSP. Normalize first; the parser does this for you.
+- **Combined "health and mana" on one line → item is both Food AND Drink.** Some food/drink restores both on a single line. Two phrasings exist and each needs its own combined pattern, because only the *first* restore clause is prefixed with "Restores" — the second is introduced by "and":
+  - Flat: `"Restores 35,000 health and 30,000 mana over 20 sec"` (Chalcocite Lava Cake, 227326). `healFlat` catches the health side, but the mana side needs `manaCombinedFlat` (`"health and ([%d,]+) mana"`) — the plain `manaFlat` pattern is `"Restores"`-anchored and misses it.
+  - Percentage: `"Restores X% of your maximum health and mana"` — handled by `pctCombined`, which sets both `healPct` and `manaPct`.
+
+  Miss either and the item populates only `healValue`/`healPct`, so `Classifier` matches `FOOD` but not `DRINK` and it silently drops out of the Drink list. Both combined patterns live in the `PATTERNS` table at the top of `core/TooltipCache.lua`; this is the same dual-classification behaviour as Refreshing Serum (`HP_POT`+`MP_POT`) above.
 
 If a new tooltip line refuses to match a pattern that "obviously should work", run `/cm dump item <id>` and inspect the raw lines for unexpected characters. The dump command prints the parsed fields plus the raw tooltip lines underneath — pattern-debugging view.
 

@@ -96,7 +96,6 @@ All vendored under `libs/`:
 - AceDB-3.0
 - AceConsole-3.0
 - AceGUI-3.0
-- AceConfig-3.0 (pulls in AceConfigRegistry / AceConfigCmd / AceConfigDialog)
 - LibSharedMedia-3.0 (debug-console monospace font registration)
 
 `embeds.xml` is the load manifest referenced from `ConsumableMaster.toc` under `# Libraries`. The TOC's `## Interface:` line is `120007`.
