@@ -17,6 +17,9 @@ H.print = realprint
 H.loader = require("loader")
 
 H._suites = {}
+-- Set by run.lua to the current suite file (e.g. "test_bus.lua") around each
+-- require, so H.suite can stamp every registered test with its origin file.
+H._currentFile = nil
 local current
 
 local function fail(msg)
@@ -77,14 +80,74 @@ function T.contains(list, val, msg)
     fail((msg or "contains") .. ": " .. fmt(val) .. " not in " .. fmt(list))
 end
 
+-- Register a suite. Execution is deferred to H.run so a non-executing --list
+-- pass can enumerate every suite without running any test body.
 function H.suite(name, fn)
-    current = { name = name, failures = {} }
-    H._suites[#H._suites + 1] = current
-    local ok, err = pcall(fn, T)
-    if not ok then
-        current.failures[#current.failures + 1] = "ERROR: " .. tostring(err)
+    H._suites[#H._suites + 1] = {
+        name = name,
+        fn = fn,
+        suite = H._currentFile,
+        failures = {},
+    }
+end
+
+-- Run every registered suite in registration (require) order.
+function H.run()
+    for _, s in ipairs(H._suites) do
+        current = s
+        local ok, err = pcall(s.fn, T)
+        if not ok then
+            current.failures[#current.failures + 1] = "ERROR: " .. tostring(err)
+        end
+        current = nil
     end
-    current = nil
+end
+
+-- Render the docs/test-cases.md body from a list of registered tests. Each
+-- record carries `.suite` (the file it loaded from) and `.name` (the case).
+-- Suites are grouped in first-seen order; cases keep registration order.
+function H.formatInventory(suites)
+    local order, byFile = {}, {}
+    for _, s in ipairs(suites or {}) do
+        local file = s.suite or "(unknown)"
+        if not byFile[file] then
+            byFile[file] = {}
+            order[#order + 1] = file
+        end
+        local cases = byFile[file]
+        cases[#cases + 1] = s.name
+    end
+
+    local out = {}
+    out[#out + 1] = "# Test Cases"
+    out[#out + 1] = ""
+    out[#out + 1] = "_Generated — do not hand-edit. Regenerate with_ "
+        .. "`lua tests/run.lua --list > docs/test-cases.md`."
+    out[#out + 1] = ""
+
+    local total = 0
+    for _, file in ipairs(order) do
+        local cases = byFile[file]
+        total = total + #cases
+        out[#out + 1] = string.format("### %s (%d)", file, #cases)
+        out[#out + 1] = ""
+        for _, name in ipairs(cases) do
+            out[#out + 1] = "- " .. name
+        end
+        out[#out + 1] = ""
+    end
+
+    out[#out + 1] = "## Totals"
+    out[#out + 1] = ""
+    out[#out + 1] = "| Suite | Cases |"
+    out[#out + 1] = "|-------|-------|"
+    for _, file in ipairs(order) do
+        out[#out + 1] = string.format("| %s | %d |", file, #byFile[file])
+    end
+    out[#out + 1] = string.format("| **Total** | **%d** |", total)
+    out[#out + 1] = ""
+
+    return table.concat(out, "\n")
 end
 
 function H.report()
