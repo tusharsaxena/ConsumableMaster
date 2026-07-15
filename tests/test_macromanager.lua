@@ -130,12 +130,16 @@ test("MacroManager: BuildCompositeBody uses a spell pick's localized name in the
         "spell pick contributes its localized name to the /castsequence line")
 end)
 
-test("MacroManager: BuildBody emits the two-slot weapon-enchant body for WPN_ENCH", function(t)
+test("MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager
-    t.eq(M.BuildBody("WPN_ENCH", 245678),
-        "#showtooltip\n/use item:245678\n/use 16\n/use item:245678\n/use 17",
-        "WPN_ENCH item pick → ready + apply to slots 16 and 17")
+    t.eq(M._buildWeaponEnchantBody(111, 222),
+        "#showtooltip\n/use item:111\n/use 16\n/use item:222\n/use 17", "both hands")
+    t.eq(M._buildWeaponEnchantBody(111, nil),
+        "#showtooltip\n/use item:111\n/use 16", "main hand only")
+    t.eq(M._buildWeaponEnchantBody(nil, 222),
+        "#showtooltip\n/use item:222\n/use 17", "off hand only")
+    t.eq(M._buildWeaponEnchantBody(nil, nil), nil, "neither -> nil")
 end)
 
 test("MacroManager: BuildBody VANTUS uses the default single /use body", function(t)

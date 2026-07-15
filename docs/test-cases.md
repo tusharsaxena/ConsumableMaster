@@ -90,7 +90,7 @@ whenever the suite changes.
 - MacroManager: BuildCompositeBody with only in-combat picks adds the out-of-combat /run fallback
 - MacroManager: BuildCompositeBody with only out-of-combat pick adds the in-combat /run fallback
 - MacroManager: BuildCompositeBody uses a spell pick's localized name in the /castsequence
-- MacroManager: BuildBody emits the two-slot weapon-enchant body for WPN_ENCH
+- MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither
 - MacroManager: BuildBody VANTUS uses the default single /use body
 
 ### test_pipeline.lua (5)

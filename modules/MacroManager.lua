@@ -55,7 +55,7 @@ local function spellNameFor(spellID)
     return KCM.Compat and KCM.Compat.GetSpellName and KCM.Compat.GetSpellName(spellID) or nil
 end
 
-local function buildActiveBody(catKey, id)
+local function buildActiveBody(id)
     if KCM.ID and KCM.ID.IsSpell(id) then
         local spellID = KCM.ID.SpellID(id)
         local name = spellNameFor(spellID)
@@ -64,12 +64,6 @@ local function buildActiveBody(catKey, id)
         -- book hasn't hydrated). Emit a user-visible stub so the macro
         -- exists and the failure is observable rather than silent.
         return ("#showtooltip\n/run print('%s spell %d name unavailable')"):format(KCM.PREFIX, spellID or 0)
-    end
-    -- Weapon enchants apply to a weapon slot: ready the item, apply to main-hand
-    -- (16), ready again, apply to off-hand (17). The off-hand line harmlessly
-    -- no-ops when the off-hand can't take an enhancement (2H / shield / empty).
-    if catKey == "WPN_ENCH" then
-        return ("#showtooltip\n/use item:%d\n/use 16\n/use item:%d\n/use 17"):format(id, id)
     end
     return ("#showtooltip\n/use item:%d"):format(id)
 end
@@ -86,7 +80,7 @@ local function buildEmptyBody(cat)
 end
 
 function M.BuildBody(catKey, itemID)
-    if itemID then return buildActiveBody(catKey, itemID) end
+    if itemID then return buildActiveBody(itemID) end
     local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
     return buildEmptyBody(cat)
 end
@@ -269,21 +263,11 @@ local function doEdit(macroName, icon, body, catKey)
     return "edited"
 end
 
-function M.SetMacro(macroName, itemID, catKey)
-    if not macroName or macroName == "" then return "error", "empty macroName" end
-    if not KCM.db or not KCM.db.profile then return "error", "db not ready" end
-
-    -- Resolve catKey if the caller didn't pass one: used by BuildBody for
-    -- the empty-state fallback. If we can't find the category we still
-    -- produce a generic empty body so the macro at least exists.
-    if not catKey and KCM.Categories and KCM.Categories.LIST then
-        for _, c in ipairs(KCM.Categories.LIST) do
-            if c.macroName == macroName then catKey = c.key; break end
-        end
-    end
-
-    local body = M.BuildBody(catKey, itemID)
-    local effectiveItemID = itemID
+-- Shared macro-write tail: oversize fallback, unchanged/pending coalescing,
+-- combat deferral, doEdit, and macroState store. `iconItemID` drives the icon
+-- (nil for empty-state). Callers pass an already-built body.
+local function commitMacro(macroName, body, iconItemID, catKey)
+    local effectiveItemID = iconItemID
     if #body > MACRO_BODY_LIMIT then
         -- Silent truncation corrupted the macro (e.g. half a /cast line), so
         -- swap to the category's empty-state body and surface the problem
@@ -326,7 +310,7 @@ function M.SetMacro(macroName, itemID, catKey)
         local attempts = pending and pending.attempts or 0
         pendingUpdates[macroName] = {
             body     = body,
-            itemID   = itemID,
+            itemID   = iconItemID,
             catKey   = catKey,
             attempts = attempts,
         }
@@ -341,13 +325,50 @@ function M.SetMacro(macroName, itemID, catKey)
     end
 
     KCM.db.profile.macroState[macroName] = {
-        lastItemID = itemID,
+        lastItemID = iconItemID,
         lastBody   = body,
         lastIcon   = icon,
         lastCat    = catKey,
     }
     pendingUpdates[macroName] = nil
     return result
+end
+
+local function buildWeaponEnchantBody(mhPick, ohPick)
+    if not mhPick and not ohPick then return nil end
+    local lines = { "#showtooltip" }
+    if mhPick then lines[#lines + 1] = ("/use item:%d"):format(mhPick); lines[#lines + 1] = "/use 16" end
+    if ohPick then lines[#lines + 1] = ("/use item:%d"):format(ohPick); lines[#lines + 1] = "/use 17" end
+    return table.concat(lines, "\n")
+end
+M._buildWeaponEnchantBody = buildWeaponEnchantBody  -- test seam
+
+function M.SetMacro(macroName, itemID, catKey)
+    if not macroName or macroName == "" then return "error", "empty macroName" end
+    if not KCM.db or not KCM.db.profile then return "error", "db not ready" end
+
+    -- Resolve catKey if the caller didn't pass one: used by BuildBody for
+    -- the empty-state fallback. If we can't find the category we still
+    -- produce a generic empty body so the macro at least exists.
+    if not catKey and KCM.Categories and KCM.Categories.LIST then
+        for _, c in ipairs(KCM.Categories.LIST) do
+            if c.macroName == macroName then catKey = c.key; break end
+        end
+    end
+
+    local body = M.BuildBody(catKey, itemID)
+    return commitMacro(macroName, body, itemID, catKey)
+end
+
+-- Per-hand weapon-enchant macro: applies the best applicable enhancement to
+-- each equipped weapon (16 main / 17 off). Falls back to the empty-state stub
+-- when neither hand has a pick.
+function M.SetWeaponEnchantMacro(cat, mhPick, ohPick)
+    if not cat then return "error", "no category" end
+    local body = buildWeaponEnchantBody(mhPick, ohPick)
+    local iconItemID = mhPick or ohPick
+    if not body then body = buildEmptyBody(cat); iconItemID = nil end
+    return commitMacro(cat.macroName, body, iconItemID, cat.key)
 end
 
 -- ---------------------------------------------------------------------------
