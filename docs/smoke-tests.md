@@ -1,6 +1,6 @@
 # Smoke tests
 
-A headless unit-test harness now covers the **pure** layer (Classifier, Ranker, Selector, ID sentinels, schema validation, MacroManager body builders, the message bus, DebugLog formatters, TooltipCache parsing) plus a full-addon TOC-order load check — run it with `lua5.1 tests/run.lua` and lint with `luacheck .` (see [../README.md#testing](../README.md#testing)). Everything the harness can't reach — event-driven behaviour against Blizzard APIs, frame/UI rendering, taint, action-bar icons — is still validated **manually, in-game**. This file is the canonical playbook for that manual pass.
+A headless unit-test harness now covers the addon's logic — Classifier, Ranker, Selector, ID sentinels, schema validation, MacroManager body builders, the message bus, DebugLog formatters, TooltipCache parsing, SpecHelper resolution, the spec/spell Compat seam, BagScanner, SavedVariables migrations, the recompute pipeline, and the `/cm` slash dispatcher — plus a full-addon TOC-order load check — run it with `lua5.1 tests/run.lua` and lint with `luacheck .` (see [../README.md#testing](../README.md#testing), full case inventory in [test-cases.md](./test-cases.md)). Everything the harness can't reach — event-driven behaviour against Blizzard APIs, frame/UI rendering, taint, action-bar icons — is still validated **manually, in-game**. This file is the canonical playbook for that manual pass.
 
 Two flavours:
 

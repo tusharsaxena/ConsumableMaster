@@ -3,7 +3,7 @@
 -- This is the headless stand-in for an in-game load: it proves every file
 -- parses and that the declared load order satisfies each file's load-time
 -- dependencies (no module reaching for another's symbols before it loads).
--- It is the regression guard for the Tier-2 folder move + namespace migration.
+-- It is the regression guard for the modular folder move + namespace migration.
 
 local h = require("harness")
 local test = h.test

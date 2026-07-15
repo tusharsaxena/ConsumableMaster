@@ -13,7 +13,7 @@ local ADDON_NAME = "ConsumableMaster"
 
 local L = { mock = mock }
 
--- Central source-path list. Paths are updated once when the Tier-2 folder move
+-- Central source-path list. Paths are updated once when the modular folder move
 -- lands (Sprint 2) — every suite goes through PURE_LAYER so there is a single
 -- place to re-point.
 --

@@ -1,6 +1,6 @@
 # Architecture
 
-Orient-yourself map for **Ka0s Consumable Master**. This file is the high-level index; topic detail lives alongside it in `docs/`. Ka0s WoW Addon Standard v1.0.0, Tier 2.
+Orient-yourself map for **Ka0s Consumable Master**. This file is the high-level index; topic detail lives alongside it in `docs/`. Ka0s WoW Addon Standard.
 
 ## What it does
 
@@ -11,7 +11,7 @@ Ten account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_P
 - **Private namespace, no globals.** Every file begins `local addonName, NS = ...` — WoW hands the same private table to each file. `core/Namespace.lua` loads first and names it (`NS.name`). There is **no `_G.KCM`**; the only shared handle is a per-file transition alias `local KCM = NS`, so the tree's internal `KCM.*` references resolve to the private namespace.
 - **AceAddon promotion.** `core/ConsumableMaster.lua` calls `AceAddon:NewAddon(NS, addonName, "AceEvent-3.0","AceConsole-3.0")` and stores `NS.addon`. Event handlers are dispatched from `OnEnable`, so their bodies may reference modules that load later.
 
-## Tier-2 layout
+## Layout
 
 | Folder | Holds |
 |--------|-------|

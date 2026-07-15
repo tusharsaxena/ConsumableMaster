@@ -1,6 +1,6 @@
 # File index
 
-Where each responsibility lives in the source tree. Match this map to the actual files before editing — the TOC at `ConsumableMaster.toc` is the source of truth for load order. Layout is Tier-2: `core/` + `modules/` + `defaults/` + `settings/` + `locales/`.
+Where each responsibility lives in the source tree. Match this map to the actual files before editing — the TOC at `ConsumableMaster.toc` is the source of truth for load order. Layout is modular: `core/` + `modules/` + `defaults/` + `settings/` + `locales/`.
 
 ## core/
 
@@ -71,12 +71,12 @@ Each tab module registers a builder via `KCM.Settings.RegisterTab(key, builder)`
 - `embeds.xml` — XML manifest pulled in by `ConsumableMaster.toc`; loads LibStub + every Ace3 sub-library (+ LibSharedMedia) before any addon source.
 - `libs/` — vendored Ace3 + LibStub + LibSharedMedia. Tracked in git (standard WoW addon practice).
 - `ConsumableMaster.toc` — Interface line (`120007`), version, SavedVariables, file load order. Sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`; order within a section is dependency order, not alphabetical.
-- `tests/` — headless harness (`lua5.1 tests/run.lua`; suite inventory in [test-cases.md](./test-cases.md)) over the pure layer; `wow_mock.lua` stubs the WoW API + bus.
+- `tests/` — headless harness (`lua5.1 tests/run.lua`; suite inventory in [test-cases.md](./test-cases.md)) over the addon's logic layer; `wow_mock.lua` stubs the WoW API + bus.
 
 ## Top-level docs
 
 - `README.md` — user-facing.
-- `CLAUDE.md` — stub (tier + layout + gate + pointer into `docs/`).
+- `CLAUDE.md` — stub (standard link + layout + gate + pointer into `docs/`).
 - `docs/agent-context.md` — engineer working notes (hard rules + response style + doc index).
 - `docs/ARCHITECTURE.md` — design overview + invariants + message-bus catalogue + doc index.
 - `docs/*.md` — topic chunks (this file is one of them).

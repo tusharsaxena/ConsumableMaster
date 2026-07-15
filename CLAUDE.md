@@ -4,7 +4,7 @@
 
 ## Standard — read first
 
-This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** — **v1.0.0, Tier 2** (declared as `X-Standard` in `ConsumableMaster.toc`). That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
+This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
 
 **Deviation rule (MUST).** If a change you are about to make would deviate from the standard — or you notice existing code that already deviates — **stop and flag it to the user**. Never silently diverge. Let the user decide whether it should be:
 1. a **tracked deviation** — a documented, intentional exception for this addon; or
