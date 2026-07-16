@@ -4,7 +4,7 @@ The full brief for Claude Code (and other LLM-assisted editors) working on **Ka0
 
 ## What this addon is
 
-Twelve account-wide global macros whose bodies auto-rewrite to the best consumable in bags. Ten are single-pick categories (food, drink, HP pot, MP pot, healthstone, vantus rune, flask, combat pot, stat food, weapon enchant) and two are composites (`KCM_HP_AIO`, `KCM_MP_AIO`) that compose other categories' picks via `[combat]` / `[nocombat]` conditionals. Panel/tab order is FOOD → DRINK → HP_POT → MP_POT → HS → VANTUS → FLASK → CMBT_POT → STAT_FOOD → WPN_ENCH → HP_AIO → MP_AIO. Retail Midnight only (Interface 120007). English only. Ace3 throughout. Ka0s WoW Addon Standard.
+Thirteen account-wide global macros whose bodies auto-rewrite to the best consumable in bags. Eleven are single-pick categories (food, drink, HP pot, MP pot, healthstone, vantus rune, flask, combat pot, stat food, weapon enchant, augment rune) and two are composites (`KCM_HP_AIO`, `KCM_MP_AIO`) that compose other categories' picks via `[combat]` / `[nocombat]` conditionals. Panel/tab order is FOOD → DRINK → HP_POT → MP_POT → HS → VANTUS → FLASK → CMBT_POT → STAT_FOOD → WPN_ENCH → AUG_RUNE → HP_AIO → MP_AIO. Retail Midnight only (Interface 120007). English only. Ace3 throughout. Ka0s WoW Addon Standard.
 
 User-facing reference: [README.md](../README.md). Design overview + invariants: [ARCHITECTURE.md](./ARCHITECTURE.md).
 

@@ -20,11 +20,12 @@ whenever the suite changes.
 - a target hears a message, then goes silent after unregister
 - RECOMPUTE routes to Pipeline.RequestRecompute
 
-### test_categories.lua (1)
+### test_categories.lua (2)
 
 - Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
+- Categories: AUG_RUNE registered with metadata, DB bucket, and seed
 
-### test_classifier.lua (13)
+### test_classifier.lua (14)
 
 - classifier: FOOD matches Food & Drink with heal and no stat buff
 - classifier: DRINK matches Food & Drink with mana and no stat buff
@@ -39,6 +40,7 @@ whenever the suite changes.
 - classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance flag
 - classifier: VANTUS matches whitelisted rune IDs regardless of item data
 - classifier: guard and edge cases for nil/unknown inputs
+- classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 
 ### test_compat.lua (5)
 
@@ -102,7 +104,7 @@ whenever the suite changes.
 - Pipeline.Recompute skips macro writes when the addon is disabled
 - Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMacro
 
-### test_ranker.lua (16)
+### test_ranker.lua (18)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -120,6 +122,8 @@ whenever the suite changes.
 - Ranker: SortCandidates orders by score desc, ties by id asc
 - Ranker: spell sentinel sorts first and empty input is safe
 - Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
+- Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
+- Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
 
 ### test_runner_list.lua (4)
 
@@ -174,7 +178,7 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
 
-### test_tooltipcache.lua (7)
+### test_tooltipcache.lua (9)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -183,6 +187,8 @@ whenever the suite changes.
 - TooltipCache: parses combined percentage 'health and mana' form
 - TooltipCache: parses Attack Power and Spell Power as AP/SP stats
 - TooltipCache: weaponAffinity from bladed/blunt/plain phrasing
+- TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff
+- TooltipCache: sets isAugmentRune from the category marker line
 
 ### test_weaponslots.lua (1)
 
@@ -194,8 +200,8 @@ whenever the suite changes.
 |-------|------:|
 | test_bagscanner.lua | 5 |
 | test_bus.lua | 3 |
-| test_categories.lua | 1 |
-| test_classifier.lua | 13 |
+| test_categories.lua | 2 |
+| test_classifier.lua | 14 |
 | test_compat.lua | 5 |
 | test_database.lua | 4 |
 | test_debuglog.lua | 8 |
@@ -203,12 +209,12 @@ whenever the suite changes.
 | test_load.lua | 1 |
 | test_macromanager.lua | 11 |
 | test_pipeline.lua | 6 |
-| test_ranker.lua | 16 |
+| test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 8 |
 | test_selector.lua | 11 |
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
-| test_tooltipcache.lua | 7 |
+| test_tooltipcache.lua | 9 |
 | test_weaponslots.lua | 1 |
-| **Total** | **125** |
+| **Total** | **131** |

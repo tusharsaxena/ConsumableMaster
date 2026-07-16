@@ -4,7 +4,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 
 ## In scope
 
-- **Account-wide consumable macros** — ten single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, VANTUS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
+- **Account-wide consumable macros** — eleven single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, VANTUS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, AUG_RUNE) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
 - **Auto-rewriting macro bodies** based on bag contents, spec, and a per-category scorer.
 - **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH against per-spec stat priority (primary + ordered secondary).
 - **Spell entries** (e.g. Recuperate as a Food entry) via opaque-numeric IDs (positive = item, negative = spell sentinel).
@@ -20,7 +20,7 @@ These have been considered and explicitly declined. A change of heart needs an i
 - **Per-character macros.** Everything is account-wide. Per-character profiles aren't needed for the addon's purpose; AceDB is configured with a single account-wide profile by default.
 - **Per-encounter / per-boss priorities.** No fight-specific lists.
 - **Auto-buying consumables from vendors.** No vendor automation.
-- **Cauldrons / phials / augment runes** as separate categories. Phials are absorbed into FLASK by subtype (`"Flasks & Phials"`). Cauldrons / augment runes don't have a managed macro. Weapon oils and whetstones *are* managed — they're the WPN_ENCH category, matched by the tooltip's weapon-application effect rather than by subtype.
+- **Cauldrons / phials** as separate categories. Phials are absorbed into FLASK by subtype (`"Flasks & Phials"`). Cauldrons don't have a managed macro. Weapon oils and whetstones are the WPN_ENCH category, and augment runes are the AUG_RUNE category — both matched by tooltip effect rather than by subtype.
 - **Bandages.** First aid is a separate workflow; not relevant to current Midnight endgame.
 - **Profile import/export.** Settings live in `ConsumableMasterDB` per-account; no serialization layer.
 - **LDB / minimap icon.**

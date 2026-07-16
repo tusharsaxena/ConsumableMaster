@@ -33,11 +33,11 @@ Twelve sections, each numbered so you can call out which one failed when reporti
 
 ### 1. Cold boot
 
-Tests: AceDB defaults populate, all 12 macros create, no errors at login.
+Tests: AceDB defaults populate, all 13 macros create, no errors at login.
 
 1. **Fresh-install path:** quit the game; delete `WTF/Account/<acct>/SavedVariables/ConsumableMasterDB.lua`; log in.
 2. Expect: no Lua errors, no `[CM]` chat warnings beyond the one-shot debug-state line if `debug=true`.
-3. Open the macro UI → **General Macros** tab. Expect 12 macros named exactly: `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_HP_AIO`, `KCM_MP_AIO`.
+3. Open the macro UI → **General Macros** tab. Expect 13 macros named exactly: `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_HP_AIO`, `KCM_MP_AIO`.
 4. Each macro's stored icon should be either the picked item's texture (if you own a candidate) or the cooking-pot fallback (`fileID 7704166`). Never the `?` sentinel rendered as a static texture — that's the icon-convention bug.
 5. `/cm dump pick food` (and any spec-aware key) — confirms the pipeline ran post-PEW.
 6. Re-login (no SavedVariables wipe) — same checks. Existing buckets should be respected; no duplicate macros created.
@@ -70,6 +70,15 @@ Tests: `KCM_WPN_ENCH` picks and applies independently per hand, filtered by the 
 2. Swap to a blunt weapon (e.g. a mace) in the same slot. Within ~1 frame of `PLAYER_EQUIPMENT_CHANGED`, expect: no `/reload` needed — the macro body switches to the weightstone, the action-bar icon updates, and the settings page's star/dim markers flip to match.
 3. Dual-wield two weapons of different types (e.g. sword main hand, mace off hand). Confirm the macro body applies a whetstone to slot 16 and a weightstone to slot 17 (a `/use item:<id>` + `/use 16` line pair, then a `/use item:<id>` + `/use 17` pair), i.e. each hand gets its own independently-scored pick. The settings page marks the whetstone row "MH" and the weightstone row "OH" (not both on one row).
 4. Equip a two-handed weapon (main hand only, no off-hand item). Confirm the macro body only references slot 16 — no `/use 17` line — and the settings page shows only an "MH" marker on the picked row, with no off-hand affinity shown.
+
+### 3b. Macro writes — Augment Rune
+
+Tests: `KCM_AUG_RUNE` body is a plain single-pick `/use`; reusable "permanent" runes only win a tie, never beat a stat-superior consumable rune.
+
+1. Put a single augment rune in bags (any of the seeded IDs). Open the macro UI — body should be `#showtooltip` + `/use item:<id>`, matching the single-pick pattern of section 3.
+2. Put Ethereal (243191) and Crystallized (224572) both in bags. `/cm dump pick aug_rune` and the macro body should pick Ethereal — both grant 733 primary stat, and the reusable rune wins the tie over the consumable one.
+3. Block Ethereal via the priority-list × button on the **Augment Rune** settings page. Within ~1 frame, the pick falls back to Crystallized.
+4. **Open items (in-game, non-blocking):** confirm the tooltip marker line the classifier keys off reads exactly `Augment Rune`. Note the real primary-stat amounts granted by Void-Touched (259085) and Soulgorged (246492) for future seed/test reference.
 
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
 
@@ -114,7 +123,7 @@ Tests: macro writes that hit combat queue, flush on regen, retry counter respect
 Tests: `/cm config` lands on About with sub-pages expanded; General-page checkboxes write through schema; resets fire StaticPopup.
 
 1. Close the Settings panel. Run `/cm config`.
-2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 14 sub-pages visible (General, Stat Priority, 10 categories, 2 AIO).
+2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 15 sub-pages visible (General, Stat Priority, 11 categories, 2 AIO).
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
 4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -207,6 +216,7 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 | Selector mutators | §9 (priority list buttons), §11 (`/cm priority`) |
 | MacroManager body builders | §3, §4 |
 | Weapon Enchant (`core/WeaponSlots.lua`, per-hand pick) | §3a, §9 step 10 |
+| Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
 | Settings UI framework (`settings/Panel.lua`) | §7 + spot-check §8, §9, §10 |

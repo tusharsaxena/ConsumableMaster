@@ -56,7 +56,7 @@ core/TooltipCache.lua  C_TooltipInfo.GetItemByID(id) → parsed struct cached pe
 core/BagScanner.lua  C_Container.GetContainerItemInfo sweep → { [id] = count }.
                    Stateless per-call.
 
-core/Classifier.lua  (itemID) → which of the 10 single-pick categories. Reads
+core/Classifier.lua  (itemID) → which of the 11 single-pick categories. Reads
                    subType + parsed tooltip. FLASK is subType-only (tooltip-
                    free) so first-bag-scan discovery is deterministic for
                    already-cached flasks.
