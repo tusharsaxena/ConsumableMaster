@@ -39,7 +39,7 @@ Composite categories (`HP_AIO`, `MP_AIO`) have **no seed file** — they compose
 
 # Refresh procedure
 
-The playbook for re-running the seed refresh when Blizzard adds new consumables, bumps a patch, or renames subtype strings. Re-run at the start of each content patch and any time a user reports that an expected item isn't showing up.
+The playbook for re-running the seed refresh when Blizzard adds new consumables or bumps a patch. Re-run at the start of each content patch and any time a user reports that an expected item isn't showing up.
 
 ## Sources (in order of preference)
 
@@ -84,17 +84,11 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
    - Potion of Devoured Dreams (241294) restores mana but also has a combat effect — Method.gg lists it under mana potions, wiki under void combat potions. We seed it as `MP_POT` because that's the primary effect; the Classifier may also match it as `CMBT_POT`.
    - Void-Shrouded Tincture (241302) is invisibility — classifier-wise a short-duration potion, but not a throughput buff. Do NOT seed in `CMBT_POT`.
 
-3. **Verify subType strings.** If Blizzard renames a subtype (as they did from `"Potion"` → `"Potions"` and merged `"Flask"` + `"Phial"` into `"Flasks & Phials"` in Midnight), update the constants at the top of `core/Classifier.lua`:
-   ```lua
-   local ST_POTION      = "Potions"
-   local ST_FOOD        = "Food & Drink"
-   local ST_FLASK_PHIAL = "Flasks & Phials"
-   ```
-   Confirm with `/cm dump item <id>` — the `instant:` line shows the live subType string for any bag item.
+3. **Verify item class (rarely needed).** Classification keys on the numeric `classID`/`subClassID` (Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5), which are locale-independent and survive Blizzard's display-string renames — a subtype rename no longer needs a code change. Confirm an item's class with `/cm dump item <id>` (the `instant:` line shows `classID`/`subClassID`); only a brand-new consumable subclass would need a `core/Classifier.lua` edit.
 
 4. **Check for new stat-buff phrasings.** The TooltipCache parser matches specific stat names ("Critical Strike", "Haste", etc.) AND the wildcard phrasing `"<amount> of your highest secondary stat"`. If a new potion reads differently (e.g. `"of your primary stat"` or `"of a random secondary stat"`), extend `parseStatBuffs` in `core/TooltipCache.lua` and the corresponding special case in `modules/Ranker.lua`'s `statWeight`.
 
-5. **Quality tier variants.** Midnight consumables come in multiple quality tiers — e.g. the Method.gg-listed ID is often the base quality and users may carry a `+1` / `+2` variant (different itemID, same name, different stat amount). The Classifier matches all tiers because they share subType; auto-discovery picks them up. You do NOT need to seed every tier — seed the base ID only.
+5. **Quality tier variants.** Midnight consumables come in multiple quality tiers — e.g. the Method.gg-listed ID is often the base quality and users may carry a `+1` / `+2` variant (different itemID, same name, different stat amount). The Classifier matches all tiers because they share the same item subclass; auto-discovery picks them up. You do NOT need to seed every tier — seed the base ID only.
 
 6. **Update the seed files.** One file per category; see `Defaults_HPPot.lua` for the template. Keep the header comment's `Source:` and `Last refresh:` lines accurate.
 
@@ -114,6 +108,6 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
 
 - **Spec-aware seed is a flat list.** `CMBT_POT`, `FLASK`, and `STAT_FOOD` are spec-aware at runtime via `bySpec[specKey]`, but their seed arrays are FLAT (no per-spec buckets). The Ranker picks the best fit for the active spec via stat priority. Don't attempt to split the seed by spec.
 
-- **Phial pollution in FLASK.** Haranir profession phials share the `"Flasks & Phials"` subType. They classify as FLASK on auto-discovery but NOT in the seed. Keep them out of `Defaults_Flask.lua` so the default priority list stays combat-focused.
+- **Phial pollution in FLASK.** Haranir profession phials share the Flask/Phial subclass (subClassID 3). They classify as FLASK on auto-discovery but NOT in the seed. Keep them out of `Defaults_Flask.lua` so the default priority list stays combat-focused.
 
 All IDs should be treated as data, not code — corrections welcome.

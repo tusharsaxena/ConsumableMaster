@@ -2,25 +2,11 @@
 
 Catalog of WoW Midnight (Interface 12.0.x) behaviors that bite the addon. When something breaks at patch time, this is where to look first.
 
-## Subtype renames
+## Subtype renames — no longer a classification concern
 
-Blizzard renamed several consumable subTypes in Midnight. The underlying `classID` / `subClassID` are unchanged but `GetItemInfoInstant` returns the display string, which is what the addon classifies on.
+Blizzard renamed several consumable subType **display strings** in Midnight (`"Potion"` → `"Potions"`; `"Flask"` / `"Phial"` → `"Flasks & Phials"`). This used to break the Classifier, which matched those strings. It no longer does: classification keys on the **numeric** `classID` / `subClassID` from `GetItemInfoInstant` (Consumable=0; subclass Potion=1, Flask/Phial=3, Food & Drink=5), which are locale-independent and unchanged across the renames (localization-§4 / anti-pattern #37 — see [scope.md](./scope.md)). A future display-string rename needs no code change.
 
-| Old | New |
-|-----|-----|
-| `"Potion"` | `"Potions"` |
-| `"Flask"` / `"Phial"` | `"Flasks & Phials"` |
-| `"Food & Drink"` | unchanged |
-
-The matcher strings live as `ST_*` constants at the top of `core/Classifier.lua`:
-
-```lua
-local ST_POTION      = "Potions"
-local ST_FOOD        = "Food & Drink"
-local ST_FLASK_PHIAL = "Flasks & Phials"
-```
-
-If another rename lands, edit these constants. `Classifier.MatchAny(id)` returns `{ catKeys }`, so a single item can classify into multiple categories (e.g. "Refreshing Serum" for both `HP_POT` and `MP_POT`).
+`Classifier.MatchAny(id)` returns `{ catKeys }`, so a single item can classify into multiple categories (e.g. "Refreshing Serum" for both `HP_POT` and `MP_POT`). Weapon-affinity (`core/WeaponSlots.lua`) keys on the weapon `subClassID` the same way.
 
 ## Tooltip parsing — grammar escapes and NBSP
 
@@ -40,7 +26,7 @@ If a new tooltip line refuses to match a pattern that "obviously should work", r
 
 If an item's data is already in WoW's client-side cache when the addon starts (because another addon or the loot UI hydrated it earlier), `GET_ITEM_INFO_RECEIVED` does **not** fire for it on the addon's first scan. The discovery retry path (`OnItemInfoReceived` → `discoverOne`) only helps the not-yet-cached case.
 
-That's why **FLASK is classified from `subType` alone** (no tooltip gate) — the subType is already available without a tooltip fetch, so flasks looted before login still get discovered on the first bag scan. Don't regress this: routing FLASK back through tooltip-gated classification breaks first-login discovery for already-cached flasks.
+That's why **FLASK is classified from its `subClassID` alone** (no tooltip gate) — the class is already available from `GetItemInfoInstant` without a tooltip fetch, so flasks looted before login still get discovered on the first bag scan. Don't regress this: routing FLASK back through tooltip-gated classification breaks first-login discovery for already-cached flasks.
 
 ## Combat lockdown taints protected APIs
 

@@ -53,17 +53,18 @@ core/TooltipCache.lua  C_TooltipInfo.GetItemByID(id) → parsed struct cached pe
                    captures healOverSec / manaOverSec so the Ranker can
                    tell immediate pots from heal-over-time pots.
 
-core/WeaponSlots.lua  equipped main-hand (16) / off-hand (17) weapon subType →
-                   "bladed" (whetstone) / "blunt" (weightstone) / nil (not
-                   enhanceable). Drives the per-hand Weapon Enchant picks.
+core/WeaponSlots.lua  equipped main-hand (16) / off-hand (17) weapon subClassID
+                   (gated on classID == Weapon) → "bladed" (whetstone) /
+                   "blunt" (weightstone) / nil (not enhanceable). Numeric =
+                   locale-independent. Drives the per-hand Weapon Enchant picks.
 
 core/BagScanner.lua  C_Container.GetContainerItemInfo sweep → { [id] = count }.
                    Stateless per-call.
 
 core/Classifier.lua  (itemID) → which of the 11 single-pick categories. Reads
-                   subType + parsed tooltip. FLASK is subType-only (tooltip-
-                   free) so first-bag-scan discovery is deterministic for
-                   already-cached flasks.
+                   the numeric classID/subClassID (locale-independent) + parsed
+                   tooltip. FLASK is subclass-only (tooltip-free) so first-bag-
+                   scan discovery is deterministic for already-cached flasks.
 
 modules/Ranker.lua  Pure scorers per category. Spec-aware scorers weight stats
                    against { primary, secondary[] } from SpecHelper. Spell
@@ -192,11 +193,11 @@ KCM.Ranker.Explain(catKey, id, ctx) -> { {label, value, note?}, ... }
 ### Classifier (`core/Classifier.lua`)
 
 ```lua
-KCM.Classifier.Match(catKey, id, tt, subType) -> bool
+KCM.Classifier.Match(catKey, id) -> bool
 KCM.Classifier.MatchAny(id) -> { catKeys }   -- used by auto-discovery
 ```
 
-Per-category predicates are English-only against `subType` + parsed `tt`. The Midnight subtype renames live as `ST_*` constants at the top of the file.
+Per-category predicates key on the numeric `classID`/`subClassID` (locale-independent — Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5) plus parsed `tt`, never the localized subType display string (localization-§4; see scope.md). Weapon-enchant / augment-rune predicates key on `tt` flags. The remaining English dependency is TooltipCache's tooltip-text parsing.
 
 ### BagScanner (`core/BagScanner.lua`)
 

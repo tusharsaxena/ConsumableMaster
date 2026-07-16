@@ -16,11 +16,11 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 
 These have been considered and explicitly declined. A change of heart needs an issue + design discussion, not a stealth PR.
 
-- **Localization.** English only. Classifier compares item subTypes against literal English strings (`"Potions"`, `"Flasks & Phials"`, etc.) and tooltip parsing uses English patterns. Localization plumbing is a deliberate non-goal.
+- **Localization — tracked deviation from the standard.** English-only, and this is a **documented, intentional deviation** from the Ka0s Standard's `localization-§4` (anti-pattern **#37**: don't match localized game data against English text). A standards audit *should* flag it — that is expected and recorded here, not an oversight. The deviation's scope is now narrow: **`core/TooltipCache.lua` tooltip-TEXT parsing** — heal/mana/stat magnitudes, the `Augment Rune` marker, and the weapon-application effect are read from English tooltip strings, and there is no stable-ID substitute for parsing a numeric magnitude out of free text. Item and weapon **classification** was moved *off* the localized subType display string onto the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua`, `core/WeaponSlots.lua`), so category and weapon-affinity detection already work on every client. Localizing the remaining tooltip-text parsing is planned for a later release.
 - **Per-character macros.** Everything is account-wide. Per-character profiles aren't needed for the addon's purpose; AceDB is configured with a single account-wide profile by default.
 - **Per-encounter / per-boss priorities.** No fight-specific lists.
 - **Auto-buying consumables from vendors.** No vendor automation.
-- **Cauldrons / phials** as separate categories. Phials are absorbed into FLASK by subtype (`"Flasks & Phials"`). Cauldrons don't have a managed macro. Weapon oils and whetstones are the WPN_ENCH category, and augment runes are the AUG_RUNE category — both matched by tooltip effect rather than by subtype.
+- **Cauldrons / phials** as separate categories. Phials are absorbed into FLASK by subclass (Flask/Phial, subClassID 3). Cauldrons don't have a managed macro. Weapon oils and whetstones are the WPN_ENCH category, and augment runes are the AUG_RUNE category — both matched by tooltip effect rather than by item class.
 - **Bandages.** First aid is a separate workflow; not relevant to current Midnight endgame.
 - **Profile import/export.** Settings live in `ConsumableMasterDB` per-account; no serialization layer.
 - **LDB / minimap icon.**
@@ -37,7 +37,7 @@ Decisions made during requirements review and v1.0.0 launch — these are settle
 - **AceDB profile model.** Single account-wide profile. No profile switcher.
 - **Macro adoption.** If a `KCM_*`-named macro pre-exists when the addon first runs, the addon adopts it (rewrites the body on next event). The addon never renames user macros and never calls `DeleteMacro` on a `KCM_*` slot.
 - **Reset confirmation.** Blizzard `StaticPopupDialogs` yes/no popup, registered with `preferredIndex = 3` to dodge the popup-slot taint cascade that affects slots 1 / 2 when other addons have used them earlier in the session.
-- **Conjured / vendor food handling.** The candidate set is built dynamically via the classifier (subType + tooltip) and ordered by the ranker (parsed heal/mana, ilvl, quality, conjured bonus). Defaults ship a known-good seed; auto-discovery handles new items. No static "small seed list" approach.
+- **Conjured / vendor food handling.** The candidate set is built dynamically via the classifier (item subclass + tooltip) and ordered by the ranker (parsed heal/mana, ilvl, quality, conjured bonus). Defaults ship a known-good seed; auto-discovery handles new items. No static "small seed list" approach.
 - **Cyan `[CM]` chat prefix.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth for the cyan `|cff00ffff[CM]|r` tag; one-shot chat routes through `KCM.Say`, and `core/SlashCommands.lua`'s `say()` helper prepends it to every slash line. Raw `print(...)` calls are banned.
 
 ## Where the contract lives

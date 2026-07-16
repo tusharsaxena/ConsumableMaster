@@ -145,7 +145,7 @@ SweepStaleDiscovered(nowUnix):
                     bucket.discovered[id] = nil        -- drop: stale
 ```
 
-TTL is the only gate. A classifier re-check on stale entries was considered and dropped — if a subType rename re-classifies an id under a different category, the stale entry times out on its own within 30 days of bag absence.
+TTL is the only gate. A classifier re-check on stale entries was considered and dropped — if an item's classification ever changes across a patch, the stale entry times out on its own within 30 days of bag absence.
 
 ### What's never swept
 

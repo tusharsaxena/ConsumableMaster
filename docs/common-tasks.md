@@ -11,7 +11,7 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
      emptyText="/run print('|cff00ffff[CM]|r no new thing in bags')" },
    ```
    Set `specAware=true` if the category needs per-spec buckets.
-2. Add a matcher in `core/Classifier.lua`'s `matchers` table — predicate against `subType` + parsed tooltip.
+2. Add a matcher in `core/Classifier.lua`'s `matchers` table — predicate against the consumable `sub` (subClassID) + parsed tooltip.
 3. Add a scorer in `modules/Ranker.lua`'s `scorers` table — return a numeric score; higher wins.
 4. Add a branch in `Ranker.Explain` for the score-button tooltip — produces `{ {label, value, note?}, ... }` rows that mirror the scorer's additive terms.
 5. Create `defaults/Defaults_New.lua`:
@@ -62,13 +62,8 @@ Updating a defaults file is a zero-migration upgrade for existing users — the 
 
 ## Fix a misclassification
 
-1. Run `/cm dump item <id>` to see the live `subType` + parsed tooltip.
-2. **Wrong subType?** Midnight may have renamed the string. Edit the `ST_*` constants at the top of `core/Classifier.lua`:
-   ```lua
-   local ST_POTION      = "Potions"
-   local ST_FOOD        = "Food & Drink"
-   local ST_FLASK_PHIAL = "Flasks & Phials"
-   ```
+1. Run `/cm dump item <id>` to see the live `classID`/`subClassID` (`instant:` line) + parsed tooltip.
+2. **Wrong class?** Classification keys on the numeric `classID`/`subClassID` (Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5) — locale-independent, and unchanged across Blizzard's display-string renames, so a subtype rename needs no code change. Only a genuinely new consumable subclass would need a `core/Classifier.lua` edit (add its subclass constant + matcher).
 3. **Tooltip parse missing a field?** Check `PATTERNS` in `core/TooltipCache.lua`. Watch for non-breaking spaces (U+00A0 — Lua `%s` does not match) and `|4singular:plural;` grammar escapes. Both are normalized in `normalizeTooltipText`; don't bypass it.
 4. Re-run `/cm dump item <id>` to confirm the fix.
 5. Run `/cm resync` to rebuild the candidate set, then `/cm dump pick <catKey>` to confirm the item now lands where expected.
