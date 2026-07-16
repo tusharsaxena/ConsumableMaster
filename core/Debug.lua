@@ -5,8 +5,7 @@
 -- to the on-screen DebugLog console (standard §12); if the console module
 -- hasn't loaded yet (very early boot) they fall back to the chat frame.
 --
--- KCM.Debug is itself callable: KCM.Debug("Tag", "%s -> %s", a, b). KCM.Debug.Log
--- is a tag-first alias of the same callable.
+-- KCM.Debug is itself callable: KCM.Debug("Tag", "%s -> %s", a, b).
 
 local _, NS = ...
 local KCM = NS
@@ -60,8 +59,3 @@ local mt = {
     end,
 }
 setmetatable(KCM.Debug, mt)
-
--- Tag-first alias (retained for already-tagged call sites and tests).
-function KCM.Debug.Log(tag, fmt, ...)
-    return KCM.Debug(tag, fmt, ...)
-end

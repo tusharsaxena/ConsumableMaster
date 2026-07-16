@@ -12,7 +12,6 @@ The debug console, the dump targets, and the schema-driven slash CLI. All chat o
 KCM.Debug.IsOn()      -- bool; reads KCM.State.debug
 KCM.Debug.Toggle()    -- routes through DebugLog.Toggle -> SetEnabled (owns the ack)
 KCM.Debug(tag, fmt, ...)        -- callable sink: gated, secret-safe line to the console
-KCM.Debug.Log(tag, fmt, ...)    -- retained tag-first alias of the same callable
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()

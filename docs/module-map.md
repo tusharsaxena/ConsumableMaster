@@ -127,8 +127,7 @@ KCM.Pipeline.Recompute(reason)               -- iterates categories, with pcall 
 KCM.Pipeline.RecomputeOne(catKey, scoreCache, reason)  -- single category
 KCM.Pipeline.RunAutoDiscovery(reason) -> n   -- bag scan + classifier + MarkDiscovered;
                                              --   one summary debug line per pass
-KCM.Pipeline.DiscoverOne(itemID, reason, nowUnix?, outNew?)  -- one-id retry path;
-                                             --   outNew (bulk pass) collects discovered IDs
+                                             --   (per-id retry is the internal `discoverOne` local)
 
 -- Pure debug-summary formatter (frame-free, unit-tested; see debug.md)
 KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped) -> string -- [Calc] line
@@ -284,7 +283,6 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 KCM.Debug.IsOn() -> bool                      -- reads KCM.State.debug (session-only)
 KCM.Debug.Toggle()                            -- routes through DebugLog.Toggle -> SetEnabled
 KCM.Debug(tag, fmt, ...)                      -- callable sink; gated, secret-safe; early-returns when off
-KCM.Debug.Log(tag, fmt, ...)                  -- retained tag-first alias of the same callable
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()

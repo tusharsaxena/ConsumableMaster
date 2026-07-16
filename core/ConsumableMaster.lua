@@ -289,7 +289,6 @@ end
 
 -- Expose for manual invocation from /cm resync and tests.
 KCM.Pipeline.RunAutoDiscovery = runAutoDiscovery
-KCM.Pipeline.DiscoverOne      = discoverOne
 
 -- Pure recompute-summary formatter (debug-logging-§8/§9, unit-tested).
 function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)

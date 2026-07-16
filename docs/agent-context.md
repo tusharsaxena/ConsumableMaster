@@ -45,7 +45,7 @@ Full catalogue lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Debug console
 
-`modules/DebugLog.lua` is an on-screen `ScrollingMessageFrame` console styled like the addon's own frames (title bar + divider, dark skin, flat buttons). The enabled flag is **session-only** — `KCM.State.debug` in `core/State.lua`, default off, never persisted — so a session left with debug on doesn't leak into the next login. `/cm debug on|off`, the panel checkbox, and the header `Debug: ON/OFF` toggle all route through the single `DebugLog.SetEnabled` seam (flag → header → chat ack → console line → panel refresh); **bare `/cm debug` toggles the window only**, leaving the flag untouched. Emit via the callable sink `KCM.Debug(tag, fmt, ...)` (zero-alloc gate when disabled, secret-safe via `KCM.SafeToString`) or its retained alias `KCM.Debug.Log(tag, fmt, ...)`.
+`modules/DebugLog.lua` is an on-screen `ScrollingMessageFrame` console styled like the addon's own frames (title bar + divider, dark skin, flat buttons). The enabled flag is **session-only** — `KCM.State.debug` in `core/State.lua`, default off, never persisted — so a session left with debug on doesn't leak into the next login. `/cm debug on|off`, the panel checkbox, and the header `Debug: ON/OFF` toggle all route through the single `DebugLog.SetEnabled` seam (flag → header → chat ack → console line → panel refresh); **bare `/cm debug` toggles the window only**, leaving the flag untouched. Emit via the callable sink `KCM.Debug(tag, fmt, ...)` (zero-alloc gate when disabled, secret-safe via `KCM.SafeToString`).
 
 ## Locale
 

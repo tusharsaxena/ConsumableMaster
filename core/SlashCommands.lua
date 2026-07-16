@@ -1253,10 +1253,6 @@ printHelp = function()
     end
 end
 
-function KCM.SlashCommands.PrintHelp()
-    printHelp()
-end
-
 -- Read-only view of the COMMANDS table for the About panel. Each row is
 -- {name, summary} — same data the in-chat help table uses, so the panel and
 -- /cm help stay in lock-step automatically.
