@@ -47,18 +47,39 @@ function M.reset()
     M.busReg   = {}       -- "message" -> { [target] = callback }
 end
 
+-- A real item reports a localized subType DISPLAY string and a
+-- locale-independent numeric classID/subClassID together. Keep the mock
+-- consistent so a test that sets a readable subType gets the matching numeric
+-- class the Classifier / WeaponSlots now key on. Explicit classID/subClassID
+-- in the spec still override (e.g. a non-English subType with a real subclass,
+-- to prove locale-independence).
+local SUBTYPE_CLASS = {
+    ["Food & Drink"]      = { 0, 5 },
+    ["Potions"]           = { 0, 1 },
+    ["Flasks & Phials"]   = { 0, 3 },
+    ["Other"]             = { 0, 8 },
+    ["One-Handed Swords"] = { 2, 7 },  ["Two-Handed Swords"] = { 2, 8 },
+    ["One-Handed Axes"]   = { 2, 0 },  ["Two-Handed Axes"]   = { 2, 1 },
+    ["Daggers"]           = { 2, 15 }, ["Polearms"]          = { 2, 6 },
+    ["Fist Weapons"]      = { 2, 13 }, ["Warglaives"]        = { 2, 9 },
+    ["One-Handed Maces"]  = { 2, 4 },  ["Two-Handed Maces"]  = { 2, 5 },
+    ["Staves"]            = { 2, 10 },
+    ["Shields"]           = { 4, 6 },  -- Armor / Shield (not enhanceable)
+}
+
 function M.setItem(id, spec)
     spec = spec or {}
+    local cls = SUBTYPE_CLASS[spec.subType]
     M.items[id] = {
         name        = spec.name or ("Item " .. tostring(id)),
         subType     = spec.subType or "",
         quality     = spec.quality or 1,
         ilvl        = spec.ilvl or 1,
         tt          = spec.tt or {},
-        -- classID/subClassID for GetItemInfoInstant. Default 0 (Consumable) to
-        -- preserve existing tests; set explicitly to model armor/weapons/etc.
-        classID     = spec.classID or 0,
-        subClassID  = spec.subClassID or 0,
+        -- classID/subClassID for GetItemInfoInstant — derived from subType when
+        -- not given (real items keep them consistent); explicit spec overrides.
+        classID     = spec.classID or (cls and cls[1]) or 0,
+        subClassID  = spec.subClassID or (cls and cls[2]) or 0,
     }
 end
 

@@ -5,17 +5,18 @@
 --   * Selector (M5) — auto-discover bag items and slot them into categories.
 --   * SlashCommands (/cm dump / /cm rank) — debug introspection.
 --
--- Every predicate reads from TooltipCache (parsed tooltip) and GetItemInfo
--- (subType / quality / ilvl). Project scope is English-only, so subType is
--- compared against literal English strings ("Potions", "Food & Drink",
--- "Flasks & Phials"). Healthstones are identified by hard-coded itemIDs
--- because they share the "Potions" subType with everything else.
+-- Every predicate reads from TooltipCache (parsed tooltip) plus the numeric
+-- classID / subClassID from GetItemInfoInstant (Consumable=0; subclass
+-- Potion=1, Flask/Phial=3, Food & Drink=5). Those numbers are
+-- locale-independent, so the category gate works on every client; the item's
+-- subType DISPLAY string is localized and is deliberately NOT matched (Ka0s
+-- Standard localization-§4). Healthstones are identified by hard-coded itemIDs
+-- because they share the Potion subclass with everything else.
 --
--- Midnight renamed several consumable subtypes: "Potion" → "Potions", and
--- "Flask" / "Phial" merged into "Flasks & Phials". The underlying
--- classID/subClassID are unchanged (Consumable=0, Potion=1, Flask=3), but
--- GetItemInfoInstant returns the display string. If Blizzard renames
--- these again, update ST_POTION / ST_FLASK_PHIAL here.
+-- NOTE: the remaining English dependency is TooltipCache's tooltip-TEXT
+-- parsing (heal/mana/stat magnitudes, the "Augment Rune" marker, weapon-
+-- application effect). That is the addon's tracked English-only deviation
+-- (docs/scope.md); this classifier no longer contributes to it.
 
 local _, NS = ...
 local KCM = NS
@@ -26,9 +27,16 @@ local C = KCM.Classifier
 -- Constants
 -- ---------------------------------------------------------------------------
 
-local ST_POTION      = "Potions"
-local ST_FOOD        = "Food & Drink"
-local ST_FLASK_PHIAL = "Flasks & Phials"
+-- Consumable subclasses. GetItemInfoInstant returns a locale-independent
+-- numeric classID / subClassID alongside the item's subType DISPLAY string.
+-- The display string is localized ("Potions" → "Tränke"/"Pociones"/…), so
+-- matching it against English literals only works on an enUS client (Ka0s
+-- Standard localization-§4 / anti-pattern #37). We key on the numbers instead.
+-- classID 0 = Consumable; subclass 1 = Potion, 3 = Flask/Phial, 5 = Food & Drink.
+local CLASS_CONSUMABLE = 0
+local SC_POTION    = 1
+local SC_FLASK     = 3
+local SC_FOODDRINK = 5
 
 -- Healthstones look like potions subtype-wise but are always warlock-only.
 -- Kept as a whitelist rather than a rule so classification stays O(1).
@@ -78,24 +86,25 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Matchers — keyed by category key (uppercase, matches Categories.LIST).
--- Signature: (itemID, tt, subType) -> boolean
+-- Signature: (itemID, tt, sub) -> boolean, where `sub` is the item's
+-- consumable subClassID (or nil if the item isn't a Consumable).
 -- ---------------------------------------------------------------------------
 
 local matchers = {
-    FOOD = function(_, tt, subType)
-        return subType == ST_FOOD and hasHeal(tt) and not tt.hasStatBuff
+    FOOD = function(_, tt, sub)
+        return sub == SC_FOODDRINK and hasHeal(tt) and not tt.hasStatBuff
     end,
-    DRINK = function(_, tt, subType)
-        return subType == ST_FOOD and hasMana(tt) and not tt.hasStatBuff
+    DRINK = function(_, tt, sub)
+        return sub == SC_FOODDRINK and hasMana(tt) and not tt.hasStatBuff
     end,
-    STAT_FOOD = function(_, tt, subType)
-        return subType == ST_FOOD and tt.hasStatBuff and not tt.isFeast
+    STAT_FOOD = function(_, tt, sub)
+        return sub == SC_FOODDRINK and tt.hasStatBuff and not tt.isFeast
     end,
-    HP_POT = function(_, tt, subType)
-        return subType == ST_POTION and hasHeal(tt) and not tt.hasStatBuff
+    HP_POT = function(_, tt, sub)
+        return sub == SC_POTION and hasHeal(tt) and not tt.hasStatBuff
     end,
-    MP_POT = function(_, tt, subType)
-        return subType == ST_POTION and hasMana(tt) and not tt.hasStatBuff
+    MP_POT = function(_, tt, sub)
+        return sub == SC_POTION and hasMana(tt) and not tt.hasStatBuff
     end,
     HS = function(itemID)
         return HEALTHSTONE_IDS[itemID] == true
@@ -106,18 +115,18 @@ local matchers = {
     -- dealt" rather than a stat rating, so the tooltip stat parser finds
     -- nothing. Any short-duration Potion that doesn't restore HP/mana is a
     -- combat potion by elimination.
-    CMBT_POT = function(_, tt, subType)
-        return subType == ST_POTION
+    CMBT_POT = function(_, tt, sub)
+        return sub == SC_POTION
            and not hasHeal(tt)
            and not hasMana(tt)
            and (tt.buffDurationSec or 0) > 0
            and tt.buffDurationSec <= CMBT_POT_MAX_DURATION
     end,
-    FLASK = function(_, _, subType)
-        return subType == ST_FLASK_PHIAL
+    FLASK = function(_, _, sub)
+        return sub == SC_FLASK
     end,
-    -- Weapon enhancements (oils, whetstones, weightstones) all report subType
-    -- "Other" (classID 0 / subclass 8), a catch-all too broad to key on. They
+    -- Weapon enhancements (oils, whetstones, weightstones) all report subclass
+    -- 8 (classID 0 / "Other"), a catch-all too broad to key on. They
     -- are identified by the tooltip's weapon-application effect — "Coat your
     -- weapon", "Sharpens your bladed weapon", "Weights your … weapon" — captured
     -- as tt.isWeaponEnhance by TooltipCache. Covers stat and proc effects.
@@ -155,38 +164,44 @@ function C.Match(catKey, itemID)
         return VANTUS_IDS[itemID] == true
     end
 
-    -- GetItemInfoInstant is synchronous and returns subType from the
-    -- client's item DB without waiting on a server round-trip. GetItemInfo
-    -- would work too, but can briefly return nil for items whose full
-    -- metadata hasn't arrived yet — and discovery runs on
-    -- PLAYER_ENTERING_WORLD when that race is live.
-    local subType
+    -- GetItemInfoInstant is synchronous and returns the item's numeric
+    -- classID / subClassID from the client's item DB without waiting on a
+    -- server round-trip. GetItemInfo would work too (its classID/subClassID
+    -- are the 12th/13th returns), but can briefly return nil for items whose
+    -- full metadata hasn't arrived yet — and discovery runs on
+    -- PLAYER_ENTERING_WORLD when that race is live. We key on the numbers, not
+    -- the localized subType display string (localization-§4).
+    local classID, subClassID
     if C_Item and C_Item.GetItemInfoInstant then
         local _
-        _, _, subType = C_Item.GetItemInfoInstant(itemID)
+        _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
     else
         local _
-        _, _, _, _, _, _, subType = GetItemInfo(itemID)
+        _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = GetItemInfo(itemID)
     end
-    if not subType then return false end
+    if not classID then return false end
+    -- subClassID is only meaningful within its classID (Armor subclass 6 is a
+    -- Shield; Weapon subclass 6 is a Polearm), so scope it: the consumable
+    -- matchers see the subClassID only for a Consumable, nil otherwise.
+    local sub = (classID == CLASS_CONSUMABLE) and subClassID or nil
 
-    -- FLASK classification reads subType only, so skip the tooltip gate.
+    -- FLASK classification reads the subclass only, so skip the tooltip gate.
     -- On /reload, C_TooltipInfo.GetItemByID can return empty lines for
-    -- seconds even after GetItemInfoInstant already resolves subType, and
+    -- seconds even after GetItemInfoInstant already resolves the class, and
     -- GET_ITEM_INFO_RECEIVED does not fire for items the client already
     -- had cached — so the bulk PEW / BAG_UPDATE_DELAYED passes would both
-    -- skip the item and never retry. Classifying on subType alone makes
+    -- skip the item and never retry. Classifying on the subclass alone makes
     -- FLASK discovery deterministic on the first bag scan. WPN_ENCH can't use
-    -- this shortcut — its subType "Other" is uninformative — so it flows to
-    -- the tooltip-gated path below and hydrates through the same retry seam.
+    -- this shortcut — its subclass 8 ("Other") is uninformative — so it flows
+    -- to the tooltip-gated path below and hydrates through the same retry seam.
     if catKey == "FLASK" then
-        return fn(itemID, nil, subType) == true
+        return fn(itemID, nil, sub) == true
     end
 
     local tt = KCM.TooltipCache and KCM.TooltipCache.Get(itemID)
     if not tt or tt.pending then return false end
 
-    return fn(itemID, tt, subType) == true
+    return fn(itemID, tt, sub) == true
 end
 
 function C.MatchAny(itemID)

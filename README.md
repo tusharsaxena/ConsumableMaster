@@ -4,13 +4,15 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-134%2F134_passing-green)
+![Tests](https://img.shields.io/badge/Tests-136%2F136_passing-green)
 
 ![alt text](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
 An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across eleven categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
 
 Whenever you loot something better, change spec, reload, or drop out of combat, Consumable Master updates each macro to use your best current pick — the right item, or the right spell for class abilities like Recuperate. The macros are account-wide, so one set is shared by all your characters. They're matched by name rather than by slot, so you can move them around your macro list freely and they'll keep working alongside your own macros.
+
+> **English game clients only, for now.** To read how much a consumable heals or which stats it grants, the addon parses item tooltips in **English text**, so it isn't fully supported on non-English clients yet. (Item and weapon *type* detection already works on any client.) Full localization is planned for a later release.
 
 | #  |Category                                                     |Macro         |Spec-aware? |
 | -- |------------------------------------------------------------ |------------- |----------- |
@@ -145,7 +147,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | How do I force a specific item to always win? | Use **↑ / ↓** on its row to move it where you want. A moved (pinned) item overrides the automatic ranking. |
 | How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
 | Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |
-| Can I use this in a non-English client? | No — **English only**. It matches items and reads tooltips using English text, so other languages aren't supported. |
+| Can I use this in a non-English client? | Not fully yet — **English only for now**. Item and weapon *type* detection works on any client, but it still reads tooltip **text** in English to get heal/mana/stat amounts, so other languages aren't fully supported. Full localization is planned for a later release. |
 | Will new patch flasks / potions work automatically? | Usually yes. It scans your bags and recognizes anything that matches by type and tooltip, so a freshly-looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
 | Why does a smaller instant HP potion beat a bigger heal-over-time one? | By design — an instant restore is usually what you want in an emergency. It only loses if the heal-over-time total is more than 20% bigger. You can override this by pinning the heal-over-time potion above the instant one. |
 

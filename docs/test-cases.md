@@ -25,7 +25,7 @@ whenever the suite changes.
 - Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
 - Categories: AUG_RUNE registered with metadata, DB bucket, and seed
 
-### test_classifier.lua (14)
+### test_classifier.lua (15)
 
 - classifier: FOOD matches Food & Drink with heal and no stat buff
 - classifier: DRINK matches Food & Drink with mana and no stat buff
@@ -41,6 +41,7 @@ whenever the suite changes.
 - classifier: VANTUS matches whitelisted rune IDs regardless of item data
 - classifier: guard and edge cases for nil/unknown inputs
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
+- classifier: keys on numeric subclass, not the localized subType
 
 ### test_compat.lua (5)
 
@@ -193,9 +194,10 @@ whenever the suite changes.
 - TooltipCache: partial consumable tooltip stays pending until body loads
 - TooltipCache: effectless NON-consumable is cached, not pending
 
-### test_weaponslots.lua (1)
+### test_weaponslots.lua (2)
 
 - WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil
+- WeaponSlots: keys on weapon subClassID, not the localized subType
 
 ## Totals
 
@@ -204,7 +206,7 @@ whenever the suite changes.
 | test_bagscanner.lua | 5 |
 | test_bus.lua | 3 |
 | test_categories.lua | 2 |
-| test_classifier.lua | 14 |
+| test_classifier.lua | 15 |
 | test_compat.lua | 5 |
 | test_database.lua | 4 |
 | test_debuglog.lua | 8 |
@@ -219,5 +221,5 @@ whenever the suite changes.
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
 | test_tooltipcache.lua | 12 |
-| test_weaponslots.lua | 1 |
-| **Total** | **134** |
+| test_weaponslots.lua | 2 |
+| **Total** | **136** |

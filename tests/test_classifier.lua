@@ -278,3 +278,30 @@ test("classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper", f
     t.falsy(C.IsReusableAugRune(160053), "Battle-Scarred is consumable")
     t.falsy(C.IsReusableAugRune(nil), "nil is not reusable")
 end)
+
+-- ---- Locale-independence: keys on numeric subclass, not the display string -
+-- The Classifier must classify by the locale-independent classID/subClassID,
+-- never the localized subType DISPLAY string (localization-§4 / anti-pattern
+-- #37). These set a non-English subType with an explicit real subclass.
+test("classifier: keys on numeric subclass, not the localized subType", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local C    = KCM.Classifier
+
+    -- Healing potion on a deDE client: subType localized, subClassID 1 is not.
+    mock.setItem(2001, { subType = "Tränke", classID = 0, subClassID = 1, tt = { healValue = 4000 } })
+    t.truthy(C.Match("HP_POT", 2001), "HP_POT via subClassID 1 despite non-English subType")
+
+    -- Stat food on an frFR client (subClassID 5 = Food & Drink).
+    mock.setItem(2002, { subType = "Nourriture", classID = 0, subClassID = 5, tt = { hasStatBuff = true } })
+    t.truthy(C.Match("STAT_FOOD", 2002), "STAT_FOOD via subClassID 5 despite non-English subType")
+
+    -- Flask on a ruRU client (subClassID 3 = Flask/Phial).
+    mock.setItem(2003, { subType = "Фляги", classID = 0, subClassID = 3, tt = {} })
+    t.truthy(C.Match("FLASK", 2003), "FLASK via subClassID 3 despite non-English subType")
+
+    -- classID gate: Cloth armor (classID 4) with subClassID 1 must NOT read as a
+    -- Potion — the consumable matchers only see the subclass for a Consumable.
+    mock.setItem(2004, { subType = "Cloth", classID = 4, subClassID = 1, tt = { healValue = 4000 } })
+    t.falsy(C.Match("HP_POT", 2004), "armor subclass 1 is not a potion (classID gate)")
+end)
