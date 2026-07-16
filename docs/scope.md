@@ -20,7 +20,7 @@ These have been considered and explicitly declined. A change of heart needs an i
 - **Per-character macros.** Everything is account-wide. Per-character profiles aren't needed for the addon's purpose; AceDB is configured with a single account-wide profile by default.
 - **Per-encounter / per-boss priorities.** No fight-specific lists.
 - **Auto-buying consumables from vendors.** No vendor automation.
-- **Cauldrons / phials / weapon oils / augment runes** as separate categories. Phials are absorbed into FLASK by subtype (`"Flasks & Phials"`). Cauldrons / weapon oils / augment runes don't have a managed macro.
+- **Cauldrons / phials / augment runes** as separate categories. Phials are absorbed into FLASK by subtype (`"Flasks & Phials"`). Cauldrons / augment runes don't have a managed macro. Weapon oils and whetstones *are* managed — they're the WPN_ENCH category, matched by the tooltip's weapon-application effect rather than by subtype.
 - **Bandages.** First aid is a separate workflow; not relevant to current Midnight endgame.
 - **Profile import/export.** Settings live in `ConsumableMasterDB` per-account; no serialization layer.
 - **LDB / minimap icon.**
