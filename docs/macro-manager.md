@@ -7,6 +7,7 @@ The only module that calls Blizzard's protected macro APIs (`CreateMacro` / `Edi
 ```lua
 KCM.MacroManager.SetMacro(macroName, id, catKey)         -> "created" | "edited" | "unchanged" | "deferred" | "error"
 KCM.MacroManager.SetCompositeMacro(cat, scoreCache)      -> same result codes
+KCM.MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick) -> same result codes  -- per-hand (perHand categories)
 KCM.MacroManager.FlushPending()                          -> applied:int    -- on PLAYER_REGEN_ENABLED
 KCM.MacroManager.BuildBody(catKey, id)                   -> string         -- pure helper
 KCM.MacroManager.BuildCompositeBody(cat, pickFor)        -> string|nil     -- pure helper, exposed for /cm dump pick

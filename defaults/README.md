@@ -22,6 +22,9 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 | `Defaults_Healthstone.lua`    | `KCM.SEED.HS`        | Warlock Healthstones                                         |
 | `Defaults_CombatPot.lua`      | `KCM.SEED.CMBT_POT`  | Offensive combat potions (utility potions excluded)          |
 | `Defaults_Flask.lua`          | `KCM.SEED.FLASK`     | Flasks / Alchemist's Concoctions                             |
+| `Defaults_Vantus.lua`         | `KCM.SEED.VANTUS`    | Per-raid Vantus (Versatility) runes                          |
+| `Defaults_WpnEnch.lua`        | `KCM.SEED.WPN_ENCH`  | Weapon oils / whetstones / weightstones (per-hand)           |
+| `Defaults_AugRune.lua`        | `KCM.SEED.AUG_RUNE`  | Augment runes (primary stat; reusable ones break ties)       |
 
 Composite categories (`HP_AIO`, `MP_AIO`) have **no seed file** — they compose other categories' picks at recompute time.
 

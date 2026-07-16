@@ -13,7 +13,7 @@ db.global
 db.profile
 ├── enabled              boolean    -- master enable; gates Pipeline.Recompute
 ├── categories
-│   ├── FOOD  │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS ← single-pick, non-spec-aware
+│   ├── FOOD │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS │ AUG_RUNE ← single-pick, non-spec-aware
 │   │   ├── added       { [id] = true }                  -- user-added items + spells
 │   │   ├── blocked     { [id] = true }                  -- never enters candidate set
 │   │   ├── pins        { { id = N, position = K }, ... } -- override Ranker order
