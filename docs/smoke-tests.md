@@ -81,6 +81,20 @@ Tests: `KCM_AUG_RUNE` body is a plain single-pick `/use`; reusable "permanent" r
 4. **Auto-discovery:** `/cm dump item 259085` — `classified:` must list `AUG_RUNE` (the marker is parsed from the inline "…Augment Rune." sentence on the Use line). A rune NOT in the seed, once in bags, should likewise self-add via discovery.
 5. **Login freshness (regression — the partial-tooltip race):** log in with augment runes in bags and open the Augment Rune page *immediately*, before tooltips fully hydrate. The order must self-correct to amount-first within a moment, with **no** `/cm resync` needed. `/cm dump item <id>` should show `statBuffs` populated once loaded, never a stale empty parse.
 
+### 3c. Classification by numeric item class (localization-§4 / #37)
+
+Tests: the Classifier (`core/Classifier.lua`) and weapon-affinity (`core/WeaponSlots.lua`) key on the locale-independent numeric `classID`/`subClassID`, never the localized `subType` display string. `/cm dump item <id>` shows both on its `instant:` line.
+
+1. **Mechanism — the number drives it.** For a few owned consumables, run `/cm dump item <id>` and confirm the `instant:` `classID`/`subClassID` and the `classified:` line agree:
+   - healing potion → `classID=0 subClassID=1` → `HP_POT`
+   - mana potion → `classID=0 subClassID=1` → `MP_POT`
+   - stat food → `classID=0 subClassID=5` → `STAT_FOOD`; plain food → `subClassID=5` → `FOOD`/`DRINK`
+   - flask/phial → `classID=0 subClassID=3` → `FLASK`
+2. **No English regression.** With food + a potion + a flask in bags, `/cm resync`, then `/cm dump pick hp_pot` / `flask` / `stat_food` — each picks the expected item and the `KCM_*` bodies target them, identical to before the change.
+3. **Weapon affinity by subclass.** Swap main-hand weapons and check the Weapon Enchant page (or `/cm dump pick wpn_ench`): sword/dagger/axe/polearm/fist/warglaive → bladed (whetstone); mace/staff → blunt (weightstone); bow/gun/wand → no pick.
+4. **classID-gate guard — a Shield must not read as a Polearm.** Equip a **shield** in the off-hand: the off-hand shows **no** weapon enchant, and `/cm dump item <shieldID>` shows `classID=4 subClassID=6` with `classified: (none)`. (Shield = Armor subclass 6; Polearm = Weapon subclass 6 — same number, different class; the class gate keeps them apart.)
+5. **Definitive locale test (needs a non-English client).** On a deDE/frFR/etc. client (language pack on PTR/beta, or a non-English account), reload with the same consumables in bags. `/cm dump item <id>` shows a **localized** `subType` (e.g. `"Tränke"`) but `classified:` must still be correct and the `KCM_*` macros must populate. *Before* this change every consumable classified as `(none)` and the macros sat empty on that client. If a non-English client isn't available, the headless suite already proves it (`classifier: keys on numeric subclass, not the localized subType` + the WeaponSlots equivalent), so steps 1–4 on English are sufficient sign-off.
+
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
 
 Tests: `/castsequence [combat]` for in-combat, `/use [nocombat]` chain for out-of-combat, asymmetric-empty fallback.
@@ -210,13 +224,14 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 
 | Change area | Run sections |
 |-------------|--------------|
-| Classifier subType / pattern | Quick smoke + §2 (auto-discovery) |
+| Classifier item-class / tooltip matching | Quick smoke + §2 (auto-discovery) + §3c |
+| Localization / class-based classification (`classID`/`subClassID`) | §3c |
 | Ranker scorer | Quick smoke + §9 (score tooltip) |
 | TooltipCache PATTERNS | Quick smoke; verify `/cm dump item <id>` parses fields |
 | BagScanner | §2 |
 | Selector mutators | §9 (priority list buttons), §11 (`/cm priority`) |
 | MacroManager body builders | §3, §4 |
-| Weapon Enchant (`core/WeaponSlots.lua`, per-hand pick) | §3a, §9 step 10 |
+| Weapon Enchant (`core/WeaponSlots.lua`, per-hand pick) | §3a, §3c step 4, §9 step 10 |
 | Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
