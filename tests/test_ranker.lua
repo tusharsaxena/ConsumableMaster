@@ -283,3 +283,23 @@ test("Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates",
     mock.setItem(800001, { subType = "Other", quality = 1, ilvl = 1, tt = { statBuffs = {} } })
     t.eq(R.Score("AUG_RUNE", 800001, nil, nil), 0 + 0 + 1 + 100, "no stat -> base score only")
 end)
+
+test("Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+
+    -- statWeight must return 0 for PRIMARY so aug-rune parsing never leaks
+    -- into spec-aware categories.
+    t.eq(R._statWeight("PRIMARY", { primary = "STR", secondary = { "CRIT" } }), 0,
+        "PRIMARY weighted 0 regardless of spec primary")
+
+    -- A flask whose tooltip (hypothetically) also mentions Primary Stat scores
+    -- only from its secondary buff — the PRIMARY entry contributes nothing.
+    local spec = { primary = "AGI", secondary = { "CRIT", "HASTE" } }
+    mock.setItem(500001, { subType = "Flasks & Phials", quality = 4, ilvl = 1, tt = { statBuffs = {
+        { stat = "CRIT", amount = 100 }, { stat = "PRIMARY", amount = 733 } } } })
+    -- CRIT is secondary[1] of 2 -> weight 100*2 = 200; contrib 100*200 = 20000.
+    t.eq(R.Score("FLASK", 500001, { specPriority = spec }, nil), 20000 + 1 + 400,
+        "FLASK score = CRIT contribution + ilvl + quality; PRIMARY adds nothing")
+end)
