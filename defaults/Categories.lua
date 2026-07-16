@@ -130,6 +130,15 @@ KCM.Categories.LIST = {
         emptyText   = emptyMacro("no weapon enchant for this spec"),
     },
     {
+        key         = "AUG_RUNE",
+        macroName   = "KCM_AUG_RUNE",
+        displayName = "Augment Rune",
+        specAware   = false,
+        rankerKey   = "AUG_RUNE",
+        classifier  = "AUG_RUNE",
+        emptyText   = emptyMacro("no augment rune in bags"),
+    },
+    {
         key         = "HP_AIO",
         macroName   = "KCM_HP_AIO",
         displayName = "AIO Health",

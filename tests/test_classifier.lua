@@ -248,3 +248,29 @@ test("classifier: guard and edge cases for nil/unknown inputs", function(t)
     t.eqList(C.MatchAny(99999), {}, "MatchAny unknown itemID -> {}")
     t.eqList(C.MatchAny(nil), {}, "MatchAny nil -> {}")
 end)
+
+-- ---- AUG_RUNE: tooltip marker, plus reusable-ID helper --------------------
+test("classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local C    = KCM.Classifier
+
+    -- Seeded consumable rune.
+    mock.setItem(224572, { subType = "Other", tt = { isAugmentRune = true } })
+    t.truthy(C.Match("AUG_RUNE", 224572), "AUG_RUNE positive via marker")
+    t.contains(C.MatchAny(224572), "AUG_RUNE", "MatchAny includes AUG_RUNE")
+
+    -- Unseeded future rune — auto-discovered by the same marker.
+    mock.setItem(999999, { subType = "Other", tt = { isAugmentRune = true } })
+    t.truthy(C.Match("AUG_RUNE", 999999), "AUG_RUNE positive for unseeded rune")
+
+    -- Negative: ordinary flask is not an augment rune.
+    mock.setItem(1961, { subType = "Flasks & Phials", tt = {} })
+    t.falsy(C.Match("AUG_RUNE", 1961), "AUG_RUNE negative for flask")
+
+    -- Reusable helper: explicit set, not tooltip-driven.
+    t.truthy(C.IsReusableAugRune(243191), "Ethereal is reusable")
+    t.truthy(C.IsReusableAugRune(211495), "Dreambound is reusable")
+    t.falsy(C.IsReusableAugRune(224572), "Crystallized is consumable")
+    t.falsy(C.IsReusableAugRune(nil), "nil is not reusable")
+end)

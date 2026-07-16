@@ -43,6 +43,16 @@ local VANTUS_IDS = {
     [245880] = true,  -- Vantus Rune: Radiant
 }
 
+-- Augment runes carry an "Augment Rune" tooltip marker (tt.isAugmentRune),
+-- so match by tooltip like weapon enhancements — this auto-discovers future
+-- runes. Reusable ("permanent") runes are NOT tooltip-distinguishable, so
+-- they're an explicit set, mirroring VANTUS_IDS. Keep in sync with
+-- Defaults_AugRune.lua.
+local REUSABLE_AUG_IDS = {
+    [211495] = true,  -- Dreambound Augment Rune (DF 10.2)
+    [243191] = true,  -- Ethereal Augment Rune   (TWW 11.2)
+}
+
 -- Combat potions have a short buff (≤60s). Flasks/elixirs run for minutes
 -- to hours. This threshold separates "use-in-fight" from "pre-buff".
 local CMBT_POT_MAX_DURATION = 60
@@ -110,6 +120,9 @@ local matchers = {
     -- as tt.isWeaponEnhance by TooltipCache. Covers stat and proc effects.
     WPN_ENCH = function(_, tt)
         return tt and tt.isWeaponEnhance == true
+    end,
+    AUG_RUNE = function(_, tt)
+        return tt and tt.isAugmentRune == true
     end,
     VANTUS = function(itemID)
         return VANTUS_IDS[itemID] == true
@@ -187,4 +200,10 @@ function C.MatchAny(itemID)
         end
     end
     return hits
+end
+
+-- Reusable augment runes are not consumed on use. The Ranker uses this to
+-- break score ties toward the reusable rune. Explicit set — no tooltip signal.
+function C.IsReusableAugRune(itemID)
+    return REUSABLE_AUG_IDS[itemID] == true
 end
