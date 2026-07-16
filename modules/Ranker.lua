@@ -37,6 +37,12 @@ local CONJURED_BONUS = 1e6
 local PCT_WEIGHT     = 1e4  -- makes %-based food outrank flat-value food
 local QUALITY_WEIGHT = 100
 
+-- Augment runes rank by primary-stat amount first; a reusable rune breaks
+-- ties (bonus > max quality contribution of 5*QUALITY_WEIGHT = 500) but is
+-- always overridden by a strictly larger amount (amount weight >> bonus).
+local AUG_STAT_WEIGHT = 1e4
+local REUSABLE_BONUS  = 1e3
+
 -- HP_POT / MP_POT: immediate restores always beat heal-over-time (HOT),
 -- unless the HOT's raw amount exceeds the best immediate pot in the same
 -- candidate set by more than HOT_OVER_IMMEDIATE_PCT. The bonus is large
@@ -129,6 +135,20 @@ local function potIsImmediate(tt, kind)
         if tt.manaPct and tt.pctOverDurationSec then return false end
     end
     return true
+end
+
+-- Primary-stat amount an augment rune grants. Modern runes report a single
+-- "Primary Stat" line (stat="PRIMARY"); Dragonflight-era runes report the
+-- STR/AGI/INT triplet, all equal, so the max is the per-stat value. 0 when
+-- the tooltip has not hydrated.
+local function augAmount(tt)
+    local best = 0
+    for _, sb in ipairs(tt and tt.statBuffs or {}) do
+        if sb.stat == "PRIMARY" or sb.stat == "STR" or sb.stat == "AGI" or sb.stat == "INT" then
+            if (sb.amount or 0) > best then best = sb.amount end
+        end
+    end
+    return best
 end
 
 -- Largest raw amount among immediate pots in the candidate set. Used by
@@ -254,6 +274,14 @@ local scorers = {
     VANTUS = function(itemID, ctx, scoreCache)
         local quality, ilvl = itemFields(itemID, scoreCache)
         return ilvl + quality * QUALITY_WEIGHT
+    end,
+    AUG_RUNE = function(itemID, ctx, scoreCache)
+        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local reusable = KCM.Classifier and KCM.Classifier.IsReusableAugRune(itemID)
+        return augAmount(tt) * AUG_STAT_WEIGHT
+             + (reusable and REUSABLE_BONUS or 0)
+             + ilvl
+             + quality * QUALITY_WEIGHT
     end,
 }
 
@@ -438,6 +466,17 @@ function R.Explain(catKey, itemID, ctx)
         return result
     end
 
+    if catKey == "AUG_RUNE" then
+        local amount   = augAmount(tt)
+        local reusable = KCM.Classifier and KCM.Classifier.IsReusableAugRune(itemID)
+        table.insert(result.signals, { label = "primary stat", value = amount * AUG_STAT_WEIGHT, note = ("amount %d"):format(amount) })
+        table.insert(result.signals, { label = "reusable bonus", value = reusable and REUSABLE_BONUS or 0, note = reusable and "not consumed on use" or "consumable" })
+        pushBase()
+        result.score   = amount * AUG_STAT_WEIGHT + (reusable and REUSABLE_BONUS or 0) + ilvl + qualityScore
+        result.summary = "Highest primary-stat amount wins; reusable runes break ties."
+        return result
+    end
+
     if catKey == "STAT_FOOD" or catKey == "CMBT_POT" or catKey == "FLASK" or catKey == "WPN_ENCH" then
         local specPriority = ctx and ctx.specPriority
         local statTotal    = 0
@@ -474,3 +513,4 @@ R._scorers                    = scorers
 R._statWeight                 = statWeight
 R._scoreByStatPriority        = scoreByStatPriority
 R._qualifiesForImmediateBonus = qualifiesForImmediateBonus
+R._augAmount                  = augAmount

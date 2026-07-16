@@ -249,3 +249,37 @@ test("Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors", f
     t.eq(W("SP", { primary = "INT" }), 1000, "SP -> primary for INT")
     t.eq(W("SP", { primary = "STR" }), 0, "SP -> 0 for STR")
 end)
+
+test("Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+
+    -- Ethereal (reusable) vs Crystallized (consumable), both 733 primary.
+    mock.setItem(243191, { subType = "Other", quality = 4, ilvl = 1, tt = { statBuffs = { { stat = "PRIMARY", amount = 733 } } } })
+    mock.setItem(224572, { subType = "Other", quality = 4, ilvl = 1, tt = { statBuffs = { { stat = "PRIMARY", amount = 733 } } } })
+    local eth = R.Score("AUG_RUNE", 243191, nil, nil)
+    local cry = R.Score("AUG_RUNE", 224572, nil, nil)
+    t.eq(eth, 733 * 1e4 + 1e3 + 1 + 400, "Ethereal = amount + reusable + ilvl + quality")
+    t.eq(cry, 733 * 1e4 + 0   + 1 + 400, "Crystallized = amount + ilvl + quality")
+    t.truthy(eth > cry, "reusable breaks the 733 tie")
+
+    -- Void-Touched (consumable, larger) beats Ethereal (reusable, 733).
+    mock.setItem(259085, { subType = "Other", quality = 4, ilvl = 1, tt = { statBuffs = { { stat = "PRIMARY", amount = 900 } } } })
+    t.truthy(R.Score("AUG_RUNE", 259085, nil, nil) > eth, "larger amount dominates reusable bonus")
+
+    -- Quality can NOT override the reusable bonus at equal amount: the
+    -- consumable epic (q4) 733 (Crystallized, cry above) must still lose to
+    -- the reusable Ethereal. cry already carries the max quality contribution
+    -- (q4 -> 400), so eth > cry proves REUSABLE_BONUS (1e3) outranks it.
+    t.truthy(eth - cry == 1e3, "reusable bonus (1e3) is exactly the gap; outranks max quality (500)")
+
+    -- Dragonflight phrasing: STR/AGI/INT triplet -> amount = max of them.
+    mock.setItem(201325, { subType = "Other", quality = 3, ilvl = 1, tt = { statBuffs = {
+        { stat = "STR", amount = 80 }, { stat = "AGI", amount = 80 }, { stat = "INT", amount = 80 } } } })
+    t.eq(R.Score("AUG_RUNE", 201325, nil, nil), 80 * 1e4 + 0 + 1 + 300, "DF rune amount = max(STR,AGI,INT)")
+
+    -- Pending tooltip (no statBuffs) -> amount 0, degrades to reusable-first.
+    mock.setItem(800001, { subType = "Other", quality = 1, ilvl = 1, tt = { statBuffs = {} } })
+    t.eq(R.Score("AUG_RUNE", 800001, nil, nil), 0 + 0 + 1 + 100, "no stat -> base score only")
+end)
