@@ -49,8 +49,11 @@ local VANTUS_IDS = {
 -- they're an explicit set, mirroring VANTUS_IDS. Keep in sync with
 -- Defaults_AugRune.lua.
 local REUSABLE_AUG_IDS = {
-    [211495] = true,  -- Dreambound Augment Rune (DF 10.2)
-    [243191] = true,  -- Ethereal Augment Rune   (TWW 11.2)
+    [243191] = true,  -- Ethereal Augment Rune        (TWW 11.2)
+    [211495] = true,  -- Dreambound Augment Rune      (DF 10.2)
+    [190384] = true,  -- Eternal Augment Rune         (SL 9.2)
+    [174906] = true,  -- Lightning-Forged Augment Rune (BfA 8.3)
+    [153023] = true,  -- Lightforged Augment Rune     (Legion 7.3)
 }
 
 -- Combat potions have a short buff (≤60s). Flasks/elixirs run for minutes

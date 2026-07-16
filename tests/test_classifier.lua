@@ -271,6 +271,10 @@ test("classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper", f
     -- Reusable helper: explicit set, not tooltip-driven.
     t.truthy(C.IsReusableAugRune(243191), "Ethereal is reusable")
     t.truthy(C.IsReusableAugRune(211495), "Dreambound is reusable")
+    t.truthy(C.IsReusableAugRune(190384), "Eternal is reusable (SL)")
+    t.truthy(C.IsReusableAugRune(174906), "Lightning-Forged is reusable (BfA)")
+    t.truthy(C.IsReusableAugRune(153023), "Lightforged is reusable (Legion)")
     t.falsy(C.IsReusableAugRune(224572), "Crystallized is consumable")
+    t.falsy(C.IsReusableAugRune(160053), "Battle-Scarred is consumable")
     t.falsy(C.IsReusableAugRune(nil), "nil is not reusable")
 end)

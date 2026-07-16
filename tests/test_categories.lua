@@ -41,9 +41,12 @@ test("Categories: AUG_RUNE registered with metadata, DB bucket, and seed", funct
 
     t.truthy(KCM.db.profile.categories.AUG_RUNE, "AUG_RUNE profile bucket present")
 
-    local found = false
+    -- Seed spans Legion..Midnight; spot-check the newest and oldest runes.
+    local want = { [259085] = false, [243191] = false, [140587] = false }
     for _, id in ipairs(KCM.Selector.BuildCandidateSet("AUG_RUNE")) do
-        if id == 243191 then found = true end
+        if want[id] ~= nil then want[id] = true end
     end
-    t.truthy(found, "AUG_RUNE seed 243191 (Ethereal) in candidate set")
+    t.truthy(want[259085], "AUG_RUNE seed 259085 (Void-Touched, Midnight) in candidate set")
+    t.truthy(want[243191], "AUG_RUNE seed 243191 (Ethereal, TWW) in candidate set")
+    t.truthy(want[140587], "AUG_RUNE seed 140587 (Defiled, Legion) in candidate set")
 end)
