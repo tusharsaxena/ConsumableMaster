@@ -23,13 +23,16 @@ KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
 KCM.Settings.main    = nil
 
--- Canonical tab order. General + Stat Priority lead, then the eleven single
--- categories, then the two composites — matches the CLAUDE.md panel order.
+-- Canonical tab order (the explicit display order for the settings sub-pages;
+-- independent of Categories.LIST and functionally cosmetic). General + Stat
+-- Priority lead, then the basic consumables, the two AIO composites, the
+-- spec-aware categories + Augment Rune, and Vantus Rune last. Kept in sync
+-- with the panel/tab order in docs/agent-context.md.
 KCM.Settings.order = KCM.Settings.order or {
     "general", "statpriority",
-    "food", "drink", "hp_pot", "mp_pot", "hs", "vantus",
-    "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune",
+    "food", "drink", "hp_pot", "mp_pot", "hs",
     "hp_aio", "mp_aio",
+    "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune", "vantus",
 }
 
 local Helpers = KCM.Settings.Helpers or {}
