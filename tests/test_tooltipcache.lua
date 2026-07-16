@@ -142,3 +142,76 @@ test("TooltipCache: sets isAugmentRune from the category marker line", function(
     })
     t.falsy(flask.isAugmentRune, "no marker line -> not an augment rune")
 end)
+
+-- ---- Bug A: real runes carry the marker INLINE on the Use line ------------
+-- In-game (dump of 259085) the effect line is:
+--   "Use: Increases Strength by 25 for 1 hrs.  Augment Rune."
+-- The marker is a suffix of the Use sentence, not a standalone line, so the
+-- old exact-line match ^Augment Rune%.?$ never fired -> classified: (none).
+test("TooltipCache: isAugmentRune fires on an inline 'Augment Rune' marker", function(t)
+    local TC, mock = newTC()
+    local rune = parse(TC, mock, 259085, {
+        "Void-Touched Augment Rune",
+        "Use: Increases Strength by 25 for 1 hrs.  Augment Rune.",
+        "\"Can be bought and sold on the auction house.\"",
+    })
+    t.truthy(rune.isAugmentRune, "inline marker -> isAugmentRune")
+    t.eq(rune.statBuffs[1].stat, "STR", "STR parsed from inline line")
+    t.eq(rune.statBuffs[1].amount, 25, "STR amount 25")
+
+    -- Negative: an ordinary flask (no 'Augment Rune' text anywhere) is not one.
+    local flask = parse(TC, mock, 212283, {
+        "Flask of Tempered Aggression",
+        "Use: Increases your Strength by 1,000 for 1 hour.",
+    })
+    t.falsy(flask.isAugmentRune, "no marker text -> not an augment rune")
+end)
+
+-- ---- Bug B: a partial (still-loading) consumable tooltip must stay pending -
+-- When only the name line has arrived, parseLines finds no effect. Caching
+-- that as final would strand the item at amount 0 forever (Ranker sees empty
+-- statBuffs), because GET_ITEM_INFO_RECEIVED does not re-fire for items whose
+-- basic info was already cached. So Get() must return pending until the body
+-- (the "Use:" effect line) arrives.
+test("TooltipCache: partial consumable tooltip stays pending until body loads", function(t)
+    local TC, mock = newTC()
+    mock.setItem(259085, { subType = "Other", classID = 0 })  -- Consumable
+
+    local function feed(lines)
+        _G.C_TooltipInfo.GetItemByID = function(qid)
+            if qid ~= 259085 then return nil end
+            local out = {}
+            for i, txt in ipairs(lines) do out[i] = { leftText = txt } end
+            return { lines = out }
+        end
+        TC.Invalidate(259085)
+    end
+
+    -- Stage 1: only the name line has arrived -> no effect parsed -> pending.
+    feed({ "Void-Touched Augment Rune" })
+    local partial = TC.Get(259085)
+    t.truthy(partial.pending, "partial consumable tooltip -> pending")
+
+    -- Stage 2: body arrives -> re-parse yields the real stat buff, not pending.
+    feed({
+        "Void-Touched Augment Rune",
+        "Use: Increases Strength by 25 for 1 hrs.  Augment Rune.",
+    })
+    local full = TC.Get(259085)
+    t.falsy(full.pending, "complete tooltip -> not pending")
+    t.eq(full.statBuffs[1].amount, 25, "STR amount now parsed")
+end)
+
+-- Non-consumables (armor/weapons/etc.) legitimately have no consumable effect,
+-- so they must NOT be held pending — that would churn every discovery pass.
+test("TooltipCache: effectless NON-consumable is cached, not pending", function(t)
+    local TC, mock = newTC()
+    mock.setItem(770001, { subType = "Plate", classID = 4 })  -- Armor
+    _G.C_TooltipInfo.GetItemByID = function(qid)
+        if qid ~= 770001 then return nil end
+        return { lines = { { leftText = "Some Plate Boots" }, { leftText = "Item Level 600" } } }
+    end
+    TC.Invalidate(770001)
+    local tt = TC.Get(770001)
+    t.falsy(tt.pending, "non-consumable with no effect is final, not pending")
+end)

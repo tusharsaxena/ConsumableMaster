@@ -297,11 +297,17 @@ local function parseLines(lines)
             if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
             if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
 
-            -- Augment runes carry an "Augment Rune" category marker line
-            -- (the game's own one-active-at-a-time tag). Match the line
-            -- exactly (optional trailing period) so the item's NAME line —
-            -- e.g. "Ethereal Augment Rune" — does not trip it.
-            if txt:match("^Augment Rune%.?$") then result.isAugmentRune = true end
+            -- Augment runes carry an "Augment Rune" category tag. In-game it
+            -- renders as a sentence at the END of the Use line, e.g.
+            --   "Use: Increases Strength by 25 for 1 hrs.  Augment Rune."
+            -- and on some items as its own line. Match either the whole line
+            -- or the marker sentence at end-of-line (preceded by the period
+            -- that closes the Use sentence). The leading period keeps the
+            -- item's NAME line — "Ethereal Augment Rune" — from tripping it.
+            if txt:match("^Augment Rune%.?%s*$")
+                or txt:match("%.%s*Augment Rune%.?%s*$") then
+                result.isAugmentRune = true
+            end
 
             -- Temporary weapon enhancement application. Oils "Coat", whetstones
             -- "Sharpen", weightstones "Weight" — the common thread is "your
@@ -324,6 +330,31 @@ local function parseLines(lines)
         end
     end
     return result
+end
+
+-- Whether a parsed tooltip carries any recognizable consumable effect. Used
+-- to tell a fully-loaded tooltip from one still missing its "Use:" line.
+local function hasParsedEffect(p)
+    return p.hasStatBuff == true
+        or p.healValue ~= nil or p.healValueAvg ~= nil or p.healPct ~= nil
+        or p.manaValue ~= nil or p.manaValueAvg ~= nil or p.manaPct ~= nil
+        or (p.buffDurationSec or 0) > 0
+        or p.isWeaponEnhance == true
+        or p.isAugmentRune == true
+        or p.isConjured == true
+        or p.isFeast == true
+end
+
+-- Consumables (classID 0) are the only items expected to carry a "Use:"
+-- effect, so only they get held pending on an effectless parse. GetItemInfoInstant
+-- is synchronous (client-side) and has existed since Legion; if it is somehow
+-- unavailable, assume consumable so a real consumable is never stranded.
+local function isConsumableItem(itemID)
+    if C_Item and C_Item.GetItemInfoInstant then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
+        return classID == 0
+    end
+    return true
 end
 
 -- ---------------------------------------------------------------------------
@@ -365,6 +396,22 @@ function TC.Get(itemID)
     end
 
     local parsed = parseLines(data.lines)
+
+    -- Partial-tooltip guard. The item's basic info (name) can resolve before
+    -- C_TooltipInfo delivers the "Use:" effect line — so a name-only tooltip
+    -- parses no effect. Caching that as final would strand the item at score 0
+    -- forever: GET_ITEM_INFO_RECEIVED does not re-fire for an item whose basic
+    -- info was already cached, so nothing would ever refresh it. For a
+    -- Consumable with no parsed effect, stay pending so a later Get() re-parses
+    -- once the body arrives. (This was the augment-rune mis-ranking: every rune
+    -- read as amount 0, leaving only the reusable bonus to sort them.)
+    if not hasParsedEffect(parsed) and isConsumableItem(itemID) then
+        local stub = { pending = true, statBuffs = {} }
+        cache[itemID] = stub
+        pendingIDs[itemID] = true
+        return stub
+    end
+
     parsed.itemName = name
     parsed.minLevel = minLevel or 0
 

@@ -76,9 +76,10 @@ Tests: `KCM_WPN_ENCH` picks and applies independently per hand, filtered by the 
 Tests: `KCM_AUG_RUNE` body is a plain single-pick `/use`; reusable "permanent" runes only win a tie, never beat a stat-superior consumable rune.
 
 1. Put a single augment rune in bags (any of the seeded IDs). Open the macro UI — body should be `#showtooltip` + `/use item:<id>`, matching the single-pick pattern of section 3.
-2. Put Ethereal (243191) and Crystallized (224572) both in bags. `/cm dump pick aug_rune` and the macro body should pick Ethereal — both grant 733 primary stat, and the reusable rune wins the tie over the consumable one.
-3. Block Ethereal via the priority-list × button on the **Augment Rune** settings page. Within ~1 frame, the pick falls back to Crystallized.
-4. **Open items (in-game, non-blocking):** confirm the tooltip marker line the classifier keys off reads exactly `Augment Rune`. Note the real primary-stat amounts granted by Void-Touched (259085) and Soulgorged (246492) for future seed/test reference.
+2. `/cm dump pick aug_rune` — the priority order must be by primary-stat amount, highest first (e.g. Void-Touched 25 above Ethereal 6 above Dreambound 5). A reusable rune outranks a consumable one only when their amounts are equal.
+3. Block the top rune via the priority-list × button on the **Augment Rune** settings page. Within ~1 frame, the pick falls back to the next-highest.
+4. **Auto-discovery:** `/cm dump item 259085` — `classified:` must list `AUG_RUNE` (the marker is parsed from the inline "…Augment Rune." sentence on the Use line). A rune NOT in the seed, once in bags, should likewise self-add via discovery.
+5. **Login freshness (regression — the partial-tooltip race):** log in with augment runes in bags and open the Augment Rune page *immediately*, before tooltips fully hydrate. The order must self-correct to amount-first within a moment, with **no** `/cm resync` needed. `/cm dump item <id>` should show `statBuffs` populated once loaded, never a stale empty parse.
 
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
 

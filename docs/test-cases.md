@@ -178,7 +178,7 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
 
-### test_tooltipcache.lua (9)
+### test_tooltipcache.lua (12)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -189,6 +189,9 @@ whenever the suite changes.
 - TooltipCache: weaponAffinity from bladed/blunt/plain phrasing
 - TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff
 - TooltipCache: sets isAugmentRune from the category marker line
+- TooltipCache: isAugmentRune fires on an inline 'Augment Rune' marker
+- TooltipCache: partial consumable tooltip stays pending until body loads
+- TooltipCache: effectless NON-consumable is cached, not pending
 
 ### test_weaponslots.lua (1)
 
@@ -215,6 +218,6 @@ whenever the suite changes.
 | test_selector.lua | 11 |
 | test_slash.lua | 8 |
 | test_spechelper.lua | 7 |
-| test_tooltipcache.lua | 9 |
+| test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 1 |
-| **Total** | **131** |
+| **Total** | **134** |

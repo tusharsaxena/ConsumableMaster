@@ -50,11 +50,15 @@ end
 function M.setItem(id, spec)
     spec = spec or {}
     M.items[id] = {
-        name    = spec.name or ("Item " .. tostring(id)),
-        subType = spec.subType or "",
-        quality = spec.quality or 1,
-        ilvl    = spec.ilvl or 1,
-        tt      = spec.tt or {},
+        name        = spec.name or ("Item " .. tostring(id)),
+        subType     = spec.subType or "",
+        quality     = spec.quality or 1,
+        ilvl        = spec.ilvl or 1,
+        tt          = spec.tt or {},
+        -- classID/subClassID for GetItemInfoInstant. Default 0 (Consumable) to
+        -- preserve existing tests; set explicitly to model armor/weapons/etc.
+        classID     = spec.classID or 0,
+        subClassID  = spec.subClassID or 0,
     }
 end
 
@@ -302,7 +306,7 @@ function M.install(NS)
             local it = M.items[id]
             if not it then return nil end
             -- itemID, itemType, itemSubType, equipLoc, icon, classID, subClassID
-            return id, "Consumable", it.subType, "", 0, 0, 0
+            return id, "Consumable", it.subType, "", 0, it.classID, it.subClassID
         end,
         GetItemCount = function(id) return M.bags[id] or 0 end,
         GetItemNameByID = function(id) return M.items[id] and M.items[id].name or nil end,
