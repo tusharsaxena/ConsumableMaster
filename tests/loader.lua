@@ -125,7 +125,11 @@ function L.loadFullAddon()
     local files = {}
     for line in io.lines(toc) do
         line = line:gsub("\r", ""):gsub("%s+$", "")
-        if not line:match("^#") and line:match("%.lua$") then
+        -- Skip comments, non-.lua entries, and vendored libs (libs\… — the
+        -- mock provides LibStub/Ace). Libs are listed directly in the TOC, so
+        -- the skip keys on the path, not on the .xml extension.
+        if not line:match("^#") and line:match("%.lua$")
+            and not line:match("^[Ll]ibs[/\\]") then
             files[#files + 1] = line:gsub("\\", "/")
         end
     end

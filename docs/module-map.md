@@ -309,7 +309,7 @@ local F = KCM.Foo
 
 `ConsumableMaster.toc` is the source of truth. It is sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`, and order within a section is dependency order, not alphabetical:
 
-1. **Libraries** — `embeds.xml` (LibStub + every Ace3 sub-library + LibSharedMedia).
+1. **Libraries** — LibStub + every Ace3 sub-library + LibSharedMedia, listed directly in the TOC (no `embeds.xml` wrapper).
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
 3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `BagScanner` → `Classifier` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Categories.lua` then each `defaults/Defaults_*.lua`.

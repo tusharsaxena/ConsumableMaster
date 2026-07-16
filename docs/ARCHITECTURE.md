@@ -98,13 +98,13 @@ All vendored under `libs/`:
 - AceGUI-3.0
 - LibSharedMedia-3.0 (debug-console monospace font registration)
 
-`embeds.xml` is the load manifest referenced from `ConsumableMaster.toc` under `# Libraries`. The TOC's `## Interface:` line is `120007`.
+The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, and the Ace3 sub-libraries in dependency order) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120007`.
 
 ## Load order
 
 `ConsumableMaster.toc` is the source of truth. Order is dependency, not alphabetical:
 
-1. `# Libraries` — `embeds.xml`
+1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, and the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
 3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `SlashCommands`
 4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`

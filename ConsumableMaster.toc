@@ -12,8 +12,15 @@
 ## X-Standard: https://github.com/tusharsaxena/WowAddonStandards
 ## X-Curse-Project-ID: 1522944
 
-# Libraries
-embeds.xml
+# Libraries (vendored in libs/ — load first)
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\LibSharedMedia-3.0\lib.xml
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceConsole-3.0\AceConsole-3.0.xml
+libs\AceGUI-3.0\AceGUI-3.0.xml
 
 # Locales
 locales\enUS.lua
