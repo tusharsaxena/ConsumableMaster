@@ -28,3 +28,22 @@ test("Categories: VANTUS and WPN_ENCH registered with correct metadata and DB bu
     end
     t.truthy(found, "VANTUS seed 245880 in candidate set")
 end)
+
+test("Categories: AUG_RUNE registered with metadata, DB bucket, and seed", function(t)
+    local KCM = h.loader.loadPure()
+
+    local a = KCM.Categories.Get("AUG_RUNE")
+    t.truthy(a, "AUG_RUNE category exists")
+    t.eq(a.macroName, "KCM_AUG_RUNE", "AUG_RUNE macro name")
+    t.eq(a.specAware, false, "AUG_RUNE not spec-aware")
+    t.falsy(a.composite, "AUG_RUNE not composite")
+    t.falsy(a.perHand, "AUG_RUNE not per-hand")
+
+    t.truthy(KCM.db.profile.categories.AUG_RUNE, "AUG_RUNE profile bucket present")
+
+    local found = false
+    for _, id in ipairs(KCM.Selector.BuildCandidateSet("AUG_RUNE")) do
+        if id == 243191 then found = true end
+    end
+    t.truthy(found, "AUG_RUNE seed 243191 (Ethereal) in candidate set")
+end)

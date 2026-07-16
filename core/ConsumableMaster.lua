@@ -39,6 +39,7 @@ KCM.dbDefaults = {
             MP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
             HS        = { added = {}, blocked = {}, pins = {}, discovered = {} },
             VANTUS    = { added = {}, blocked = {}, pins = {}, discovered = {} },
+            AUG_RUNE  = { added = {}, blocked = {}, pins = {}, discovered = {} },
             STAT_FOOD = { bySpec = {} },
             CMBT_POT  = { bySpec = {} },
             FLASK     = { bySpec = {} },

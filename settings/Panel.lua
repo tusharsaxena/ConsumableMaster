@@ -23,12 +23,12 @@ KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
 KCM.Settings.main    = nil
 
--- Canonical tab order. General + Stat Priority lead, then the ten single
+-- Canonical tab order. General + Stat Priority lead, then the eleven single
 -- categories, then the two composites — matches the CLAUDE.md panel order.
 KCM.Settings.order = KCM.Settings.order or {
     "general", "statpriority",
     "food", "drink", "hp_pot", "mp_pot", "hs", "vantus",
-    "flask", "cmbt_pot", "stat_food", "wpn_ench",
+    "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune",
     "hp_aio", "mp_aio",
 }
 
@@ -97,8 +97,8 @@ end
 
 local _validPanels = {
     general = true, statpriority = true,
-    food = true, drink = true, hp_pot = true, mp_pot = true, hs = true,
-    flask = true, cmbt_pot = true, stat_food = true,
+    food = true, drink = true, hp_pot = true, mp_pot = true, hs = true, vantus = true,
+    flask = true, cmbt_pot = true, stat_food = true, wpn_ench = true, aug_rune = true,
     hp_aio = true, mp_aio = true,
 }
 local _validSections = { general = true }

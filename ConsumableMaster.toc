@@ -52,6 +52,7 @@ defaults\Defaults_CombatPot.lua
 defaults\Defaults_Flask.lua
 defaults\Defaults_Vantus.lua
 defaults\Defaults_WpnEnch.lua
+defaults\Defaults_AugRune.lua
 
 # Modules
 modules\Ranker.lua
