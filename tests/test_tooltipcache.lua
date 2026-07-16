@@ -112,3 +112,33 @@ test("TooltipCache: weaponAffinity from bladed/blunt/plain phrasing", function(t
     local oil = parse(TC, mock, 243733, { "O", "Use: Coat your weapon in oil, increasing your Critical Strike and Haste by 13 for 120 min." })
     t.eq(oil.weaponAffinity, "any", "plain 'your weapon' -> any")
 end)
+
+test("TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff", function(t)
+    local TC, mock = newTC()
+    local rune = parse(TC, mock, 243191, {
+        "Ethereal Augment Rune",
+        "Use: Increases Primary Stat by 733 for 1 hour.",
+        "Augment Rune",
+    })
+    t.eq(#rune.statBuffs, 1, "one stat buff parsed")
+    t.eq(rune.statBuffs[1].stat, "PRIMARY", "Primary Stat -> PRIMARY")
+    t.eq(rune.statBuffs[1].amount, 733, "PRIMARY amount")
+    t.truthy(rune.hasStatBuff, "hasStatBuff set")
+end)
+
+test("TooltipCache: sets isAugmentRune from the category marker line", function(t)
+    local TC, mock = newTC()
+    local rune = parse(TC, mock, 259085, {
+        "Void-Touched Augment Rune",
+        "Use: Increases Primary Stat by 900 for 1 hour.",
+        "Augment Rune",
+    })
+    t.truthy(rune.isAugmentRune, "marker line -> isAugmentRune")
+
+    -- Negative: a flask that merely NAMES a stat is not an augment rune.
+    local flask = parse(TC, mock, 212283, {
+        "Flask of Tempered Aggression",
+        "Use: Increases your Strength by 1,000 for 1 hour.",
+    })
+    t.falsy(flask.isAugmentRune, "no marker line -> not an augment rune")
+end)

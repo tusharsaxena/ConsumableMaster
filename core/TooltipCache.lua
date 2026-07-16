@@ -21,6 +21,7 @@
 --   -- Metadata
 --   buffDurationSec                -- Well-Fed / flask / stat-buff duration
 --   isConjured, isFeast, isWeaponEnhance  -- classifier flags
+--   isAugmentRune                  -- true if tooltip carries the "Augment Rune" marker
 --   weaponAffinity                 -- "bladed" | "blunt" | "any" (weapon enhance only)
 --   minLevel                       -- required player level (0 if none)
 --   itemName                       -- plain name for friendly dumps
@@ -84,6 +85,7 @@ local STAT_TOKENS = {
     { token = "Critical Strike", tag = "CRIT"        },
     { token = "Attack Power",    tag = "AP"          },
     { token = "Spell Power",     tag = "SP"          },
+    { token = "Primary Stat",    tag = "PRIMARY"     },
     { token = "Versatility",     tag = "VERSATILITY" },
     { token = "Intellect",       tag = "INT"         },
     { token = "Strength",        tag = "STR"         },
@@ -294,6 +296,12 @@ local function parseLines(lines)
 
             if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
             if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
+
+            -- Augment runes carry an "Augment Rune" category marker line
+            -- (the game's own one-active-at-a-time tag). Match the line
+            -- exactly (optional trailing period) so the item's NAME line —
+            -- e.g. "Ethereal Augment Rune" — does not trip it.
+            if txt:match("^Augment Rune%.?$") then result.isAugmentRune = true end
 
             -- Temporary weapon enhancement application. Oils "Coat", whetstones
             -- "Sharpen", weightstones "Weight" — the common thread is "your
