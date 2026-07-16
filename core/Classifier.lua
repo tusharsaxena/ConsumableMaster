@@ -1,6 +1,6 @@
 -- Classifier.lua — Per-category match predicates.
 --
--- Given an itemID, decide which of the 10 managed categories (if any) it
+-- Given an itemID, decide which of the 11 managed categories (if any) it
 -- belongs to. Used by:
 --   * Selector (M5) — auto-discover bag items and slot them into categories.
 --   * SlashCommands (/cm dump / /cm rank) — debug introspection.
