@@ -149,6 +149,20 @@ local function afterMutation(reason)
     H.RefreshAllPanels()
 end
 
+-- Drop the user override for the currently-viewed spec (resolved at call
+-- time). Shared by the inline "Reset stat priority" button and the top-right
+-- Defaults button (standard §6.5) so both reset the same spec the user is
+-- looking at.
+local function doResetStatPriority()
+    local specKey = resolveViewedSpec()
+    if not (KCM.db and KCM.db.profile and specKey) then return end
+    KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
+    if KCM.db.profile.statPriority[specKey] then
+        KCM.db.profile.statPriority[specKey] = nil
+        afterMutation("options_stat_reset")
+    end
+end
+
 -- ---------------------------------------------------------------------
 -- Widget builders
 -- ---------------------------------------------------------------------
@@ -265,14 +279,7 @@ local function render(ctx)
     H.Button(ctx, {
         text    = L["Reset stat priority"],
         tooltip = L["Drop user override for this spec. The Ranker falls back to the seed default (Defaults_StatPriority.lua) or the class-primary fallback if no seed exists."],
-        onClick = function()
-            if not (KCM.db and KCM.db.profile and specKey) then return end
-            KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
-            if KCM.db.profile.statPriority[specKey] then
-                KCM.db.profile.statPriority[specKey] = nil
-                afterMutation("options_stat_reset")
-            end
-        end,
+        onClick = doResetStatPriority,
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
@@ -282,7 +289,12 @@ local function Build(mainCategory)
     if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then
         return nil
     end
-    local ctx = H.CreatePanel("KCMStatPriorityPanel", L["Stat Priority"], { panelKey = "statpriority" })
+    local ctx = H.CreatePanel("KCMStatPriorityPanel", L["Stat Priority"], {
+        panelKey = "statpriority",
+        -- Top-right Defaults button (standard §6.5) → drops the viewed spec's
+        -- override, same as this page's inline reset.
+        defaultsAction = doResetStatPriority,
+    })
     H.SetRenderer(ctx, render)
     return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, L["Stat Priority"])
 end

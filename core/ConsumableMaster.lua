@@ -296,7 +296,8 @@ function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
         tostring(reason), tostring(rewrote), tostring(total), tostring(skipped))
 end
 
--- Wipe every user customization and restore from dbDefaults. Preserves
+-- Wipe every user customization and restore from dbDefaults — category
+-- buckets, stat-priority overrides, and the master enable flag. Preserves
 -- macroState so live macros aren't orphaned. Shared by the Options panel's
 -- "Reset all priorities" execute and the /cm reset StaticPopup — both
 -- paths land here to keep semantics identical regardless of entry point.
@@ -323,6 +324,10 @@ function KCM.ResetAllToDefaults(reason)
     local defaults = KCM.dbDefaults and KCM.dbDefaults.profile or {}
     KCM.db.profile.categories   = CopyTable(defaults.categories or {})
     KCM.db.profile.statPriority = CopyTable(defaults.statPriority or {})
+    -- The master enable is a persisted customization too, so a full reset
+    -- restores it. `~= false` keeps the addon enabled even if the defaults
+    -- table is somehow missing its `enabled` key (fail-safe, not fail-off).
+    KCM.db.profile.enabled      = defaults.enabled ~= false
     reason = reason or "reset_all"
     if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
     if KCM.TooltipCache and KCM.TooltipCache.InvalidateAll then

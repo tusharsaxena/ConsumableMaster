@@ -49,14 +49,40 @@ local function doForceRewriteMacros()
 end
 
 local function doResetAll()
+    -- Combat-guarded to match the Maintenance section's sibling buttons; the
+    -- DB wipe itself is combat-safe (MacroManager defers macro writes to
+    -- regen), but blocking here keeps the section's behaviour uniform.
+    if InCombatLockdown and InCombatLockdown() then
+        return inCombatNotice("reset")
+    end
     if KCM.ResetAllToDefaults then
         KCM.ResetAllToDefaults("options_reset")
     end
     H.RefreshAllPanels()
 end
 
+-- Top-right Defaults button (standard §6.5) resets THIS page only: the
+-- persisted master enable back to its default, and the session-only debug
+-- console off. The account-wide "reset everything" is the separate inline
+-- button in Maintenance, behind its own confirmation popup.
+local function doResetGeneralPage()
+    local defaults = KCM.dbDefaults and KCM.dbDefaults.profile or {}
+    if KCM.db and KCM.db.profile then
+        KCM.db.profile.enabled = defaults.enabled ~= false
+    end
+    if KCM.DebugLog and KCM.DebugLog.SetEnabled then
+        KCM.DebugLog.SetEnabled(false)
+    elseif KCM.State then
+        KCM.State.debug = false
+    end
+    if KCM.Pipeline and KCM.Pipeline.Recompute then
+        KCM.Pipeline.Recompute("options_general_defaults")
+    end
+    H.RefreshAllPanels()
+end
+
 StaticPopupDialogs["KCM_RESET_ALL"] = {
-    text         = L["Reset ALL ConsumableMaster customization to defaults? This wipes added/blocked/pinned items and stat-priority overrides. Discovered items from bag scans are preserved."],
+    text         = L["Reset ALL ConsumableMaster customization to defaults? This wipes every category's added/blocked/pinned items and all stat-priority overrides, and re-enables the addon. Your macros stay in place, and items currently in your bags are re-discovered automatically. This cannot be undone."],
     button1      = L["Yes"],
     button2      = L["No"],
     timeout      = 0,
@@ -122,8 +148,9 @@ local function Build(mainCategory)
 
     local ctx = H.CreatePanel("KCMGeneralPanel", L["General"], {
         panelKey = "general",
-        -- Top-right Defaults button (standard §6.5) → this page's reset.
-        defaultsAction = function() StaticPopup_Show("KCM_RESET_ALL") end,
+        -- Top-right Defaults button (standard §6.5) → resets this page only
+        -- (master enable + session debug console), NOT the whole DB.
+        defaultsAction = doResetGeneralPage,
     })
     H.SetRenderer(ctx, render)
     return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, L["General"])

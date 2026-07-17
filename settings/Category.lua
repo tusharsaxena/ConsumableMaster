@@ -148,6 +148,31 @@ StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
     end,
 }
 
+-- Show the per-category reset confirmation. Shared by the inline "Reset
+-- category" buttons and the top-right Defaults button (standard §6.5) so both
+-- entry points land on the same popup with identical scope. For spec-aware
+-- single categories the viewed spec is resolved at call time, matching the
+-- panel the user is looking at.
+local function promptResetCategory(cat)
+    if cat.composite then
+        local prompt = (L["Reset %s to defaults?"]):format(cat.displayName)
+        StaticPopup_Show("KCM_RESET_CATEGORY", prompt, nil, {
+            catKey    = cat.key,
+            composite = true,
+        })
+    else
+        local specKey = cat.specAware and (O.ResolveViewedSpec and O.ResolveViewedSpec()) or nil
+        local prompt = (L["Reset %s%s to defaults?"]):format(
+            cat.displayName,
+            cat.specAware and L[" (viewed spec)"] or "")
+        StaticPopup_Show("KCM_RESET_CATEGORY", prompt, nil, {
+            catKey    = cat.key,
+            specKey   = specKey,
+            composite = false,
+        })
+    end
+end
+
 -- ---------------------------------------------------------------------
 -- Small AceGUI builders shared by single + composite renderers
 -- ---------------------------------------------------------------------
@@ -473,16 +498,7 @@ local function renderSingle(ctx, cat)
         tooltip = L["Clear added/blocked items and pin overrides for this category"]
                   .. (cat.specAware and L[" (viewed spec only)"] or "")
                   .. L[". Discovered items (from bag scans) are preserved."],
-        onClick = function()
-            local prompt = (L["Reset %s%s to defaults?"]):format(
-                cat.displayName,
-                cat.specAware and L[" (viewed spec)"] or "")
-            StaticPopup_Show("KCM_RESET_CATEGORY", prompt, nil, {
-                catKey    = cat.key,
-                specKey   = specKey,
-                composite = false,
-            })
-        end,
+        onClick = function() promptResetCategory(cat) end,
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
@@ -581,13 +597,7 @@ local function renderComposite(ctx, cat)
     H.Button(ctx, {
         text    = L["Reset category"],
         tooltip = L["Restore enabled flags and section order to defaults."],
-        onClick = function()
-            local prompt = (L["Reset %s to defaults?"]):format(cat.displayName)
-            StaticPopup_Show("KCM_RESET_CATEGORY", prompt, nil, {
-                catKey    = cat.key,
-                composite = true,
-            })
-        end,
+        onClick = function() promptResetCategory(cat) end,
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
@@ -605,6 +615,9 @@ local function buildCategory(cat)
         local panelName = "KCMCatPanel_" .. cat.key
         local ctx = H.CreatePanel(panelName, cat.displayName, {
             panelKey = cat.key:lower(),
+            -- Top-right Defaults button (standard §6.5) → same per-category
+            -- reset as this page's inline button.
+            defaultsAction = function() promptResetCategory(cat) end,
         })
         H.SetRenderer(ctx, function(c)
             if cat.composite then renderComposite(c, cat)

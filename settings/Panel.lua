@@ -201,7 +201,10 @@ local function buildHeader(panel, title, opts)
         btn:SetText(_G.DEFAULTS or L["Defaults"])
         btn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP + 4)
         btn:SetScript("OnClick", function()
-            if InCombatLockdown and InCombatLockdown() then return end
+            if InCombatLockdown and InCombatLockdown() then
+                print(KCM.PREFIX .. " in combat — Defaults is blocked until combat ends.")
+                return
+            end
             local ok, err = pcall(opts.defaultsAction)
             if not ok then
                 print(KCM.PREFIX .. " defaults action failed: " .. tostring(err))

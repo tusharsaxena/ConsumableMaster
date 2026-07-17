@@ -18,6 +18,7 @@ local KCM = NS
 KCM.SlashCommands = {}
 
 local PREFIX = KCM.PREFIX .. " "
+local L = KCM.L
 
 -- Every chat line we emit goes through this so the CM tag is unconditional —
 -- including dump body rows and help-table rows that don't manually prepend it.
@@ -30,10 +31,9 @@ end
 -- them earlier in the session (a well-known Ace3 footgun around any
 -- StaticPopup that mutates SavedVariables).
 StaticPopupDialogs["KCM_CONFIRM_RESET"] = {
-    text = "Reset ALL ConsumableMaster customization to defaults?\n\n"
-        .. "Wipes every category's added/blocked/pinned items and all "
-        .. "stat-priority overrides. Macros in your macro pool stay in "
-        .. "place. This cannot be undone.",
+    -- Same wording as the Options panel's KCM_RESET_ALL so both global-reset
+    -- entry points describe identical scope (they share KCM.ResetAllToDefaults).
+    text = L["Reset ALL ConsumableMaster customization to defaults? This wipes every category's added/blocked/pinned items and all stat-priority overrides, and re-enables the addon. Your macros stay in place, and items currently in your bags are re-discovered automatically. This cannot be undone."],
     button1 = YES,
     button2 = NO,
     OnAccept = function()

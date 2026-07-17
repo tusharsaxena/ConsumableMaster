@@ -140,13 +140,14 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 1. Close the Settings panel. Run `/cm config`.
 2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 15 sub-pages visible (General, Stat Priority, 11 categories, 2 AIO).
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
-4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width.
+4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width. A top-right **Defaults** button sits in the page header.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
 6. Toggle Enable on — `[CM] Master enable ON` prints. A recompute kicks immediately; macros refresh against current state.
 7. Toggle Debug — colour-coded ack `[CM] debug logging ON` (green) / `OFF` (red), plus a `[Debug] logging enabled/disabled` line in the console; on enable, an `[Init]` session summary line (addon + version, schema, profile) follows the bracket. Tagged debug console lines start / stop appearing.
 8. Click **Force resync** — TooltipCache invalidates, auto-discovery re-runs, pipeline recomputes. Blocked in combat with a chat notice.
 9. Click **Force rewrite macros** — every `KCM_*` body + icon re-issued unconditionally. Useful when an action-bar framework is showing a stale texture.
-10. Click **Reset all priorities** — StaticPopup confirms; on Yes, the entire `categories` + `statPriority` tree wipes back to seed defaults. `discovered[id]` survives.
+10. Click **Reset all priorities** — StaticPopup confirms; on Yes, the entire `categories` + `statPriority` tree wipes back to seed defaults and the master enable flips back on. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
+11. Disable the addon (Enable off), then click the top-right **Defaults** button. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`) and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
 
 ### 8. Settings panel — Stat Priority
 
@@ -157,7 +158,7 @@ Tests: spec selector drives the spec-aware editor and the spec-aware category pa
 3. Open the **Flask** page (spec-aware) — the subheader reads "Spec-aware. Viewing: <picked spec>." The priority list reflects the picked spec.
 4. Back on Stat Priority — change Primary stat. The field commits immediately; `/cm stat list` confirms the new value.
 5. Change Secondary #2 to `(none)` — the persisted secondary list compacts (the empty slot is dropped, not stored as `""`).
-6. Click **Reset stat priority** — drops the override for the viewed spec. Subsequent reads fall back to seed default → class-primary fallback.
+6. Click **Reset stat priority** — drops the override for the viewed spec. Subsequent reads fall back to seed default → class-primary fallback. The top-right **Defaults** button does the same for the viewed spec.
 
 ### 9. Settings panel — per-category (single)
 
@@ -171,7 +172,7 @@ Tests: drag icon, Add by ID (item + spell), priority list (up / down / X), score
 6. Move a row up / down — pinning takes effect immediately; the macro body updates if the move changes the owned-item walk.
 7. Click the blue info button — tooltip shows the per-item score breakdown from `Ranker.Explain`. Numbers should match `/cm dump pick <cat>` exactly.
 8. Click X on a row — item removed from priority list AND added to the blocked set (auto-discovery won't re-add).
-9. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved.
+9. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved. The top-right **Defaults** button opens the same confirmation.
 10. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
 
 ### 10. Settings panel — composite (HP_AIO / MP_AIO)
@@ -183,7 +184,7 @@ Tests: section-locked sub-cats, enabled toggle, reorder within section.
 3. Toggle Enabled off on a row — recompute fires, body excludes that sub-cat.
 4. Move HP_POT above HS in In Combat — castsequence rewrites in the new order.
 5. Try to drag a Food sub-cat into In Combat — there's no UI for it; sections are locked. Confirm by inspecting `db.profile.categories.HP_AIO.orderInCombat` after manipulation.
-6. Click **Reset category** — restores enabled flags + section orders to dbDefaults.
+6. Click **Reset category** — restores enabled flags + section orders to dbDefaults. The top-right **Defaults** button opens the same confirmation.
 
 ### 11. Slash CLI
 
