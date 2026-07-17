@@ -195,12 +195,21 @@ local function buildHeader(panel, title, opts)
 
     -- Top-right per-page Defaults button (standard §6.5). Rendered only when
     -- the page supplies opts.defaultsAction; wired to that page's own reset.
+    -- Built as an AceGUI Button rather than a raw UIPanelButtonTemplate frame:
+    -- a template button parented straight onto the Blizzard Settings canvas
+    -- inherits the canvas's red button skin, whereas AceGUI creates the button
+    -- under UIParent and then reparents it, sidestepping that skinning — the
+    -- standard Ka0s options-button look shared with the Absorb Tracker / KickCD
+    -- panels.
     if opts.defaultsAction then
-        local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-        btn:SetSize(DEFAULTS_W, 22)
+        local btn = AceGUI:Create("Button")
         btn:SetText(_G.DEFAULTS or L["Defaults"])
-        btn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP + 4)
-        btn:SetScript("OnClick", function()
+        btn:SetWidth(DEFAULTS_W)
+        btn.frame:SetParent(panel)
+        btn.frame:ClearAllPoints()
+        btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
+        btn.frame:Show()
+        btn:SetCallback("OnClick", function()
             if InCombatLockdown and InCombatLockdown() then
                 print(KCM.PREFIX .. " in combat — Defaults is blocked until combat ends.")
                 return
@@ -246,6 +255,7 @@ function Helpers.CreatePanel(name, title, opts)
         lastGroup   = nil,
         panelKey    = opts.panelKey,
         _rendered   = false,
+        _dirty      = false,
         _renderFn   = nil,
     }
     KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
@@ -271,8 +281,12 @@ function Helpers.SetRenderer(ctx, fn)
             print(KCM.PREFIX .. " cannot open settings during combat. Try again after combat ends.")
             return
         end
-        if ctx._rendered then return end
+        -- Render on first show, and re-render when a refresh marked this panel
+        -- dirty while it was hidden (RefreshAllPanels defers off-screen rebuilds
+        -- here to keep mutations from stalling on every rendered sub-page).
+        if ctx._rendered and not ctx._dirty then return end
         ctx._rendered = true
+        ctx._dirty = false
         if ctx._renderFn then ctx._renderFn(ctx) end
     end)
 end
@@ -636,12 +650,24 @@ end
 -- avoid wasted AceGUI widget allocation.
 -- ---------------------------------------------------------------------
 
+-- Rebuilding a panel re-runs its full renderer — a complete AceGUI teardown +
+-- rebuild of the whole page. The Blizzard Settings window only ever shows one
+-- subcategory at a time, so rebuilding *every* rendered panel on each mutation
+-- is wasted work: with 15 sub-pages it stalls the client for a visible beat on
+-- every checkbox toggle or button click. Rebuild only the panel that is on
+-- screen; flag the rest dirty so they rebuild lazily the next time they are
+-- shown (SetRenderer's OnShow honours the flag).
 function Helpers.RefreshAllPanels()
     for _, ctx in ipairs(KCM.Settings._panels) do
         if ctx._rendered and ctx._renderFn then
-            local ok, err = pcall(ctx._renderFn, ctx)
-            if not ok then
-                print(KCM.PREFIX .. " panel render failed: " .. tostring(err))
+            if ctx.panel and ctx.panel:IsShown() then
+                local ok, err = pcall(ctx._renderFn, ctx)
+                if not ok then
+                    print(KCM.PREFIX .. " panel render failed: " .. tostring(err))
+                end
+                ctx._dirty = false
+            else
+                ctx._dirty = true
             end
         end
     end
