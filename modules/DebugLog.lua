@@ -22,6 +22,16 @@ KCM.DebugLog = KCM.DebugLog or {}
 local DL = KCM.DebugLog
 
 -- Register the shipped monospace font with LibSharedMedia (optional dependency).
+--
+-- Standard-compliant, not a deviation (Ka0s debug-logging-§2 + docs/scope.md): the
+-- standard REQUIRES a shipped monospace font for the debug console and names
+-- JetBrains Mono the reference font. The addon is otherwise Blizzard-default in all
+-- styling; this developer-facing console needs a fixed-width font for the aligned
+-- `<HH:MM:SS> | [tag] …` columns and Blizzard ships no monospace font object, so the
+-- standard marks the shipped console font a sanctioned styling exception (audits MUST
+-- NOT flag it). Not user-configurable and no LSM picker by design (registration only
+-- exposes it to other addons). FONT_FALLBACK below is Blizzard's own font for the
+-- fetch-failure path.
 local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
 if LSM then
     LSM:Register(LSM.MediaType.FONT, "JetBrains Mono",
