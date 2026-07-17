@@ -149,6 +149,16 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 10. Click **Reset all priorities** — StaticPopup confirms; on Yes, the entire `categories` + `statPriority` tree wipes back to seed defaults and the master enable flips back on. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
 11. Disable the addon (Enable off), then click the top-right **Defaults** button. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`) and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
 
+### 7a. Settings panel — refresh performance + Defaults button styling
+
+Tests: a mutation refreshes without stalling; off-screen pages update lazily on next show; the Defaults button uses the standard AceGUI look. Guards options-ui-§5 / §11 and anti-pattern #39.
+
+Setup: `/cm config`, then visit **General → two category pages → Stat Priority** so several sub-pages are rendered (the freeze only showed once multiple pages had been built).
+
+1. **No freeze (options-ui-§11 / anti-pattern #39).** On General, toggle **Enable**, toggle **Debug console**, click **Force resync** — each responds **instantly**, no ~0.5s stall. Repeat on a category page and Stat Priority. Regression check: the old bug rebuilt *every* rendered sub-page's full renderer on each mutation; the fix rebuilds only the on-screen panel (`ctx.panel:IsShown()`) and defers the rest. (**Force rewrite macros** / **Reset all priorities** may still have a brief hitch — that's the synchronous macro rewrite, not the panel-refresh freeze.)
+2. **Lazy off-screen refresh stays correct.** While viewing General, run `/cm priority flask add 212283` (any valid flask ID). Navigate to the **Flask** category page — the new entry is present (the hidden page was flagged dirty and rebuilt on show), with no stale state and no Lua error.
+3. **Defaults button styling (options-ui-§5).** On every page that has one (General, Stat Priority, each category, AIO), the top-right **Defaults** button renders **dark with gold text** like the Absorb Tracker / KickCD panels — **not** red. It is an AceGUI `Button` (not a raw canvas-parented `UIPanelButtonTemplate`, which inherits the canvas red skin). Click it and confirm the page reset still fires (functionality preserved through the widget swap).
+
 ### 8. Settings panel — Stat Priority
 
 Tests: spec selector drives the spec-aware editor and the spec-aware category pages; reset drops the override.
@@ -236,7 +246,8 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 | Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
-| Settings UI framework (`settings/Panel.lua`) | §7 + spot-check §8, §9, §10 |
+| Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
+| Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
 | Composite category change | §4 + §10 |
