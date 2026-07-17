@@ -282,8 +282,9 @@ function Helpers.SetRenderer(ctx, fn)
             return
         end
         -- Render on first show, and re-render when a refresh marked this panel
-        -- dirty while it was hidden (RefreshAllPanels defers off-screen rebuilds
-        -- here to keep mutations from stalling on every rendered sub-page).
+        -- dirty while it was hidden (both RefreshAllPanels and RefreshScalars
+        -- defer off-screen work here to keep mutations from stalling on every
+        -- rendered sub-page).
         if ctx._rendered and not ctx._dirty then return end
         ctx._rendered = true
         ctx._dirty = false
@@ -606,7 +607,7 @@ end
 
 -- A checkbox backed by an arbitrary get/set pair (e.g. session-only State
 -- flags that aren't in the AceDB schema). Registered with the panel's
--- refreshers so RefreshAllPanels re-syncs it.
+-- refreshers so a scalar refresh (RefreshScalars) re-syncs it in place.
 function Helpers.CustomCheckbox(ctx, parent, relWidth, spec)
     parent = parent or ensureScroll(ctx)
     local cb = AceGUI:Create("CheckBox")
@@ -673,6 +674,31 @@ function Helpers.RefreshAllPanels()
     end
 end
 
+-- Scalar refresh (standard options-ui-§11). A scalar mutation (a checkbox
+-- write or `/cm set`) must NOT rebuild the page: it re-syncs each widget in
+-- place through the per-widget updater closures every renderer registers in
+-- ctx.refreshers. Only the on-screen panel is re-synced live; off-screen
+-- panels are flagged dirty and rebuilt lazily on their next OnShow, so a
+-- background page still reflects the new value when the user returns to it
+-- (SetRenderer's OnShow honours the flag). This is the cheap counterpart to
+-- RefreshAllPanels — no AceGUI teardown, no structural rebuild.
+function Helpers.RefreshScalars()
+    for _, ctx in ipairs(KCM.Settings._panels) do
+        if ctx._rendered then
+            if ctx.panel and ctx.panel:IsShown() then
+                for _, refresh in ipairs(ctx.refreshers) do
+                    local ok, err = pcall(refresh)
+                    if not ok then
+                        print(KCM.PREFIX .. " scalar refresh failed: " .. tostring(err))
+                    end
+                end
+            else
+                ctx._dirty = true
+            end
+        end
+    end
+end
+
 -- Validate a value against a schema row's declared type, clamping numbers to
 -- min/max. Returns the coerced value, or nil + reason on a type mismatch.
 local function validateSchemaValue(def, value)
@@ -705,7 +731,8 @@ function Helpers.SetAndRefresh(path, value)
     end
     if not Helpers.Set(def.path, coerced) then return false end
     fireOnChange(def, coerced)
-    Helpers.RefreshAllPanels()
+    -- Scalar write → in-place widget re-sync, never a page rebuild (§11).
+    Helpers.RefreshScalars()
     return true
 end
 
