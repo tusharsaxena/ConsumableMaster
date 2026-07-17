@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-136%2F136_passing-green)
+![Tests](https://img.shields.io/badge/Tests-137%2F137_passing-green)
 
 ![alt text](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 

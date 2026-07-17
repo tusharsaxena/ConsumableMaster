@@ -58,7 +58,7 @@ whenever the suite changes.
 - Database.RunMigrations is idempotent across repeated logins
 - Database.RunMigrations is a safe no-op when the DB has no global scope
 
-### test_debuglog.lua (8)
+### test_debuglog.lua (9)
 
 - DebugLog: FormatPlain renders the plain line shape with no colour codes
 - DebugLog: FormatColored colours timestamp/tag and handles nil tag/msg
@@ -68,6 +68,7 @@ whenever the suite changes.
 - DebugLog: Debug sink is gated and routes tag/msg through AddLine
 - DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
 - DebugLog: enable emits [Debug]+[Init] brackets and coloured ON/OFF acks
+- DebugLog: Show/Hide toggle the window without touching the enabled flag
 
 ### test_id.lua (6)
 
@@ -209,7 +210,7 @@ whenever the suite changes.
 | test_classifier.lua | 15 |
 | test_compat.lua | 5 |
 | test_database.lua | 4 |
-| test_debuglog.lua | 8 |
+| test_debuglog.lua | 9 |
 | test_id.lua | 6 |
 | test_load.lua | 1 |
 | test_macromanager.lua | 11 |
@@ -222,4 +223,4 @@ whenever the suite changes.
 | test_spechelper.lua | 7 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 2 |
-| **Total** | **136** |
+| **Total** | **137** |

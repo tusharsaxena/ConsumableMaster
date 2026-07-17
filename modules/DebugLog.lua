@@ -280,7 +280,19 @@ local function buildWindow()
     win.smf = smf
 
     applySkin(f)
-    if f.HookScript then f:HookScript("OnShow", function() DL.RefreshHeader() end) end
+    -- Keep the header toggle painted and the options-panel [Debug console]
+    -- checkbox (which now mirrors WINDOW visibility, not the flag) in sync on
+    -- every open/close — including the × button and Escape, which bypass the
+    -- checkbox's own set() path.
+    if f.HookScript then
+        f:HookScript("OnShow", function()
+            DL.RefreshHeader()
+            if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
+        end)
+        f:HookScript("OnHide", function()
+            if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
+        end)
+    end
     DL.RefreshHeader()
 
     f:Hide()
@@ -392,6 +404,13 @@ end
 
 function DL.Hide()
     if win and win.frame then win.frame:Hide() end
+end
+
+-- Is the console window currently on screen? False before first build (window
+-- is lazy) and after any close. Backs the options-panel [Debug console]
+-- checkbox, which toggles VISIBILITY only and must never read the enabled flag.
+function DL.IsWindowShown()
+    return (win and win.frame and win.frame:IsShown()) and true or false
 end
 
 function DL.Toggle_Window()

@@ -1,8 +1,10 @@
 -- settings/General.lua — General page.
 --
 -- Two sections:
---   * General      — paired [Enable] | [Debug] checkboxes (both schema-driven;
---                    same rows /cm get/set enabled and /cm get/set debug use).
+--   * General      — paired [Enable] | [Debug console] checkboxes. [Enable] is
+--                    the schema-backed master toggle; [Debug console] shows/hides
+--                    the console window only (never the debug flag), matching a
+--                    bare /cm debug.
 --   * Maintenance  — Row 1: Force resync | Force rewrite macros (paired 50/50).
 --                    Row 2: Reset all priorities (full-width, StaticPopup-confirmed).
 --
@@ -62,9 +64,11 @@ local function doResetAll()
 end
 
 -- Top-right Defaults button (standard §6.5) resets THIS page only: the
--- persisted master enable back to its default, and the session-only debug
--- console off. The account-wide "reset everything" is the separate inline
--- button in Maintenance, behind its own confirmation popup.
+-- persisted master enable back to its default, and the debug console back to
+-- its login state — logging off AND the window hidden (the [Debug console]
+-- checkbox mirrors window visibility, so hiding it unchecks the box). The
+-- account-wide "reset everything" is the separate inline button in
+-- Maintenance, behind its own confirmation popup.
 local function doResetGeneralPage()
     local defaults = KCM.dbDefaults and KCM.dbDefaults.profile or {}
     if KCM.db and KCM.db.profile then
@@ -72,6 +76,7 @@ local function doResetGeneralPage()
     end
     if KCM.DebugLog and KCM.DebugLog.SetEnabled then
         KCM.DebugLog.SetEnabled(false)
+        if KCM.DebugLog.Hide then KCM.DebugLog.Hide() end
     elseif KCM.State then
         KCM.State.debug = false
     end
@@ -96,23 +101,25 @@ local function render(ctx)
     local scroll = H.EnsureScroll(ctx)
 
     -- General: two-column paired grid (standard §6.6). [Enable] is the
-    -- schema-backed master toggle; [Debug console] is a session-only State
-    -- checkbox (KCM.State.debug, never persisted) that also opens the console.
+    -- schema-backed master toggle; [Debug console] shows/hides the console
+    -- WINDOW only — it never touches the session debug flag (KCM.State.debug),
+    -- exactly like a bare `/cm debug` (debug-logging-§5). Logging is armed
+    -- separately via the in-window Debug: ON/OFF toggle or `/cm debug on|off`.
     H.Section(ctx, L["General"])
     local enabledDef = H.FindSchema("enabled")
     local debugConsole = {
         make = function(c, parent, relW)
             H.CustomCheckbox(c, parent, relW, {
                 label   = L["Debug console"],
-                tooltip = L["Open the on-screen debug console and stream diagnostics to it. Session-only — resets to off every login. Same as /cm debug."],
-                get     = function() return KCM.DebugLog and KCM.DebugLog.IsEnabled() end,
+                tooltip = L["Show or hide the on-screen debug console window. This does not turn logging on or off — use the window's Debug: ON/OFF toggle or /cm debug on|off for that. Same as a bare /cm debug."],
+                get     = function() return KCM.DebugLog and KCM.DebugLog.IsWindowShown() end,
                 set     = function(v)
-                    if KCM.DebugLog and KCM.DebugLog.SetEnabled then
-                        KCM.DebugLog.SetEnabled(v)
-                        if v and KCM.DebugLog.Show then KCM.DebugLog.Show() end
+                    local DL = KCM.DebugLog
+                    if not DL then return end
+                    if v then
+                        if DL.Show then DL.Show() end
                     else
-                        KCM.State = KCM.State or {}
-                        KCM.State.debug = v
+                        if DL.Hide then DL.Hide() end
                     end
                 end,
             })

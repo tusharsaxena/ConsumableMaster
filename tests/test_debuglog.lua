@@ -141,3 +141,25 @@ test("DebugLog: enable emits [Debug]+[Init] brackets and coloured ON/OFF acks", 
     KCM.Say = realSay
     KCM.State.debug = false
 end)
+
+-- Window visibility is a SEPARATE concern from the enabled flag (debug-logging-§5):
+-- the options-panel [Debug console] checkbox drives Show/Hide via IsWindowShown and
+-- must never move KCM.State.debug. (The mocked frame's IsShown always reads truthy,
+-- so shown-vs-hidden itself can't be asserted headlessly — only the flag invariant
+-- and the pre-build false, which the real in-game frame extends to true separation.)
+test("DebugLog: Show/Hide toggle the window without touching the enabled flag", function(t)
+    local KCM, DL = load()
+    t.falsy(DL.IsWindowShown(), "no window built yet -> IsWindowShown false")
+
+    DL.SetEnabled(true)
+    DL.Hide()
+    t.truthy(DL.IsEnabled(), "Hide() leaves logging enabled")
+    DL.Show()
+    t.truthy(DL.IsEnabled(), "Show() leaves logging enabled")
+
+    DL.SetEnabled(false)
+    DL.Show()
+    t.falsy(DL.IsEnabled(), "Show() does not arm logging")
+
+    KCM.State.debug = false
+end)
