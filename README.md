@@ -84,7 +84,7 @@ Settings live at **Escape → Options → AddOns → Consumable Master** (or typ
 *General*
 
 *   **Enable** — the master on/off switch. When it's off, your macros stop updating and keep whatever they last had. Turn it back on and they refresh right away. Remembered between sessions.
-*   **Debug console** — open the on-screen debug window. Same as `/cm debug on`. It's off again each login.
+*   **Debug console** — show or hide the on-screen debug window (same as a bare `/cm debug`). This does *not* turn logging on or off — use the window's **Debug: ON/OFF** toggle or `/cm debug on/off` for that. The window is hidden again each login.
 
 *Maintenance*
 
