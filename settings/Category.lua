@@ -196,7 +196,7 @@ local function makeIconBtn(parent, opts)
         btn:SetCallback("OnClick", function()
             local ok, err = pcall(opts.onClick)
             if not ok then
-                print(KCM.PREFIX .. " icon-button onClick failed: " .. tostring(err))
+                KCM.Say("icon-button onClick failed: " .. tostring(err))
             end
         end)
     end
@@ -331,24 +331,24 @@ local function renderSingle(ctx, cat)
         onSubmit = function(text)
             local id = tonumber(text)
             if not id or id <= 0 then
-                print(KCM.PREFIX .. " expected a positive numeric ID; got: " .. tostring(text))
+                KCM.Say("expected a positive numeric ID; got: " .. tostring(text))
                 return
             end
             local kind = O._addKind[cat.key] or "ITEM"
             if kind == "SPELL" then
                 if not spellNameByID(id) then
-                    print(KCM.PREFIX .. " unknown spellID: " .. id)
+                    KCM.Say("unknown spellID: " .. id)
                     return
                 end
             else
                 if C_Item and C_Item.GetItemInfoInstant
                    and not C_Item.GetItemInfoInstant(id) then
-                    print(KCM.PREFIX .. " unknown itemID: " .. id)
+                    KCM.Say("unknown itemID: " .. id)
                     return
                 end
             end
             if cat.specAware and not specKey then
-                print(KCM.PREFIX .. " spec-aware category: no active spec — can't add.")
+                KCM.Say("spec-aware category: no active spec — can't add.")
                 return
             end
             local storedID = (kind == "SPELL") and KCM.ID.AsSpell(id) or id

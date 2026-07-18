@@ -64,7 +64,7 @@ whenever the suite changes.
 - DebugLog: FormatColored colours timestamp/tag and handles nil tag/msg
 - DebugLog: SetEnabled/IsEnabled drive State.debug
 - DebugLog: Toggle flips State.debug both directions
-- DebugLog: SafeToString stringifies safely and swallows raising tostring
+- DebugLog: SafeToString stringifies safely and catches concat-hostile values
 - DebugLog: Debug sink is gated and routes tag/msg through AddLine
 - DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
 - DebugLog: enable emits [Debug]+[Init] brackets and coloured ON/OFF acks
@@ -159,13 +159,16 @@ whenever the suite changes.
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
 - Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
 
-### test_slash.lua (8)
+### test_slash.lua (11)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
 - /cm priority add accepts a spell sentinel (s:ID)
 - /cm stat primary sets the current spec's primary stat
 - /cm stat primary resolves a CLASS:SPEC token
+- /cm version prints the canonical v<version> line, not 'version <v>'
+- /cm list colours the header, page group, and key=value rows (no trailing colon)
+- /cm get echoes the same coloured key=value form as list
 - /cm with an unknown command reports it and prints help
 - /cm dump pick renders a category's effective priority and marks owned picks
 - /cm rewrite is a back-compat alias for rewritemacros
@@ -219,8 +222,8 @@ whenever the suite changes.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 8 |
 | test_selector.lua | 11 |
-| test_slash.lua | 8 |
+| test_slash.lua | 11 |
 | test_spechelper.lua | 7 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 2 |
-| **Total** | **137** |
+| **Total** | **140** |

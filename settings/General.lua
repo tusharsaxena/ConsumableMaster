@@ -17,7 +17,7 @@ local L      = KCM.L
 local H      = KCM.Settings.Helpers
 
 local function inCombatNotice(label)
-    print((KCM.PREFIX .. " in combat — %s deferred until regen."):format(label))
+    KCM.Say("in combat — %s deferred until regen.", label)
 end
 
 local function doForceResync()
@@ -46,7 +46,7 @@ local function doForceRewriteMacros()
     if KCM.Pipeline and KCM.Pipeline.Recompute then
         KCM.Pipeline.Recompute("options_rewrite")
     end
-    print(KCM.PREFIX .. " rewrote all macros. If action bar icons still look stale, /reload to force the bars to refresh.")
+    KCM.Say("rewrote all macros. If action bar icons still look stale, /reload to force the bars to refresh.")
     H.RefreshAllPanels()
 end
 

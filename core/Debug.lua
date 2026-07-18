@@ -11,8 +11,6 @@ local _, NS = ...
 local KCM = NS
 KCM.Debug = KCM.Debug or {}
 
-local PREFIX = KCM.PREFIX .. " "
-
 function KCM.Debug.IsOn()
     if KCM.DebugLog and KCM.DebugLog.IsEnabled then return KCM.DebugLog.IsEnabled() end
     return KCM.State and KCM.State.debug == true
@@ -30,7 +28,7 @@ function KCM.Debug.Toggle()
     KCM.State = KCM.State or {}
     KCM.State.debug = not KCM.State.debug
     local on = KCM.State.debug
-    print(PREFIX .. "Debug mode " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
+    KCM.Say("Debug mode " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
     if KCM.Options and KCM.Options.Refresh then
         KCM.Options.Refresh()
     end
@@ -54,7 +52,7 @@ local mt = {
         if KCM.DebugLog and KCM.DebugLog.AddLine then
             KCM.DebugLog.AddLine(tag, msg)
         else
-            print(PREFIX .. "[" .. tostring(tag) .. "] " .. tostring(msg))
+            KCM.Say("[" .. KCM.SafeToString(tag) .. "] " .. msg)
         end
     end,
 }

@@ -46,6 +46,14 @@ local PADDING_X     = 16
 local HEADER_TOP    = 20
 local HEADER_HEIGHT = 54
 
+-- Combat-lockdown open refusal (options-ui-§2): both the O.Open slash path and
+-- the Blizzard AddOns-sidebar OnShow guard funnel through here so they emit the
+-- one canonical grey notice via the shared secret-safe seam, never a protected
+-- category-switch and never a silent no-op.
+local function sayCombatOpenBlocked()
+    KCM.Say("|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r")
+end
+
 local SECTION_TOP_SPACER    = 10
 local SECTION_BOTTOM_SPACER = 6
 local SECTION_HEADING_H     = 26
@@ -108,7 +116,7 @@ local _validSections = { general = true }
 local _validTypes    = { bool = true, number = true, string = true, color = true }
 
 local function _printSchemaError(prefix, msg)
-    print(KCM.PREFIX .. " |cffff0000schema error|r: " .. prefix .. ": " .. msg)
+    KCM.Say("|cffff0000schema error|r: " .. prefix .. ": " .. msg)
 end
 
 function Helpers.ValidateSchema()
@@ -211,12 +219,12 @@ local function buildHeader(panel, title, opts)
         btn.frame:Show()
         btn:SetCallback("OnClick", function()
             if InCombatLockdown and InCombatLockdown() then
-                print(KCM.PREFIX .. " in combat — Defaults is blocked until combat ends.")
+                KCM.Say("in combat — Defaults is blocked until combat ends.")
                 return
             end
             local ok, err = pcall(opts.defaultsAction)
             if not ok then
-                print(KCM.PREFIX .. " defaults action failed: " .. tostring(err))
+                KCM.Say("defaults action failed: " .. tostring(err))
             end
         end)
         panel.defaultsButton = btn
@@ -278,7 +286,7 @@ function Helpers.SetRenderer(ctx, fn)
             elseif HideUIPanel and SettingsPanel then
                 HideUIPanel(SettingsPanel)
             end
-            print(KCM.PREFIX .. " cannot open settings during combat. Try again after combat ends.")
+            sayCombatOpenBlocked()
             return
         end
         -- Render on first show, and re-render when a refresh marked this panel
@@ -442,7 +450,7 @@ local function fireOnChange(def, value)
     if def.onChange then
         local ok, err = pcall(def.onChange, value)
         if not ok then
-            print(KCM.PREFIX .. " onChange for " .. tostring(def.path)
+            KCM.Say("onChange for " .. tostring(def.path)
                   .. " failed: " .. tostring(err))
         end
     end
@@ -537,7 +545,7 @@ local function makeButton(parent, spec, relativeWidth)
         if not spec.onClick then return end
         local ok, err = pcall(spec.onClick)
         if not ok then
-            print(KCM.PREFIX .. " button onClick failed: " .. tostring(err))
+            KCM.Say("button onClick failed: " .. tostring(err))
         end
     end)
     if spec.disabled then btn:SetDisabled(true) end
@@ -664,7 +672,7 @@ function Helpers.RefreshAllPanels()
             if ctx.panel and ctx.panel:IsShown() then
                 local ok, err = pcall(ctx._renderFn, ctx)
                 if not ok then
-                    print(KCM.PREFIX .. " panel render failed: " .. tostring(err))
+                    KCM.Say("panel render failed: " .. tostring(err))
                 end
                 ctx._dirty = false
             else
@@ -689,7 +697,7 @@ function Helpers.RefreshScalars()
                 for _, refresh in ipairs(ctx.refreshers) do
                     local ok, err = pcall(refresh)
                     if not ok then
-                        print(KCM.PREFIX .. " scalar refresh failed: " .. tostring(err))
+                        KCM.Say("scalar refresh failed: " .. tostring(err))
                     end
                 end
             else
@@ -726,7 +734,7 @@ function Helpers.SetAndRefresh(path, value)
     if not def then return false end
     local coerced, reason = validateSchemaValue(def, value)
     if coerced == nil and value ~= nil then
-        print(KCM.PREFIX .. " invalid value for " .. tostring(path) .. ": " .. tostring(reason))
+        KCM.Say("invalid value for " .. tostring(path) .. ": " .. tostring(reason))
         return false
     end
     if not Helpers.Set(def.path, coerced) then return false end
@@ -758,7 +766,7 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     default  = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.enabled,
     onChange = function(v)
         local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-        print(KCM.PREFIX .. " Master enable " .. state)
+        KCM.Say("Master enable " .. state)
         -- Off→on: kick a recompute so macros refresh against the current
         -- bag / spec state immediately rather than waiting for the next
         -- event. Off→off is harmless (RequestRecompute schedules a run
@@ -890,7 +898,7 @@ local function registerPanel()
             if ok and sub then
                 KCM.Settings.sub[key] = sub
             elseif not ok then
-                print(KCM.PREFIX .. " settings tab '" .. key .. "' failed: " .. tostring(sub))
+                KCM.Say("settings tab '" .. key .. "' failed: " .. tostring(sub))
             end
         end
     end
@@ -969,7 +977,7 @@ function O.Open()
     -- Settings UI is protected during combat — opening will silently fail
     -- mid-fight. Surface a chat notice instead so the user knows why.
     if InCombatLockdown and InCombatLockdown() then
-        print(KCM.PREFIX .. " cannot open settings during combat. Try again after combat ends.")
+        sayCombatOpenBlocked()
         return false
     end
 
@@ -984,7 +992,7 @@ function O.Open()
         expandMainCategory()
         return true
     end
-    print(KCM.PREFIX .. " settings panel unavailable on this client; use /cm.")
+    KCM.Say("settings panel unavailable on this client; use /cm.")
     return false
 end
 

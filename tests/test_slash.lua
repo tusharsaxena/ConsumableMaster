@@ -61,6 +61,32 @@ test("/cm stat primary resolves a CLASS:SPEC token", function(t)
     t.eq(KCM.db.profile.statPriority["7_263"].primary, "STR", "CLASS:SPEC token resolved")
 end)
 
+test("/cm version prints the canonical v<version> line, not 'version <v>'", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "version")
+    t.truthy(text:find("v" .. tostring(KCM.VERSION), 1, true),
+        "version verb prints v<version>")
+    t.falsy(text:find("version " .. tostring(KCM.VERSION), 1, true),
+        "no 'version <v>' wording — canonical single-line form")
+end)
+
+test("/cm list colours the header, page group, and key=value rows (no trailing colon)", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "list")
+    t.truthy(text:find("|cff33ff99Available settings|r", 1, true), "green Available settings header")
+    t.truthy(text:find("|cff3399ff[general]|r", 1, true), "azure [page] group header")
+    t.truthy(text:find("|cffffff00enabled|r = |cffffffff", 1, true),
+        "gold key + white value via the shared FormatKV")
+    t.falsy(text:find("Available settings:", 1, true), "header carries no trailing colon")
+end)
+
+test("/cm get echoes the same coloured key=value form as list", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "get enabled")
+    t.truthy(text:find("|cffffff00enabled|r = |cffffffff", 1, true),
+        "get reuses the shared gold-key / white-value formatter")
+end)
+
 test("/cm with an unknown command reports it and prints help", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "frobnicate")

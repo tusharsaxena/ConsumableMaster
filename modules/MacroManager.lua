@@ -280,7 +280,7 @@ local function commitMacro(macroName, body, iconItemID, catKey)
         end
         if catKey and not alreadyWarnedOversized[catKey] then
             alreadyWarnedOversized[catKey] = true
-            print((KCM.PREFIX .. " %s macro body exceeds 255 bytes — macro is inert until the picked entry's body fits. Please report this."):format(catKey))
+            KCM.Say("%s macro body exceeds 255 bytes — macro is inert until the picked entry's body fits. Please report this.", catKey)
         end
         body = buildEmptyBody(cat)
         effectiveItemID = nil  -- body is now empty-state; stored icon must follow
@@ -406,7 +406,7 @@ function M.SetCompositeMacro(cat, scoreCache)
         end
         if catKey and not alreadyWarnedOversized[catKey] then
             alreadyWarnedOversized[catKey] = true
-            print((KCM.PREFIX .. " %s macro body exceeds 255 bytes — macro is inert until the composite body fits. Please report this."):format(catKey))
+            KCM.Say("%s macro body exceeds 255 bytes — macro is inert until the composite body fits. Please report this.", catKey)
         end
         body = buildEmptyBody(cat)
         effectiveActive = false
@@ -486,7 +486,7 @@ function M.FlushPending()
         if not ok or result == "error" then
             entry.attempts = (entry.attempts or 0) + 1
             if entry.attempts >= MAX_FLUSH_ATTEMPTS then
-                print((KCM.PREFIX .. " gave up on %s after %d failed writes — check /cm debug output."):format(name, entry.attempts))
+                KCM.Say("gave up on %s after %s failed writes — check /cm debug output.", name, entry.attempts)
                 if KCM.State and KCM.State.debug then
                     KCM.Debug("Macro", "dropped %s after %s attempts (last err=%s)",
                         name, entry.attempts, tostring(result))

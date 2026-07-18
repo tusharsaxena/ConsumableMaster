@@ -17,13 +17,22 @@ local _, NS = ...
 local KCM = NS
 KCM.SlashCommands = {}
 
-local PREFIX = KCM.PREFIX .. " "
 local L = KCM.L
 
--- Every chat line we emit goes through this so the CM tag is unconditional —
--- including dump body rows and help-table rows that don't manually prepend it.
-local function say(s)
-    print(PREFIX .. s)
+-- Every chat line we emit goes through the shared secret-safe seam (KCM.Say,
+-- core/Constants.lua) so the [CM] tag is unconditional and a combat "secret"
+-- can never raise mid-line — including dump body rows and help-table rows that
+-- don't manually prepend the tag.
+local say = KCM.Say
+
+-- Addon version for the `version` verb and the help header. Read from the TOC
+-- metadata (the packaged manifest) with the in-code constant as fallback, so it
+-- can't drift from what actually shipped (slash-commands-§3).
+local function addonVersion()
+    local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    local v = get and get(KCM.name or "ConsumableMaster", "Version")
+    if v and v ~= "" then return v end
+    return KCM.VERSION or "?"
 end
 
 -- Shared confirmation popup for /cm reset. preferredIndex = 3 dodges the
@@ -339,7 +348,7 @@ DUMP_TARGETS.item = {
         if C_TooltipInfo and C_TooltipInfo.GetItemByID then
             local data = C_TooltipInfo.GetItemByID(id)
             if data and data.lines and #data.lines > 0 then
-                say(("  raw tooltip lines (%d):"):format(#data.lines))
+                say(("  raw tooltip lines (%d)"):format(#data.lines))
                 for i, line in ipairs(data.lines) do
                     local left = line.leftText or ""
                     local right = line.rightText or ""
@@ -408,7 +417,7 @@ DUMP_TARGETS.pick = {
                 { label = "Out of Combat", orderField = "orderOutOfCombat" },
             }
             for _, section in ipairs(sections) do
-                say(("  %s:"):format(section.label))
+                say(("  %s"):format(section.label))
                 local arr = cfg[section.orderField] or {}
                 if #arr == 0 then
                     say("    (none)")
@@ -424,7 +433,7 @@ DUMP_TARGETS.pick = {
                 local body = KCM.MacroManager.BuildCompositeBody(cat,
                     function(refKey) return KCM.Selector.PickBestForCategory(refKey) end)
                 if body then
-                    say("  macro body:")
+                    say("  macro body")
                     for line in body:gmatch("[^\n]+") do
                         say("    " .. line)
                     end
@@ -457,7 +466,7 @@ DUMP_TARGETS.pick = {
             ctx = KCM.Ranker.BuildContext(catKey, priority, ctx)
         end
 
-        say(("  effective priority (%d entries):"):format(#priority))
+        say(("  effective priority (%d entries)"):format(#priority))
         for i, id in ipairs(priority) do
             local name, did, have
             if KCM.ID and KCM.ID.IsSpell(id) then
@@ -503,7 +512,7 @@ local function printDumpLines(prefix)
 end
 
 local function dumpHelp()
-    say("dump targets:")
+    say("dump targets")
     printDumpLines("/cm dump ")
 end
 
@@ -541,7 +550,10 @@ local function helpers()
     return KCM.Settings and KCM.Settings.Helpers
 end
 
-local function formatValue(def, v)
+-- Shared, type-aware, unit-annotated value formatter (slash-commands-§5). The
+-- single source of truth for both `/cm list` rows and the `get`/`set` echo, so
+-- the two paths can never diverge.
+function KCM.FormatSchemaValue(def, v)
     if v == nil then return "nil" end
     if def.type == "color" and type(v) == "table" then
         return ("{%.2f, %.2f, %.2f, %.2f}")
@@ -551,6 +563,14 @@ local function formatValue(def, v)
         return def.fmt:format(v)
     end
     return tostring(v)
+end
+local formatValue = KCM.FormatSchemaValue
+
+-- Shared coloured `key = value` line (slash-commands-§5): gold key, white value,
+-- uncoloured ` = ` separator. Reused by the `list` rows and the `get`/`set`
+-- echo so the colouring can't drift between them.
+local function formatKV(path, valueStr)
+    return ("|cffffff00%s|r = |cffffffff%s|r"):format(path, valueStr)
 end
 
 local function dropdownAllowed(def)
@@ -604,7 +624,7 @@ local function applyFromText(def, text)
     if not H.SetAndRefresh(def.path, newValue) then
         return say(("could not set %s — DB not ready?"):format(def.path))
     end
-    say(("%s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
+    say(formatKV(def.path, formatValue(def, H.Get(def.path))))
 end
 
 local function listSettings()
@@ -616,7 +636,7 @@ local function listSettings()
     if #schema == 0 then
         return say("(no schema rows registered)")
     end
-    say("Available settings:")
+    say("|cff33ff99Available settings|r")
     -- Group by panel for readable output. Today there's only the General panel,
     -- but the grouping is preserved so future panels render under their own
     -- header without a code change here.
@@ -630,9 +650,9 @@ local function listSettings()
         table.insert(byPanel[key], def)
     end
     for _, key in ipairs(panelOrder) do
-        say("  [" .. key .. "]")
+        say("  |cff3399ff[" .. key .. "]|r")
         for _, def in ipairs(byPanel[key]) do
-            say(("    %s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
+            say("    " .. formatKV(def.path, formatValue(def, H.Get(def.path))))
         end
     end
 end
@@ -648,7 +668,7 @@ local function getSetting(rest)
     if not def then
         return say(("Setting not found: %s"):format(path))
     end
-    say(("%s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
+    say(formatKV(def.path, formatValue(def, H.Get(def.path))))
 end
 
 local function setSetting(rest)
@@ -818,7 +838,7 @@ local PRIORITY_COMMANDS = {
 }
 
 local function priorityHelp()
-    say("priority subcommands:")
+    say("priority subcommands")
     for _, entry in ipairs(PRIORITY_COMMANDS) do
         say(("  |cffffff00/cm priority <cat> %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
     end
@@ -954,7 +974,7 @@ local STAT_COMMANDS = {
 }
 
 local function statHelp()
-    say("stat subcommands:")
+    say("stat subcommands")
     for _, entry in ipairs(STAT_COMMANDS) do
         say(("  |cffffff00/cm stat %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
     end
@@ -1012,9 +1032,9 @@ end
 local function aioList(cat)
     local cfg = compositeCfg(cat)
     if not cfg then return say("no DB bucket for " .. cat.key) end
-    say(("%s:"):format(cat.key))
+    say(("%s"):format(cat.key))
     for _, field in ipairs(AIO_SECTIONS) do
-        say(("  %s:"):format(AIO_SECTION_LABEL[field]))
+        say(("  %s"):format(AIO_SECTION_LABEL[field]))
         local arr = cfg[field] or {}
         if #arr == 0 then
             say("    (none)")
@@ -1110,7 +1130,7 @@ local AIO_COMMANDS = {
 }
 
 local function aioHelp()
-    say("aio subcommands:")
+    say("aio subcommands")
     for _, entry in ipairs(AIO_COMMANDS) do
         say(("  |cffffff00/cm aio <key> %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
     end
@@ -1156,7 +1176,7 @@ local COMMANDS = {
             end
         end},
     {"version",       "Print addon version",
-        function() say(("version %s"):format(tostring(KCM.VERSION or "?"))) end},
+        function() say("v" .. addonVersion()) end},
     {"debug",         "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`",
         function(rest)
             local arg = (rest or ""):match("^(%S*)"):lower()
@@ -1246,8 +1266,8 @@ local ALIASES = {
 }
 
 printHelp = function()
-    say("|cffffd100Ka0s Consumable Master|r v" .. tostring(KCM.VERSION or "?")
-        .. " — slash commands (alias: |cffffff00/consumablemaster|r):")
+    say("|cffffd100Ka0s Consumable Master|r v" .. addonVersion()
+        .. " — slash commands (alias: |cffffff00/consumablemaster|r)")
     for _, entry in ipairs(COMMANDS) do
         say(("  |cffffff00/cm %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
     end

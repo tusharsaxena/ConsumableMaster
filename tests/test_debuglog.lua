@@ -66,14 +66,30 @@ test("DebugLog: Toggle flips State.debug both directions", function(t)
     t.truthy(KCM.State.debug, "Toggle wrote State.debug true")
 end)
 
--- KCM.SafeToString — secret-safe stringify
-test("DebugLog: SafeToString stringifies safely and swallows raising tostring", function(t)
+-- KCM.SafeToString — secret-safe stringify. Detection MUST probe table.concat,
+-- not tostring/`..` (events-frames-taint-§8): a real combat "secret" SURVIVES
+-- tostring() and `..` but RAISES in table.concat, so a tostring probe would
+-- wave it through.
+test("DebugLog: SafeToString stringifies safely and catches concat-hostile values", function(t)
     local KCM = load()
     t.eq(KCM.SafeToString(42), "42", "SafeToString number")
     t.eq(KCM.SafeToString("x"), "x", "SafeToString string")
     t.eq(KCM.SafeToString(nil), "nil", "SafeToString nil")
+    t.eq(KCM.SafeToString(true), "true", "SafeToString boolean")
+
+    -- The real "secret" shape: SURVIVES tostring() (returns a value) but a real
+    -- table.concat rejects it. The old pcall(tostring) probe let such a value
+    -- through; the table.concat probe substitutes "<secret>".
+    local concatHostile = setmetatable({}, { __tostring = function() return "looks-safe" end })
+    t.eq(tostring(concatHostile), "looks-safe", "sanity: value survives tostring")
+    t.eq(KCM.SafeToString(concatHostile), "<secret>",
+        "a value that survives tostring but a real concat rejects yields <secret>")
+    t.truthy(KCM.IsConcatSafe("plain"), "IsConcatSafe true for a plain string")
+    t.falsy(KCM.IsConcatSafe(concatHostile), "IsConcatSafe false for a concat-hostile value")
+
+    -- A raising __tostring is still swallowed (concat rejects the table first).
     local boom = setmetatable({}, { __tostring = function() error("secret") end })
-    t.eq(KCM.SafeToString(boom), "<secret>", "SafeToString swallows a raising tostring")
+    t.eq(KCM.SafeToString(boom), "<secret>", "SafeToString catches a raising tostring too")
 end)
 
 -- Callable sink: gated + routes tag/msg through DebugLog.AddLine

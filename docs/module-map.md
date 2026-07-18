@@ -18,9 +18,12 @@ core/Bus.lua ───── Closed message bus. KCM.bus (AceEvent embed),
                    KCM.NewBusTarget(), KCM.MSG.{RECOMPUTE, PANEL_REFRESH,
                    SPEC_CHANGED}. Each receiver owns its own target.
 
-core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say + KCM.SafeToString
-                   (secret-safe stringify for the debug sink). Single source
-                   of truth for chat output styling.
+core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say(fmt, ...) — the single
+                   secret-safe chat seam (plain-string or format-string form) —
+                   + KCM.SafeToString / KCM.IsConcatSafe (secret-safe stringify
+                   backing both KCM.Say and the debug sink; detection probes
+                   table.concat, not tostring/..). Single source of truth for
+                   chat output styling.
 
 core/Compat.lua ── Spec + spell API seam. GetSpecialization /
                    GetSpecializationInfo / GetNumSpecializationsForClassID /

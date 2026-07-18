@@ -38,6 +38,8 @@ The only sanctioned path is `MacroManager.SetMacro` / `SetCompositeMacro`. Every
 
 WoW Midnight marks certain protected returns as opaque tokens that error if Lua tries to compare them. CM's pipeline doesn't currently rely on any secret-valued field, but if one becomes load-bearing in the future (e.g. interrupt flags from `UnitCastingInfo`), the comparison must happen C-side via `Frame:SetAlphaFromBoolean` / `C_CurveUtil.EvaluateColorValueFromBoolean`, not in Lua.
 
+The chat/debug output path is already hardened for this: `KCM.SafeToString` detects a secret by probing `table.concat` (the operation that actually raises on one — `tostring` and `..` silently propagate secretness), substituting `"<secret>"`. Both the `KCM.Say` chat seam and the `KCM.Debug` sink build every line through it, so a secret reaching an output line logs as `<secret>` instead of freezing a repeating timer mid-combat.
+
 ## Stored macro icon vs `#showtooltip`
 
 WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartender) only let `#showtooltip` drive the action-bar button's icon when the macro's stored icon is the `?` sentinel (fileID `134400`, exposed as `DYNAMIC_ICON` in `modules/MacroManager.lua`). Any other stored icon overrides `#showtooltip` on the bar.

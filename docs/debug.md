@@ -39,9 +39,9 @@ The `DebugLog.SetEnabled` seam prints a **colour-coded** chat ack through `KCM.S
 
 Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 
-- `say()` (in `core/SlashCommands.lua`, `= print(KCM.PREFIX .. " " .. s)`) — slash output, dump rows, help. Always prepends `[CM]`.
+- `KCM.Say(fmt, ...)` (`core/Constants.lua`) — the single secret-safe chat seam for all one-shot output: slash lines, dump rows, help, and one-shot warnings (oversized macro body, give-up notice on flush failure, etc.). Always prepends `[CM]`; pass a finished string or a format string + args that each get secret-stringified. `core/SlashCommands.lua`'s `say` is just `local say = KCM.Say`.
 - `KCM.Debug(tag, ...)` — gated diagnostics into the console.
-- Inline `KCM.PREFIX`-prefixed `print(...)` — only for one-shot warnings (oversized macro body, give-up notice on flush failure, etc.) where neither helper fits.
+- The only literal `print(...)` in the addon is `KCM.PREFIX` embedded in generated macro-body `/run print(...)` strings (`modules/MacroManager.lua`, `defaults/Categories.lua`) — that runs in the player's macro, not the addon.
 
 ## Dump internals
 

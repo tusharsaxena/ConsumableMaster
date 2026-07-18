@@ -4,10 +4,10 @@
 ## Author: add1kted2ka0s
 ## Version: 1.5.0
 ## IconTexture: Interface\Icons\inv_cooking_100_roastduck
-## Category-enUS: Combat
 ## SavedVariables: ConsumableMasterDB
-## DefaultState: enabled
 ## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
+## DefaultState: enabled
+## Category-enUS: Combat
 ## X-License: MIT
 ## X-Standard: https://github.com/tusharsaxena/WowAddonStandards
 ## X-Curse-Project-ID: 1522944
