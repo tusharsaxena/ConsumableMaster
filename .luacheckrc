@@ -23,15 +23,15 @@ exclude_files = {
 --   211/ROW_VSPACER — dead layout constant in settings/Panel.lua   [follow-up]
 ignore = { "212", "542", "241", "211/ROW_VSPACER" }
 
--- SavedVariables and the (transitional) addon global are written by us.
--- Frame-registry tables receive field assignments (StaticPopupDialogs[...],
--- tinsert(UISpecialFrames, ...)) so they must be writable, not read_globals.
+-- The SavedVariables table is written by us. Frame-registry tables receive
+-- field assignments (StaticPopupDialogs[...], tinsert(UISpecialFrames, ...)) so
+-- they must be writable, not read_globals. State is threaded through the private
+-- NS table (local KCM = NS), so there is no addon global to declare (standard §4.1),
+-- and slash globals are registered dynamically by AceConsole, not by name here.
 globals = {
     "ConsumableMasterDB",
-    "KCM",
     "StaticPopupDialogs",
     "UISpecialFrames",
-    "SLASH_CONSUMABLEMASTER1",
 }
 
 -- WoW client API surface the addon reads. Kept flat and explicit so a typo'd
@@ -64,7 +64,6 @@ read_globals = {
     -- Namespaced client tables
     "C_Spell", "C_Item", "C_Container", "C_TooltipInfo", "C_Timer",
     "C_AddOns", "C_TradeSkillUI", "C_SettingsUtil", "C_CVar",
-    "Settings", "LibStub",
     -- Ace3 / vendored
     "LibStub",
 }
