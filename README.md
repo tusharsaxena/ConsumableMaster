@@ -32,6 +32,14 @@ Whenever you loot something better, change spec, reload, or drop out of combat, 
 
 If a better pick comes up while you're in combat, the macro updates the moment you leave — WoW doesn't allow macro changes mid-fight.
 
+## What's new in 1.5.0
+
+- **Weapon enchant macro (`KCM_WPN_ENCH`).** Keeps the best oil or sharpening stone on each weapon hand, matched to your weapon type and your spec.
+- **Augment rune macro (`KCM_AUG_RUNE`).** Points at your best primary-stat augment rune, preferring reusable ones so you don't burn charges.
+- **Vantus rune macro (`KCM_VANTUS`).** Keeps a macro on your raid Versatility rune.
+- **New on-screen debug console.** A movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`); the log now clears on each login.
+- **Updated for World of Warcraft: Midnight (12.0.7).**
+
 ## Screenshots
 
 **_Settings Panel_**
@@ -174,7 +182,7 @@ Bugs, feature requests, and planned work are all tracked on GitHub: [github.com/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.5.0 | 2026-07-13 | New on-screen debug console — a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`). Debug logging now resets each login. Updated for World of Warcraft: Midnight (12.0.7). |
+| 1.5.0 | 2026-07-13 | Three new macros: weapon enchant (`KCM_WPN_ENCH`, best oil/stone per hand, weapon- and spec-aware), augment rune (`KCM_AUG_RUNE`, best primary-stat rune, reusable-aware), and Vantus rune (`KCM_VANTUS`). New on-screen debug console — a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`); logging now resets each login. Updated for World of Warcraft: Midnight (12.0.7). |
 | 1.4.0 | 2026-05-03 | Redesigned settings panel with Blizzard sub-categories and an About page; slash commands moved to `/cm` with a cyan `[CM]` chat tag; new `/cm list`, `/cm get`, and `/cm set` commands; master enable toggle; Stat Priority now follows your active spec automatically. |
 | 1.3.0 | 2026-04-25 | New combo macros `KCM_HP_AIO` and `KCM_MP_AIO` that switch picks based on whether you're in combat, with AIO Health and AIO Mana settings pages to toggle and reorder each side. |
 | 1.2.1 | 2026-04-25 | Fixed a Lua error on login. |
