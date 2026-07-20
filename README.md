@@ -44,19 +44,31 @@ If a better pick comes up while you're in combat, the macro updates the moment y
 
 **_Settings Panel_**
 
-![alt text](https://media.forgecdn.net/attachments/1646/104/kcm-01-general-png.png)
+![alt text](https://media.forgecdn.net/attachments/1806/219/kcm-01-general-png.png)
 
 **_Stat Priority Selector (Per Spec)_**
 
-![alt text](https://media.forgecdn.net/attachments/1646/105/kcm-02-statpriority-png.png)
+![alt text](https://media.forgecdn.net/attachments/1806/220/kcm-02-statpriority-png.png)
 
-**_Food Category Priority Selector_**
+**_Food Category Priority Selector (Not Spec Aware)_**
 
-![alt text](https://media.forgecdn.net/attachments/1646/106/kcm-03-food-png.png)
+![alt text](https://media.forgecdn.net/attachments/1806/221/kcm-03-food-png.png)
+
+**_All-in-One Health Category Priority Selector_**
+
+![alt text](https://media.forgecdn.net/attachments/1806/222/kcm-04-aio-health-png.png)
+
+**_Flask Category Priority Selector (Spec Aware)_**
+
+![alt text](https://media.forgecdn.net/attachments/1806/223/kcm-05-flask-png.png)
+
+**_Weapon Enchant Priority Selector (Spec and Weapon Type Aware)_**
+
+![alt text](https://media.forgecdn.net/attachments/1806/226/kcm-06-weapon-enchant-png.png)
 
 **_Ranking Explainer_**
 
-![alt text](https://media.forgecdn.net/attachments/1646/107/kcm-03-ranking-png.png)
+![alt text](https://media.forgecdn.net/attachments/1806/224/kcm-06-ranking-png.png)
 
 ## Usage
 
