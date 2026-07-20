@@ -6,7 +6,7 @@
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
 ![Tests](https://img.shields.io/badge/Tests-140%2F140_passing-green)
 
-![alt text](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
+![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
 An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across eleven categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
 
@@ -44,31 +44,31 @@ If a better pick comes up while you're in combat, the macro updates the moment y
 
 **_Settings Panel_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/219/kcm-01-general-png.png)
+![Settings Panel](https://media.forgecdn.net/attachments/1806/219/kcm-01-general-png.png)
 
 **_Stat Priority Selector (Per Spec)_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/220/kcm-02-statpriority-png.png)
+![Stat Priority Selector (Per Spec)](https://media.forgecdn.net/attachments/1806/220/kcm-02-statpriority-png.png)
 
 **_Food Category Priority Selector (Not Spec Aware)_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/221/kcm-03-food-png.png)
+![Food Category Priority Selector (Not Spec Aware)](https://media.forgecdn.net/attachments/1806/221/kcm-03-food-png.png)
 
 **_All-in-One Health Category Priority Selector_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/222/kcm-04-aio-health-png.png)
+![All-in-One Health Category Priority Selector](https://media.forgecdn.net/attachments/1806/222/kcm-04-aio-health-png.png)
 
 **_Flask Category Priority Selector (Spec Aware)_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/223/kcm-05-flask-png.png)
+![Flask Category Priority Selector (Spec Aware)](https://media.forgecdn.net/attachments/1806/223/kcm-05-flask-png.png)
 
 **_Weapon Enchant Priority Selector (Spec and Weapon Type Aware)_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/226/kcm-06-weapon-enchant-png.png)
+![Weapon Enchant Priority Selector (Spec and Weapon Type Aware)](https://media.forgecdn.net/attachments/1806/226/kcm-06-weapon-enchant-png.png)
 
 **_Ranking Explainer_**
 
-![alt text](https://media.forgecdn.net/attachments/1806/224/kcm-06-ranking-png.png)
+![Ranking Explainer](https://media.forgecdn.net/attachments/1806/224/kcm-06-ranking-png.png)
 
 ## Usage
 
@@ -162,7 +162,9 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 |----------|--------|
 | Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Your macros are never read, moved, or deleted. If you delete one of its macros by hand, it's recreated on the next update. |
 | Do the macros work across all my characters? | Yes. They're **account-wide**, so one set is shared by every character. Your priority lists and stat choices are shared account-wide too. |
-| Why are some categories per-spec and others aren't? | Flask, Combat Potion, and Stat Food depend on your stat priority, which changes with your spec, so they're spec-aware. Food, Drink, HP Potion, MP Potion, and Healthstone rank the same for every spec, so they share one list. |
+| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, and Vantus rank the same for every spec, so they share one list. |
+| How does it pick weapon enchants when I'm dual-wielding? | It checks each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit either — so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is simply left out of the macro. Swapping weapons updates it right away, no reload needed. |
+| Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Pin the reusable rune with **↑** if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, paste the ID, press Enter. |
 | How do I force a specific item to always win? | Use **↑ / ↓** on its row to move it where you want. A moved (pinned) item overrides the automatic ranking. |
 | How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
@@ -179,7 +181,9 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick <catKey>` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it's blocked or its tooltip hasn't loaded yet. |
 | I just looted a better food / flask but the macro didn't update. | Give it a second — bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
-| Swapped specs but the flask / combat-potion / stat-food macro didn't update. | Run `/cm resync`, and check the viewed spec on the **Stat Priority** page matches your current spec. |
+| Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check the viewed spec on the **Stat Priority** page matches your current spec. |
+| Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped or nothing that matches its weapon type — whetstones need a bladed weapon, weightstones a blunt one, oils fit either. Run `/cm dump pick WPN_ENCH` to see what was considered for each hand. |
+| I opened the debug console but nothing shows up in it. | The window and logging are two separate switches. A bare `/cm debug` only shows or hides the window — run `/cm debug on` (or click the window's **Debug: ON/OFF** toggle) to actually capture output. The log also clears on every login. |
 | `/cm dump item <id>` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
