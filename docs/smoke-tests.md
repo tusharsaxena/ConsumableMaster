@@ -159,6 +159,18 @@ Setup: `/cm config`, then visit **General → two category pages → Stat Priori
 2. **Lazy off-screen refresh stays correct.** While viewing General, run `/cm priority flask add 212283` (any valid flask ID). Navigate to the **Flask** category page — the new entry is present (the hidden page was flagged dirty and rebuilt on show), with no stale state and no Lua error.
 3. **Defaults button styling (options-ui-§5).** On every page that has one (General, Stat Priority, each category, AIO), the top-right **Defaults** button renders **dark with gold text** like the Absorb Tracker / KickCD panels — **not** red. It is an AceGUI `Button` (not a raw canvas-parented `UIPanelButtonTemplate`, which inherits the canvas red skin). Click it and confirm the page reset still fires (functionality preserved through the widget swap).
 
+### 7b. Debug console — scrollbar + line counter
+
+Tests: the on-screen debug console carries a working right-edge scrollbar and a bottom line counter (debug-logging-§11 / anti-pattern #41). Both are a **MUST**.
+
+Setup: `/reload`, then `/cm debug on` (arms capture) and `/cm debug` (opens the console). Trigger some activity — e.g. `/cm resync` a few times, open/close bags — so the log fills past one screen.
+
+1. **No first-open error (anti-pattern #41).** The very first time the console opens, there is **no** `attempt to call a nil value` Lua error, the title-bar **`Debug: ON/OFF`** header label renders (green ON / red OFF), and **Esc closes** the window — proof the initial scroll sync ran last and didn't abort the build. Regression trap: driving the log with the old C getters `GetNumLinesDisplayed()` / `GetCurrentScroll()` (nil on retail's Lua `ScrollingMessageFrameMixin`) throws here.
+2. **Line counter.** The bottom-right label reads **`N / 500 lines`** and **N climbs on every appended line**. Click **Clear** — the log empties and the counter resets to **`0 / 500 lines`**.
+3. **Scrollbar — always shown, inert when it fits.** With only a few lines (log not full), the thin right-edge scrollbar is **visible** but **inert** (thumb parked, no drag). Fill the log past one screen — the bar becomes **active**.
+4. **Two-way sync.** Mouse-wheel up/down over the log — the **thumb tracks** the scroll. Drag the **thumb** — the **log scrolls** to match. No flicker or runaway loop (the `_syncing` guard).
+5. **Thumb direction (the one thing to eyeball).** Thumb at **top = oldest** lines, thumb at **bottom = newest**. If it reads inverted, the `sliderValue ↔ offset` sign is flipped.
+
 ### 8. Settings panel — Stat Priority
 
 Tests: spec selector drives the spec-aware editor and the spec-aware category pages; reset drops the override.

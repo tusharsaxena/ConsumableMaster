@@ -179,3 +179,22 @@ test("DebugLog: Show/Hide toggle the window without touching the enabled flag", 
 
     KCM.State.debug = false
 end)
+
+-- Scrollbar + line counter (debug-logging-§11). The scroll sync drives the log
+-- through the Lua ScrollingMessageFrameMixin API (GetMaxScrollRange /
+-- GetScrollOffset / SetScrollOffset) and MUST stay a clean no-op headlessly:
+-- the mock's stub frame returns non-numbers, which the numeric-return guard in
+-- DL.UpdateScrollBar catches. This test proves the append/clear/sync paths run
+-- without raising (the "attempt to call a nil value" trap of anti-pattern #41).
+test("DebugLog: scrollbar + counter sync run headlessly without error", function(t)
+    local KCM, DL = load()
+    DL.Show()                       -- build the window (installs scrollBar + lineCount)
+    DL.UpdateScrollBar()            -- guarded no-op under the mock (non-numeric returns)
+    DL.UpdateStatus()               -- counter repaint (SetText on the stub is a no-op)
+    DL.AddLine("Test", "line one")  -- append path also runs the two syncs
+    DL.AddLine("Test", "line two")
+    DL.Clear()                      -- clear path resets the counter + syncs the bar
+    t.truthy(true, "AddLine/Clear/UpdateScrollBar/UpdateStatus never raise headlessly")
+
+    KCM.State.debug = false
+end)
