@@ -174,8 +174,8 @@ end
 Helpers.AttachTooltip = attachTooltip
 
 -- ---------------------------------------------------------------------
--- Header (title + atlas divider). No Defaults button — every panel keeps
--- its reset action inline at the bottom of its body content.
+-- Header (title + atlas divider, plus the intent for the top-right Defaults
+-- button — the button itself is built lazily; see ensureDefaultsButton).
 -- ---------------------------------------------------------------------
 
 local function buildHeader(panel, title, opts)
@@ -201,23 +201,13 @@ local function buildHeader(panel, title, opts)
     divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_HEIGHT)
     divider:SetVertexColor(titleFS:GetTextColor())
 
-    -- Top-right per-page Defaults button (standard §6.5). Rendered only when
-    -- the page supplies opts.defaultsAction; wired to that page's own reset.
-    -- Built as an AceGUI Button rather than a raw UIPanelButtonTemplate frame:
-    -- a template button parented straight onto the Blizzard Settings canvas
-    -- inherits the canvas's red button skin, whereas AceGUI creates the button
-    -- under UIParent and then reparents it, sidestepping that skinning — the
-    -- standard Ka0s options-button look shared with the Absorb Tracker / KickCD
-    -- panels.
+    -- Top-right per-page Defaults button (standard §6.5). This records the
+    -- INTENT only — the widget itself is built lazily by ensureDefaultsButton
+    -- on the panel's first OnShow (see the note there for why). The click
+    -- handler is known now but the button isn't, so park it on the panel.
+    panel.wantsDefaultsButton = opts.defaultsAction and true or false
     if opts.defaultsAction then
-        local btn = AceGUI:Create("Button")
-        btn:SetText(_G.DEFAULTS or L["Defaults"])
-        btn:SetWidth(DEFAULTS_W)
-        btn.frame:SetParent(panel)
-        btn.frame:ClearAllPoints()
-        btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
-        btn.frame:Show()
-        btn:SetCallback("OnClick", function()
+        panel.defaultsOnClick = function()
             if InCombatLockdown and InCombatLockdown() then
                 KCM.Say("in combat — Defaults is blocked until combat ends.")
                 return
@@ -226,11 +216,42 @@ local function buildHeader(panel, title, opts)
             if not ok then
                 KCM.Say("defaults action failed: " .. tostring(err))
             end
-        end)
-        panel.defaultsButton = btn
+        end
     end
 
     return titleFS, divider
+end
+
+-- Build the header's Defaults button once, on the panel's FIRST OnShow.
+--
+-- It stays an AceGUI Button (standard §6.5) — a raw UIPanelButtonTemplate frame
+-- parented straight onto the Blizzard Settings canvas comes out in the canvas's
+-- red button skin. But *when* it is created matters just as much as *what*
+-- creates it. AceGUI is a SHARED library: UI-skinning addons restyle its widgets
+-- by hooking RegisterAsWidget, so a widget created before that hook is installed
+-- keeps Blizzard's stock UI-Panel-Button-Up art (the red stone button) for the
+-- rest of the session, while everything created afterwards comes out skinned.
+--
+-- Category registration runs off ADDON_LOADED / PLAYER_LOGIN — i.e. during load
+-- — so building the button there is a race against every other addon's load
+-- order, one CM wins only because it happens to load after the skinner. Rename
+-- the folder or add a skin and the same code renders red. Deferring creation to
+-- the first OnShow removes the race outright: by then every addon has loaded.
+-- Do NOT "simplify" this back into buildHeader.
+local function ensureDefaultsButton(panel)
+    if not panel or panel.defaultsButton or not panel.wantsDefaultsButton then return end
+    local btn = AceGUI:Create("Button")
+    if not (btn and btn.frame) then return end
+    btn:SetText(_G.DEFAULTS or L["Defaults"])
+    btn:SetWidth(DEFAULTS_W)
+    btn.frame:SetParent(panel)
+    btn.frame:ClearAllPoints()
+    btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
+    btn.frame:Show()
+    if panel.defaultsOnClick then
+        btn:SetCallback("OnClick", panel.defaultsOnClick)
+    end
+    panel.defaultsButton = btn
 end
 
 -- ---------------------------------------------------------------------
@@ -277,6 +298,9 @@ end
 function Helpers.SetRenderer(ctx, fn)
     ctx._renderFn = fn
     ctx.panel:SetScript("OnShow", function()
+        -- Header Defaults button, built here rather than at registration time
+        -- so it can't lose the AceGUI skinning load-order race.
+        ensureDefaultsButton(ctx.panel)
         -- Block any KCM panel from opening during combat. The Blizzard
         -- AddOns sidebar bypasses O.Open's guard, so this catches both
         -- the slash path and a direct sidebar click.
