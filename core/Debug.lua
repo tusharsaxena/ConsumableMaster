@@ -16,24 +16,10 @@ function KCM.Debug.IsOn()
     return KCM.State and KCM.State.debug == true
 end
 
-function KCM.Debug.Toggle()
-    -- Route through the DebugLog seam, which owns the single write path: flip the
-    -- flag → refresh header → chat ack → console transition line → options refresh
-    -- (standard debug-logging-§5). Don't ack again here or the line prints twice.
-    if KCM.DebugLog and KCM.DebugLog.Toggle then
-        return KCM.DebugLog.Toggle()
-    end
-    -- Fallback before the console module has loaded (very early boot): flip the
-    -- flag and ack to chat so the toggle still does something.
-    KCM.State = KCM.State or {}
-    KCM.State.debug = not KCM.State.debug
-    local on = KCM.State.debug
-    KCM.Say("Debug mode " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
-    if KCM.Options and KCM.Options.Refresh then
-        KCM.Options.Refresh()
-    end
-    return on
-end
+-- There is deliberately no KCM.Debug.Toggle here: `DebugLog.SetEnabled` is the
+-- single write path for the flag (debug-logging-§5), and every toggle entry
+-- point — `/cm debug on|off`, the console header button, the options checkbox —
+-- routes straight to it. A second wrapper could only diverge from that seam.
 
 -- Callable sink (debug-logging-§4): KCM.Debug("Tag", "%s -> %s", a, b).
 -- Zero-alloc gate is the FIRST statement; every vararg is stringified through

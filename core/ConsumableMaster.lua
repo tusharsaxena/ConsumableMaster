@@ -21,7 +21,6 @@ function KCM.ID.AsSpell(spellID) return -spellID end
 function KCM.ID.IsSpell(id) return type(id) == "number" and id < 0 end
 function KCM.ID.IsItem(id)  return type(id) == "number" and id > 0 end
 function KCM.ID.SpellID(id) return (type(id) == "number" and id < 0) and -id or nil end
-function KCM.ID.ItemID(id)  return (type(id) == "number" and id > 0) and  id or nil end
 
 KCM.dbDefaults = {
     -- Schema shape is account-wide, so its version lives in `global`, not

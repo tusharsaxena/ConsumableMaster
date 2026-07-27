@@ -36,14 +36,15 @@ core/State.lua ─── Session-only runtime flags. KCM.State.debug (default of
 core/Database.lua  RunMigrations() — runs right after AceDB:New; owns
                    db.global.schemaVersion.
 
-core/Debug.lua ─── KCM.Debug(tag, fmt, ...) callable sink + IsOn / Toggle / Log
-                   alias — routes gated diagnostics to the on-screen console
-                   (chat fallback only if the console is absent).
+core/Debug.lua ─── KCM.Debug(tag, fmt, ...) callable sink + KCM.Debug.IsOn() —
+                   routes gated diagnostics to the on-screen console (chat
+                   fallback only if the console is absent). Read side only:
+                   the flag's single write path is DebugLog.SetEnabled.
 
 defaults/         Seed data only. Evaluated at load; writes to
 ├── Categories.lua        KCM.Categories.LIST + KCM.Categories.BY_KEY
-│                         + Get(key) (the accessor everything uses) and
-│                         All() (returns LIST; no callers today)
+│                         + Get(key) (the accessor everything uses; callers
+│                         that want every row iterate LIST directly)
 ├── Defaults_StatPriority.lua    → KCM.SEED.STAT_PRIORITY
 └── Defaults_*.lua         → KCM.SEED.<CATKEY>
                            Entries can be itemIDs or KCM.ID.AsSpell(sid)
@@ -111,8 +112,10 @@ settings/         Settings UI framework + per-tab modules.
 
 core/SlashCommands.lua  /cm (and /consumablemaster alias) dispatcher. Three
                    ordered tables: COMMANDS, DUMP_TARGETS, and the
-                   *_COMMANDS verb namespaces. Local say() = print(KCM.PREFIX
-                   .." "..s). Detail in debug.md.
+                   *_COMMANDS verb namespaces. The file-local say is an alias
+                   of the shared seam (local say = KCM.Say), so every slash
+                   line inherits the [CM] tag and secret-safe stringification.
+                   Detail in debug.md.
 
 modules/KCM*.lua  AceGUI custom widgets. Loaded before settings/ so that
                   AceGUI:Create("KCM…") works at panel render time.
@@ -144,7 +147,6 @@ KCM.ID.AsSpell(spellID)  -> negative
 KCM.ID.IsSpell(id)       -> bool
 KCM.ID.IsItem(id)        -> bool
 KCM.ID.SpellID(id)       -> spellID | nil
-KCM.ID.ItemID(id)        -> itemID  | nil
 
 -- Centralized reset
 KCM.ResetAllToDefaults(reason) -> bool       -- wipes categories + statPriority, runs
@@ -181,7 +183,7 @@ KCM.Selector.Block(catKey, id, specKey?)               -> changed:bool
 KCM.Selector.MoveUp(catKey, id, specKey?)              -> changed:bool
 KCM.Selector.MoveDown(catKey, id, specKey?)            -> changed:bool
 KCM.Selector.MarkDiscovered(catKey, id, specKey?, nowUnix) -> changed:bool   -- items only
-KCM.Selector.SweepStaleDiscovered(nowUnix) -> droppedCount  -- 30-day TTL, PEW-only
+KCM.Selector.SweepStaleDiscovered(nowUnix) -> swept, touchedCats  -- 30-day TTL, PEW-only
 ```
 
 `PickBestForSlot` is the per-hand entry point used for `perHand` categories (today only `WPN_ENCH`). It filters the effective priority list to entries whose parsed `tt.weaponAffinity` (`"bladed"` / `"blunt"` / `"any"`) matches `WeaponSlots.SlotAffinity(slot)` for the currently equipped weapon, then picks the first owned entry in that filtered set. Returns nil when the hand is empty or nothing matches.
@@ -264,8 +266,8 @@ KCM.SpecHelper.GetStatPriority(specKey) -> { primary, secondary = { ... } }
 ```lua
 -- Lifecycle (preserved API; called by Core / Debug / SlashCommands / Pipeline)
 KCM.Settings.Register()      -- = the file-local registerPanel; the PLAYER_LOGIN /
-                             --   ADDON_LOADED bootstrap calls registerPanel directly
-KCM.Options.Register() -> bool  -- thin wrapper over registerPanel; NO callers today
+                             --   ADDON_LOADED bootstrap calls registerPanel directly,
+                             --   so this is the named alias, not the live call path
 KCM.Options.Open()           -- opens the parent About canvas, sub-pages force-expanded
 
 -- Refresh
@@ -282,7 +284,10 @@ KCM.Settings.Helpers.Get(path) -> value
 KCM.Settings.Helpers.Set(path, value) -> bool
 KCM.Settings.Helpers.FindSchema(path) -> row | nil
 KCM.Settings.Helpers.ValidateSchema() -> errorCount
-KCM.Settings.Helpers.RefreshAllPanels()
+KCM.Settings.Helpers.ValidateSchemaValue(def, value) -> coerced | nil, reason  -- type check + min/max clamp
+KCM.Settings.Helpers.SetAndRefresh(path, value) -> bool  -- the mutation seam KCM.Schema:Set wraps
+KCM.Settings.Helpers.RefreshAllPanels()   -- structural: re-render the shown page, flag the rest dirty
+KCM.Settings.Helpers.RefreshScalars()     -- scalar: re-sync widgets in place, no rebuild (options-ui-§11)
 
 -- Panel-build helpers (called by per-tab modules)
 KCM.Settings.Helpers.CreatePanel(name, title, opts) -> ctx
@@ -294,6 +299,8 @@ KCM.Settings.Helpers.Section(ctx, label)
 KCM.Settings.Helpers.RenderField(ctx, def, parent?, relativeWidth?)
 KCM.Settings.Helpers.Button(ctx, spec)
 KCM.Settings.Helpers.ButtonPair(ctx, leftSpec, rightSpec)
+KCM.Settings.Helpers.Grid(ctx, items)
+KCM.Settings.Helpers.CustomCheckbox(ctx, parent, relWidth, spec)   -- non-schema-backed checkbox
 KCM.Settings.Helpers.Label(ctx, text, fontSize?)
 KCM.Settings.Helpers.AddSpacer(scroll, height)
 KCM.Settings.Helpers.AttachTooltip(widget, label, tooltip)
@@ -307,14 +314,15 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 ### Debug (`core/Debug.lua` + `modules/DebugLog.lua`)
 
 ```lua
-KCM.Debug.IsOn() -> bool                      -- reads KCM.State.debug (session-only)
-KCM.Debug.Toggle()                            -- routes through DebugLog.Toggle -> SetEnabled;
-                                              --   NO callers today (every toggle path goes
-                                              --   straight to DebugLog.SetEnabled)
+KCM.Debug.IsOn() -> bool                      -- reads the flag (DebugLog.IsEnabled, else State.debug)
 KCM.Debug(tag, fmt, ...)                      -- callable sink; gated, secret-safe; early-returns when off
+                                              --   Read side only — there is no KCM.Debug.Toggle;
+                                              --   DebugLog.SetEnabled is the single write path (§5)
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
-KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()
+KCM.DebugLog.AddLine(tag, msg) / Clear()
+KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
+KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header, scrollbar + line counter (§11)
 KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
 ```
 

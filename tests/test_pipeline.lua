@@ -96,3 +96,161 @@ test("Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMa
     t.truthy(state.lastBody:find("/use 16", 1, true), "body applies the main-hand enchant")
     t.truthy(state.lastBody:find("6201", 1, true), "body references the bladed pick")
 end)
+
+test("Pipeline.RecomputeOne ignores a category that does not exist", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.Pipeline.RecomputeOne("NOT_A_CATEGORY", nil, "test"), nil, "no write, no error")
+end)
+
+test("Pipeline.RecomputeOne routes a composite category to the composite writer", function(t)
+    local KCM = h.loader.loadPure()
+    local seen
+    KCM.MacroManager.SetCompositeMacro = function(cat) seen = cat.key; return "created" end
+    KCM.Pipeline.RecomputeOne("HP_AIO", nil, "test")
+    t.eq(seen, "HP_AIO", "composites assemble from their parts, never from their own bag set")
+end)
+
+test("Pipeline.RecomputeOne asks for a pick per hand on a per-hand category", function(t)
+    local KCM = h.loader.loadPure()
+    local slots = {}
+    KCM.Selector.PickBestForSlot = function(_, slot) slots[#slots + 1] = slot end
+    KCM.MacroManager.SetWeaponEnchantMacro = function() return "created" end
+    KCM.Pipeline.RecomputeOne("WPN_ENCH", nil, "test")
+    t.eqList(slots, { 16, 17 }, "main hand then off hand")
+end)
+
+test("Pipeline.Recompute writes one macro per registered category", function(t)
+    local KCM = h.loader.loadPure()
+    local written = {}
+    KCM.MacroManager.SetMacro = function(name) written[name] = true; return "created" end
+    KCM.MacroManager.SetCompositeMacro = function(cat) written[cat.macroName] = true; return "created" end
+    KCM.MacroManager.SetWeaponEnchantMacro = function(cat) written[cat.macroName] = true; return "created" end
+
+    KCM.Pipeline.Recompute("test")
+    for _, cat in ipairs(KCM.Categories.LIST) do
+        t.truthy(written[cat.macroName], cat.key .. " was visited in the pass")
+    end
+end)
+
+test("Pipeline.Recompute isolates a category whose write raises", function(t)
+    local KCM = h.loader.loadPure()
+    local written = 0
+    local realSet = KCM.MacroManager.SetMacro
+    KCM.MacroManager.SetMacro = function(name, itemID, catKey)
+        if catKey == "FOOD" then error("scorer exploded") end
+        written = written + 1
+        return realSet(name, itemID, catKey)
+    end
+    KCM.Pipeline.Recompute("test")
+    t.truthy(written >= 1, "one bad category does not abort the other macros (pcall per category)")
+end)
+
+test("Pipeline.Recompute refreshes the panel even while the addon is disabled", function(t)
+    local KCM = h.loader.loadPure()
+    local refreshes = 0
+    local target = KCM.NewBusTarget()
+    target:RegisterMessage(KCM.MSG.PANEL_REFRESH, function() refreshes = refreshes + 1 end)
+
+    KCM.db.profile.enabled = false
+    KCM.Pipeline.Recompute("test")
+    t.eq(refreshes, 1,
+        "priority rows still hydrate from item-info events while macro writes are off")
+end)
+
+test("Pipeline.Recompute is a no-op before the category table has loaded", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = KCM.Categories
+    KCM.Categories = nil
+    KCM.Pipeline.Recompute("test")
+    KCM.Categories = saved
+    t.truthy(true, "a very early recompute does not raise")
+end)
+
+test("Pipeline.CalcSummary renders the reason and the rewrite/skip tally", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.Pipeline.CalcSummary("equip", 2, 13, 11), "reason=equip rewrote 2/13 (skipped 11)",
+        "the debug line shape the Calc tag emits")
+    t.eq(KCM.Pipeline.CalcSummary(nil, 0, 0, 0), "reason=nil rewrote 0/0 (skipped 0)",
+        "a missing reason still renders rather than raising")
+end)
+
+test("Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set", function(t)
+    local KCM, mock = load()
+    local seeded
+    for _, id in ipairs(KCM.SEED.FOOD) do
+        if KCM.ID.IsItem(id) then seeded = id; break end
+    end
+    mock.setItem(seeded, { subType = "Food & Drink", tt = { healValue = 100 } })
+    mock.setBag(seeded, 1)
+    KCM.Pipeline.RunAutoDiscovery("test")
+    t.eq(KCM.Selector.GetBucket("FOOD").discovered[seeded], nil,
+        "an item already in the shipped seed is not re-recorded as a discovery")
+end)
+
+test("Pipeline.RunAutoDiscovery reports zero when nothing new is in bags", function(t)
+    local KCM = load()
+    t.eq(KCM.Pipeline.RunAutoDiscovery("test"), 0, "empty bags discover nothing")
+end)
+
+-- ---------------------------------------------------------------------------
+-- ResetAllToDefaults
+-- ---------------------------------------------------------------------------
+
+test("ResetAllToDefaults wipes category customizations back to the shipped state", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.Selector.AddItem("FOOD", 950001)
+    KCM.Selector.Block("FOOD", 950002)
+    KCM.ResetAllToDefaults("test")
+    local bucket = KCM.Selector.GetBucket("FOOD")
+    t.eq(bucket.added[950001], nil, "added items are cleared")
+    t.eq(bucket.blocked[950002], nil, "blocks are cleared")
+end)
+
+test("ResetAllToDefaults clears stat-priority overrides and re-enables the addon", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profile.statPriority["7_263"] = { primary = "STR" }
+    KCM.db.profile.enabled = false
+    KCM.ResetAllToDefaults("test")
+    t.eq(next(KCM.db.profile.statPriority), nil, "overrides are gone, seeds take over again")
+    t.eq(KCM.db.profile.enabled, true, "the master enable is a customization too")
+end)
+
+test("ResetAllToDefaults preserves macro state so live macros are not orphaned", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    mock.setItem(950003, { subType = "Food & Drink", tt = { healValue = 500 } })
+    mock.setBag(950003, 1)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950003, "FOOD")
+    KCM.ResetAllToDefaults("test")
+    t.truthy(KCM.db.profile.macroState["KCM_FOOD"], "the macro the user has on their bars is kept")
+end)
+
+test("ResetAllToDefaults rediscovers what is still in bags", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    mock.setItem(950004, { subType = "Food & Drink", tt = { healValue = 500 } })
+    mock.setBag(950004, 1)
+    KCM.ResetAllToDefaults("test")
+    local found = false
+    for _, id in ipairs(KCM.Selector.GetEffectivePriority("FOOD")) do
+        if id == 950004 then found = true end
+    end
+    t.truthy(found, "the wiped discovered set is refilled in the same pass, not left empty")
+end)
+
+test("ResetAllToDefaults reports whether it mutated anything", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.ResetAllToDefaults("test"), true, "a real reset reports true")
+    local saved = KCM.db
+    KCM.db = nil
+    local result = KCM.ResetAllToDefaults("test")
+    KCM.db = saved
+    t.eq(result, false, "with no DB there is nothing to reset")
+end)
+
+test("ResetAllToDefaults leaves the category buckets structurally valid", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.ResetAllToDefaults("test")
+    for _, cat in ipairs(KCM.Categories.LIST) do
+        t.truthy(KCM.db.profile.categories[cat.key],
+            cat.key .. " still has its bucket after the wipe")
+    end
+end)

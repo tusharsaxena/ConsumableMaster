@@ -81,3 +81,86 @@ test("SpecHelper.AllSpecs enumerates specs including the current one", function(
     t.truthy(current, "current spec present in enumeration")
     t.eq(current.specName, "Enhancement", "carries the spec name")
 end)
+
+test("SpecHelper.MakeKey is stable regardless of numeric or string inputs", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.SpecHelper.MakeKey(7, 263), "7_263", "numbers join with an underscore")
+    t.eq(KCM.SpecHelper.MakeKey("7", "263"), "7_263", "pre-stringified ids produce the same key")
+end)
+
+test("SpecHelper.GetCurrent returns nothing when the client has no class yet", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = _G.UnitClass
+    _G.UnitClass = function() return nil, nil, nil end
+    local classID = KCM.SpecHelper.GetCurrent()
+    _G.UnitClass = saved
+    t.eq(classID, nil, "no class means no spec identity at all")
+end)
+
+test("SpecHelper.GetCurrent stops at the classID when the spec id is unresolvable", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local saved = _G.GetSpecializationInfo
+    _G.GetSpecializationInfo = function() return nil end
+    local classID, specID, specKey = KCM.SpecHelper.GetCurrent()
+    _G.GetSpecializationInfo = saved
+    t.eq(classID, mock.spec.classID, "the class is still reported")
+    t.eq(specID, nil, "but no spec id is invented")
+    t.eq(specKey, nil, "and no key is built from a missing half")
+end)
+
+test("SpecHelper.GetStatPriority ignores a user row that names no primary", function(t)
+    local KCM = h.loader.loadPure()
+    local key = "7_263"
+    KCM.db.profile.statPriority[key] = { secondary = { "CRIT" } }   -- half-written row
+    local seeded = KCM.SEED.STAT_PRIORITY[key]
+    local got = KCM.SpecHelper.GetStatPriority(key)
+    t.eq(got.primary, seeded.primary, "falls through to the seed rather than returning a nil primary")
+end)
+
+test("SpecHelper.GetStatPriority defaults a user override's secondary list to empty", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profile.statPriority["7_263"] = { primary = "AGI" }
+    local got = KCM.SpecHelper.GetStatPriority("7_263")
+    t.eq(got.primary, "AGI", "the override's primary wins")
+    t.eqList(got.secondary, {}, "and the missing secondary list is an empty table, never nil")
+end)
+
+test("SpecHelper.GetStatPriority falls back on class primary for an unseeded spec", function(t)
+    local KCM = h.loader.loadPure()
+    -- classID 8 is Mage; a spec id that does not exist forces the class fallback.
+    local got = KCM.SpecHelper.GetStatPriority("8_99999")
+    t.eq(got.primary, "INT", "class-primary fallback keyed off the classID prefix")
+    t.eqList(got.secondary, {}, "with no secondary guidance")
+end)
+
+test("SpecHelper.GetStatPriority never returns nil, even for a malformed key", function(t)
+    local KCM = h.loader.loadPure()
+    for _, key in ipairs({ "not_a_key", "", "999_1" }) do
+        local got = KCM.SpecHelper.GetStatPriority(key)
+        t.truthy(got and got.primary, "'" .. key .. "' still yields a usable primary")
+        t.truthy(got.secondary, "'" .. key .. "' still yields a secondary table")
+    end
+    local nilKey = KCM.SpecHelper.GetStatPriority(nil)
+    t.eq(nilKey.primary, "STR", "a nil key lands on the last-resort default")
+end)
+
+test("SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent", function(t)
+    local KCM = h.loader.loadPure()
+    local all = KCM.SpecHelper.AllSpecs()
+    t.truthy(#all >= 1, "at least one spec is enumerated")
+    for _, row in ipairs(all) do
+        t.truthy(row.classID and row.specID, "row carries both ids")
+        t.eq(row.specKey, KCM.SpecHelper.MakeKey(row.classID, row.specID),
+            "row key matches MakeKey, so it indexes the same tables GetCurrent does")
+    end
+end)
+
+test("SpecHelper.AllSpecs skips classes the client reports no specs for", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = _G.GetNumSpecializationsForClassID
+    _G.GetNumSpecializationsForClassID = function() return 0 end
+    local all = KCM.SpecHelper.AllSpecs()
+    _G.GetNumSpecializationsForClassID = saved
+    t.eq(#all, 0, "an empty enumeration is returned rather than raising on a nil count")
+end)

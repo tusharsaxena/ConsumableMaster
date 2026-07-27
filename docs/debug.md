@@ -9,12 +9,15 @@ The debug console, the dump targets, and the schema-driven slash CLI. All chat o
 `modules/DebugLog.lua` owns the on-screen console — a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia), styled like the addon's own frames (title bar + 1px divider, dark skin, flat text buttons). The bundled JetBrains Mono default is **standard-compliant, not a deviation**: the Ka0s Standard's `debug-logging-§2` *requires* a shipped monospace font for the debug console and names JetBrains Mono (Regular, OFL) as the reference font — a fixed-width font is needed for the aligned `<HH:MM:SS> | [tag] …` columns and Blizzard ships no monospace font object, so the standard marks the shipped console font a **sanctioned styling exception** an audit MUST NOT flag. It is not user-configurable and there is intentionally no LSM picker; the fallback on an LSM fetch failure is Blizzard's `Fonts\ARIALN.TTF`. See [scope.md → Resolved decisions](./scope.md#resolved-decisions). The title bar carries a left-aligned **Debug: ON/OFF** state toggle (green ON / red OFF) plus Copy / Clear / close; **Copy** opens a separate read-through window for `Ctrl+C`. `core/Debug.lua` routes diagnostics into it:
 
 ```lua
-KCM.Debug.IsOn()      -- bool; reads KCM.State.debug
-KCM.Debug.Toggle()    -- routes through DebugLog.Toggle -> SetEnabled (owns the ack)
+KCM.Debug.IsOn()      -- bool; reads the flag (DebugLog.IsEnabled, else State.debug)
 KCM.Debug(tag, fmt, ...)        -- callable sink: gated, secret-safe line to the console
+                                -- read side only: core/Debug.lua publishes no Toggle,
+                                -- because SetEnabled below is the single write path (§5)
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
-KCM.DebugLog.AddLine(tag, msg) / Show() / Hide() / Toggle_Window() / ShowCopy()
+KCM.DebugLog.AddLine(tag, msg) / Clear()
+KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
+KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header + scrollbar + line counter (§11)
 KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
 ```
 

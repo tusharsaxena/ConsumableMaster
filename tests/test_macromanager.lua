@@ -148,3 +148,282 @@ test("MacroManager: BuildBody VANTUS uses the default single /use body", functio
     t.eq(M.BuildBody("VANTUS", 245880), "#showtooltip\n/use item:245880",
         "VANTUS item pick → default single /use item body")
 end)
+
+-- ---------------------------------------------------------------------------
+-- SetMacro — the write path, its result codes, and the fingerprint cache
+-- ---------------------------------------------------------------------------
+
+local function ownFood(mock, id)
+    mock.setItem(id, { name = "Test Food", subType = "Food & Drink", tt = { healValue = 500 } })
+    mock.setBag(id, 1)
+    return id
+end
+
+test("MacroManager.SetMacro creates the macro on the first write", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940001)
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 940001, "FOOD"), "created", "first write creates")
+    t.truthy(mock.macros["KCM_FOOD"], "the macro now exists in the client")
+end)
+
+test("MacroManager.SetMacro records the body and icon it wrote", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940002)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940002, "FOOD")
+    local state = KCM.db.profile.macroState["KCM_FOOD"]
+    t.eq(state.lastItemID, 940002, "the picked item is remembered")
+    t.eq(state.lastCat, "FOOD", "along with the category that drove it")
+    t.truthy(state.lastBody:find("940002", 1, true), "and the exact body written")
+    t.truthy(state.lastIcon, "and the icon, so an icon-only change still triggers a rewrite")
+end)
+
+test("MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940003)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940003, "FOOD")
+
+    local edits = 0
+    local realEdit = _G.EditMacro
+    _G.EditMacro = function(...) edits = edits + 1; return realEdit(...) end
+    local result = KCM.MacroManager.SetMacro("KCM_FOOD", 940003, "FOOD")
+    _G.EditMacro = realEdit
+
+    t.eq(result, "unchanged", "an identical body short-circuits")
+    t.eq(edits, 0, "no protected API is touched for a no-op recompute")
+end)
+
+test("MacroManager.SetMacro edits in place when the pick changes", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940004)
+    ownFood(mock, 940005)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940004, "FOOD")
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 940005, "FOOD"), "edited", "a new pick edits")
+    t.truthy(mock.macros["KCM_FOOD"].body:find("940005", 1, true), "the body follows the new pick")
+end)
+
+test("MacroManager.SetMacro falls back to the empty body when nothing is picked", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.MacroManager.SetMacro("KCM_FOOD", nil, "FOOD")
+    local body = KCM.db.profile.macroState["KCM_FOOD"].lastBody
+    t.eq(body, KCM.Categories.Get("FOOD").emptyText, "the category's empty-state stub is written")
+end)
+
+test("MacroManager.SetMacro resolves the category from the macro name if not told", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940006)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940006)
+    t.eq(KCM.db.profile.macroState["KCM_FOOD"].lastCat, "FOOD",
+        "the macroName -> category lookup keeps the empty-state fallback correct")
+end)
+
+test("MacroManager.SetMacro rejects an empty macro name", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.MacroManager.SetMacro("", 940007, "FOOD"), "error", "empty name is an error")
+    t.eq(KCM.MacroManager.SetMacro(nil, 940007, "FOOD"), "error", "nil name is an error")
+end)
+
+test("MacroManager.SetMacro refuses to write before the DB is ready", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = KCM.db
+    KCM.db = nil
+    local result = KCM.MacroManager.SetMacro("KCM_FOOD", 940008, "FOOD")
+    KCM.db = saved
+    t.eq(result, "error", "no macro is written against a missing profile")
+end)
+
+test("MacroManager.SetMacro errors out when the account macro quota is full", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940009)
+    local saved = _G.GetNumMacros
+    _G.GetNumMacros = function() return 120 end
+    local result = KCM.MacroManager.SetMacro("KCM_FOOD", 940009, "FOOD")
+    _G.GetNumMacros = saved
+    t.eq(result, "error", "creating past Blizzard's 120-macro cap fails cleanly")
+    t.eq(KCM.db.profile.macroState["KCM_FOOD"], nil, "and leaves no state claiming it succeeded")
+end)
+
+test("MacroManager.SetMacro surfaces a rejected edit as an error", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940010)
+    ownFood(mock, 940011)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940010, "FOOD")
+    local saved = _G.EditMacro
+    _G.EditMacro = function() return 0 end          -- client rejected the body
+    local result = KCM.MacroManager.SetMacro("KCM_FOOD", 940011, "FOOD")
+    _G.EditMacro = saved
+    t.eq(result, "error", "a zero index from EditMacro is a failure, not a success")
+    t.truthy(KCM.db.profile.macroState["KCM_FOOD"].lastBody:find("940010", 1, true),
+        "the stored fingerprint still describes what is actually in the client")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Combat deferral and the flush queue
+-- ---------------------------------------------------------------------------
+
+test("MacroManager.SetMacro defers instead of writing while in combat", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941001)
+    mock.setCombat(true)
+    local result = KCM.MacroManager.SetMacro("KCM_FOOD", 941001, "FOOD")
+    t.eq(result, "deferred", "the write is queued, never attempted")
+    t.eq(mock.macros["KCM_FOOD"], nil, "no protected API ran during combat")
+end)
+
+test("MacroManager.FlushPending applies a deferred write once combat ends", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941002)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941002, "FOOD")
+    mock.setCombat(false)
+
+    t.eq(KCM.MacroManager.FlushPending(), 1, "one queued write applied")
+    t.truthy(mock.macros["KCM_FOOD"].body:find("941002", 1, true), "with the body queued in combat")
+    t.eq(KCM.MacroManager.FlushPending(), 0, "and the queue is now empty")
+end)
+
+test("MacroManager.FlushPending refuses to run while still in combat", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941003)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941003, "FOOD")
+    t.eq(KCM.MacroManager.FlushPending(), 0, "a mistimed flush cannot taint")
+    t.eq(mock.macros["KCM_FOOD"], nil, "the queue is left intact for the real regen event")
+end)
+
+test("MacroManager.FlushPending gives up on a macro after three failed writes", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941004)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941004, "FOOD")
+    mock.setCombat(false)
+
+    -- Every write fails: CreateMacro produces no index.
+    local savedCreate = _G.CreateMacro
+    _G.CreateMacro = function() end
+    mock.output = {}
+    local applied = 0
+    for _ = 1, 3 do applied = applied + KCM.MacroManager.FlushPending() end
+    _G.CreateMacro = savedCreate
+
+    t.eq(applied, 0, "nothing was ever written")
+    local gaveUp = false
+    for _, line in ipairs(mock.output) do
+        if line:find("gave up on KCM_FOOD", 1, true) then gaveUp = true end
+    end
+    t.truthy(gaveUp, "the user is told once, rather than retrying forever every combat cycle")
+    t.eq(KCM.MacroManager.FlushPending(), 0, "and the entry is dropped from the queue")
+end)
+
+test("MacroManager.FlushPending re-queues a write if combat resumes mid-flush", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941005)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941005, "FOOD")
+
+    -- Out of combat for the flush guard, back in combat by the time the write
+    -- is attempted — the shape of a flush racing the next pull.
+    local calls = 0
+    local saved = _G.InCombatLockdown
+    _G.InCombatLockdown = function()
+        calls = calls + 1
+        return calls > 1
+    end
+    local applied = KCM.MacroManager.FlushPending()
+    _G.InCombatLockdown = saved
+
+    t.eq(applied, 0, "nothing counted as applied")
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 1, "the entry survived and flushes on the next regen")
+end)
+
+-- ---------------------------------------------------------------------------
+-- InvalidateState
+-- ---------------------------------------------------------------------------
+
+test("MacroManager.InvalidateState forces the next pass to rewrite every body", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 942001)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 942001, "FOOD")
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 942001, "FOOD"), "unchanged", "cached first")
+
+    KCM.MacroManager.InvalidateState()
+    t.eq(next(KCM.db.profile.macroState), nil, "the fingerprint cache is emptied")
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 942001, "FOOD"), "edited",
+        "so the same pick is written to the client again (/cm rewritemacros)")
+end)
+
+test("MacroManager.InvalidateState drops queued combat writes", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 942002)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 942002, "FOOD")
+    KCM.MacroManager.InvalidateState()
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 0,
+        "queued entries reference stale expectations, so they are discarded")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Oversized bodies
+-- ---------------------------------------------------------------------------
+
+test("MacroManager falls back to the empty body when a body exceeds 255 bytes", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 943001)
+    local realBuild = KCM.MacroManager.BuildBody
+    KCM.MacroManager.BuildBody = function() return string.rep("x", 300) end
+    mock.output = {}
+    KCM.MacroManager.SetMacro("KCM_FOOD", 943001, "FOOD")
+    KCM.MacroManager.BuildBody = realBuild
+
+    t.eq(KCM.db.profile.macroState["KCM_FOOD"].lastBody, KCM.Categories.Get("FOOD").emptyText,
+        "a truncated body would corrupt the macro, so the empty stub is written instead")
+    t.ne(KCM.db.profile.macroState["KCM_FOOD"].lastIcon, 134400,
+        "and the stored icon drops the dynamic-icon sentinel, since the body has no #showtooltip")
+end)
+
+test("MacroManager warns about an oversized body only once per category", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 943002)
+    local realBuild = KCM.MacroManager.BuildBody
+    KCM.MacroManager.BuildBody = function() return string.rep("x", 300) end
+    mock.output = {}
+    KCM.MacroManager.SetMacro("KCM_FOOD", 943002, "FOOD")
+    KCM.MacroManager.SetMacro("KCM_FOOD", 943002, "FOOD")
+    KCM.MacroManager.BuildBody = realBuild
+
+    local warnings = 0
+    for _, line in ipairs(mock.output) do
+        if line:find("exceeds 255 bytes", 1, true) then warnings = warnings + 1 end
+    end
+    t.eq(warnings, 1, "one chat line per category per session, not one per recompute")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Weapon enchant macro
+-- ---------------------------------------------------------------------------
+
+test("MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand has a pick", function(t)
+    local KCM = h.loader.loadPure()
+    local cat = KCM.Categories.Get("WPN_ENCH")
+    KCM.MacroManager.SetWeaponEnchantMacro(cat, nil, nil)
+    t.eq(KCM.db.profile.macroState["KCM_WPN_ENCH"].lastBody, cat.emptyText,
+        "an unenhanceable weapon set still leaves a valid macro on the bar")
+end)
+
+test("MacroManager.SetWeaponEnchantMacro takes its icon from the main hand", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.MacroManager.SetWeaponEnchantMacro(KCM.Categories.Get("WPN_ENCH"), 944001, 944002)
+    t.eq(KCM.db.profile.macroState["KCM_WPN_ENCH"].lastItemID, 944001,
+        "the main-hand stone is what the action bar shows")
+end)
+
+test("MacroManager.SetWeaponEnchantMacro guards a missing category or DB", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.MacroManager.SetWeaponEnchantMacro(nil, 1, 2), "error", "no category is an error")
+    local saved = KCM.db
+    KCM.db = nil
+    local result = KCM.MacroManager.SetWeaponEnchantMacro(KCM.Categories.Get("WPN_ENCH"), 1, 2)
+    KCM.db = saved
+    t.eq(result, "error", "no DB is an error")
+end)

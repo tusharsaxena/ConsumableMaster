@@ -114,7 +114,7 @@ Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handler
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + publish `RECOMPUTE`. |
 | `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
 | `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes. |
-| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → `Options.RequestRefresh` only. See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
+| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → publish `PANEL_REFRESH` only (which the options layer debounces into a rebuild). See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
 | `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` | Ignored except for slot 16 (main hand) / 17 (off hand); on a main-hand or off-hand swap, publish `RECOMPUTE` (`"equip"`) so `KCM_WPN_ENCH` re-derives each hand's weapon-type affinity (`core/WeaponSlots.lua`) and re-picks per hand. |
 
@@ -130,7 +130,8 @@ if BagScanner.HasItem(itemID):
     discoverOne(itemID, "item_info_received")     -- retry classification
     Pipeline.RequestRecompute("item_info_received")
 else:
-    Options.RequestRefresh()                      -- debounced panel-only refresh
+    bus:SendMessage(KCM.MSG.PANEL_REFRESH)        -- panel-only; the options layer
+                                                  --   debounces it into one rebuild
 ```
 
 The retry exists because `Classifier.Match` returns false while a tooltip is pending; without it, items present in bags from `/reload` silently skip discovery on the first pass and never re-enter the candidate set until bags change.

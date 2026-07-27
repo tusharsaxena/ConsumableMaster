@@ -7,8 +7,10 @@
 -- iterates the builders once Blizzard_Settings is ready.
 --
 -- Public surface preserved for the rest of the addon:
---   KCM.Options.Register / Refresh / RequestRefresh / Open  (Core, Debug,
---      SlashCommands, Pipeline)
+--   KCM.Options.Refresh / RequestRefresh / Open  (Core, Debug, SlashCommands,
+--      Pipeline). Registration itself is driven by this file's own
+--      PLAYER_LOGIN / ADDON_LOADED bootstrap, which calls registerPanel
+--      directly; KCM.Settings.Register is the named alias for it.
 --   KCM.Settings.Helpers + KCM.Settings.Schema  (SlashCommands /cm list/get/set)
 
 local _, NS = ...
@@ -933,11 +935,6 @@ KCM.Settings.Register = registerPanel
 -- KCM.Options shim — preserves the public API used by Core / Debug /
 -- SlashCommands / Pipeline. Internals route through the new framework.
 -- ---------------------------------------------------------------------
-
-function O.Register()
-    registerPanel()
-    return KCM.Settings.main ~= nil
-end
 
 function O.Refresh()
     O._refreshPending = false

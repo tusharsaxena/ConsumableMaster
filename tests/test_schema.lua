@@ -95,3 +95,302 @@ test("schema: [Set] logs exactly one line at the write seam, gated by debug", fu
     KCM.DebugLog.AddLine = realAdd
     Helpers.Set("enabled", origEnabled)
 end)
+
+-- ---------------------------------------------------------------------------
+-- Path resolution
+-- ---------------------------------------------------------------------------
+
+test("schema: Resolve splits a dotted path into its parent table and key", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local parent, key = KCM.Settings.Helpers.Resolve("enabled")
+    t.eq(parent, KCM.db.profile, "a top-level path resolves against db.profile")
+    t.eq(key, "enabled", "with the leaf as the key")
+end)
+
+test("schema: Resolve walks nested tables", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local parent, key = KCM.Settings.Helpers.Resolve("categories.FOOD.added")
+    t.eq(parent, KCM.db.profile.categories.FOOD, "the parent is the containing table")
+    t.eq(key, "added", "and the key is the final segment")
+end)
+
+test("schema: Resolve refuses a path that runs through a non-table", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local parent = KCM.Settings.Helpers.Resolve("enabled.deeper")
+    t.eq(parent, nil, "a scalar cannot be indexed further")
+end)
+
+test("schema: Resolve returns nothing for an empty path or a missing DB", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local Helpers = KCM.Settings.Helpers
+    t.eq((Helpers.Resolve("")), nil, "empty path")
+    t.eq((Helpers.Resolve(nil)), nil, "nil path")
+    local saved = KCM.db
+    KCM.db = nil
+    local parent = Helpers.Resolve("enabled")
+    KCM.db = saved
+    t.eq(parent, nil, "no DB means nothing to resolve against")
+end)
+
+test("schema: Set can write a nested path, not just a top-level one", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local Helpers = KCM.Settings.Helpers
+    t.truthy(Helpers.Set("categories.FOOD.pins", { { itemID = 1, position = 1 } }), "write accepted")
+    t.eq(#KCM.db.profile.categories.FOOD.pins, 1, "and landed in the nested table")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Row validation
+-- ---------------------------------------------------------------------------
+
+test("schema: every row declares a panel that exists in the tab order", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local known = {}
+    for _, name in ipairs(KCM.Settings.order) do known[name] = true end
+    for _, row in ipairs(KCM.Settings.Schema) do
+        t.truthy(known[row.panel],
+            "row '" .. row.path .. "' targets panel '" .. tostring(row.panel) .. "', which is a real tab")
+    end
+end)
+
+test("schema: every row carries a label and a tooltip for the panel to render", function(t)
+    local KCM = h.loader.loadWithSchema()
+    for _, row in ipairs(KCM.Settings.Schema) do
+        t.truthy(row.label and row.label ~= "", "row '" .. row.path .. "' has a label")
+        t.truthy(row.tooltip and row.tooltip ~= "", "row '" .. row.path .. "' has a tooltip")
+    end
+end)
+
+test("schema: every row's default matches the seeded profile value", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local defaults = KCM.dbDefaults.profile
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.default ~= nil and not row.path:find(".", 1, true) then
+            t.eq(row.default, defaults[row.path],
+                "row '" .. row.path .. "' default is sourced from dbDefaults, never a second literal")
+        end
+    end
+end)
+
+test("schema: ValidateSchema counts a row with a bad panel, section, and type", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local Helpers = KCM.Settings.Helpers
+    local schema = KCM.Settings.Schema
+    schema[#schema + 1] = { path = "bogus", panel = "nope", section = "nope", type = "nope" }
+    local errors = Helpers.ValidateSchema()
+    schema[#schema] = nil
+    t.eq(errors, 3, "one error each for panel, section, and type")
+end)
+
+test("schema: ValidateSchema flags a row with no path", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local Helpers = KCM.Settings.Helpers
+    local schema = KCM.Settings.Schema
+    schema[#schema + 1] = { panel = "general", section = "general", type = "bool" }
+    local errors = Helpers.ValidateSchema()
+    schema[#schema] = nil
+    t.eq(errors, 1, "the missing path is reported")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Value validation + the SetAndRefresh mutation seam
+-- ---------------------------------------------------------------------------
+
+test("schema: ValidateSchemaValue enforces each declared type", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local V = KCM.Settings.Helpers.ValidateSchemaValue
+    t.eq(V({ type = "bool" }, true), true, "a boolean passes for bool")
+    t.eq(V({ type = "bool" }, "true"), nil, "a string does not")
+    t.eq(V({ type = "number" }, 5), 5, "a number passes for number")
+    t.eq(V({ type = "number" }, "5"), nil, "a numeric string does not")
+    t.eq(V({ type = "string" }, "x"), "x", "a string passes for string")
+    t.eq(V({ type = "string" }, 1), nil, "a number does not")
+    t.truthy(V({ type = "color" }, { 1, 1, 1, 1 }), "a table passes for color")
+    t.eq(V({ type = "color" }, "#fff"), nil, "a string does not")
+end)
+
+test("schema: ValidateSchemaValue clamps a number to its declared range", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local V = KCM.Settings.Helpers.ValidateSchemaValue
+    local def = { type = "number", min = 1, max = 10 }
+    t.eq(V(def, 0), 1, "below the floor clamps up")
+    t.eq(V(def, 99), 10, "above the ceiling clamps down")
+    t.eq(V(def, 5), 5, "in range passes through untouched")
+end)
+
+test("schema: SetAndRefresh writes the value and fires the row's onChange", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local Helpers = KCM.Settings.Helpers
+    local def = Helpers.FindSchema("enabled")
+    local seen
+    local realOnChange = def.onChange
+    def.onChange = function(v) seen = v end
+    local ok = Helpers.SetAndRefresh("enabled", false)
+    def.onChange = realOnChange
+
+    t.eq(ok, true, "the write succeeded")
+    t.eq(KCM.db.profile.enabled, false, "the value landed in the profile")
+    t.eq(seen, false, "and the row's side effect ran with the coerced value")
+    Helpers.Set("enabled", true)
+end)
+
+test("schema: SetAndRefresh refuses a value of the wrong type", function(t)
+    local KCM  = h.loader.loadWithSchema()
+    local mock = h.loader.mock
+    local Helpers = KCM.Settings.Helpers
+    mock.output = {}
+    local ok = Helpers.SetAndRefresh("enabled", "yes please")
+    t.eq(ok, false, "the write is rejected")
+    t.eq(KCM.db.profile.enabled, true, "the setting is untouched")
+    t.truthy(#mock.output > 0, "and the user is told why")
+end)
+
+test("schema: SetAndRefresh refuses a path that is not in the schema", function(t)
+    local KCM = h.loader.loadWithSchema()
+    t.eq(KCM.Settings.Helpers.SetAndRefresh("not.a.setting", true), false,
+        "only declared rows are writable through the mutation seam")
+end)
+
+test("schema: the published Schema:Set is the same seam as SetAndRefresh", function(t)
+    local KCM = h.loader.loadWithSchema()
+    t.eq(KCM.Schema:Set("enabled", false), true, "standard §4.5 setter writes")
+    t.eq(KCM.db.profile.enabled, false, "through the same validate-write-refresh path")
+    t.eq(KCM.Schema:Set("enabled", 12345), false, "and inherits the same validation")
+    KCM.Settings.Helpers.Set("enabled", true)
+end)
+
+-- ---------------------------------------------------------------------------
+-- Value formatting (shared by /cm list, /cm get and /cm set). Defined in
+-- core/SlashCommands.lua, so these cases need the full addon loaded.
+-- ---------------------------------------------------------------------------
+
+test("schema: FormatSchemaValue renders nil as 'nil'", function(t)
+    local KCM = h.loader.loadFullAddon()
+    t.eq(KCM.FormatSchemaValue({ type = "bool" }, nil), "nil", "an unset value renders explicitly")
+end)
+
+test("schema: FormatSchemaValue renders a colour as a four-component table", function(t)
+    local KCM = h.loader.loadFullAddon()
+    t.eq(KCM.FormatSchemaValue({ type = "color" }, { 1, 0, 0.5, 1 }), "{1.00, 0.00, 0.50, 1.00}",
+        "colours print at fixed precision so /cm get and /cm list agree")
+end)
+
+test("schema: FormatSchemaValue renders booleans and strings readably", function(t)
+    local KCM = h.loader.loadFullAddon()
+    t.eq(KCM.FormatSchemaValue({ type = "bool" }, true), "true", "boolean")
+    t.eq(KCM.FormatSchemaValue({ type = "string" }, "hello"), "hello", "string")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Panel refresh plumbing
+-- ---------------------------------------------------------------------------
+
+test("schema: RefreshAllPanels flags an off-screen page dirty instead of rebuilding it", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local rebuilt = 0
+    local ctx = {
+        _rendered = true,
+        _renderFn = function() rebuilt = rebuilt + 1 end,
+        panel = { IsShown = function() return false end },
+        refreshers = {},
+    }
+    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
+    KCM.Settings.Helpers.RefreshAllPanels()
+    KCM.Settings._panels[#KCM.Settings._panels] = nil
+
+    t.eq(rebuilt, 0, "a hidden page is not rebuilt on every checkbox toggle")
+    t.eq(ctx._dirty, true, "it is flagged so its next OnShow rebuilds it")
+end)
+
+test("schema: RefreshAllPanels rebuilds the page that is on screen", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local rebuilt = 0
+    local ctx = {
+        _rendered = true,
+        _renderFn = function() rebuilt = rebuilt + 1 end,
+        panel = { IsShown = function() return true end },
+        refreshers = {},
+    }
+    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
+    KCM.Settings.Helpers.RefreshAllPanels()
+    KCM.Settings._panels[#KCM.Settings._panels] = nil
+
+    t.eq(rebuilt, 1, "the visible page is re-rendered")
+    t.eq(ctx._dirty, false, "and is no longer dirty")
+end)
+
+test("schema: a render failure is reported instead of breaking the refresh loop", function(t)
+    local KCM  = h.loader.loadWithSchema()
+    local mock = h.loader.mock
+    local later = 0
+    local bad = {
+        _rendered = true, refreshers = {},
+        _renderFn = function() error("boom") end,
+        panel = { IsShown = function() return true end },
+    }
+    local good = {
+        _rendered = true, refreshers = {},
+        _renderFn = function() later = later + 1 end,
+        panel = { IsShown = function() return true end },
+    }
+    local panels = KCM.Settings._panels
+    panels[#panels + 1] = bad
+    panels[#panels + 1] = good
+    mock.output = {}
+    KCM.Settings.Helpers.RefreshAllPanels()
+    panels[#panels] = nil
+    panels[#panels] = nil
+
+    t.eq(later, 1, "one broken page does not stop the others from refreshing")
+    local reported = false
+    for _, line in ipairs(mock.output) do
+        if line:find("panel render failed", 1, true) then reported = true end
+    end
+    t.truthy(reported, "and the failure is surfaced rather than swallowed")
+end)
+
+test("schema: RefreshScalars re-syncs widgets in place without a rebuild", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local synced, rebuilt = 0, 0
+    local ctx = {
+        _rendered = true,
+        _renderFn = function() rebuilt = rebuilt + 1 end,
+        panel = { IsShown = function() return true end },
+        refreshers = { function() synced = synced + 1 end },
+    }
+    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
+    KCM.Settings.Helpers.RefreshScalars()
+    KCM.Settings._panels[#KCM.Settings._panels] = nil
+
+    t.eq(synced, 1, "each registered widget updater ran")
+    t.eq(rebuilt, 0, "no AceGUI teardown for a scalar write (options-ui-§11)")
+end)
+
+test("schema: RefreshScalars flags a hidden page dirty rather than syncing it", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local synced = 0
+    local ctx = {
+        _rendered = true,
+        panel = { IsShown = function() return false end },
+        refreshers = { function() synced = synced + 1 end },
+    }
+    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
+    KCM.Settings.Helpers.RefreshScalars()
+    KCM.Settings._panels[#KCM.Settings._panels] = nil
+
+    t.eq(synced, 0, "off-screen widgets are not touched")
+    t.eq(ctx._dirty, true, "the page rebuilds when the user next visits it")
+end)
+
+test("schema: the tab order lists each panel once and covers every category page", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local seen = {}
+    for _, name in ipairs(KCM.Settings.order) do
+        t.falsy(seen[name], "'" .. name .. "' appears once in the tab order")
+        seen[name] = true
+    end
+    for _, cat in ipairs(KCM.Categories.LIST) do
+        t.truthy(seen[cat.key:lower()], cat.key .. " has a settings tab")
+    end
+    t.truthy(seen.general and seen.statpriority, "the two non-category pages lead the order")
+end)

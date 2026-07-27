@@ -234,3 +234,186 @@ test("Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone"
     local mh = S.PickBestForSlot("WPN_ENCH", 16, nil)
     t.truthy(mh == 6002 or mh == 6003, "blunt slot picks weightstone or oil, never the whetstone")
 end)
+
+-- ---------------------------------------------------------------------------
+-- Discovery bookkeeping + the 30-day TTL sweep
+-- ---------------------------------------------------------------------------
+
+local DAY = 86400
+
+test("Selector.MarkDiscovered reports 'new' only on the first sighting", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    t.eq(S.MarkDiscovered("FOOD", 930001, nil, 1000), true, "first sighting is new")
+    t.eq(S.MarkDiscovered("FOOD", 930001, nil, 2000), false,
+        "a re-sighting is not new — otherwise every bag scan would refresh the UI")
+end)
+
+test("Selector.MarkDiscovered bumps the stored timestamp on a re-sighting", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    S.MarkDiscovered("FOOD", 930002, nil, 1000)
+    S.MarkDiscovered("FOOD", 930002, nil, 5000)
+    t.eq(S.GetBucket("FOOD").discovered[930002], 5000, "the TTL clock restarts on each sighting")
+end)
+
+test("Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    S.MarkDiscovered("FOOD", 930003, nil, 5000)
+    S.MarkDiscovered("FOOD", 930003, nil, 1000)
+    t.eq(S.GetBucket("FOOD").discovered[930003], 5000, "the newest sighting wins")
+end)
+
+test("Selector.MarkDiscovered upgrades a legacy boolean entry to a timestamp", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    S.GetBucket("FOOD").discovered[930004] = true        -- written by v1.0.0
+    S.MarkDiscovered("FOOD", 930004, nil, 7000)
+    t.eq(S.GetBucket("FOOD").discovered[930004], 7000, "the legacy value is migrated in place")
+end)
+
+test("Selector.MarkDiscovered refuses spell sentinels and unknown categories", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    t.eq(S.MarkDiscovered("FOOD", KCM.ID.AsSpell(5512), nil, 1000), false,
+        "a spell cannot be found in a bag")
+    t.eq(S.MarkDiscovered("NOPE", 930005, nil, 1000), false, "unknown category has no bucket")
+    t.eq(S.MarkDiscovered("FOOD", nil, nil, 1000), false, "nil item is a no-op")
+end)
+
+test("Selector.SweepStaleDiscovered drops an entry past the 30-day TTL", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local now = 100 * DAY
+    S.MarkDiscovered("FOOD", 931001, nil, now - 31 * DAY)
+    local swept, cats = S.SweepStaleDiscovered(now)
+    t.eq(S.GetBucket("FOOD").discovered[931001], nil, "the stale entry is gone")
+    t.eq(swept, 1, "one entry swept")
+    t.eq(cats, 1, "across one category")
+end)
+
+test("Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local now = 100 * DAY
+    S.MarkDiscovered("FOOD", 931002, nil, now - 29 * DAY)
+    S.SweepStaleDiscovered(now)
+    t.truthy(S.GetBucket("FOOD").discovered[931002], "a recently-seen item survives")
+end)
+
+test("Selector.SweepStaleDiscovered refreshes an item that is still in bags", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local now  = 100 * DAY
+    S.MarkDiscovered("FOOD", 931003, nil, now - 90 * DAY)   -- long past the TTL
+    mock.setBag(931003, 1)                                   -- but the player still owns it
+    local swept = S.SweepStaleDiscovered(now)
+    t.eq(swept, 0, "nothing swept")
+    t.eq(S.GetBucket("FOOD").discovered[931003], now, "an owned item's clock is reset instead")
+end)
+
+test("Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    S.GetBucket("FOOD").discovered[931004] = true
+    S.SweepStaleDiscovered(100 * DAY)
+    t.eq(S.GetBucket("FOOD").discovered[931004], nil,
+        "an unowned legacy entry with no timestamp is collected")
+end)
+
+test("Selector.SweepStaleDiscovered never touches user-intentional entries", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    S.AddItem("FOOD", 931005)
+    S.Block("FOOD", 931006)
+    S.SweepStaleDiscovered(1000 * DAY)
+    t.truthy(S.GetBucket("FOOD").added[931005], "an explicitly-added item is never swept")
+    t.truthy(S.GetBucket("FOOD").blocked[931006], "nor is a block — it must keep suppressing")
+end)
+
+test("Selector.SweepStaleDiscovered reaches inside per-spec buckets", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local now = 100 * DAY
+    S.MarkDiscovered("FLASK", 931007, "7_263", now - 60 * DAY)
+    local swept = S.SweepStaleDiscovered(now)
+    t.eq(swept, 1, "the spec-aware bucket is walked too")
+    t.eq(S.GetBucket("FLASK", "7_263").discovered[931007], nil, "and its stale entry removed")
+end)
+
+test("Selector.SweepStaleDiscovered is a no-op before the DB exists", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = KCM.db
+    KCM.db = nil
+    local swept, cats = KCM.Selector.SweepStaleDiscovered(1000)
+    KCM.db = saved
+    t.eq(swept, 0, "no entries swept")
+    t.eq(cats, 0, "no categories touched")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Pin merge
+-- ---------------------------------------------------------------------------
+
+test("Selector: a pin at position 1 moves its item to the front", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    t.truthy(#base >= 2, "FOOD ranks more than one candidate")
+
+    local last = base[#base]
+    S.GetBucket("FOOD").pins = { { itemID = last, position = 1 } }
+    local pinned = S.GetEffectivePriority("FOOD")
+    t.eq(pinned[1], last, "the pinned item outranks the auto-ranked order")
+    t.eq(#pinned, #base, "and no candidate is lost in the merge")
+end)
+
+test("Selector: a pin for an item outside the candidate set is ignored", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    S.GetBucket("FOOD").pins = { { itemID = 939999, position = 1 } }
+    t.eqList(S.GetEffectivePriority("FOOD"), base,
+        "a pin left behind by a removed item does not distort the list")
+end)
+
+test("Selector: a pin past the end of the list clamps to last place", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    local first = base[1]
+    S.GetBucket("FOOD").pins = { { itemID = first, position = #base + 50 } }
+    local pinned = S.GetEffectivePriority("FOOD")
+    t.eq(pinned[#pinned], first, "an overshooting position lands at the end, not out of bounds")
+    t.eq(#pinned, #base, "the list length is unchanged")
+end)
+
+-- Colliding pins can't arise from the UI — MoveUp/MoveDown rewrite the whole
+-- pins array as one contiguous 1..N run — so this pins the behaviour of a
+-- hand-edited or corrupted SavedVariables: first pin listed wins the slot, the
+-- loser is displaced rather than silently dropped.
+test("Selector: two pins on the same position keep both items in the list", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    t.truthy(#base >= 3, "enough candidates to collide two pins")
+    local a, b = base[#base], base[#base - 1]
+    S.GetBucket("FOOD").pins = {
+        { itemID = a, position = 1 },
+        { itemID = b, position = 1 },
+    }
+    local pinned = S.GetEffectivePriority("FOOD")
+    t.eq(pinned[1], a, "the pin listed first wins the contested slot")
+    t.eq(#pinned, #base, "no candidate is lost to the collision")
+    local hasB = false
+    for _, id in ipairs(pinned) do if id == b then hasB = true end end
+    t.truthy(hasB, "the displaced pin is still ranked, just not at its requested slot")
+end)
+
+test("Selector.GetEffectivePriority returns an empty list for an unknown category", function(t)
+    local KCM = h.loader.loadPure()
+    t.eqList(KCM.Selector.GetEffectivePriority("NOT_A_CATEGORY"), {},
+        "callers can always ipairs() the result")
+end)

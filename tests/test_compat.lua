@@ -47,3 +47,93 @@ test("Compat.GetSpellName resolves known spells and nil otherwise", function(t)
     t.eq(C.GetSpellName(nil), nil, "nil id -> nil")
     t.eq(C.GetSpellName(999999), nil, "unknown spell -> nil")
 end)
+
+test("Compat prefers C_SpecializationInfo over the legacy spec globals", function(t)
+    local KCM = h.loader.loadPure()
+    _G.C_SpecializationInfo = {
+        GetSpecialization = function() return 99 end,
+        GetSpecializationInfo = function(i) return 1000 + i, "Modern" end,
+        GetNumSpecializationsForClassID = function() return 4 end,
+        GetSpecializationInfoForClassID = function(_, i) return 2000 + i, "ModernForClass" end,
+    }
+    t.eq(KCM.Compat.GetSpecialization(), 99, "index comes from the namespaced API")
+    local specID, name = KCM.Compat.GetSpecializationInfo(1)
+    t.eq(specID, 1001, "spec id comes from the namespaced API")
+    t.eq(name, "Modern", "and so does the name")
+    t.eq(KCM.Compat.GetNumSpecializationsForClassID(7), 4, "spec count comes from the namespaced API")
+    t.eq((KCM.Compat.GetSpecializationInfoForClassID(7, 1)), 2001, "per-class lookup too")
+    _G.C_SpecializationInfo = nil
+end)
+
+test("Compat falls back to the flat globals when the namespace is absent", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    t.eq(_G.C_SpecializationInfo, nil, "the mock client exposes only the legacy globals")
+    t.eq(KCM.Compat.GetSpecialization(), mock.spec.specIndex, "legacy GetSpecialization is used")
+end)
+
+test("Compat.GetSpecializationInfo guards a nil index", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.Compat.GetSpecializationInfo(nil), nil,
+        "a specless character short-circuits before hitting the client API")
+end)
+
+test("Compat.GetNumSpecializationsForClassID reports zero when no API answers", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = _G.GetNumSpecializationsForClassID
+    _G.GetNumSpecializationsForClassID = nil
+    local n = KCM.Compat.GetNumSpecializationsForClassID(7)
+    _G.GetNumSpecializationsForClassID = saved
+    t.eq(n, 0, "zero, so the caller's `for i = 1, n` loop simply does not run")
+end)
+
+test("Compat.GetSpecializationInfoForClassID returns nil for an unknown pair", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.Compat.GetSpecializationInfoForClassID(99, 99), nil, "no such class/spec")
+end)
+
+test("Compat.GetSpellName guards a nil spellID before touching the client", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.Compat.GetSpellName(nil), nil, "nil in, nil out")
+end)
+
+test("Compat.GetSpellName treats an empty name as unresolved and keeps looking", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setSpell(8100, { name = "Real Name" })
+    -- The modern call answers with "" (item data still streaming in); the
+    -- fallback chain must not accept that as an answer.
+    local savedName = _G.C_Spell.GetSpellName
+    _G.C_Spell.GetSpellName = function() return "" end
+    local name = KCM.Compat.GetSpellName(8100)
+    _G.C_Spell.GetSpellName = savedName
+    t.eq(name, "Real Name", "an empty string falls through to the next API in the chain")
+end)
+
+test("Compat.GetSpellName falls back to the C_Spell.GetSpellInfo shape", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setSpell(8101, { name = "Info Shape" })
+    local saved = _G.C_Spell.GetSpellName
+    _G.C_Spell.GetSpellName = nil
+    local name = KCM.Compat.GetSpellName(8101)
+    _G.C_Spell.GetSpellName = saved
+    t.eq(name, "Info Shape", "the info-table form answers when the direct getter is gone")
+end)
+
+test("Compat.GetSpellName falls back to the deprecated global last", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setSpell(8102, { name = "Legacy" })
+    local saved = _G.C_Spell
+    _G.C_Spell = nil
+    local name = KCM.Compat.GetSpellName(8102)
+    _G.C_Spell = saved
+    t.eq(name, "Legacy", "a pre-namespace client still resolves the name")
+end)
+
+test("Compat.GetSpellName returns nil when nothing can resolve the id", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.Compat.GetSpellName(8103), nil,
+        "callers pick their own placeholder rather than being handed a fake name")
+end)

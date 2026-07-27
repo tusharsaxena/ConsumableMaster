@@ -11,7 +11,7 @@ with red tests or lint errors is not allowed.
 
 | Gate | Command | What it does |
 |------|---------|--------------|
-| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector, ID sentinels, schema, macro-body builders, message bus, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, and the `/cm` dispatcher — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
+| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, and the `/cm` dispatcher — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
 | Lint | `luacheck .` | Static analysis across the addon (`libs/`, `docs/audits/`, `docs/reviews/`, `tests/` excluded). Must report **0 errors**. |
 
 Syntax-check a single file with `luac -p path/to/file.lua`.

@@ -6,19 +6,34 @@ The full inventory of every headless test case, grouped by suite. This file is t
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
 whenever the suite changes.
 
-### test_bagscanner.lua (5)
+### test_bagscanner.lua (12)
 
 - BagScanner.Scan is empty when bags are empty
 - BagScanner.Scan aggregates distinct items to itemID -> count
 - BagScanner.Scan sums separate stacks of the same item
 - BagScanner.HasItem reports ownership and count
 - BagScanner.HasItem is false for a nil id
+- BagScanner.Scan treats a slot with no stackCount as a single item
+- BagScanner.Scan skips empty slots without inventing entries
+- BagScanner.Scan returns an empty table when the container API is absent
+- BagScanner.Scan walks the reagent bag slot, not just the backpack
+- BagScanner.HasItem answers from Blizzard's tally, not a full bag walk
+- BagScanner.HasItem counts bank stacks in via the includeBank flag
+- BagScanner.HasItem reports not-owned when the item count API is absent
 
-### test_bus.lua (3)
+### test_bus.lua (11)
 
 - bus, NewBusTarget, and message catalogue are published
 - a target hears a message, then goes silent after unregister
 - RECOMPUTE routes to Pipeline.RequestRecompute
+- bus: every message name is namespaced and distinct
+- bus: NewBusTarget hands out a fresh, independently-embedded table
+- bus: one message fans out to every subscribed target
+- bus: unregistering one target leaves the others subscribed
+- bus: a message nobody subscribes to is a silent no-op
+- bus: the pipeline subscribes on its own target, never on KCM.bus
+- bus: RECOMPUTE with no reason still reaches the pipeline
+- bus: RECOMPUTE is inert while the pipeline entry point is missing
 
 ### test_categories.lua (2)
 
@@ -43,20 +58,66 @@ whenever the suite changes.
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 - classifier: keys on numeric subclass, not the localized subType
 
-### test_compat.lua (5)
+### test_compat.lua (15)
 
 - Compat.GetSpecialization returns the live spec index
 - Compat.GetSpecializationInfo maps an index to specID + name
 - Compat.GetNumSpecializationsForClassID delegates to the client
 - Compat.GetSpecializationInfoForClassID maps (class,index) to a spec
 - Compat.GetSpellName resolves known spells and nil otherwise
+- Compat prefers C_SpecializationInfo over the legacy spec globals
+- Compat falls back to the flat globals when the namespace is absent
+- Compat.GetSpecializationInfo guards a nil index
+- Compat.GetNumSpecializationsForClassID reports zero when no API answers
+- Compat.GetSpecializationInfoForClassID returns nil for an unknown pair
+- Compat.GetSpellName guards a nil spellID before touching the client
+- Compat.GetSpellName treats an empty name as unresolved and keeps looking
+- Compat.GetSpellName falls back to the C_Spell.GetSpellInfo shape
+- Compat.GetSpellName falls back to the deprecated global last
+- Compat.GetSpellName returns nil when nothing can resolve the id
 
-### test_database.lua (4)
+### test_constants.lua (12)
+
+- Constants: PREFIX is the cyan [CM] tag with no trailing space
+- Constants: IsConcatSafe accepts strings and numbers
+- Constants: IsConcatSafe rejects a value table.concat would raise on
+- Constants: SafeToString renders nil as the literal 'nil'
+- Constants: SafeToString passes booleans through, which concat itself rejects
+- Constants: SafeToString passes strings and numbers through unchanged
+- Constants: SafeToString substitutes <secret> for a concat-hostile value
+- Constants: Say prints one prefixed line in the single-string form
+- Constants: Say interpolates the format-string call form
+- Constants: Say stringifies every format arg through the secret guard
+- Constants: Say renders a nil format arg as 'nil' rather than dropping it
+- Constants: Say guards the single-string form too
+
+### test_database.lua (9)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
 - Database.RunMigrations is idempotent across repeated logins
 - Database.RunMigrations is a safe no-op when the DB has no global scope
+- Database.RunMigrations seeds a missing schemaVersion instead of leaving it nil
+- Database.RunMigrations upgrades an older stored version to current
+- Database.RunMigrations leaves unrelated global keys untouched
+- Database.RunMigrations never writes into the profile scope
+- Database.RunMigrations is a safe no-op before the DB exists
+
+### test_debug.lua (13)
+
+- Debug: the sink is published and callable
+- Debug: IsOn is false by default (State.debug is never persisted on)
+- Debug: IsOn tracks State.debug when no console module has loaded
+- Debug: IsOn defers to DebugLog.IsEnabled once the console owns the flag
+- Debug: a call while gated off emits nothing
+- Debug: a call while gated off never reaches the console either
+- Debug: an enabled call routes tag and message to the console
+- Debug: with no console loaded an enabled call falls back to tagged chat
+- Debug: a message with no format args is emitted verbatim
+- Debug: every format arg goes through the secret guard
+- Debug: a nil format arg renders as 'nil' rather than shifting later args
+- Debug: the chat fallback stringifies a hostile tag safely
+- Debug: the sink publishes no Toggle of its own
 
 ### test_debuglog.lua (10)
 
@@ -71,20 +132,76 @@ whenever the suite changes.
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
 
-### test_id.lua (6)
+### test_defaults.lua (28)
+
+- Categories: every row has a unique key and BY_KEY resolves it
+- Categories: Get returns nil for a key that isn't registered
+- Categories: every macro name is unique, KCM_-prefixed, and within 16 chars
+- Categories: every row carries a display name and an empty-state body
+- Categories: single-pick rows declare both a classifier and a ranker key
+- Categories: composite rows carry components and no ranker/classifier hint
+- Categories: every composite component names a real single-pick category
+- Categories: only the Weapon Enchant row is per-hand, and it is spec-aware
+- Defaults: every category has a profile bucket of the right shape
+- Defaults: no profile bucket exists for a category that was removed
+- Defaults: composite default order matches the category's declared components
+- Defaults: every composite sub-category ships enabled
+- Defaults: the addon ships enabled with an empty user-override state
+- Defaults: every single-pick category ships a non-empty seed list
+- Defaults: no seed list ships a duplicate entry
+- Defaults: every seed entry is a non-zero integer ID
+- Defaults: every seed entry classifies as either an item or a spell sentinel
+- Defaults: no seed list is shared by reference between two categories
+- Defaults: a seeded itemID is shared only across a health/mana sibling pair
+- Defaults: the FOOD seed carries the conjured-food spell as a sentinel
+- Defaults: the Healthstone seed is item-only
+- Defaults: every reusable augment rune the Classifier knows is in the seed
+- Defaults: a consumed augment rune is not flagged reusable
+- Defaults: every stat-priority key is a well-formed classID_specID pair
+- Defaults: stat priority covers all thirteen classes
+- Defaults: every seeded spec names a primary stat the Ranker weights
+- Defaults: every seeded secondary list is ordered, valid, and duplicate-free
+- Defaults: a seeded spec resolves through SpecHelper without falling back
+
+### test_events.lua (20)
+
+- OnEnable registers every client event the addon reacts to
+- OnEnable registers no event without a matching handler method
+- PLAYER_ENTERING_WORLD discovers, sweeps, then recomputes in that order
+- PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
+- BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
+- PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack
+- LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked
+- PLAYER_EQUIPMENT_CHANGED recomputes for a main-hand or off-hand swap
+- PLAYER_EQUIPMENT_CHANGED ignores every non-weapon slot
+- PLAYER_REGEN_ENABLED flushes the macro writes deferred during combat
+- PLAYER_REGEN_ENABLED is safe before the macro layer has loaded
+- GET_ITEM_INFO_RECEIVED ignores a failed or id-less delivery
+- GET_ITEM_INFO_RECEIVED for a bag item invalidates its cached tooltip
+- GET_ITEM_INFO_RECEIVED for a bag item discovers it and recomputes
+- GET_ITEM_INFO_RECEIVED for a non-bag item refreshes the panel but never recomputes
+- GET_ITEM_INFO_RECEIVED never discovers an item the player does not own
+- RequestRecompute keeps the latest reason across a coalesced burst
+- RequestRecompute falls back to a placeholder reason when given none
+- RequestRecompute re-arms after its frame callback has fired
+- RequestRecompute's frame callback is inert if the request was already served
+
+### test_id.lua (8)
 
 - ID.AsSpell negates the spellID into a sentinel
 - ID.IsSpell is true for negatives, false otherwise
 - ID.IsItem is true for positives, false for negatives
 - ID.SpellID recovers magnitude for spells, nil for items
-- ID.ItemID passes through items, nil for spells
 - ID.AsSpell/SpellID round-trips
+- ID predicates reject non-numeric input rather than raising
+- ID treats zero as neither an item nor a spell
+- ID: item and spell ranges are disjoint for every real id
 
 ### test_load.lua (1)
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macromanager.lua (11)
+### test_macromanager.lua (33)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -97,8 +214,30 @@ whenever the suite changes.
 - MacroManager: BuildCompositeBody uses a spell pick's localized name in the /castsequence
 - MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither
 - MacroManager: BuildBody VANTUS uses the default single /use body
+- MacroManager.SetMacro creates the macro on the first write
+- MacroManager.SetMacro records the body and icon it wrote
+- MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat
+- MacroManager.SetMacro edits in place when the pick changes
+- MacroManager.SetMacro falls back to the empty body when nothing is picked
+- MacroManager.SetMacro resolves the category from the macro name if not told
+- MacroManager.SetMacro rejects an empty macro name
+- MacroManager.SetMacro refuses to write before the DB is ready
+- MacroManager.SetMacro errors out when the account macro quota is full
+- MacroManager.SetMacro surfaces a rejected edit as an error
+- MacroManager.SetMacro defers instead of writing while in combat
+- MacroManager.FlushPending applies a deferred write once combat ends
+- MacroManager.FlushPending refuses to run while still in combat
+- MacroManager.FlushPending gives up on a macro after three failed writes
+- MacroManager.FlushPending re-queues a write if combat resumes mid-flush
+- MacroManager.InvalidateState forces the next pass to rewrite every body
+- MacroManager.InvalidateState drops queued combat writes
+- MacroManager falls back to the empty body when a body exceeds 255 bytes
+- MacroManager warns about an oversized body only once per category
+- MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand has a pick
+- MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
+- MacroManager.SetWeaponEnchantMacro guards a missing category or DB
 
-### test_pipeline.lua (6)
+### test_pipeline.lua (22)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
@@ -106,6 +245,22 @@ whenever the suite changes.
 - Pipeline.Recompute writes a macro body pointing at the owned pick
 - Pipeline.Recompute skips macro writes when the addon is disabled
 - Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMacro
+- Pipeline.RecomputeOne ignores a category that does not exist
+- Pipeline.RecomputeOne routes a composite category to the composite writer
+- Pipeline.RecomputeOne asks for a pick per hand on a per-hand category
+- Pipeline.Recompute writes one macro per registered category
+- Pipeline.Recompute isolates a category whose write raises
+- Pipeline.Recompute refreshes the panel even while the addon is disabled
+- Pipeline.Recompute is a no-op before the category table has loaded
+- Pipeline.CalcSummary renders the reason and the rewrite/skip tally
+- Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set
+- Pipeline.RunAutoDiscovery reports zero when nothing new is in bags
+- ResetAllToDefaults wipes category customizations back to the shipped state
+- ResetAllToDefaults clears stat-priority overrides and re-enables the addon
+- ResetAllToDefaults preserves macro state so live macros are not orphaned
+- ResetAllToDefaults rediscovers what is still in bags
+- ResetAllToDefaults reports whether it mutated anything
+- ResetAllToDefaults leaves the category buckets structurally valid
 
 ### test_ranker.lua (18)
 
@@ -135,7 +290,7 @@ whenever the suite changes.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (8)
+### test_schema.lua (33)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -145,8 +300,33 @@ whenever the suite changes.
 - schema: Set round-trips a bool setting through Helpers
 - schema: unknown paths resolve to nil/false
 - schema: [Set] logs exactly one line at the write seam, gated by debug
+- schema: Resolve splits a dotted path into its parent table and key
+- schema: Resolve walks nested tables
+- schema: Resolve refuses a path that runs through a non-table
+- schema: Resolve returns nothing for an empty path or a missing DB
+- schema: Set can write a nested path, not just a top-level one
+- schema: every row declares a panel that exists in the tab order
+- schema: every row carries a label and a tooltip for the panel to render
+- schema: every row's default matches the seeded profile value
+- schema: ValidateSchema counts a row with a bad panel, section, and type
+- schema: ValidateSchema flags a row with no path
+- schema: ValidateSchemaValue enforces each declared type
+- schema: ValidateSchemaValue clamps a number to its declared range
+- schema: SetAndRefresh writes the value and fires the row's onChange
+- schema: SetAndRefresh refuses a value of the wrong type
+- schema: SetAndRefresh refuses a path that is not in the schema
+- schema: the published Schema:Set is the same seam as SetAndRefresh
+- schema: FormatSchemaValue renders nil as 'nil'
+- schema: FormatSchemaValue renders a colour as a four-component table
+- schema: FormatSchemaValue renders booleans and strings readably
+- schema: RefreshAllPanels flags an off-screen page dirty instead of rebuilding it
+- schema: RefreshAllPanels rebuilds the page that is on screen
+- schema: a render failure is reported instead of breaking the refresh loop
+- schema: RefreshScalars re-syncs widgets in place without a rebuild
+- schema: RefreshScalars flags a hidden page dirty rather than syncing it
+- schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (11)
+### test_selector.lua (28)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -159,8 +339,25 @@ whenever the suite changes.
 - Selector: PickBestForSlot filters by weapon affinity + ownership
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
 - Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
+- Selector.MarkDiscovered reports 'new' only on the first sighting
+- Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
+- Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
+- Selector.MarkDiscovered upgrades a legacy boolean entry to a timestamp
+- Selector.MarkDiscovered refuses spell sentinels and unknown categories
+- Selector.SweepStaleDiscovered drops an entry past the 30-day TTL
+- Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL
+- Selector.SweepStaleDiscovered refreshes an item that is still in bags
+- Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient
+- Selector.SweepStaleDiscovered never touches user-intentional entries
+- Selector.SweepStaleDiscovered reaches inside per-spec buckets
+- Selector.SweepStaleDiscovered is a no-op before the DB exists
+- Selector: a pin at position 1 moves its item to the front
+- Selector: a pin for an item outside the candidate set is ignored
+- Selector: a pin past the end of the list clamps to last place
+- Selector: two pins on the same position keep both items in the list
+- Selector.GetEffectivePriority returns an empty list for an unknown category
 
-### test_slash.lua (11)
+### test_slash.lua (62)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -173,8 +370,59 @@ whenever the suite changes.
 - /cm with an unknown command reports it and prints help
 - /cm dump pick renders a category's effective priority and marks owned picks
 - /cm rewrite is a back-compat alias for rewritemacros
+- /cm with no argument prints the help table
+- /cm lower-cases only the verb, leaving arguments alone
+- /cm tolerates surrounding whitespace
+- /cm help and the About panel read the same command table
+- /cm reset asks for confirmation instead of wiping immediately
+- /cm config reports when the settings panel cannot be opened
+- /cm priority with no category prints the sub-verbs and known categories
+- /cm priority with an unknown category reports it and prints help
+- /cm priority <cat> with no sub-verb defaults to the list
+- /cm priority list marks ownership and the current pick
+- /cm priority rejects an unparseable id with a usage line
+- /cm priority reset clears the user's edits but keeps discoveries
+- /cm priority up reorders the list by pinning
+- /cm priority up on the top entry reports the edge instead of reordering
+- /cm priority on a composite category points at the aio editor
+- /cm priority with an unknown sub-verb reports it
+- /cm stat with no sub-verb prints the stat help
+- /cm stat list prints the resolved priority for the current spec
+- /cm stat primary rejects a stat that is not a primary
+- /cm stat secondary stores an ordered, deduplicated list
+- /cm stat secondary rejects the whole list if any stat is unknown
+- /cm stat secondary preserves the existing primary
+- /cm stat reset drops the override and falls back to the seed
+- /cm stat reset on a spec with no override says there is nothing to do
+- /cm stat with an unknown sub-verb reports it
+- /cm aio with no key prints the sub-verbs and the composite keys
+- /cm aio on a single-pick category is rejected
+- /cm aio list shows both sections with their on/off state
+- /cm aio toggle flips a sub-category and back
+- /cm aio toggle honours an explicit on/off argument
+- /cm aio toggle rejects a ref that is not part of the composite
+- /cm aio down reorders within a section
+- /cm aio up at the top of a section reports the edge
+- /cm aio reset restores both the enabled flags and the section order
+- /cm aio with an unknown sub-verb reports it
+- /cm dump with no target lists every dump target
+- /cm dump with an unknown target reports it and lists the valid ones
+- /cm dump <itemID> is a shortcut for the item target
+- /cm dump bags lists each owned itemID and its count
+- /cm dump pick on a composite renders the assembled macro body
+- /cm dump statpriority prints the current spec's resolved stats
+- /cm resync rediscovers, recomputes, and reports the count
+- /cm resync warns that macro writes are deferred while in combat
+- /cm resync drops cached tooltip parses first
+- /cm rewritemacros clears the fingerprint cache before recomputing
+- /cm debug on and off drive the logging flag through the DebugLog seam
+- /cm debug with no argument toggles the window and leaves the flag alone
+- /cm set reports an unknown setting path
+- /cm get reports an unknown setting path
+- /cm set rejects a non-boolean value for a bool setting
+- /cm list covers every row in the settings schema
 
-### test_spechelper.lua (7)
+### test_spechelper.lua (16)
 
 - SpecHelper.MakeKey joins classID_specID, nil on missing parts
 - SpecHelper.GetCurrent reads the live spec and re-reads on respec
@@ -183,6 +431,15 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority falls back to class primary, never nil
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
+- SpecHelper.MakeKey is stable regardless of numeric or string inputs
+- SpecHelper.GetCurrent returns nothing when the client has no class yet
+- SpecHelper.GetCurrent stops at the classID when the spec id is unresolvable
+- SpecHelper.GetStatPriority ignores a user row that names no primary
+- SpecHelper.GetStatPriority defaults a user override's secondary list to empty
+- SpecHelper.GetStatPriority falls back on class primary for an unseeded spec
+- SpecHelper.GetStatPriority never returns nil, even for a malformed key
+- SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
+- SpecHelper.AllSpecs skips classes the client reports no specs for
 
 ### test_tooltipcache.lua (12)
 
@@ -199,32 +456,53 @@ whenever the suite changes.
 - TooltipCache: partial consumable tooltip stays pending until body loads
 - TooltipCache: effectless NON-consumable is cached, not pending
 
-### test_weaponslots.lua (2)
+### test_weaponslots.lua (9)
 
 - WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil
 - WeaponSlots: keys on weapon subClassID, not the localized subType
+- WeaponSlots: every bladed weapon subclass reports bladed affinity
+- WeaponSlots: every blunt weapon subclass reports blunt affinity
+- WeaponSlots: ranged and wand subclasses take no stone at all
+- WeaponSlots: main hand and off hand are read independently
+- WeaponSlots: an off-hand holdable (armor) is not enhanceable
+- WeaponSlots: an unknown item in the slot yields no affinity
+- WeaponSlots: a slot the client cannot report is safe to query
+
+### test_widgets.lua (6)
+
+- Widgets: every custom widget registers itself with AceGUI
+- Widgets: each registration supplies a constructor function
+- Widgets: each registration declares a positive integer version
+- Widgets: the version guard skips a widget already registered at that version
+- Widgets: no two widgets claim the same type name
+- Widgets: every widget name used by the settings pages is registered
 
 ## Totals
 
 | Suite | Cases |
 |-------|------:|
-| test_bagscanner.lua | 5 |
-| test_bus.lua | 3 |
+| test_bagscanner.lua | 12 |
+| test_bus.lua | 11 |
 | test_categories.lua | 2 |
 | test_classifier.lua | 15 |
-| test_compat.lua | 5 |
-| test_database.lua | 4 |
+| test_compat.lua | 15 |
+| test_constants.lua | 12 |
+| test_database.lua | 9 |
+| test_debug.lua | 13 |
 | test_debuglog.lua | 10 |
-| test_id.lua | 6 |
+| test_defaults.lua | 28 |
+| test_events.lua | 20 |
+| test_id.lua | 8 |
 | test_load.lua | 1 |
-| test_macromanager.lua | 11 |
-| test_pipeline.lua | 6 |
+| test_macromanager.lua | 33 |
+| test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 8 |
-| test_selector.lua | 11 |
-| test_slash.lua | 11 |
-| test_spechelper.lua | 7 |
+| test_schema.lua | 33 |
+| test_selector.lua | 28 |
+| test_slash.lua | 62 |
+| test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
-| test_weaponslots.lua | 2 |
-| **Total** | **141** |
+| test_weaponslots.lua | 9 |
+| test_widgets.lua | 6 |
+| **Total** | **399** |

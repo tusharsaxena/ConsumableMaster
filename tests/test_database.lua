@@ -29,3 +29,43 @@ test("Database.RunMigrations is a safe no-op when the DB has no global scope", f
     KCM.Database.RunMigrations()
     t.eq(KCM.db.global, nil, "no global fabricated, no crash")
 end)
+
+test("Database.RunMigrations seeds a missing schemaVersion instead of leaving it nil", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.global.schemaVersion = nil
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.global.schemaVersion, KCM.Database.CURRENT_SCHEMA,
+        "an account that predates the field is stamped, not left unversioned")
+end)
+
+test("Database.RunMigrations upgrades an older stored version to current", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.global.schemaVersion = 0
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.global.schemaVersion, KCM.Database.CURRENT_SCHEMA, "stamped forward to current")
+end)
+
+test("Database.RunMigrations leaves unrelated global keys untouched", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.global.somethingElse = "keep me"
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.global.somethingElse, "keep me", "migration only owns schemaVersion")
+end)
+
+test("Database.RunMigrations never writes into the profile scope", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profile.enabled = false
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.profile.enabled, false, "profile settings are not reset by a migration pass")
+    t.eq(KCM.db.profile.schemaVersion, nil,
+        "the version lives account-wide in global, never per profile (standard §2.2)")
+end)
+
+test("Database.RunMigrations is a safe no-op before the DB exists", function(t)
+    local KCM = h.loader.loadPure()
+    local saved = KCM.db
+    KCM.db = nil
+    KCM.Database.RunMigrations()
+    t.truthy(true, "calling before AceDB:New does not raise")
+    KCM.db = saved
+end)

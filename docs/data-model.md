@@ -16,7 +16,7 @@ db.profile
 │   ├── FOOD │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS │ AUG_RUNE ← single-pick, non-spec-aware
 │   │   ├── added       { [id] = true }                  -- user-added items + spells
 │   │   ├── blocked     { [id] = true }                  -- never enters candidate set
-│   │   ├── pins        { { id = N, position = K }, ... } -- override Ranker order
+│   │   ├── pins        { { itemID = N, position = K }, ... } -- override Ranker order
 │   │   └── discovered  { [id] = unixTimestamp }         -- last-seen-in-bags
 │   ├── STAT_FOOD │ CMBT_POT │ FLASK │ WPN_ENCH  ← single-pick, spec-aware
 │   │   └── bySpec
@@ -39,7 +39,7 @@ db.profile
 
 - **`added[id] = true`** — user-added entry (item or spell sentinel). Persists across bag changes.
 - **`blocked[id] = true`** — user-blocked entry; subtracted from the candidate set. Auto-discovery cannot re-add a blocked id.
-- **`pins`** — array of `{ id, position }`. Pinned entries land at their requested position; non-pinned entries fill the gaps in score order. Top-to-bottom ordering.
+- **`pins`** — array of `{ itemID, position }` (the field is `itemID`, and it holds a spell sentinel just as happily as an itemID). Pinned entries land at their requested position; non-pinned entries fill the gaps in score order. Top-to-bottom ordering. `MoveUp` / `MoveDown` rewrite the whole array as one contiguous `1..N` run, so two pins never contend for a position in practice.
 - **`discovered[id] = <unixTimestamp>`** — auto-discovered item, with last-sighting timestamp used by the GC sweep. Items only — bag discovery cannot find spells.
 - **`statPriority[<spec>]`** — optional. Missing entries fall back to the seed default (`Defaults_StatPriority.lua`); if the seed is also missing, the class-primary default is used.
 - **`WPN_ENCH` is per-hand, not a single pick.** It still has one `bySpec` bucket like the other spec-aware categories, but the pipeline resolves it as two independent picks: `Selector.PickBestForSlot(catKey, slot, scoreCache)` filters the effective candidate set to entries whose tooltip-derived `tt.weaponAffinity` (`"bladed"` | `"blunt"` | `"any"`, from `TooltipCache`) matches `KCM.WeaponSlots.SlotAffinity(slot)` for the equipped main-hand (16) / off-hand (17) weapon, then ranks and picks within that filtered set. `AP` and `SP` are scored as spec-role stats — `AP` scores as the spec's primary throughput stat for STR/AGI specs, `SP` for INT specs (`Ranker.lua`'s primary-stat weight), so an Attack Power oil doesn't rank below a secondary-stat oil for a physical-damage spec. `MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick)` builds the macro from the two picks, dropping a hand with no weapon or no matching enhancement.
@@ -91,7 +91,6 @@ KCM.ID.AsSpell(spellID)  -- returns -spellID
 KCM.ID.IsSpell(id)       -- id < 0
 KCM.ID.IsItem(id)        -- id > 0
 KCM.ID.SpellID(id)       -- -id when spell, else nil
-KCM.ID.ItemID(id)        -- id when item, else nil
 ```
 
 Seed files compose spell entries via `KCM.ID.AsSpell(spellID)` for readability — e.g. `KCM.ID.AsSpell(1231411)` for Recuperate.

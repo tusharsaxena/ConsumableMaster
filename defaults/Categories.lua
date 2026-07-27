@@ -170,7 +170,3 @@ end
 function KCM.Categories.Get(key)
     return KCM.Categories.BY_KEY[key]
 end
-
-function KCM.Categories.All()
-    return KCM.Categories.LIST
-end
