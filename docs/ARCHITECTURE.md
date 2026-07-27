@@ -29,9 +29,12 @@ Thirteen account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM
 WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─▶ Ranker     ─▶ candidate score
                                           │              │     ─▶ Classifier ─▶ auto-discovery match
                                           │              │
-                                          │              └─▶ pick (first owned id)
+                                          │              ├─▶ pick (first owned id)
+                                          │              └─▶ PickBestForSlot(16/17) ─▶ per-hand pick
+                                          │                    (perHand cats; WeaponSlots affinity filter)
                                           │
-                                          ├─▶ MacroManager.SetMacro / SetCompositeMacro
+                                          ├─▶ MacroManager.SetMacro / SetWeaponEnchantMacro
+                                          │                 / SetCompositeMacro
                                           │     └─▶ CreateMacro / EditMacro   (the only protected-API caller)
                                           │
                                           └─▶ KCM.bus (PANEL_REFRESH) ─▶ Options panel
@@ -52,6 +55,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Debug console | `modules/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
+| Headless gate (tests + luacheck, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
 | Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 
@@ -78,6 +82,7 @@ Cross-module control flow that crosses feature boundaries travels over the close
 - **Priority-list IDs are opaque numbers with sign semantics.** Positive = itemID, negative = `KCM.ID.AsSpell(spellID)`. Only `MacroManager`, `Ranker.Score`'s spell shortcut, and the UI fork on the sign; every other layer treats them as plain table keys.
 - **Score cache lives for one Recompute pass and no longer.** `scoreCache` is created fresh in `Pipeline.Recompute` and threaded through `PickBestForCategory` → `SortCandidates`. Tooltip / bag / spec state can shift between events — never cache across passes. Non-pipeline callers (Options panel, `/cm dump pick`) pass `nil`.
 - **Composite categories never own item buckets.** No `added`/`blocked`/`pins`/`discovered` — composites compose picks from their referenced single categories at recompute time. Sub-categories are locked to their `inCombat` / `outOfCombat` section.
+- **Per-hand categories resolve twice from one bucket.** `perHand = true` (today only `WPN_ENCH`) keeps the ordinary spec-aware `bySpec` bucket — there is no per-slot persisted state. The pipeline calls `Selector.PickBestForSlot(catKey, 16, …)` and `(…, 17, …)` against that one list, each filtered to entries whose `tt.weaponAffinity` matches `WeaponSlots.SlotAffinity(slot)`. A hand with no weapon, or with nothing matching, is dropped from the macro body rather than falling back to the other hand's pick.
 - **Action-bar icon sentinel.** Active body stores `DYNAMIC_ICON = 134400` (`?` fileID); empty body omits `#showtooltip` and stores `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
 - **Debug flag is session-only.** `KCM.State.debug` (`core/State.lua`) is never persisted — a session left with debug on doesn't leak into the next login.
 

@@ -32,6 +32,27 @@ Uses `/run print('|cff00ffff[CM]|r no <category> in bags')` — a `/run` line so
 
 **Why no `#showtooltip` here:** with `#showtooltip` present and the stored icon set to `?` (`DYNAMIC_ICON`, used for active macros), WoW tries to resolve the icon from the first `/use` or `/cast` — but the empty body is a plain `/run` line, so the action bar would fall back to the `?` icon instead of the cooking-pot fallback. Dropping `#showtooltip` pairs with `iconFor(nil)` → `DEFAULT_ICON` so the cooking pot renders for empties.
 
+## Per-hand weapon-enchant body
+
+`SetWeaponEnchantMacro(cat, mhPick, ohPick)` handles `perHand` categories (today only `WPN_ENCH`). The picks arrive already affinity-filtered from `Selector.PickBestForSlot(catKey, 16 | 17, scoreCache)` — MacroManager does no filtering of its own.
+
+Body shape (`buildWeaponEnchantBody`, exposed as `M._buildWeaponEnchantBody` for tests):
+
+```
+#showtooltip
+/use item:<mhPick>
+/use 16
+/use item:<ohPick>
+/use 17
+```
+
+Each hand contributes an **application pair** — `/use item:<id>` puts the enhancement on the cursor, `/use <slot>` applies it to that weapon. A hand with a nil pick (no weapon equipped, or nothing whose `tt.weaponAffinity` matches that weapon's type) contributes **no lines at all**; it is never given the other hand's pick.
+
+- Both picks nil → `buildWeaponEnchantBody` returns nil and the caller falls through to `buildEmptyBody(cat)` with `iconItemID = nil`, so the cooking-pot icon renders.
+- Otherwise the stored icon follows `mhPick or ohPick`, so the bar shows the main-hand enhancement when there is one.
+
+Dual-wielding a bladed and a blunt weapon legitimately yields two *different* enhancements (whetstone + weightstone) in one body. Both pairs are unconditional — there are no `[combat]` conditionals here, unlike the composites.
+
 ## Composite body assembly
 
 `SetCompositeMacro` resolves picks via `Selector.PickBestForCategory(refKey, nil, scoreCache)` for each enabled sub-cat in the configured order. The body has two halves:

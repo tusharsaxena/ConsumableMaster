@@ -42,6 +42,8 @@ core/Debug.lua ─── KCM.Debug(tag, fmt, ...) callable sink + IsOn / Toggle 
 
 defaults/         Seed data only. Evaluated at load; writes to
 ├── Categories.lua        KCM.Categories.LIST + KCM.Categories.BY_KEY
+│                         + Get(key) (the accessor everything uses) and
+│                         All() (returns LIST; no callers today)
 ├── Defaults_StatPriority.lua    → KCM.SEED.STAT_PRIORITY
 └── Defaults_*.lua         → KCM.SEED.<CATKEY>
                            Entries can be itemIDs or KCM.ID.AsSpell(sid)
@@ -83,8 +85,9 @@ modules/Selector.lua  Owns the candidate set ((seed ∪ added ∪ discovered) �
                    items, IsPlayerSpell for spell sentinels.
 
 modules/MacroManager.lua  The ONLY module that calls CreateMacro / EditMacro.
-                   SetMacro for single picks, SetCompositeMacro for HP_AIO
-                   and MP_AIO. Combat-deferral queue, fingerprint cache,
+                   SetMacro for single picks, SetWeaponEnchantMacro for the
+                   per-hand WPN_ENCH body, SetCompositeMacro for HP_AIO and
+                   MP_AIO. Combat-deferral queue, fingerprint cache,
                    bounded flush retry, action-bar icon convention.
                    Detail in macro-manager.md.
 
@@ -170,6 +173,7 @@ KCM.Selector.GetBucket(catKey, specKey?)               -> { added, blocked, pins
 KCM.Selector.BuildCandidateSet(catKey, specKey?)       -> array of ids
 KCM.Selector.GetEffectivePriority(catKey, specKey?, scoreCache?) -> array of ids (sorted + pinned)
 KCM.Selector.PickBestForCategory(catKey, specKey?, scoreCache?)  -> id | nil
+KCM.Selector.PickBestForSlot(catKey, slot, scoreCache?)          -> id | nil   -- perHand cats; slot 16/17
 
 -- Write (mutators)
 KCM.Selector.AddItem(catKey, id, specKey?)             -> changed:bool   -- accepts items + spells
@@ -179,6 +183,8 @@ KCM.Selector.MoveDown(catKey, id, specKey?)            -> changed:bool
 KCM.Selector.MarkDiscovered(catKey, id, specKey?, nowUnix) -> changed:bool   -- items only
 KCM.Selector.SweepStaleDiscovered(nowUnix) -> droppedCount  -- 30-day TTL, PEW-only
 ```
+
+`PickBestForSlot` is the per-hand entry point used for `perHand` categories (today only `WPN_ENCH`). It filters the effective priority list to entries whose parsed `tt.weaponAffinity` (`"bladed"` / `"blunt"` / `"any"`) matches `WeaponSlots.SlotAffinity(slot)` for the currently equipped weapon, then picks the first owned entry in that filtered set. Returns nil when the hand is empty or nothing matches.
 
 `AddItem` also unblocks: if the id is in `blocked`, it's removed from there *and* added to `added`, so `changed = true` even when `added[id]` was already set. There is no `Unblock` verb — Block + AddItem cover the two transitions users actually take.
 
@@ -198,7 +204,10 @@ KCM.Ranker.Explain(catKey, id, ctx) -> { {label, value, note?}, ... }
 ```lua
 KCM.Classifier.Match(catKey, id) -> bool
 KCM.Classifier.MatchAny(id) -> { catKeys }   -- used by auto-discovery
+KCM.Classifier.IsReusableAugRune(id) -> bool -- REUSABLE_AUG_IDS membership; Ranker tie-break
 ```
+
+`IsReusableAugRune` backs the AUG_RUNE scorer's `REUSABLE_BONUS`: a reusable rune (Ethereal, Dreambound, Eternal, Lightning-Forged, Lightforged) only wins when it *ties* the best rune on primary-stat amount — the bonus is smaller than one stat step, so a higher-stat consumable rune still beats it. Keep the ID set in sync with the `(reusable)` annotations in `defaults/Defaults_AugRune.lua`.
 
 Per-category predicates key on the numeric `classID`/`subClassID` (locale-independent — Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5) plus parsed `tt`, never the localized subType display string (localization-§4; see scope.md). Weapon-enchant / augment-rune predicates key on `tt` flags. The remaining English dependency is TooltipCache's tooltip-text parsing.
 
@@ -218,14 +227,26 @@ KCM.TooltipCache.Get(itemID) -> { healValue, healValueAvg, healOverSec,
                                   manaValue, manaValueAvg, manaOverSec,
                                   healPct, manaPct, isPctPerSecond, pctOverDurationSec,
                                   isConjured, hasStatBuff, isFeast, buffDurationSec,
+                                  isWeaponEnhance, weaponAffinity,   -- "bladed"|"blunt"|"any"
+                                  isAugmentRune,
                                   statBuffs = { {stat, amount}, ... },
-                                  minLevel, itemName, pending }
+                                  minLevel, itemName, pending, unsupported }
 KCM.TooltipCache.Invalidate(itemID)
 KCM.TooltipCache.InvalidateAll()
 KCM.TooltipCache.IsUsableByPlayer(itemID) -> bool
 ```
 
+`pending` also covers the partial-tooltip case: a Consumable whose parse yields no recognizable effect (no heal/mana/stat/duration, not a weapon enhance, not an augment rune) stays pending rather than caching as final, because `GET_ITEM_INFO_RECEIVED` does not re-fire for an item whose basic info was already cached. `unsupported` marks the build where `C_TooltipInfo.GetItemByID` is missing entirely.
+
 If `C_TooltipInfo.GetItemByID` returns nil or empty, the cache marks the id `pending`. The first `GET_ITEM_INFO_RECEIVED` for that id invalidates the entry and triggers a recompute (for bag items only — see [pipeline.md GIIR split](./pipeline.md#giir-bagnon-bag-split)).
+
+### WeaponSlots (`core/WeaponSlots.lua`)
+
+```lua
+KCM.WeaponSlots.SlotAffinity(slot) -> "bladed" | "blunt" | nil   -- slot 16 (main) / 17 (off)
+```
+
+Reads the equipped weapon's numeric `subClassID`, gated on `classID == Weapon` so a shield or an off-hand frill never reads as enhanceable. Numeric = locale-independent. `nil` means "no weapon, or nothing a whetstone/weightstone applies to"; oils (`weaponAffinity == "any"`) still need a non-nil slot affinity to be considered for that hand. Consumed by `Selector.PickBestForSlot` and by `settings/Category.lua`'s WPN_ENCH page header.
 
 ### SpecHelper (`core/SpecHelper.lua`)
 
@@ -242,8 +263,10 @@ KCM.SpecHelper.GetStatPriority(specKey) -> { primary, secondary = { ... } }
 
 ```lua
 -- Lifecycle (preserved API; called by Core / Debug / SlashCommands / Pipeline)
-KCM.Options.Register()       -- one-time; auto-runs from PLAYER_LOGIN / ADDON_LOADED bootstrap
-KCM.Options.Open()           -- opens panel directly to General
+KCM.Settings.Register()      -- = the file-local registerPanel; the PLAYER_LOGIN /
+                             --   ADDON_LOADED bootstrap calls registerPanel directly
+KCM.Options.Register() -> bool  -- thin wrapper over registerPanel; NO callers today
+KCM.Options.Open()           -- opens the parent About canvas, sub-pages force-expanded
 
 -- Refresh
 KCM.Options.Refresh()        -- immediate: re-render every shown panel
@@ -285,7 +308,9 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 
 ```lua
 KCM.Debug.IsOn() -> bool                      -- reads KCM.State.debug (session-only)
-KCM.Debug.Toggle()                            -- routes through DebugLog.Toggle -> SetEnabled
+KCM.Debug.Toggle()                            -- routes through DebugLog.Toggle -> SetEnabled;
+                                              --   NO callers today (every toggle path goes
+                                              --   straight to DebugLog.SetEnabled)
 KCM.Debug(tag, fmt, ...)                      -- callable sink; gated, secret-safe; early-returns when off
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag

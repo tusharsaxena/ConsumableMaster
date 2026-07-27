@@ -116,6 +116,7 @@ Topic-specific detail lives in `docs/`. Read on demand — these are not auto-lo
 | Recompute pipeline + score cache + events | [pipeline.md](./pipeline.md) | Touching event handling, performance. |
 | AceDB schema + opaque IDs + composites + GC | [data-model.md](./data-model.md) | Adding a category, persistent state changes. |
 | MacroManager — body builders, composite assembly, flush retry, icons | [macro-manager.md](./macro-manager.md) | Anything touching macro writes. |
+| Headless gate — tests + luacheck, toolchain, TDD policy, badge sync | [testing.md](./testing.md) | Before every commit; setting up a fresh checkout. |
 | Smoke tests (quick + full suite + targeted-by-change-area lookup) | [smoke-tests.md](./smoke-tests.md) | After any code change; before any release. |
 | Test-case inventory (generated — authoritative count) | [test-cases.md](./test-cases.md) | Checking coverage; regenerate after any suite change. |
 | Seed reference + refresh procedure | [../defaults/README.md](../defaults/README.md) | Patch-day seed updates. |
