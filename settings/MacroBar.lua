@@ -1,6 +1,6 @@
 -- settings/MacroBar.lua — Macro Bar page.
 --
--- Seven sections: Bar (enable / lock / reset), Layout (grid + geometry), Bar
+-- Eight sections: Bar (enable / lock / reset), Layout (grid + geometry), Bar
 -- appearance and Button appearance (chrome + colors), Labels, Flyout, Visibility
 -- (combat driver + hover fade), and Macros (which macros occupy a slot).
 --

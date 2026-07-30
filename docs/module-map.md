@@ -349,7 +349,8 @@ KCM.MacroBarModel.Labels(catKey)         -> fullName, shortName
 KCM.MacroBarLayout.LabelAnchor(cfg)      -> point, relPoint, x, y, justifyH
 KCM.MacroBarLayout.LabelFontSize(size, scalePct) -> points (6-24)
 KCM.MacroBarLayout.Flyout(count, cfg)    -> { positions, size, width, height, point, relPoint, axis }
-KCM.MacroBarLayout.IndicatorAnchor(cfg)  -> point, relPoint, x, y, rotation, w, h
+KCM.MacroBarLayout.IndicatorThickness(cfg) -> px (flyoutIndicatorScale % of button)
+KCM.MacroBarLayout.IndicatorAnchor(cfg)  -> point, relPoint, x, y, rotation, w, h, glyph
 KCM.MacroBarLayout.IndicatorClearance(cfg) -> dx, dy   (label vs indicator)
 KCM.MacroDisplay.PickID / Texture / Count / Cooldown / SetTooltip / MacroIndex
 
@@ -366,6 +367,9 @@ KCM.MacroBarFlyout.Create(button, catKey, index)   -- indicator + secure contain
 KCM.MacroBarFlyout.Apply(button, cfg)              -- content; no-op in combat
 KCM.MacroBarFlyout.Candidates(catKey, cfg)         -- capped + inverted list
 KCM.MacroBarFlyout.RefreshCooldowns(button) / RefreshCooldown(entry)
+KCM.MacroBarFlyout.ApplyBackdrop(flyout, cfg)      -- paints flyout.bg, not the handler
+KCM.MacroBarFlyout.Close(flyout)                   -- click path; declines in combat
+KCM.MacroBarFlyout.IdleTick(flyout, elapsed, delay)-- hover-aware idle countdown
 KCM.MacroBarFlyout.MAX_ENTRIES                     -- pool ceiling
 ```
 
