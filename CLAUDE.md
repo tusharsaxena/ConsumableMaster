@@ -18,8 +18,8 @@ This applies to both new work and anything you discover in passing.
 core/       namespace bootstrap, AceAddon entry, bus, compat, constants, state,
             DB, pipeline, the pure engine modules (SpecHelper → Classifier), and
             the macro bar's pure halves (MacroDisplay, MacroBarModel/Layout)
-modules/    Ranker, Selector, MacroManager, DebugLog, MacroBar(+Button),
-            KCM* AceGUI widgets
+modules/    Ranker, Selector, MacroManager, DebugLog,
+            MacroBar(+Button, +Flyout), KCM* AceGUI widgets
 defaults/   seed itemID lists + category table (data, not code)
 settings/   options panel + per-tab pages
 locales/    enUS.lua (KCM.L)

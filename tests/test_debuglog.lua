@@ -18,8 +18,8 @@ local function load()
 end
 
 -- Standard line shape (debug-logging-§3): "<ts> | [<tag>] <msg>".
--- FormatPlain: no colour escapes.
-test("DebugLog: FormatPlain renders the plain line shape with no colour codes", function(t)
+-- FormatPlain: no color escapes.
+test("DebugLog: FormatPlain renders the plain line shape with no color codes", function(t)
     local _, DL = load()
     t.eq(DL.FormatPlain("12:00:01", "Ranker", "hello"),
         "12:00:01 | [Ranker] hello", "plain full")
@@ -35,7 +35,7 @@ end)
 
 -- FormatColored: steel-blue (6f8faf) timestamp, tan/gold (c9a66b) [tag],
 -- default-white msg; "||" renders one literal pipe separator.
-test("DebugLog: FormatColored colours timestamp/tag and handles nil tag/msg", function(t)
+test("DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg", function(t)
     local _, DL = load()
     t.eq(DL.FormatColored("12:00:01", "Ranker", "hello"),
         "|cff6f8faf12:00:01|r || |cffc9a66b[Ranker]|r hello", "colored full")
@@ -120,8 +120,8 @@ test("DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally", funct
         "CalcSummary formats reason + rewrite/skip tally")
 end)
 
--- debug-logging-§5 (v1.12.0): colour-coded chat ack + [Init] summary on enable.
-test("DebugLog: enable emits [Debug]+[Init] brackets and coloured ON/OFF acks", function(t)
+-- debug-logging-§5 (v1.12.0): color-coded chat ack + [Init] summary on enable.
+test("DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks", function(t)
     local KCM, DL = load()
     local captured = {}
     local realAdd = KCM.DebugLog.AddLine
@@ -144,14 +144,14 @@ test("DebugLog: enable emits [Debug]+[Init] brackets and coloured ON/OFF acks", 
     t.truthy(initMsg:find("Consumable Master v", 1, true), "[Init] names addon + version")
     t.truthy(initMsg:find("schema v", 1, true), "[Init] carries the schema version")
     t.truthy(initMsg:find("profile ", 1, true), "[Init] carries the active profile")
-    t.truthy((acks[#acks] or ""):find("|cff40ff40ON|r", 1, true), "enable ack colour-codes ON green")
+    t.truthy((acks[#acks] or ""):find("|cff40ff40ON|r", 1, true), "enable ack color-codes ON green")
 
     for i = #captured, 1, -1 do captured[i] = nil end
     DL.SetEnabled(false)
     local sawInit = false
     for _, c in ipairs(captured) do if c.tag == "Init" then sawInit = true end end
     t.falsy(sawInit, "disable emits no [Init] summary")
-    t.truthy((acks[#acks] or ""):find("|cffff4040OFF|r", 1, true), "disable ack colour-codes OFF red")
+    t.truthy((acks[#acks] or ""):find("|cffff4040OFF|r", 1, true), "disable ack color-codes OFF red")
 
     KCM.DebugLog.AddLine = realAdd
     KCM.Say = realSay

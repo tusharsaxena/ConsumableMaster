@@ -65,11 +65,10 @@ function MD.Texture(macroName)
     return MD.FALLBACK_ICON
 end
 
--- Owned count for the current pick, or nil when a count is meaningless (spell
--- picks, empty-state macros). Returns nil rather than 0 so callers can tell
--- "nothing to show" from "you have zero left".
-function MD.Count(macroName)
-    local id = MD.PickID(macroName)
+-- Owned count for an opaque KCM ID, or nil when a count is meaningless (spells).
+-- Returns nil rather than 0 so callers can tell "nothing to show" from "you have
+-- zero left".
+function MD.CountForID(id)
     local ID = KCM.ID
     if not (id and ID and ID.IsItem(id)) then return nil end
     local getCount = (C_Item and C_Item.GetItemCount) or GetItemCount
@@ -77,10 +76,9 @@ function MD.Count(macroName)
     return getCount(id)
 end
 
--- Cooldown triple (start, duration, enable) for the current pick, or nil.
+-- Cooldown triple (start, duration, enable) for an opaque KCM ID, or nil.
 -- Items and spells report through different APIs; both are read-only.
-function MD.Cooldown(macroName)
-    local id = MD.PickID(macroName)
+function MD.CooldownForID(id)
     local ID = KCM.ID
     if not (id and ID) then return nil end
     if ID.IsSpell(id) then
@@ -91,6 +89,30 @@ function MD.Cooldown(macroName)
     local getCD = (C_Item and C_Item.GetItemCooldown) or GetItemCooldown
     if not getCD then return nil end
     return getCD(id)
+end
+
+-- Point GameTooltip at one opaque KCM ID. Used by the flyout, where the entry
+-- is a specific candidate rather than "whatever the macro resolves to".
+function MD.SetTooltipForID(owner, id)
+    if not (GameTooltip and owner and id) then return end
+    local ID = KCM.ID
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    if ID and ID.IsSpell(id) and GameTooltip.SetSpellByID then
+        GameTooltip:SetSpellByID(ID.SpellID(id))
+    elseif GameTooltip.SetItemByID then
+        GameTooltip:SetItemByID(id)
+    end
+    GameTooltip:Show()
+end
+
+-- The same three, keyed by macro name (i.e. against whatever the macro
+-- currently resolves to) for the main bar buttons and the panel drag icon.
+function MD.Count(macroName)
+    return MD.CountForID(MD.PickID(macroName))
+end
+
+function MD.Cooldown(macroName)
+    return MD.CooldownForID(MD.PickID(macroName))
 end
 
 -- Point GameTooltip at whatever the macro currently resolves to. Item and spell

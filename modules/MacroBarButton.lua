@@ -10,9 +10,13 @@
 --
 -- Icon / count / cooldown come from core/MacroDisplay.lua, which reads the pick
 -- MacroManager recorded in db.profile.macroState. Cooldown/count styling is
--- deliberately stock Blizzard (CooldownFrameTemplate swipe honouring the
+-- deliberately stock Blizzard (CooldownFrameTemplate swipe honoring the
 -- countdown-numbers CVar, NumberFontNormal count) — see the tracking issue for
 -- configurable styling.
+--
+-- The slot also owns a hover flyout (modules/MacroBarFlyout.lua) listing every
+-- currently-usable candidate in its category. Created here, out of combat,
+-- alongside the button; its content is rebuilt by MacroBar.Refresh.
 --
 -- Drag model:
 --   * OnDragStart  -> PickupMacro, so a slot can be dragged onto a normal
@@ -197,6 +201,10 @@ function BB.ApplyStyle(btn, cfg)
 
     applyLabel(btn, cfg)
 
+    -- NB: the flyout is deliberately NOT rebuilt here. MacroBar.Refresh owns
+    -- that, and Update calls it immediately after this pass — doing it in both
+    -- places rebuilt every flyout twice per settings change.
+
     -- Count visibility is owned by RefreshIcon (it depends on the live pick as
     -- well as the setting), so re-run it rather than toggling the fontstring here.
     BB.RefreshIcon(btn)
@@ -281,6 +289,10 @@ function BB.Create(parent, catKey, index)
             end
         end
     end)
+
+    -- Hover flyout: the indicator + secure container. Created here (out of
+    -- combat, with the button) so opening it later never needs frame creation.
+    if KCM.MacroBarFlyout then KCM.MacroBarFlyout.Create(btn, catKey, index) end
 
     BB.Refresh(btn)
     return btn

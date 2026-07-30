@@ -68,7 +68,7 @@ local PRIMARY_WEIGHT = 1000
 -- result across every scorer call that touches the same itemID within one
 -- Pipeline.Recompute pass. Callers that pass `scoreCache = nil` get the
 -- original uncached path — keeps /cm dump, Explain, and panel renders
--- behaviour-identical.
+-- behavior-identical.
 local function itemFields(itemID, scoreCache)
     if scoreCache and scoreCache.fields and scoreCache.fields[itemID] then
         local f = scoreCache.fields[itemID]

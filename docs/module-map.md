@@ -348,6 +348,9 @@ KCM.MacroBarModel.MacroName(catKey) / KeyForMacroName(name)
 KCM.MacroBarModel.Labels(catKey)         -> fullName, shortName
 KCM.MacroBarLayout.LabelAnchor(cfg)      -> point, relPoint, x, y, justifyH
 KCM.MacroBarLayout.LabelFontSize(size, scalePct) -> points (6-24)
+KCM.MacroBarLayout.Flyout(count, cfg)    -> { positions, size, width, height, point, relPoint, axis }
+KCM.MacroBarLayout.IndicatorAnchor(cfg)  -> point, relPoint, x, y, rotation, w, h
+KCM.MacroBarLayout.IndicatorClearance(cfg) -> dx, dy   (label vs indicator)
 KCM.MacroDisplay.PickID / Texture / Count / Cooldown / SetTooltip / MacroIndex
 
 -- Frames
@@ -359,6 +362,11 @@ KCM.MacroBar.Refresh() / RefreshCooldowns() / ApplyAlpha() / IsShown()
 KCM.MacroBarButton.Create(parent, catKey, index) / Refresh / RefreshIcon
 KCM.MacroBarButton.RefreshCooldown / ApplyStyle(btn, cfg)
 KCM.MacroBarButton.BorderTexture(lsmName) -> edge texture (LSM, with fallback)
+KCM.MacroBarFlyout.Create(button, catKey, index)   -- indicator + secure container
+KCM.MacroBarFlyout.Apply(button, cfg)              -- content; no-op in combat
+KCM.MacroBarFlyout.Candidates(catKey, cfg)         -- capped + inverted list
+KCM.MacroBarFlyout.RefreshCooldowns(button) / RefreshCooldown(entry)
+KCM.MacroBarFlyout.MAX_ENTRIES                     -- pool ceiling
 ```
 
 On by default (and unlocked, so the drag handle shows) — schema v2 brings
@@ -408,7 +416,7 @@ local F = KCM.Foo
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
 3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Categories.lua` then each `defaults/Defaults_*.lua`.
-5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
+5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → `MacroBarFlyout` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
 6. **Settings** — `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua`.
 
 `settings/Panel.lua` must come first within `settings/` because it creates `KCM.Settings.Helpers` + `KCM.Settings.RegisterTab` which the per-tab modules call at file-bottom. Widgets load before `settings/` so `AceGUI:Create("KCM…")` works at panel-render time. Event handlers and `Pipeline` functions are *defined* in `core/ConsumableMaster.lua` but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.

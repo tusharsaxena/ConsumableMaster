@@ -3,7 +3,7 @@
 -- category panel so users can place the auto-managed KCM_* macro on an action
 -- bar without opening the macro UI.
 --
--- Drag / click behaviour is the standard Blizzard macro-pickup pattern:
+-- Drag / click behavior is the standard Blizzard macro-pickup pattern:
 -- PickupMacro(index) on OnDragStart + left-click, which puts the macro on the
 -- cursor. Dropping on an action slot calls Blizzard's own PlaceAction flow —
 -- no protected-API call from us, so this stays taint-free even mid-combat.

@@ -566,9 +566,9 @@ function KCM.FormatSchemaValue(def, v)
 end
 local formatValue = KCM.FormatSchemaValue
 
--- Shared coloured `key = value` line (slash-commands-§5): gold key, white value,
--- uncoloured ` = ` separator. Reused by the `list` rows and the `get`/`set`
--- echo so the colouring can't drift between them.
+-- Shared colored `key = value` line (slash-commands-§5): gold key, white value,
+-- uncolored ` = ` separator. Reused by the `list` rows and the `get`/`set`
+-- echo so the coloring can't drift between them.
 local function formatKV(path, valueStr)
     return ("|cffffff00%s|r = |cffffffff%s|r"):format(path, valueStr)
 end
@@ -1178,7 +1178,7 @@ local BAR_COMMANDS = {
         function() KCM.MacroBar.SetLocked(true);   say("macro bar locked") end},
     {"unlock", "Unlock the bar so it can be dragged",
         function() KCM.MacroBar.SetLocked(false);  say("macro bar unlocked — drag it, then /cm bar lock") end},
-    {"reset",  "Move the bar back to the centre of the screen",
+    {"reset",  "Move the bar back to the center of the screen",
         function() KCM.MacroBar.ResetPosition();   say("macro bar position reset") end},
 }
 

@@ -1,10 +1,14 @@
--- tests/test_macrobar.lua — the macro bar's pure layer: grid math
--- (core/MacroBarLayout.lua), slot bookkeeping (core/MacroBarModel.lua), display
--- resolution (core/MacroDisplay.lua), and the Macro Bar page's schema rows.
+-- tests/test_macrobar.lua — the macro bar's pure layer: grid + label + flyout
+-- geometry (core/MacroBarLayout.lua), slot bookkeeping (core/MacroBarModel.lua),
+-- display resolution (core/MacroDisplay.lua), the flyout's candidate list
+-- (MacroBarFlyout.Candidates, which is pure over Selector + config), and the
+-- Macro Bar page's schema rows.
 --
--- The frame layer (modules/MacroBar*.lua) is deliberately not exercised here —
--- it is a thin apply pass over these three, and secure-frame behaviour can only
--- be validated in-game (docs/smoke-tests.md).
+-- The rest of the frame layer (modules/MacroBar*.lua) is deliberately not
+-- exercised here — it is a thin apply pass over these, and secure-frame
+-- behavior can only be validated in-game (docs/smoke-tests.md). The flyout's
+-- candidate SOURCE is covered in tests/test_selector.lua
+-- (Selector.ListAvailable).
 local h = require("harness")
 local test = h.test
 
@@ -134,7 +138,7 @@ test("macrobar label: offsets pass through and CENTER never flips", function(t)
         labelPoint = "CENTER", labelPlacement = "OUTSIDE",
         labelOffsetX = 3, labelOffsetY = -7,
     }
-    t.eq(point, "CENTER", "centre stays centred")
+    t.eq(point, "CENTER", "center stays centerd")
     t.eq(relPoint, "CENTER", "even when placement says outside")
     t.eq(x, 3, "x offset")
     t.eq(y, -7, "y offset")
@@ -184,6 +188,219 @@ test("macrobar label: an unknown category degrades to its key", function(t)
     local full, short = KCM.MacroBarModel.Labels("NOPE")
     t.eq(full, "NOPE", "full")
     t.eq(short, "NOPE", "short")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Flyout geometry
+-- ---------------------------------------------------------------------------
+
+local function fcfg(over)
+    local c = { buttonSize = 40, flyoutScale = 100, flyoutSpacing = 2,
+                flyoutGap = 4, flyoutIndicatorSize = 8, flyoutPoint = "TOP" }
+    for k, v in pairs(over or {}) do c[k] = v end
+    return c
+end
+
+test("macrobar flyout: entry 1 sits one gap off the button", function(t)
+    local KCM = h.loader.loadPure()
+    local f = KCM.MacroBarLayout.Flyout(3, fcfg())
+    t.eq(f.point, "BOTTOM", "container's bottom edge...")
+    t.eq(f.relPoint, "TOP", "...pins to the button's top edge")
+    -- The gap is an inset INSIDE the container (which stays flush to the
+    -- button), so it clears the button border without becoming dead space that
+    -- would fire the secure _onleave as the mouse crossed it.
+    t.eq(f.positions[1].y, 4, "first entry stands off by flyoutGap")
+    t.eq(f.positions[1].x, 0, "no lateral drift")
+end)
+
+test("macrobar flyout: the gap is configurable and can be closed to zero", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.MacroBarLayout.Flyout(1, fcfg{ flyoutGap = 12 }).positions[1].y, 12, "wider gap")
+    t.eq(KCM.MacroBarLayout.Flyout(1, fcfg{ flyoutGap = 0 }).positions[1].y, 0, "flush again")
+    -- The container grows by the gap, so its hit area still reaches the button.
+    t.eq(KCM.MacroBarLayout.Flyout(1, fcfg{ flyoutGap = 12 }).height, 12 + 40,
+        "container covers the gap plus the entry")
+end)
+
+test("macrobar flyout: entries step by size + spacing away from the button", function(t)
+    local KCM = h.loader.loadPure()
+    local f = KCM.MacroBarLayout.Flyout(3, fcfg())
+    t.eq(f.positions[2].y, 4 + 42, "second entry")
+    t.eq(f.positions[3].y, 4 + 84, "third entry")
+    t.eq(f.size, 40, "entry size matches the button at 100%")
+end)
+
+test("macrobar flyout: growing downward mirrors the offsets", function(t)
+    local KCM = h.loader.loadPure()
+    local f = KCM.MacroBarLayout.Flyout(2, fcfg{ flyoutPoint = "BOTTOM" })
+    t.eq(f.point, "TOP", "container's top edge...")
+    t.eq(f.relPoint, "BOTTOM", "...pins to the button's bottom edge")
+    t.eq(f.positions[1].y, -4, "first entry sits below the button")
+    t.eq(f.positions[2].y, -(4 + 42), "and the strip grows further down")
+end)
+
+test("macrobar flyout: horizontal sides stack along x instead of y", function(t)
+    local KCM = h.loader.loadPure()
+    local right = KCM.MacroBarLayout.Flyout(2, fcfg{ flyoutPoint = "RIGHT" })
+    t.eq(right.axis, "H", "horizontal axis")
+    t.eq(right.positions[2].x, 4 + 42, "grows rightward")
+    t.eq(right.positions[2].y, 0, "stays on the button's center line")
+    local left = KCM.MacroBarLayout.Flyout(2, fcfg{ flyoutPoint = "LEFT" })
+    t.eq(left.positions[2].x, -(4 + 42), "grows leftward")
+end)
+
+test("macrobar flyout: container is sized to the run of entries", function(t)
+    local KCM = h.loader.loadPure()
+    local f = KCM.MacroBarLayout.Flyout(3, fcfg())
+    t.eq(f.width, 40, "one entry wide")
+    t.eq(f.height, 4 + 3 * 40 + 2 * 2, "button gap + 3 entries + 2 inter-entry gaps")
+end)
+
+test("macrobar flyout: scale shrinks entries independently of the button", function(t)
+    local KCM = h.loader.loadPure()
+    local f = KCM.MacroBarLayout.Flyout(2, fcfg{ flyoutScale = 50 })
+    t.eq(f.size, 20, "half-size entries")
+    t.eq(f.positions[2].y, 4 + 22, "step follows the smaller size")
+end)
+
+test("macrobar flyout: an empty flyout still reports a usable frame size", function(t)
+    local KCM = h.loader.loadPure()
+    local f = KCM.MacroBarLayout.Flyout(0, fcfg())
+    t.eq(#f.positions, 0, "no entries")
+    t.truthy(f.width >= 1 and f.height >= 1, "never a zero dimension")
+end)
+
+test("macrobar flyout: the indicator band sits inside the icon's edge", function(t)
+    local KCM = h.loader.loadPure()
+    local point, relPoint, dx, dy, rotation, w, h, glyph =
+        KCM.MacroBarLayout.IndicatorAnchor(fcfg())
+    -- Same point on both sides = flush inside that edge, not hanging off it.
+    t.eq(point, "TOP", "band's top...")
+    t.eq(relPoint, "TOP", "...on the button's top, so it overlays the artwork")
+    t.eq(dx, 0, "no horizontal offset")
+    t.eq(dy, 0, "no vertical offset")
+    -- The source texture points RIGHT at rest, so "up" is a quarter turn.
+    t.near(rotation, math.pi / 2, 1e-9, "arrow rotated to point up")
+    t.eq(w, 40, "spans the button's width")
+    t.eq(h, 8, "as thick as configured")
+    t.eq(glyph, 8, "square glyph filling the band at the default 100% — never stretched")
+end)
+
+test("macrobar flyout: each side rotates the arrow to point away from the button", function(t)
+    local KCM = h.loader.loadPure()
+    local function rot(side)
+        local _, _, _, _, rotation = KCM.MacroBarLayout.IndicatorAnchor(fcfg{ flyoutPoint = side })
+        return rotation
+    end
+    -- Source texture rests pointing RIGHT, hence RIGHT is the unrotated case.
+    t.near(rot("RIGHT"),  0,            1e-9, "right needs no rotation")
+    t.near(rot("TOP"),    math.pi / 2,  1e-9, "up is a quarter turn")
+    t.near(rot("BOTTOM"), -math.pi / 2, 1e-9, "down is a quarter turn the other way")
+    t.near(rot("LEFT"),   math.pi,      1e-9, "left is a half turn")
+end)
+
+test("macrobar flyout: arrow size scales off the band and never vanishes", function(t)
+    local KCM = h.loader.loadPure()
+    local function glyphFor(over)
+        local _, _, _, _, _, _, _, g = KCM.MacroBarLayout.IndicatorAnchor(fcfg(over))
+        return g
+    end
+    t.eq(glyphFor{ flyoutIndicatorSize = 12, flyoutArrowScale = 150 }, 18, "150% overflows the band")
+    t.eq(glyphFor{ flyoutIndicatorSize = 12, flyoutArrowScale = 100 }, 12, "100% fills the band")
+    t.eq(glyphFor{ flyoutIndicatorSize = 4,  flyoutArrowScale = 25 },  6,  "clamped to a visible floor")
+end)
+
+test("macrobar flyout: a side band swaps its span and thickness", function(t)
+    local KCM = h.loader.loadPure()
+    local point, relPoint, dx, dy, _, w, h =
+        KCM.MacroBarLayout.IndicatorAnchor(fcfg{ flyoutPoint = "LEFT" })
+    t.eq(point, "LEFT", "band's left...")
+    t.eq(relPoint, "LEFT", "...on the button's left")
+    t.eq(dx, 0, "no horizontal offset")
+    t.eq(dy, 0, "no vertical offset")
+    t.eq(w, 8, "thickness on the x axis now")
+    t.eq(h, 40, "spans the button's height")
+end)
+
+test("macrobar flyout: the band can never swallow more than half the icon", function(t)
+    local KCM = h.loader.loadPure()
+    local _, _, _, _, _, _, h =
+        KCM.MacroBarLayout.IndicatorAnchor{ buttonSize = 20, flyoutIndicatorSize = 24 }
+    t.eq(h, 10, "clamped to half a 20px button")
+    local _, _, _, _, _, _, tiny =
+        KCM.MacroBarLayout.IndicatorAnchor{ buttonSize = 3, flyoutIndicatorSize = 24 }
+    t.eq(tiny, 2, "never below the 2px floor")
+end)
+
+test("macrobar flyout: every flyout side resolves geometry", function(t)
+    local KCM = h.loader.loadPure()
+    for _, side in ipairs(KCM.MacroBarLayout.FLYOUT_POINTS) do
+        local f = KCM.MacroBarLayout.Flyout(2, fcfg{ flyoutPoint = side })
+        t.truthy(f.point and f.relPoint, side .. " container anchor")
+        t.eq(#f.positions, 2, side .. " positions")
+        local point = KCM.MacroBarLayout.IndicatorAnchor(fcfg{ flyoutPoint = side })
+        t.truthy(point, side .. " indicator anchor")
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- Label clearance around the indicator
+-- ---------------------------------------------------------------------------
+
+test("macrobar flyout: a label sharing the band's edge is pushed clear", function(t)
+    local KCM = h.loader.loadPure()
+    local _, _, _, y = KCM.MacroBarLayout.LabelAnchor{
+        flyout = true, flyoutPoint = "TOP", flyoutIndicatorSize = 8,
+        labelPoint = "TOP_CENTER", labelPlacement = "INSIDE", labelOffsetY = -2,
+    }
+    t.eq(y, -2 - 9, "user offset plus the whole band thickness and a pixel")
+end)
+
+test("macrobar flyout: clearance follows the band to another edge", function(t)
+    local KCM = h.loader.loadPure()
+    local cfg = { flyout = true, flyoutIndicatorSize = 8, labelPlacement = "INSIDE" }
+    cfg.flyoutPoint, cfg.labelPoint = "BOTTOM", "BOTTOM_CENTER"
+    local _, _, _, down = KCM.MacroBarLayout.LabelAnchor(cfg)
+    t.eq(down, 9, "a bottom label is pushed up")
+    cfg.flyoutPoint, cfg.labelPoint = "LEFT", "LEFT"
+    local _, _, left = KCM.MacroBarLayout.LabelAnchor(cfg)
+    t.eq(left, 9, "a left label is pushed right")
+end)
+
+test("macrobar flyout: a label on a different edge is left alone", function(t)
+    local KCM = h.loader.loadPure()
+    local dx, dy = KCM.MacroBarLayout.IndicatorClearance{
+        flyout = true, flyoutPoint = "TOP",
+        labelPoint = "BOTTOM_CENTER", labelPlacement = "INSIDE",
+    }
+    t.eq(dx, 0, "no x clearance")
+    t.eq(dy, 0, "no y clearance")
+end)
+
+test("macrobar flyout: no clearance when the flyout is off or the label is outside", function(t)
+    local KCM = h.loader.loadPure()
+    local _, offDy = KCM.MacroBarLayout.IndicatorClearance{
+        flyout = false, flyoutPoint = "TOP", labelPoint = "TOP_CENTER", labelPlacement = "INSIDE",
+    }
+    t.eq(offDy, 0, "flyout disabled")
+    local _, outDy = KCM.MacroBarLayout.IndicatorClearance{
+        flyout = true, flyoutPoint = "TOP", labelPoint = "TOP_CENTER", labelPlacement = "OUTSIDE",
+    }
+    t.eq(outDy, 0, "an outside label owns its own offsets")
+end)
+
+test("macrobar flyout: clearance scales with the band thickness", function(t)
+    local KCM = h.loader.loadPure()
+    local _, thin = KCM.MacroBarLayout.IndicatorClearance{
+        flyout = true, flyoutPoint = "TOP", labelPoint = "TOP_CENTER",
+        labelPlacement = "INSIDE", flyoutIndicatorSize = 4,
+    }
+    local _, fat = KCM.MacroBarLayout.IndicatorClearance{
+        flyout = true, flyoutPoint = "TOP", labelPoint = "TOP_CENTER",
+        labelPlacement = "INSIDE", flyoutIndicatorSize = 20,
+    }
+    t.eq(thin, -5, "a thin band needs little room")
+    t.eq(fat, -21, "a deep band pushes the label further in")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -414,8 +631,157 @@ test("macrobar schema: LSMValues never hands back an empty list", function(t)
     t.eq(out[1].value, "None", "placeholder is None")
 end)
 
+-- ---------------------------------------------------------------------------
+-- Flyout candidate list (modules/MacroBarFlyout.lua — cap + invert)
+-- ---------------------------------------------------------------------------
+
+test("macrobar flyout: candidates come back in rank order, best first", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local seed = KCM.SEED.HP_POT
+    for i = 1, 3 do mock.setBag(seed[i], 1) end
+    local out = KCM.MacroBarFlyout.Candidates("HP_POT", { flyoutMax = 12 })
+    t.eq(#out, 3, "all three owned entries")
+    t.eq(out[1], KCM.Selector.PickBestForCategory("HP_POT"),
+        "entry 1 is the macro's pick, so it renders closest to the button")
+end)
+
+test("macrobar flyout: invert reverses the order without dropping anything", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local seed = KCM.SEED.HP_POT
+    for i = 1, 3 do mock.setBag(seed[i], 1) end
+    local normal   = KCM.MacroBarFlyout.Candidates("HP_POT", { flyoutMax = 12 })
+    local inverted = KCM.MacroBarFlyout.Candidates("HP_POT", { flyoutMax = 12, flyoutInvert = true })
+    t.eq(#inverted, #normal, "same number of entries")
+    t.eq(inverted[1], normal[#normal], "first becomes last")
+    t.eq(inverted[#inverted], normal[1], "and last becomes first")
+end)
+
+test("macrobar flyout: the list is capped to flyoutMax, keeping the top ranks", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    -- Own every seeded potion, whatever the seed's length happens to be.
+    for _, id in ipairs(KCM.SEED.HP_POT) do mock.setBag(id, 1) end
+    local full   = KCM.MacroBarFlyout.Candidates("HP_POT", { flyoutMax = 12 })
+    local capped = KCM.MacroBarFlyout.Candidates("HP_POT", { flyoutMax = 2 })
+    t.truthy(#full > 2, "more owned than the cap under test")
+    t.eq(#capped, 2, "capped to flyoutMax")
+    t.eq(capped[1], full[1], "keeps the top-ranked entry")
+    t.eq(capped[2], full[2], "and the runner-up")
+end)
+
+test("macrobar flyout: the cap is bounded by the pool ceiling, not just the setting", function(t)
+    local KCM = h.loader.loadFullAddon()
+    t.truthy(KCM.MacroBarFlyout.MAX_ENTRIES >= 1, "a hard ceiling exists")
+    -- The pool can only grow out of combat, so flyoutMax must never exceed it.
+    local def = KCM.Settings.Helpers.FindSchema("macroBar.flyoutMax")
+    t.truthy(def.max <= KCM.MacroBarFlyout.MAX_ENTRIES,
+        "the slider cannot ask for more entries than the pool allows")
+end)
+
+test("macrobar flyout: it ships on, opening upward, closing after 3s", function(t)
+    local KCM = h.loader.loadPure()
+    local d = KCM.dbDefaults.profile.macroBar
+    t.eq(d.flyout, true, "flyout enabled by default")
+    t.eq(d.flyoutPoint, "TOP", "opens to the top by default")
+    t.eq(d.flyoutInvert, false, "best-first by default")
+    t.eq(d.labelText, "SHORT", "labels use the category short form by default")
+    t.eq(d.flyoutAutoClose, 1, "idles closed after a second")
+    t.eq(d.flyoutShadeColor[4], 0.8, "the band is mostly opaque so the arrow reads clearly")
+    t.eq(d.flyoutArrowScale, 100, "and the arrow fills the band")
+end)
+
+test("macrobar flyout: auto-close is configurable and 0 means never", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local def = KCM.Settings.Helpers.FindSchema("macroBar.flyoutAutoClose")
+    t.truthy(def, "auto-close is a schema row, so /cm set reaches it")
+    t.eq(def.type, "number", "seconds")
+    t.eq(def.min, 0, "0 is allowed, and means never auto-close")
+    t.truthy(def.max >= 3, "and the default sits inside the range")
+end)
+
+test("macrobar flyout: the idle timer stands down while in combat", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    -- Hiding this container mid-fight is not ours to do, so the timer must
+    -- no-op rather than fire a blocked Hide(). The secure _onleave snippet and
+    -- the click wrap cover the in-combat cases instead.
+    local hidden = false
+    local flyout = {
+        closeToken = 0,
+        IsShown = function() return true end,
+        Hide    = function() hidden = true end,
+    }
+    KCM.db.profile.macroBar.flyoutAutoClose = 3
+    mock.setCombat(true)
+    KCM.MacroBarFlyout._armTimer(flyout)     -- mock C_Timer.After runs inline
+    t.falsy(hidden, "no hide attempted in combat")
+
+    mock.setCombat(false)
+    KCM.MacroBarFlyout._armTimer(flyout)
+    t.truthy(hidden, "out of combat the same timer closes it")
+end)
+
+test("macrobar flyout: Close hides the strip and stands down in combat", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local hidden = false
+    local flyout = { closeToken = 0, Hide = function() hidden = true end }
+
+    -- Close is what the PostClick hooks on the slot and on every entry call.
+    -- It is ordinary insecure Lua, so mid-fight it declines rather than
+    -- attempting a hide the client may refuse; the secure _onleave covers that
+    -- case the moment the cursor moves.
+    mock.setCombat(true)
+    KCM.MacroBarFlyout.Close(flyout)
+    t.falsy(hidden, "no hide attempted in combat")
+
+    mock.setCombat(false)
+    KCM.MacroBarFlyout.Close(flyout)
+    t.truthy(hidden, "closes out of combat")
+end)
+
+test("macrobar flyout: Close also cancels a pending idle timer", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local flyout = { closeToken = 0, Hide = function() end }
+    KCM.MacroBarFlyout.Close(flyout)
+    t.ne(flyout.closeToken, 0,
+        "the token moves on, so an in-flight timer can't fire against a closed flyout")
+end)
+
+test("macrobar flyout: Close tolerates a nil flyout", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.MacroBarFlyout.Close(nil)
+    t.truthy(true, "no error")
+end)
+
+test("macrobar flyout: a zero auto-close never schedules a hide", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local hidden = false
+    local flyout = {
+        closeToken = 0,
+        IsShown = function() return true end,
+        Hide    = function() hidden = true end,
+    }
+    KCM.db.profile.macroBar.flyoutAutoClose = 0
+    KCM.MacroBarFlyout._armTimer(flyout)
+    t.falsy(hidden, "0 keeps the flyout open until hover-out or a click")
+end)
+
+test("macrobar flyout: re-arming supersedes the previous timer", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local flyout = { closeToken = 0, IsShown = function() return true end, Hide = function() end }
+    KCM.db.profile.macroBar.flyoutAutoClose = 3
+    KCM.MacroBarFlyout._armTimer(flyout)
+    local first = flyout.closeToken
+    KCM.MacroBarFlyout._armTimer(flyout)
+    t.ne(flyout.closeToken, first,
+        "a fresh open invalidates the older token, so a stale timer can't close it")
+end)
+
 test("macrobar schema: the bar publishes its own bus message", function(t)
     local KCM = h.loader.loadFullAddon()
-    t.truthy(KCM.MSG.MACROBAR_REFRESH, "MACROBAR_REFRESH is in the catalogue")
+    t.truthy(KCM.MSG.MACROBAR_REFRESH, "MACROBAR_REFRESH is in the catalog")
     t.truthy(KCM._macroBarBusTarget, "the bar registered a receiver on its own target")
 end)

@@ -47,6 +47,19 @@ db.profile
     │   │ buttonBorderColor         { r, g, b, a }
     ├── iconZoom                    number   -- % cropped off each icon edge
     ├── showCount │ tooltips        boolean
+    ├── flyout                      boolean  -- per-slot hover flyout (default on)
+    ├── flyoutPoint                 "TOP" │ "BOTTOM" │ "LEFT" │ "RIGHT"
+    │                                        -- indicator edge AND growth direction
+    ├── flyoutInvert                boolean  -- put the top rank furthest out
+    ├── flyoutMax                   number   -- entries, capped by MAX_ENTRIES
+    ├── flyoutScale                 number   -- % of buttonSize
+    ├── flyoutSpacing               number (px)  -- between entries
+    ├── flyoutGap                   number (px)  -- button to first entry
+    ├── flyoutIndicatorSize         number (px) -- shaded band thickness,
+    │                                        -- clamped to half the button
+    ├── flyoutArrowScale            number   -- arrow size, % of band thickness
+    ├── flyoutShadeColor            { r, g, b, a }
+    ├── flyoutAutoClose             number   -- idle seconds; 0 = never
     ├── buttonLabel │ labelOutline  boolean
     ├── labelText                   "AUTO" │ "FULL" │ "SHORT"
     ├── labelPoint                  9-way grid, e.g. "TOP_CENTER"

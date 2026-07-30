@@ -269,10 +269,10 @@ test("schema: FormatSchemaValue renders nil as 'nil'", function(t)
     t.eq(KCM.FormatSchemaValue({ type = "bool" }, nil), "nil", "an unset value renders explicitly")
 end)
 
-test("schema: FormatSchemaValue renders a colour as a four-component table", function(t)
+test("schema: FormatSchemaValue renders a color as a four-component table", function(t)
     local KCM = h.loader.loadFullAddon()
     t.eq(KCM.FormatSchemaValue({ type = "color" }, { 1, 0, 0.5, 1 }), "{1.00, 0.00, 0.50, 1.00}",
-        "colours print at fixed precision so /cm get and /cm list agree")
+        "colors print at fixed precision so /cm get and /cm list agree")
 end)
 
 test("schema: FormatSchemaValue renders booleans and strings readably", function(t)

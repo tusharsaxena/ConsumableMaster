@@ -50,12 +50,21 @@ local HEADER_HEIGHT = 54
 
 -- Combat-lockdown open refusal (options-ui-§2): both the O.Open slash path and
 -- the Blizzard AddOns-sidebar OnShow guard funnel through here so they emit the
--- one canonical grey notice via the shared secret-safe seam, never a protected
+-- one canonical gray notice via the shared secret-safe seam, never a protected
 -- category-switch and never a silent no-op.
 local function sayCombatOpenBlocked()
     KCM.Say("|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r")
 end
 
+-- Vertical rhythm, matched to Ka0s KickCD's settings pages (the house
+-- reference). The one that was missing here is ROW_VSPACER: KickCD emits it
+-- after EVERY grid row, which is what stops stacked slider/dropdown pairs from
+-- running together — without it the page reads as a compressed wall.
+--
+-- The section spacers stack on top of that trailing row spacer, so the real gap
+-- above a heading is SECTION_TOP_SPACER + ROW_VSPACER = 18px. That's why the top
+-- spacer looks small on its own; don't "fix" it by raising it without checking
+-- what precedes the heading.
 local SECTION_TOP_SPACER    = 10
 local SECTION_BOTTOM_SPACER = 6
 local SECTION_HEADING_H     = 26
@@ -668,7 +677,7 @@ local function makeColorPicker(ctx, def, parent, relativeWidth)
         cp:SetColor(current())
     end
 
-    -- OnValueConfirmed only: OnValueChanged fires continuously while the colour
+    -- OnValueConfirmed only: OnValueChanged fires continuously while the color
     -- wheel is dragged, and each write drives a full macro-bar restyle.
     cp:SetCallback("OnValueConfirmed", function(_, _, r, g, b, a)
         Helpers.SetAndRefresh(def.path, { r, g, b, a or 1 })
@@ -750,7 +759,12 @@ function Helpers.Grid(ctx, items)
         return r
     end
     local function flush()
-        if row then scroll:AddChild(row); row = nil; count = 0 end
+        if row then
+            scroll:AddChild(row)
+            addSpacer(scroll, ROW_VSPACER)
+            row = nil
+            count = 0
+        end
     end
     local function renderInto(item, parent, relW)
         if item.make then item.make(ctx, parent, relW)
@@ -762,6 +776,7 @@ function Helpers.Grid(ctx, items)
             local r = newRow()
             renderInto(item, r, nil)
             scroll:AddChild(r)
+            addSpacer(scroll, ROW_VSPACER)
         else
             if not row then row = newRow() end
             renderInto(item, row, 0.5)
@@ -824,7 +839,7 @@ end
 -- is wasted work: with 15 sub-pages it stalls the client for a visible beat on
 -- every checkbox toggle or button click. Rebuild only the panel that is on
 -- screen; flag the rest dirty so they rebuild lazily the next time they are
--- shown (SetRenderer's OnShow honours the flag).
+-- shown (SetRenderer's OnShow honors the flag).
 function Helpers.RefreshAllPanels()
     for _, ctx in ipairs(KCM.Settings._panels) do
         if ctx._rendered and ctx._renderFn then
@@ -847,7 +862,7 @@ end
 -- ctx.refreshers. Only the on-screen panel is re-synced live; off-screen
 -- panels are flagged dirty and rebuilt lazily on their next OnShow, so a
 -- background page still reflects the new value when the user returns to it
--- (SetRenderer's OnShow honours the flag). This is the cheap counterpart to
+-- (SetRenderer's OnShow honors the flag). This is the cheap counterpart to
 -- RefreshAllPanels — no AceGUI teardown, no structural rebuild.
 function Helpers.RefreshScalars()
     for _, ctx in ipairs(KCM.Settings._panels) do

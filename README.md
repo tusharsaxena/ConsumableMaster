@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-447%2F447_passing-green)
+![Tests](https://img.shields.io/badge/Tests-486%2F486_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -74,7 +74,7 @@ If a better pick comes up while you're in combat, the macro updates the moment y
 
 Install it with your addon manager (or drop the folder into `Interface/AddOns`) and log in. On login, Consumable Master scans your bags, finds your consumables, and writes all its macros. Drag any macro onto your action bars from the macro window, or from the draggable icon at the top of each category page in the settings.
 
-You also get a **macro bar** — a bar holding only Consumable Master's macros, so you don't have to spend action-bar space on them. It starts unlocked so you can drag it where you want it; lock it from the Macro Bar settings page (or `/cm bar lock`) when you're happy, or switch it off entirely with `/cm bar off`.
+You also get a **macro bar** — a bar holding only Consumable Master's macros, so you don't have to spend action-bar space on them. Each button has a shaded strip across its top with a small arrow: hover it and a flyout opens with every item or spell in that category you can use right now, so you can reach past the macro's top pick without opening your bags. The bar starts unlocked so you can drag it where you want it; lock it from the Macro Bar settings page (or `/cm bar lock`) when you're happy, or switch it off entirely with `/cm bar off`.
 
 ### Slash commands
 
@@ -132,7 +132,7 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 
 *   **Enable macro bar** — show the bar. On by default; turning it off hides the bar and stops all its work, and nothing is rebuilt until you turn it back on.
 *   **Lock position** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
-*   **Reset position** / **Reset slot order** — move the bar back to the centre of the screen, or undo any drag-and-drop rearranging.
+*   **Reset position** / **Reset slot order** — move the bar back to the center of the screen, or undo any drag-and-drop rearranging.
 
 *Layout*
 
@@ -143,14 +143,14 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 
 *Bar appearance*
 
-*   **Bar background** and its colour — the backdrop drawn behind the buttons.
-*   **Bar border**, **Bar border style**, **Bar border thickness** and its colour — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
+*   **Bar background** and its color — the backdrop drawn behind the buttons.
+*   **Bar border**, **Bar border style**, **Bar border thickness** and its color — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
 *   **Bar opacity** — how opaque the bar is when it isn't faded out.
 
 *Button appearance*
 
-*   **Button background** and its colour — the fill behind each icon, mostly visible while an icon is still loading.
-*   **Button border**, **Button border style**, **Button border thickness** and its colour — same LibSharedMedia list as the bar, so the two can match. Turn the border off for a flat, borderless grid of icons.
+*   **Button background** and its color — the fill behind each icon, mostly visible while an icon is still loading.
+*   **Button border**, **Button border style**, **Button border thickness** and its color — same LibSharedMedia list as the bar, so the two can match. Turn the border off for a flat, borderless grid of icons.
 *   **Button border offset** — pushes the border outward, away from the icon. Raise this if a thick border is covering the artwork.
 *   **Icon zoom** — crops a percentage off each side of the icon. A little zoom trims the dark edge baked into most item icons so it stops reading as a second border.
 *   **Show stack count** — how many of the picked item you're carrying, in the corner of each button.
@@ -160,11 +160,29 @@ Cooldowns use your normal game settings (the standard sweep, plus countdown numb
 
 *Labels*
 
-*   **Show button labels** — write each button's category name on it. Off by default.
-*   **Label text** — *Auto* uses the full category name and drops to a short form (Healing Potion → HP Pot) only when the full one won't fit; *Always full* and *Always short* skip the measuring.
-*   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is inside the top edge. Outside labels can overlap a neighbour when spacing is tight.
+*   **Show button labels** — write each button's category name on it. On by default.
+*   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 13-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
+*   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is just outside the bottom edge, which keeps the label clear of both the icon and the flyout band on top. Outside labels can overlap a neighbor when spacing is tight.
 *   **Label size** — a percentage of the button size, so labels stay proportional when you resize the bar.
-*   **Label offset X / Y**, **Outline label text**, **Label colour** — the rest of the fine-tuning.
+*   **Label offset X / Y**, **Outline label text**, **Label color** — the rest of the fine-tuning.
+
+*Flyout*
+
+Each button has a shaded strip across its top edge with a small arrow on it. Hover anywhere on that strip and a flyout opens listing everything in that category you can actually use — every item in your bags and every spell you know, **including the one the macro is currently pointing at** — with the best-ranked one nearest the button. Click any of them to use it. Items you don't have and spells you haven't learned never appear; something on cooldown does appear, with its cooldown showing.
+
+The flyout only exists on this bar. A Consumable Master macro dragged onto a normal action bar stays an ordinary macro.
+
+It closes when you move the mouse off it, when you click the macro, when you click one of its entries, or after a few seconds of sitting untouched. In combat, only moving the mouse away closes it — WoW doesn't let addons hide this kind of frame mid-fight on their own, so the click and timer paths wait for the fight to end. Since clicking something means your mouse is about to move anyway, you'll rarely notice.
+
+*   **Enable flyout** — on by default.
+*   **Flyout side** — which edge the shaded band sits on, and the direction the flyout grows from there. Top by default.
+*   **Auto-close after** — seconds of no interaction before an open flyout closes itself. 1 second by default; set it to 0 to leave it open until you move away or click something.
+*   **Reverse flyout order** — put the best-ranked item furthest from the button instead of nearest.
+*   **Maximum flyout entries** — how long a flyout can get. Categories with more available items show the top-ranked ones.
+*   **Shaded band thickness**, **Arrow size** and **Shaded band color** — the strip across the icon and the arrow on it. A deeper band is an easier hover target (capped at half the button), and the button label automatically moves out of its way when the two share an edge. Arrow size is a percentage of the band, so over 100% it overflows onto the icon to stay readable on small buttons. Lower the band's opacity to let more of the artwork through.
+*   **Flyout button size**, **Flyout spacing**, **Gap from button** — sizing for the entries, the space between them, and how far the first one stands off the macro button (raise it if a thick or offset button border overlaps the flyout). Hovering still works across that gap.
+
+Two notes on how flyouts behave in a fight. Opening one, using it, and closing it by moving the mouse away all work normally — that part runs through Blizzard's secure code. But *which items are in it* is fixed when combat starts, because WoW won't let addons re-point a button mid-fight: use your last potion during a boss and its entry stays in the flyout until the fight ends (clicking it just does nothing, the same as a stale action bar). Cooldown swipes do keep ticking live.
 
 *Visibility*
 

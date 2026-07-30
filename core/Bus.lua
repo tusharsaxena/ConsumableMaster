@@ -5,7 +5,7 @@
 -- consumer subscribes on its OWN target (KCM.NewBusTarget()) — never two
 -- receivers on one target (anti-pattern #32).
 --
--- Message catalogue (also documented in docs/ARCHITECTURE.md):
+-- Message catalog (also documented in docs/ARCHITECTURE.md):
 --   Ka0s_ConsumableMaster_Recompute(reason)  — event/UI layer → pipeline.
 --       Coalesced into one pipeline pass per frame by RequestRecompute.
 --   Ka0s_ConsumableMaster_PanelRefresh()      — pipeline → options panel.

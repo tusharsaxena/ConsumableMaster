@@ -121,18 +121,44 @@ KCM.dbDefaults = {
             iconZoom            = 8,     -- % crop per side; trims the icon's own dark edge
             showCount           = true,
             tooltips            = true,
-            -- Per-button labels (off by default). `labelText = AUTO` uses the
-            -- category's display name and falls back to its shortName from
-            -- defaults/Categories.lua only when the full one won't fit.
-            buttonLabel    = false,
-            labelText      = "AUTO",         -- AUTO | FULL | SHORT
-            labelPoint     = "TOP_CENTER",   -- 9-way grid; see MacroBarLayout.LABEL_POINTS
-            labelPlacement = "INSIDE",       -- INSIDE | OUTSIDE
-            labelScale     = 26,             -- % of button size, clamped to 6-24pt
+            -- Per-button labels. On by default, tucked just under the bottom
+            -- edge so they never fight the icon or the flyout band on top, and
+            -- using each category's shortName (defaults/Categories.lua) so a
+            -- 13-slot bar stays readable without per-label measuring.
+            buttonLabel    = true,
+            labelText      = "SHORT",           -- AUTO | FULL | SHORT
+            labelPoint     = "BOTTOM_CENTER",   -- 9-way grid; see MacroBarLayout.LABEL_POINTS
+            labelPlacement = "OUTSIDE",         -- INSIDE | OUTSIDE
+            labelScale     = 26,                -- % of button size, clamped to 6-24pt
             labelOffsetX   = 0,
-            labelOffsetY   = -2,
+            labelOffsetY   = 3,                 -- positive nudges it back up over the edge
             labelOutline   = true,
             labelColor     = { 1, 0.82, 0, 1 },
+            -- Hover flyout (modules/MacroBarFlyout.lua). On by default.
+            -- `flyoutPoint` sets BOTH the indicator's edge and the direction the
+            -- flyout grows; entry 1 (the top-ranked candidate) always sits
+            -- closest to the button unless `flyoutInvert` reverses the list.
+            -- `flyoutMax` is capped again by MacroBarFlyout.MAX_ENTRIES, since
+            -- the button pool can only grow out of combat.
+            flyout              = true,
+            flyoutPoint         = "TOP",   -- TOP | BOTTOM | LEFT | RIGHT
+            flyoutInvert        = false,
+            flyoutMax           = 12,
+            flyoutSpacing       = 2,
+            -- Gap between the button and the first entry, so a thick or offset
+            -- button border can't overlap it. Lives inside the flyout's own
+            -- (mouse-enabled) frame, so it is not dead space for the hover.
+            flyoutGap           = 4,
+            flyoutScale         = 100,     -- % of buttonSize
+            -- The indicator is a shaded band INSIDE the icon along `flyoutPoint`'s
+            -- edge, carrying a small arrow. Thickness is clamped to half the
+            -- button so it can never swallow the artwork.
+            flyoutIndicatorSize = 12,      -- shaded band thickness in px
+            flyoutShadeColor    = { 0, 0, 0, 0.8 },
+            flyoutArrowScale    = 100,     -- arrow size as % of band thickness
+            -- Seconds of no interaction before an open flyout closes itself.
+            -- 0 = never (hover-out and clicking still close it).
+            flyoutAutoClose     = 1,
             -- Visibility. combatMode is handed to a secure state driver so it
             -- works mid-combat; fadeUnlessHover is a plain alpha fade.
             combatMode      = "ALWAYS",   -- ALWAYS | HIDE_IN_COMBAT | ONLY_IN_COMBAT
@@ -465,7 +491,7 @@ end
 
 function KCM:OnSpecChanged()
     requestRecompute("spec_changed")
-    -- The Stat Priority page's retrack-to-current-spec behaviour is a panel
+    -- The Stat Priority page's retrack-to-current-spec behavior is a panel
     -- concern, so it is published as SPEC_CHANGED and handled by the options
     -- layer's own receiver rather than reached into from here (standard §4.4).
     if KCM.bus and KCM.bus.SendMessage then

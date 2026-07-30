@@ -35,10 +35,11 @@ Functional-area tags in use today:
 - `GC` — stale-discovered sweep
 - `Set` — settings write at `Helpers.Set`
 - `Prio` — priority-list mutations (add/block/move) and category/all resets
+- `Bar` — macro-bar events worth noticing, today just a flyout truncated by `macroBar.flyoutMax` (never a silent cap)
 
 Every settings change logs once as `[Set] <path> = <value>` at `Helpers.Set`; repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
 
-The `DebugLog.SetEnabled` seam prints a **colour-coded** chat ack through `KCM.Say` — `debug logging |cff40ff40ON|r` (green) / `|cffff4040OFF|r` (red) — matching the title-bar `Debug: ON/OFF` toggle so the flag reads identically in chat and on the console (debug-logging-§5).
+The `DebugLog.SetEnabled` seam prints a **color-coded** chat ack through `KCM.Say` — `debug logging |cff40ff40ON|r` (green) / `|cffff4040OFF|r` (red) — matching the title-bar `Debug: ON/OFF` toggle so the flag reads identically in chat and on the console (debug-logging-§5).
 
 Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 

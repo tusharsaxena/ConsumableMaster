@@ -70,7 +70,7 @@ test("/cm version prints the canonical v<version> line, not 'version <v>'", func
         "no 'version <v>' wording — canonical single-line form")
 end)
 
-test("/cm list colours the header, page group, and key=value rows (no trailing colon)", function(t)
+test("/cm list colors the header, page group, and key=value rows (no trailing colon)", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "list")
     t.truthy(text:find("|cff33ff99Available settings|r", 1, true), "green Available settings header")
@@ -80,7 +80,7 @@ test("/cm list colours the header, page group, and key=value rows (no trailing c
     t.falsy(text:find("Available settings:", 1, true), "header carries no trailing colon")
 end)
 
-test("/cm get echoes the same coloured key=value form as list", function(t)
+test("/cm get echoes the same colored key=value form as list", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "get enabled")
     t.truthy(text:find("|cffffff00enabled|r = |cffffffff", 1, true),
@@ -366,7 +366,7 @@ test("/cm aio toggle flips a sub-category and back", function(t)
     t.eq(KCM.db.profile.categories.HP_AIO.enabled.HS, true, "and back on")
 end)
 
-test("/cm aio toggle honours an explicit on/off argument", function(t)
+test("/cm aio toggle honors an explicit on/off argument", function(t)
     local KCM = load()
     KCM:OnSlashCommand("aio hp_aio toggle HS off")
     t.eq(KCM.db.profile.categories.HP_AIO.enabled.HS, false, "explicit off")
@@ -388,7 +388,7 @@ test("/cm aio down reorders within a section", function(t)
     local cfg = KCM.db.profile.categories.HP_AIO
     local first, second = cfg.orderInCombat[1], cfg.orderInCombat[2]
     KCM:OnSlashCommand("aio hp_aio down " .. first)
-    t.eq(cfg.orderInCombat[1], second, "the neighbour moved up")
+    t.eq(cfg.orderInCombat[1], second, "the neighbor moved up")
     t.eq(cfg.orderInCombat[2], first, "and the target moved down")
 end)
 

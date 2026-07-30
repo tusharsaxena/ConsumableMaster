@@ -51,7 +51,7 @@ local methods = {
     -- `path` may be either a traditional texture path ("Interface\\...") or
     -- a modern atlas name prefixed with "atlas:" (e.g. "atlas:transmog-icon-remove").
     -- Atlases avoid hardcoding file paths for icons that Blizzard ships only
-    -- via the atlas system. useAtlasSize=false honours our SetImageSize call.
+    -- via the atlas system. useAtlasSize=false honors our SetImageSize call.
     ["SetImage"] = function(self, path, ...)
         local image = self.image
         if type(path) == "string" and path:sub(1, 6) == "atlas:" then
@@ -114,7 +114,7 @@ local function Constructor()
 
     -- Solid gold hover swatch sits on BACKGROUND (below the icon on ARTWORK) and
     -- pins flush to the image's bounds — no gap, icon unobscured. Shown/hidden
-    -- manually from Control_OnEnter/OnLeave. Colour matches GameFontNormal gold
+    -- manually from Control_OnEnter/OnLeave. Color matches GameFontNormal gold
     -- (1, 0.82, 0) used by section headers, at 25% alpha.
     local hoverBG = frame:CreateTexture(nil, "BACKGROUND")
     hoverBG:SetColorTexture(1, 0.82, 0, 0.25)

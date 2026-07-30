@@ -266,7 +266,7 @@ test("Defaults: a seeded itemID is shared only across a health/mana sibling pair
                     if a > b then a, b = b, a end
                     t.truthy(DUAL_PURPOSE_PAIRS[a .. "|" .. b],
                         "item " .. tostring(id) .. " shared between " .. a .. " and " .. b
-                            .. " is a recognised dual-purpose pairing")
+                            .. " is a recognized dual-purpose pairing")
                 end
                 owner[id] = key
             end

@@ -188,7 +188,7 @@ local function buildCompositeBody(cat, pickFor)
     -- Per-section empty-state fallback. When one combat-state side produced
     -- usable lines but the other didn't, clicking the macro from the empty
     -- side would otherwise be silent. Mirror the single-cat empty-state
-    -- behaviour (a chat print) but gated on combat state via Lua, since
+    -- behavior (a chat print) but gated on combat state via Lua, since
     -- /run doesn't accept `[combat]` / `[nocombat]` macro conditionals —
     -- those are evaluated by the secure-macro parser, which only attaches
     -- them to /use, /cast, /castsequence, /click, /target, etc.

@@ -271,6 +271,102 @@ function S.PickBestForSlot(catKey, slot, scoreCache)
 end
 
 -- ---------------------------------------------------------------------------
+-- List every available candidate (macro-bar flyout)
+-- ---------------------------------------------------------------------------
+-- Same walk as PickBestForCategory, but it collects EVERY owned item / known
+-- spell instead of stopping at the first, keeping the effective priority order
+-- (top-ranked first). Pure and combat-safe like the rest of this file; the
+-- flyout that renders it is the part that has to respect the lockdown.
+--
+-- Three category shapes, three rules:
+--   * single-pick   — the effective priority list, filtered to what's owned.
+--   * per-hand      — filtered to enhancements that fit an EQUIPPED weapon
+--                     (union of main hand + off hand, deduped, rank order
+--                     preserved), so nothing unusable on your current weapons
+--                     is ever offered.
+--   * composite     — concatenation of each ENABLED sub-category's own list, in
+--                     the composite's configured order (in-combat sections
+--                     first, then out-of-combat), deduped. An AIO flyout is
+--                     therefore the whole health / mana toolkit.
+
+local function isAvailable(id)
+    if KCM.ID and KCM.ID.IsSpell(id) then
+        local spellID = KCM.ID.SpellID(id)
+        return (spellID and IsPlayerSpell and IsPlayerSpell(spellID)) and true or false
+    end
+    local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
+    return (hasItem and hasItem(id)) and true or false
+end
+S.IsAvailable = isAvailable
+
+-- Enhancements that fit either equipped weapon, in rank order without repeats.
+local function availableForHands(catKey, scoreCache)
+    local out, seen = {}, {}
+    local affinities = {}
+    for _, slot in ipairs({ 16, 17 }) do
+        local aff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(slot)
+        if aff then affinities[aff] = true end
+    end
+    if not next(affinities) then return out end
+    for _, id in ipairs(S.GetEffectivePriority(catKey, nil, scoreCache)) do
+        if not (KCM.ID and KCM.ID.IsSpell(id)) and not seen[id] then
+            local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(id)
+            local aff = (tt and tt.weaponAffinity) or "any"
+            if (aff == "any" or affinities[aff]) and isAvailable(id) then
+                seen[id] = true
+                out[#out + 1] = id
+            end
+        end
+    end
+    return out
+end
+
+-- Sub-category refs of a composite in body order, honoring the user's
+-- enabled / reorder state (same precedence MacroManager uses).
+local function compositeRefs(cat)
+    local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
+        and KCM.db.profile.categories[cat.key]
+    local enabled  = (cfg and cfg.enabled) or {}
+    local orderIn  = (cfg and cfg.orderInCombat)    or cat.components.inCombat    or {}
+    local orderOut = (cfg and cfg.orderOutOfCombat) or cat.components.outOfCombat or {}
+    local refs = {}
+    for _, list in ipairs({ orderIn, orderOut }) do
+        for _, ref in ipairs(list) do
+            if enabled[ref] ~= false then refs[#refs + 1] = ref end
+        end
+    end
+    return refs
+end
+
+function S.ListAvailable(catKey, specKey, scoreCache)
+    local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
+    if not cat then return {} end
+
+    if cat.composite and cat.components then
+        local out, seen = {}, {}
+        for _, ref in ipairs(compositeRefs(cat)) do
+            for _, id in ipairs(S.ListAvailable(ref, specKey, scoreCache)) do
+                if not seen[id] then
+                    seen[id] = true
+                    out[#out + 1] = id
+                end
+            end
+        end
+        return out
+    end
+
+    if cat.perHand then
+        return availableForHands(catKey, scoreCache)
+    end
+
+    local out = {}
+    for _, id in ipairs(S.GetEffectivePriority(catKey, specKey, scoreCache)) do
+        if isAvailable(id) then out[#out + 1] = id end
+    end
+    return out
+end
+
+-- ---------------------------------------------------------------------------
 -- DB-mutating operations
 -- ---------------------------------------------------------------------------
 -- All mutations go through GetBucket so spec-aware categories land in the
@@ -436,7 +532,7 @@ local function movePinned(catKey, itemID, delta, specKey)
     -- Strategy: rebuild the pins array as the full re-ordered priority list
     -- with the two affected slots swapped. This is O(N) but N <= ~30 per
     -- category and only runs on explicit user reorder clicks. It guarantees
-    -- deterministic behaviour regardless of how ranker scores break ties.
+    -- deterministic behavior regardless of how ranker scores break ties.
     priority[curIdx], priority[newIdx] = priority[newIdx], priority[curIdx]
     local newPins = {}
     for i, id in ipairs(priority) do

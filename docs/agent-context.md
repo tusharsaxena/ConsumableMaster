@@ -6,6 +6,8 @@ The full brief for Claude Code (and other LLM-assisted editors) working on **Ka0
 
 Thirteen account-wide global macros whose bodies auto-rewrite to the best consumable in bags. Eleven are single-pick categories (food, drink, HP pot, MP pot, healthstone, vantus rune, flask, combat pot, stat food, weapon enchant, augment rune) and two are composites (`KCM_HP_AIO`, `KCM_MP_AIO`) that compose other categories' picks via `[combat]` / `[nocombat]` conditionals. Panel/tab order is FOOD → DRINK → HP_POT → MP_POT → HS → HP_AIO → MP_AIO → FLASK → CMBT_POT → STAT_FOOD → WPN_ENCH → AUG_RUNE → VANTUS. Retail Midnight only (Interface 120007). English only. Ace3 throughout. Ka0s WoW Addon Standard.
 
+The same macros are also hosted on a CM-only **macro bar** (on and unlocked by default), one secure slot per category with a hover flyout of every currently-usable candidate — the addon's only protected-frame surface ([macro-bar.md](./macro-bar.md)).
+
 User-facing reference: [README.md](../README.md). Design overview + invariants: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Namespace & structure
@@ -39,7 +41,7 @@ Cross-module control flow that crosses feature boundaries goes over the closed b
   - **`SPEC_CHANGED`** (`Ka0s_ConsumableMaster_SpecChanged`) — spec change → options panel. Retracks the Stat Priority page to the new spec.
   - **`MACROBAR_REFRESH`** (`Ka0s_ConsumableMaster_MacroBarRefresh`) — pipeline → macro bar. Undebounced icon/count repaint of the optional bar.
 
-Full catalogue lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
+Full catalog lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Compat seam
 

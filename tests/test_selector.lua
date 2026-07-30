@@ -391,7 +391,7 @@ test("Selector: a pin past the end of the list clamps to last place", function(t
 end)
 
 -- Colliding pins can't arise from the UI — MoveUp/MoveDown rewrite the whole
--- pins array as one contiguous 1..N run — so this pins the behaviour of a
+-- pins array as one contiguous 1..N run — so this pins the behavior of a
 -- hand-edited or corrupted SavedVariables: first pin listed wins the slot, the
 -- loser is displaced rather than silently dropped.
 test("Selector: two pins on the same position keep both items in the list", function(t)
@@ -416,4 +416,143 @@ test("Selector.GetEffectivePriority returns an empty list for an unknown categor
     local KCM = h.loader.loadPure()
     t.eqList(KCM.Selector.GetEffectivePriority("NOT_A_CATEGORY"), {},
         "callers can always ipairs() the result")
+end)
+
+-- ---------------------------------------------------------------
+-- ListAvailable: every owned candidate, in effective-priority order
+-- (the macro-bar flyout's source of truth)
+-- ---------------------------------------------------------------
+test("Selector: ListAvailable returns every owned candidate, not just the best", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local seed = KCM.SEED.HP_POT
+
+    t.eq(#S.ListAvailable("HP_POT"), 0, "nothing owned -> empty list")
+
+    mock.setBag(seed[1], 2)
+    mock.setBag(seed[3], 1)
+    local out = S.ListAvailable("HP_POT")
+    t.eq(#out, 2, "both owned entries listed")
+    -- The macro's own pick must be in the flyout, not excluded from it.
+    t.contains(out, S.PickBestForCategory("HP_POT"), "includes the macro's current pick")
+end)
+
+test("Selector: ListAvailable preserves effective-priority order", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local seed = KCM.SEED.HP_POT
+    for i = 1, 3 do mock.setBag(seed[i], 1) end
+
+    -- Pin the third seed entry to the top; the flyout order must follow the
+    -- same priority list the macro picks from, pins included.
+    S.MoveUp("HP_POT", seed[3])
+    S.MoveUp("HP_POT", seed[3])
+    local priority = S.GetEffectivePriority("HP_POT", nil, nil)
+    local out = S.ListAvailable("HP_POT")
+    t.eq(out[1], priority[1], "first entry matches the priority list's head")
+    t.eq(out[1], S.PickBestForCategory("HP_POT"), "and that head is the macro's pick")
+end)
+
+test("Selector: ListAvailable skips unknown spells and includes known ones", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local SPELL_ID = 1231411
+    local sentinel = KCM.ID.AsSpell(SPELL_ID)
+    S.AddItem("HP_POT", sentinel)
+
+    t.eq(#S.ListAvailable("HP_POT"), 0, "unknown spell is not available")
+    mock.setSpell(SPELL_ID, { known = true })
+    local out = S.ListAvailable("HP_POT")
+    t.eq(#out, 1, "known spell is available")
+    t.eq(out[1], sentinel, "and it is the spell sentinel")
+end)
+
+test("Selector: ListAvailable on a per-hand category only offers what fits the weapons", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+
+    mock.setItem(6001, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "bladed", statBuffs = { { stat = "AP", amount = 10 } } } })
+    mock.setItem(6002, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "blunt",  statBuffs = { { stat = "AP", amount = 15 } } } })
+    mock.setItem(6003, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any",    statBuffs = { { stat = "CRIT", amount = 9 } } } })
+    for _, id in ipairs({ 6001, 6002, 6003 }) do S.AddItem("WPN_ENCH", id) end
+    mock.setBag(6001, 1); mock.setBag(6002, 1); mock.setBag(6003, 1)
+
+    -- A sword in the main hand, nothing in the off hand: bladed + any qualify,
+    -- the blunt weightstone does not.
+    mock.setItem(6100, { subType = "Two-Handed Swords" })
+    mock.setEquipped(16, 6100)
+    mock.setEquipped(17, nil)
+    local out = S.ListAvailable("WPN_ENCH")
+    t.contains(out, 6001, "bladed whetstone offered")
+    t.contains(out, 6003, "any-weapon oil offered")
+    for _, id in ipairs(out) do
+        t.ne(id, 6002, "blunt weightstone never offered for a sword")
+    end
+end)
+
+test("Selector: ListAvailable on a per-hand category is empty with no weapon equipped", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    mock.setItem(6003, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any" } })
+    S.AddItem("WPN_ENCH", 6003)
+    mock.setBag(6003, 1)
+    mock.setEquipped(16, nil); mock.setEquipped(17, nil)
+    t.eq(#S.ListAvailable("WPN_ENCH"), 0, "nothing to enchant -> nothing offered")
+end)
+
+test("Selector: ListAvailable on a composite unions its components, deduped", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    -- FOOD's seed leads with a spell sentinel (Recuperate), so take its first
+    -- real ITEM for the bag fixture.
+    local hp, food = KCM.SEED.HP_POT[1], nil
+    for _, id in ipairs(KCM.SEED.FOOD) do
+        if KCM.ID.IsItem(id) then food = id; break end
+    end
+    t.truthy(food, "FOOD seed has at least one item entry")
+    mock.setBag(hp, 1)
+    mock.setBag(food, 1)
+
+    -- HP_AIO composes HS + HP_POT (in combat) and FOOD (out of combat).
+    local out = S.ListAvailable("HP_AIO")
+    t.contains(out, hp, "in-combat component's pick is offered")
+    t.contains(out, food, "out-of-combat component's pick is offered")
+
+    -- Same item in two components must appear once.
+    S.AddItem("FOOD", hp)
+    local seen = 0
+    for _, id in ipairs(S.ListAvailable("HP_AIO")) do
+        if id == hp then seen = seen + 1 end
+    end
+    t.eq(seen, 1, "an item shared by two components is listed once")
+end)
+
+test("Selector: ListAvailable on a composite honors disabled components", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local hp, food = KCM.SEED.HP_POT[1], nil
+    for _, id in ipairs(KCM.SEED.FOOD) do
+        if KCM.ID.IsItem(id) then food = id; break end
+    end
+    mock.setBag(hp, 1)
+    mock.setBag(food, 1)
+
+    KCM.db.profile.categories.HP_AIO.enabled.FOOD = false
+    local out = S.ListAvailable("HP_AIO")
+    t.contains(out, hp, "enabled component still offered")
+    for _, id in ipairs(out) do
+        t.ne(id, food, "a disabled component contributes nothing")
+    end
+end)
+
+test("Selector: ListAvailable returns an empty list for an unknown category", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(#KCM.Selector.ListAvailable("NOPE"), 0, "no such category -> empty")
 end)

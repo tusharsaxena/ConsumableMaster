@@ -7,12 +7,12 @@
 local h = require("harness")
 local test = h.test
 
-test("bus, NewBusTarget, and message catalogue are published", function(t)
+test("bus, NewBusTarget, and message catalog are published", function(t)
     local KCM = h.loader.loadPure()
 
     t.truthy(KCM.bus, "KCM.bus published")
     t.truthy(KCM.NewBusTarget, "NewBusTarget published")
-    t.truthy(KCM.MSG and KCM.MSG.RECOMPUTE, "message catalogue published")
+    t.truthy(KCM.MSG and KCM.MSG.RECOMPUTE, "message catalog published")
 end)
 
 test("a target hears a message, then goes silent after unregister", function(t)
@@ -55,7 +55,7 @@ test("bus: every message name is namespaced and distinct", function(t)
         seen[msg] = true
     end
     t.truthy(KCM.MSG.PANEL_REFRESH and KCM.MSG.SPEC_CHANGED,
-        "the documented catalogue is complete")
+        "the documented catalog is complete")
 end)
 
 test("bus: NewBusTarget hands out a fresh, independently-embedded table", function(t)
@@ -90,7 +90,7 @@ test("bus: unregistering one target leaves the others subscribed", function(t)
     a:UnregisterMessage(KCM.MSG.SPEC_CHANGED)
     KCM.bus:SendMessage(KCM.MSG.SPEC_CHANGED)
     t.eq(aHeard, 0, "the unregistered target is silent")
-    t.eq(bHeard, 1, "its neighbour on a separate target still hears the message")
+    t.eq(bHeard, 1, "its neighbor on a separate target still hears the message")
 end)
 
 test("bus: a message nobody subscribes to is a silent no-op", function(t)

@@ -23,7 +23,7 @@ whenever the suite changes.
 
 ### test_bus.lua (11)
 
-- bus, NewBusTarget, and message catalogue are published
+- bus, NewBusTarget, and message catalog are published
 - a target hears a message, then goes silent after unregister
 - RECOMPUTE routes to Pipeline.RequestRecompute
 - bus: every message name is namespaced and distinct
@@ -126,14 +126,14 @@ whenever the suite changes.
 
 ### test_debuglog.lua (10)
 
-- DebugLog: FormatPlain renders the plain line shape with no colour codes
-- DebugLog: FormatColored colours timestamp/tag and handles nil tag/msg
+- DebugLog: FormatPlain renders the plain line shape with no color codes
+- DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
 - DebugLog: SetEnabled/IsEnabled drive State.debug
 - DebugLog: Toggle flips State.debug both directions
 - DebugLog: SafeToString stringifies safely and catches concat-hostile values
 - DebugLog: Debug sink is gated and routes tag/msg through AddLine
 - DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
-- DebugLog: enable emits [Debug]+[Init] brackets and coloured ON/OFF acks
+- DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
 
@@ -206,7 +206,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (43)
+### test_macrobar.lua (74)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -226,6 +226,25 @@ whenever the suite changes.
 - macrobar label: font size scales with the button and clamps to legible
 - macrobar label: every category supplies both a full and a short label
 - macrobar label: an unknown category degrades to its key
+- macrobar flyout: entry 1 sits one gap off the button
+- macrobar flyout: the gap is configurable and can be closed to zero
+- macrobar flyout: entries step by size + spacing away from the button
+- macrobar flyout: growing downward mirrors the offsets
+- macrobar flyout: horizontal sides stack along x instead of y
+- macrobar flyout: container is sized to the run of entries
+- macrobar flyout: scale shrinks entries independently of the button
+- macrobar flyout: an empty flyout still reports a usable frame size
+- macrobar flyout: the indicator band sits inside the icon's edge
+- macrobar flyout: each side rotates the arrow to point away from the button
+- macrobar flyout: arrow size scales off the band and never vanishes
+- macrobar flyout: a side band swaps its span and thickness
+- macrobar flyout: the band can never swallow more than half the icon
+- macrobar flyout: every flyout side resolves geometry
+- macrobar flyout: a label sharing the band's edge is pushed clear
+- macrobar flyout: clearance follows the band to another edge
+- macrobar flyout: a label on a different edge is left alone
+- macrobar flyout: no clearance when the flyout is off or the label is outside
+- macrobar flyout: clearance scales with the band thickness
 - macrobar model: AllKeys covers every managed category
 - macrobar model: NormalizeOrder leaves a complete order untouched
 - macrobar model: NormalizeOrder drops unknown keys
@@ -250,6 +269,18 @@ whenever the suite changes.
 - macrobar schema: the default slot order matches the settings tab order
 - macrobar schema: border rows are populated from LibSharedMedia
 - macrobar schema: LSMValues never hands back an empty list
+- macrobar flyout: candidates come back in rank order, best first
+- macrobar flyout: invert reverses the order without dropping anything
+- macrobar flyout: the list is capped to flyoutMax, keeping the top ranks
+- macrobar flyout: the cap is bounded by the pool ceiling, not just the setting
+- macrobar flyout: it ships on, opening upward, closing after 3s
+- macrobar flyout: auto-close is configurable and 0 means never
+- macrobar flyout: the idle timer stands down while in combat
+- macrobar flyout: Close hides the strip and stands down in combat
+- macrobar flyout: Close also cancels a pending idle timer
+- macrobar flyout: Close tolerates a nil flyout
+- macrobar flyout: a zero auto-close never schedules a hide
+- macrobar flyout: re-arming supersedes the previous timer
 - macrobar schema: the bar publishes its own bus message
 
 ### test_macromanager.lua (33)
@@ -368,7 +399,7 @@ whenever the suite changes.
 - schema: SetAndRefresh refuses a path that is not in the schema
 - schema: the published Schema:Set is the same seam as SetAndRefresh
 - schema: FormatSchemaValue renders nil as 'nil'
-- schema: FormatSchemaValue renders a colour as a four-component table
+- schema: FormatSchemaValue renders a color as a four-component table
 - schema: FormatSchemaValue renders booleans and strings readably
 - schema: RefreshAllPanels flags an off-screen page dirty instead of rebuilding it
 - schema: RefreshAllPanels rebuilds the page that is on screen
@@ -377,7 +408,7 @@ whenever the suite changes.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (28)
+### test_selector.lua (36)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -407,6 +438,14 @@ whenever the suite changes.
 - Selector: a pin past the end of the list clamps to last place
 - Selector: two pins on the same position keep both items in the list
 - Selector.GetEffectivePriority returns an empty list for an unknown category
+- Selector: ListAvailable returns every owned candidate, not just the best
+- Selector: ListAvailable preserves effective-priority order
+- Selector: ListAvailable skips unknown spells and includes known ones
+- Selector: ListAvailable on a per-hand category only offers what fits the weapons
+- Selector: ListAvailable on a per-hand category is empty with no weapon equipped
+- Selector: ListAvailable on a composite unions its components, deduped
+- Selector: ListAvailable on a composite honors disabled components
+- Selector: ListAvailable returns an empty list for an unknown category
 
 ### test_slash.lua (62)
 
@@ -416,8 +455,8 @@ whenever the suite changes.
 - /cm stat primary sets the current spec's primary stat
 - /cm stat primary resolves a CLASS:SPEC token
 - /cm version prints the canonical v<version> line, not 'version <v>'
-- /cm list colours the header, page group, and key=value rows (no trailing colon)
-- /cm get echoes the same coloured key=value form as list
+- /cm list colors the header, page group, and key=value rows (no trailing colon)
+- /cm get echoes the same colored key=value form as list
 - /cm with an unknown command reports it and prints help
 - /cm dump pick renders a category's effective priority and marks owned picks
 - /cm rewrite is a back-compat alias for rewritemacros
@@ -450,7 +489,7 @@ whenever the suite changes.
 - /cm aio on a single-pick category is rejected
 - /cm aio list shows both sections with their on/off state
 - /cm aio toggle flips a sub-category and back
-- /cm aio toggle honours an explicit on/off argument
+- /cm aio toggle honors an explicit on/off argument
 - /cm aio toggle rejects a ref that is not part of the composite
 - /cm aio down reorders within a section
 - /cm aio up at the top of a section reports the edge
@@ -478,7 +517,7 @@ whenever the suite changes.
 - SpecHelper.MakeKey joins classID_specID, nil on missing parts
 - SpecHelper.GetCurrent reads the live spec and re-reads on respec
 - SpecHelper.GetCurrent returns classID-only when no spec is chosen
-- SpecHelper.GetStatPriority honours a user override
+- SpecHelper.GetStatPriority honors a user override
 - SpecHelper.GetStatPriority falls back to class primary, never nil
 - SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
 - SpecHelper.AllSpecs enumerates specs including the current one
@@ -545,16 +584,16 @@ whenever the suite changes.
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 43 |
+| test_macrobar.lua | 74 |
 | test_macromanager.lua | 33 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
-| test_selector.lua | 28 |
+| test_selector.lua | 36 |
 | test_slash.lua | 62 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **447** |
+| **Total** | **486** |

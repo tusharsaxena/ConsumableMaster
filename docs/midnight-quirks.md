@@ -18,7 +18,7 @@ Blizzard renamed several consumable subType **display strings** in Midnight (`"P
   - Flat: `"Restores 35,000 health and 30,000 mana over 20 sec"` (Chalcocite Lava Cake, 227326). `healFlat` catches the health side, but the mana side needs `manaCombinedFlat` (`"health and ([%d,]+) mana"`) — the plain `manaFlat` pattern is `"Restores"`-anchored and misses it.
   - Percentage: `"Restores X% of your maximum health and mana"` — handled by `pctCombined`, which sets both `healPct` and `manaPct`.
 
-  Miss either and the item populates only `healValue`/`healPct`, so `Classifier` matches `FOOD` but not `DRINK` and it silently drops out of the Drink list. Both combined patterns live in the `PATTERNS` table at the top of `core/TooltipCache.lua`; this is the same dual-classification behaviour as Refreshing Serum (`HP_POT`+`MP_POT`) above.
+  Miss either and the item populates only `healValue`/`healPct`, so `Classifier` matches `FOOD` but not `DRINK` and it silently drops out of the Drink list. Both combined patterns live in the `PATTERNS` table at the top of `core/TooltipCache.lua`; this is the same dual-classification behavior as Refreshing Serum (`HP_POT`+`MP_POT`) above.
 
 If a new tooltip line refuses to match a pattern that "obviously should work", run `/cm dump item <id>` and inspect the raw lines for unexpected characters. The dump command prints the parsed fields plus the raw tooltip lines underneath — pattern-debugging view.
 

@@ -6,6 +6,8 @@ Orient-yourself map for **Ka0s Consumable Master**. This file is the high-level 
 
 Thirteen account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_HP_AIO`, `KCM_MP_AIO`) whose bodies auto-rewrite to point at the best consumable currently in your bags. Eleven macros run a per-category scorer; two are composites that compose other categories' picks via combat conditionals. Identified by name, never by slot — coexists with every other macro in the user's account-wide pool.
 
+Those macros are also hosted on a **CM-only macro bar** (on by default) — one secure slot per category, each with a hover flyout listing every currently-usable candidate in that category. It is the addon's only protected-frame surface; see [macro-bar.md](./macro-bar.md).
+
 ## Namespace & promotion
 
 - **Private namespace, no globals.** Every file begins `local addonName, NS = ...` — WoW hands the same private table to each file. `core/Namespace.lua` loads first and names it (`NS.name`). There is **no `_G.KCM`**; the only shared handle is a per-file transition alias `local KCM = NS`, so the tree's internal `KCM.*` references resolve to the private namespace.
@@ -16,7 +18,7 @@ Thirteen account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM
 | Folder | Holds |
 |--------|-------|
 | `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the LSM widget fixup (LSMPatch), SlashCommands |
-| `modules/` | Ranker, Selector, MacroManager, DebugLog console, the macro bar (MacroBar, MacroBarButton), the `KCM*` AceGUI widgets |
+| `modules/` | Ranker, Selector, MacroManager, DebugLog console, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + per-tab pages |
 | `locales/` | `enUS.lua` (`KCM.L`) — English only |
@@ -51,7 +53,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | MacroManager (body builders, composite assembly, combat deferral, action-bar icons) | `modules/MacroManager.lua` | [macro-manager.md](./macro-manager.md) |
 | Tooltip parsing + Midnight gotchas | `core/Classifier.lua`, `core/TooltipCache.lua` | [midnight-quirks.md](./midnight-quirks.md) |
 | Settings panel + slash CLI + schema layer | `settings/*.lua`, `core/SlashCommands.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
-| Message bus | `core/Bus.lua` | Catalogue below |
+| Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
 | Debug console | `modules/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
@@ -61,7 +63,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 
-## Message-bus catalogue
+## Message-bus catalog
 
 Cross-module control flow that crosses feature boundaries travels over the closed bus (`core/Bus.lua`), never by reaching into another module's tables. Pure-function queries (MacroManager asking Selector/Ranker/Classifier for data) stay direct synchronous calls — they are data reads, not control flow.
 
@@ -87,11 +89,14 @@ Cross-module control flow that crosses feature boundaries travels over the close
 - **Composite categories never own item buckets.** No `added`/`blocked`/`pins`/`discovered` — composites compose picks from their referenced single categories at recompute time. Sub-categories are locked to their `inCombat` / `outOfCombat` section.
 - **Per-hand categories resolve twice from one bucket.** `perHand = true` (today only `WPN_ENCH`) keeps the ordinary spec-aware `bySpec` bucket — there is no per-slot persisted state. The pipeline calls `Selector.PickBestForSlot(catKey, 16, …)` and `(…, 17, …)` against that one list, each filtered to entries whose `tt.weaponAffinity` matches `WeaponSlots.SlotAffinity(slot)`. A hand with no weapon, or with nothing matching, is dropped from the macro body rather than falling back to the other hand's pick.
 - **Action-bar icon sentinel.** Active body stores `DYNAMIC_ICON = 134400` (`?` fileID); empty body omits `#showtooltip` and stores `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
+- **The macro bar owns the only protected frames, and never pokes them in combat.** Slots and flyout entries are secure buttons, so creating, anchoring, showing or hiding them is combat-forbidden. Everything funnels through `MacroBar.Update()`, which defers to `PLAYER_REGEN_ENABLED`; combat-conditional visibility goes to `RegisterStateDriver` and flyout hover to `_onenter`/`_onleave` snippets, so those run in the secure environment instead. A slot's `macro` attribute is stamped once at creation and never rewritten.
 - **Debug flag is session-only.** `KCM.State.debug` (`core/State.lua`) is never persisted — a session left with debug on doesn't leak into the next login.
 
 ## Timers
 
-`C_Timer` is used directly for the pipeline's frame-coalescing and debounce delays rather than AceTimer. This is a **deliberate, documented choice** (CM-09): the addon needs only fire-once short delays, `C_Timer` is a first-party API with no extra embed, and AceTimer is not otherwise required. The standard treats the timer choice as a SHOULD, so this justification satisfies it.
+`C_Timer` is used directly rather than AceTimer, in three places: the pipeline's frame-coalescing (`RequestRecompute`), the options panel's refresh debounce (`O.RequestRefresh`), and the flyout's idle auto-close (`MacroBarFlyout`). This is a **deliberate, documented choice** (CM-09): the addon needs only fire-once short delays, `C_Timer` is a first-party API with no extra embed, and AceTimer is not otherwise required. The standard treats the timer choice as a SHOULD, so this justification satisfies it.
+
+Note the flyout timer's limit: there is no timer inside the *secure* environment, so it cannot close a flyout mid-combat and deliberately stands down instead ([macro-bar.md](./macro-bar.md#closing)).
 
 ## External dependencies
 
@@ -104,7 +109,8 @@ All vendored under `libs/`:
 - AceDB-3.0
 - AceConsole-3.0
 - AceGUI-3.0
-- LibSharedMedia-3.0 (debug-console monospace font registration)
+- LibSharedMedia-3.0 (debug-console monospace font registration; also the media source behind the macro bar's border pickers)
+- AceGUI-3.0-SharedMediaWidgets (the `LSM30_Border` preview dropdown used by those pickers; `core/LSMPatch.lua` fixes up its misaligned preview tile)
 
 The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, and the Ace3 sub-libraries in dependency order) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120007`.
 

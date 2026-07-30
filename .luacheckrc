@@ -20,8 +20,7 @@ exclude_files = {
 --   212 — unused arguments (self on widget methods, event/reason on handlers)
 --   542 — intentional empty branch (CSV skip in /cm stat secondary)
 --   241 — TooltipCache.pendingIDs set is populated but never read  [follow-up]
---   211/ROW_VSPACER — dead layout constant in settings/Panel.lua   [follow-up]
-ignore = { "212", "542", "241", "211/ROW_VSPACER" }
+ignore = { "212", "542", "241" }
 
 -- The SavedVariables table is written by us. Frame-registry tables receive
 -- field assignments (StaticPopupDialogs[...], tinsert(UISpecialFrames, ...)) so

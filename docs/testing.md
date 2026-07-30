@@ -46,14 +46,14 @@ diff <(lua5.1 tests/run.lua --list) docs/test-cases.md   # no output = in sync
 
 ## Test-first (TDD)
 
-Write or extend a **failing** test that pins the intended behaviour first, then implement
+Write or extend a **failing** test that pins the intended behavior first, then implement
 until it passes. No logic change lands without a covering test. Pure, testable logic
 (classification, ranking, selection, schema validation, migrations, formatting) is
-exercised headlessly here; genuinely in-client behaviour (frame rendering, taint) is
+exercised headlessly here; genuinely in-client behavior (frame rendering, taint) is
 covered by the in-game smoke tests below.
 
 ## In-game smoke tests
 
-The headless suite can't exercise real client behaviour. The manual in-game playbook — a
+The headless suite can't exercise real client behavior. The manual in-game playbook — a
 quick post-change smoke plus the full section-by-section suite — lives at
 [smoke-tests.md](./smoke-tests.md). Run it before a release.

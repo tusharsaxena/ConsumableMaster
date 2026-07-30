@@ -64,8 +64,8 @@ end
 -- Standard line shape (debug-logging-§3): `<HH:MM:SS> | [<Tag>] <content>`.
 -- Console view: timestamp muted steel-blue (6f8faf), [tag] muted tan/gold
 -- (c9a66b); the `|` separator and content stay default white. (`||` renders one
--- literal pipe inside a colour-coded string.) The plain Copy buffer mirrors the
--- same line with no colour codes. A nil/empty tag omits the `[tag]` segment so
+-- literal pipe inside a color-coded string.) The plain Copy buffer mirrors the
+-- same line with no color codes. A nil/empty tag omits the `[tag]` segment so
 -- any untagged line still reads cleanly rather than as `[]`, even though every
 -- call site today passes a functional-area tag.
 
@@ -117,7 +117,7 @@ function DL.SetEnabled(on)
     on = on and true or false
     if KCM.State then KCM.State.debug = on end
     DL.RefreshHeader()
-    -- Colour-coded chat ack through the shared [CM] printer (debug-logging-§5):
+    -- Color-coded chat ack through the shared [CM] printer (debug-logging-§5):
     -- ON green (40ff40) / OFF red (ff4040), mirroring the title-bar Debug: ON/OFF
     -- toggle so the flag reads identically in chat and on the console header.
     if KCM.Say then
@@ -177,7 +177,7 @@ local function applySkin(f)
     f:SetBackdropBorderColor(0, 0, 0, 1)
 end
 
--- Small flat text button for the title bar (Copy / Clear): muted resting colour,
+-- Small flat text button for the title bar (Copy / Clear): muted resting color,
 -- gold on hover.
 local function makeTextButton(parent, text, width, onClick)
     local b = CreateFrame("Button", nil, parent)
@@ -254,7 +254,7 @@ local function buildWindow()
     local copy = makeTextButton(titleBar, "Copy", 40, function() DL.ShowCopy() end)
     copy:SetPoint("RIGHT", clear, "LEFT", -6, 0)
 
-    -- Left-aligned Debug: ON/OFF state toggle. Resting colour reflects the flag
+    -- Left-aligned Debug: ON/OFF state toggle. Resting color reflects the flag
     -- (green ON / red OFF); clicking flips it through the shared SetEnabled seam.
     local toggleBtn = CreateFrame("Button", nil, titleBar)
     toggleBtn:SetSize(80, 18)
@@ -364,7 +364,7 @@ end
 -- Separate Copy window: a read-through multiline EditBox holding the whole log
 -- as plain text (debug-logging-§6). WoW exposes no clipboard API, so the user's
 -- Ctrl+C inside the EditBox is the only copy path; a separate window avoids the
--- colour escapes that copying the live ScrollingMessageFrame would drag along.
+-- color escapes that copying the live ScrollingMessageFrame would drag along.
 local function buildCopyWindow()
     if copyWin then return copyWin end
     if not CreateFrame then return nil end

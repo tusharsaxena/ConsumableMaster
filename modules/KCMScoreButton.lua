@@ -1,6 +1,6 @@
 -- KCMScoreButton.lua — Priority-row "score" button.
 --
--- Same visual + hover-swatch behaviour as KCMIconButton, but with a no-op
+-- Same visual + hover-swatch behavior as KCMIconButton, but with a no-op
 -- SetLabel so callers can pass an arbitrary string without a label
 -- rendering underneath the icon. The label string is repurposed as the
 -- tooltip title (yellow header line); the tooltip body is composed from

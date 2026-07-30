@@ -1,8 +1,8 @@
 -- settings/MacroBar.lua — Macro Bar page.
 --
--- Five sections: Bar (enable / lock / reset), Layout (grid + geometry),
--- Appearance (chrome + colours), Visibility (combat driver + hover fade), and
--- Macros (which of the managed macros occupy a slot).
+-- Seven sections: Bar (enable / lock / reset), Layout (grid + geometry), Bar
+-- appearance and Button appearance (chrome + colors), Labels, Flyout, Visibility
+-- (combat driver + hover fade), and Macros (which macros occupy a slot).
 --
 -- Every scalar is a KCM.Settings.Schema row, so each one is simultaneously a
 -- widget here and a `/cm get|set macroBar.<field>` path — one definition, both
@@ -58,7 +58,7 @@ end
 row{
     path = "macroBar.enabled", type = "bool", group = "Bar",
     label = L["Enable macro bar"],
-    tooltip = L["Show a dedicated bar holding your ConsumableMaster macros. Only CM macros can occupy it. Off by default — nothing is created until you turn it on."],
+    tooltip = L["Show a dedicated bar holding your ConsumableMaster macros. Only CM macros can occupy it. On by default; turning it off hides the bar and stops all its work until you turn it back on."],
     onChange = function(v)
         if KCM.MacroBar and KCM.MacroBar.SetEnabled then
             -- SetEnabled re-reads the flag we just wrote; it exists so the
@@ -122,8 +122,8 @@ row{
 }
 row{
     path = "macroBar.barBackdropColor", type = "color", group = "Bar appearance",
-    label = L["Bar background colour"],
-    tooltip = L["Colour and opacity of the bar's backdrop."],
+    label = L["Bar background color"],
+    tooltip = L["Color and opacity of the bar's backdrop."],
 }
 row{
     path = "macroBar.barBorder", type = "bool", group = "Bar appearance",
@@ -143,8 +143,8 @@ row{
 }
 row{
     path = "macroBar.barBorderColor", type = "color", group = "Bar appearance",
-    label = L["Bar border colour"],
-    tooltip = L["Colour and opacity of the bar's border."],
+    label = L["Bar border color"],
+    tooltip = L["Color and opacity of the bar's border."],
 }
 row{
     path = "macroBar.buttonBackdrop", type = "bool", group = "Button appearance",
@@ -153,8 +153,8 @@ row{
 }
 row{
     path = "macroBar.buttonBackdropColor", type = "color", group = "Button appearance",
-    label = L["Button background colour"],
-    tooltip = L["Colour and opacity of each button's fill."],
+    label = L["Button background color"],
+    tooltip = L["Color and opacity of each button's fill."],
 }
 row{
     path = "macroBar.buttonBorder", type = "bool", group = "Button appearance",
@@ -175,11 +175,11 @@ row{
 row{
     path = "macroBar.buttonBorderOffset", type = "number", min = 0, max = 16, step = 1, group = "Button appearance",
     label = L["Button border offset (px)"],
-    tooltip = L["Pushes the border outward, away from the icon. Raise this if a thick border is bleeding over the artwork; 0 draws it centred on the button's edge."],
+    tooltip = L["Pushes the border outward, away from the icon. Raise this if a thick border is bleeding over the artwork; 0 draws it centerd on the button's edge."],
 }
 row{
     path = "macroBar.buttonBorderColor", type = "color", group = "Button appearance",
-    label = L["Button border colour"],
+    label = L["Button border color"],
     tooltip = L["Tints the button border texture."],
 }
 row{
@@ -220,13 +220,13 @@ row{
     path = "macroBar.labelPoint", type = "string", group = "Labels",
     values = enum(
         "TOP_LEFT",      L["Top left"],
-        "TOP_CENTER",    L["Top centre"],
+        "TOP_CENTER",    L["Top center"],
         "TOP_RIGHT",     L["Top right"],
         "LEFT",          L["Left"],
-        "CENTER",        L["Centre"],
+        "CENTER",        L["Center"],
         "RIGHT",         L["Right"],
         "BOTTOM_LEFT",   L["Bottom left"],
-        "BOTTOM_CENTER", L["Bottom centre"],
+        "BOTTOM_CENTER", L["Bottom center"],
         "BOTTOM_RIGHT",  L["Bottom right"]),
     label = L["Label position"],
     tooltip = L["Which part of the button the label anchors to."],
@@ -235,7 +235,7 @@ row{
     path = "macroBar.labelPlacement", type = "string", group = "Labels",
     values = enum("INSIDE", L["Inside the button"], "OUTSIDE", L["Outside the button"]),
     label = L["Label placement"],
-    tooltip = L["Inside draws the label over the icon; Outside pushes it just beyond that edge of the button. Outside labels can overlap a neighbouring button when spacing is tight."],
+    tooltip = L["Inside draws the label over the icon; Outside pushes it just beyond that edge of the button. Outside labels can overlap a neighboring button when spacing is tight."],
 }
 row{
     path = "macroBar.labelScale", type = "number", min = 10, max = 50, step = 1, group = "Labels",
@@ -259,8 +259,64 @@ row{
 }
 row{
     path = "macroBar.labelColor", type = "color", group = "Labels",
-    label = L["Label colour"],
-    tooltip = L["Colour and opacity of the button labels."],
+    label = L["Label color"],
+    tooltip = L["Color and opacity of the button labels."],
+}
+row{
+    path = "macroBar.flyout", type = "bool", group = "Flyout",
+    label = L["Enable flyout"],
+    tooltip = L["Put a small arrow on each button; hovering it opens a strip holding every item or spell in that category you can actually use right now. Only the macro bar has flyouts — a KCM macro dragged onto a Blizzard action bar stays an ordinary macro."],
+}
+row{
+    path = "macroBar.flyoutPoint", type = "string", group = "Flyout",
+    values = enum("TOP", L["Top"], "BOTTOM", L["Bottom"], "LEFT", L["Left"], "RIGHT", L["Right"]),
+    label = L["Flyout side"],
+    tooltip = L["Which edge the arrow sits on, and the direction the flyout grows from there."],
+}
+row{
+    path = "macroBar.flyoutInvert", type = "bool", group = "Flyout",
+    label = L["Reverse flyout order"],
+    tooltip = L["By default the highest-ranked item sits closest to the button. Turn this on to put it furthest away."],
+}
+row{
+    path = "macroBar.flyoutMax", type = "number", min = 1, max = 16, step = 1, group = "Flyout",
+    label = L["Maximum flyout entries"],
+    tooltip = L["Longest flyout to build. Categories with more available items than this show the top-ranked ones. The cap exists because flyout buttons can only be created out of combat."],
+}
+row{
+    path = "macroBar.flyoutScale", type = "number", min = 40, max = 150, step = 5, group = "Flyout",
+    label = L["Flyout button size (% of button)"],
+    tooltip = L["Flyout entry size as a percentage of the main button size."],
+}
+row{
+    path = "macroBar.flyoutSpacing", type = "number", min = 0, max = 16, step = 1, group = "Flyout",
+    label = L["Flyout spacing (px)"],
+    tooltip = L["Gap between flyout entries, in pixels."],
+}
+row{
+    path = "macroBar.flyoutGap", type = "number", min = 0, max = 20, step = 1, group = "Flyout",
+    label = L["Gap from button (px)"],
+    tooltip = L["Gap between the macro button and the first flyout entry. Raise it if a thick or offset button border overlaps the flyout. Hovering still works across the gap."],
+}
+row{
+    path = "macroBar.flyoutIndicatorSize", type = "number", min = 4, max = 24, step = 1, group = "Flyout",
+    label = L["Shaded band thickness (px)"],
+    tooltip = L["How deep the shaded strip across the icon is. Raise it to make an easier hover target; it is capped at half the button, and the button label automatically moves clear when the two share an edge."],
+}
+row{
+    path = "macroBar.flyoutArrowScale", type = "number", min = 25, max = 250, step = 5, group = "Flyout",
+    label = L["Arrow size (% of band)"],
+    tooltip = L["Arrow size as a percentage of the shaded band's thickness. Over 100% the arrow deliberately overflows the band onto the icon, which keeps it readable on small buttons."],
+}
+row{
+    path = "macroBar.flyoutShadeColor", type = "color", group = "Flyout",
+    label = L["Shaded band color"],
+    tooltip = L["Color and opacity of the strip drawn across the icon. Lower the opacity to let more of the artwork through."],
+}
+row{
+    path = "macroBar.flyoutAutoClose", type = "number", min = 0, max = 30, step = 0.5, group = "Flyout",
+    label = L["Auto-close after (seconds)"],
+    tooltip = L["Close an open flyout after this many seconds without interaction. 0 keeps it open until you move the mouse away or click something. Moving the mouse off it, and clicking either the macro or a flyout entry, always close it immediately."],
 }
 row{
     path = "macroBar.combatMode", type = "string", group = "Visibility",
@@ -395,6 +451,16 @@ local function render(ctx)
         defs.labelPoint, defs.labelPlacement,
         defs.labelScale,
         defs.labelOffsetX, defs.labelOffsetY,
+    })
+
+    H.Section(ctx, L["Flyout"])
+    H.Grid(ctx, {
+        defs.flyout, defs.flyoutInvert,
+        defs.flyoutPoint, defs.flyoutAutoClose,
+        defs.flyoutIndicatorSize, defs.flyoutArrowScale,
+        defs.flyoutShadeColor,
+        defs.flyoutScale, defs.flyoutSpacing,
+        defs.flyoutGap, defs.flyoutMax,
     })
 
     H.Section(ctx, L["Visibility"])

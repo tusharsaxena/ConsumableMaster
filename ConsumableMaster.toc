@@ -79,6 +79,7 @@ modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
 modules\DebugLog.lua
+modules\MacroBarFlyout.lua
 modules\MacroBarButton.lua
 modules\MacroBar.lua
 modules\KCMIconButton.lua

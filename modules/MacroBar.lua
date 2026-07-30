@@ -1,7 +1,8 @@
--- modules/MacroBar.lua — the optional CM-only macro bar.
+-- modules/MacroBar.lua — the CM-only macro bar.
 --
 -- A movable container holding one SecureActionButtonTemplate slot per managed
--- category (modules/MacroBarButton.lua). Off by default; everything about it
+-- category (modules/MacroBarButton.lua), each with an optional hover flyout
+-- (modules/MacroBarFlyout.lua). On and unlocked by default; everything about it
 -- lives in db.profile.macroBar and is edited from the Macro Bar settings tab,
 -- `/cm bar`, or `/cm set macroBar.*`.
 --
@@ -108,7 +109,7 @@ local function buildBar()
     frame.moveHint:SetColorTexture(1, 0.82, 0, 0.15)
     frame.moveHint:Hide()
 
-    -- Drag handle. A labelled strip centred above the bar, shown only while
+    -- Drag handle. A labeled strip centerd above the bar, shown only while
     -- unlocked. It exists because a full bar leaves no bare container to grab —
     -- every pixel inside is a button, and a button swallows the drag to run
     -- PickupMacro. The handle is a sibling grab point with no such conflict.
@@ -261,12 +262,31 @@ end
 
 function MB.Refresh()
     if not bar then return end
-    for _, btn in pairs(buttons) do KCM.MacroBarButton.Refresh(btn) end
+    local c = cfg() or {}
+    -- Icons and counts are unprotected, so they track the macro rewrite even
+    -- mid-fight. Flyout CONTENT can't: binding an entry writes a secure
+    -- attribute. Queue it for regen instead, which is why a flyout's entries are
+    -- frozen for the duration of a fight (see modules/MacroBarFlyout.lua).
+    local combat = inCombat()
+    for _, btn in pairs(buttons) do
+        KCM.MacroBarButton.Refresh(btn)
+        -- Hidden slots (macros toggled off the bar) have nothing to show, so
+        -- skip the candidate walk for them entirely.
+        if not combat and KCM.MacroBarFlyout and btn:IsShown() then
+            KCM.MacroBarFlyout.Apply(btn, c)
+        end
+    end
+    if combat and c.flyout then pendingUpdate = true end
 end
 
 function MB.RefreshCooldowns()
     if not bar then return end
-    for _, btn in pairs(buttons) do KCM.MacroBarButton.RefreshCooldown(btn) end
+    for _, btn in pairs(buttons) do
+        KCM.MacroBarButton.RefreshCooldown(btn)
+        -- Flyout cooldowns too: a potion's cooldown starting mid-fight is the
+        -- common case, and repainting a Cooldown frame is unprotected.
+        if KCM.MacroBarFlyout then KCM.MacroBarFlyout.RefreshCooldowns(btn) end
+    end
 end
 
 -- Build (once) the container and every slot. Slots are created for ALL

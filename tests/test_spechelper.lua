@@ -42,7 +42,7 @@ test("SpecHelper.GetCurrent returns classID-only when no spec is chosen", functi
     t.eq(name, nil, "no name")
 end)
 
-test("SpecHelper.GetStatPriority honours a user override", function(t)
+test("SpecHelper.GetStatPriority honors a user override", function(t)
     local KCM = load()
     KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
     KCM.db.profile.statPriority["99_1"] = { primary = "INT", secondary = { "CRIT", "HASTE" } }

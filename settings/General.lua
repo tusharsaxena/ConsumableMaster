@@ -8,7 +8,7 @@
 --   * Maintenance  — Row 1: Force resync | Force rewrite macros (paired 50/50).
 --                    Row 2: Reset all priorities (full-width, StaticPopup-confirmed).
 --
--- Every execute path is shared with the slash commands so behaviour stays
+-- Every execute path is shared with the slash commands so behavior stays
 -- identical regardless of entry point.
 
 local _, NS = ...
@@ -53,7 +53,7 @@ end
 local function doResetAll()
     -- Combat-guarded to match the Maintenance section's sibling buttons; the
     -- DB wipe itself is combat-safe (MacroManager defers macro writes to
-    -- regen), but blocking here keeps the section's behaviour uniform.
+    -- regen), but blocking here keeps the section's behavior uniform.
     if InCombatLockdown and InCombatLockdown() then
         return inCombatNotice("reset")
     end

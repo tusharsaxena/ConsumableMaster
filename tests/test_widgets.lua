@@ -4,7 +4,7 @@
 -- the registration contract is pure and is exactly where these files break
 -- silently: a widget that fails to register leaves the settings page calling
 -- AceGUI:Create on a type nobody defined, and a widget whose Version was not
--- bumped is quietly ignored in favour of a stale copy already in memory.
+-- bumped is quietly ignored in favor of a stale copy already in memory.
 
 local h = require("harness")
 local test = h.test
