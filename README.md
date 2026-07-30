@@ -91,12 +91,12 @@ You also get a **macro bar** — a bar holding only Consumable Master's macros, 
 | `/cm bar` | Toggle the macro bar; `on`, `off`, `lock`, `unlock`, `reset` do those directly. |
 | `/cm version` | Show the addon version. |
 | `/cm list` | List every setting and its current value. |
-| `/cm get <path>` | Show one setting's value (e.g. `/cm get enabled`). |
-| `/cm set <path> <value>` | Change a setting from chat. |
-| `/cm priority <cat> list\|add\|remove\|up\|down\|reset [<id>]` | Edit a category's priority list from chat. `<id>` is an item ID like `12345` or a spell like `s:5512`. |
-| `/cm stat list\|primary\|secondary\|reset [<specKey>]` | Edit a spec's stat priority from chat. Defaults to your current spec. |
-| `/cm aio <key> list\|toggle\|up\|down\|reset` | Edit the combo macros (`HP_AIO` / `MP_AIO`). |
-| `/cm dump <target>` | Show internal details for troubleshooting (`categories`, `bags`, `item <id>`, `pick <catKey>`, …). |
+| `/cm get path` | Show one setting's value (e.g. `/cm get enabled`). |
+| `/cm set path value` | Change a setting from chat. |
+| `/cm priority cat list\|add\|remove\|up\|down\|reset [id]` | Edit a category's priority list from chat. `id` is an item ID like `12345` or a spell like `s:5512`. |
+| `/cm stat list\|primary\|secondary\|reset [specKey]` | Edit a spec's stat priority from chat. Defaults to your current spec. |
+| `/cm aio key list\|toggle\|up\|down\|reset` | Edit the combo macros (`HP_AIO` / `MP_AIO`). |
+| `/cm dump target` | Show internal details for troubleshooting (`categories`, `bags`, `item id`, `pick catKey`, …). |
 
 ### Settings panel
 
@@ -229,7 +229,7 @@ Each macro is built in four steps:
     *   **Healthstone** — a small preference for modern auto-leveling stones over old ones.
     *   **Spell entries** — class abilities (like Recuperate as a Food entry) score above every item, so they sit at the top by default. You can pin items above them if you prefer.
 3.  **Apply your pins** — any rows you reordered with ↑ / ↓ override the score.
-4.  **Pick the first one you have** — the first item you own or spell you know. If you have none, clicking the macro prints a friendly `[CM] no <category>` note.
+4.  **Pick the first one you have** — the first item you own or spell you know. If you have none, clicking the macro prints a friendly `[CM] no category` note.
 
 Hover the **blue info button** on any row to see exactly why it landed where it did.
 
@@ -255,13 +255,13 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Symptom | Fix |
 |---------|-----|
 | Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Settings → General → Force rewrite macros** (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
-| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick <catKey>` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it's blocked or its tooltip hasn't loaded yet. |
+| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it's blocked or its tooltip hasn't loaded yet. |
 | I just looted a better food / flask but the macro didn't update. | Give it a second — bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
 | Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check the viewed spec on the **Stat Priority** page matches your current spec. |
 | Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped or nothing that matches its weapon type — whetstones need a bladed weapon, weightstones a blunt one, oils fit either. Run `/cm dump pick WPN_ENCH` to see what was considered for each hand. |
 | I opened the debug console but nothing shows up in it. | The window and logging are two separate switches. A bare `/cm debug` only shows or hides the window — run `/cm debug on` (or click the window's **Debug: ON/OFF** toggle) to actually capture output. The log also clears on every login. |
-| `/cm dump item <id>` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
+| `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
 | `/cm reset` or "Reset all priorities" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
