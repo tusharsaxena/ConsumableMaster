@@ -232,6 +232,29 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 18. `/cm dump item 12345` — parsed tooltip + raw lines.
 19. `/cm dump pick <catKey>` — covered above. Composite keys (`hp_aio`, `mp_aio`) print the assembled body.
 
+### 11a. Macro bar
+
+Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBar.lua`. The bar's pure layer is covered headlessly ([test-cases.md](./test-cases.md)); this section is the part only a live client can prove.
+
+1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) in the middle-lower screen, one row of 13 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked and **Lock position** unchecked.
+1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1` and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and `global.schemaVersion` reads 2. Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot and must not re-enable it every login.
+2. **Disable / re-enable.** Uncheck **Enable macro bar** (or `/cm bar off`) → the bar disappears. Re-check it → it comes back with its layout and position intact.
+3. **Click.** Click a slot out of combat → the consumable is used, exactly as clicking the macro on a normal bar. No taint error, no "Interface action failed because of an AddOn" message. Repeat in combat.
+4. **Move.** Uncheck **Lock position** → the bar tints gold *and* a **Consumable Master** handle strip appears centred above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows its tooltip. Re-check **Lock position** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
+5. **Layout.** Set **Buttons per row** to 7 → two rows. Flip **Orientation** to Vertical → two columns. Flip **Horizontal growth** to Left and **Vertical growth** to Up → the first slot moves to the opposite corner and the bar grows the other way. Drag **Button size**, **Button spacing**, **Bar padding** and **Bar scale** → geometry tracks live with no visual tearing.
+6. **Bar + button appearance.** Toggle each background/border checkbox and change each colour → the bar backdrop, the bar frame and the button borders all respond. Pick a different **Bar border style** / **Button border style** from the LibSharedMedia dropdown → the edge texture changes and the closed dropdown shows the new name (no 42px gap next to it — that's the `LSMPatch` fixup). Raise **border thickness** to 16 → thick edges; then raise **Button border offset** → the border moves off the icon instead of covering it. Turn **Button border** off → a flat, borderless icon grid. Drag **Icon zoom** to 40% → icons crop symmetrically. Turn **Show stack count** off → counts vanish, and they are not sliced by a thick border when on. Turn **Show tooltips** off → hovering shows nothing.
+6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, **Outline label text**, and **Label colour**.
+7. **Cooldown.** Use a potion → the swipe animates on that slot and on any other slot sharing the same item. With Interface → ActionBars → "Show numbers for cooldowns" on, the countdown numbers appear too.
+8. **Reorder by drag.** Drag one slot onto another → the two swap and the swap survives `/reload`. **Reset slot order** puts them back.
+9. **Drag out.** Drag a slot onto a normal Blizzard action bar → the macro lands there and the bar keeps its own copy.
+10. **CM-only.** Pick up a regular item, spell, and a non-KCM macro in turn and drop each on the bar → nothing happens and the cursor keeps holding it. Nothing is ever added to or removed from the bar this way.
+11. **Which macros.** Uncheck a few macros under *Macros on the bar* → those slots disappear and the rest close up the gap. Uncheck all 13 → the bar collapses to an empty backdrop rather than erroring.
+12. **Combat visibility.** Set **Combat visibility** to *Hide in combat* → the bar disappears the instant a fight starts and returns the instant it ends, with no error. Repeat with *Only in combat*. This must work **mid-fight** — that's the state-driver path.
+13. **Fade.** Turn on **Fade unless hovered**, set **Faded opacity** to 0.1 → the bar sits faint until the mouse is over it (hovering a *button* counts), then goes full. A faded button is still clickable.
+14. **Combat deferral.** In combat: enable the bar, change **Button size**, and try a drag-swap. Expected: chat says the change applies when combat ends (drag-swap is refused outright), no taint error, and everything lands the moment you leave combat. Buttons already on screen keep working throughout.
+15. **Slash parity.** `/cm bar` toggles, `/cm bar on|off|lock|unlock|reset` do those directly, `/cm bar help` prints current state. `/cm set macroBar.buttonSize 48` resizes and the panel slider tracks it. `/cm set macroBar.orientation SIDEWAYS` is rejected with the allowed values.
+16. **Page Defaults.** With the bar heavily customized, press the top-right **Defaults** button on the Macro Bar page → every bar setting, its position, slot order and per-macro visibility go back to shipped values, and no other page is touched.
+
 ### 12. Edge cases
 
 Tests: oversized body fallback, locked-bag-item stability, empty-state coverage, master-enable persistence.
@@ -241,7 +264,8 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 3. **Renaming a `KCM_*` macro:** rename `KCM_FOOD` to `MyFood` in the macro UI. On next recompute, the addon creates a fresh `KCM_FOOD` in a free slot and leaves `MyFood` alone (CLAUDE.md hard rule — addon never deletes).
 4. **Account macro pool full (120):** create 120 user macros. Confirm `KCM_*` creation fails gracefully — `doEdit` returns `"error"`, existing macros still update.
 5. **Master enable round-trip:** toggle Enable off → close client → log back in. State persists (`db.profile.enabled = false`). Pipeline.Recompute remains a no-op until toggled on.
-6. **`/reload` mid-pending:** queue a combat-deferred macro write, then `/reload` before regen. The pending entry is lost (no SavedVariables for `pendingUpdates`); next event triggers a fresh recompute that re-queues if still in combat.
+6. **Macro bar + a full macro pool:** with the bar on and the account macro pool full (see step 4 above), confirm slots whose macro doesn't exist yet render the fallback icon and don't error on click.
+7. **`/reload` mid-pending:** queue a combat-deferred macro write, then `/reload` before regen. The pending entry is lost (no SavedVariables for `pendingUpdates`); next event triggers a fresh recompute that re-queues if still in combat.
 
 ## Targeted by change area
 
@@ -266,7 +290,14 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 | Auto-discovery GC | §2 step 4–5 |
 | Action-bar icon convention | §3 step 1, §4 step 2 |
 | Combat-deferral retry / flush | §6 |
-| AceDB schema migration | full §1 (cold boot) on a fresh-install path |
+| AceDB schema migration | full §1 (cold boot) on a fresh-install path, plus §11a steps 1 and 1a for the v2 macro-bar step (fresh install AND upgrade-from-v1, including that the one-shot never re-fires) |
+| Macro bar (`modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`) | §11a in full |
+| Macro bar settings page / new `macroBar.*` schema row | §11a steps 5–6a, 15–16 |
+| Button labels (`MacroBarLayout.LabelAnchor` / `LabelFontSize`, `shortName` metadata) | §11a step 6a |
+| LSM border pickers / `core/LSMPatch.lua` / the vendored `AceGUI-3.0-SharedMediaWidgets` | §11a step 6 (dropdown renders flush, selection sticks) |
+| A new `shortName` on a category row | §11a step 6a with **Label text** on *Always short* |
+| Anything protected-frame or secure-template shaped | §11a steps 3, 12, 14 |
+| `core/MacroDisplay.lua` (shared by the bar + the panel drag icon) | §11a step 2 + §9 step 1 (drag icon still shows the right icon/tooltip) |
 | Doc-only changes | nothing — docs don't ship to the client |
 
 If you change something not on this list, walk the full suite. The targeted lookup is a shortcut, not a substitute for understanding the blast radius of your change.

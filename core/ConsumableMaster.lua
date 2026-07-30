@@ -26,6 +26,11 @@ KCM.dbDefaults = {
     -- Schema shape is account-wide, so its version lives in `global`, not
     -- `profile` (standard §2.2 / §5.1). Database.RunMigrations reads it.
     global = {
+        -- Deliberately the ORIGINAL version, not Database.CURRENT_SCHEMA (which
+        -- isn't loaded yet anyway): an account with no stored version is treated
+        -- as pre-migration, and RunMigrations walks it forward. Every step is
+        -- idempotent, so a genuinely fresh account passing through them is a
+        -- no-op that just stamps the current version.
         schemaVersion = 1,
     },
     profile = {
@@ -64,6 +69,88 @@ KCM.dbDefaults = {
         },
         statPriority = {}, -- [specKey] = { primary = "AGI", secondary = {...} }  -- user overrides only
         macroState = {},
+        -- The CM-only macro bar (modules/MacroBar.lua). On and UNLOCKED out of
+        -- the box so the feature is discoverable — a bar the user never sees is
+        -- a bar they never configure, and unlocked means the drag handle is
+        -- right there to place it. Turning it off tears the frames down (they
+        -- are never created again until re-enabled), so opting out costs
+        -- nothing. Existing profiles get the same treatment once, via the
+        -- schema-v2 step in core/Database.lua.
+        --
+        -- Every scalar here has a matching KCM.Settings.Schema row, which is
+        -- what gives it a widget on the Macro Bar tab AND
+        -- `/cm get|set macroBar.<field>` for free.
+        macroBar = {
+            enabled  = true,
+            locked   = false,
+            -- Anchor is always relative to UIParent; the bar persists its own
+            -- point after a drag (MacroBar.savePosition).
+            point    = "CENTER",
+            relPoint = "CENTER",
+            x        = 0,
+            y        = -200,
+            scale    = 1.0,
+            alpha    = 1.0,
+            -- Grid. `perRow` counts buttons along the axis `orientation` fills
+            -- first (row for HORIZONTAL, column for VERTICAL); 13 = one row of
+            -- every managed macro.
+            buttonSize  = 36,
+            spacing     = 4,
+            padding     = 4,
+            perRow      = 13,
+            orientation = "HORIZONTAL",   -- HORIZONTAL | VERTICAL
+            growthH     = "RIGHT",        -- RIGHT | LEFT
+            growthV     = "DOWN",         -- DOWN | UP
+            -- Chrome. Border styles are LibSharedMedia "border" names, drawn as
+            -- the edgeFile of a BackdropTemplate; `buttonBorderOffset` pushes
+            -- the button's edge slices outward so they don't bleed over the
+            -- icon (the old fixed action-button slot art always did).
+            barBackdrop         = true,
+            barBackdropColor    = { 0, 0, 0, 0.5 },
+            barBorder           = true,
+            barBorderStyle      = "Blizzard Tooltip",
+            barBorderSize       = 4,
+            barBorderColor      = { 0.25, 0.25, 0.25, 1 },
+            buttonBackdrop      = true,
+            buttonBackdropColor = { 0, 0, 0, 0.6 },
+            buttonBorder        = true,
+            buttonBorderStyle   = "Blizzard Tooltip",
+            buttonBorderSize    = 4,
+            buttonBorderOffset  = 2,
+            buttonBorderColor   = { 1, 1, 1, 1 },
+            iconZoom            = 8,     -- % crop per side; trims the icon's own dark edge
+            showCount           = true,
+            tooltips            = true,
+            -- Per-button labels (off by default). `labelText = AUTO` uses the
+            -- category's display name and falls back to its shortName from
+            -- defaults/Categories.lua only when the full one won't fit.
+            buttonLabel    = false,
+            labelText      = "AUTO",         -- AUTO | FULL | SHORT
+            labelPoint     = "TOP_CENTER",   -- 9-way grid; see MacroBarLayout.LABEL_POINTS
+            labelPlacement = "INSIDE",       -- INSIDE | OUTSIDE
+            labelScale     = 26,             -- % of button size, clamped to 6-24pt
+            labelOffsetX   = 0,
+            labelOffsetY   = -2,
+            labelOutline   = true,
+            labelColor     = { 1, 0.82, 0, 1 },
+            -- Visibility. combatMode is handed to a secure state driver so it
+            -- works mid-combat; fadeUnlessHover is a plain alpha fade.
+            combatMode      = "ALWAYS",   -- ALWAYS | HIDE_IN_COMBAT | ONLY_IN_COMBAT
+            fadeUnlessHover = false,
+            fadeAlpha       = 0.15,
+            -- Slot order. Mirrors the cosmetic settings-tab order in
+            -- KCM.Settings.order (settings/Panel.lua) — which can't be
+            -- referenced from here because Panel.lua loads much later — so
+            -- tests/test_macrobar.lua asserts the two never drift.
+            order = {
+                "FOOD", "DRINK", "HP_POT", "MP_POT", "HS",
+                "HP_AIO", "MP_AIO",
+                "FLASK", "CMBT_POT", "STAT_FOOD", "WPN_ENCH", "AUG_RUNE", "VANTUS",
+            },
+            -- [catKey] = false hides that slot. Unset means visible, so a
+            -- category shipped after the profile was written appears by default.
+            shown = {},
+        },
     },
 }
 
@@ -170,6 +257,10 @@ function P.Recompute(reason)
     -- hasn't loaded (defensive; Bus.lua loads before any event fires).
     if KCM.bus and KCM.bus.SendMessage then
         KCM.bus:SendMessage(KCM.MSG.PANEL_REFRESH)
+        -- Macro bar repaint rides its own message: it is undebounced (a live
+        -- on-screen bar should track the macro it just rewrote) and it must not
+        -- be coupled to whether a settings page happens to be open.
+        KCM.bus:SendMessage(KCM.MSG.MACROBAR_REFRESH)
     elseif KCM.Options and KCM.Options.RequestRefresh then
         KCM.Options.RequestRefresh()
     elseif KCM.Options and KCM.Options.Refresh then
@@ -351,6 +442,20 @@ function KCM:OnPlayerEnteringWorld()
         KCM.Selector.SweepStaleDiscovered(time())
     end
     requestRecompute("player_entering_world")
+    -- Build / re-show the optional macro bar. A no-op when it's disabled, which
+    -- is the default, so nothing is created for users who never enable it.
+    if KCM.MacroBar and KCM.MacroBar.Update then
+        KCM.MacroBar.Update()
+    end
+end
+
+-- Cooldown ticks are bar-only: the swipe animates itself once SetCooldown is
+-- called, so these events exist purely to catch the START of a cooldown. Cheap
+-- early-out when the bar is off.
+function KCM:OnCooldownUpdate()
+    if KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.IsEnabled() then
+        KCM.MacroBar.RefreshCooldowns()
+    end
 end
 
 function KCM:OnBagUpdateDelayed()
@@ -374,6 +479,11 @@ function KCM:OnRegenEnabled()
         if n > 0 and KCM.State and KCM.State.debug then
             KCM.Debug("Macro", "flushed %s pending macro(s) on regen", n)
         end
+    end
+    -- Any macro-bar work requested during the fight (build, relayout, restyle)
+    -- was deferred because it anchors protected frames. Apply it now.
+    if KCM.MacroBar and KCM.MacroBar.FlushPending then
+        KCM.MacroBar.FlushPending()
     end
 end
 
@@ -422,4 +532,6 @@ function KCM:OnEnable()
     self:RegisterEvent("GET_ITEM_INFO_RECEIVED",        "OnItemInfoReceived")
     self:RegisterEvent("LEARNED_SPELL_IN_SKILL_LINE",   "OnLearnedSpell")
     self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged")
+    self:RegisterEvent("SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate")
+    self:RegisterEvent("BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate")
 end

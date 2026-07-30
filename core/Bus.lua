@@ -12,6 +12,11 @@
 --       Debounced rebuild of any open settings page.
 --   Ka0s_ConsumableMaster_SpecChanged()       — spec change → options panel.
 --       Retracks the Stat Priority page to the new spec when auto-tracking.
+--   Ka0s_ConsumableMaster_MacroBarRefresh()   — pipeline → macro bar.
+--       Repaint slot icons / counts after macro bodies were rewritten. Separate
+--       from PanelRefresh because the bar is live during play (and cheap to
+--       repaint) while the panel rebuild is debounced and only matters when
+--       open.
 
 local _, NS = ...
 local KCM = NS
@@ -30,9 +35,10 @@ function KCM.NewBusTarget()
 end
 
 KCM.MSG = {
-    RECOMPUTE     = "Ka0s_ConsumableMaster_Recompute",
-    PANEL_REFRESH = "Ka0s_ConsumableMaster_PanelRefresh",
-    SPEC_CHANGED  = "Ka0s_ConsumableMaster_SpecChanged",
+    RECOMPUTE         = "Ka0s_ConsumableMaster_Recompute",
+    PANEL_REFRESH     = "Ka0s_ConsumableMaster_PanelRefresh",
+    SPEC_CHANGED      = "Ka0s_ConsumableMaster_SpecChanged",
+    MACROBAR_REFRESH  = "Ka0s_ConsumableMaster_MacroBarRefresh",
 }
 
 -- The pipeline owns the ONLY subscription to RECOMPUTE and forwards it to the

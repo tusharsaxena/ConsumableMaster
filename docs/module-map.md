@@ -16,7 +16,8 @@ core/ConsumableMaster.lua ── AceAddon entry (AceAddon:NewAddon(NS, ...)).
 
 core/Bus.lua ───── Closed message bus. KCM.bus (AceEvent embed),
                    KCM.NewBusTarget(), KCM.MSG.{RECOMPUTE, PANEL_REFRESH,
-                   SPEC_CHANGED}. Each receiver owns its own target.
+                   SPEC_CHANGED, MACROBAR_REFRESH}. Each receiver owns its
+                   own target.
 
 core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say(fmt, ...) — the single
                    secret-safe chat seam (plain-string or format-string form) —
@@ -49,6 +50,27 @@ defaults/         Seed data only. Evaluated at load; writes to
 └── Defaults_*.lua         → KCM.SEED.<CATKEY>
                            Entries can be itemIDs or KCM.ID.AsSpell(sid)
                            sentinels (e.g. Recuperate in FOOD).
+
+core/MacroDisplay.lua  Read-only "what does KCM_FOO resolve to right now":
+                   PickID / Texture / Count / Cooldown / SetTooltip /
+                   MacroIndex. Shared by the macro bar's slots and the
+                   settings panel's drag icon. Touches no protected API.
+
+core/MacroBarModel.lua  Pure slot bookkeeping for the macro bar. AllKeys /
+                   NormalizeOrder / IndexOf / Swap / VisibleKeys, plus the
+                   db-backed Config / IsEnabled / Order / Visible /
+                   MacroName / KeyForMacroName wrappers.
+
+core/MacroBarLayout.lua  Pure geometry. Grid(count, cfg) -> positions +
+                   width/height/cols/rows; Dimensions(count, cfg);
+                   LabelAnchor(cfg) -> point/relPoint/x/y/justifyH over the
+                   LABEL_POINTS 9-way grid; LabelFontSize(size, scalePct).
+                   No frames, no db reads.
+
+core/LSMPatch.lua  Third-party fixup (not addon logic): re-registers the
+                   vendored LSM30_Border widget at PLAYER_LOGIN with its
+                   misaligned 42px preview tile collapsed, so border pickers
+                   sit flush in a canvas-layout panel.
 
 core/SpecHelper.lua  Class/spec identity. Spec keys are "<classID>_<specID>".
                    GetStatPriority merges user override → seed → class fallback.
@@ -161,6 +183,7 @@ KCM.NewBusTarget()   -> target   -- fresh AceEvent-embed table; one per receiver
 KCM.MSG.RECOMPUTE                -- event/UI → pipeline (→ RequestRecompute, coalesced)
 KCM.MSG.PANEL_REFRESH            -- pipeline → options panel (debounced rebuild)
 KCM.MSG.SPEC_CHANGED             -- spec change → options panel (retracks Stat Priority)
+KCM.MSG.MACROBAR_REFRESH         -- pipeline → macro bar (undebounced icon/count repaint)
 ```
 
 Event handlers publish `RECOMPUTE`; the pipeline owns the only subscriber and forwards to `RequestRecompute`. `Pipeline.Recompute` publishes `PANEL_REFRESH`; `OnSpecChanged` publishes `SPEC_CHANGED`. Each receiver subscribes on its own `NewBusTarget()`.
@@ -311,6 +334,39 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 
 `RefreshAllPanels` iterates every previously-shown panel ctx and re-runs its `_renderFn`. Renderers call `ResetScroll(ctx)` before re-adding children so a re-render after a mutation starts on a clean slate.
 
+### Macro bar (`core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`)
+
+```lua
+-- Pure (headless-tested)
+KCM.MacroBarLayout.Grid(count, cfg)      -> { positions, width, height, cols, rows }
+KCM.MacroBarLayout.Dimensions(count, cfg)-> cols, rows
+KCM.MacroBarModel.NormalizeOrder(order, allKeys?) -> order, changed
+KCM.MacroBarModel.Swap(order, a, b)      -> bool          -- drag-to-swap primitive
+KCM.MacroBarModel.VisibleKeys(order, shown) -> array
+KCM.MacroBarModel.Order() / Visible() / Config() / IsEnabled()
+KCM.MacroBarModel.MacroName(catKey) / KeyForMacroName(name)
+KCM.MacroBarModel.Labels(catKey)         -> fullName, shortName
+KCM.MacroBarLayout.LabelAnchor(cfg)      -> point, relPoint, x, y, justifyH
+KCM.MacroBarLayout.LabelFontSize(size, scalePct) -> points (6-24)
+KCM.MacroDisplay.PickID / Texture / Count / Cooldown / SetTooltip / MacroIndex
+
+-- Frames
+KCM.MacroBar.Update()                    -- the single apply seam; self-defers in combat
+KCM.MacroBar.FlushPending()              -- called from KCM:OnRegenEnabled
+KCM.MacroBar.SetEnabled(on) / SetLocked(locked) / ResetPosition()
+KCM.MacroBar.SwapSlots(fromKey, toKey)   -- blocked in combat
+KCM.MacroBar.Refresh() / RefreshCooldowns() / ApplyAlpha() / IsShown()
+KCM.MacroBarButton.Create(parent, catKey, index) / Refresh / RefreshIcon
+KCM.MacroBarButton.RefreshCooldown / ApplyStyle(btn, cfg)
+KCM.MacroBarButton.BorderTexture(lsmName) -> edge texture (LSM, with fallback)
+```
+
+On by default (and unlocked, so the drag handle shows) — schema v2 brings
+upgrading profiles to the same state, once. Slots are
+`SecureActionButtonTemplate` buttons whose `macro` attribute is stamped once and
+never rewritten, so reordering moves anchors only. Full design + combat contract
+in [macro-bar.md](./macro-bar.md).
+
 ### Debug (`core/Debug.lua` + `modules/DebugLog.lua`)
 
 ```lua
@@ -348,12 +404,12 @@ local F = KCM.Foo
 
 `ConsumableMaster.toc` is the source of truth. It is sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`, and order within a section is dependency order, not alphabetical:
 
-1. **Libraries** — LibStub + every Ace3 sub-library + LibSharedMedia, listed directly in the TOC (no `embeds.xml` wrapper).
+1. **Libraries** — LibStub + every Ace3 sub-library + LibSharedMedia + `AceGUI-3.0-SharedMediaWidgets` (last, since its widgets need both AceGUI and LibSharedMedia), listed directly in the TOC (no `embeds.xml` wrapper).
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
-3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
+3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Categories.lua` then each `defaults/Defaults_*.lua`.
-5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `DebugLog`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
-6. **Settings** — `settings/Panel.lua` → `settings/General.lua` → `settings/StatPriority.lua` → `settings/Category.lua`.
+5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
+6. **Settings** — `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua`.
 
 `settings/Panel.lua` must come first within `settings/` because it creates `KCM.Settings.Helpers` + `KCM.Settings.RegisterTab` which the per-tab modules call at file-bottom. Widgets load before `settings/` so `AceGUI:Create("KCM…")` works at panel-render time. Event handlers and `Pipeline` functions are *defined* in `core/ConsumableMaster.lua` but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
 

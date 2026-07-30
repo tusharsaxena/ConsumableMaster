@@ -31,7 +31,7 @@ KCM.Settings.main    = nil
 -- spec-aware categories + Augment Rune, and Vantus Rune last. Kept in sync
 -- with the panel/tab order in docs/agent-context.md.
 KCM.Settings.order = KCM.Settings.order or {
-    "general", "statpriority",
+    "general", "statpriority", "macrobar",
     "food", "drink", "hp_pot", "mp_pot", "hs",
     "hp_aio", "mp_aio",
     "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune", "vantus",
@@ -109,12 +109,12 @@ function Helpers.FindSchema(path)
 end
 
 local _validPanels = {
-    general = true, statpriority = true,
+    general = true, statpriority = true, macrobar = true,
     food = true, drink = true, hp_pot = true, mp_pot = true, hs = true, vantus = true,
     flask = true, cmbt_pot = true, stat_food = true, wpn_ench = true, aug_rune = true,
     hp_aio = true, mp_aio = true,
 }
-local _validSections = { general = true }
+local _validSections = { general = true, macrobar = true }
 local _validTypes    = { bool = true, number = true, string = true, color = true }
 
 local function _printSchemaError(prefix, msg)
@@ -516,9 +516,14 @@ function Helpers.Section(ctx, label)
 end
 
 -- ---------------------------------------------------------------------
--- Schema-driven widget creators. Today CM's schema only defines bool
--- rows; non-bool types fall through to nil. Add makers when a row of
--- that type lands in the schema.
+-- Schema-driven widget creators — one per schema `type`:
+--   bool   -> CheckBox
+--   number -> Slider   (min / max / step, `isPercent` for 0-1 ratios)
+--   string -> Dropdown (enum: def.values = { {value=,text=}, ... })
+--   color  -> ColorPicker ({ r, g, b, a } array in the DB)
+-- Every one routes its write through Helpers.SetAndRefresh so the widget path
+-- and the `/cm set` path share a single validate → write → onChange → refresh
+-- seam (standard §4.5).
 -- ---------------------------------------------------------------------
 
 local function applyWidth(widget, relativeWidth)
@@ -549,9 +554,137 @@ local function makeCheckbox(ctx, def, parent, relativeWidth)
     return cb
 end
 
+-- Enum rows declare `values` as an ordered array of { value =, text = } so the
+-- dropdown's display order is the schema's order (AceGUI's Dropdown needs the
+-- key list separately from the key→text map).
+local function enumValues(def)
+    return type(def.values) == "function" and def.values() or def.values or {}
+end
+Helpers.EnumValues = enumValues
+
+-- Option list for a LibSharedMedia media type, e.g. LSMValues("border").
+-- Schema rows pass this as a FUNCTION, not a table, so the list is re-queried
+-- at render / click time — other addons can register media after our schema is
+-- declared.
+function Helpers.LSMValues(mediaType)
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    local list = LSM and LSM.List and LSM:List(mediaType) or nil
+    if not list or #list == 0 then
+        return { { value = "None", text = "None" } }
+    end
+    local out = {}
+    for i, key in ipairs(list) do
+        out[i] = { value = key, text = key }
+    end
+    return out
+end
+
+-- Map a schema row's `lsm` media type to the AceGUI widget type registered by
+-- libs/AceGUI-3.0-SharedMediaWidgets, which renders each row with a live
+-- preview. Rows without `lsm` use the stock Dropdown.
+local LSM_WIDGET = {
+    border    = "LSM30_Border",
+    font      = "LSM30_Font",
+    statusbar = "LSM30_Statusbar",
+    background = "LSM30_Background",
+}
+
+local function makeSlider(ctx, def, parent, relativeWidth)
+    parent = parent or ensureScroll(ctx)
+    local sl = AceGUI:Create("Slider")
+    sl:SetLabel(def.label or def.path)
+    sl:SetSliderValues(def.min or 0, def.max or 100, def.step or 1)
+    if def.isPercent then sl:SetIsPercent(true) end
+    applyWidth(sl, relativeWidth)
+    sl:SetValue(tonumber(Helpers.Get(def.path)) or def.default or 0)
+
+    local function refresh()
+        sl:SetValue(tonumber(Helpers.Get(def.path)) or def.default or 0)
+    end
+
+    sl:SetCallback("OnValueChanged", function(_, _, value)
+        Helpers.SetAndRefresh(def.path, tonumber(value))
+    end)
+
+    attachTooltip(sl, def.label, def.tooltip)
+    parent:AddChild(sl)
+    ctx.refreshers[#ctx.refreshers + 1] = refresh
+    return sl
+end
+
+local function makeDropdown(ctx, def, parent, relativeWidth)
+    parent = parent or ensureScroll(ctx)
+    local dd = AceGUI:Create(def.lsm and LSM_WIDGET[def.lsm] or "Dropdown")
+    dd:SetLabel(def.label or def.path)
+    applyWidth(dd, relativeWidth)
+
+    local function applyList()
+        local list, order = {}, {}
+        for i, item in ipairs(enumValues(def)) do
+            list[item.value] = item.text or tostring(item.value)
+            order[i] = item.value
+        end
+        dd:SetList(list, order)
+    end
+    applyList()
+    dd:SetValue(Helpers.Get(def.path))
+
+    local function refresh()
+        applyList()      -- an LSM list can grow as other addons register media
+        dd:SetValue(Helpers.Get(def.path))
+    end
+
+    dd:SetCallback("OnValueChanged", function(_, _, key)
+        Helpers.SetAndRefresh(def.path, key)
+        -- The LSM30_* widgets fire OnValueChanged from their row click WITHOUT
+        -- calling SetValue first — they assume AceConfigDialog will re-render
+        -- the whole widget afterwards. Our canvas panel doesn't, so push the
+        -- value back or the dropdown keeps displaying the old name even though
+        -- the DB write landed. Idempotent for the stock Dropdown, which already
+        -- set its own value before firing.
+        dd:SetValue(key)
+    end)
+
+    attachTooltip(dd, def.label, def.tooltip)
+    parent:AddChild(dd)
+    ctx.refreshers[#ctx.refreshers + 1] = refresh
+    return dd
+end
+
+local function makeColorPicker(ctx, def, parent, relativeWidth)
+    parent = parent or ensureScroll(ctx)
+    local cp = AceGUI:Create("ColorPicker")
+    cp:SetLabel(def.label or def.path)
+    cp:SetHasAlpha(def.hasAlpha ~= false)
+    applyWidth(cp, relativeWidth)
+
+    local function current()
+        local c = Helpers.Get(def.path) or def.default or {}
+        return c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1
+    end
+    cp:SetColor(current())
+
+    local function refresh()
+        cp:SetColor(current())
+    end
+
+    -- OnValueConfirmed only: OnValueChanged fires continuously while the colour
+    -- wheel is dragged, and each write drives a full macro-bar restyle.
+    cp:SetCallback("OnValueConfirmed", function(_, _, r, g, b, a)
+        Helpers.SetAndRefresh(def.path, { r, g, b, a or 1 })
+    end)
+
+    attachTooltip(cp, def.label, def.tooltip)
+    parent:AddChild(cp)
+    ctx.refreshers[#ctx.refreshers + 1] = refresh
+    return cp
+end
+
 function Helpers.RenderField(ctx, def, parent, relativeWidth)
-    if def.type == "bool" then return makeCheckbox(ctx, def, parent, relativeWidth) end
-    -- Other types intentionally omitted; add when the first row needs them.
+    if def.type == "bool"   then return makeCheckbox(ctx, def, parent, relativeWidth) end
+    if def.type == "number" then return makeSlider(ctx, def, parent, relativeWidth) end
+    if def.type == "string" then return makeDropdown(ctx, def, parent, relativeWidth) end
+    if def.type == "color"  then return makeColorPicker(ctx, def, parent, relativeWidth) end
     return nil
 end
 
@@ -745,6 +878,19 @@ local function validateSchemaValue(def, value)
         if def.max then value = math.min(def.max, value) end
     elseif t == "string" then
         if type(value) ~= "string" then return nil, "expected string" end
+        -- Enum rows (a `values` list) reject anything outside the list, so the
+        -- dropdown and `/cm set` can't write a value the renderer can't display.
+        local allowed = Helpers.EnumValues and Helpers.EnumValues(def) or def.values
+        if type(allowed) == "table" and #allowed > 0 then
+            local names, ok = {}, false
+            for i, item in ipairs(allowed) do
+                names[i] = tostring(item.value)
+                if item.value == value then ok = true end
+            end
+            if not ok then
+                return nil, "allowed values: " .. table.concat(names, ", ")
+            end
+        end
     elseif t == "color" then
         if type(value) ~= "table" then return nil, "expected color table" end
     end

@@ -18,6 +18,7 @@ User-facing reference: [README.md](../README.md). Design overview + invariants: 
 
 - **Conform to the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).** That repo is the source of truth for structure, naming, packaging, and conventions. **If a change would deviate from the standard — or you spot existing code that already deviates — flag it to the user; never silently diverge.** The user decides whether it becomes a tracked deviation for this addon or a change upstreamed to the standard. Frozen audits live under `docs/audits/<date>/`.
 - **`MacroManager` is the only module allowed to call protected macro APIs** (`CreateMacro`, `EditMacro`, `DeleteMacro`). Every other module — Classifier, Ranker, Selector, BagScanner, TooltipCache, SpecHelper — must stay pure so the recompute pipeline can run in combat without taint. If you need bag or tooltip data at macro-write time, call the pure module and pass the result into MacroManager; never the other direction.
+- **The macro bar owns the only protected FRAMES; the same discipline applies.** `modules/MacroBar*.lua` creates `SecureActionButtonTemplate` slots, so creating, anchoring, showing or hiding them (or the container) is combat-forbidden. Everything funnels through `MacroBar.Update()`, which self-defers to `PLAYER_REGEN_ENABLED` (`MacroBar.FlushPending`). Combat-conditional visibility uses `RegisterStateDriver`, never `Show`/`Hide`. A slot's `macro` attribute is stamped **once** at creation and never rewritten — if you find yourself wanting to rewrite it, you're about to break the combat story. Alpha changes are unprotected and fine mid-combat. Detail: [macro-bar.md](./macro-bar.md).
 - **Macros are identified by name, never slot.** `perCharacter=false` puts them in the account-wide pool (slots 1–120). The addon must never call `DeleteMacro` on a `KCM_*` macro — the slot is the user's.
 - **English-only — tracked deviation** from `localization-§4` / anti-pattern #37 (recorded in `docs/scope.md`; a standards audit is *expected* to flag it). Classification keys on the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua`, `core/WeaponSlots.lua`), so category/affinity detection works on every client. The remaining English dependency is TooltipCache's tooltip-TEXT parsing — if a patch rewords a tooltip line, edit `PATTERNS` / `STAT_TOKENS` in `core/TooltipCache.lua`. Do not add localization plumbing beyond the `locales/enUS.lua` shell; full tooltip localization is a planned future release.
 - **Seed data is data.** `defaults/Defaults_*.lua` files are just lists of itemIDs that become `KCM.SEED.<CATKEY>`. Updating a seed list is a zero-migration upgrade because the runtime candidate set is `(seed ∪ added ∪ discovered) − blocked` and the right-side sets live in SavedVariables.
@@ -32,10 +33,11 @@ User-facing reference: [README.md](../README.md). Design overview + invariants: 
 Cross-module control flow that crosses feature boundaries goes over the closed bus (`core/Bus.lua`), never by reaching into another module's tables. Pure-function queries (MacroManager asking Selector/Ranker/Classifier for data) stay direct calls.
 
 - `KCM.bus` is an AceEvent-embed. **Every receiver owns its own target** via `KCM.NewBusTarget()` — never two subscriptions on one table.
-- `KCM.MSG` names the three messages:
+- `KCM.MSG` names the four messages:
   - **`RECOMPUTE`** (`Ka0s_ConsumableMaster_Recompute`) — event/UI layer → pipeline. The pipeline owns the only subscription; it forwards to `RequestRecompute`, which coalesces to one pass per frame.
   - **`PANEL_REFRESH`** (`Ka0s_ConsumableMaster_PanelRefresh`) — pipeline → options panel. Debounced rebuild of any open page.
   - **`SPEC_CHANGED`** (`Ka0s_ConsumableMaster_SpecChanged`) — spec change → options panel. Retracks the Stat Priority page to the new spec.
+  - **`MACROBAR_REFRESH`** (`Ka0s_ConsumableMaster_MacroBarRefresh`) — pipeline → macro bar. Undebounced icon/count repaint of the optional bar.
 
 Full catalogue lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -87,7 +89,7 @@ local F = KCM.Foo
 ## Working environment
 
 - **Dual-path WSL.** `/home/tushar/GIT/ConsumableMaster/` and `/mnt/d/Profile/Users/Tushar/Documents/GIT/ConsumableMaster/` are the same repo via symlink. Either path works for git and file tools.
-- **Git remote.** No remote yet; only local commits on `master`.
+- **Git remote.** `origin` → `https://github.com/tusharsaxena/consumablemaster.git` (GitHub repo `tusharsaxena/ConsumableMaster`); `gh` CLI is authenticated for issues. `master` is the default branch.
 - **`.gitignore`** covers `.claude/settings.local.json`, OS cruft, editor scratch files. `libs/` is tracked (vendored Ace3 + LibSharedMedia, standard WoW addon practice). `defaults/`, `docs/`, `tests/`, `locales/`, all `.lua` source are tracked.
 
 ## Response style for this repo
@@ -119,4 +121,5 @@ Topic-specific detail lives in `docs/`. Read on demand — these are not auto-lo
 | Headless gate — tests + luacheck, toolchain, TDD policy, badge sync | [testing.md](./testing.md) | Before every commit; setting up a fresh checkout. |
 | Smoke tests (quick + full suite + targeted-by-change-area lookup) | [smoke-tests.md](./smoke-tests.md) | After any code change; before any release. |
 | Test-case inventory (generated — authoritative count) | [test-cases.md](./test-cases.md) | Checking coverage; regenerate after any suite change. |
+| Optional macro bar (secure slots, layout, combat contract) | [macro-bar.md](./macro-bar.md) | Touching the macro bar, its settings page, or anything protected-frame shaped. |
 | Seed reference + refresh procedure | [../defaults/README.md](../defaults/README.md) | Patch-day seed updates. |

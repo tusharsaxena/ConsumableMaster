@@ -65,6 +65,9 @@ L.PURE_LAYER = {
     "Selector.lua",
     "MacroManager.lua",
     "BagScanner.lua",
+    "core/MacroDisplay.lua",
+    "core/MacroBarModel.lua",
+    "core/MacroBarLayout.lua",
 }
 
 -- Load an explicit list of source files onto a fresh mocked namespace.

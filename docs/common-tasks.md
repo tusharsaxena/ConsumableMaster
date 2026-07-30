@@ -28,6 +28,7 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
    NEW = { bySpec = {} },                                              -- spec-aware
    ```
 8. Options panel picks the category up automatically from `Categories.LIST`.
+9. Add the tab key to `KCM.Settings.order` (`settings/Panel.lua`) and to `_validPanels`, then append the uppercased key to `dbDefaults.profile.macroBar.order` in the same position — the macro bar's default slot order mirrors the tab order, and `tests/test_macrobar.lua` fails if the two drift. (An existing profile self-heals: `MacroBarModel.NormalizeOrder` appends any category its saved order has never seen.)
 
 ## Add a new composite category
 

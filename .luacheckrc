@@ -58,9 +58,15 @@ read_globals = {
     -- Spell / item (legacy globals wrapped by core/Compat.lua)
     "GetSpellInfo", "GetSpellCooldown", "GetItemInfo", "GetItemInfoInstant",
     "GetItemCount",
-    -- Macro APIs (MacroManager only)
+    -- Macro APIs. Only the PROTECTED writers (CreateMacro/EditMacro/DeleteMacro)
+    -- are MacroManager's exclusive territory; the read-only lookups and
+    -- PickupMacro are also used by the drag icon and the macro bar.
     "CreateMacro", "EditMacro", "DeleteMacro", "GetMacroInfo", "GetNumMacros",
     "GetMacroIndexByName", "PickupMacro",
+    -- Cursor + secure visibility driver (modules/MacroBar*.lua). The state
+    -- driver is how combat-conditional show/hide stays taint-free.
+    "GetCursorInfo", "ClearCursor", "RegisterStateDriver", "UnregisterStateDriver",
+    "GetItemCooldown",
     -- Namespaced client tables
     "C_Spell", "C_Item", "C_Container", "C_TooltipInfo", "C_Timer",
     "C_AddOns", "C_TradeSkillUI", "C_SettingsUtil", "C_CVar",

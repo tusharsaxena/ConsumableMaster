@@ -27,65 +27,20 @@ local GameTooltip = GameTooltip
 local ICON_SIZE      = 36
 local ROW_HEIGHT     = 40
 local LABEL_GAP      = 8
-local FALLBACK_ICON  = 7704166 -- matches MacroManager.DEFAULT_ICON
 
+-- Icon / tooltip resolution (pick-first, degrading to the stored macro icon and
+-- then the cooking pot) lives in core/MacroDisplay.lua so this widget and the
+-- macro bar's buttons can't drift apart.
 local function macroIndex(name)
-    if not name or not GetMacroIndexByName then return 0 end
-    return GetMacroIndexByName(name) or 0
+    return KCM.MacroDisplay and KCM.MacroDisplay.MacroIndex(name) or 0
 end
 
--- Active KCM macros store the `?` sentinel as their icon (so `#showtooltip`
--- can drive the action bar button). That sentinel is meaningless on our
--- static widget, so render the picked item's / spell's texture directly
--- from macroState. Falls back to the stored icon (empty-state → cooking
--- pot) and then to FALLBACK_ICON if none is available.
-local function macroIcon(macroName, index)
-    local state = KCM and KCM.db and KCM.db.profile and KCM.db.profile.macroState
-    local entry = state and state[macroName]
-    local lastID = entry and entry.lastItemID
-    local ID = KCM and KCM.ID
-    if lastID and ID then
-        if ID.IsSpell(lastID) and C_Spell and C_Spell.GetSpellTexture then
-            local tex = C_Spell.GetSpellTexture(ID.SpellID(lastID))
-            if tex then return tex end
-        elseif ID.IsItem(lastID) then
-            local getIcon = C_Item and C_Item.GetItemIconByID or GetItemIcon
-            if getIcon then
-                local tex = getIcon(lastID)
-                if tex then return tex end
-            end
-        end
-    end
-    if index == 0 or not GetMacroInfo then return FALLBACK_ICON end
-    local _, icon = GetMacroInfo(index)
-    return icon or FALLBACK_ICON
+local function macroIcon(macroName)
+    return KCM.MacroDisplay and KCM.MacroDisplay.Texture(macroName) or nil
 end
 
--- Prefer the real in-game tooltip if MacroManager has recorded an ID for this
--- slot. `lastItemID` holds an opaque KCM ID — positive itemIDs route to
--- SetItemByID, negative spell sentinels route to SetSpellByID. Anything else
--- (empty-state macros, unresolved picks) falls back to the macro name + body.
-local function showMacroTooltip(owner, macroName, index)
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    local state = KCM and KCM.db and KCM.db.profile and KCM.db.profile.macroState
-    local entry = state and state[macroName]
-    local lastID = entry and entry.lastItemID
-    local ID = KCM and KCM.ID
-
-    if ID and lastID and ID.IsSpell(lastID) and GameTooltip.SetSpellByID then
-        GameTooltip:SetSpellByID(ID.SpellID(lastID))
-    elseif ID and lastID and ID.IsItem(lastID) and GameTooltip.SetItemByID then
-        GameTooltip:SetItemByID(lastID)
-    else
-        GameTooltip:SetText(macroName, 1, 0.82, 0)
-        if GetMacroInfo and index ~= 0 then
-            local _, _, body = GetMacroInfo(index)
-            if body and body ~= "" then
-                GameTooltip:AddLine(body, 1, 1, 1, true)
-            end
-        end
-    end
-    GameTooltip:Show()
+local function showMacroTooltip(owner, macroName)
+    if KCM.MacroDisplay then KCM.MacroDisplay.SetTooltip(owner, macroName) end
 end
 
 local methods = {
@@ -111,7 +66,7 @@ local methods = {
 
     ["RefreshDisplay"] = function(self)
         local idx = macroIndex(self.macroName)
-        self.icon:SetTexture(macroIcon(self.macroName, idx))
+        self.icon:SetTexture(macroIcon(self.macroName))
         if idx == 0 then
             self.label:SetText("|cff999999Macro not created yet|r")
             self.frame:Disable()
@@ -163,8 +118,7 @@ local function Constructor()
 
     frame:SetScript("OnEnter", function(self)
         if not widget.macroName then return end
-        local idx = macroIndex(widget.macroName)
-        showMacroTooltip(self, widget.macroName, idx)
+        showMacroTooltip(self, widget.macroName)
     end)
     frame:SetScript("OnLeave", function()
         GameTooltip:Hide()

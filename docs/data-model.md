@@ -31,8 +31,33 @@ db.profile
 │       └── orderOutOfCombat   { refKey, ... }
 ├── statPriority
 │   └── ["<classID>_<specID>"] = { primary, secondary[] }   -- user overrides only
-└── macroState
-    └── [macroName] = { lastItemID, lastBody, lastIcon, lastCat }   -- early-out cache
+├── macroState
+│   └── [macroName] = { lastItemID, lastBody, lastIcon, lastCat }   -- early-out cache
+└── macroBar                        -- CM-only macro bar; enabled = true, locked = false
+    ├── enabled │ locked            boolean
+    ├── point │ relPoint │ x │ y    anchor against UIParent (saved after a drag)
+    ├── scale │ alpha               number
+    ├── buttonSize │ spacing │ padding │ perRow      number   -- grid geometry
+    ├── orientation                 "HORIZONTAL" │ "VERTICAL"
+    ├── growthH │ growthV           "RIGHT"│"LEFT" │ "DOWN"│"UP"
+    ├── barBackdrop │ barBorder │ buttonBackdrop │ buttonBorder   boolean
+    ├── barBorderStyle │ buttonBorderStyle       LibSharedMedia border name
+    ├── barBorderSize │ buttonBorderSize │ buttonBorderOffset      number (px)
+    ├── barBackdropColor │ barBorderColor │ buttonBackdropColor
+    │   │ buttonBorderColor         { r, g, b, a }
+    ├── iconZoom                    number   -- % cropped off each icon edge
+    ├── showCount │ tooltips        boolean
+    ├── buttonLabel │ labelOutline  boolean
+    ├── labelText                   "AUTO" │ "FULL" │ "SHORT"
+    ├── labelPoint                  9-way grid, e.g. "TOP_CENTER"
+    ├── labelPlacement              "INSIDE" │ "OUTSIDE"
+    ├── labelScale                  number   -- % of button size (6-24pt clamp)
+    ├── labelOffsetX │ labelOffsetY number (px)
+    ├── labelColor                  { r, g, b, a }
+    ├── combatMode                  "ALWAYS" │ "HIDE_IN_COMBAT" │ "ONLY_IN_COMBAT"
+    ├── fadeUnlessHover │ fadeAlpha boolean │ number
+    ├── order                       { catKey, ... }   -- slot order, drag-to-swap
+    └── shown                       { [catKey] = false }  -- unset means VISIBLE
 ```
 
 ### Field semantics
@@ -44,6 +69,8 @@ db.profile
 - **`statPriority[<spec>]`** — optional. Missing entries fall back to the seed default (`Defaults_StatPriority.lua`); if the seed is also missing, the class-primary default is used.
 - **`WPN_ENCH` is per-hand, not a single pick.** It still has one `bySpec` bucket like the other spec-aware categories, but the pipeline resolves it as two independent picks: `Selector.PickBestForSlot(catKey, slot, scoreCache)` filters the effective candidate set to entries whose tooltip-derived `tt.weaponAffinity` (`"bladed"` | `"blunt"` | `"any"`, from `TooltipCache`) matches `KCM.WeaponSlots.SlotAffinity(slot)` for the equipped main-hand (16) / off-hand (17) weapon, then ranks and picks within that filtered set. `AP` and `SP` are scored as spec-role stats — `AP` scores as the spec's primary throughput stat for STR/AGI specs, `SP` for INT specs (`Ranker.lua`'s primary-stat weight), so an Attack Power oil doesn't rank below a secondary-stat oil for a physical-damage spec. `MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick)` builds the macro from the two picks, dropping a hand with no weapon or no matching enhancement.
 - **`macroState`** — fingerprint cache for `MacroManager`'s "unchanged" early-out. `lastIcon` was added in v1.2.0 to support the `DYNAMIC_ICON` migration; `lastCat` lets `MacroManager` reason about which category owns a slot.
+
+- **`macroBar`** — the optional macro bar's entire state. Every scalar has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel widget and a `/cm set macroBar.<field>` path. Two fields are not scalars: **`order`** is the slot order, mutated only by dragging one slot onto another, and repaired on every read by `MacroBarModel.Order()` (unknown keys dropped, newly-shipped categories appended); **`shown[catKey] = false`** hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot: the `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login. Detail in [macro-bar.md](./macro-bar.md).
 
 ### Effective candidate set
 
@@ -57,7 +84,14 @@ Seeds live in `KCM.SEED.<CATKEY>` Lua constants, **not** in SavedVariables — t
 
 ### Migrations
 
-`db.global.schemaVersion` stays at `1`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` and is the one place version-gated migrations land. The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below), so it needs no explicit migration step.
+`db.global.schemaVersion` is at `2`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` and is the one place version-gated migrations land; every step is guarded on the stored version so it runs at most once.
+
+| Version | Step |
+|---------|------|
+| 1 | Original shape. |
+| 2 | Macro bar introduced. `Database.MigrateMacroBarV2` sets `profile.macroBar.enabled = true` and `locked = false` so an upgrading profile gets the bar on and placeable, like a fresh install. One-shot by design — a later opt-out survives. |
+
+The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below), so it needs no explicit migration step.
 
 ## Composite bucket shape
 

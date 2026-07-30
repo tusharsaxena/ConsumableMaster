@@ -11,6 +11,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 - **Settings panel** integrated into Blizzard's AddOns settings + matching `/cm` slash CLI for every panel-shaped operation.
 - **Auto-discovery** from bag scans, bounded by a 30-day stale-discovered sweep.
 - **Combat-deferred writes** with bounded retry on flush.
+- **A CM-only macro bar** (on and unlocked by default, switchable off) holding the managed macros as secure buttons, with configurable layout / geometry / chrome / visibility and drag-to-swap reordering. Deliberately narrow: it hosts *only* `KCM_*` macros — it is not a general-purpose action-bar replacement, and it will not accept arbitrary items, spells or foreign macros. See [macro-bar.md](./macro-bar.md).
 
 ## Out of scope
 
@@ -24,6 +25,7 @@ These have been considered and explicitly declined. A change of heart needs an i
 - **Bandages.** First aid is a separate workflow; not relevant to current Midnight endgame.
 - **Profile import/export.** Settings live in `ConsumableMasterDB` per-account; no serialization layer.
 - **LDB / minimap icon.**
+- **A general-purpose action bar.** The macro bar hosts `KCM_*` macros only. Paging, stances, arbitrary items/spells/macros, and per-button keybindings are Bartender/ElvUI territory (keybindings are tracked as a possible narrow exception).
 - **Drag-and-drop reordering** of priority list rows. The ↑ / ↓ buttons are simpler and match the rest of the panel's keyboard-and-mouse interaction model.
 - **Shopping-list / restock reminders.**
 - **Feasts** in `STAT_FOOD`. Personal feasts and ground feasts are excluded from the seed; users wanting a feast macro can add the item ID manually.

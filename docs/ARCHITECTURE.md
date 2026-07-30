@@ -15,8 +15,8 @@ Thirteen account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM
 
 | Folder | Holds |
 |--------|-------|
-| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), SlashCommands |
-| `modules/` | Ranker, Selector, MacroManager, DebugLog console, the `KCM*` AceGUI widgets |
+| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the LSM widget fixup (LSMPatch), SlashCommands |
+| `modules/` | Ranker, Selector, MacroManager, DebugLog console, the macro bar (MacroBar, MacroBarButton), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + per-tab pages |
 | `locales/` | `enUS.lua` (`KCM.L`) — English only |
@@ -37,7 +37,8 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
                                           │                 / SetCompositeMacro
                                           │     └─▶ CreateMacro / EditMacro   (the only protected-API caller)
                                           │
-                                          └─▶ KCM.bus (PANEL_REFRESH) ─▶ Options panel
+                                          ├─▶ KCM.bus (PANEL_REFRESH)    ─▶ Options panel
+                                          └─▶ KCM.bus (MACROBAR_REFRESH) ─▶ Macro bar (on by default; can be switched off)
 
   AceDB (one account-wide profile)  ──  Options panel + /cm slash CLI
 ```
@@ -53,6 +54,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Message bus | `core/Bus.lua` | Catalogue below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
 | Debug console | `modules/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
+| Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
 | Headless gate (tests + luacheck, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
@@ -70,6 +72,7 @@ Cross-module control flow that crosses feature boundaries travels over the close
 | `RECOMPUTE` | `Ka0s_ConsumableMaster_Recompute` | event / UI layer → pipeline | Request a pick recompute. The pipeline owns the **only** subscription (registered at load in `Bus.lua`) and forwards to `Pipeline.RequestRecompute`, which coalesces to one pass per frame. Carries an optional `reason` string. |
 | `PANEL_REFRESH` | `Ka0s_ConsumableMaster_PanelRefresh` | pipeline → options panel | The pipeline finished a pass; any open settings page does a debounced rebuild against the new picks. |
 | `SPEC_CHANGED` | `Ka0s_ConsumableMaster_SpecChanged` | spec change → options panel | Active spec changed; the Stat Priority page retracks to the new spec when auto-tracking. |
+| `MACROBAR_REFRESH` | `Ka0s_ConsumableMaster_MacroBarRefresh` | pipeline → macro bar | The pipeline finished a pass; the optional macro bar repaints slot icons + counts. Undebounced (unlike `PANEL_REFRESH`) because a live on-screen bar should track the macro it just rewrote. |
 
 ## Invariants worth not breaking
 
@@ -111,7 +114,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, and the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `SlashCommands`
+3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`
 4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `StatPriority.lua` → `Category.lua`

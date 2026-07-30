@@ -91,7 +91,7 @@ whenever the suite changes.
 - Constants: Say renders a nil format arg as 'nil' rather than dropping it
 - Constants: Say guards the single-string form too
 
-### test_database.lua (9)
+### test_database.lua (14)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -102,6 +102,11 @@ whenever the suite changes.
 - Database.RunMigrations leaves unrelated global keys untouched
 - Database.RunMigrations never writes into the profile scope
 - Database.RunMigrations is a safe no-op before the DB exists
+- Database v2: a profile that predates the macro bar gets it on and unlocked
+- Database v2: an off/locked bar from an earlier build of the feature is turned on
+- Database v2: the step is one-shot — a later opt-out survives the next login
+- Database v2: the migration leaves every other bar setting alone
+- Database v2: MigrateMacroBarV2 tolerates a nil profile
 
 ### test_debug.lua (13)
 
@@ -200,6 +205,52 @@ whenever the suite changes.
 ### test_load.lua (1)
 
 - full addon loads in TOC order and publishes core handles
+
+### test_macrobar.lua (43)
+
+- macrobar layout: one row of 13 reports 13 columns and one row
+- macrobar layout: first slot sits at the padding offset
+- macrobar layout: slots step by size + spacing along the row
+- macrobar layout: 13 slots at 7 per row wrap into two rows
+- macrobar layout: growth LEFT mirrors the columns
+- macrobar layout: growth UP mirrors the rows
+- macrobar layout: VERTICAL orientation fills columns first
+- macrobar layout: zero slots still reports a non-zero container
+- macrobar layout: missing config falls back to shipped defaults
+- macrobar layout: perRow below 1 is clamped rather than dividing by zero
+- macrobar label: inside anchors the label's own corner to the button's
+- macrobar label: outside flips the anchor across that edge
+- macrobar label: offsets pass through and CENTER never flips
+- macrobar label: an unknown position falls back to the shipped default
+- macrobar label: every declared label position resolves to an anchor
+- macrobar label: font size scales with the button and clamps to legible
+- macrobar label: every category supplies both a full and a short label
+- macrobar label: an unknown category degrades to its key
+- macrobar model: AllKeys covers every managed category
+- macrobar model: NormalizeOrder leaves a complete order untouched
+- macrobar model: NormalizeOrder drops unknown keys
+- macrobar model: NormalizeOrder appends categories missing from a saved order
+- macrobar model: NormalizeOrder de-duplicates a repeated key
+- macrobar model: Swap exchanges two slots
+- macrobar model: Swap refuses an absent or self-referential key
+- macrobar model: VisibleKeys hides only slots explicitly set to false
+- macrobar model: MacroName and KeyForMacroName round-trip
+- macrobar model: the bar ships on and unlocked so it is discoverable
+- macrobar model: the shipped default order needs no repair
+- macrobar model: Order repairs and writes back a damaged saved order
+- macrobar model: Visible reflects the shown map over the saved order
+- macrodisplay: an unwritten macro falls back to the cooking-pot icon
+- macrodisplay: an item pick resolves to the item's icon and count
+- macrodisplay: a spell pick resolves to the spell icon and has no count
+- macrodisplay: item and spell cooldowns both report a start and duration
+- macrodisplay: an empty-state macro reports no pick, count or cooldown
+- macrobar schema: every macroBar row validates and resolves against the db
+- macrobar schema: enum rows reject a value outside their list
+- macrobar schema: number rows clamp to their declared range
+- macrobar schema: the default slot order matches the settings tab order
+- macrobar schema: border rows are populated from LibSharedMedia
+- macrobar schema: LSMValues never hands back an empty list
+- macrobar schema: the bar publishes its own bus message
 
 ### test_macromanager.lua (33)
 
@@ -487,13 +538,14 @@ whenever the suite changes.
 | test_classifier.lua | 15 |
 | test_compat.lua | 15 |
 | test_constants.lua | 12 |
-| test_database.lua | 9 |
+| test_database.lua | 14 |
 | test_debug.lua | 13 |
 | test_debuglog.lua | 10 |
 | test_defaults.lua | 28 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_load.lua | 1 |
+| test_macrobar.lua | 43 |
 | test_macromanager.lua | 33 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
@@ -505,4 +557,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **399** |
+| **Total** | **447** |

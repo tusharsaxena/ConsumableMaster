@@ -1161,6 +1161,57 @@ local function runAIO(rest)
 end
 
 -- ---------------------------------------------------------------------------
+-- /cm bar [on|off|lock|unlock|reset]
+-- ---------------------------------------------------------------------------
+--
+-- CLI parity for the Macro Bar page's Bar section. Every mutation goes through
+-- KCM.MacroBar so the panel and slash paths share one apply seam (which owns
+-- the combat deferral); the finer-grained layout/appearance settings are
+-- reachable as schema paths via `/cm set macroBar.<field>`.
+
+local BAR_COMMANDS = {
+    {"on",     "Show the macro bar",
+        function() KCM.MacroBar.SetEnabled(true);  say("macro bar |cff00ff00ON|r") end},
+    {"off",    "Hide the macro bar",
+        function() KCM.MacroBar.SetEnabled(false); say("macro bar |cffff5555OFF|r") end},
+    {"lock",   "Lock the bar in place",
+        function() KCM.MacroBar.SetLocked(true);   say("macro bar locked") end},
+    {"unlock", "Unlock the bar so it can be dragged",
+        function() KCM.MacroBar.SetLocked(false);  say("macro bar unlocked — drag it, then /cm bar lock") end},
+    {"reset",  "Move the bar back to the centre of the screen",
+        function() KCM.MacroBar.ResetPosition();   say("macro bar position reset") end},
+}
+
+local function barHelp()
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config() or {}
+    say(("macro bar: %s, %s"):format(
+        cfg.enabled and "|cff00ff00ON|r" or "|cffff5555OFF|r",
+        cfg.locked  and "locked" or "unlocked"))
+    for _, entry in ipairs(BAR_COMMANDS) do
+        say(("  |cffffff00/cm bar %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
+    end
+    say("  layout / appearance: |cffffff00/cm set macroBar.<field>|r (see /cm list)")
+end
+
+local function runBar(rest)
+    if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then
+        return say("macro bar unavailable.")
+    end
+    local sub = lowerFirst(rest)
+    -- Bare `/cm bar` toggles, matching how `/cm debug` reads as a switch.
+    if sub == "" then
+        local on = not KCM.MacroBarModel.IsEnabled()
+        KCM.MacroBar.SetEnabled(on)
+        return say("macro bar " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
+    end
+    if sub == "help" then return barHelp() end
+    local entry = findCommand(BAR_COMMANDS, sub)
+    if entry then return entry[3]() end
+    say("unknown bar subcommand '" .. sub .. "'")
+    barHelp()
+end
+
+-- ---------------------------------------------------------------------------
 -- Top-level COMMANDS table + dispatcher
 -- ---------------------------------------------------------------------------
 
@@ -1245,6 +1296,8 @@ local COMMANDS = {
         function(rest) getSetting(rest) end},
     {"set",           "Set a setting — `/cm set <path> <value>` (try /cm list)",
         function(rest) setSetting(rest) end},
+    {"bar",           "Macro bar — `/cm bar [on|off|lock|unlock|reset]` (bare toggles it)",
+        function(rest) runBar(rest) end},
     {"priority",      "Per-category priority list editor — try `/cm priority` for the list",
         function(rest) runPriority(rest) end},
     {"stat",          "Per-spec stat priority editor — try `/cm stat` for the list",

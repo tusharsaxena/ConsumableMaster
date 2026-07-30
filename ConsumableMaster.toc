@@ -21,6 +21,9 @@ libs\AceEvent-3.0\AceEvent-3.0.xml
 libs\AceDB-3.0\AceDB-3.0.xml
 libs\AceConsole-3.0\AceConsole-3.0.xml
 libs\AceGUI-3.0\AceGUI-3.0.xml
+# LSM30_Border / LSM30_Font dropdowns (border-style picker on the Macro Bar
+# page). Depends on AceGUI + LibSharedMedia, so it loads after both.
+libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 
 # Locales
 locales\enUS.lua
@@ -44,6 +47,16 @@ core\TooltipCache.lua
 core\WeaponSlots.lua
 core\BagScanner.lua
 core\Classifier.lua
+# LSMPatch collapses the LSM30_Border widget's 42px preview tile, which
+# misaligns inside a canvas-layout panel. Addon code, not a lib, so a lib
+# refresh can't blow it away.
+core\LSMPatch.lua
+# MacroDisplay reads what a macro currently resolves to (icon/count/cooldown/
+# tooltip); MacroBarModel + MacroBarLayout are the pure slot-order and grid-math
+# halves of the optional macro bar rendered by modules\MacroBar.lua.
+core\MacroDisplay.lua
+core\MacroBarModel.lua
+core\MacroBarLayout.lua
 core\SlashCommands.lua
 
 # Defaults
@@ -66,6 +79,8 @@ modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
 modules\DebugLog.lua
+modules\MacroBarButton.lua
+modules\MacroBar.lua
 modules\KCMIconButton.lua
 modules\KCMScoreButton.lua
 modules\KCMMacroDragIcon.lua
@@ -78,5 +93,6 @@ modules\KCMItemRow.lua
 # so the core / pipeline callers keep working unchanged.
 settings\Panel.lua
 settings\General.lua
+settings\MacroBar.lua
 settings\StatPriority.lua
 settings\Category.lua

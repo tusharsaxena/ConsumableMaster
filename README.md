@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-399%2F399_passing-green)
+![Tests](https://img.shields.io/badge/Tests-447%2F447_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -74,6 +74,8 @@ If a better pick comes up while you're in combat, the macro updates the moment y
 
 Install it with your addon manager (or drop the folder into `Interface/AddOns`) and log in. On login, Consumable Master scans your bags, finds your consumables, and writes all its macros. Drag any macro onto your action bars from the macro window, or from the draggable icon at the top of each category page in the settings.
 
+You also get a **macro bar** — a bar holding only Consumable Master's macros, so you don't have to spend action-bar space on them. It starts unlocked so you can drag it where you want it; lock it from the Macro Bar settings page (or `/cm bar lock`) when you're happy, or switch it off entirely with `/cm bar off`.
+
 ### Slash commands
 
 `/cm` is the short command; `/consumablemaster` does the same thing. Everything the addon prints to chat is tagged with a cyan `[CM]` so it's easy to spot.
@@ -86,6 +88,7 @@ Install it with your addon manager (or drop the folder into `Interface/AddOns`) 
 | `/cm rewritemacros` | Rewrite every macro and its icon. Use this if an action-bar icon looks stale. |
 | `/cm reset` | Reset every priority list and stat choice back to defaults (asks first). |
 | `/cm debug` | Open or close the debug window; add `on` or `off` to turn logging on or off. |
+| `/cm bar` | Toggle the macro bar; `on`, `off`, `lock`, `unlock`, `reset` do those directly. |
 | `/cm version` | Show the addon version. |
 | `/cm list` | List every setting and its current value. |
 | `/cm get <path>` | Show one setting's value (e.g. `/cm get enabled`). |
@@ -120,6 +123,59 @@ One page that controls the four spec-aware categories (Stat Food, Combat Potion,
 *   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
 *   **Secondary stat #1 … #4** — your preferred secondary stats in order (Crit, Haste, Mastery, Versatility). #1 counts the most. Leave a slot as `(none)` to stop there; anything not listed counts as zero.
 *   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
+
+**Macro Bar**
+
+A bar that holds only Consumable Master's macros — nothing else can be dropped on it. It's **on and unlocked the first time you log in**, so you can drag it straight to where you want it and then lock it; turn it off entirely with **Enable macro bar** or `/cm bar off`. Drag a button off it onto a normal action bar to place the macro there as well, or drag one button onto another to swap their places.
+
+*Bar*
+
+*   **Enable macro bar** — show the bar. On by default; turning it off hides the bar and stops all its work, and nothing is rebuilt until you turn it back on.
+*   **Lock position** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
+*   **Reset position** / **Reset slot order** — move the bar back to the centre of the screen, or undo any drag-and-drop rearranging.
+
+*Layout*
+
+*   **Buttons per row** — how many buttons fit along the axis the bar fills first. 13 puts every macro on one line; 7 gives you two rows, and so on.
+*   **Button size**, **Button spacing**, **Bar padding**, **Bar scale** — the geometry, in pixels (padding is the inset between the outer buttons and the bar's edge).
+*   **Orientation** — *Horizontal* fills a row then wraps to the next row; *Vertical* fills a column then wraps to the next column.
+*   **Horizontal growth** / **Vertical growth** — whether the first button sits at the left or right edge, and whether the first row sits at the top or bottom.
+
+*Bar appearance*
+
+*   **Bar background** and its colour — the backdrop drawn behind the buttons.
+*   **Bar border**, **Bar border style**, **Bar border thickness** and its colour — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
+*   **Bar opacity** — how opaque the bar is when it isn't faded out.
+
+*Button appearance*
+
+*   **Button background** and its colour — the fill behind each icon, mostly visible while an icon is still loading.
+*   **Button border**, **Button border style**, **Button border thickness** and its colour — same LibSharedMedia list as the bar, so the two can match. Turn the border off for a flat, borderless grid of icons.
+*   **Button border offset** — pushes the border outward, away from the icon. Raise this if a thick border is covering the artwork.
+*   **Icon zoom** — crops a percentage off each side of the icon. A little zoom trims the dark edge baked into most item icons so it stops reading as a second border.
+*   **Show stack count** — how many of the picked item you're carrying, in the corner of each button.
+*   **Show tooltips** — show the picked item's or spell's tooltip on hover.
+
+Cooldowns use your normal game settings (the standard sweep, plus countdown numbers if you have those turned on).
+
+*Labels*
+
+*   **Show button labels** — write each button's category name on it. Off by default.
+*   **Label text** — *Auto* uses the full category name and drops to a short form (Healing Potion → HP Pot) only when the full one won't fit; *Always full* and *Always short* skip the measuring.
+*   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is inside the top edge. Outside labels can overlap a neighbour when spacing is tight.
+*   **Label size** — a percentage of the button size, so labels stay proportional when you resize the bar.
+*   **Label offset X / Y**, **Outline label text**, **Label colour** — the rest of the fine-tuning.
+
+*Visibility*
+
+*   **Combat visibility** — *Always visible*, *Hide in combat*, or *Only in combat*. This one takes effect the instant combat starts or ends, mid-fight included.
+*   **Fade unless hovered** + **Faded opacity** — keep the bar faded until your mouse is over it. Faded buttons still work; only the opacity changes. Set the faded opacity to 0 to make it invisible until you hover it.
+
+*Macros on the bar*
+
+A checkbox per macro. Uncheck the ones you don't want a slot for — the rest close up the gap.
+
+Because WoW won't let addons move or create bar buttons during a fight, changes you make in combat (enabling the bar, resizing it, rearranging it) apply the moment combat ends. The buttons themselves keep working throughout.
 
 **Per-category pages**
 

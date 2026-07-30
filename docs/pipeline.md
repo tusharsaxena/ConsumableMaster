@@ -110,13 +110,17 @@ Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handler
 
 | Event | Handler | What it does |
 |-------|---------|--------------|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`, then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`, then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. Finally `MacroBar.Update()`, which builds / re-shows the macro bar (a no-op if the user switched it off). |
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + publish `RECOMPUTE`. |
 | `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes. |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes — then `MacroBar.FlushPending()`, which applies any macro-bar build / relayout / restyle deferred because slots are protected frames. |
 | `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → publish `PANEL_REFRESH` only (which the options layer debounces into a rebuild). See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
 | `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` | Ignored except for slot 16 (main hand) / 17 (off hand); on a main-hand or off-hand swap, publish `RECOMPUTE` (`"equip"`) so `KCM_WPN_ENCH` re-derives each hand's weapon-type affinity (`core/WeaponSlots.lua`) and re-picks per hand. |
+
+| `SPELL_UPDATE_COOLDOWN`, `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` | `MacroBar.RefreshCooldowns()`, gated on the bar being enabled. Bar-only and cheap: these exist to catch the *start* of a cooldown, since the `Cooldown` frame animates itself after `SetCooldown`. No pipeline involvement. |
+
+`Pipeline.Recompute` publishes `MACROBAR_REFRESH` alongside `PANEL_REFRESH` at the end of every pass; the macro bar owns the only receiver and repaints slot icons + counts. Unlike the panel refresh it is not debounced — a live on-screen bar should track the macro it just rewrote.
 
 ### GIIR bag/non-bag split
 

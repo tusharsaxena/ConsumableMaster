@@ -45,6 +45,15 @@ function M.reset()
     M.equipped = {}
     M.macros   = {}       -- name -> { icon, body }
     M.busReg   = {}       -- "message" -> { [target] = callback }
+    M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
+    M.cooldowns = {}      -- opaque KCM id -> { start, duration, enable }
+    M.stateDrivers = {}   -- frame -> { state = macro conditional }
+end
+
+-- Put an item/spell cooldown on the mock clock. Key is the opaque KCM ID
+-- (positive itemID, negative spell sentinel), matching MacroDisplay's input.
+function M.setCooldown(id, start, duration, enable)
+    M.cooldowns[id] = { start, duration, enable }
 end
 
 -- A real item reports a localized subType DISPLAY string and a
@@ -213,9 +222,25 @@ function M.install(NS)
                                 GetWidgetVersion = function() return 0 end,
                                 WidgetVersions = {},
                              }, { __index = function() return function() return makeStub() end end }),
+        -- LibSharedMedia: enough of the real surface for the settings layer's
+        -- LSMValues() lists and the macro bar's border fetch. `media` mirrors
+        -- LSM's own default registrations for the media types we read.
         ["LibSharedMedia-3.0"] = setmetatable(
-            { Register = function() return true end, Fetch = function() return "font.ttf" end,
-              MediaType = { FONT = "font" } },
+            {
+                Register  = function() return true end,
+                MediaType = { FONT = "font", BORDER = "border" },
+                media     = {
+                    border = { "None", "Blizzard Dialog", "Blizzard Tooltip" },
+                    font   = { "Friz Quadrata TT", "JetBrains Mono" },
+                },
+                List = function(self, mediaType) return self.media[mediaType] end,
+                Fetch = function(self, mediaType, key)
+                    for _, name in ipairs(self.media[mediaType] or {}) do
+                        if name == key then return mediaType .. ":" .. key end
+                    end
+                    return nil
+                end,
+            },
             { __index = function() return function() end end }),
     }
     _G.LibStub = function(name) return libs[name] end
@@ -318,6 +343,30 @@ function M.install(NS)
         end
         return 0
     end
+    _G.GetMacroInfo = function(idx)
+        for name, m in pairs(M.macros) do
+            if m.idx == idx then return name, m.icon, m.body end
+        end
+        return nil
+    end
+    _G.PickupMacro = function(idx) M.cursor = { "macro", idx } end
+    _G.GetCursorInfo = function()
+        if not M.cursor then return nil end
+        return M.cursor[1], M.cursor[2]
+    end
+    _G.ClearCursor = function() M.cursor = nil end
+
+    -- Secure visibility driver. The macro bar hands combat-conditional
+    -- show/hide to these rather than calling Show/Hide in combat; the mock just
+    -- records the last macro-conditional string per frame so tests can assert it.
+    M.stateDrivers = {}
+    _G.RegisterStateDriver = function(frame, state, value)
+        M.stateDrivers[frame] = M.stateDrivers[frame] or {}
+        M.stateDrivers[frame][state] = value
+    end
+    _G.UnregisterStateDriver = function(frame, state)
+        if M.stateDrivers[frame] then M.stateDrivers[frame][state] = nil end
+    end
 
     -- Namespaced client tables
     _G.C_Timer = { After = function(_, fn) if fn then fn() end end }
@@ -331,12 +380,26 @@ function M.install(NS)
         end,
         GetItemCount = function(id) return M.bags[id] or 0 end,
         GetItemNameByID = function(id) return M.items[id] and M.items[id].name or nil end,
+        GetItemIconByID = function(id) return M.items[id] and ("icon:" .. id) or nil end,
+        GetItemCooldown = function(id)
+            local cd = M.cooldowns[id]
+            if not cd then return 0, 0, 1 end
+            return cd[1], cd[2], cd[3] or 1
+        end,
     }
     _G.C_Spell = {
         GetSpellName = function(spellID) return M.spells[spellID] and M.spells[spellID].name or nil end,
         GetSpellInfo = function(spellID)
             local s = M.spells[spellID]
             return s and { name = s.name } or nil
+        end,
+        GetSpellTexture = function(spellID)
+            return M.spells[spellID] and ("spellicon:" .. spellID) or nil
+        end,
+        GetSpellCooldown = function(spellID)
+            local cd = M.cooldowns[-spellID]
+            if not cd then return { startTime = 0, duration = 0, isEnabled = true } end
+            return { startTime = cd[1], duration = cd[2], isEnabled = cd[3] ~= false }
         end,
     }
     _G.C_Container = {

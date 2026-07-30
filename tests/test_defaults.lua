@@ -183,7 +183,8 @@ test("Defaults: the addon ships enabled with an empty user-override state", func
     t.eq(KCM.db.profile.enabled, true, "master switch defaults on")
     t.eq(next(KCM.db.profile.statPriority), nil, "no seeded stat-priority overrides — seeds live in KCM.SEED")
     t.eq(next(KCM.db.profile.macroState), nil, "no macro state before the first recompute")
-    t.eq(KCM.db.global.schemaVersion, 1, "schema version is account-wide, not per profile")
+    t.eq(KCM.db.global.schemaVersion, KCM.Database.CURRENT_SCHEMA,
+        "schema version is account-wide, not per profile")
 end)
 
 -- ---------------------------------------------------------------------------
