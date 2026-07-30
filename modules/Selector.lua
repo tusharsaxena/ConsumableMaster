@@ -297,7 +297,6 @@ local function isAvailable(id)
     local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
     return (hasItem and hasItem(id)) and true or false
 end
-S.IsAvailable = isAvailable
 
 -- Enhancements that fit either equipped weapon, in rank order without repeats.
 local function availableForHands(catKey, scoreCache)

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-486%2F486_passing-green)
+![Tests](https://img.shields.io/badge/Tests-493%2F493_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -131,7 +131,7 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 *Bar*
 
 *   **Enable macro bar** — show the bar. On by default; turning it off hides the bar and stops all its work, and nothing is rebuilt until you turn it back on.
-*   **Lock position** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
+*   **Lock position** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). The help icon on the handle lists what you can drag where. Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
 *   **Reset position** / **Reset slot order** — move the bar back to the center of the screen, or undo any drag-and-drop rearranging.
 
 *Layout*
@@ -176,11 +176,14 @@ It closes when you move the mouse off it, when you click the macro, when you cli
 
 *   **Enable flyout** — on by default.
 *   **Flyout side** — which edge the shaded band sits on, and the direction the flyout grows from there. Top by default.
-*   **Auto-close after** — seconds of no interaction before an open flyout closes itself. 1 second by default; set it to 0 to leave it open until you move away or click something.
+*   **Auto-close after** — how long the flyout stays open after your mouse leaves it. 1 second by default; moving back onto the band or the strip resets the clock, so it never closes while you're pointing at it. Set it to 0 to close the moment you move away. In combat it always closes as soon as you move away, whatever this is set to — WoW won't let addons hide this kind of frame on a timer mid-fight, and a flyout stuck open through a boss would be worse.
 *   **Reverse flyout order** — put the best-ranked item furthest from the button instead of nearest.
 *   **Maximum flyout entries** — how long a flyout can get. Categories with more available items show the top-ranked ones.
-*   **Shaded band thickness**, **Arrow size** and **Shaded band color** — the strip across the icon and the arrow on it. A deeper band is an easier hover target (capped at half the button), and the button label automatically moves out of its way when the two share an edge. Arrow size is a percentage of the band, so over 100% it overflows onto the icon to stay readable on small buttons. Lower the band's opacity to let more of the artwork through.
-*   **Flyout button size**, **Flyout spacing**, **Gap from button** — sizing for the entries, the space between them, and how far the first one stands off the macro button (raise it if a thick or offset button border overlaps the flyout). Hovering still works across that gap.
+*   **Shaded band thickness**, **Arrow size** and **Shaded band color** — the strip across the icon and the arrow on it. Thickness is a percentage of the icon, so it keeps its proportions if you resize the bar; a deeper band is an easier hover target (capped at half the button), and the button label automatically moves out of its way when the two share an edge. Arrow size is a percentage of the band, so over 100% it overflows onto the icon to stay readable on small buttons. Lower the band's opacity to let more of the artwork through.
+*   **Flyout background** and its color — a panel behind the flyout. Worth keeping on: without it, a flyout opening over a second row of bar buttons looks just like more bar. Its border matches the bar's own.
+*   **Flyout button size**, **Flyout spacing**, **Flyout padding**, **Gap from button** — sizing for the entries, the space between them, the inset from the panel's edge, and how far the first one stands off the macro button (raise the last one if a thick or offset button border overlaps the flyout). Hovering still works across that gap.
+
+Flyout entries follow every **Button appearance** setting above, so the strip always matches the bar.
 
 Two notes on how flyouts behave in a fight. Opening one, using it, and closing it by moving the mouse away all work normally — that part runs through Blizzard's secure code. But *which items are in it* is fixed when combat starts, because WoW won't let addons re-point a button mid-fight: use your last potion during a boss and its entry stays in the flyout until the fight ends (clicking it just does nothing, the same as a stale action bar). Cooldown swipes do keep ticking live.
 

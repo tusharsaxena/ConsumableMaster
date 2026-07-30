@@ -206,7 +206,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (74)
+### test_macrobar.lua (81)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -234,11 +234,13 @@ whenever the suite changes.
 - macrobar flyout: container is sized to the run of entries
 - macrobar flyout: scale shrinks entries independently of the button
 - macrobar flyout: an empty flyout still reports a usable frame size
+- macrobar flyout: padding insets the strip inside its panel
+- macrobar flyout: padding leaves entries centered on the cross axis
 - macrobar flyout: the indicator band sits inside the icon's edge
 - macrobar flyout: each side rotates the arrow to point away from the button
 - macrobar flyout: arrow size scales off the band and never vanishes
 - macrobar flyout: a side band swaps its span and thickness
-- macrobar flyout: the band can never swallow more than half the icon
+- macrobar flyout: band thickness is a ratio of the button, capped at half
 - macrobar flyout: every flyout side resolves geometry
 - macrobar flyout: a label sharing the band's edge is pushed clear
 - macrobar flyout: clearance follows the band to another edge
@@ -254,6 +256,7 @@ whenever the suite changes.
 - macrobar model: Swap refuses an absent or self-referential key
 - macrobar model: VisibleKeys hides only slots explicitly set to false
 - macrobar model: MacroName and KeyForMacroName round-trip
+- macrobar model: the bar ships centered on screen at 36px buttons
 - macrobar model: the bar ships on and unlocked so it is discoverable
 - macrobar model: the shipped default order needs no repair
 - macrobar model: Order repairs and writes back a damaged saved order
@@ -275,12 +278,16 @@ whenever the suite changes.
 - macrobar flyout: the cap is bounded by the pool ceiling, not just the setting
 - macrobar flyout: it ships on, opening upward, closing after 3s
 - macrobar flyout: auto-close is configurable and 0 means never
-- macrobar flyout: the idle timer stands down while in combat
+- macrobar flyout: Create wires the secure frames without erroring
+- macrobar flyout: ApplyBackdrop paints the panel child, not the container
+- macrobar flyout: leaving hands off to the countdown, and says so securely
+- macrobar flyout: combat state is driven into the snippet, not polled
+- macrobar flyout: the idle clock resets while the mouse is on the strip
+- macrobar flyout: hovering the band alone also holds the flyout open
+- macrobar flyout: the idle clock stands down in combat
+- macrobar flyout: an auto-close of 0 never closes on idle
 - macrobar flyout: Close hides the strip and stands down in combat
-- macrobar flyout: Close also cancels a pending idle timer
 - macrobar flyout: Close tolerates a nil flyout
-- macrobar flyout: a zero auto-close never schedules a hide
-- macrobar flyout: re-arming supersedes the previous timer
 - macrobar schema: the bar publishes its own bus message
 
 ### test_macromanager.lua (33)
@@ -584,7 +591,7 @@ whenever the suite changes.
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 74 |
+| test_macrobar.lua | 81 |
 | test_macromanager.lua | 33 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
@@ -596,4 +603,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **486** |
+| **Total** | **493** |

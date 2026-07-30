@@ -48,6 +48,7 @@ function M.reset()
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
     M.cooldowns = {}      -- opaque KCM id -> { start, duration, enable }
     M.stateDrivers = {}   -- frame -> { state = macro conditional }
+    M.attributeDrivers = {} -- frame -> { attribute = macro conditional }
 end
 
 -- Put an item/spell cooldown on the mock clock. Key is the opaque KCM ID
@@ -115,10 +116,57 @@ function M.setEquipped(slot, id) M.equipped[slot] = id end
 -- Permissive frame + widget stubs
 -- ---------------------------------------------------------------------------
 
-local function makeStub()
+-- Methods a frame only has if its template grants them. Modelling this is the
+-- difference between the harness catching a "attempt to call a nil value" crash
+-- and shipping it: a fully permissive stub answers SetFrameRef on a plain button
+-- and the bug only shows up in the client. Returning nil (rather than raising)
+-- matches the client exactly, so `if frame.SetFrameRef then` guards still work.
+-- Getters the addon does arithmetic on. The catch-all below returns the stub
+-- table itself (so method chains work), which explodes the moment a caller writes
+-- `frame:GetFrameLevel() + 1`. These return numbers instead.
+-- GetName is concatenated into child frame names, so it has to be a string.
+local STRING_GETTERS = { GetName = true, GetDebugName = true }
+
+local NUMERIC_GETTERS = {
+    GetFrameLevel = 0, GetWidth = 0, GetHeight = 0, GetStringWidth = 0,
+    GetAlpha = 1, GetScale = 1, GetEffectiveScale = 1, GetNumPoints = 0,
+    GetLeft = 0, GetRight = 0, GetTop = 0, GetBottom = 0,
+}
+
+local TEMPLATE_METHODS = {
+    -- SecureHandler*Template — the secure-snippet surface
+    SetFrameRef = "SecureHandler", GetFrameRef = "SecureHandler",
+    Execute     = "SecureHandler", WrapScript  = "SecureHandler",
+    -- BackdropTemplate
+    SetBackdrop            = "Backdrop",
+    SetBackdropColor       = "Backdrop",
+    SetBackdropBorderColor = "Backdrop",
+}
+
+local function makeStub(template, name)
     local t = {}
     local mt = {}
-    mt.__index = function(_, _) return function(...) return t end end
+    template = tostring(template or "")
+    t._name = name
+
+    -- Attributes are stored for real, not swallowed. The macro bar's secure
+    -- snippets gate on them (kcmEntries, kcmGrace), so a test can assert the Lua
+    -- side put the right values within the snippet's reach.
+    t._attrs = {}
+    t.SetAttribute = function(self, k, v) (self._attrs or t._attrs)[k] = v end
+    t.GetAttribute = function(self, k) return (self._attrs or t._attrs)[k] end
+    mt.__index = function(_, key)
+        local need = TEMPLATE_METHODS[key]
+        if need and not template:find(need, 1, true) then
+            return nil          -- the client wouldn't have this method either
+        end
+        local num = NUMERIC_GETTERS[key]
+        if num then return function() return num end end
+        if STRING_GETTERS[key] then
+            return function(self) return (self and self._name) or t._name or "MockFrame" end
+        end
+        return function(...) return t end
+    end
     setmetatable(t, mt)
     t.frame = t
     return t
@@ -245,7 +293,8 @@ function M.install(NS)
     }
     _G.LibStub = function(name) return libs[name] end
 
-    _G.CreateFrame = function() return makeStub() end
+    -- 4th arg is the template list; the stub grants template-gated methods from it.
+    _G.CreateFrame = function(_, name, _, template) return makeStub(template, name) end
     _G.UIParent = makeStub()
     _G.GameTooltip = makeStub()
     _G.UISpecialFrames = {}
@@ -366,6 +415,16 @@ function M.install(NS)
     end
     _G.UnregisterStateDriver = function(frame, state)
         if M.stateDrivers[frame] then M.stateDrivers[frame][state] = nil end
+    end
+    -- Attribute drivers feed combat state into secure snippets, which have no
+    -- InCombatLockdown of their own.
+    M.attributeDrivers = {}
+    _G.RegisterAttributeDriver = function(frame, attribute, value)
+        M.attributeDrivers[frame] = M.attributeDrivers[frame] or {}
+        M.attributeDrivers[frame][attribute] = value
+    end
+    _G.UnregisterAttributeDriver = function(frame, attribute)
+        if M.attributeDrivers[frame] then M.attributeDrivers[frame][attribute] = nil end
     end
 
     -- Namespaced client tables

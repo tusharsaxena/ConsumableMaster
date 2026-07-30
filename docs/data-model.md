@@ -55,8 +55,11 @@ db.profile
     ├── flyoutScale                 number   -- % of buttonSize
     ├── flyoutSpacing               number (px)  -- between entries
     ├── flyoutGap                   number (px)  -- button to first entry
-    ├── flyoutIndicatorSize         number (px) -- shaded band thickness,
-    │                                        -- clamped to half the button
+    ├── flyoutPadding               number (px)  -- entries to panel edge
+    ├── flyoutBackdrop              boolean      -- the strip's own panel
+    ├── flyoutBackdropColor         { r, g, b, a }
+    ├── flyoutIndicatorScale        number   -- band thickness, % of the button
+    │                                        -- (clamped to half of it)
     ├── flyoutArrowScale            number   -- arrow size, % of band thickness
     ├── flyoutShadeColor            { r, g, b, a }
     ├── flyoutAutoClose             number   -- idle seconds; 0 = never

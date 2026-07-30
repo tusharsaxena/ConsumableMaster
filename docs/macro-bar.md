@@ -125,13 +125,25 @@ dropping entries.
 Entries are **not** drag-registered: they launch one specific candidate, and
 picking one up would just put a bare item on the cursor.
 
+Entries take the **whole** button-appearance block — background, border style /
+thickness / offset / color, icon zoom, stack count — so the strip is visibly the
+same kind of thing as the bar. The container gets a backdrop (`flyoutBackdrop`, on by default) with the bar's
+border style and its own fill color; without it a flyout opening over a second row
+of bar buttons is nearly indistinguishable from more bar. That backdrop lives on a
+**child frame** (`flyout.bg`), not on the container: combining
+`"SecureHandlerEnterLeaveTemplate, BackdropTemplate"` silently dropped the secure
+handler's method injection, so `SetFrameRef` came back nil and construction blew
+up. **Never combine a secure template with another template** — give the second
+concern its own frame, the way the button borders do. `flyoutPadding` insets the entries so that
+backdrop reads as a frame rather than sitting flush.
+
 ### The indicator band
 
 The band is drawn **inside** the icon, hugging `flyoutPoint`'s edge and spanning
 it fully — part of the artwork, not an ornament stuck to the outside. Three
 details that were bugs the first time round:
 
-* **The arrow is a square glyph centerd on the band**, sized at
+* **The arrow is a square glyph centered on the band**, sized at
   `flyoutArrowScale` percent of the band's thickness — over 100% (the default) it
   deliberately overflows onto the icon, which is what keeps it readable on a
   small button. Stretching a texture across the band's full width is what made
@@ -149,8 +161,10 @@ details that were bugs the first time round:
   count/label overlay (+3), so those still draw on top. Neither takes mouse
   input, so neither blocks the band's hover.
 
-Thickness is clamped to half the button, so no combination of a big
-`flyoutIndicatorSize` and a small `buttonSize` can swallow the icon.
+`flyoutIndicatorScale` is a **percentage of the button**, not a pixel count, so
+the band keeps its proportions when the bar is resized. `BL.IndicatorThickness`
+resolves it and clamps to half the button, so no combination of a deep band and a
+small button can swallow the icon.
 
 ### Why hover is a secure snippet
 
@@ -173,13 +187,31 @@ Three ways out, and only one of them is compromised in combat:
 
 | Trigger | Mechanism | Works in combat? |
 |---------|-----------|------------------|
-| mouse leaves the band and the strip | secure `_onleave` snippet | **yes** |
+| `flyoutAutoClose` seconds with the mouse off it | idle poll → `FO.IdleTick` | **no** |
+| mouse leaves, with `flyoutAutoClose = 0` | secure `_onleave` snippet | **yes** |
+| mouse leaves, **in combat**, any setting | secure `_onleave` snippet | **yes** |
 | clicking the macro, or any flyout entry | `PostClick` hook → `FO.Close` | **no** |
-| `flyoutAutoClose` seconds of no interaction | our own `C_Timer` → `FO.Close` | **no** |
 
-Hover-out is the only close path that survives combat, and both of the others
-funnel through `FO.Close`, which declines to act while `InCombatLockdown()` is
-true rather than attempting a hide the client may refuse.
+The first two rows are one decision, and getting it wrong is what made the
+setting look broken: `_onleave` used to hide unconditionally, which pre-empted the
+countdown every time, so `flyoutAutoClose` had **no observable effect at all**.
+Now leaving hands off to the countdown whenever one is configured.
+
+The snippet needs two facts from the Lua side to make that call, both passed as
+attributes because a restricted-environment snippet can read nothing else:
+
+* **`kcmGrace`** — the configured delay, written by `Apply`. Zero means "close on
+  leave" and the snippet hides immediately.
+* **`kcmCombat`** — `"1"` while in combat, fed by
+  `RegisterAttributeDriver(flyout, "kcmCombat", "[combat] 1; 0")`. The snippet has
+  no `InCombatLockdown`, and it matters here: the idle poll is insecure and cannot
+  hide mid-fight, so if the snippet also declined, the strip would sit open for the
+  rest of the fight. In combat it therefore closes on leave regardless of the
+  delay.
+
+Everything that hides from Lua funnels through `FO.Close` / `FO.IdleTick`, which
+decline while `InCombatLockdown()` is true rather than attempting a hide the client
+may refuse.
 
 That's a limit, not an oversight, and it's worth recording why each one is stuck:
 
@@ -191,15 +223,19 @@ That's a limit, not an oversight, and it's worth recording why each one is stuck
   to use `SecureHandlerWrapScript` here crashed on exactly that. Making them
   handlers as well would put a second owner on their `OnClick`, which is the one
   script Blizzard's action handling needs.
-* **Timer** — there is no timer inside the secure environment at all: no
+* **Idle close** — there is no timer inside the secure environment at all: no
   `C_Timer`, and macro conditionals have no time predicate, so a state driver
   can't stand in.
 
+`flyoutAutoClose` measures time the mouse has spent **off** the flyout, so any
+hover resets it — pointing at the strip must never yank it away. That's why it's
+an `OnUpdate` poll (`FO.IdleTick`, started from the container's `OnShow`) and not
+a one-shot `C_Timer`: a one-shot would have to re-arm itself on every
+expiry-while-hovered, which is unbounded recursion. The poll runs only while a
+flyout is open — a second or two at a time.
+
 In practice the gap is narrow, because clicking anything means the cursor is
-about to move, and the moment it does the secure `_onleave` fires. The timer is
-armed from the container's `OnShow` (the open itself happens in a snippet we
-can't hook) and re-armed by any hover over the strip, with a token so the newest
-open always wins. `flyoutAutoClose = 0` turns it off entirely.
+about to move, and the moment it does the secure `_onleave` fires. `flyoutAutoClose = 0` turns the idle close off entirely.
 
 ### What is frozen in combat
 
@@ -229,8 +265,17 @@ A full bar has no bare container left to grab — every pixel inside it is a
 button, and a button's `OnDragStart` runs `PickupMacro`. So unlocking the bar
 shows a labeled strip above it (`KCMMacroBarHandle`, a child of the container)
 whose drag scripts call `StartMoving` on the bar. It's sized to the wider of its
-own text and the bar, and hidden again on lock. The gold wash over the bar stays
-as the "this is unlocked" signal.
+own contents and the bar, and hidden again on lock. The gold wash over the bar
+stays as the "this is unlocked" signal.
+
+At its right end sits a **help icon** whose tooltip spells out the three drag
+gestures (move the bar, swap two slots, drop a macro on an action bar) plus the
+two constraints worth knowing (CM macros only; lock to hide the handle). An icon
+rather than a second line of hint text, because the bar can be a single button
+wide — prose long enough to explain both gestures would either clip or force the
+handle wider than the bar it labels, while a 14px icon costs the same at every
+width. The handle's own tooltip stays a single line, so hovering it to drag
+doesn't dump a wall of text.
 
 ## Defaults & the v2 migration
 
@@ -311,6 +356,6 @@ Tracked as GitHub issues rather than half-implemented:
 * [#9](https://github.com/tusharsaxena/ConsumableMaster/issues/9) — styling for a slot whose category has no current pick (currently the
   macro's own fallback icon shows, undimmed).
 
-Flyout entries deliberately have no per-entry styling of their own beyond size
-and spacing: they borrow the button border settings so the strip reads as part of
-the same bar.
+Flyout entries have no styling of their own beyond size, spacing and padding —
+everything else is inherited from the button-appearance block, deliberately, so
+the two surfaces can't drift apart.

@@ -175,7 +175,7 @@ row{
 row{
     path = "macroBar.buttonBorderOffset", type = "number", min = 0, max = 16, step = 1, group = "Button appearance",
     label = L["Button border offset (px)"],
-    tooltip = L["Pushes the border outward, away from the icon. Raise this if a thick border is bleeding over the artwork; 0 draws it centerd on the button's edge."],
+    tooltip = L["Pushes the border outward, away from the icon. Raise this if a thick border is bleeding over the artwork; 0 draws it centered on the button's edge."],
 }
 row{
     path = "macroBar.buttonBorderColor", type = "color", group = "Button appearance",
@@ -294,14 +294,29 @@ row{
     tooltip = L["Gap between flyout entries, in pixels."],
 }
 row{
+    path = "macroBar.flyoutBackdrop", type = "bool", group = "Flyout",
+    label = L["Flyout background"],
+    tooltip = L["Draw a panel behind the flyout. Worth keeping on: without it, a flyout opening over a second row of bar buttons looks just like more bar."],
+}
+row{
+    path = "macroBar.flyoutBackdropColor", type = "color", group = "Flyout",
+    label = L["Flyout background color"],
+    tooltip = L["Color and opacity of the flyout's panel. Its border matches the bar's own border style, thickness and color."],
+}
+row{
+    path = "macroBar.flyoutPadding", type = "number", min = 0, max = 16, step = 1, group = "Flyout",
+    label = L["Flyout padding (px)"],
+    tooltip = L["Inset between the flyout's entries and the edge of its panel, in pixels."],
+}
+row{
     path = "macroBar.flyoutGap", type = "number", min = 0, max = 20, step = 1, group = "Flyout",
     label = L["Gap from button (px)"],
     tooltip = L["Gap between the macro button and the first flyout entry. Raise it if a thick or offset button border overlaps the flyout. Hovering still works across the gap."],
 }
 row{
-    path = "macroBar.flyoutIndicatorSize", type = "number", min = 4, max = 24, step = 1, group = "Flyout",
-    label = L["Shaded band thickness (px)"],
-    tooltip = L["How deep the shaded strip across the icon is. Raise it to make an easier hover target; it is capped at half the button, and the button label automatically moves clear when the two share an edge."],
+    path = "macroBar.flyoutIndicatorScale", type = "number", min = 5, max = 50, step = 1, group = "Flyout",
+    label = L["Shaded band thickness (% of icon)"],
+    tooltip = L["How deep the shaded strip across the icon is, as a percentage of the button — so it keeps its proportions when you resize the bar. Raise it for an easier hover target; it is capped at half the button, and the button label automatically moves clear when the two share an edge."],
 }
 row{
     path = "macroBar.flyoutArrowScale", type = "number", min = 25, max = 250, step = 5, group = "Flyout",
@@ -410,7 +425,7 @@ local function render(ctx)
     H.ButtonPair(ctx,
         {
             text    = L["Reset position"],
-            tooltip = L["Move the bar back to the middle of the screen."],
+            tooltip = L["Move the bar back to the center of the screen."],
             onClick = doResetPosition,
         },
         {
@@ -457,10 +472,12 @@ local function render(ctx)
     H.Grid(ctx, {
         defs.flyout, defs.flyoutInvert,
         defs.flyoutPoint, defs.flyoutAutoClose,
-        defs.flyoutIndicatorSize, defs.flyoutArrowScale,
+        defs.flyoutIndicatorScale, defs.flyoutArrowScale,
         defs.flyoutShadeColor,
+        defs.flyoutBackdrop, defs.flyoutBackdropColor,
         defs.flyoutScale, defs.flyoutSpacing,
-        defs.flyoutGap, defs.flyoutMax,
+        defs.flyoutPadding, defs.flyoutGap,
+        defs.flyoutMax,
     })
 
     H.Section(ctx, L["Visibility"])

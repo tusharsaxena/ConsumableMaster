@@ -677,11 +677,23 @@ local function makeColorPicker(ctx, def, parent, relativeWidth)
         cp:SetColor(current())
     end
 
-    -- OnValueConfirmed only: OnValueChanged fires continuously while the color
-    -- wheel is dragged, and each write drives a full macro-bar restyle.
-    cp:SetCallback("OnValueConfirmed", function(_, _, r, g, b, a)
+    -- BOTH events, deliberately. AceGUI's ColorPicker only fires
+    -- OnValueConfirmed from its ALPHA callback, and only when that callback
+    -- happens to land after ColorPickerFrame has closed:
+    --
+    --   if ColorPickerFrame:IsVisible() then Fire("OnValueChanged")
+    --   elseif isAlpha then                  Fire("OnValueConfirmed") end
+    --
+    -- Modern Blizzard pickers don't guarantee that ordering, so listening to
+    -- Confirmed alone meant NO color row ever reached the DB — while the widget
+    -- still repainted its own swatch from OnValueChanged, so the panel looked
+    -- like it had worked. Writing on Changed too costs one restyle per wheel
+    -- movement, which is cheap and only lasts while the picker is open.
+    local function write(_, _, r, g, b, a)
         Helpers.SetAndRefresh(def.path, { r, g, b, a or 1 })
-    end)
+    end
+    cp:SetCallback("OnValueChanged", write)
+    cp:SetCallback("OnValueConfirmed", write)
 
     attachTooltip(cp, def.label, def.tooltip)
     parent:AddChild(cp)

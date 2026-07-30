@@ -24,10 +24,6 @@ local BL = KCM.MacroBarLayout
 
 local floor, ceil, max = math.floor, math.ceil, math.max
 
-BL.ORIENTATIONS = { "HORIZONTAL", "VERTICAL" }
-BL.GROWTH_H     = { "RIGHT", "LEFT" }
-BL.GROWTH_V     = { "DOWN", "UP" }
-
 -- Fill in anything the caller left out so the layout never divides by nil.
 -- Mirrors the dbDefaults.profile.macroBar values; the panel clamps to the same
 -- ranges via its schema rows.
@@ -43,7 +39,6 @@ local function normalize(cfg)
         growthV     = cfg.growthV == "UP"   and "UP"   or "DOWN",
     }
 end
-BL._normalize = normalize   -- test seam
 
 -- Grid dimensions for `count` slots. The wrap axis is whichever one
 -- `orientation` names; the other grows without limit.
@@ -148,7 +143,7 @@ function BL.IndicatorClearance(cfg)
     if cfg.labelPlacement == "OUTSIDE" then return 0, 0 end
     local edge = LABEL_EDGE[cfg.labelPoint or "TOP_CENTER"]
     if not edge or edge ~= (cfg.flyoutPoint or "TOP") then return 0, 0 end
-    local clear = max(0, tonumber(cfg.flyoutIndicatorSize) or 12) + 1
+    local clear = BL.IndicatorThickness(cfg) + 1
     if edge == "TOP"    then return 0, -clear end
     if edge == "BOTTOM" then return 0,  clear end
     if edge == "LEFT"   then return  clear, 0 end
@@ -201,21 +196,33 @@ local function flyoutEdge(cfg)
     return FLYOUT_EDGES[(cfg or {}).flyoutPoint] or FLYOUT_EDGES.TOP
 end
 
+-- Band thickness in pixels, from `flyoutIndicatorScale` as a percentage of the
+-- button. A ratio rather than a pixel count so the band keeps its proportions
+-- when the bar is resized; clamped so it can never swallow more than half the
+-- icon, nor shrink below something hoverable.
+function BL.IndicatorThickness(cfg)
+    cfg = cfg or {}
+    local span = max(1, tonumber(cfg.buttonSize) or 36)
+    local pct  = max(1, tonumber(cfg.flyoutIndicatorScale) or 33)
+    local t    = floor(span * pct / 100 + 0.5)
+    local cap  = max(2, floor(span / 2))
+    if t > cap then t = cap end
+    if t < 2  then t = 2   end
+    return t
+end
+
 -- Indicator geometry: point, relPoint, x, y, rotation, plus the band's width and
 -- height and the arrow glyph's square size.
 --
 -- The band is a shaded strip drawn INSIDE the icon, hugging its chosen edge and
 -- spanning that edge fully — part of the icon, not an ornament hanging off it.
--- The arrow is a SQUARE glyph centerd on the band: stretching it to the band's
+-- The arrow is a SQUARE glyph centered on the band: stretching it to the band's
 -- full width is what made the first attempt look smeared.
 function BL.IndicatorAnchor(cfg)
     cfg = cfg or {}
     local e = flyoutEdge(cfg)
-    local span = max(1, tonumber(cfg.buttonSize) or 36)
-    -- Never let the band swallow more than half the icon, however big the
-    -- configured thickness or however small the button.
-    local thickness = max(2, tonumber(cfg.flyoutIndicatorSize) or 12)
-    if thickness > span / 2 then thickness = max(2, floor(span / 2)) end
+    local span      = max(1, tonumber(cfg.buttonSize) or 36)
+    local thickness = BL.IndicatorThickness(cfg)
 
     local w, h = span, thickness
     if e.axis == "H" then w, h = thickness, span end
@@ -248,7 +255,10 @@ function BL.Flyout(count, cfg)
     local size    = max(1, floor((tonumber(cfg.buttonSize) or 36)
         * (tonumber(cfg.flyoutScale) or 100) / 100 + 0.5))
     local spacing = max(0, tonumber(cfg.flyoutSpacing) or 2)
-    local lead    = max(0, tonumber(cfg.flyoutGap) or 4)
+    local pad     = max(0, tonumber(cfg.flyoutPadding) or 3)
+    -- Entries start past the button gap AND the container's own padding, so the
+    -- backdrop shows as a frame around the strip rather than being flush to it.
+    local lead    = max(0, tonumber(cfg.flyoutGap) or 4) + pad
 
     local step = size + spacing
     local run  = count > 0 and (count * size + (count - 1) * spacing) or 0
@@ -265,11 +275,14 @@ function BL.Flyout(count, cfg)
         end
     end
 
+    -- Along the axis: gap + pad + entries + pad. Across it: entry + pad on both
+    -- sides. Entries share the container's anchor point, so they stay centered on
+    -- the cross axis without needing an offset of their own.
     local w, h
     if e.axis == "V" then
-        w, h = size, lead + run
+        w, h = size + pad * 2, lead + run + pad
     else
-        w, h = lead + run, size
+        w, h = lead + run + pad, size + pad * 2
     end
 
     return {
@@ -289,7 +302,7 @@ end
 -- an unreadable smudge and anything past 24pt can't fit a 64px button.
 function BL.LabelFontSize(buttonSize, labelScale)
     local size = max(1, tonumber(buttonSize) or 36)
-    local pct  = tonumber(labelScale) or 26
+    local pct  = tonumber(labelScale) or 25
     local pts  = floor(size * pct / 100 + 0.5)
     if pts < 6  then pts = 6  end
     if pts > 24 then pts = 24 end

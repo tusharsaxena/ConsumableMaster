@@ -33,6 +33,8 @@ local BACKDROP_TEX   = [[Interface\Buttons\WHITE8X8]]
 local HANDLE_H       = 18     -- unlocked drag-handle strip height
 local HANDLE_GAP     = 2      -- gap between the handle and the bar's top edge
 local HANDLE_PAD     = 24     -- horizontal padding around the handle's label
+local HANDLE_HELP    = 14     -- help-icon edge, inside the handle's right end
+local HELP_TEXTURE   = [[Interface\FriendsFrame\InformationIcon]]
 
 local bar                     -- container frame, nil until first build
 local buttons = {}            -- catKey -> button frame
@@ -69,7 +71,7 @@ local function applyPosition()
     local c = cfg() or {}
     bar:ClearAllPoints()
     bar:SetPoint(c.point or "CENTER", UIParent, c.relPoint or "CENTER",
-        tonumber(c.x) or 0, tonumber(c.y) or -200)
+        tonumber(c.x) or 0, tonumber(c.y) or 0)
 end
 
 -- Poll-based hover detection. IsMouseOver() works regardless of whether the
@@ -109,7 +111,7 @@ local function buildBar()
     frame.moveHint:SetColorTexture(1, 0.82, 0, 0.15)
     frame.moveHint:Hide()
 
-    -- Drag handle. A labeled strip centerd above the bar, shown only while
+    -- Drag handle. A labeled strip centered above the bar, shown only while
     -- unlocked. It exists because a full bar leaves no bare container to grab —
     -- every pixel inside is a button, and a button swallows the drag to run
     -- PickupMacro. The handle is a sibling grab point with no such conflict.
@@ -133,7 +135,7 @@ local function buildBar()
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(KCM.L["Consumable Master"], 1, 0.82, 0)
-        GameTooltip:AddLine(KCM.L["Drag to move the macro bar. Lock the bar in the Macro Bar settings (or /cm bar lock) to hide this handle."], 1, 1, 1, true)
+        GameTooltip:AddLine(KCM.L["Drag to move the bar."], 1, 1, 1, true)
         GameTooltip:Show()
     end)
     handle:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -142,6 +144,32 @@ local function buildBar()
     handle.text:SetPoint("CENTER")
     handle.text:SetText(KCM.L["Consumable Master"])
     handle.text:SetTextColor(1, 0.82, 0)
+
+    -- Help icon rather than a second line of hint text. The bar can be one
+    -- button wide, so any prose long enough to explain both drag gestures would
+    -- either clip or force the handle wider than the bar it belongs to; a fixed
+    -- 14px icon costs the same at every width.
+    local help = CreateFrame("Button", nil, handle)
+    help:SetSize(HANDLE_HELP, HANDLE_HELP)
+    help:SetPoint("RIGHT", handle, "RIGHT", -4, 0)
+    help.icon = help:CreateTexture(nil, "OVERLAY")
+    help.icon:SetAllPoints(help)
+    help.icon:SetTexture(HELP_TEXTURE)
+    help:SetScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT")
+        GameTooltip:SetText(KCM.L["Macro bar"], 1, 0.82, 0)
+        GameTooltip:AddLine(KCM.L["Drag this handle to move the bar."], 1, 1, 1, true)
+        GameTooltip:AddLine(KCM.L["Drag a button onto another to swap them."], 1, 1, 1, true)
+        GameTooltip:AddLine(KCM.L["Drag a button off the bar to put its macro on an action bar."], 1, 1, 1, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(KCM.L["Only Consumable Master macros can sit on this bar."], 0.6, 0.6, 0.6, true)
+        GameTooltip:AddLine(KCM.L["Lock the bar to hide this handle — /cm bar lock."], 0.6, 0.6, 0.6, true)
+        GameTooltip:Show()
+    end)
+    help:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    handle.help = help
+
     frame.handle = handle
 
     return frame
@@ -191,7 +219,6 @@ local function applyAlpha()
         bar:SetAlpha(tonumber(c.alpha) or 1)
     end
 end
-MB.ApplyAlpha = applyAlpha
 
 local function applyLock()
     if not bar then return end
@@ -203,7 +230,9 @@ local function applyLock()
     -- bar, so a one-button bar still gets a grabbable strip.
     local handle = bar.handle
     if handle then
-        local textW = (handle.text:GetStringWidth() or 0) + HANDLE_PAD
+        -- Label + padding + the help icon's own footprint, so a narrow bar's
+        -- handle never crowds the two together.
+        local textW = (handle.text:GetStringWidth() or 0) + HANDLE_PAD + HANDLE_HELP * 2
         handle:SetWidth(math.max(textW, bar:GetWidth() or textW))
         handle:SetShown(unlocked)
     end
@@ -371,7 +400,7 @@ function MB.ResetPosition()
     local c = cfg()
     if not c then return false end
     local d = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.macroBar or {}
-    c.point, c.relPoint, c.x, c.y = d.point or "CENTER", d.relPoint or "CENTER", d.x or 0, d.y or -200
+    c.point, c.relPoint, c.x, c.y = d.point or "CENTER", d.relPoint or "CENTER", d.x or 0, d.y or 0
     if not bar then return true end
     if inCombat() then
         pendingUpdate = true      -- re-anchoring moves protected children

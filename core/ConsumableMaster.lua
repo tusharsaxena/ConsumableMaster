@@ -88,7 +88,7 @@ KCM.dbDefaults = {
             point    = "CENTER",
             relPoint = "CENTER",
             x        = 0,
-            y        = -200,
+            y        = 0,          -- dead center of the screen
             scale    = 1.0,
             alpha    = 1.0,
             -- Grid. `perRow` counts buttons along the axis `orientation` fills
@@ -129,7 +129,7 @@ KCM.dbDefaults = {
             labelText      = "SHORT",           -- AUTO | FULL | SHORT
             labelPoint     = "BOTTOM_CENTER",   -- 9-way grid; see MacroBarLayout.LABEL_POINTS
             labelPlacement = "OUTSIDE",         -- INSIDE | OUTSIDE
-            labelScale     = 26,                -- % of button size, clamped to 6-24pt
+            labelScale     = 25,                -- % of button size, clamped to 6-24pt
             labelOffsetX   = 0,
             labelOffsetY   = 3,                 -- positive nudges it back up over the edge
             labelOutline   = true,
@@ -145,6 +145,9 @@ KCM.dbDefaults = {
             flyoutInvert        = false,
             flyoutMax           = 12,
             flyoutSpacing       = 2,
+            flyoutPadding       = 3,       -- inset around the strip, inside its backdrop
+            flyoutBackdrop      = true,
+            flyoutBackdropColor = { 0, 0, 0, 0.85 },
             -- Gap between the button and the first entry, so a thick or offset
             -- button border can't overlap it. Lives inside the flyout's own
             -- (mouse-enabled) frame, so it is not dead space for the hover.
@@ -153,7 +156,9 @@ KCM.dbDefaults = {
             -- The indicator is a shaded band INSIDE the icon along `flyoutPoint`'s
             -- edge, carrying a small arrow. Thickness is clamped to half the
             -- button so it can never swallow the artwork.
-            flyoutIndicatorSize = 12,      -- shaded band thickness in px
+            -- Band thickness is a PERCENTAGE of the button, so it keeps its
+            -- proportions when the bar is resized (capped at half the icon).
+            flyoutIndicatorScale = 33,
             flyoutShadeColor    = { 0, 0, 0, 0.8 },
             flyoutArrowScale    = 100,     -- arrow size as % of band thickness
             -- Seconds of no interaction before an open flyout closes itself.

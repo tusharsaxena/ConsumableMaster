@@ -63,7 +63,6 @@ local function cursorCatKey()
     local name = GetMacroInfo(index)
     return KCM.MacroBarModel and KCM.MacroBarModel.KeyForMacroName(name) or nil
 end
-BB._cursorCatKey = cursorCatKey   -- test seam
 
 -- ---------------------------------------------------------------------------
 -- Display refresh

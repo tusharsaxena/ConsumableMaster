@@ -43,6 +43,7 @@ local CreateFrame = CreateFrame
 -- A small clean triangle. Blizzard's Arrow-Up-Up carries its own glow/padding
 -- and smeared badly when stretched across the band.
 local ARROW_TEXTURE = [[Interface\ChatFrame\ChatFrameExpandArrow]]
+local BACKDROP_TEX  = [[Interface\Buttons\WHITE8X8]]
 local HIGHLIGHT_TEXTURE = [[Interface\Buttons\ButtonHilight-Square]]
 
 -- Hard ceiling on entries per slot, independent of the user's flyoutMax. The
@@ -59,12 +60,25 @@ local ONENTER = [=[
         flyout:Show()
     end
 ]=]
+-- Leaving does NOT necessarily close: when `flyoutAutoClose` is set, the mouse
+-- leaving starts that countdown instead, and the Lua idle poll performs the hide.
+-- Closing here as well would pre-empt the countdown entirely — which it did, and
+-- made the setting look broken.
+--
+-- The exception is combat. The idle poll is insecure Lua and cannot hide a
+-- protected frame mid-fight, so if we also declined here the strip would sit open
+-- for the rest of the fight. `kcmCombat` is fed by an attribute driver so the
+-- snippet can tell, and closes immediately in that case.
 local ONLEAVE = [=[
     local flyout = self:GetFrameRef("flyout")
     local anchor = self:GetFrameRef("indicator")
     if not flyout then return end
     if flyout:IsUnderMouse(true) then return end
     if anchor and anchor:IsUnderMouse(true) then return end
+    local grace = flyout:GetAttribute("kcmGrace")
+    if grace and grace > 0 and flyout:GetAttribute("kcmCombat") ~= "1" then
+        return      -- hand off to the idle countdown
+    end
     flyout:Hide()
 ]=]
 local function inCombat()
@@ -90,14 +104,19 @@ end
 -- driver can't stand in). The gap is narrow in practice — hover-out closes the
 -- flyout the instant the cursor moves, which after a click it invariably does.
 
-local function cancelTimer(flyout)
-    flyout.closeToken = (flyout.closeToken or 0) + 1
+-- Is the mouse still on the band or anywhere in the strip? The band is NOT a
+-- child of the strip, so one IsMouseOver can't cover both — the pair has to be
+-- tested. `flyout.kcmIndicator` is the handle Create hands over for this.
+local function stillHovered(flyout)
+    if flyout.IsMouseOver and flyout:IsMouseOver() then return true end
+    local ind = flyout.kcmIndicator
+    if ind and ind.IsMouseOver and ind:IsMouseOver() then return true end
+    return false
 end
 
 -- Close now, unless we're mid-fight (see above).
 function FO.Close(flyout)
     if not flyout then return end
-    cancelTimer(flyout)
     if inCombat() then return end
     flyout:Hide()
 end
@@ -111,21 +130,49 @@ local function closeOnClick(button, flyout)
     button:HookScript("PostClick", function() FO.Close(flyout) end)
 end
 
-local function armTimer(flyout)
-    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
-    local delay = tonumber(cfg and cfg.flyoutAutoClose) or 0
-    cancelTimer(flyout)
-    if delay <= 0 then return end          -- 0 = stay open until hover/click
-    local token = flyout.closeToken
-    if not C_Timer or not C_Timer.After then return end
-    C_Timer.After(delay, function()
-        if flyout.closeToken ~= token then return end   -- superseded by a newer open
-        if not flyout:IsShown() then return end
-        if inCombat() then return end
-        flyout:Hide()
-    end)
+-- Idle auto-close, as a poll rather than a one-shot timer.
+--
+-- `flyoutAutoClose` measures time the mouse has spent OFF the flyout, so any
+-- hover resets the clock — pointing at the strip must never yank it away. A
+-- one-shot C_Timer can't express that: it would have to re-arm itself on every
+-- expiry-while-hovered, which is unbounded recursion (and was, briefly).
+--
+-- Polling costs an OnUpdate only while a flyout is open, which is a second or two
+-- at a time. `awayFor` accumulates only when unhovered; reaching the delay closes
+-- the strip, subject to the same combat rule as every other insecure close.
+function FO.IdleTick(flyout, elapsed, delay)
+    if not (flyout and delay and delay > 0) then return false end
+    if stillHovered(flyout) then
+        flyout.awayFor = 0
+        return false
+    end
+    flyout.awayFor = (flyout.awayFor or 0) + (elapsed or 0)
+    if flyout.awayFor < delay then return false end
+    if inCombat() then return false end
+    flyout:Hide()
+    return true
 end
-FO._armTimer = armTimer   -- test seam
+
+local function idlePoll(flyout, elapsed)
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+    FO.IdleTick(flyout, elapsed, tonumber(cfg and cfg.flyoutAutoClose) or 0)
+end
+
+-- Start / stop the poll. Driven from the container's OnShow / OnHide, because the
+-- open itself happens inside a secure snippet we can't hook.
+local function startIdlePoll(flyout)
+    flyout.awayFor = 0
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+    if (tonumber(cfg and cfg.flyoutAutoClose) or 0) <= 0 then
+        flyout:SetScript("OnUpdate", nil)   -- 0 = stay open until hover-out or a click
+        return
+    end
+    flyout:SetScript("OnUpdate", idlePoll)
+end
+
+local function stopIdlePoll(flyout)
+    flyout:SetScript("OnUpdate", nil)
+end
 
 -- ---------------------------------------------------------------------------
 -- Construction (out of combat only — secure templates + attributes)
@@ -139,6 +186,9 @@ local function createEntry(flyout, index)
         "SecureActionButtonTemplate")
     btn:RegisterForClicks("AnyUp")
     btn:Hide()
+
+    btn.backdropTex = btn:CreateTexture(nil, "BACKGROUND")
+    btn.backdropTex:SetAllPoints(btn)
 
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetAllPoints(btn)
@@ -157,12 +207,9 @@ local function createEntry(flyout, index)
     btn.count:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 2)
 
     btn.border = CreateFrame("Frame", nil, btn, "BackdropTemplate")
-    btn.border:SetAllPoints(btn)
     btn.border:SetFrameLevel(btn:GetFrameLevel() + 1)
 
     btn:SetScript("OnEnter", function(self)
-        -- Interacting with the strip counts as activity: push the idle close out.
-        armTimer(flyout)
         local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
         if cfg and cfg.tooltips == false then return end
         if KCM.MacroDisplay then KCM.MacroDisplay.SetTooltipForID(self, self.kcmID) end
@@ -181,6 +228,10 @@ function FO.Create(button, catKey, index)
     if inCombat() then return nil end
     local baseName = "KCMMacroBarFlyout" .. index
 
+    -- ONE template. Combining "SecureHandlerEnterLeaveTemplate, BackdropTemplate"
+    -- silently dropped the secure handler's method injection — SetFrameRef came
+    -- back nil and Create blew up. The backdrop lives on a child frame instead
+    -- (same pattern the button borders use), which keeps the two concerns apart.
     local flyout = CreateFrame("Frame", baseName, button,
         "SecureHandlerEnterLeaveTemplate")
     flyout:Hide()
@@ -192,6 +243,12 @@ function FO.Create(button, catKey, index)
     flyout:EnableMouse(true)
     flyout.entries = {}
     flyout.catKey  = catKey
+
+    -- Panel behind the entries. Pinned to the container's own frame level so the
+    -- entries (children, one level up) always draw over it.
+    flyout.bg = CreateFrame("Frame", nil, flyout, "BackdropTemplate")
+    flyout.bg:SetAllPoints(flyout)
+    flyout.bg:SetFrameLevel(flyout:GetFrameLevel())
 
     -- The indicator is a shaded band drawn INSIDE the icon along one edge, with
     -- a small arrow on it. It is motion-enabled but NOT click-enabled, so
@@ -220,6 +277,15 @@ function FO.Create(button, catKey, index)
     -- seed it rather than leaving the attribute nil.
     flyout:SetAttribute("kcmEntries", 0)
     indicator:SetAttribute("kcmEntries", 0)
+    flyout:SetAttribute("kcmGrace", 0)
+
+    -- Combat state, readable from inside the snippet. An attribute driver is the
+    -- only way to get it there — the restricted environment has no
+    -- InCombatLockdown — and it's the same mechanism as the bar's visibility
+    -- driver, so it stays taint-free.
+    if RegisterAttributeDriver then
+        RegisterAttributeDriver(flyout, "kcmCombat", "[combat] 1; 0")
+    end
 
     -- Shade first, arrow on top of it, both inside the band.
     indicator.shade = indicator:CreateTexture(nil, "ARTWORK")
@@ -229,17 +295,18 @@ function FO.Create(button, catKey, index)
     indicator.arrow:SetTexture(ARROW_TEXTURE)
     indicator.arrow:SetPoint("CENTER")
 
-    -- The flyout opens from a secure snippet we can't hook, so the idle timer is
-    -- armed from OnShow instead — which fires however the frame came to be shown.
-    -- OnShow/OnHide are ours to set; OnEnter must be HOOKED, because
-    -- SecureHandlerEnterLeaveTemplate already owns that script to dispatch the
-    -- _onenter/_onleave snippets — SetScript there would silently unplug them.
-    flyout:SetScript("OnShow", function(self) armTimer(self) end)
-    flyout:SetScript("OnHide", function(self) cancelTimer(self) end)
-    flyout:HookScript("OnEnter", function(self) armTimer(self) end)
+    -- The flyout opens from a secure snippet we can't hook, so the idle poll is
+    -- started from OnShow — which fires however the frame came to be shown. The
+    -- poll is self-resetting on hover, so there's nothing to do on OnEnter.
+    flyout:SetScript("OnShow", startIdlePoll)
+    flyout:SetScript("OnHide", stopIdlePoll)
 
     -- Clicking the macro itself also dismisses the strip.
     closeOnClick(button, flyout)
+
+    -- stillHovered() needs the pair, and the indicator is not a child of the
+    -- flyout, so hand it over explicitly.
+    flyout.kcmIndicator = indicator
 
     button.flyout    = flyout
     button.indicator = indicator
@@ -287,9 +354,17 @@ local function bindEntry(btn, id, cfg, size)
 
     FO.RefreshCooldown(btn)
 
-    -- Entries borrow the button border settings so the flyout reads as part of
-    -- the same bar rather than a differently-skinned popup.
+    -- Entries take the WHOLE button-appearance block, not just the border, so
+    -- the strip is visibly the same kind of thing as the bar it hangs off.
+    local bg = cfg.buttonBackdropColor or {}
+    btn.backdropTex:SetColorTexture(bg[1] or 0, bg[2] or 0, bg[3] or 0, bg[4] or 0.6)
+    if cfg.buttonBackdrop then btn.backdropTex:Show() else btn.backdropTex:Hide() end
+
     if cfg.buttonBorder ~= false and KCM.MacroBarButton then
+        local off = tonumber(cfg.buttonBorderOffset) or 0
+        btn.border:ClearAllPoints()
+        btn.border:SetPoint("TOPLEFT",     btn, "TOPLEFT",     -off,  off)
+        btn.border:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT",  off, -off)
         btn.border:SetBackdrop({
             edgeFile = KCM.MacroBarButton.BorderTexture(cfg.buttonBorderStyle),
             edgeSize = math.max(1, tonumber(cfg.buttonBorderSize) or 4),
@@ -300,6 +375,33 @@ local function bindEntry(btn, id, cfg, size)
     else
         btn.border:Hide()
     end
+end
+
+-- Backdrop behind the strip. Without one, a flyout opening over a second row of
+-- bar buttons is nearly indistinguishable from them — same size, same border,
+-- same icons. The panel of the container is what says "this is a popup". Border
+-- style / thickness / color are shared with the BAR's own frame so the two read
+-- as one design, with only the fill color separate.
+function FO.ApplyBackdrop(flyout, cfg)
+    local bg = flyout and flyout.bg
+    if not (bg and bg.SetBackdrop and cfg) then return end
+    if cfg.flyoutBackdrop == false then
+        bg:SetBackdrop(nil)
+        return
+    end
+    local edge
+    if KCM.MacroBarButton and KCM.MacroBarButton.BorderTexture then
+        edge = KCM.MacroBarButton.BorderTexture(cfg.barBorderStyle)
+    end
+    bg:SetBackdrop({
+        bgFile   = BACKDROP_TEX,
+        edgeFile = edge,
+        edgeSize = math.max(1, tonumber(cfg.barBorderSize) or 4),
+    })
+    local fill = cfg.flyoutBackdropColor or {}
+    bg:SetBackdropColor(fill[1] or 0, fill[2] or 0, fill[3] or 0, fill[4] or 0.85)
+    local bc = cfg.barBorderColor or {}
+    bg:SetBackdropBorderColor(bc[1] or 0.25, bc[2] or 0.25, bc[3] or 0.25, bc[4] or 1)
 end
 
 function FO.RefreshCooldown(btn)
@@ -334,7 +436,7 @@ function FO.Apply(button, cfg)
     local BL = KCM.MacroBarLayout
 
     -- Indicator: a shaded band hugging the chosen edge INSIDE the icon, with a
-    -- square arrow centerd on it pointing the way the flyout will open. Frame
+    -- square arrow centered on it pointing the way the flyout will open. Frame
     -- level sits just above the icon so the border and the count/label overlay
     -- still draw on top; neither of those takes mouse input, so they don't block
     -- the band's hover.
@@ -357,6 +459,7 @@ function FO.Apply(button, cfg)
     flyout:SetPoint(grid.point, button, grid.relPoint, 0, 0)
     flyout:SetSize(grid.width, grid.height)
     flyout:SetFrameStrata("DIALOG")     -- above the bar, and above other bars
+    FO.ApplyBackdrop(flyout, cfg)
 
     for i, id in ipairs(ids) do
         local entry = flyout.entries[i]
@@ -374,9 +477,11 @@ function FO.Apply(button, cfg)
         flyout.entries[i]:Hide()
     end
 
-    -- The snippet reads this to avoid opening an empty flyout.
+    -- The snippet reads these: kcmEntries to avoid opening an empty flyout, and
+    -- kcmGrace to know whether leaving should close now or start the countdown.
     flyout:SetAttribute("kcmEntries", #ids)
     button.indicator:SetAttribute("kcmEntries", #ids)
+    flyout:SetAttribute("kcmGrace", tonumber(cfg.flyoutAutoClose) or 0)
     if #ids == 0 then
         flyout:Hide()
         button.indicator:Hide()      -- nothing to show, so no arrow to tease with

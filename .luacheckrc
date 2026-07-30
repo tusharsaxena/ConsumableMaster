@@ -65,6 +65,7 @@ read_globals = {
     -- Cursor + secure visibility driver (modules/MacroBar*.lua). The state
     -- driver is how combat-conditional show/hide stays taint-free.
     "GetCursorInfo", "ClearCursor", "RegisterStateDriver", "UnregisterStateDriver",
+    "RegisterAttributeDriver", "UnregisterAttributeDriver",
     "GetItemCooldown",
     -- Namespaced client tables
     "C_Spell", "C_Item", "C_Container", "C_TooltipInfo", "C_Timer",

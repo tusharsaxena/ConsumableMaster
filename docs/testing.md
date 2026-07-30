@@ -44,6 +44,28 @@ the same change. Confirm they match with:
 diff <(lua5.1 tests/run.lua --list) docs/test-cases.md   # no output = in sync
 ```
 
+## What the mock will and won't catch
+
+`tests/wow_mock.lua`'s `CreateFrame` **models template capability**: methods a real
+frame only gets from its template — `SetFrameRef` / `GetFrameRef` / `Execute` /
+`WrapScript` from a `SecureHandler*Template`, `SetBackdrop*` from
+`BackdropTemplate` — return nil unless the template list asks for them. That exists
+because a fully permissive stub happily answered `SetFrameRef` on a plain
+`SecureActionButton` and let two "attempt to call a nil value" crashes reach the
+client. If new code needs one of those methods, pass the template that grants it.
+
+The stub also stores **attributes** for real (`SetAttribute` / `GetAttribute`), so a
+test can assert that the Lua side put the right values within a secure snippet's
+reach — `kcmEntries`, `kcmGrace` — and records `RegisterStateDriver` /
+`RegisterAttributeDriver` calls in `mock.stateDrivers` / `mock.attributeDrivers`.
+Getters the addon does arithmetic or concatenation on (`GetFrameLevel`, `GetWidth`,
+`GetName`, …) return numbers and strings rather than the stub itself.
+
+Everything else about a frame is still a permissive stub, so the harness cannot see
+client-only behavior: taint, secure-snippet execution, whether a template
+*combination* works (it doesn't, for secure + Backdrop), or anything visual. Those
+belong to [smoke-tests.md](./smoke-tests.md).
+
 ## Test-first (TDD)
 
 Write or extend a **failing** test that pins the intended behavior first, then implement
