@@ -82,6 +82,7 @@ L.PURE_LAYER = {
     "ConsumableMaster.lua",
     "Bus.lua",
     "Constants.lua",
+    "core/CoreSetup.lua",
     "Compat.lua",
     "Database.lua",
     "defaults/Categories.lua",

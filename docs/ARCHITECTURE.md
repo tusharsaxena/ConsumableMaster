@@ -120,7 +120,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, and the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`
+3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`
 4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`

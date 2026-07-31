@@ -44,6 +44,10 @@ core\Namespace.lua
 core\ConsumableMaster.lua
 core\Bus.lua
 core\Constants.lua
+# CoreSetup builds KCM.Say / KCM.SafeToString from LibKa0s-Core-1.0. It has to
+# sit after Constants.lua (KCM.PREFIX) and before core\SlashCommands.lua, which
+# takes the printer as a file-scope upvalue.
+core\CoreSetup.lua
 core\Compat.lua
 core\State.lua
 core\Database.lua

@@ -19,12 +19,18 @@ core/Bus.lua ───── Closed message bus. KCM.bus (AceEvent embed),
                    SPEC_CHANGED, MACROBAR_REFRESH}. Each receiver owns its
                    own target.
 
-core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say(fmt, ...) — the single
-                   secret-safe chat seam (plain-string or format-string form) —
-                   + KCM.SafeToString / KCM.IsConcatSafe (secret-safe stringify
-                   backing both KCM.Say and the debug sink; detection probes
-                   table.concat, not tostring/..). Single source of truth for
-                   chat output styling.
+core/Constants.lua  KCM.PREFIX (cyan [CM] tag). Single source of truth for
+                   chat output styling; read live, never captured.
+
+core/CoreSetup.lua  The addon's half of LibKa0s-Core-1.0. Binds
+                   KCM.SafeToString / KCM.IsConcatSafe to the library
+                   (secret-safe stringify backing both KCM.Say and the debug
+                   sink; detection probes table.concat, not tostring/..) and
+                   builds KCM.Say(fmt, ...) — the single secret-safe chat seam
+                   (plain-string or format-string form) — over a prefix
+                   function and a print sink. Degrades to short built-ins,
+                   announced once, when the library is missing. Loads after
+                   Constants.lua, before SlashCommands.lua.
 
 core/Compat.lua ── Spec + spell API seam. GetSpecialization /
                    GetSpecializationInfo / GetNumSpecializationsForClassID /

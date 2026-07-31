@@ -1,0 +1,99 @@
+-- CoreSetup.lua — wires the addon into LibKa0s-Core-1.0.
+--
+-- The concat probe, the secret-safe stringifier and the prefixed chat printer
+-- used to live in core/Constants.lua. They exist in every Ka0s addon and are
+-- wrong in slightly different ways in several of them, so they now live in
+-- libs/LibKa0s/Core.lua and this file is only the part that is ours: which tag
+-- the lines carry, where they land, and what happens when the library is not
+-- installed.
+--
+-- Sits immediately after core/Constants.lua, and the slot is pinned from both
+-- sides. Below: core/SlashCommands.lua takes `local say = KCM.Say` as a
+-- file-scope upvalue, so the printer has to exist before it loads or the swap
+-- silently no-ops while appearing to work. Above: KCM.PREFIX is defined in
+-- core/Constants.lua — though the function form of `prefix` below means that
+-- one is a preference rather than a constraint.
+--
+-- Note what does NOT constrain the slot here, and does in most of the
+-- collection: AceAddon:NewAddon embeds AceConsole's :Print onto the namespace
+-- at core/ConsumableMaster.lua, which loads FIRST, and this addon's printer is
+-- named Say. There is no same-named clobber to reclaim (anti-patterns #36).
+
+local _, NS = ...
+local KCM = NS
+
+-- The one cause clause, shared by every seam that has to explain the same
+-- absence. Each appends its own "so <what> is unavailable", so a degraded
+-- install says the same thing about WHY and a different thing about WHAT.
+-- Set outside the branch below because both paths' readers need it, and set
+-- HERE because core/CoreSetup.lua is the first of the seams the TOC loads.
+KCM.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of " ..
+    "Consumable Master (expected in libs/LibKa0s)"
+
+local lib = LibStub and LibStub("LibKa0s-Core-1.0", true)
+
+if not lib then
+    -- A missing vendored lib must degrade, not error at load. Silence is not an
+    -- option: 177 call sites reach KCM.Say and core/SlashCommands.lua captures
+    -- it at file scope, so a nil printer takes /cm down with it and a no-op one
+    -- makes the addon answer nothing at all. So the fallbacks work — they are
+    -- the pre-library implementations, kept short — and the honest "it is not
+    -- installed" line is said ONCE, on the first line the addon prints, rather
+    -- than stapled to every one of them.
+    local function probeConcat(v) return table.concat({ v }) end
+    function KCM.IsConcatSafe(v) return (pcall(probeConcat, v)) end
+    function KCM.SafeToString(v)
+        if v == nil then return "nil" end
+        if type(v) == "boolean" then return tostring(v) end
+        if KCM.IsConcatSafe(v) then return tostring(v) end
+        return "<secret>"
+    end
+
+    local announced = false
+    function KCM.Say(fmt, ...)
+        local n = select("#", ...)
+        local line
+        if n > 0 then
+            local parts = {}
+            for i = 1, n do parts[i] = KCM.SafeToString((select(i, ...))) end
+            line = KCM.SafeToString(fmt):format(unpack(parts))
+        else
+            line = KCM.SafeToString(fmt)
+        end
+        if not announced then
+            announced = true
+            print(KCM.PREFIX .. " " .. KCM.LIBKA0S_MISSING ..
+                "; running on reduced built-in fallbacks.")
+        end
+        print(KCM.PREFIX .. " " .. line)
+    end
+    return
+end
+
+KCM.IsConcatSafe = lib.IsConcatSafe
+KCM.SafeToString = lib.SafeToString
+
+local printer = lib:New({
+    -- The tag as a FUNCTION, not as the value of KCM.PREFIX. It reads the same
+    -- here, where core/Constants.lua has already run — but the printer is built
+    -- once at load and a captured value would freeze it, whereas KCM.PREFIX is
+    -- a live namespace field that defaults/Categories.lua and
+    -- modules/MacroManager.lua also read when they build macro bodies. One
+    -- source of truth, re-read on every line.
+    prefix = function() return KCM.PREFIX end,
+
+    -- Explicit, and mandatory here. The library's default sink is
+    -- DEFAULT_CHAT_FRAME:AddMessage; this addon has always emitted through the
+    -- global `print`, and that global is exactly where the headless harness
+    -- listens. Without this line every chat assertion in the suite goes silent
+    -- rather than red. Resolved at call time so the harness's swap lands.
+    sink = function(line) print(line) end,
+})
+
+-- Format, not Print. KCM.Say has always been variadic-FORMAT — a lone string,
+-- or a format string plus secret-safe args — and never print()'s space-joining
+-- shape. printer.Format is that contract exactly, including the zero-vararg
+-- branch that emits the string verbatim so a lone "100% done" is not run
+-- through :format(). Bound bare rather than wrapped: it is a plain function so
+-- that core/SlashCommands.lua's `local say = KCM.Say` keeps working unchanged.
+KCM.Say = printer.Format

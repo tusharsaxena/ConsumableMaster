@@ -93,6 +93,15 @@ whenever the suite changes.
 - Constants: Say renders a nil format arg as 'nil' rather than dropping it
 - Constants: Say guards the single-string form too
 
+### test_coresetup.lua (6)
+
+- CoreSetup: the addon's stringifier IS the library's, not a lookalike
+- CoreSetup: the secret sentinel is the library's, so the docs cannot drift from it
+- CoreSetup: the prefix is re-read on every line, not frozen at load
+- CoreSetup: chat still lands in the global print, which is where the harness listens
+- CoreSetup: with the library absent the addon still prints, and says why once
+- CoreSetup: the degraded stringifier answers the same sentinel as the library
+
 ### test_database.lua (14)
 
 - Database.CURRENT_SCHEMA is the version the code understands
@@ -606,6 +615,7 @@ whenever the suite changes.
 | test_classifier.lua | 15 |
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
+| test_coresetup.lua | 6 |
 | test_database.lua | 14 |
 | test_debug.lua | 13 |
 | test_debuglog.lua | 10 |
@@ -626,4 +636,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **512** |
+| **Total** | **518** |
