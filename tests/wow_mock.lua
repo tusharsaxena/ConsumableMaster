@@ -47,6 +47,8 @@ function M.reset()
     M.busReg   = {}       -- "message" -> { [target] = callback }
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
     M.cooldowns = {}      -- opaque KCM id -> { start, duration, enable }
+    M.secretCooldowns = false  -- SecretWhenCooldownsRestricted in effect?
+    _G.issecretvalue  = nil
     M.stateDrivers = {}   -- frame -> { state = macro conditional }
     M.attributeDrivers = {} -- frame -> { attribute = macro conditional }
 end
@@ -55,6 +57,40 @@ end
 -- (positive itemID, negative spell sentinel), matching MacroDisplay's input.
 function M.setCooldown(id, start, duration, enable)
     M.cooldowns[id] = { start, duration, enable }
+end
+
+-- A stand-in for a Midnight SECRET number: comparing or doing arithmetic on one
+-- is an immediate error, which is precisely how the real thing behaves for
+-- tainted code. Flag it through issecretvalue so KCM.Compat.IsSecret sees it.
+local secretMeta
+local function secretError() error("attempt to compare a secret number value") end
+secretMeta = {
+    __lt = secretError, __le = secretError,
+    __add = secretError, __sub = secretError, __mul = secretError, __div = secretError,
+}
+
+function M.secret(value)
+    return setmetatable({ value = value }, secretMeta)
+end
+
+-- Turn the spell cooldown API secret for the duration of a test, mirroring the
+-- SecretWhenCooldownsRestricted predicate coming into effect in combat.
+function M.setCooldownsRestricted(on)
+    M.secretCooldowns = on and true or false
+    _G.issecretvalue = on and function(v)
+        return type(v) == "table" and getmetatable(v) == secretMeta
+    end or nil
+end
+
+-- A stand-in for a LuaDurationObject. Records what it was configured with so a
+-- test can assert the right span reached it, but exposes no comparison surface
+-- the addon is allowed to use.
+function M.makeDuration(start, duration)
+    local d = { start = start, duration = duration }
+    function d:SetTimeFromStart(s, dur, rate)
+        self.start, self.duration, self.modRate = s, dur, rate
+    end
+    return d
 end
 
 -- A real item reports a localized subType DISPLAY string and a
@@ -455,11 +491,33 @@ function M.install(NS)
         GetSpellTexture = function(spellID)
             return M.spells[spellID] and ("spellicon:" .. spellID) or nil
         end,
+        -- isEnabled/isActive are the two NeverSecret fields of the real
+        -- SpellCooldownInfo — the only ones a tainted caller may branch on once
+        -- cooldowns are restricted. M.secretCooldowns makes startTime/duration
+        -- come back as values that error on comparison, exactly as they do
+        -- mid-fight on a live 12.0 client.
         GetSpellCooldown = function(spellID)
             local cd = M.cooldowns[-spellID]
-            if not cd then return { startTime = 0, duration = 0, isEnabled = true } end
-            return { startTime = cd[1], duration = cd[2], isEnabled = cd[3] ~= false }
+            if not cd then
+                return { startTime = 0, duration = 0, isEnabled = true, isActive = false }
+            end
+            local start, duration = cd[1], cd[2]
+            if M.secretCooldowns then start, duration = M.secret(start), M.secret(duration) end
+            return {
+                startTime = start, duration = duration,
+                isEnabled = cd[3] ~= false, isActive = true,
+            }
         end,
+        GetSpellCooldownDuration = function(spellID)
+            local cd = M.cooldowns[-spellID]
+            if not cd then return nil end
+            return M.makeDuration(cd[1], cd[2])
+        end,
+    }
+    -- Duration objects (12.0). Opaque by design: the addon may only hand one
+    -- back to Cooldown:SetCooldownFromDurationObject, never read it.
+    _G.C_DurationUtil = {
+        CreateDuration = function() return M.makeDuration() end,
     }
     _G.C_Container = {
         GetContainerNumSlots = function(bag) return bag == 0 and #M.bagSlots or 0 end,

@@ -48,6 +48,23 @@ test("Compat.GetSpellName resolves known spells and nil otherwise", function(t)
     t.eq(C.GetSpellName(999999), nil, "unknown spell -> nil")
 end)
 
+test("Compat.IsSecret defers to the client's own issecretvalue", function(t)
+    local KCM   = h.loader.loadPure()
+    local token = {}
+    _G.issecretvalue = function(v) return v == token end
+    local hit, miss = KCM.Compat.IsSecret(token), KCM.Compat.IsSecret(300)
+    _G.issecretvalue = nil
+    t.eq(hit, true, "a secret is reported as one")
+    t.eq(miss, false, "a plain number is not")
+end)
+
+test("Compat.IsSecret reports nothing secret on a pre-Midnight client", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(_G.issecretvalue, nil, "the mock client predates secret values")
+    t.eq(KCM.Compat.IsSecret(300), false,
+        "so every gate over client data takes its normal, comparing path")
+end)
+
 test("Compat prefers C_SpecializationInfo over the legacy spec globals", function(t)
     local KCM = h.loader.loadPure()
     _G.C_SpecializationInfo = {

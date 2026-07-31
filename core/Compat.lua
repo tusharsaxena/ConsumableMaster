@@ -50,6 +50,18 @@ function Compat.GetSpecializationInfoForClassID(classID, index)
     return nil
 end
 
+-- True when the client handed us a SECRET value.
+--
+-- Midnight wraps combat-restricted data — cooldown times among them — in opaque
+-- "secret" values. Tainted (addon) code may pass one straight back into a client
+-- API that accepts it, but comparing it or doing arithmetic on it is a hard
+-- error, so every gate over client data has to ask first. issecretvalue is the
+-- client's own test; on a client that predates it nothing is ever secret.
+function Compat.IsSecret(value)
+    if issecretvalue then return issecretvalue(value) and true or false end
+    return false
+end
+
 -- Localized spell name for a spellID: modern C_Spell.GetSpellName, then the
 -- C_Spell.GetSpellInfo shape, then the deprecated GetSpellInfo global. Returns
 -- nil when unresolvable so callers can pick their own placeholder.

@@ -58,13 +58,15 @@ whenever the suite changes.
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 - classifier: keys on numeric subclass, not the localized subType
 
-### test_compat.lua (15)
+### test_compat.lua (17)
 
 - Compat.GetSpecialization returns the live spec index
 - Compat.GetSpecializationInfo maps an index to specID + name
 - Compat.GetNumSpecializationsForClassID delegates to the client
 - Compat.GetSpecializationInfoForClassID maps (class,index) to a spec
 - Compat.GetSpellName resolves known spells and nil otherwise
+- Compat.IsSecret defers to the client's own issecretvalue
+- Compat.IsSecret reports nothing secret on a pre-Midnight client
 - Compat prefers C_SpecializationInfo over the legacy spec globals
 - Compat falls back to the flat globals when the namespace is absent
 - Compat.GetSpecializationInfo guards a nil index
@@ -206,7 +208,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (81)
+### test_macrobar.lua (86)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -264,8 +266,13 @@ whenever the suite changes.
 - macrodisplay: an unwritten macro falls back to the cooking-pot icon
 - macrodisplay: an item pick resolves to the item's icon and count
 - macrodisplay: a spell pick resolves to the spell icon and has no count
-- macrodisplay: item and spell cooldowns both report a start and duration
+- macrodisplay: item and spell cooldowns both report active plus a span
 - macrodisplay: an empty-state macro reports no pick, count or cooldown
+- macrobar cooldowns: an active cooldown paints from the duration object
+- macrobar cooldowns: an inactive cooldown clears the swipe
+- macrobar cooldowns: a client without duration objects falls back to numbers
+- macrobar cooldowns: restricted cooldowns are never compared or set as numbers
+- macrobar cooldowns: a restricted spell still reports whether it is running
 - macrobar schema: every macroBar row validates and resolves against the db
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
@@ -582,7 +589,7 @@ whenever the suite changes.
 | test_bus.lua | 11 |
 | test_categories.lua | 2 |
 | test_classifier.lua | 15 |
-| test_compat.lua | 15 |
+| test_compat.lua | 17 |
 | test_constants.lua | 12 |
 | test_database.lua | 14 |
 | test_debug.lua | 13 |
@@ -591,7 +598,7 @@ whenever the suite changes.
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 81 |
+| test_macrobar.lua | 86 |
 | test_macromanager.lua | 33 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
@@ -603,4 +610,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **493** |
+| **Total** | **500** |

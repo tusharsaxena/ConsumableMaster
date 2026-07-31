@@ -408,12 +408,9 @@ function FO.RefreshCooldown(btn)
     if not (btn and btn.cooldown and btn.kcmID) then return end
     local MD = KCM.MacroDisplay
     if not MD then return end
-    local start, duration, enable = MD.CooldownForID(btn.kcmID)
-    if start and duration and duration > 0 then
-        btn.cooldown:SetCooldown(start, duration, enable)
-    else
-        btn.cooldown:Clear()
-    end
+    -- Same secret-value caveat as the bar's own slots, so the same shared
+    -- applier — see MacroBarButton.ApplyCooldown.
+    KCM.MacroBarButton.ApplyCooldown(btn.cooldown, MD.CooldownForID(btn.kcmID))
 end
 
 -- Rebuild one slot's flyout: resolve the available candidates, grow the pool,

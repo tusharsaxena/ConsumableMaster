@@ -61,6 +61,16 @@ reach — `kcmEntries`, `kcmGrace` — and records `RegisterStateDriver` /
 Getters the addon does arithmetic or concatenation on (`GetFrameLevel`, `GetWidth`,
 `GetName`, …) return numbers and strings rather than the stub itself.
 
+It also models **secret values**. `mock.setCooldownsRestricted(true)` makes the
+spell cooldown API return values that error on comparison or arithmetic — exactly
+how a restricted cooldown behaves for tainted code mid-fight — and flags them
+through `issecretvalue` so `KCM.Compat.IsSecret` sees them. `mock.secret(v)` builds
+one directly, and `mock.makeDuration(start, duration)` stands in for a duration
+object, recording what it was configured with so a test can assert the right span
+arrived without exposing a comparison surface the addon isn't allowed to use. That
+combination is what keeps the in-combat cooldown regression
+([midnight-quirks.md](./midnight-quirks.md#secret-values)) headlessly testable.
+
 Everything else about a frame is still a permissive stub, so the harness cannot see
 client-only behavior: taint, secure-snippet execution, whether a template
 *combination* works (it doesn't, for secure + Backdrop), or anything visual. Those

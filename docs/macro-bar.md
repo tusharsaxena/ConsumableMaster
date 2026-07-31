@@ -250,6 +250,14 @@ combat ends, where clicking it simply fails — the same staleness any action ba
 has. Cooldown swipes are the exception and do keep updating live, because
 repainting a `Cooldown` frame is unprotected.
 
+That exception only holds because of *how* the swipe is set. Once a fight
+starts, `C_Spell.GetSpellCooldown` returns secret numbers, which a tainted
+caller may neither compare nor pass to `SetCooldown`. Both the slots and the
+flyout's entries go through `MacroBarButton.ApplyCooldown`, which branches on
+the NeverSecret `isActive` and paints from a duration object — the one setter
+the client accepts from us mid-combat. See
+[midnight-quirks.md](./midnight-quirks.md#secret-values).
+
 ### Label clearance
 
 `MacroBarLayout.IndicatorClearance` pushes a button label clear of the indicator
@@ -338,7 +346,7 @@ Two non-scalar fields are edited outside the schema:
 | Trigger | Path |
 |---------|------|
 | macro bodies rewritten | pipeline publishes `MSG.MACROBAR_REFRESH`; the bar owns the only receiver and repaints icons + counts |
-| a cooldown starts | `SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN` → `KCM:OnCooldownUpdate` → `MacroBar.RefreshCooldowns()`. The swipe animates itself after `SetCooldown`, so there is no `OnUpdate` loop |
+| a cooldown starts | `SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN` → `KCM:OnCooldownUpdate` → `MacroBar.RefreshCooldowns()`. The swipe animates itself once set, so there is no `OnUpdate` loop. In combat the spell cooldown API goes secret, so the setter is `SetCooldownFromDurationObject` via `MacroBarButton.ApplyCooldown` — see [midnight-quirks.md](./midnight-quirks.md#secret-values) |
 | a setting changes | the schema row's `onChange` → `MacroBar.Update()` (idempotent, self-deferring) |
 | login / reload | `KCM:OnPlayerEnteringWorld` → `MacroBar.Update()`, a no-op while disabled |
 

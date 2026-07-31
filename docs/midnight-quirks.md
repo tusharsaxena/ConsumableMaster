@@ -36,9 +36,30 @@ The only sanctioned path is `MacroManager.SetMacro` / `SetCompositeMacro`. Every
 
 ## Secret values
 
-WoW Midnight marks certain protected returns as opaque tokens that error if Lua tries to compare them. CM's pipeline doesn't currently rely on any secret-valued field, but if one becomes load-bearing in the future (e.g. interrupt flags from `UnitCastingInfo`), the comparison must happen C-side via `Frame:SetAlphaFromBoolean` / `C_CurveUtil.EvaluateColorValueFromBoolean`, not in Lua.
+WoW Midnight wraps certain combat-restricted returns in opaque "secret" values. Tainted (addon) code may hand one straight back to a client API that accepts it, but **comparing it or doing arithmetic on it is a hard error**. `KCM.Compat.IsSecret(value)` wraps the client's own `issecretvalue` test and reports `false` on a client that predates it, so a gate over client data can ask before it compares.
 
-The chat/debug output path is already hardened for this: `KCM.SafeToString` detects a secret by probing `table.concat` (the operation that actually raises on one — `tostring` and `..` silently propagate secretness), substituting `"<secret>"`. Both the `KCM.Say` chat seam and the `KCM.Debug` sink build every line through it, so a secret reaching an output line logs as `<secret>` instead of freezing a repeating timer mid-combat.
+Two places in CM meet secret values, and they answer them differently.
+
+### Cooldowns — the load-bearing case
+
+`C_Spell.GetSpellCooldown` carries the `SecretWhenCooldownsRestricted` predicate, so from the moment combat (or an encounter / M+ / PvP match) begins, its `startTime`, `duration` and `modRate` come back secret. That broke two things at once in the macro bar: the old `duration > 0` gate errored on the comparison, and every raw-number `Cooldown` setter refuses a secret from a tainted caller, so `SetCooldown(start, duration)` couldn't stand in for it either.
+
+The way through is the split Blizzard left open, and it's the same one LibActionButton-1.0 uses (so Bartender4 and ElvUI's bars behave identically):
+
+- **`isEnabled` and `isActive` are documented NeverSecret**, so those two fields survive the restriction and are the only ones a tainted caller may branch on. `core/MacroDisplay.lua` decides *whether* a cooldown is running from those alone.
+- **`C_Spell.GetSpellCooldownDuration` returns an opaque duration object** that carries the secret internally. `Cooldown:SetCooldownFromDurationObject` accepts it from a tainted caller, which makes it the only way to paint a restricted cooldown.
+
+So `MacroDisplay.CooldownForID` returns `active, durationObject, start, duration` — a boolean that's always safe to test, an object that's always safe to hand over, and the raw pair only when the client says it's plain. `MacroBarButton.ApplyCooldown` (shared with the flyout's entries) prefers the object setter and falls back to the raw pair for a client with no duration objects, where nothing is secret anyway.
+
+Items are **not** cooldown-restricted — `C_Item.GetItemCooldown` declares no secret predicate — so their plain triple stays readable. It gets wrapped in a duration object regardless, so the frame layer has exactly one path.
+
+Don't reintroduce a numeric comparison or a raw `SetCooldown` on the spell path; both are silent out of combat and error the moment a fight starts. `tests/wow_mock.lua` models this (`mock.setCooldownsRestricted`, `mock.secret`, `mock.makeDuration`) so the regression is caught headlessly, and [smoke-tests.md](./smoke-tests.md) step 7a covers it in-game.
+
+### Chat and debug output
+
+The output path is hardened separately: `KCM.SafeToString` detects a secret by probing `table.concat` (the operation that actually raises on one — `tostring` and `..` silently propagate secretness), substituting `"<secret>"`. Both the `KCM.Say` chat seam and the `KCM.Debug` sink build every line through it, so a secret reaching an output line logs as `<secret>` instead of freezing a repeating timer mid-combat.
+
+For a future field where neither a NeverSecret companion nor a duration object exists, the comparison has to happen C-side — `Frame:SetAlphaFromBoolean` / `C_CurveUtil.EvaluateColorValueFromBoolean` — never in Lua.
 
 ## Stored macro icon vs `#showtooltip`
 

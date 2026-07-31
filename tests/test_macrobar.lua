@@ -567,21 +567,25 @@ test("macrodisplay: a spell pick resolves to the spell icon and has no count", f
     t.falsy(KCM.MacroDisplay.Count("KCM_FOOD"), "spells have no stack count")
 end)
 
-test("macrodisplay: item and spell cooldowns both report a start and duration", function(t)
+test("macrodisplay: item and spell cooldowns both report active plus a span", function(t)
     local KCM = h.loader.loadPure()
     h.loader.mock.setItem(1234, { name = "Potion", subType = "Potions" })
     h.loader.mock.setCooldown(1234, 100, 300)
     KCM.db.profile.macroState["KCM_HP_POT"] = { lastItemID = 1234 }
-    local start, duration = KCM.MacroDisplay.Cooldown("KCM_HP_POT")
+    local active, obj, start, duration = KCM.MacroDisplay.Cooldown("KCM_HP_POT")
+    t.eq(active, true, "item cooldown is running")
     t.eq(start, 100, "item cooldown start")
     t.eq(duration, 300, "item cooldown duration")
+    t.eq(obj.duration, 300, "and the same span reaches the duration object")
 
     h.loader.mock.setSpell(999, { name = "Recuperate", known = true })
     h.loader.mock.setCooldown(KCM.ID.AsSpell(999), 50, 120)
     KCM.db.profile.macroState["KCM_HS"] = { lastItemID = KCM.ID.AsSpell(999) }
-    local sStart, sDuration = KCM.MacroDisplay.Cooldown("KCM_HS")
+    local sActive, sObj, sStart, sDuration = KCM.MacroDisplay.Cooldown("KCM_HS")
+    t.eq(sActive, true, "spell cooldown is running")
     t.eq(sStart, 50, "spell cooldown start")
     t.eq(sDuration, 120, "spell cooldown duration")
+    t.eq(sObj.duration, 120, "the client's own duration object is passed through")
 end)
 
 test("macrodisplay: an empty-state macro reports no pick, count or cooldown", function(t)
@@ -590,6 +594,82 @@ test("macrodisplay: an empty-state macro reports no pick, count or cooldown", fu
     t.falsy(KCM.MacroDisplay.PickID("KCM_FOOD"), "no pick")
     t.falsy(KCM.MacroDisplay.Count("KCM_FOOD"), "no count")
     t.falsy(KCM.MacroDisplay.Cooldown("KCM_FOOD"), "no cooldown")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Cooldown application (modules/MacroBarButton.lua — secret-value safe)
+-- ---------------------------------------------------------------------------
+
+local function fakeCooldownFrame()
+    local cd = {}
+    function cd:SetCooldown(s, d) self.start, self.duration = s, d end
+    function cd:SetCooldownFromDurationObject(obj) self.durationObject = obj end
+    function cd:Clear() self.cleared = true end
+    return cd
+end
+
+test("macrobar cooldowns: an active cooldown paints from the duration object", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local obj = h.loader.mock.makeDuration(100, 300)
+    local cd  = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, true, obj, 100, 300)
+    t.eq(cd.durationObject, obj, "the object setter wins over the raw-number one")
+    t.falsy(cd.duration, "so SetCooldown is never reached")
+    t.falsy(cd.cleared, "and the swipe is not cleared")
+end)
+
+test("macrobar cooldowns: an inactive cooldown clears the swipe", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local cd  = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, false, h.loader.mock.makeDuration(0, 0), 0, 0)
+    t.truthy(cd.cleared, "nothing running means an empty frame")
+    t.falsy(cd.durationObject, "and no setter is called at all")
+end)
+
+test("macrobar cooldowns: a client without duration objects falls back to numbers", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local cd  = fakeCooldownFrame()
+    cd.SetCooldownFromDurationObject = nil
+    KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(100, 300), 100, 300)
+    t.eq(cd.start, 100, "the raw pair drives the swipe instead")
+    t.eq(cd.duration, 300, "duration too")
+end)
+
+test("macrobar cooldowns: restricted cooldowns are never compared or set as numbers", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    -- The shipped crash: mid-fight C_Spell.GetSpellCooldown returns SECRET
+    -- numbers, so `duration > 0` errored — and once that was removed, so did
+    -- SetCooldown, which refuses a secret from a tainted caller.
+    mock.setSpell(999, { name = "Recuperate", known = true })
+    mock.setCooldown(KCM.ID.AsSpell(999), 50, 120)
+    KCM.db.profile.macroState["KCM_HS"] = { lastItemID = KCM.ID.AsSpell(999) }
+    mock.setCooldownsRestricted(true)
+
+    local btn = { catKey = "HS", cooldown = fakeCooldownFrame() }
+    local ok, err = pcall(KCM.MacroBarButton.RefreshCooldown, btn)
+    mock.setCooldownsRestricted(false)
+
+    t.truthy(ok, "the in-combat refresh tick does not error: " .. tostring(err))
+    t.truthy(btn.cooldown.durationObject, "the swipe still runs, via the duration object")
+    t.falsy(btn.cooldown.duration, "and no secret number is handed to SetCooldown")
+end)
+
+test("macrobar cooldowns: a restricted spell still reports whether it is running", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    mock.setSpell(999, { name = "Recuperate", known = true })
+    mock.setCooldown(KCM.ID.AsSpell(999), 50, 120)
+    KCM.db.profile.macroState["KCM_HS"] = { lastItemID = KCM.ID.AsSpell(999) }
+    mock.setCooldownsRestricted(true)
+
+    local active, obj, start, duration = KCM.MacroDisplay.Cooldown("KCM_HS")
+    mock.setCooldownsRestricted(false)
+
+    t.eq(active, true, "isActive is NeverSecret, so it survives the restriction")
+    t.truthy(obj, "and a duration object is still available")
+    t.falsy(start, "but the secret start is withheld from callers")
+    t.falsy(duration, "and so is the secret duration")
 end)
 
 -- ---------------------------------------------------------------------------

@@ -29,7 +29,9 @@ core/Constants.lua  KCM.PREFIX (cyan [CM] tag) + KCM.Say(fmt, ...) — the singl
 core/Compat.lua ── Spec + spell API seam. GetSpecialization /
                    GetSpecializationInfo / GetNumSpecializationsForClassID /
                    GetSpecializationInfoForClassID / GetSpellName wrap the
-                   deprecated-global churn.
+                   deprecated-global churn. IsSecret(value) wraps the client's
+                   own issecretvalue (false on a pre-Midnight client) so a gate
+                   over client data can ask before it compares.
 
 core/State.lua ─── Session-only runtime flags. KCM.State.debug (default off,
                    never persisted, resets each login).
@@ -353,6 +355,10 @@ KCM.MacroBarLayout.IndicatorThickness(cfg) -> px (flyoutIndicatorScale % of butt
 KCM.MacroBarLayout.IndicatorAnchor(cfg)  -> point, relPoint, x, y, rotation, w, h, glyph
 KCM.MacroBarLayout.IndicatorClearance(cfg) -> dx, dy   (label vs indicator)
 KCM.MacroDisplay.PickID / Texture / Count / Cooldown / SetTooltip / MacroIndex
+KCM.MacroDisplay.TextureForID / CountForID / CooldownForID / SetTooltipForID
+                                         -- same, keyed by opaque KCM ID (flyout)
+KCM.MacroDisplay.Cooldown(macroName)     -> active, durationObject, start, duration
+                                         -- start/duration withheld when secret
 
 -- Frames
 KCM.MacroBar.Update()                    -- the single apply seam; self-defers in combat
@@ -362,6 +368,9 @@ KCM.MacroBar.SwapSlots(fromKey, toKey)   -- blocked in combat
 KCM.MacroBar.Refresh() / RefreshCooldowns() / IsShown()
 KCM.MacroBarButton.Create(parent, catKey, index) / Refresh / RefreshIcon
 KCM.MacroBarButton.RefreshCooldown / ApplyStyle(btn, cfg)
+KCM.MacroBarButton.ApplyCooldown(cd, active, durationObject, start, duration)
+                                         -- shared with the flyout's entries;
+                                         -- duration object first (combat-safe)
 KCM.MacroBarButton.BorderTexture(lsmName) -> edge texture (LSM, with fallback)
 KCM.MacroBarFlyout.Create(button, catKey, index)   -- indicator + secure container
 KCM.MacroBarFlyout.Apply(button, cfg)              -- content; no-op in combat

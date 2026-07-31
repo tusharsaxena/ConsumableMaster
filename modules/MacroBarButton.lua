@@ -89,16 +89,35 @@ function BB.RefreshIcon(btn)
     end
 end
 
+-- Drive one Cooldown frame from MacroDisplay's cooldown state. Shared with the
+-- flyout's entries, which paint the same way.
+--
+-- Whether there IS a cooldown is decided upstream from data that is safe to
+-- inspect (see MD.CooldownForID); all this does is pick a setter. A duration
+-- object is the only thing that survives combat, because it is what the client
+-- lets a tainted caller hand over when the times inside it are secret. The raw
+-- pair is the fallback for a client without duration objects, where nothing is
+-- secret and SetCooldown still works.
+function BB.ApplyCooldown(cd, active, durationObject, start, duration)
+    if not cd then return end
+    if not active then
+        cd:Clear()
+        return
+    end
+    if durationObject and cd.SetCooldownFromDurationObject then
+        cd:SetCooldownFromDurationObject(durationObject)
+    elseif start and duration then
+        cd:SetCooldown(start, duration)
+    else
+        cd:Clear()
+    end
+end
+
 function BB.RefreshCooldown(btn)
     if not (btn and btn.catKey and btn.cooldown) then return end
     local MD = KCM.MacroDisplay
     if not MD then return end
-    local start, duration, enable = MD.Cooldown(macroName(btn.catKey))
-    if start and duration and duration > 0 then
-        btn.cooldown:SetCooldown(start, duration, enable)
-    else
-        btn.cooldown:Clear()
-    end
+    BB.ApplyCooldown(btn.cooldown, MD.Cooldown(macroName(btn.catKey)))
 end
 
 function BB.Refresh(btn)

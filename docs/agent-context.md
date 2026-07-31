@@ -47,6 +47,8 @@ Full catalog lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 `core/Compat.lua` (`KCM.Compat`) wraps the spec + spell APIs that Blizzard churns (`GetSpecialization*`, `GetSpecializationInfoForClassID`, spell name lookup). Call through `Compat.*`; never hit the raw API from SpecHelper, SlashCommands, MacroManager, or the settings pages. A future rename is one edit here.
 
+`Compat.IsSecret(value)` lives here too, wrapping the client's own `issecretvalue` (and reporting `false` on a client that predates it). Any gate over client data that a combat restriction could turn secret has to ask it *before* comparing — the live case is the macro bar's cooldowns, where the numbers go secret mid-fight and the swipe has to be painted from a duration object instead. See [midnight-quirks.md](./midnight-quirks.md#secret-values).
+
 ## Debug console
 
 `modules/DebugLog.lua` is an on-screen `ScrollingMessageFrame` console styled like the addon's own frames (title bar + divider, dark skin, flat buttons). The enabled flag is **session-only** — `KCM.State.debug` in `core/State.lua`, default off, never persisted — so a session left with debug on doesn't leak into the next login. `/cm debug on|off`, the panel checkbox, and the header `Debug: ON/OFF` toggle all route through the single `DebugLog.SetEnabled` seam (flag → header → chat ack → console line → panel refresh); **bare `/cm debug` toggles the window only**, leaving the flag untouched. Emit via the callable sink `KCM.Debug(tag, fmt, ...)` (zero-alloc gate when disabled, secret-safe via `KCM.SafeToString`).

@@ -76,19 +76,61 @@ function MD.CountForID(id)
     return getCount(id)
 end
 
--- Cooldown triple (start, duration, enable) for an opaque KCM ID, or nil.
--- Items and spells report through different APIs; both are read-only.
+-- Cooldown state for an opaque KCM ID, in the only shape Midnight lets a tainted
+-- addon paint with: `active, durationObject, start, duration`.
+--
+-- C_Spell.GetSpellCooldown carries the SecretWhenCooldownsRestricted predicate,
+-- so from the moment combat (or an encounter / M+ / PvP match) begins its
+-- startTime, duration and modRate come back as SECRET numbers. Tainted code may
+-- not compare or do arithmetic on those, and every raw-number Cooldown setter
+-- refuses them from a tainted caller — so neither the old `duration > 0` gate
+-- nor a straight SetCooldown(start, duration) can work in a fight.
+--
+-- Two fields of that info table are documented NeverSecret, isEnabled and
+-- isActive, and C_Spell.GetSpellCooldownDuration returns an opaque duration
+-- OBJECT that carries the secret internally. Between them the frame layer gets
+-- a boolean it may branch on and a value SetCooldownFromDurationObject accepts.
+-- This is the same split LibActionButton-1.0 uses, i.e. what Bartender4 and
+-- ElvUI's bars do.
+--
+-- Items are not cooldown-restricted at all (C_Item.GetItemCooldown declares no
+-- secret predicate), so their plain triple is still readable. It gets wrapped in
+-- a duration object anyway so the frame layer has one path, and the raw numbers
+-- ride along for a client too old to have duration objects.
+local function itemCooldown(id)
+    local getCD = (C_Item and C_Item.GetItemCooldown) or GetItemCooldown
+    if not getCD then return false end
+    local start, duration, enable = getCD(id)
+    local active = (enable and enable ~= 0 and start and duration
+        and start > 0 and duration > 0) and true or false
+    local obj
+    if active and C_DurationUtil and C_DurationUtil.CreateDuration then
+        obj = C_DurationUtil.CreateDuration()
+        if obj then obj:SetTimeFromStart(start, duration, 1) end
+    end
+    return active, obj, start, duration
+end
+
+local function spellCooldown(spellID)
+    local obj
+    if C_Spell and C_Spell.GetSpellCooldownDuration then
+        obj = C_Spell.GetSpellCooldownDuration(spellID)
+    end
+    local info = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(spellID)
+    if not info then return false, obj end
+    -- isActive/isEnabled are NeverSecret, so this test is safe mid-fight; the
+    -- numbers beside them are not, and are only handed on when the client says
+    -- they are plain.
+    local active = (info.isActive and info.isEnabled) and true or false
+    if KCM.Compat.IsSecret(info.duration) then return active, obj end
+    return active, obj, info.startTime, info.duration
+end
+
 function MD.CooldownForID(id)
     local ID = KCM.ID
-    if not (id and ID) then return nil end
-    if ID.IsSpell(id) then
-        local info = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(ID.SpellID(id))
-        if info then return info.startTime, info.duration, info.isEnabled end
-        return nil
-    end
-    local getCD = (C_Item and C_Item.GetItemCooldown) or GetItemCooldown
-    if not getCD then return nil end
-    return getCD(id)
+    if not (id and ID) then return false end
+    if ID.IsSpell(id) then return spellCooldown(ID.SpellID(id)) end
+    return itemCooldown(id)
 end
 
 -- Point GameTooltip at one opaque KCM ID. Used by the flyout, where the entry
