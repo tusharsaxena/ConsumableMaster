@@ -2,7 +2,7 @@
 
 **Ka0s Consumable Master** — an auto-managed consumable-macro addon for WoW: Midnight (Interface 120007, Ace3, Lua 5.1, English only).
 
-## Standard — read first
+## Standards compliance (read first)
 
 This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
 

@@ -573,11 +573,22 @@ local function formatKV(path, valueStr)
     return ("|cffffff00%s|r = |cffffffff%s|r"):format(path, valueStr)
 end
 
+-- Allowed values for a dropdown row, in their declared types. Deliberately not
+-- tostring'd: a numeric dropdown has to be compared numerically, so coercion
+-- happens at the comparison site (per branch) rather than here.
 local function dropdownAllowed(def)
     local values = type(def.values) == "function" and def.values() or def.values or {}
     local out = {}
-    for i, item in ipairs(values) do out[i] = tostring(item.value) end
+    for i, item in ipairs(values) do out[i] = item.value end
     return out
+end
+
+-- Shared "not one of the allowed values" message; concat handles the mixed
+-- string/number element types the raw list can now carry.
+local function allowedList(allowed)
+    local parts = {}
+    for i, a in ipairs(allowed) do parts[i] = tostring(a) end
+    return table.concat(parts, ", ")
 end
 
 local function applyFromText(def, text)
@@ -597,8 +608,20 @@ local function applyFromText(def, text)
     elseif def.type == "number" then
         local n = tonumber(args[1])
         if not n then return fail("expected a number") end
-        if def.min then n = math.max(def.min, n) end
-        if def.max then n = math.min(def.max, n) end
+        -- A numeric dropdown constrains the value to its list; min/max clamping
+        -- would silently land between entries, so the membership test comes
+        -- first and rejects rather than clamps.
+        local allowed = dropdownAllowed(def)
+        if #allowed > 0 then
+            local ok = false
+            for _, a in ipairs(allowed) do if tonumber(a) == n then ok = true; break end end
+            if not ok then
+                return fail(("Allowed values: %s"):format(allowedList(allowed)))
+            end
+        else
+            if def.min then n = math.max(def.min, n) end
+            if def.max then n = math.min(def.max, n) end
+        end
         newValue = n
     elseif def.type == "string" then
         local v = args[1]
@@ -606,9 +629,9 @@ local function applyFromText(def, text)
         local allowed = dropdownAllowed(def)
         if #allowed > 0 then
             local ok = false
-            for _, a in ipairs(allowed) do if a == v then ok = true; break end end
+            for _, a in ipairs(allowed) do if tostring(a) == v then ok = true; break end end
             if not ok then
-                return fail(("Allowed values: %s"):format(table.concat(allowed, ", ")))
+                return fail(("Allowed values: %s"):format(allowedList(allowed)))
             end
         end
         newValue = v

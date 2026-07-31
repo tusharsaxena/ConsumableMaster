@@ -461,7 +461,7 @@ whenever the suite changes.
 - Selector: ListAvailable on a composite honors disabled components
 - Selector: ListAvailable returns an empty list for an unknown category
 
-### test_slash.lua (62)
+### test_slash.lua (66)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -524,6 +524,10 @@ whenever the suite changes.
 - /cm set reports an unknown setting path
 - /cm get reports an unknown setting path
 - /cm set rejects a non-boolean value for a bool setting
+- /cm set on a numeric dropdown accepts a listed value as a number
+- /cm set on a numeric dropdown rejects a value outside the list
+- /cm set on a plain number row still clamps to min/max
+- /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
 ### test_spechelper.lua (16)
@@ -605,9 +609,9 @@ whenever the suite changes.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 36 |
-| test_slash.lua | 62 |
+| test_slash.lua | 66 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **500** |
+| **Total** | **504** |

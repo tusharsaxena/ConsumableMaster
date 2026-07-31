@@ -555,6 +555,52 @@ test("/cm set rejects a non-boolean value for a bool setting", function(t)
     t.truthy(#text > 0, "and the rejection is reported")
 end)
 
+-- Numeric dropdowns (review 2026-05-02, F-021/LLD-19). The schema ships no
+-- numeric `values` row today, so these tests synthesise one on an existing
+-- number row to pin the behaviour before the first real one lands.
+local function asNumericDropdown(KCM, path, values)
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.path == path then
+            row.values = {}
+            for i, v in ipairs(values) do row.values[i] = { value = v, text = tostring(v) } end
+            return row
+        end
+    end
+    error("no schema row for " .. path)
+end
+
+test("/cm set on a numeric dropdown accepts a listed value as a number", function(t)
+    local KCM, mock = load()
+    asNumericDropdown(KCM, "macroBar.perRow", { 1, 4, 13 })
+    say(KCM, mock, "set macroBar.perRow 4")
+    t.eq(KCM.db.profile.macroBar.perRow, 4, "the listed value is stored as a number, not a string")
+end)
+
+test("/cm set on a numeric dropdown rejects a value outside the list", function(t)
+    local KCM, mock = load()
+    asNumericDropdown(KCM, "macroBar.perRow", { 1, 4, 13 })
+    local before = KCM.db.profile.macroBar.perRow
+    local text = say(KCM, mock, "set macroBar.perRow 7")
+    t.eq(KCM.db.profile.macroBar.perRow, before, "an unlisted value is not written")
+    t.truthy(text:find("Allowed values", 1, true), "and the allowed list is reported")
+    t.truthy(text:find("1, 4, 13", 1, true), "with the numeric entries rendered readably")
+end)
+
+test("/cm set on a plain number row still clamps to min/max", function(t)
+    local KCM, mock = load()
+    say(KCM, mock, "set macroBar.perRow 999")
+    t.eq(KCM.db.profile.macroBar.perRow, 13, "no values list means clamping, not rejection")
+end)
+
+test("/cm set on a string dropdown still matches by text", function(t)
+    local KCM, mock = load()
+    say(KCM, mock, "set macroBar.orientation VERTICAL")
+    t.eq(KCM.db.profile.macroBar.orientation, "VERTICAL", "a listed string value is accepted")
+    local text = say(KCM, mock, "set macroBar.orientation SIDEWAYS")
+    t.eq(KCM.db.profile.macroBar.orientation, "VERTICAL", "an unlisted string value is rejected")
+    t.truthy(text:find("Allowed values", 1, true), "and the allowed list is reported")
+end)
+
 test("/cm list covers every row in the settings schema", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "list")

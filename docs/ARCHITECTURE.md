@@ -122,7 +122,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 2. `# Locales` — `locales/enUS.lua`
 3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`
 4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`
-5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
-6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `StatPriority.lua` → `Category.lua`
+5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
+6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
