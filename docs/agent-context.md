@@ -49,6 +49,22 @@ Full catalog lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 `Compat.IsSecret(value)` lives here too, wrapping the client's own `issecretvalue` (and reporting `false` on a client that predates it). Any gate over client data that a combat restriction could turn secret has to ask it *before* comparing — the live case is the macro bar's cooldowns, where the numbers go secret mid-fight and the swipe has to be painted from a duration object instead. See [midnight-quirks.md](./midnight-quirks.md#secret-values).
 
+## LibKa0s
+
+The addon vendors [LibKa0s](https://github.com/tusharsaxena/LibKa0s) whole-folder in `libs/LibKa0s/` and loads it through the library's own packaged XML. Three majors are adopted, each by the same pattern: one host **setup file** resolves what only the addon can know, builds ONE instance via `lib:New(descriptor)`, publishes the addon's existing **flat, dot-callable** names as thin forwarders onto that instance, publishes the instance itself as `.instance` for identity assertions, and carries a degradation stub for a missing library.
+
+| Major | Host half | What the addon keeps |
+|---|---|---|
+| `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on |
+| `DebugLog-1.0` | `modules/DebugLog.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
+| `Options-1.0` | `settings/Panel.lua` | the whole schema half, the row widget makers, the two-tier refresh, the page registry |
+
+Three rules that are load-bearing rather than stylistic:
+
+1. **Never bind a printer or a prefix by value.** Every `lib:New` snapshots its descriptor once, so a captured `KCM.Say` freezes the load-time function object and every later swap — including the suite's — goes unseen. Pass a thunk.
+2. **A degradation stub's OMISSIONS are its contract.** `modules/DebugLog.lua` publishes no `AddLine` precisely because that is what re-arms `core/Debug.lua`'s chat fallback; a no-op would swallow every diagnostic while the addon looked healthy. `settings/Panel.lua` registers no Blizzard category at all, because one that opened onto an empty canvas would leave the user unable to tell a broken install from a broken addon. `KCM.LIBKA0S_MISSING` (set in `core/CoreSetup.lua`) is the one shared cause clause; each seam appends only its own "so *what* is unavailable".
+3. **Adoption is per-part, and declining is normal.** Where the library disagrees with the addon it is recorded in [pending/LEDGER.md](./pending/LEDGER.md) as a `LIBKA0S-*` row rather than worked around or silently taken — the slash dispatcher, the options row makers and the options page registry are all declined today, each for a reason written down. Never patch the vendored copy: a fix belongs upstream, then re-vendored (the `core/LSMPatch.lua` precedent — third-party fixups live in `core/`, not in `libs/`).
+
 ## Debug console
 
 The on-screen `ScrollingMessageFrame` console is `LibKa0s-DebugLog-1.0`'s; `modules/DebugLog.lua` is the addon's half — the font, the flag's home, the `[Init]` content, the printer, the panel repaints, and the flat `KCM.DebugLog.*` forwarders every call site uses. The enabled flag is **session-only** — `KCM.State.debug` in `core/State.lua`, default off, never persisted — so a session left with debug on doesn't leak into the next login. `/cm debug on|off`, the panel checkbox, and the header `Debug: ON/OFF` toggle all route through the single `DebugLog.SetEnabled` seam (flag → header → chat ack → console line → panel refresh); **bare `/cm debug` toggles the window only**, leaving the flag untouched. Emit via the callable sink `KCM.Debug(tag, fmt, ...)` (zero-alloc gate when disabled, secret-safe via `KCM.SafeToString`).
