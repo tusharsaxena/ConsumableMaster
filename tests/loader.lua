@@ -214,11 +214,20 @@ function L.tocFiles()
 end
 
 -- Pure layer + the settings schema (Panel.lua), for schema tests.
-function L.loadWithSchema()
+--
+-- `omitLibs` runs it with libs/LibKa0s/ absent, so settings/Panel.lua takes its
+-- real degradation path — no panel registered — rather than a hand-stubbed one
+-- (testing-§8). The schema half of the file is declared above that seam and
+-- keeps working either way, which is what the degraded suite pins.
+function L.loadWithSchema(omitLibs)
     local files = {}
     for _, f in ipairs(L.PURE_LAYER) do files[#files + 1] = f end
     files[#files + 1] = "settings/Panel.lua"
-    return L.loadFiles(files)
+    return L.loadFiles(files, omitLibs)
+end
+
+function L.loadWithSchemaDegraded()
+    return L.loadWithSchema(true)
 end
 
 return L

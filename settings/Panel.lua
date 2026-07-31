@@ -155,6 +155,90 @@ function Helpers.ValidateSchema()
 end
 
 -- ---------------------------------------------------------------------
+-- LibKa0s-Options-1.0 — the panel shell's seam
+-- ---------------------------------------------------------------------
+--
+-- Everything ABOVE this line is the schema half and stays the addon's: the
+-- rows themselves, Resolve / Get / Set / FindSchema / ValidateSchema, and (far
+-- below) the SetAndRefresh write seam. None of it touches the library, which is
+-- what keeps `/cm list|get|set` working on an install where LibKa0s is missing.
+--
+-- What the library supplies is chrome: the panel factory, the lazy Defaults
+-- button, the scroll container and the always-visible scrollbar patch. That
+-- last block was hand-transcribed from KickCD — the comment above it said so
+-- outright — and sits in the same shape in every Ka0s addon, which is the drift
+-- the library exists to end. The metrics were compared constant by constant
+-- before the swap (padding, header height, the three section spacers, the 0.492
+-- button-pair inset, the scroll insets, the 20px gutter, the thumb tints, the
+-- breadcrumb atlas) and they are identical, so nothing moves on screen.
+--
+-- Adopted in PARTS, deliberately. The schema-row widget makers further down are
+-- NOT the library's: its dropdown reads `values` as a key map where ours is an
+-- ordered array of { value =, text = }, its color picker defaults hasAlpha to
+-- false where ours defaults it to true (all seven pickers would lose their
+-- alpha slider), and its slider commits on mouse-up where ours commits live —
+-- which is the whole point of the Macro Bar page's drag preview. Recorded in
+-- docs/pending/LEDGER.md as LIBKA0S-04.
+
+local optionsLib = LibStub and LibStub("LibKa0s-Options-1.0", true)
+local UI
+
+-- Forward-declared: Section, Grid and the makers below all call it as a local.
+local ensureScroll
+
+if optionsLib then
+    UI = optionsLib:New({
+        -- The one field lib:New validates, and it raises rather than warns: an
+        -- anonymous canvas is one /framestack cannot attribute and two addons
+        -- can collide on, with nothing visible in game. Reproduces the frame
+        -- name this panel has always carried.
+        mainPanelName = "KCMMainPanel",
+
+        -- The breadcrumb's left half, so a sub-page reads "<brand> > <page>".
+        parentTitle = PANEL_TITLE,
+
+        -- A thunk, not `KCM.Say` bare: the library snapshots the printer at
+        -- :New, so a captured value would freeze the load-time function object.
+        -- Same note as core/CoreSetup.lua's sink and modules/DebugLog.lua's
+        -- print. Inert in the adopted scope — both lines that reach it live in
+        -- the panel-registry half we do not use — but passed so a later step
+        -- cannot leak an untagged line.
+        print = function(line) KCM.Say(line) end,
+    })
+
+    -- Restated because the library resolves AceGUI once at :New and re-resolves
+    -- it only inside its own CreateOptionsPanel, which this addon never calls.
+    UI.AceGUI = AceGUI
+
+    Helpers.PatchAlwaysShowScrollbar = UI.PatchAlwaysShowScrollbar
+    ensureScroll = function(ctx) return UI.EnsureScroll(ctx) end
+    Helpers.EnsureScroll = ensureScroll
+
+    -- The instance, so the suite can assert IDENTITY against the library rather
+    -- than lookalike behavior. Mirrors KCM.DebugLog.instance.
+    Helpers.instance = UI
+end
+
+-- Whether the panel can be built at all. Read by registerPanel and O.Open far
+-- below; the schema half above neither reads it nor needs it.
+local libAbsent = not optionsLib
+
+-- Said once, on the first attempt to REACH the panel, never at load: a degraded
+-- install still has a working addon and a working CLI, and stapling the notice
+-- to every refresh would bury that. The cause clause is core/CoreSetup.lua's;
+-- this seam appends only what is unavailable here.
+local announcedMissing = false
+local function sayPanelUnavailable()
+    if announcedMissing then return end
+    announcedMissing = true
+    if KCM.Say then
+        KCM.Say(KCM.LIBKA0S_MISSING ..
+            ", so the settings panel is unavailable; every setting is still " ..
+            "reachable with /cm list, /cm get and /cm set.")
+    end
+end
+
+-- ---------------------------------------------------------------------
 -- Tooltip helper
 -- ---------------------------------------------------------------------
 
@@ -345,141 +429,11 @@ function Helpers.ResetScroll(ctx)
     ctx.lastGroup  = nil
 end
 
--- ---------------------------------------------------------------------
--- Always-visible scrollbar patch (lifted verbatim from KickCD's
--- Helpers.PatchAlwaysShowScrollbar). Gives every panel a symmetric
--- right-edge gutter regardless of content length.
--- ---------------------------------------------------------------------
-
-function Helpers.PatchAlwaysShowScrollbar(scroll)
-    if not scroll or scroll._kcmAlwaysScrollbar then return end
-    scroll._kcmAlwaysScrollbar = true
-
-    local origFixScroll  = scroll.FixScroll
-    local origMoveScroll = scroll.MoveScroll
-    local origOnRelease  = scroll.OnRelease
-
-    local scrollbar = scroll.scrollbar
-    local thumb     = scrollbar and scrollbar.GetThumbTexture and scrollbar:GetThumbTexture() or nil
-    local sbName    = scrollbar and scrollbar.GetName and scrollbar:GetName() or nil
-    local upBtn     = sbName and _G[sbName .. "ScrollUpButton"]   or nil
-    local downBtn   = sbName and _G[sbName .. "ScrollDownButton"] or nil
-
-    local currentEnabled
-
-    local function setEnabled(want)
-        if currentEnabled == want then return end
-        currentEnabled = want
-        if not scrollbar then return end
-        if want then
-            if scrollbar.Enable then scrollbar:Enable() end
-            if thumb and thumb.SetVertexColor then thumb:SetVertexColor(1, 1, 1, 1) end
-            if upBtn   and upBtn.Enable   then upBtn:Enable()   end
-            if downBtn and downBtn.Enable then downBtn:Enable() end
-        else
-            scrollbar:SetValue(0)
-            if scrollbar.Disable then scrollbar:Disable() end
-            if thumb and thumb.SetVertexColor then thumb:SetVertexColor(0.5, 0.5, 0.5, 0.6) end
-            if upBtn   and upBtn.Disable   then upBtn:Disable()   end
-            if downBtn and downBtn.Disable then downBtn:Disable() end
-        end
-    end
-
-    scroll.scrollBarShown = true
-    if scrollbar then scrollbar:Show() end
-    if scroll.scrollframe then
-        scroll.scrollframe:SetPoint("BOTTOMRIGHT", -20, 0)
-    end
-    if scroll.content and scroll.content.original_width then
-        scroll.content.width = scroll.content.original_width - 20
-    end
-
-    scroll.FixScroll = function(self)
-        if self.updateLock then return end
-        self.updateLock = true
-        if not self.scrollBarShown then
-            self.scrollBarShown = true
-            self.scrollbar:Show()
-            self.scrollframe:SetPoint("BOTTOMRIGHT", -20, 0)
-            if self.content.original_width then
-                self.content.width = self.content.original_width - 20
-            end
-        end
-        local status = self.status or self.localstatus
-        local height, viewheight =
-            self.scrollframe:GetHeight(), self.content:GetHeight()
-        local offset = status.offset or 0
-        if viewheight < height + 2 then
-            setEnabled(false)
-            self.scrollbar:SetValue(0)
-            self.scrollframe:SetVerticalScroll(0)
-            status.offset = 0
-        else
-            setEnabled(true)
-            local value = (offset / (viewheight - height) * 1000)
-            if value > 1000 then value = 1000 end
-            self.scrollbar:SetValue(value)
-            self:SetScroll(value)
-            if value < 1000 then
-                self.content:ClearAllPoints()
-                self.content:SetPoint("TOPLEFT",  0, offset)
-                self.content:SetPoint("TOPRIGHT", 0, offset)
-                status.offset = offset
-            end
-        end
-        self.updateLock = nil
-    end
-
-    scroll.MoveScroll = function(self, value)
-        if currentEnabled == false then return end
-        if origMoveScroll then return origMoveScroll(self, value) end
-    end
-
-    scroll.OnRelease = function(self)
-        self.FixScroll  = origFixScroll
-        self.MoveScroll = origMoveScroll
-        self.OnRelease  = origOnRelease
-        self._kcmAlwaysScrollbar = nil
-        currentEnabled  = nil
-        if thumb and thumb.SetVertexColor then thumb:SetVertexColor(1, 1, 1, 1) end
-        if scrollbar and scrollbar.Enable then scrollbar:Enable() end
-        if upBtn   and upBtn.Enable   then upBtn:Enable()   end
-        if downBtn and downBtn.Enable then downBtn:Enable() end
-        if origOnRelease then origOnRelease(self) end
-    end
-end
-
--- ---------------------------------------------------------------------
--- Lazy AceGUI scroll container.
--- ---------------------------------------------------------------------
-
-local function ensureScroll(ctx)
-    if ctx.scroll then return ctx.scroll end
-    local scroll = AceGUI:Create("ScrollFrame")
-    scroll:SetLayout("List")
-    scroll.frame:SetParent(ctx.body)
-    scroll.frame:ClearAllPoints()
-    scroll.frame:SetPoint("TOPLEFT",     ctx.body, "TOPLEFT",      PADDING_X - 4, -8)
-    scroll.frame:SetPoint("BOTTOMRIGHT", ctx.body, "BOTTOMRIGHT", -(PADDING_X + 12), 8)
-    scroll.frame:Show()
-
-    -- AceGUI's ScrollFrame normally has its size set by a parent AceGUI
-    -- container during DoLayout. We parent it to a Blizzard frame instead,
-    -- so OnSizeChanged forwards the actual size into AceGUI and re-runs
-    -- DoLayout + FixScroll so the scrollbar appears whenever the body
-    -- resizes (panel open / Settings window resize).
-    scroll.frame:SetScript("OnSizeChanged", function(_, w, h)
-        if scroll.OnWidthSet  then scroll:OnWidthSet(w)  end
-        if scroll.OnHeightSet then scroll:OnHeightSet(h) end
-        if scroll.DoLayout    then scroll:DoLayout()     end
-        if scroll.FixScroll   then scroll:FixScroll()    end
-    end)
-
-    Helpers.PatchAlwaysShowScrollbar(scroll)
-    ctx.scroll = scroll
-    return scroll
-end
-Helpers.EnsureScroll = ensureScroll
+-- The always-visible scrollbar patch and the lazy AceGUI scroll container
+-- both live in LibKa0s-Options-1.0 now, and are bound at the seam above.
+-- The patch's idempotency marker is deliberately shared across the collection
+-- (`_ka0sAlwaysScrollbar`, not a per-addon one), so two Ka0s addons can no
+-- longer stack two overrides on one pooled AceGUI ScrollFrame.
 
 local function fireOnChange(def, value)
     if def.onChange then
@@ -1070,6 +1024,19 @@ end
 
 local function registerPanel()
     if KCM.Settings.main then return end
+    -- With LibKa0s absent the panel is not registered AT ALL, rather than
+    -- registered onto an empty canvas. Every page body is built out of the
+    -- library's chrome, so a category that opened onto nothing would leave the
+    -- user unable to tell a broken install from a broken addon — and the
+    -- alternative, keeping a verbatim copy of everything the library replaced,
+    -- would defeat the adoption. The honest answer is no entry plus one line
+    -- naming the missing library. Nothing renders before this point: every H.*
+    -- call in the page files sits inside a render() or Build(), and both are
+    -- only ever reached from here.
+    if libAbsent then
+        sayPanelUnavailable()
+        return
+    end
     if not (Settings and Settings.RegisterCanvasLayoutCategory
             and Settings.RegisterAddOnCategory) then
         return
@@ -1168,6 +1135,13 @@ local function expandMainCategory()
 end
 
 function O.Open()
+    -- There is no panel to open on a degraded install. Answering false is the
+    -- contract core/SlashCommands.lua already branches on, so `/cm config`
+    -- explains itself instead of silently doing nothing.
+    if libAbsent then
+        sayPanelUnavailable()
+        return false
+    end
     -- Settings UI is protected during combat — opening will silently fail
     -- mid-fight. Surface a chat notice instead so the user knows why.
     if InCombatLockdown and InCombatLockdown() then

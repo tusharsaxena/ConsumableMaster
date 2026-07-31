@@ -99,8 +99,10 @@ modules\KCMMacroDragIcon.lua
 modules\KCMItemRow.lua
 
 # Settings
-# settings/Panel.lua first: it creates KCM.Settings.{Helpers, Schema, builders}
-# and exposes KCM.Settings.RegisterTab, which the per-tab modules below call.
+# settings/Panel.lua first: it owns the LibKa0s-Options-1.0 seam (the panel
+# chrome and the scroll container) and creates KCM.Settings.{Helpers, Schema,
+# builders} and exposes KCM.Settings.RegisterTab, which the per-tab modules
+# below call.
 # It also publishes the KCM.Options shim (Register/Refresh/RequestRefresh/Open)
 # so the core / pipeline callers keep working unchanged.
 settings\Panel.lua
