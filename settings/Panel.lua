@@ -65,8 +65,12 @@ end
 -- above a heading is SECTION_TOP_SPACER + ROW_VSPACER = 18px. That's why the top
 -- spacer looks small on its own; don't "fix" it by raising it without checking
 -- what precedes the heading.
-local SECTION_TOP_SPACER    = 10
-local SECTION_BOTTOM_SPACER = 6
+--
+-- The two section spacers themselves are LibKa0s-Options-1.0's now (its
+-- LAYOUT table carries the same 10 and 6), so only the ones this file still
+-- emits are declared here. The note above stays because the ARITHMETIC is
+-- still the reason the top gap looks small, and that reasoning lives with the
+-- rows it explains rather than in the library.
 local SECTION_HEADING_H     = 26
 local ROW_VSPACER           = 8
 local DEFAULTS_W            = 110    -- top-right per-page Defaults button (standard §6.5)
@@ -242,30 +246,10 @@ end
 -- Tooltip helper
 -- ---------------------------------------------------------------------
 
-local function attachTooltip(widget, label, tooltip)
-    if not widget then return end
-    local anchor = widget.frame or widget
-    if not anchor then return end
-
-    local function show()
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(anchor, "ANCHOR_RIGHT")
-        if label and label ~= "" then GameTooltip:SetText(label, 1, 1, 1) end
-        if tooltip and tooltip ~= "" then
-            GameTooltip:AddLine(tooltip, nil, nil, nil, true)
-        end
-        GameTooltip:Show()
-    end
-    local function hide() if GameTooltip then GameTooltip:Hide() end end
-
-    if widget.SetCallback then
-        widget:SetCallback("OnEnter", show)
-        widget:SetCallback("OnLeave", hide)
-    elseif widget.HookScript then
-        widget:HookScript("OnEnter", show)
-        widget:HookScript("OnLeave", hide)
-    end
-end
+-- Both the tooltip helper and the spacer/section pair below are
+-- LibKa0s-Options-1.0's. Kept as file locals as well as published names because
+-- the schema-row makers further down call them directly.
+local attachTooltip = UI and UI.AttachTooltip
 Helpers.AttachTooltip = attachTooltip
 
 -- ---------------------------------------------------------------------
@@ -449,31 +433,17 @@ end
 -- Section heading (AceGUI Heading with side dividers) + spacers.
 -- ---------------------------------------------------------------------
 
-local function addSpacer(scroll, height)
-    local sp = AceGUI:Create("SimpleGroup")
-    sp:SetLayout(nil)
-    sp:SetFullWidth(true)
-    sp:SetHeight(height)
-    scroll:AddChild(sp)
-end
+local addSpacer = UI and UI.AddSpacer
 Helpers.AddSpacer = addSpacer
 
+-- A wrapper rather than a bare binding, and the one line it adds is
+-- load-bearing. The library sets ctx.lastGroup only inside its own two-column
+-- flow engine, which this addon does not use — it draws its rows itself. Bound
+-- bare, lastGroup would stay nil forever, the "only between sections, never
+-- above the first" guard would never fire, and every section after the first
+-- would silently lose its 10px top spacer.
 function Helpers.Section(ctx, label)
-    local scroll = ensureScroll(ctx)
-    if ctx.lastGroup ~= nil then
-        addSpacer(scroll, SECTION_TOP_SPACER)
-    end
-
-    local h = AceGUI:Create("Heading")
-    h:SetText(label)
-    h:SetFullWidth(true)
-    h:SetHeight(SECTION_HEADING_H)
-    if h.label and h.label.SetFontObject and _G.GameFontNormalLarge then
-        h.label:SetFontObject(_G.GameFontNormalLarge)
-    end
-    scroll:AddChild(h)
-
-    addSpacer(scroll, SECTION_BOTTOM_SPACER)
+    local h = UI.Section(ctx, label)
     ctx.lastGroup = label
     return h
 end
@@ -756,22 +726,10 @@ end
 -- A checkbox backed by an arbitrary get/set pair (e.g. session-only State
 -- flags that aren't in the AceDB schema). Registered with the panel's
 -- refreshers so a scalar refresh (RefreshScalars) re-syncs it in place.
-function Helpers.CustomCheckbox(ctx, parent, relWidth, spec)
-    parent = parent or ensureScroll(ctx)
-    local cb = AceGUI:Create("CheckBox")
-    cb:SetLabel(spec.label or "")
-    applyWidth(cb, relWidth)
-    cb:SetValue(spec.get() and true or false)
-    cb:SetCallback("OnValueChanged", function(_, _, value)
-        spec.set(value and true or false)
-    end)
-    attachTooltip(cb, spec.label, spec.tooltip)
-    parent:AddChild(cb)
-    ctx.refreshers[#ctx.refreshers + 1] = function()
-        cb:SetValue(spec.get() and true or false)
-    end
-    return cb
-end
+-- The library spells it SessionCheckbox — a checkbox backed by a get/set pair
+-- rather than by a schema row, which is what "custom" always meant here. Same
+-- argument order, same return, same refresher registration.
+Helpers.CustomCheckbox = UI and UI.SessionCheckbox
 
 -- AceGUI Label with optional fontSize hint ("medium" maps to GameFontHighlight,
 -- otherwise GameFontNormalSmall). Used for inline descriptions / legends.

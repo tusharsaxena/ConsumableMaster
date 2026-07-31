@@ -51,6 +51,32 @@ test("Settings UI: the scroll container comes from the library", function(t)
     t.eq(H.EnsureScroll(ctx), scroll, "a second call reuses it rather than rebuilding")
 end)
 
+test("Settings UI: the render helpers are the instance's, not host copies", function(t)
+    local KCM = loader.loadWithSchema()
+    local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
+    t.eq(H.AttachTooltip, UI.AttachTooltip, "AttachTooltip is the instance's")
+    t.eq(H.AddSpacer, UI.AddSpacer, "AddSpacer is the instance's")
+    -- The library spells this one SessionCheckbox; the addon has always called
+    -- it CustomCheckbox, and the ~4 page call sites keep that name.
+    t.eq(H.CustomCheckbox, UI.SessionCheckbox, "CustomCheckbox is the instance's SessionCheckbox")
+    -- Section is the one deliberate WRAPPER rather than a bare binding: the
+    -- library sets ctx.lastGroup only inside its own flow engine, which this
+    -- addon does not use, so a bare binding would drop the between-sections
+    -- spacer forever.
+    t.falsy(H.Section == UI.Section, "Section is wrapped, not bound bare")
+    -- Driven with the library's own Section stubbed out: it builds a real
+    -- AceGUI Heading, and the mock's widget stub answers `h.label` with a
+    -- function, which the library's font-object guard cannot index. (The host
+    -- implementation carried the identical guard — it was simply never called
+    -- headlessly.) What is under test here is the wrapper's one added line.
+    local ctx = H.CreatePanel("KCMSectionPanel", "S", { panelKey = "s" })
+    local realSection = UI.Section
+    UI.Section = function() return nil end
+    H.Section(ctx, "First")
+    UI.Section = realSection
+    t.eq(ctx.lastGroup, "First", "…and the wrapper is what tracks the current section")
+end)
+
 test("Settings UI: with the library absent no panel is registered, and it says why once",
     function(t)
         -- Loaded for real with libs/LibKa0s/ omitted, so settings/Panel.lua
