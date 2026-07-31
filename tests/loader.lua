@@ -37,6 +37,45 @@ local function resolve(rel)
     return ROOT .. "/" .. rel
 end
 
+-- The vendored library files, spelled out in the order libs/LibKa0s/LibKa0s.xml
+-- uses them. They cannot be derived from the TOC the way the addon's own files
+-- are: the TOC names one aggregate XML, and `loadFullAddon` skips `libs\`
+-- outright. Getting this list wrong is silent — a module whose dependency is
+-- absent returns BEFORE LibStub:NewLibrary, so the major is never registered,
+-- the host's setup file takes its degradation stub, and the suite happily
+-- measures the stub while staying green (Ka0s standard testing-§9).
+-- tests/test_load.lua pins this list against the XML.
+L.LIB_FILES = {
+    "libs/LibKa0s/Core.lua",
+    "libs/LibKa0s/DebugLog.lua",
+    "libs/LibKa0s/Slash.lua",
+    "libs/LibKa0s/Options.lua",
+    "libs/LibKa0s/OptionsWidgets.lua",
+    "libs/LibKa0s/OptionsScroll.lua",
+    "libs/LibKa0s/Perf.lua",
+    "libs/LibKa0s/PerfPanel.lua",
+}
+
+-- Compiled once and re-executed per load. Every suite rebuilds its whole
+-- environment (mock.install wipes the LibStub registry), so the chunks have to
+-- run again on each build — but they only have to be READ from disk once, and
+-- these eight files run several hundred times across the suite.
+local libChunks
+local function loadLibs()
+    if not libChunks then
+        libChunks = {}
+        for _, rel in ipairs(L.LIB_FILES) do
+            local path = ROOT .. "/" .. rel
+            local chunk, err = loadfile(path)
+            if not chunk then
+                error("loader: could not load " .. path .. ": " .. tostring(err))
+            end
+            libChunks[#libChunks + 1] = chunk
+        end
+    end
+    for _, chunk in ipairs(libChunks) do chunk() end
+end
+
 L.PURE_LAYER = {
     "locales/enUS.lua",
     "Namespace.lua",
@@ -72,9 +111,15 @@ L.PURE_LAYER = {
 
 -- Load an explicit list of source files onto a fresh mocked namespace.
 -- Returns the namespace table (KCM / NS).
-function L.loadFiles(files)
+--
+-- `omitLibs` deliberately skips the vendored LibKa0s files, which is how the
+-- degraded path is exercised: the addon is loaded FOR REAL with the library
+-- absent and each setup file takes its own fallback, rather than a test
+-- hand-stubbing the namespace member it then asserts on (testing-§8).
+function L.loadFiles(files, omitLibs)
     local NS = {}
     mock.install(NS)
+    if not omitLibs then loadLibs() end
     -- WoW hands every file in an addon the SAME private table as its second
     -- vararg. Model that exactly by threading one fresh `NS` to every chunk —
     -- and clear any `_G.KCM` a prior suite's mock left behind so nothing stale
@@ -119,11 +164,23 @@ function L.loadPure()
     return L.loadFiles(L.PURE_LAYER)
 end
 
+-- The pure layer with libs/LibKa0s/ absent, so every setup file runs its
+-- degradation stub for real.
+function L.loadPureDegraded()
+    return L.loadFiles(L.PURE_LAYER, true)
+end
+
 -- Load the ENTIRE addon in the exact order the TOC declares (skipping the
 -- libs XML, which the mock provides). This is the headless proxy for an
 -- in-game load — it catches load-order breaks (a file referencing another's
 -- symbols before it loads) that the pure-layer subset can't.
-function L.loadFullAddon()
+function L.loadFullAddon(omitLibs)
+    return L.loadFiles(L.tocFiles(), omitLibs)
+end
+
+-- The addon's own files, in the TOC's order. Derived rather than
+-- hand-maintained, so a file added to the TOC cannot go untested.
+function L.tocFiles()
     local toc = ROOT .. "/ConsumableMaster.toc"
     local files = {}
     for line in io.lines(toc) do
@@ -136,7 +193,7 @@ function L.loadFullAddon()
             files[#files + 1] = line:gsub("\\", "/")
         end
     end
-    return L.loadFiles(files)
+    return files
 end
 
 -- Pure layer + the settings schema (Panel.lua), for schema tests.

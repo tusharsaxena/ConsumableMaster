@@ -204,6 +204,17 @@ whenever the suite changes.
 - ID treats zero as neither an item nor a spell
 - ID: item and spell ranges are disjoint for every real id
 
+### test_libka0s.lua (8)
+
+- LibKa0s: the harness load list matches libs/LibKa0s/LibKa0s.xml exactly
+- LibKa0s: every vendored library file the loader names exists on disk
+- LibKa0s: the TOC loads the library through its own packaged XML
+- LibKa0s: every declared major registers, and reports the minor of every one of its files
+- LibKa0s: no file registers under a major it does not belong to
+- LibKa0s: each attach file is paired to the shell minor it actually attached to
+- LibKa0s: library file basenames are unique across every vendored major
+- LibKa0s: omitting the vendored files leaves every major absent, not half-wired
+
 ### test_load.lua (1)
 
 - full addon loads in TOC order and publishes core handles
@@ -601,6 +612,7 @@ whenever the suite changes.
 | test_defaults.lua | 28 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
+| test_libka0s.lua | 8 |
 | test_load.lua | 1 |
 | test_macrobar.lua | 86 |
 | test_macromanager.lua | 33 |
@@ -614,4 +626,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **504** |
+| **Total** | **512** |

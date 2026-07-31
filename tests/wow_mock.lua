@@ -327,7 +327,31 @@ function M.install(NS)
             },
             { __index = function() return function() end end }),
     }
-    _G.LibStub = function(name) return libs[name] end
+    -- LibStub is a callable table, not a bare function, because the vendored
+    -- LibKa0s files register themselves through `LibStub:NewLibrary(major,
+    -- minor)` at load and resolve each other through `LibStub(major, true)`.
+    -- A plain lookup function cannot answer NewLibrary, so the majors would
+    -- never register and every setup file would silently exercise its
+    -- degradation stub instead of the library (testing-§9's second failure
+    -- mode). An UNKNOWN major still answers nil rather than raising, silent
+    -- flag or not: several suites swap LibStub out and back, and a raising
+    -- lookup would turn those into errors rather than the nil they expect.
+    local libMinors = {}
+    local LibStub = setmetatable({}, {
+        __call = function(_, name) return libs[name] end,
+    })
+    function LibStub:NewLibrary(major, minor)
+        minor = tonumber(minor) or tonumber(tostring(minor):match("%d+"))
+        local old = libMinors[major]
+        if old and old >= minor then return nil end
+        libMinors[major] = minor
+        libs[major] = libs[major] or {}
+        return libs[major], old
+    end
+    function LibStub:GetLibrary(major) return libs[major] end
+    _G.LibStub = LibStub
+    -- Exposed so tests/loader.lua can see which majors actually registered.
+    M.libs = libs
 
     -- 4th arg is the template list; the stub grants template-gated methods from it.
     _G.CreateFrame = function(_, name, _, template) return makeStub(template, name) end

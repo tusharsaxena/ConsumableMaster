@@ -24,6 +24,12 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 # LSM30_Border / LSM30_Font dropdowns (border-style picker on the Macro Bar
 # page). Depends on AceGUI + LibSharedMedia, so it loads after both.
 libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
+# LibKa0s — the Ka0s-owned shared modules (Core, DebugLog, Slash, Options,
+# Perf). Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
+# through its own packaged XML, which is the file list. Depends on LibStub
+# alone, but it sits last in the block so nothing above it can be reordered
+# behind it.
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
