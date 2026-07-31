@@ -55,7 +55,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Settings panel + slash CLI + schema layer | `settings/*.lua`, `core/SlashCommands.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
-| Debug console | `modules/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
+| Debug console | `modules/DebugLog.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |

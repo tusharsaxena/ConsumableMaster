@@ -6,7 +6,7 @@ The debug console, the dump targets, and the schema-driven slash CLI. All chat o
 
 `/cm debug on|off` drives `KCM.State.debug` (declared in `core/State.lua`) through the single `KCM.DebugLog.SetEnabled(on)` seam; **bare `/cm debug` toggles the console window only, leaving the flag untouched** (so capture can be armed independently of whether the window is open). The flag is **session-only** — default off, **never persisted**, and it resets to off on every login — so a session left with debug on doesn't leak into the next one. There is no `db.profile.debug`, no `debug` schema row, and no `Settings.Helpers.SetAndRefresh("debug")` path. Calls to `KCM.Debug(tag, fmt, ...)` early-return when the flag is off, so unconditional calls are safe.
 
-`modules/DebugLog.lua` owns the on-screen console — a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia), styled like the addon's own frames (title bar + 1px divider, dark skin, flat text buttons). The bundled JetBrains Mono default is **standard-compliant, not a deviation**: the Ka0s Standard's `debug-logging-§2` *requires* a shipped monospace font for the debug console and names JetBrains Mono (Regular, OFL) as the reference font — a fixed-width font is needed for the aligned `<HH:MM:SS> | [tag] …` columns and Blizzard ships no monospace font object, so the standard marks the shipped console font a **sanctioned styling exception** an audit MUST NOT flag. It is not user-configurable and there is intentionally no LSM picker; the fallback on an LSM fetch failure is Blizzard's `Fonts\ARIALN.TTF`. See [scope.md → Resolved decisions](./scope.md#resolved-decisions). The title bar carries a left-aligned **Debug: ON/OFF** state toggle (green ON / red OFF) plus Copy / Clear / close; **Copy** opens a separate read-through window for `Ctrl+C`. `core/Debug.lua` routes diagnostics into it:
+The console window is drawn by **`LibKa0s-DebugLog-1.0`** (`libs/LibKa0s/DebugLog.lua`); `modules/DebugLog.lua` is the addon's half of it, supplying the font, the flag's home, the `[Init]` content, the printer and the panel repaints, and publishing the flat `KCM.DebugLog.*` surface. What lands on screen is a `ScrollingMessageFrame` inside `ConsumableMasterDebugWindow`, rendered in JetBrains Mono (registered through LibSharedMedia), styled like the addon's own frames (title bar + 1px divider, dark skin, flat text buttons). The bundled JetBrains Mono default is **standard-compliant, not a deviation**: the Ka0s Standard's `debug-logging-§2` *requires* a shipped monospace font for the debug console and names JetBrains Mono (Regular, OFL) as the reference font — a fixed-width font is needed for the aligned `<HH:MM:SS> | [tag] …` columns and Blizzard ships no monospace font object, so the standard marks the shipped console font a **sanctioned styling exception** an audit MUST NOT flag. It is not user-configurable and there is intentionally no LSM picker; the fallback on an LSM fetch failure is Blizzard's `Fonts\ARIALN.TTF`. See [scope.md → Resolved decisions](./scope.md#resolved-decisions). The title bar carries a left-aligned **Debug: ON/OFF** state toggle (green ON / red OFF) plus Copy / Clear / close; **Copy** opens a separate read-through window for `Ctrl+C`. `core/Debug.lua` routes diagnostics into it:
 
 ```lua
 KCM.Debug.IsOn()      -- bool; reads the flag (DebugLog.IsEnabled, else State.debug)
@@ -18,8 +18,14 @@ KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Clear()
 KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
 KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header + scrollbar + line counter (§11)
-KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
+KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters (the library's)
+KCM.DebugLog.instance                                                  -- the library instance itself
 ```
+
+Every `KCM.DebugLog.*` name above is a thin forwarder onto that instance. The copy
+window's frame globals are the library's — `ConsumableMasterDebugCopyWindow` and
+`ConsumableMasterDebugCopyScroll` (they used to be `…DebugWindowCopy` /
+`…DebugWindowCopyScroll`); the main window's global is unchanged.
 
 `KCM.Debug` is gated on `KCM.State.debug` as its first, zero-alloc statement, and every vararg is passed through `KCM.SafeToString` before formatting — so it's safe to call unconditionally and format placeholders are always `%s` (never `%d`/`%f`, since a combat "secret" value must never hit a numeric formatter). It writes to the **console**; chat is a fallback only when the console frame is unavailable.
 
@@ -27,7 +33,7 @@ KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure f
 
 Functional-area tags in use today:
 
-- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), written at the `DebugLog.SetEnabled` seam right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/§8)
+- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/§8). The addon supplies the line's content (`initSummary`); the library owns when it is emitted
 - `DB` — schema migration, only logged when one actually runs
 - `Scan` — auto-discovery pass summary (reason in content)
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)

@@ -135,7 +135,7 @@ whenever the suite changes.
 - Debug: the chat fallback stringifies a hostile tag safely
 - Debug: the sink publishes no Toggle of its own
 
-### test_debuglog.lua (10)
+### test_debuglog.lua (14)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -147,6 +147,10 @@ whenever the suite changes.
 - DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
+- DebugLog: the console IS the library's instance, not a host lookalike
+- DebugLog: the descriptor reproduces the addon's window identity
+- DebugLog: the flag lives in KCM.State, not in the library
+- DebugLog: with the library absent the console degrades and chat still answers
 
 ### test_defaults.lua (28)
 
@@ -618,7 +622,7 @@ whenever the suite changes.
 | test_coresetup.lua | 6 |
 | test_database.lua | 14 |
 | test_debug.lua | 13 |
-| test_debuglog.lua | 10 |
+| test_debuglog.lua | 14 |
 | test_defaults.lua | 28 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
@@ -636,4 +640,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **518** |
+| **Total** | **522** |

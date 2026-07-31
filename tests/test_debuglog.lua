@@ -1,34 +1,41 @@
--- test_debuglog.lua — pure formatters + enabled-state API of the debug console.
+-- test_debuglog.lua — the addon's half of the debug console.
 --
--- DebugLog.lua is not yet in the TOC (another process wires it in), so we load
--- it directly onto the mocked namespace rather than via loadFullAddon.
+-- The window is LibKa0s-DebugLog-1.0's now; modules/DebugLog.lua is the setup
+-- file that builds one instance and publishes the flat KCM.DebugLog.* surface
+-- the addon has always called. These cases are the oracle for that swap: they
+-- were written against the host implementation, so what they still pin is that
+-- the addon's own contract — the flat names, the flag's home, the return
+-- values, the [Debug]/[Init] brackets — survived it.
 
 local h = require("harness")
 local test = h.test
 
 -- Fresh KCM with DebugLog + Debug wired onto it; returns (KCM, DebugLog).
 local function load()
-    local KCM = h.loader.loadPure()
-    if not KCM.State then
-        assert(loadfile("core/State.lua"))("ConsumableMaster", KCM)
-    end
-    assert(loadfile("modules/DebugLog.lua"))("ConsumableMaster", KCM)
-    assert(loadfile("core/Debug.lua"))("ConsumableMaster", KCM)
+    local KCM = h.loader.loadConsole()
     return KCM, KCM.DebugLog
 end
 
 -- Standard line shape (debug-logging-§3): "<ts> | [<tag>] <msg>".
 -- FormatPlain: no color escapes.
+--
+-- The degenerate rows below changed when the formatters became the library's.
+-- The addon used to omit the whole `[tag]` segment for a nil or empty tag and
+-- render a nil message as blank; the library always emits the bracket and
+-- renders a nil message as the literal "nil". Nothing in the addon can reach
+-- either shape — every call site tags its line, and the library's own Add
+-- stringifies the message before it gets here — so the change is pinned rather
+-- than worked around. See the LibKa0s adoption commit for the decision.
 test("DebugLog: FormatPlain renders the plain line shape with no color codes", function(t)
     local _, DL = load()
     t.eq(DL.FormatPlain("12:00:01", "Ranker", "hello"),
         "12:00:01 | [Ranker] hello", "plain full")
     t.eq(DL.FormatPlain("12:00:01", nil, "hello"),
-        "12:00:01 | hello", "plain nil tag omits [tag] segment")
+        "12:00:01 | [] hello", "plain nil tag renders an empty bracket")
     t.eq(DL.FormatPlain("12:00:01", "", "hello"),
-        "12:00:01 | hello", "plain empty tag omits [tag] segment")
+        "12:00:01 | [] hello", "plain empty tag renders an empty bracket")
     t.eq(DL.FormatPlain("12:00:01", "Ranker", nil),
-        "12:00:01 | [Ranker] ", "plain nil msg treated as empty")
+        "12:00:01 | [Ranker] nil", "plain nil msg renders the literal")
     t.falsy(DL.FormatPlain("12:00:01", "Ranker", "hello"):find("|c", 1, true),
         "plain has no color codes")
 end)
@@ -40,9 +47,9 @@ test("DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg", fun
     t.eq(DL.FormatColored("12:00:01", "Ranker", "hello"),
         "|cff6f8faf12:00:01|r || |cffc9a66b[Ranker]|r hello", "colored full")
     t.eq(DL.FormatColored("12:00:01", nil, "hello"),
-        "|cff6f8faf12:00:01|r || hello", "colored nil tag omits [tag] segment")
+        "|cff6f8faf12:00:01|r || |cffc9a66b[]|r hello", "colored nil tag renders an empty bracket")
     t.eq(DL.FormatColored("12:00:01", "Ranker", nil),
-        "|cff6f8faf12:00:01|r || |cffc9a66b[Ranker]|r ", "colored nil msg empty")
+        "|cff6f8faf12:00:01|r || |cffc9a66b[Ranker]|r nil", "colored nil msg renders the literal")
 end)
 
 -- Enabled-state API drives KCM.State.debug through the single SetEnabled seam.
@@ -121,39 +128,41 @@ test("DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally", funct
 end)
 
 -- debug-logging-§5 (v1.12.0): color-coded chat ack + [Init] summary on enable.
+--
+-- Read off the console's own buffer rather than by intercepting DL.AddLine. The
+-- enable seam writes these two lines through the instance directly and never
+-- through the addon's forwarder, so a stub on the forwarder would capture
+-- nothing and the case would pass for the wrong reason — or fail for one.
 test("DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks", function(t)
     local KCM, DL = load()
-    local captured = {}
-    local realAdd = KCM.DebugLog.AddLine
-    KCM.DebugLog.AddLine = function(tag, msg) captured[#captured + 1] = { tag = tag, msg = msg } end
+    local D = DL.instance
     local acks = {}
     local realSay = KCM.Say
     KCM.Say = function(msg) acks[#acks + 1] = msg end
 
+    D:Clear()
     DL.SetEnabled(true)
     -- Console order: the [Debug] "logging enabled" bracket, THEN the [Init] summary.
     local dbgIdx, initIdx
-    for i, c in ipairs(captured) do
-        if c.tag == "Debug" and c.msg == "logging enabled" then dbgIdx = i end
-        if c.tag == "Init" then initIdx = i end
+    for i, line in ipairs(D.buffer) do
+        if line:find("[Debug] logging enabled", 1, true) then dbgIdx = i end
+        if line:find("[Init] ", 1, true) then initIdx = i end
     end
     t.truthy(dbgIdx, "enable emits the [Debug] logging enabled bracket")
     t.truthy(initIdx, "enable emits an [Init] session summary")
     t.truthy(dbgIdx and initIdx and initIdx > dbgIdx, "[Init] follows the bracket on enable")
-    local initMsg = initIdx and captured[initIdx].msg or ""
+    local initMsg = initIdx and D.buffer[initIdx] or ""
     t.truthy(initMsg:find("Consumable Master v", 1, true), "[Init] names addon + version")
     t.truthy(initMsg:find("schema v", 1, true), "[Init] carries the schema version")
     t.truthy(initMsg:find("profile ", 1, true), "[Init] carries the active profile")
     t.truthy((acks[#acks] or ""):find("|cff40ff40ON|r", 1, true), "enable ack color-codes ON green")
 
-    for i = #captured, 1, -1 do captured[i] = nil end
+    D:Clear()
     DL.SetEnabled(false)
-    local sawInit = false
-    for _, c in ipairs(captured) do if c.tag == "Init" then sawInit = true end end
-    t.falsy(sawInit, "disable emits no [Init] summary")
+    t.falsy(D:FindLine("[Init] "), "disable emits no [Init] summary")
+    t.truthy(D:FindLine("[Debug] logging disabled"), "disable still brackets the session")
     t.truthy((acks[#acks] or ""):find("|cffff4040OFF|r", 1, true), "disable ack color-codes OFF red")
 
-    KCM.DebugLog.AddLine = realAdd
     KCM.Say = realSay
     KCM.State.debug = false
 end)
@@ -195,6 +204,103 @@ test("DebugLog: scrollbar + counter sync run headlessly without error", function
     DL.AddLine("Test", "line two")
     DL.Clear()                      -- clear path resets the counter + syncs the bar
     t.truthy(true, "AddLine/Clear/UpdateScrollBar/UpdateStatus never raise headlessly")
+
+    KCM.State.debug = false
+end)
+
+-- ---------------------------------------------------------------------------
+-- The swap itself (LibKa0s-DebugLog-1.0)
+-- ---------------------------------------------------------------------------
+--
+-- Everything above pins the addon's CONTRACT and would pass just as happily
+-- against the old host implementation left in place — which is precisely what
+-- "the swap silently no-opped" looks like from the outside. These assert
+-- identity against the library instead.
+
+test("DebugLog: the console IS the library's instance, not a host lookalike", function(t)
+    local _, DL = load()
+    local lib = LibStub("LibKa0s-DebugLog-1.0")
+    t.truthy(lib, "LibKa0s-DebugLog-1.0 registered")
+    t.eq(DL.FormatPlain, lib.FormatPlain, "FormatPlain is the library function object")
+    t.eq(DL.FormatColored, lib.FormatColored, "FormatColored is the library function object")
+    t.truthy(DL.instance and DL.instance.Add and DL.instance.SetEnabled,
+        "the instance is published for the suite to reach")
+    -- The forwarder appends to the instance's own buffer, so the flat name and
+    -- the library's are two doors onto one console rather than two consoles.
+    DL.instance:Clear()
+    DL.AddLine("X", "y")
+    t.eq(DL.instance:BufferSize(), 1, "DL.AddLine lands in the instance buffer")
+    t.truthy(DL.instance:LastLine():find("[X] y", 1, true), "…rendered through the library")
+end)
+
+test("DebugLog: the descriptor reproduces the addon's window identity", function(t)
+    local _, DL = load()
+    local lib = LibStub("LibKa0s-DebugLog-1.0")
+    DL.Show()
+    -- frame.titleText is the one thing about the composed title a test can read
+    -- back — a font string is write-only through the frame API — and composing
+    -- it from `title` plus the library's own suffix is exactly what changed.
+    t.eq(DL.instance._frameForTest.titleText, "Consumable Master \226\128\148 Debug",
+        "the title composes to the addon's own literal")
+    -- The frame global itself is out of reach headlessly (the mock's CreateFrame
+    -- returns a stub without publishing the name), but the library derives the
+    -- Esc registration from that same `name`, so this pins it by proxy.
+    local registered = false
+    for _, n in ipairs(UISpecialFrames) do
+        if n == "ConsumableMasterDebugWindow" then registered = true end
+    end
+    t.truthy(registered, "the derived frame name is preserved, and Esc closes it")
+    t.eq(lib.MAX_BUFFER, 500, "the buffer cap still matches the old MAX_LINES")
+end)
+
+test("DebugLog: the flag lives in KCM.State, not in the library", function(t)
+    local KCM, DL = load()
+    local D = DL.instance
+    -- Driven through the INSTANCE, not the forwarders, so what is under test is
+    -- the isEnabled/setEnabled pair the descriptor handed the library.
+    KCM.State.debug = true
+    t.truthy(D:IsEnabled(), "the library reads the host's flag")
+    D:SetEnabled(false)
+    t.falsy(KCM.State.debug, "the library writes the host's flag")
+    -- The header toggle is the third entry point onto the same seam. The mock's
+    -- GetScript is a catch-all no-op, so the library's own test seam is the only
+    -- way to drive the button.
+    D._toggleClickForTest()
+    t.truthy(KCM.State.debug, "the header toggle routes through the same seam")
+
+    KCM.State.debug = false
+end)
+
+test("DebugLog: with the library absent the console degrades and chat still answers", function(t)
+    -- Loaded for real with libs/LibKa0s/ omitted, so modules/DebugLog.lua takes
+    -- its own stub rather than a hand-written one (testing-§8).
+    local KCM  = h.loader.loadConsole(true)
+    local DL   = KCM.DebugLog
+    local mock = h.loader.mock
+    t.falsy(LibStub("LibKa0s-DebugLog-1.0", true), "the major really is absent")
+
+    -- The load-bearing omission: no AddLine is published, which is exactly what
+    -- re-arms core/Debug.lua's chat fallback. A no-op one would send every
+    -- diagnostic into a black hole while the addon looked healthy.
+    t.eq(DL.AddLine, nil, "no console sink is published")
+    t.falsy(DL.IsWindowShown(), "the settings panel can still ask, and gets false")
+
+    mock.output = {}
+    KCM.State.debug = true
+    KCM.Debug("Init", "booting")
+    t.eq(mock.output[#mock.output], KCM.PREFIX .. " [Init] booting",
+        "diagnostics fall back to chat")
+
+    mock.output = {}
+    t.eq(DL.SetEnabled(true), true, "SetEnabled still answers the new flag")
+    t.truthy(KCM.State.debug, "…and still writes it")
+    DL.Show()
+    DL.Toggle_Window()
+    local notices = 0
+    for _, line in ipairs(mock.output) do
+        if line:find("debug console is unavailable", 1, true) then notices = notices + 1 end
+    end
+    t.eq(notices, 1, "the missing-console notice is said exactly once")
 
     KCM.State.debug = false
 end)

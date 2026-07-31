@@ -37,9 +37,10 @@ locales\enUS.lua
 # Core
 # Namespace.lua first: names the private addon table (`local addonName, NS = ...`).
 # ConsumableMaster.lua promotes NS to the AceAddon object and owns the DB
-# bootstrap + recompute pipeline. Constants (KCM.PREFIX / KCM.Say), Compat (spec
-# + spell API seam), State (session-only flags), and Database (SV migrations)
-# load next; the pure engine modules (SpecHelper → Classifier) follow.
+# bootstrap + recompute pipeline. Constants (KCM.PREFIX), CoreSetup (KCM.Say off
+# LibKa0s-Core-1.0), Compat (spec + spell API seam), State (session-only flags),
+# and Database (SV migrations) load next; the pure engine modules
+# (SpecHelper → Classifier) follow.
 core\Namespace.lua
 core\ConsumableMaster.lua
 core\Bus.lua

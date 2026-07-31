@@ -122,10 +122,15 @@ modules/MacroManager.lua  The ONLY module that calls CreateMacro / EditMacro.
                    bounded flush retry, action-bar icon convention.
                    Detail in macro-manager.md.
 
-modules/DebugLog.lua  On-screen debug console (ConsumableMasterDebugWindow,
-                   ScrollingMessageFrame, JetBrains Mono via LibSharedMedia).
+modules/DebugLog.lua  The addon's half of LibKa0s-DebugLog-1.0: registers
+                   JetBrains Mono with LibSharedMedia, resolves the font path,
+                   and builds ONE console instance (ConsumableMasterDebugWindow)
+                   over the KCM.State.debug flag, the KCM.Say printer, the
+                   [Init] summary and the options repaint. Publishes the flat
                    DL.SetEnabled / IsEnabled / Toggle / AddLine / Show / Hide /
-                   Toggle_Window / ShowCopy + pure DL.FormatPlain / FormatColored.
+                   Toggle_Window / ShowCopy forwarders + DL.FormatPlain /
+                   FormatColored (the library's) + DL.instance. Windowless stub
+                   when the library is absent.
 
 settings/         Settings UI framework + per-tab modules.
 ├── Panel.lua            Helpers.CreatePanel (gold title + atlas divider),
@@ -406,8 +411,14 @@ KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Clear()
 KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
 KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header, scrollbar + line counter (§11)
-KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters
+KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters (the library's)
+KCM.DebugLog.instance                         -- the LibKa0s-DebugLog-1.0 instance itself
 ```
+
+Every `KCM.DebugLog.*` above is a thin forwarder onto that instance. Two names are
+host names on purpose: `Toggle` flips the **flag**, while the library spells its
+**window** toggle `Toggle` — so ours is `Toggle_Window`, and aliasing them name for
+name would invert `/cm debug`.
 
 Diagnostics route to the on-screen console (`ConsumableMasterDebugWindow`); chat is a fallback only when the console is unavailable. See [debug.md](./debug.md).
 

@@ -1,26 +1,21 @@
--- modules/DebugLog.lua — on-screen debug console (standard debug-logging).
+-- modules/DebugLog.lua — the addon's half of LibKa0s-DebugLog-1.0.
 --
--- A movable, Escape-closable window styled like the addon's own frames: a
--- draggable title bar with flat text buttons, a 1px divider, and a
--- ScrollingMessageFrame that mirrors gated debug output in a monospace font.
--- A left-aligned Debug: ON/OFF toggle flips the session-only enabled flag
--- (green ON / red OFF), and Copy opens a separate read-through EditBox window
--- for Ctrl-C. The two FormatPlain/FormatColored helpers are PURE (no frame or
--- global touch, timestamp passed in) so they unit-test headlessly; both the
--- window and the copy window build lazily on first use and cache.
+-- The console window itself — the drag bar, the flat Copy/Clear/× buttons, the
+-- ScrollingMessageFrame, the hand-driven scrollbar, the line counter, the copy
+-- box, the Debug: ON/OFF header toggle — used to live here in full. It exists in
+-- every Ka0s addon, hand-transcribed, drifting one hex digit at a time, so it is
+-- libs/LibKa0s/DebugLog.lua now and this file is only the part that is ours:
+-- which font it renders in, where the enable flag actually lives, what the
+-- [Init] summary says, who gets repainted when the window opens, and what
+-- happens when the library is not installed.
 --
--- Layout note (why buttons parent to the title bar): every title-bar control is
--- a CHILD of `titleBar`, and a child frame always receives mouse input above its
--- parent. The earlier layout parented the toggle as a SIBLING of the draggable,
--- mouse-enabled title frame, so the title swallowed the click and the toggle was
--- dead. Parenting to the bar is what makes the toggle (and Copy/Clear/close)
--- clickable while the empty stretch of the bar still drags the window.
-
-local _, NS = ...
-local KCM = NS
-KCM.DebugLog = KCM.DebugLog or {}
-local DL = KCM.DebugLog
-
+-- KCM.DebugLog keeps its exact current shape — a flat table of DOT-callable
+-- functions. The library speaks methods (D:Add), and three of its names either
+-- collide with ours or inverts one: its `Toggle` flips the WINDOW while ours
+-- flips the FLAG. Publishing the instance directly would silently invert
+-- `/cm debug`, so the forwarders below are an explicit facade rather than an
+-- alias table. ~180 call sites and the whole suite depend on the flat shape.
+--
 -- Register the shipped monospace font with LibSharedMedia (optional dependency).
 --
 -- Standard-compliant, not a deviation (Ka0s debug-logging-§2 + docs/scope.md): the
@@ -31,7 +26,14 @@ local DL = KCM.DebugLog
 -- standard marks the shipped console font a sanctioned styling exception (audits MUST
 -- NOT flag it). Not user-configurable and no LSM picker by design (registration only
 -- exposes it to other addons). FONT_FALLBACK below is Blizzard's own font for the
--- fetch-failure path.
+-- fetch-failure path — the library has no fallback of its own, it calls SetFont on
+-- whatever path the descriptor hands it.
+
+local _, NS = ...
+local KCM = NS
+KCM.DebugLog = KCM.DebugLog or {}
+local DL = KCM.DebugLog
+
 local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
 if LSM then
     LSM:Register(LSM.MediaType.FONT, "JetBrains Mono",
@@ -41,119 +43,6 @@ end
 local FONT_NAME     = "JetBrains Mono"
 local FONT_FALLBACK = [[Fonts\ARIALN.TTF]]
 local FONT_SIZE     = 10   -- standard reference size (debug-logging-§2)
-local WIN_NAME      = "ConsumableMasterDebugWindow"
-local MAX_LINES     = 500
-local STATUS_H      = 16   -- bottom status-bar height reserved for the line counter (debug-logging-§11)
-local BAR_W         = 8    -- right-edge scrollbar track width (debug-logging-§11)
-
--- Cached window widgets, nil until first build.
-local win
-local copyWin
-
--- Accumulated plain-text lines for the Copy buffer (capped like the log).
-local buffer = {}
-
-local function now()
-    return (date and date("%H:%M:%S")) or ""
-end
-
--- ---------------------------------------------------------------------------
--- Pure formatters (unit-tested; must not touch frames or globals)
--- ---------------------------------------------------------------------------
---
--- Standard line shape (debug-logging-§3): `<HH:MM:SS> | [<Tag>] <content>`.
--- Console view: timestamp muted steel-blue (6f8faf), [tag] muted tan/gold
--- (c9a66b); the `|` separator and content stay default white. (`||` renders one
--- literal pipe inside a color-coded string.) The plain Copy buffer mirrors the
--- same line with no color codes. A nil/empty tag omits the `[tag]` segment so
--- any untagged line still reads cleanly rather than as `[]`, even though every
--- call site today passes a functional-area tag.
-
-local function hasTag(tag)
-    return tag ~= nil and tag ~= ""
-end
-
-function DL.FormatPlain(ts, tag, msg)
-    ts, msg = tostring(ts or ""), tostring(msg or "")
-    if hasTag(tag) then
-        return ("%s | [%s] %s"):format(ts, tostring(tag), msg)
-    end
-    return ("%s | %s"):format(ts, msg)
-end
-
-function DL.FormatColored(ts, tag, msg)
-    ts, msg = tostring(ts or ""), tostring(msg or "")
-    if hasTag(tag) then
-        return ("|cff6f8faf%s|r || |cffc9a66b[%s]|r %s"):format(ts, tostring(tag), msg)
-    end
-    return ("|cff6f8faf%s|r || %s"):format(ts, msg)
-end
-
--- ---------------------------------------------------------------------------
--- Enabled state (mirrors KCM.State.debug — session-only, default off)
--- ---------------------------------------------------------------------------
-
-function DL.IsEnabled()
-    return KCM.State and KCM.State.debug == true
-end
-
--- Repaint the header toggle to match the flag (green ON / red OFF).
-function DL.RefreshHeader()
-    if not (win and win.toggleFS) then return end
-    local on = DL.IsEnabled()
-    win.toggleFS:SetText(on and "Debug: ON" or "Debug: OFF")
-    if on then
-        win.toggleFS:SetTextColor(0.30, 0.85, 0.30)
-    else
-        win.toggleFS:SetTextColor(0.90, 0.30, 0.30)
-    end
-end
-
--- Single seam for changing debug state (debug-logging-§5). The slash command,
--- the panel checkbox, and the header toggle all route through here so the chat
--- ack, the header label, and the panel can't diverge: set flag → refresh header
--- → chat ack → console line at BOTH transitions → refresh the open options panel.
-function DL.SetEnabled(on)
-    on = on and true or false
-    if KCM.State then KCM.State.debug = on end
-    DL.RefreshHeader()
-    -- Color-coded chat ack through the shared [CM] printer (debug-logging-§5):
-    -- ON green (40ff40) / OFF red (ff4040), mirroring the title-bar Debug: ON/OFF
-    -- toggle so the flag reads identically in chat and on the console header.
-    if KCM.Say then
-        KCM.Say("debug logging " .. (on and "|cff40ff40ON|r" or "|cffff4040OFF|r"))
-    end
-    -- Bracket every capture session at both ends. Written through the raw
-    -- append (DL.AddLine is ungated), so the "logging disabled" line still lands
-    -- after KCM.State.debug has flipped off — the flag-gated sink would swallow it.
-    DL.AddLine("Debug", on and "logging enabled" or "logging disabled")
-    -- On enable, emit a one-line [Init] session summary immediately after the
-    -- bracket (debug-logging-§5/§8): addon + version, schema version, active
-    -- profile, so a pasted log self-identifies which build/schema/profile it came
-    -- from. Written through the raw DL.AddLine (not the gated KCM.Debug sink) so it
-    -- lands the instant debug turns on. It rides the SetEnabled seam, not login,
-    -- because the session-only flag is off at login — a load-time summary would be
-    -- gated off and never render. Every value goes through the secret-safe
-    -- stringifier per debug-logging-§4 (version/schema/profile are all plain).
-    if on and KCM.db and KCM.db.global then
-        local s = KCM.SafeToString or tostring
-        local profileKey = KCM.db.GetCurrentProfile and KCM.db:GetCurrentProfile() or "?"
-        DL.AddLine("Init", ("%s v%s, schema v%s, profile '%s'"):format(
-            "Consumable Master", s(KCM.VERSION), s(KCM.db.global.schemaVersion), s(profileKey)))
-    end
-    if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
-    return on
-end
-
--- Flip the enabled flag. Window visibility toggling lives on DL.Toggle_Window so
--- the two concerns don't collide.
-function DL.Toggle()
-    return DL.SetEnabled(not DL.IsEnabled())
-end
-
--- ---------------------------------------------------------------------------
--- Skin + flat title-bar buttons (shared with the copy window)
--- ---------------------------------------------------------------------------
 
 local function fontPath()
     if LSM then
@@ -163,350 +52,157 @@ local function fontPath()
     return FONT_FALLBACK
 end
 
--- Dark skin so the console reads like the addon's own frames (debug-logging-§1).
-local BACKDROP = {
-    bgFile   = [[Interface\Buttons\WHITE8x8]],
-    edgeFile = [[Interface\Tooltips\UI-Tooltip-Border]],
-    edgeSize = 12,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
-}
-local function applySkin(f)
-    if not f.SetBackdrop then return end
-    f:SetBackdrop(BACKDROP)
-    f:SetBackdropColor(0.06, 0.06, 0.07, 0.95)
-    f:SetBackdropBorderColor(0, 0, 0, 1)
-end
+local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
 
--- Small flat text button for the title bar (Copy / Clear): muted resting color,
--- gold on hover.
-local function makeTextButton(parent, text, width, onClick)
-    local b = CreateFrame("Button", nil, parent)
-    b:SetSize(width, 18)
-    local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    fs:SetPoint("CENTER")
-    fs:SetText(text)
-    fs:SetTextColor(0.7, 0.7, 0.72)
-    b:SetScript("OnEnter", function() fs:SetTextColor(1, 0.82, 0) end)
-    b:SetScript("OnLeave", function() fs:SetTextColor(0.7, 0.7, 0.72) end)
-    b:SetScript("OnClick", onClick)
-    return b
-end
-
-local function makeCloseButton(parent, onClick)
-    local b = CreateFrame("Button", nil, parent)
-    b:SetSize(18, 18)
-    local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    fs:SetPoint("CENTER")
-    fs:SetText("\195\151")  -- multiplication sign ×
-    fs:SetTextColor(0.7, 0.7, 0.72)
-    b:SetScript("OnEnter", function() fs:SetTextColor(1, 0.3, 0.3) end)
-    b:SetScript("OnLeave", function() fs:SetTextColor(0.7, 0.7, 0.72) end)
-    b:SetScript("OnClick", onClick)
-    return b
-end
-
--- ---------------------------------------------------------------------------
--- Lazy window construction (all frame work guarded for headless load)
--- ---------------------------------------------------------------------------
-
-local function buildWindow()
-    if win then return win end
-    if not CreateFrame then return nil end
-
-    local f = CreateFrame("Frame", WIN_NAME, UIParent, "BackdropTemplate")
-    win = { frame = f }
-
-    f:SetSize(700, 344)
-    f:SetPoint("CENTER", 220, -80)
-    f:SetFrameStrata("DIALOG")
-    f:EnableMouse(true)
-    f:SetMovable(true)
-    f:SetClampedToScreen(true)
-
-    -- Draggable title bar. Every control below parents to THIS frame so its
-    -- clicks land above the drag region (see the header note).
-    local titleBar = CreateFrame("Frame", nil, f)
-    titleBar:SetPoint("TOPLEFT", 1, -1)
-    titleBar:SetPoint("TOPRIGHT", -1, -1)
-    titleBar:SetHeight(26)
-    titleBar:EnableMouse(true)
-    titleBar:RegisterForDrag("LeftButton")
-    titleBar:SetScript("OnDragStart", function() f:StartMoving() end)
-    titleBar:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
-
-    local title = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("CENTER")
-    title:SetText("Consumable Master \226\128\148 Debug")
-    win.title = title
-
-    local divider = f:CreateTexture(nil, "ARTWORK")
-    divider:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
-    divider:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
-    divider:SetHeight(1)
-    divider:SetColorTexture(0, 0, 0, 1)
-
-    local close = makeCloseButton(titleBar, function() DL.Hide() end)
-    close:SetPoint("RIGHT", titleBar, "RIGHT", -6, 0)
-
-    local clear = makeTextButton(titleBar, "Clear", 42, function() DL.Clear() end)
-    clear:SetPoint("RIGHT", close, "LEFT", -6, 0)
-
-    local copy = makeTextButton(titleBar, "Copy", 40, function() DL.ShowCopy() end)
-    copy:SetPoint("RIGHT", clear, "LEFT", -6, 0)
-
-    -- Left-aligned Debug: ON/OFF state toggle. Resting color reflects the flag
-    -- (green ON / red OFF); clicking flips it through the shared SetEnabled seam.
-    local toggleBtn = CreateFrame("Button", nil, titleBar)
-    toggleBtn:SetSize(80, 18)
-    toggleBtn:SetPoint("LEFT", titleBar, "LEFT", 8, 0)
-    local toggleFS = toggleBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    toggleFS:SetPoint("LEFT")
-    toggleBtn:SetScript("OnEnter", function() toggleFS:SetTextColor(1, 0.82, 0) end)
-    toggleBtn:SetScript("OnLeave", function() DL.RefreshHeader() end)
-    toggleBtn:SetScript("OnClick", function() DL.SetEnabled(not DL.IsEnabled()) end)
-    win.toggleBtn = toggleBtn
-    win.toggleFS  = toggleFS
-
-    -- Scrolling message frame (monospace, 10pt). The right inset clears the
-    -- scrollbar gutter (BAR_W) and the bottom inset clears the status bar
-    -- (STATUS_H) so neither overlaps the log (debug-logging-§11).
-    local smf = CreateFrame("ScrollingMessageFrame", nil, f)
-    smf:SetPoint("TOPLEFT", 8, -(26 + 6))
-    smf:SetPoint("BOTTOMRIGHT", -(BAR_W + 8), STATUS_H + 4)
-    if smf.SetFont then smf:SetFont(fontPath(), FONT_SIZE, "") end
-    smf:SetJustifyH("LEFT")
-    smf:SetFading(false)
-    smf:SetMaxLines(MAX_LINES)
-    smf:EnableMouseWheel(true)
-    smf:SetScript("OnMouseWheel", function(self, delta)
-        if delta > 0 then self:ScrollUp() else self:ScrollDown() end
-        DL.UpdateScrollBar()   -- keep the thumb in step with wheel scrolling
-    end)
-    win.smf = smf
-
-    -- Right-edge scrollbar. A ScrollingMessageFrame has NO native scrollbar
-    -- (wheel-only), so a thin vertical Slider drives its scroll offset, synced
-    -- both ways. Always shown but goes inert (mouse off, thumb parked) when the
-    -- whole log fits, matching the options-panel always-shown bar (options-ui-§10).
-    -- Vertical-Slider convention: value 0 = thumb top = oldest; the message-frame
-    -- offset is inverted (0 = newest/bottom), so offset = maxOffset - value.
-    local bar = CreateFrame("Slider", nil, f)
-    bar:SetOrientation("VERTICAL")
-    bar:SetWidth(BAR_W)
-    bar:SetPoint("TOPRIGHT", f, "TOPRIGHT", -6, -(26 + 6))
-    bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, STATUS_H + 4)
-    bar:SetMinMaxValues(0, 0)
-    bar:SetValueStep(1)
-    bar:SetObeyStepOnDrag(true)
-    bar:SetValue(0)
-    local track = bar:CreateTexture(nil, "BACKGROUND")
-    track:SetAllPoints()
-    track:SetColorTexture(0.24, 0.24, 0.27, 0.30)
-    local thumb = bar:CreateTexture(nil, "ARTWORK")
-    thumb:SetColorTexture(0.5, 0.5, 0.55, 0.85)
-    thumb:SetSize(BAR_W, 36)
-    bar:SetThumbTexture(thumb)
-    bar:SetScript("OnValueChanged", function(_, value)
-        if win._syncing then return end   -- suppress the SetScrollOffset feedback loop
-        local l = win.smf
-        if not (l and l.GetMaxScrollRange and l.SetScrollOffset) then return end
-        local maxOffset = l:GetMaxScrollRange()
-        if type(maxOffset) ~= "number" then return end
-        l:SetScrollOffset(maxOffset - math.floor(value + 0.5))
-    end)
-    win.scrollBar = bar
-
-    -- Bottom status bar: a 1px divider + a right-aligned "N / MAX lines" counter
-    -- in the same monospace font as the log (debug-logging-§11).
-    local statusDivider = f:CreateTexture(nil, "ARTWORK")
-    statusDivider:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 8, STATUS_H)
-    statusDivider:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, STATUS_H)
-    statusDivider:SetHeight(1)
-    statusDivider:SetColorTexture(0.24, 0.24, 0.27, 0.85)
-
-    local lineCount = f:CreateFontString(nil, "OVERLAY")
-    lineCount:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 3)
-    if lineCount.SetFont then lineCount:SetFont(fontPath(), FONT_SIZE, "") end
-    lineCount:SetJustifyH("RIGHT")
-    lineCount:SetTextColor(0.6, 0.6, 0.62)
-    win.lineCount = lineCount
-
-    applySkin(f)
-    -- Keep the header toggle painted and the options-panel [Debug console]
-    -- checkbox (which now mirrors WINDOW visibility, not the flag) in sync on
-    -- every open/close — including the × button and Escape, which bypass the
-    -- checkbox's own set() path.
-    if f.HookScript then
-        f:HookScript("OnShow", function()
-            DL.RefreshHeader()
-            if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
-        end)
-        f:HookScript("OnHide", function()
-            if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
-        end)
-    end
-    DL.RefreshHeader()
-
-    f:Hide()
-    -- Escape closes it.
-    if type(UISpecialFrames) == "table" then
-        table.insert(UISpecialFrames, WIN_NAME)
+if not lib then
+    -- No console, but the addon still has to answer `/cm debug`, still has to
+    -- arm logging, and the options panel still calls in on every refresh. The
+    -- cause clause is core/CoreSetup.lua's (one absence, said the same way
+    -- everywhere); this seam appends only what is unavailable HERE.
+    local announced = false
+    local function notice()
+        if announced then return end
+        announced = true
+        if KCM.Say then
+            KCM.Say(KCM.LIBKA0S_MISSING ..
+                ", so the on-screen debug console is unavailable; diagnostics go to chat.")
+        end
     end
 
-    -- Initial scrollbar/counter sync runs LAST — after the header, RefreshHeader,
-    -- and the UISpecialFrames registration — so a frame-API surprise inside the
-    -- sync can never abort the rest of the console setup (debug-logging-§11).
-    DL.UpdateScrollBar()
-    DL.UpdateStatus()
-    return win
-end
+    function DL.IsEnabled() return KCM.State and KCM.State.debug == true end
 
--- Separate Copy window: a read-through multiline EditBox holding the whole log
--- as plain text (debug-logging-§6). WoW exposes no clipboard API, so the user's
--- Ctrl+C inside the EditBox is the only copy path; a separate window avoids the
--- color escapes that copying the live ScrollingMessageFrame would drag along.
-local function buildCopyWindow()
-    if copyWin then return copyWin end
-    if not CreateFrame then return nil end
-
-    local f = CreateFrame("Frame", WIN_NAME .. "Copy", UIParent, "BackdropTemplate")
-    copyWin = { frame = f }
-
-    f:SetSize(560, 360)
-    f:SetPoint("CENTER")
-    f:SetFrameStrata("FULLSCREEN")
-    f:EnableMouse(true)
-    f:SetMovable(true)
-    f:SetClampedToScreen(true)
-
-    local tbar = CreateFrame("Frame", nil, f)
-    tbar:SetPoint("TOPLEFT", 1, -1)
-    tbar:SetPoint("TOPRIGHT", -1, -1)
-    tbar:SetHeight(26)
-    tbar:EnableMouse(true)
-    tbar:RegisterForDrag("LeftButton")
-    tbar:SetScript("OnDragStart", function() f:StartMoving() end)
-    tbar:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
-
-    local t = tbar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    t:SetPoint("CENTER")
-    t:SetText("Copy log \226\128\148 Ctrl+C, then Esc")
-
-    local cclose = makeCloseButton(tbar, function() f:Hide() end)
-    cclose:SetPoint("RIGHT", tbar, "RIGHT", -6, 0)
-
-    local scroll = CreateFrame("ScrollFrame", WIN_NAME .. "CopyScroll", f,
-        "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 8, -30)
-    scroll:SetPoint("BOTTOMRIGHT", -28, 10)
-    copyWin.scroll = scroll
-
-    local edit = CreateFrame("EditBox", nil, scroll)
-    edit:SetMultiLine(true)
-    if edit.SetFont then edit:SetFont(fontPath(), FONT_SIZE, "") end
-    edit:SetAutoFocus(false)
-    edit:SetWidth(510)
-    edit:SetScript("OnEscapePressed", function(self) self:ClearFocus(); f:Hide() end)
-    scroll:SetScrollChild(edit)
-    copyWin.edit = edit
-
-    applySkin(f)
-    f:Hide()
-    if type(UISpecialFrames) == "table" then
-        table.insert(UISpecialFrames, WIN_NAME .. "Copy")
+    function DL.SetEnabled(on)
+        on = on and true or false
+        if KCM.State then KCM.State.debug = on end
+        if KCM.Say then
+            KCM.Say("debug logging " .. (on and "|cff40ff40ON|r" or "|cffff4040OFF|r"))
+        end
+        if on then notice() end
+        if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
+        return on
     end
-    return copyWin
+
+    function DL.Toggle() return DL.SetEnabled(not DL.IsEnabled()) end
+
+    -- Show and Toggle_Window are the two entry points a user reaches for on
+    -- purpose, so they are the two that explain themselves. Hide and
+    -- IsWindowShown stay SILENT: settings/General.lua calls Hide on the
+    -- Defaults action and IsWindowShown on every single panel refresh, and a
+    -- notice on either would spam a window the user never asked to see.
+    function DL.Show() notice() end
+    function DL.Toggle_Window() notice() end
+    function DL.Hide() end
+    function DL.IsWindowShown() return false end
+
+    -- Deliberately publishes NO AddLine. core/Debug.lua probes
+    -- `KCM.DebugLog.AddLine` to decide whether a console exists, and falls back
+    -- to the chat frame when it does not — withholding the member is exactly
+    -- what re-arms that fallback. A no-op AddLine would swallow every
+    -- diagnostic while the addon looked healthy. Same for Clear / ShowCopy /
+    -- RefreshHeader / UpdateScrollBar / UpdateStatus / the formatters: no
+    -- consumer outside this file, so there is nothing to degrade.
+    return
 end
 
--- ---------------------------------------------------------------------------
--- Public logging + visibility API
--- ---------------------------------------------------------------------------
+local D = lib:New({
+    -- Seeds the frame globals: <name>DebugWindow. Exactly reproduces the old
+    -- WIN_NAME, which is what /framestack and any user layout addon knows.
+    name  = "ConsumableMaster",
 
--- Raw append — NOT gated on the enabled flag. The zero-alloc gate lives in the
--- sink (KCM.Debug, core/Debug.lua) which is the sole ordinary caller; SetEnabled
--- also calls this directly to record the enable/disable transition lines.
-function DL.AddLine(tag, msg)
-    local timeStr = now()
-    buffer[#buffer + 1] = DL.FormatPlain(timeStr, tag, msg)
-    if #buffer > MAX_LINES then table.remove(buffer, 1) end
-    local w = buildWindow()
-    if w and w.smf then
-        w.smf:AddMessage(DL.FormatColored(timeStr, tag, msg))
-    end
-    DL.UpdateScrollBar()
-    DL.UpdateStatus()
+    -- The library appends its own " — Debug", composing today's literal title.
+    title = "Consumable Master",
+
+    -- Resolved EAGERLY and as a string, never lazily: lib:New type-checks the
+    -- field and raises at construction, which would abort this whole file's
+    -- load rather than just the window. Safe here — LibSharedMedia is vendored
+    -- far above us in the TOC and the Register call is directly overhead.
+    font     = fontPath(),
+    fontSize = FONT_SIZE,
+
+    -- The library stores no flag; these two closures ARE the single truth, and
+    -- they read and write exactly what core/Debug.lua's gate reads, so the sink
+    -- and the console can never disagree.
+    isEnabled  = function() return KCM.State and KCM.State.debug == true end,
+    setEnabled = function(on)
+        if KCM.State then KCM.State.debug = on end
+        -- The one thing the library's own SetEnabled has no hook for. Resolved
+        -- at call time: settings/Panel.lua creates KCM.Options long after this
+        -- file loads.
+        if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
+    end,
+
+    -- A thunk, not `KCM.Say` bare. The library snapshots the printer once at
+    -- :New, so a captured value would freeze the load-time function object and
+    -- every later swap of KCM.Say — including the suite's — would go unseen.
+    -- core/CoreSetup.lua's `sink` carries the identical note.
+    print = function(line) KCM.Say(line) end,
+
+    -- The CONTENT of the session summary; the library owns when it is emitted
+    -- (on enable, after the bracket line — the flag is session-only and off at
+    -- login, so a load-time summary would always be gated off). Returns nil
+    -- rather than a '?'-filled line when there is no DB yet: the library emits
+    -- whatever it is handed, so a partial line would appear where none does now.
+    initSummary = function()
+        if not (KCM.db and KCM.db.global) then return nil end
+        local s = KCM.SafeToString or tostring
+        local profileKey = KCM.db.GetCurrentProfile and KCM.db:GetCurrentProfile() or "?"
+        return ("%s v%s, schema v%s, profile '%s'"):format(
+            "Consumable Master", s(KCM.VERSION), s(KCM.db.global.schemaVersion), s(profileKey))
+    end,
+
+    -- Fires on both OnShow and OnHide. Mandatory, not decorative: Escape and the
+    -- × both hide the window WITHOUT going through the options checkbox's own
+    -- set(), so without this the panel's [Debug console] row stays checked over
+    -- a closed console.
+    onVisibilityChanged = function()
+        if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
+    end,
+
+    -- Composes the library's console-checkbox tooltip. Inert today —
+    -- settings/General.lua still renders its own checkbox — but passed so the
+    -- descriptor is already right if that is adopted, and because omitting it
+    -- silently selects the no-slash wording.
+    slash = "/cm",
+
+    -- `skin` is deliberately NOT passed: Core.SKIN is byte-identical to the
+    -- backdrop this file used to carry, and a plain backdrop table would drop
+    -- the bg/border color arrays the library guards for. Nor `L` (the library's
+    -- English already matches ours) nor `safeToString` (it defaults to Core's,
+    -- which is the same function object KCM.SafeToString is bound to).
+})
+
+-- The public surface, unchanged in name, arity and return value. Plain
+-- functions, not methods: core/Debug.lua, core/SlashCommands.lua and
+-- settings/General.lua all dot-call, and three suites monkeypatch
+-- KCM.DebugLog.AddLine as their interception seam.
+function DL.AddLine(tag, msg)  D:Add(tag, msg) end
+function DL.IsEnabled()        return D:IsEnabled() end
+function DL.Show()             D:Show() end
+function DL.Hide()             D:Hide() end
+function DL.Clear()            D:Clear() end
+function DL.ShowCopy()         D:ShowCopy() end
+function DL.RefreshHeader()    D:RefreshHeader() end
+function DL.UpdateScrollBar()  D:UpdateScrollBar() end
+function DL.UpdateStatus()     D:UpdateStatus() end
+
+-- Window, not flag. The library spells this one `Toggle`; ours has always meant
+-- the other thing (below), and a name-for-name alias would invert `/cm debug`.
+function DL.Toggle_Window()    D:Toggle() end
+function DL.IsWindowShown()    return D:IsShown() end
+
+-- The library's SetEnabled returns nothing; ours has always answered the new
+-- flag, and the slash layer and the suite both read it.
+function DL.SetEnabled(on)
+    D:SetEnabled(on)
+    return not not on
 end
 
--- Sync the scrollbar thumb/range to the log's current scroll offset, using the
--- Lua ScrollingMessageFrameMixin API (GetMaxScrollRange / GetScrollOffset /
--- SetScrollOffset) — where offset 0 = bottom (newest) and offset == maxRange =
--- top (oldest); ScrollUp INCREASES the offset (debug-logging-§11, anti-pattern
--- #41). The old C getters GetNumLinesDisplayed / GetCurrentScroll are nil on this
--- mixin and MUST NOT be called. Method-presence + numeric-return guards make this
--- a clean no-op under the headless mock (whose stub frames return non-numbers).
-function DL.UpdateScrollBar()
-    if not (win and win.smf and win.scrollBar) then return end
-    local log, bar = win.smf, win.scrollBar
-    if not (log.GetMaxScrollRange and log.GetScrollOffset) then return end
-    local maxOffset, off = log:GetMaxScrollRange(), log:GetScrollOffset()
-    if type(maxOffset) ~= "number" or type(off) ~= "number" then return end
-    win._syncing = true   -- suppress the OnValueChanged -> SetScrollOffset feedback loop
-    bar:SetMinMaxValues(0, maxOffset)
-    bar:SetValue(maxOffset - off)
-    win._syncing = false
-    bar:EnableMouse(maxOffset > 0)   -- inert (but still shown) when the whole log fits
-end
+-- Flag, not window. Deliberately NOT bound to the library's `Toggle`.
+function DL.Toggle() return DL.SetEnabled(not DL.IsEnabled()) end
 
--- Repaint the bottom line counter: "N / MAX lines". #buffer is the live line
--- count, capped at MAX_LINES in lock-step with the log's SetMaxLines cap.
-function DL.UpdateStatus()
-    if win and win.lineCount then
-        win.lineCount:SetText(("%d / %d lines"):format(#buffer, MAX_LINES))
-    end
-end
+DL.FormatPlain, DL.FormatColored = lib.FormatPlain, lib.FormatColored
 
-function DL.Clear()
-    for i = #buffer, 1, -1 do buffer[i] = nil end
-    if win and win.smf then win.smf:Clear() end
-    if copyWin and copyWin.edit then copyWin.edit:SetText("") end
-    DL.UpdateScrollBar()
-    DL.UpdateStatus()
-end
-
-function DL.ShowCopy()
-    local c = buildCopyWindow()
-    if not c then return end
-    local w = c.scroll:GetWidth()
-    c.edit:SetWidth((w and w > 0) and w or 510)
-    c.edit:SetText(table.concat(buffer, "\n"))
-    c.edit:SetCursorPosition(0)
-    c.frame:Show()
-    c.edit:SetFocus()
-    c.edit:HighlightText()
-end
-
-function DL.Show()
-    local w = buildWindow()
-    if not w then return end
-    DL.RefreshHeader()
-    w.frame:Show()
-end
-
-function DL.Hide()
-    if win and win.frame then win.frame:Hide() end
-end
-
--- Is the console window currently on screen? False before first build (window
--- is lazy) and after any close. Backs the options-panel [Debug console]
--- checkbox, which toggles VISIBILITY only and must never read the enabled flag.
-function DL.IsWindowShown()
-    return (win and win.frame and win.frame:IsShown()) and true or false
-end
-
-function DL.Toggle_Window()
-    if win and win.frame and win.frame:IsShown() then
-        DL.Hide()
-    else
-        DL.Show()
-    end
-end
+-- The instance itself, so the suite can assert IDENTITY against the library
+-- rather than lookalike behavior, and so D:FindLine / D:BufferSize / D:CopyText
+-- are reachable without monkeypatching the forwarders they bypass.
+DL.instance = D
