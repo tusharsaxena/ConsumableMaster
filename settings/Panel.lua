@@ -44,9 +44,9 @@ KCM.Options = KCM.Options or {}
 local O = KCM.Options
 
 local PANEL_TITLE   = L["Ka0s Consumable Master"]
-local PADDING_X     = 16
-local HEADER_TOP    = 20
-local HEADER_HEIGHT = 54
+-- PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
+-- separator all live in LibKa0s-Options-1.0's LAYOUT table now, carrying the
+-- same values they carried here.
 
 -- Combat-lockdown open refusal (options-ui-§2): both the O.Open slash path and
 -- the Blizzard AddOns-sidebar OnShow guard funnel through here so they emit the
@@ -73,7 +73,6 @@ end
 -- rows it explains rather than in the library.
 local SECTION_HEADING_H     = 26
 local ROW_VSPACER           = 8
-local DEFAULTS_W            = 110    -- top-right per-page Defaults button (standard §6.5)
 local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (standard §6.8)
 
 local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
@@ -253,40 +252,44 @@ local attachTooltip = UI and UI.AttachTooltip
 Helpers.AttachTooltip = attachTooltip
 
 -- ---------------------------------------------------------------------
--- Header (title + atlas divider, plus the intent for the top-right Defaults
--- button — the button itself is built lazily; see ensureDefaultsButton).
+-- CreatePanel — the canvas Frame, its header and its Defaults button
 -- ---------------------------------------------------------------------
+--
+-- The header (title + atlas divider + breadcrumb), the panel factory and the
+-- lazily-built Defaults button are all LibKa0s-Options-1.0's. The library
+-- carries the same reasoning the deleted comment here did, and it is worth
+-- keeping in mind before anyone "simplifies" it: the Defaults button is
+-- DECLARED at build time and CREATED on the panel's first OnShow, because
+-- AceGUI is a shared library and UI skinners restyle its widgets by hooking
+-- RegisterAsWidget. A widget created during load keeps Blizzard's red stone
+-- button for the rest of the session; first OnShow is after every addon has
+-- loaded, so the race is gone.
+--
+-- What stays here is the click handler, because the combat guard and the
+-- pcall-and-report around it have no library equivalent, and the ctx's three
+-- render-state fields, which back this addon's two-tier refresh (structural
+-- rebuild vs in-place re-sync) — a model the library does not have.
 
-local function buildHeader(panel, title, opts)
-    -- Sub-pages render with an addon-name breadcrumb prefix so the header
-    -- reads as "Ka0s Consumable Master  ›  <Page>". The separator is an
-    -- inline atlas (|A:...|a) rather than a font glyph, so it renders the
-    -- same regardless of the FontString font or locale fallback. Parent
-    -- (About) opts in to the unprefixed form via opts.isMain — the
-    -- Blizzard left-tree label (panel.name) is never prefixed.
-    local sep = " |A:common-icon-forwardarrow:16:16|a "
-    local displayTitle = title
-    if not opts.isMain then
-        displayTitle = PANEL_TITLE .. sep .. title
-    end
+function Helpers.CreatePanel(name, title, opts)
+    opts = opts or {}
 
-    local titleFS = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    titleFS:SetPoint("TOPLEFT", panel, "TOPLEFT", PADDING_X, -HEADER_TOP)
-    titleFS:SetText(displayTitle)
+    local ctx = UI.CreatePanel(name, title, {
+        isMain         = opts.isMain,
+        -- The library's own key for the same thing, so UI.__panelFor can find
+        -- this ctx in its registry.
+        pageKey        = opts.panelKey,
+        defaultsButton = opts.defaultsAction and true or false,
+    })
 
-    local divider = panel:CreateTexture(nil, "ARTWORK")
-    divider:SetAtlas("Options_HorizontalDivider", true)
-    divider:SetPoint("TOPLEFT",  panel, "TOPLEFT",   PADDING_X, -HEADER_HEIGHT)
-    divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_HEIGHT)
-    divider:SetVertexColor(titleFS:GetTextColor())
+    ctx.panelKey  = opts.panelKey
+    ctx._rendered = false
+    ctx._dirty    = false
+    ctx._renderFn = nil
 
-    -- Top-right per-page Defaults button (standard §6.5). This records the
-    -- INTENT only — the widget itself is built lazily by ensureDefaultsButton
-    -- on the panel's first OnShow (see the note there for why). The click
-    -- handler is known now but the button isn't, so park it on the panel.
-    panel.wantsDefaultsButton = opts.defaultsAction and true or false
     if opts.defaultsAction then
-        panel.defaultsOnClick = function()
+        -- Parked on the PANEL, not on the button: the button does not exist
+        -- yet. EnsureDefaultsButton wires this up when it builds it.
+        ctx.panel.defaultsOnClick = function()
             if InCombatLockdown and InCombatLockdown() then
                 KCM.Say("in combat — Defaults is blocked until combat ends.")
                 return
@@ -298,74 +301,6 @@ local function buildHeader(panel, title, opts)
         end
     end
 
-    return titleFS, divider
-end
-
--- Build the header's Defaults button once, on the panel's FIRST OnShow.
---
--- It stays an AceGUI Button (standard §6.5) — a raw UIPanelButtonTemplate frame
--- parented straight onto the Blizzard Settings canvas comes out in the canvas's
--- red button skin. But *when* it is created matters just as much as *what*
--- creates it. AceGUI is a SHARED library: UI-skinning addons restyle its widgets
--- by hooking RegisterAsWidget, so a widget created before that hook is installed
--- keeps Blizzard's stock UI-Panel-Button-Up art (the red stone button) for the
--- rest of the session, while everything created afterwards comes out skinned.
---
--- Category registration runs off ADDON_LOADED / PLAYER_LOGIN — i.e. during load
--- — so building the button there is a race against every other addon's load
--- order, one CM wins only because it happens to load after the skinner. Rename
--- the folder or add a skin and the same code renders red. Deferring creation to
--- the first OnShow removes the race outright: by then every addon has loaded.
--- Do NOT "simplify" this back into buildHeader.
-local function ensureDefaultsButton(panel)
-    if not panel or panel.defaultsButton or not panel.wantsDefaultsButton then return end
-    local btn = AceGUI:Create("Button")
-    if not (btn and btn.frame) then return end
-    btn:SetText(_G.DEFAULTS or L["Defaults"])
-    btn:SetWidth(DEFAULTS_W)
-    btn.frame:SetParent(panel)
-    btn.frame:ClearAllPoints()
-    btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
-    btn.frame:Show()
-    if panel.defaultsOnClick then
-        btn:SetCallback("OnClick", panel.defaultsOnClick)
-    end
-    panel.defaultsButton = btn
-end
-
--- ---------------------------------------------------------------------
--- CreatePanel — Frame compatible with RegisterCanvasLayoutSubcategory
--- with the unified header stamped on top. Returns a `ctx` table the
--- caller threads through Section / RenderField / Button / SetRenderer.
--- ---------------------------------------------------------------------
-
-function Helpers.CreatePanel(name, title, opts)
-    opts = opts or {}
-
-    local panel = CreateFrame("Frame", name)
-    panel.name = title
-    panel:Hide()
-
-    local titleFS, divider = buildHeader(panel, title, opts)
-    panel.title   = titleFS
-    panel.divider = divider
-
-    local body = CreateFrame("Frame", nil, panel)
-    body:SetPoint("TOPLEFT",     panel, "TOPLEFT",     0, -(HEADER_HEIGHT + 8))
-    body:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", 0, 0)
-    panel.body = body
-
-    local ctx = {
-        panel       = panel,
-        body        = body,
-        scroll      = nil,           -- lazy AceGUI ScrollFrame
-        refreshers  = {},
-        lastGroup   = nil,
-        panelKey    = opts.panelKey,
-        _rendered   = false,
-        _dirty      = false,
-        _renderFn   = nil,
-    }
     KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
     return ctx
 end
@@ -379,7 +314,7 @@ function Helpers.SetRenderer(ctx, fn)
     ctx.panel:SetScript("OnShow", function()
         -- Header Defaults button, built here rather than at registration time
         -- so it can't lose the AceGUI skinning load-order race.
-        ensureDefaultsButton(ctx.panel)
+        UI.EnsureDefaultsButton(ctx.panel)
         -- Block any KCM panel from opening during combat. The Blizzard
         -- AddOns sidebar bypasses O.Open's guard, so this catches both
         -- the slash path and a direct sidebar click.
@@ -407,11 +342,11 @@ end
 -- a clean slate. Panels with dynamic content (priority list rows that
 -- change as items are added/removed) call this at the top of their
 -- renderer; panels rendered once on first OnShow don't need it.
-function Helpers.ResetScroll(ctx)
-    if ctx.scroll then ctx.scroll:ReleaseChildren() end
-    ctx.refreshers = {}
-    ctx.lastGroup  = nil
-end
+-- The library spells it ClearScroll. It REASSIGNS ctx.refreshers rather than
+-- wiping it in place, which matters: every released widget's refresher closure
+-- would otherwise survive forever, so every write and every profile change
+-- would pcall an ever-growing pile of dead closures.
+Helpers.ResetScroll = UI and UI.ClearScroll
 
 -- The always-visible scrollbar patch and the lazy AceGUI scroll container
 -- both live in LibKa0s-Options-1.0 now, and are bound at the seam above.

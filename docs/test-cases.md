@@ -485,12 +485,14 @@ whenever the suite changes.
 - Selector: ListAvailable on a composite honors disabled components
 - Selector: ListAvailable returns an empty list for an unknown category
 
-### test_settingsui.lua (5)
+### test_settingsui.lua (7)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
 - Settings UI: the scroll container comes from the library
 - Settings UI: the render helpers are the instance's, not host copies
+- Settings UI: a panel comes from the library's registry, breadcrumb and all
+- Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
 
 ### test_slash.lua (66)
@@ -643,10 +645,10 @@ whenever the suite changes.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 36 |
-| test_settingsui.lua | 5 |
+| test_settingsui.lua | 7 |
 | test_slash.lua | 66 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **527** |
+| **Total** | **529** |

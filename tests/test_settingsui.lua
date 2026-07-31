@@ -77,6 +77,44 @@ test("Settings UI: the render helpers are the instance's, not host copies", func
     t.eq(ctx.lastGroup, "First", "…and the wrapper is what tracks the current section")
 end)
 
+test("Settings UI: a panel comes from the library's registry, breadcrumb and all", function(t)
+    local KCM = loader.loadWithSchema()
+    local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
+    local ctx = H.CreatePanel("KCMRegistryPanel", "Macro Bar", { panelKey = "macrobar" })
+    -- Only O.CreatePanel can put a ctx into the library's private registry, so
+    -- this is the assertion a host-built lookalike could not satisfy.
+    t.eq(UI.__panelFor("macrobar"), ctx, "the ctx is in the library's own registry")
+    -- panel.titleText is the one thing about the composed breadcrumb a test can
+    -- read back — a font string is write-only through the frame API. The host's
+    -- header recorded nothing, so this is coverage the addon never had.
+    t.eq(ctx.panel.titleText, "Ka0s Consumable Master |A:common-icon-forwardarrow:16:16|a Macro Bar",
+        "a sub-page composes the brand breadcrumb")
+    local main = H.CreatePanel("KCMAboutPanel", "Ka0s Consumable Master", { isMain = true })
+    t.eq(main.panel.titleText, "Ka0s Consumable Master",
+        "the About page opts out rather than reading the brand twice")
+    -- The addon's own render-state fields ride along on the library's ctx: they
+    -- back the two-tier refresh (structural rebuild vs in-place re-sync), which
+    -- the library has no model for.
+    t.eq(ctx._rendered, false, "the ctx still carries the addon's render state")
+    t.truthy(ctx.panelKey == "macrobar", "…and the addon's own key alongside the library's")
+end)
+
+test("Settings UI: ResetScroll reassigns the refresher list rather than wiping it", function(t)
+    local KCM = loader.loadWithSchema()
+    local H = KCM.Settings.Helpers
+    local ctx = H.CreatePanel("KCMResetPanel", "R", { panelKey = "r" })
+    local before = ctx.refreshers
+    before[#before + 1] = function() end
+    H.ResetScroll(ctx)
+    -- Load-bearing, and only observable here: RefreshScalars walks
+    -- ctx.refreshers THROUGH the ctx, so a wipe-in-place and a reassign are
+    -- indistinguishable from the outside except by identity. Reassigning is
+    -- what stops released widgets' closures piling up across re-renders.
+    t.falsy(ctx.refreshers == before, "a fresh table is installed")
+    t.eq(#ctx.refreshers, 0, "…and it starts empty")
+    t.eq(ctx.lastGroup, nil, "the section tracker resets with it")
+end)
+
 test("Settings UI: with the library absent no panel is registered, and it says why once",
     function(t)
         -- Loaded for real with libs/LibKa0s/ omitted, so settings/Panel.lua

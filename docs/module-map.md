@@ -133,12 +133,19 @@ modules/DebugLog.lua  The addon's half of LibKa0s-DebugLog-1.0: registers
                    when the library is absent.
 
 settings/         Settings UI framework + per-tab modules.
-├── Panel.lua            Helpers.CreatePanel (gold title + atlas divider),
-│                        always-visible scrollbar gutter, Section / Button /
-│                        ButtonPair / Label / RenderField builders. Owns
-│                        Settings.Schema + Helpers; publishes the KCM.Options
-│                        shim. About content is rendered here on the parent
-│                        canvas.
+├── Panel.lua            The addon's half of LibKa0s-Options-1.0. The chrome
+│                        is the library's — panel factory + header/breadcrumb,
+│                        the lazy Defaults button, the scroll container and the
+│                        always-visible scrollbar gutter, plus tooltip / spacer
+│                        / section / session-checkbox — reached through thin
+│                        Helpers.* forwarders onto Helpers.instance. The schema
+│                        half stays here: Settings.Schema, the Resolve →
+│                        SetAndRefresh write seam, Grid / Button / ButtonPair /
+│                        Label / RenderField, the two-tier refresh, and the
+│                        KCM.Options shim. The row widget MAKERS are
+│                        deliberately not the library's (LIBKA0S-04). About
+│                        content is rendered here on the parent canvas. With
+│                        LibKa0s absent no panel is registered at all.
 ├── General.lua          Enable checkbox + Debug-console button + Maintenance section.
 ├── StatPriority.lua     Spec selector + paired Primary / Secondary 1-4.
 └── Category.lua         One tab per Categories.LIST entry; dispatches to
@@ -325,7 +332,14 @@ KCM.Settings.Helpers.SetAndRefresh(path, value) -> bool  -- the mutation seam KC
 KCM.Settings.Helpers.RefreshAllPanels()   -- structural: re-render the shown page, flag the rest dirty
 KCM.Settings.Helpers.RefreshScalars()     -- scalar: re-sync widgets in place, no rebuild (options-ui-§11)
 
--- Panel-build helpers (called by per-tab modules)
+-- Panel-build helpers (called by per-tab modules). AttachTooltip / AddSpacer /
+-- CustomCheckbox / EnsureScroll / PatchAlwaysShowScrollbar / ResetScroll are
+-- forwarders onto Helpers.instance, the LibKa0s-Options-1.0 instance; Section
+-- and CreatePanel are wrappers that add what the library has no model for
+-- (the section tracker, the ctx's render state, the Defaults combat guard).
+-- Note KCM.Settings.Helpers.RefreshAllPanels is NOT the library's
+-- identically-named function — same name, different semantics.
+KCM.Settings.Helpers.instance                        -- the library instance
 KCM.Settings.Helpers.CreatePanel(name, title, opts) -> ctx
 KCM.Settings.Helpers.SetRenderer(ctx, fn)
 KCM.Settings.Helpers.ResetScroll(ctx)

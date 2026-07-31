@@ -52,7 +52,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | AceDB schema + opaque IDs + discovered GC | `core/ConsumableMaster.lua` (`KCM.dbDefaults`, `KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
 | MacroManager (body builders, composite assembly, combat deferral, action-bar icons) | `modules/MacroManager.lua` | [macro-manager.md](./macro-manager.md) |
 | Tooltip parsing + Midnight gotchas | `core/Classifier.lua`, `core/TooltipCache.lua` | [midnight-quirks.md](./midnight-quirks.md) |
-| Settings panel + slash CLI + schema layer | `settings/*.lua`, `core/SlashCommands.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
+| Settings panel + slash CLI + schema layer | `settings/*.lua`, `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
 | Debug console | `modules/DebugLog.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
