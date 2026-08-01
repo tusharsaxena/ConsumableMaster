@@ -272,6 +272,36 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 6. **Macro bar + a full macro pool:** with the bar on and the account macro pool full (see step 4 above), confirm slots whose macro doesn't exist yet render the fallback icon and don't error on click.
 7. **`/reload` mid-pending:** queue a combat-deferred macro write, then `/reload` before regen. The pending entry is lost (no SavedVariables for `pendingUpdates`); next event triggers a fresh recompute that re-queues if still in combat.
 
+## LibKa0s seam pass
+
+Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `modules/DebugLog.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behaviour — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
+
+The swap was designed to be pixel-identical, so **the pass is looking for "nothing changed"** — anything that looks different is the finding.
+
+1. **Chat tag.** Any `/cm` command. Every line still carries the cyan `[CM]` and nothing prints untagged.
+2. **Panel opens.** `/cm config` → the About page, with the sub-pages expanded in the AddOns sidebar. Header reads `Ka0s Consumable Master` alone, with the atlas divider under it.
+3. **Breadcrumb.** Click into any sub-page. Header reads `Ka0s Consumable Master › <Page>` with the arrow glyph, and the sidebar's own label stays unprefixed.
+4. **Defaults button.** Every page except About shows it top-right. It must be the **AceGUI** button, not Blizzard's red stone one — that's the AceGUI skinning race the lazy build exists to dodge, and it's the single most likely regression here. Confirm with a skinning addon loaded if you have one.
+5. **Defaults works, and refuses in combat.** Click it on the General page → settings reset. Pull a dummy and click it → the gray in-combat refusal, no reset.
+6. **Section spacing.** On the Macro Bar page (the most section-dense), the gap above each heading after the first should look the same as before. A missing 10px gap between sections is the specific regression the `Section` wrapper prevents.
+7. **Scrollbar always visible.** On a short page the gutter is still there with the thumb parked and inert; on a long one (a Category page with a full priority list) it scrolls, and the wheel works.
+8. **Live slider preview.** Macro Bar → drag the button-size or spacing slider. The bar must update **as you drag**, not on release. This is why the library's slider was declined.
+9. **Two-tier refresh.** Change a setting on one page, switch to another that shows the same value, and confirm it's current — then come back and confirm the first page didn't rebuild under you.
+10. **Debug console.** `/cm debug on` → console opens, header toggle reads green `Debug: ON`, and the `[Debug] logging enabled` + `[Init]` lines land in that order. Copy opens the copy box and `Ctrl+C` works; Clear empties it; the `N / 500 lines` counter tracks.
+11. **Console checkbox sync.** General → tick `Debug console` → window opens. Now close it with **Escape** and with the **×**, and re-open the General page: the checkbox must be unticked both times. Both paths bypass the checkbox's own setter, so this is the one thing only the visibility callback keeps honest.
+12. **Bare `/cm debug`** toggles the window only — logging stays on.
+
+### Degraded install (optional, ~2 minutes)
+
+Worth doing once, since it changed. Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` and `/reload`:
+
+- The addon still loads, macros still work, and `/cm list|get|set` still reads and writes every setting.
+- **Ka0s Consumable Master is absent from the AddOns list** — that is intended, not a bug.
+- `/cm config` prints one line naming the missing library, and says it exactly once no matter how many times you run it.
+- `/cm debug on` still arms logging and routes diagnostics to chat, with its own one-shot notice.
+
+Rename it back and `/reload`.
+
 ## Targeted by change area
 
 | Change area | Run sections |
@@ -288,6 +318,7 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
+| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Panel.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
