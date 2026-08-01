@@ -80,6 +80,26 @@ Two things worth knowing before you run one:
 
 Two buckets are instrumented: `cooldown` (`modules/MacroBar.lua`, `MB.RefreshCooldowns`) and `recompute` (`core/ConsumableMaster.lua`, `Pipeline.Recompute`). Both gate on `KCM.Perf.on` and cost two table lookups when idle. `Note()` records unconditionally, so an ungated bracket would accumulate outside any window and poison the next report — `tests/test_perfsetup.lua` pins the gates.
 
+`recompute` is usually **absent** from a report, and that is correct rather than broken: nothing triggers a recompute in a plain dummy fight. To make it appear, loot something during arm A.
+
+### The buckets and the delta answer different questions
+
+`deltaMsPerFrame` is **not** the sum of the buckets, and it is not meant to be. Reconcile them before drawing a conclusion from either.
+
+The **buckets measure Lua**, bracketed at named call sites. The **delta measures everything** — because `suspend()` unregisters every event *and* hides the macro bar, so arm B is missing the addon's Lua **and its thirteen rendered buttons**. Frame drawing is not Lua, so no bucket can ever see it, yet it lands squarely in the delta. That is a real cost of running the addon; it is just not one you can optimise in code, and it is not attributable to any bracket.
+
+A gap between the two is therefore expected. A *large* gap usually means the environment, not the addon. The first in-game capture (2026-08-01, v1.5.0) is the worked example:
+
+| | |
+|---|---|
+| reported delta | +0.41 ms/frame (≈ 56 ms/s) |
+| `cooldown` bucket | 0.80 ms/s — 0.0059 ms/frame, 502 calls, 0.065 ms mean |
+| ratio | ~70× |
+
+Two 40-second fights minutes apart in Silvermoon City, with frame counts 40 apart per second (5529 vs 5951). City population and ambient draw load swing more than the 6% fps difference on their own, so almost all of that delta is venue, not addon.
+
+**So: trust the buckets for "what does this addon's code cost" — the answer is ~0.08% of wall time — and treat the delta as an upper bound that includes rendering and noise.** For a delta worth quoting, capture in an empty zone, back to back, and repeat it; if the number does not fall toward the buckets, the bar's draw cost is the remainder.
+
 Captures persist in their own SavedVariables global, `ConsumableMasterPerfDB` (a ring of the last 10), separate from `ConsumableMasterDB`. They flush on `/reload` or logout like any SavedVariables.
 
 ## Force a resync
