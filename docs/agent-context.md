@@ -51,19 +51,21 @@ Full catalog lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## LibKa0s
 
-The addon vendors [LibKa0s](https://github.com/tusharsaxena/LibKa0s) whole-folder in `libs/LibKa0s/` and loads it through the library's own packaged XML. Three majors are adopted, each by the same pattern: one host **setup file** resolves what only the addon can know, builds ONE instance via `lib:New(descriptor)`, publishes the addon's existing **flat, dot-callable** names as thin forwarders onto that instance, publishes the instance itself as `.instance` for identity assertions, and carries a degradation stub for a missing library.
+The addon vendors [LibKa0s](https://github.com/tusharsaxena/LibKa0s) whole-folder in `libs/LibKa0s/` and loads it through the library's own packaged XML. All five majors are adopted, each by the same pattern: one host **setup file** resolves what only the addon can know, builds ONE instance via `lib:New(descriptor)`, publishes the addon's existing **flat, dot-callable** names as thin forwarders onto that instance, publishes the instance itself as `.instance` for identity assertions, and carries a degradation stub for a missing library.
 
 | Major | Host half | What the addon keeps |
 |---|---|---|
 | `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on |
 | `DebugLog-1.0` | `modules/DebugLog.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
-| `Options-1.0` | `settings/Panel.lua` | the whole schema half, the row widget makers, the two-tier refresh, the page registry |
+| `Slash-1.0` | `core/SlashCommands.lua` | the `COMMANDS` / `DUMP_TARGETS` / `*_COMMANDS` tables (passed in, never owned), the `STRINGS` overrides that keep this addon's shipped wording, the `KCM_CONFIRM_RESET` popup |
+| `Options-1.0` | `settings/Panel.lua` | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order and the `KCM.Options` shim |
+| `Perf-1.0` | `modules/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, the three sinks and the `suspend`/`resume` pair |
 
 Three rules that are load-bearing rather than stylistic:
 
 1. **Never bind a printer or a prefix by value.** Every `lib:New` snapshots its descriptor once, so a captured `KCM.Say` freezes the load-time function object and every later swap — including the suite's — goes unseen. Pass a thunk.
 2. **A degradation stub's OMISSIONS are its contract.** `modules/DebugLog.lua` publishes no `AddLine` precisely because that is what re-arms `core/Debug.lua`'s chat fallback; a no-op would swallow every diagnostic while the addon looked healthy. `settings/Panel.lua` registers no Blizzard category at all, because one that opened onto an empty canvas would leave the user unable to tell a broken install from a broken addon. `KCM.LIBKA0S_MISSING` (set in `core/CoreSetup.lua`) is the one shared cause clause; each seam appends only its own "so *what* is unavailable".
-3. **Adoption is per-part, and declining is normal.** Where the library disagrees with the addon it is recorded in [pending/LEDGER.md](./pending/LEDGER.md) as a `LIBKA0S-*` row rather than worked around or silently taken — the slash dispatcher, the options row makers and the options page registry are all declined today, each for a reason written down. Never patch the vendored copy: a fix belongs upstream, then re-vendored (the `core/LSMPatch.lua` precedent — third-party fixups live in `core/`, not in `libs/`).
+3. **Adoption is per-part, and declining is normal.** Where the library disagrees with the addon it is recorded in [pending/LEDGER.md](./pending/LEDGER.md) as a `LIBKA0S-*` row rather than worked around or silently taken. The three long-running declines — the slash dispatcher (LIBKA0S-01), the options row makers (LIBKA0S-04) and the options page registry (LIBKA0S-05) — have all since been adopted, two of them only after the blockers were fixed upstream and re-vendored; what is still declined is `Sl:CliResetAll` (LIBKA0S-12), because this addon's global reset also wipes `categories` and `statPriority`, which the schema does not describe. Never patch the vendored copy: a fix belongs upstream, then re-vendored (the `core/LSMPatch.lua` precedent — third-party fixups live in `core/`, not in `libs/`).
 
 ## Debug console
 
@@ -138,7 +140,7 @@ Topic-specific detail lives in `docs/`. Read on demand — these are not auto-lo
 | Recompute pipeline + score cache + events | [pipeline.md](./pipeline.md) | Touching event handling, performance. |
 | AceDB schema + opaque IDs + composites + GC | [data-model.md](./data-model.md) | Adding a category, persistent state changes. |
 | MacroManager — body builders, composite assembly, flush retry, icons | [macro-manager.md](./macro-manager.md) | Anything touching macro writes. |
-| Headless gate — tests + luacheck, toolchain, TDD policy, badge sync | [testing.md](./testing.md) | Before every commit; setting up a fresh checkout. |
+| Headless gate — tests + luacheck, the vendored-LibKa0s copy diff, toolchain, TDD policy, badge sync | [testing.md](./testing.md) | Before every commit; after every re-vendor; setting up a fresh checkout. |
 | Smoke tests (quick + full suite + targeted-by-change-area lookup) | [smoke-tests.md](./smoke-tests.md) | After any code change; before any release. |
 | Test-case inventory (generated — authoritative count) | [test-cases.md](./test-cases.md) | Checking coverage; regenerate after any suite change. |
 | Optional macro bar (secure slots, layout, combat contract) | [macro-bar.md](./macro-bar.md) | Touching the macro bar, its settings page, or anything protected-frame shaped. |

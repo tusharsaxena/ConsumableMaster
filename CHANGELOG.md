@@ -9,6 +9,19 @@ summary. What lands here is the detail a release row is too short to carry.
 
 ## Unreleased
 
+### Changed
+
+- **The slash-command list on the settings About page is spaced slightly
+  differently.** The command and its description are now separated by a single
+  space either side of the dash instead of two, the dash itself is no longer
+  white, and the description is. Nothing was added or removed from the list.
+
+  The reason is that the About page and `/cm help` were drawing the same list
+  through two different bits of code, so a change to one of them silently
+  stopped matching the other. They now share one, which is also what the other
+  Ka0s addons' command lists look like. Recorded as LIBKA0S-13 in
+  `docs/pending/LEDGER.md`.
+
 ### Breaking
 
 - **`/cm reset` no longer wipes everything. It now resets ONE setting, and the

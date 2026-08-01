@@ -52,7 +52,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | AceDB schema + opaque IDs + discovered GC | `core/ConsumableMaster.lua` (`KCM.dbDefaults`, `KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
 | MacroManager (body builders, composite assembly, combat deferral, action-bar icons) | `modules/MacroManager.lua` | [macro-manager.md](./macro-manager.md) |
 | Tooltip parsing + Midnight gotchas | `core/Classifier.lua`, `core/TooltipCache.lua` | [midnight-quirks.md](./midnight-quirks.md) |
-| Settings panel + slash CLI + schema layer | `settings/*.lua`, `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
+| Settings panel + slash CLI + schema layer | `settings/*.lua`, `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua`, `libs/LibKa0s/Slash.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
 | Debug console | `modules/DebugLog.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
@@ -60,7 +60,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
-| Headless gate (tests + luacheck, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
+| Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
 | Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 
@@ -112,14 +112,15 @@ All vendored under `libs/`:
 - AceGUI-3.0
 - LibSharedMedia-3.0 (debug-console monospace font registration; also the media source behind the macro bar's border pickers)
 - AceGUI-3.0-SharedMediaWidgets (the `LSM30_Border` preview dropdown used by those pickers; `core/LSMPatch.lua` fixes up its misaligned preview tile)
+- LibKa0s — the Ka0s-owned shared modules, vendored whole-folder from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. All five majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows and schema CLI), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture). Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
 
-The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, and the Ace3 sub-libraries in dependency order) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120007`.
+The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, the Ace3 sub-libraries in dependency order, and LibKa0s last) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120007`.
 
 ## Load order
 
 `ConsumableMaster.toc` is the source of truth. Order is dependency, not alphabetical:
 
-1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, and the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), listed directly in the TOC
+1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), AceGUI-3.0-SharedMediaWidgets, then LibKa0s last, listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
 3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`
 4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`

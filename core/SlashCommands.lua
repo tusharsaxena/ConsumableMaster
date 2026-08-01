@@ -1371,12 +1371,41 @@ end
 -- Read-only view of the COMMANDS table for the About panel. Each row is
 -- {name, summary} — same data the in-chat help table uses, so the panel and
 -- /cm help stay in lock-step automatically.
+--
+-- Kept for callers that want the DATA. What the About panel wants is the
+-- rendered line, and that is GetLandingRows below.
 function KCM.SlashCommands.GetCommandSummary()
     local out = {}
     for i, entry in ipairs(COMMANDS) do
         out[i] = { name = entry[1], desc = entry[2] }
     end
     return out
+end
+
+-- The About panel's command rows, RENDERED -- convergence #2 (LIBKA0S-13).
+--
+-- The panel used to format these itself, with two spaces either side of the em
+-- dash, the dash white-wrapped and the description bare, while the chat half
+-- had already moved to lib.FormatRow. Two formatters for one table of data
+-- inside one addon is exactly the drift the convergence exists to collapse --
+-- and it survived this long because the panel reaches its rows through THIS
+-- file rather than by naming COMMANDS, so a grep for the obvious name never
+-- saw it.
+--
+-- It sits behind this function rather than settings/Panel.lua calling Sl
+-- directly: the panel talks to this module, this module talks to the library.
+-- That is the seam the rest of the addon already uses, and it keeps the About
+-- page free of a LibKa0s lookup of its own -- which is what the note above
+-- lib:New asks for.
+--
+-- Empty rather than a host-formatted fallback when the library is absent: with
+-- LibKa0s missing the settings panel is not registered at all
+-- (settings/Panel.lua, registerPanel), so there is no About page to render into
+-- and a second formatter kept alive "just in case" would be the divergence
+-- coming straight back.
+function KCM.SlashCommands.GetLandingRows()
+    if not Sl then return {} end
+    return Sl:LandingRows()
 end
 
 function KCM:OnSlashCommand(msg)

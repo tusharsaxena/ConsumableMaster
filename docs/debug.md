@@ -110,13 +110,14 @@ Captures persist in their own SavedVariables global, `ConsumableMasterPerfDB` (a
 
 ## Schema-driven slash UX (KickCD parity)
 
-Scalar settings live as rows in `KCM.Settings.Schema` (declared in `settings/Panel.lua`). Each row drives both the General-panel widget (rendered by `Helpers.RenderField` in `settings/General.lua`) AND the slash CLI:
+Scalar settings live as rows in `KCM.Settings.Schema` (the array is created in `settings/Panel.lua`; the page files append to it). Each row drives both its panel widget (rendered by `Helpers.RenderField`) AND the slash CLI. The four verbs are `LibKa0s-Slash-1.0`'s, reading this addon's rows through the descriptor's `get` / `set` / `findRow` / `allRows` hooks:
 
 | Slash | Effect |
 |-------|--------|
 | `/cm list` | Every schema row, grouped by panel, with current value. |
 | `/cm get <path>` | Single-row read (e.g. `/cm get enabled`). |
 | `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. |
+| `/cm reset <path>` | ONE row back to its `default`. Not the global wipe — that is `/cm resetall`, which keeps the host body and its confirm popup (LIBKA0S-12). |
 
 `KCM.Schema:Set(path, value)` is the unified validate → write → onChange → refresh seam — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row. Row shape:
 
@@ -131,7 +132,7 @@ Schema[#Schema + 1] = {
 }
 ```
 
-`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. Only one row is wired today: `general.enabled` (master toggle; `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately). Debug is **not** a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug`.
+`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. Fifty-four rows are wired today: the fifty-three `macroBar.*` rows registered by `settings/MacroBar.lua`, and `general.enabled` (master toggle; `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately). Debug is **not** a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug`.
 
 ## List-shaped state — verb namespaces
 

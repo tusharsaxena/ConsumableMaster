@@ -18,7 +18,7 @@ This applies to both new work and anything you discover in passing.
 core/       namespace bootstrap, AceAddon entry, bus, compat, constants, state,
             DB, pipeline, the pure engine modules (SpecHelper → Classifier), and
             the macro bar's pure halves (MacroDisplay, MacroBarModel/Layout)
-modules/    Ranker, Selector, MacroManager, DebugLog,
+modules/    Ranker, Selector, MacroManager, DebugLog, PerfSetup,
             MacroBar(+Button, +Flyout), KCM* AceGUI widgets
 defaults/   seed itemID lists + category table (data, not code)
 settings/   options panel + per-tab pages
@@ -34,7 +34,7 @@ lua5.1 tests/run.lua    # headless test harness
 luacheck .              # lint
 ```
 
-Both must be green before committing. Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
+Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
 **Static badges (Hard rule).** The README `[WoW]` and `[Tests]` badges are static and go stale silently — update each in the same change that moves its source. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate (`lua5.1 tests/run.lua --list > docs/test-cases.md`) and bump the `Tests-<X>/<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: both MUST show the same number and move together on every patch bump. Never defer to a follow-up. Details: [docs/agent-context.md](./docs/agent-context.md#keeping-the-inventory--badge-in-sync).
 

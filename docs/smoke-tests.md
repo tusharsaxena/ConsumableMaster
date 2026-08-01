@@ -275,7 +275,7 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 
 ## LibKa0s seam pass
 
-Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `modules/DebugLog.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behaviour — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
+Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `modules/DebugLog.lua`, `core/SlashCommands.lua`, `modules/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behaviour — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
 
 The swap was designed to be pixel-identical, so **the pass is looking for "nothing changed"** — anything that looks different is the finding.
 
@@ -286,12 +286,14 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 5. **Defaults works, and refuses in combat.** Click it on the General page → settings reset. Pull a dummy and click it → the gray in-combat refusal, no reset.
 6. **Section spacing.** On the Macro Bar page (the most section-dense), the gap above each heading after the first should look the same as before. A missing 10px gap between sections is the specific regression the `Section` wrapper prevents.
 7. **Scrollbar always visible.** On a short page the gutter is still there with the thumb parked and inert; on a long one (a Category page with a full priority list) it scrolls, and the wheel works.
-8. **Live slider preview.** Macro Bar → drag the button-size or spacing slider. The bar must update **as you drag**, not on release. This is why the library's slider was declined.
+8. **Live slider preview.** Macro Bar → drag the button-size or spacing slider. The bar must update **as you drag**, not on release. The library's slider commits on release by default; `sliderCommit = "change"` in the descriptor is what buys this back, so it is the first thing to check after a re-vendor.
 9. **Two-tier refresh.** Change a setting on one page, switch to another that shows the same value, and confirm it's current — then come back and confirm the first page didn't rebuild under you.
 10. **Debug console.** `/cm debug on` → console opens, header toggle reads green `Debug: ON`, and the `[Debug] logging enabled` + `[Init]` lines land in that order. Copy opens the copy box and `Ctrl+C` works; Clear empties it; the `N / 500 lines` counter tracks.
 11. **Console checkbox sync.** General → tick `Debug console` → window opens. Now close it with **Escape** and with the **×**, and re-open the General page: the checkbox must be unticked both times. Both paths bypass the checkbox's own setter, so this is the one thing only the visibility callback keeps honest.
 12. **Bare `/cm debug`** toggles the window only — logging stays on.
 13. **Nothing renders a raw locale key.** Walk every sub-page of `/cm config`, then the debug console and `/cm perf`. Every label, tooltip title, section heading, button and perf step name reads as **English prose**. A `SCREAMING_SNAKE_CASE` string on screen — `STEP_START`, `PANEL_TITLE_SUFFIX`, `LIST_HEADER` — is the `L` trap: a descriptor was handed `KCM.L`, whose metatable answers every key with the key, so the library's own strings became unreachable. It fails for every key in that module at once, so one sighting means dozens. The one legitimate override here is `core/SlashCommands.lua`'s `L = SLASH_STRINGS`, a plain table of seven literals — never `KCM.L` itself. `tests/test_coresetup.lua` and the per-module suites guard the source; this is the only check that sees what actually rendered. (KickCD shipped this bug once — see `../LibKa0s/docs/adoption-prompt.md`, "The `L` trap".)
+14. **The Settings window's own footer Defaults control.** Not the header button in step 4 — Blizzard's, at the bottom of the Settings frame, one control for whatever page is open. With General open, click it → the page's defaults action fires, same as the header button. With **About** open, click it → nothing happens and **nothing errors**. The addon never wired this; it arrived with Options minor 5 stamping `OnCommit` / `OnRefresh` / `OnDefault` in `CreatePanel`, and losing it again would be invisible from the header button alone.
+15. **The About page's command list matches `/cm help`.** `/cm config` → About, then `/cm help` in chat. Every row reads the same, one space either side of the em dash, the command gold and the description white — the two lists are one string built by one formatter (LIBKA0S-13). A row that appears in one and not the other, or a different dash spacing between them, means the panel grew a formatter of its own again.
 
 ### Perf harness (`/cm perf`)
 

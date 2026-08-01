@@ -501,10 +501,14 @@ whenever the suite changes.
 - Selector: ListAvailable on a composite honors disabled components
 - Selector: ListAvailable returns an empty list for an unknown category
 
-### test_settingsui.lua (8)
+### test_settingsui.lua (12)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
+- Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L
+- Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh
+- Settings UI: OnDefault reaches a defaultsOnClick parked after the panel is built
+- Settings UI: a page with no defaults action still has a callable, inert OnDefault
 - Settings UI: the scroll container comes from the library
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
@@ -583,12 +587,13 @@ whenever the suite changes.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slashsetup.lua (9)
+### test_slashsetup.lua (10)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
 - Slash: the library reads the addon's live COMMANDS table, not a copy
 - Slash: help rows are rendered by the library's own formatter
+- Slash: the About panel's rows go through the SAME formatter, un-indented
 - Slash: the addon's own shipped wording survives the library's strings
 - Slash: every rendered string resolves to prose, not to its own key
 - Slash: a bare /cm get answers with its usage line rather than raising
@@ -677,11 +682,11 @@ whenever the suite changes.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 36 |
-| test_settingsui.lua | 8 |
+| test_settingsui.lua | 12 |
 | test_slash.lua | 68 |
-| test_slashsetup.lua | 9 |
+| test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **554** |
+| **Total** | **559** |

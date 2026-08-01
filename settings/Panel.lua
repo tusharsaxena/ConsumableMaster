@@ -715,13 +715,18 @@ function Helpers.BuildAboutContent(ctx)
 
     addSpacer(scroll, 6)
 
-    local rows = (KCM.SlashCommands and KCM.SlashCommands.GetCommandSummary)
-        and KCM.SlashCommands.GetCommandSummary() or {}
-    for _, entry in ipairs(rows) do
+    -- Convergence #2 (LIBKA0S-13): one row formatter for the whole addon. These
+    -- lines come back already rendered by lib.FormatRow, the same function
+    -- /cm help's rows go through -- so the panel and the chat cannot drift
+    -- apart again by an edit to one of them. The visible cost is the one every
+    -- other adopter paid: the spacing either side of the em dash halves, the
+    -- dash loses its white colour span, and the description gains one.
+    local rows = (KCM.SlashCommands and KCM.SlashCommands.GetLandingRows)
+        and KCM.SlashCommands.GetLandingRows() or {}
+    for _, line in ipairs(rows) do
         local row = AceGUI:Create("Label")
         row:SetFullWidth(true)
-        row:SetText(("|cffffff00/cm %s|r  |cffffffff—|r  %s")
-            :format(entry.name or entry[1] or "", entry.desc or entry[2] or ""))
+        row:SetText(line)
         if row.label and row.label.SetJustifyH then
             row.label:SetJustifyH("LEFT")
         end

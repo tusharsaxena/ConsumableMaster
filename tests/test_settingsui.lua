@@ -37,6 +37,83 @@ test("Settings UI: the published instance carries all three of the major's files
     t.truthy(UI.PatchAlwaysShowScrollbar, "the scroll patch attached")
 end)
 
+test("Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L", function(t)
+    -- The L trap, for the one adopted major that cannot express it in the way
+    -- Core cannot. NOT Core's tripwire copied across: Options.lua ships a
+    -- lib.STRINGS table of its own, so asserting that table is absent would
+    -- fail against a module behaving exactly as designed. The half that
+    -- transfers is the source half — Options resolves its user-visible strings
+    -- from lib.STRINGS with no descriptor override path anywhere in the three
+    -- files, so there is nothing for a key-echoing locale table to shadow.
+    --
+    -- `local L = lib.LAYOUT` at the top of Options.lua is GEOMETRY. The layout
+    -- assertion below keeps that distinction pinned against a rename.
+    --
+    -- red under: adding a `d.L` read to any of the three files.
+    loader.loadWithSchema()
+    local lib = LibStub("LibKa0s-Options-1.0")
+    t.truthy(lib, "the vendored Options major must be registered")
+    t.eq(type(rawget(lib, "STRINGS")), "table",
+        "Options owning its strings is why this tripwire is shaped unlike Core's")
+    t.eq(type(rawget(lib, "LAYOUT")), "table",
+        "and `L` inside Options.lua is this geometry table, not a locale one")
+
+    for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsScroll.lua" }) do
+        local fh = assert(io.open("libs/LibKa0s/" .. rel, "r"),
+            "cannot open libs/LibKa0s/" .. rel .. " (tests run from the repo root)")
+        local src = fh:read("*a")
+        fh:close()
+        t.falsy(src:find("d.L", 1, true),
+            rel .. " now reads a descriptor L — this major can express the trap now, so every "
+            .. "host descriptor needs a rendered assertion and this tripwire needs replacing")
+    end
+end)
+
+-- ── the Blizzard canvas contract (Options minor 5) ─────────────────────────
+--
+-- Blizzard's Settings window calls OnCommit on apply, OnRefresh on re-show and
+-- OnDefault from its own FOOTER defaults control — a different widget from the
+-- header Defaults button this addon builds, and not per-page. LibKa0s stamps
+-- all three in CreatePanel as of minor 5, so this addon gained a working footer
+-- control from a re-vendor without a line of its own changing. Nothing here
+-- would notice losing it again: the header button keeps working and looks
+-- equivalent to the user.
+--
+-- rawget throughout, because the frame mock synthesises a no-op for any
+-- PascalCase key — `type(panel.OnDefault) == "function"` is true whether or not
+-- anything ever set it.
+
+test("Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh", function(t)
+    local KCM = loader.loadWithSchema()
+    local ctx = KCM.Settings.Helpers.CreatePanel("KCMCanvasPanel1", "C1", { panelKey = "c1" })
+    t.eq(type(rawget(ctx.panel, "OnCommit")),  "function", "OnCommit")
+    t.eq(type(rawget(ctx.panel, "OnDefault")), "function", "OnDefault")
+    t.eq(type(rawget(ctx.panel, "OnRefresh")), "function", "OnRefresh")
+end)
+
+test("Settings UI: OnDefault reaches a defaultsOnClick parked after the panel is built", function(t)
+    -- settings/Panel.lua parks its handler after CreatePanel returns, because
+    -- the Defaults button does not exist until first OnShow. A re-vendor that
+    -- turned the library's forwarder back into an assignment would capture nil
+    -- while looking correct, and only the footer control would show it — in
+    -- game.
+    local KCM = loader.loadWithSchema()
+    local ctx = KCM.Settings.Helpers.CreatePanel("KCMCanvasPanel2", "C2", { panelKey = "c2" })
+    local ran = 0
+    ctx.panel.defaultsOnClick = function() ran = ran + 1 end
+    rawget(ctx.panel, "OnDefault")()
+    t.eq(ran, 1, "the footer control must reach the page's parked defaults action")
+end)
+
+test("Settings UI: a page with no defaults action still has a callable, inert OnDefault", function(t)
+    -- The About page. The footer control is not per-page, so it can be clicked
+    -- while a page that manages nothing is open.
+    local KCM = loader.loadWithSchema()
+    local ctx = KCM.Settings.Helpers.CreatePanel("KCMCanvasPanel3", "C3", { isMain = true })
+    t.falsy(rawget(ctx.panel, "defaultsOnClick"))
+    rawget(ctx.panel, "OnDefault")()   -- must not raise
+end)
+
 test("Settings UI: the scroll container comes from the library", function(t)
     local KCM = loader.loadWithSchema()
     local H = KCM.Settings.Helpers

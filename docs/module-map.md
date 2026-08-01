@@ -151,23 +151,36 @@ settings/         Settings UI framework + per-tab modules.
 │                        Helpers.* forwarders onto Helpers.instance. The schema
 │                        half stays here: Settings.Schema, the Resolve →
 │                        SetAndRefresh write seam, Grid / Button / ButtonPair /
-│                        Label / RenderField, the two-tier refresh, and the
-│                        KCM.Options shim. The row widget MAKERS are
-│                        deliberately not the library's (LIBKA0S-04). About
-│                        content is rendered here on the parent canvas. With
-│                        LibKa0s absent no panel is registered at all.
+│                        Label, EnumValues / LSMValues, the page order and the
+│                        KCM.Options shim. RenderField, the four row widget
+│                        MAKERS, SetRenderer and both refresh tiers are the
+│                        library's, since LIBKA0S-04/-05 were fixed upstream
+│                        and adopted. CreatePanel also stamps the Blizzard
+│                        canvas callbacks (OnCommit / OnRefresh / OnDefault),
+│                        which is what makes the Settings window's own FOOTER
+│                        Defaults control work. About content is rendered here
+│                        on the parent canvas, with the command rows coming
+│                        back already formatted by the Slash major
+│                        (LIBKA0S-13). With LibKa0s absent no panel is
+│                        registered at all.
 ├── General.lua          Enable checkbox + Debug-console button + Maintenance section.
 ├── StatPriority.lua     Spec selector + paired Primary / Secondary 1-4.
 └── Category.lua         One tab per Categories.LIST entry; dispatches to
                           single (Add-by-ID + Priority list) or composite
                           (In Combat / Out of Combat) rendering.
 
-core/SlashCommands.lua  /cm (and /consumablemaster alias) dispatcher. Three
-                   ordered tables: COMMANDS, DUMP_TARGETS, and the
-                   *_COMMANDS verb namespaces. The file-local say is an alias
-                   of the shared seam (local say = KCM.Say), so every slash
-                   line inherits the [CM] tag and secret-safe stringification.
-                   Detail in debug.md.
+core/SlashCommands.lua  /cm (and /consumablemaster alias) dispatcher, and the
+                   addon's half of LibKa0s-Slash-1.0: the routing, the help
+                   header and rows, the version verb and the schema CLI
+                   (list / get / set / reset) are the library's, driven by the
+                   addon's own ordered tables — COMMANDS, DUMP_TARGETS, and the
+                   *_COMMANDS verb namespaces — which are PASSED IN, not owned.
+                   The file-local say is an alias of the shared seam
+                   (local say = KCM.Say), so every slash line inherits the [CM]
+                   tag and secret-safe stringification. GetLandingRows() hands
+                   the About panel the SAME rendered rows /cm help prints, so
+                   the two cannot drift apart; GetCommandSummary() is the
+                   unrendered data view. Detail in debug.md.
 
 modules/KCM*.lua  AceGUI custom widgets. Loaded before settings/ so that
                   AceGUI:Create("KCM…") works at panel render time.
@@ -343,12 +356,14 @@ KCM.Settings.Helpers.RefreshAllPanels()   -- structural: re-render the shown pag
 KCM.Settings.Helpers.RefreshScalars()     -- scalar: re-sync widgets in place, no rebuild (options-ui-§11)
 
 -- Panel-build helpers (called by per-tab modules). AttachTooltip / AddSpacer /
--- CustomCheckbox / EnsureScroll / PatchAlwaysShowScrollbar / ResetScroll are
+-- CustomCheckbox / EnsureScroll / PatchAlwaysShowScrollbar / ResetScroll /
+-- RenderField / SetRenderer / RefreshAllPanels / RefreshScalars are
 -- forwarders onto Helpers.instance, the LibKa0s-Options-1.0 instance; Section
 -- and CreatePanel are wrappers that add what the library has no model for
 -- (the section tracker, the ctx's render state, the Defaults combat guard).
--- Note KCM.Settings.Helpers.RefreshAllPanels is NOT the library's
--- identically-named function — same name, different semantics.
+-- RefreshAllPanels used to be a same-name-opposite-meaning trap; the library
+-- grew the two-tier split in Options minor 3 (LIBKA0S-05) and the semantics
+-- now match, which is why both are plain forwarders.
 KCM.Settings.Helpers.instance                        -- the library instance
 KCM.Settings.Helpers.CreatePanel(name, title, opts) -> ctx
 KCM.Settings.Helpers.SetRenderer(ctx, fn)

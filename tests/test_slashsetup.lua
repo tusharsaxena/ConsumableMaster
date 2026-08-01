@@ -59,6 +59,27 @@ test("Slash: help rows are rendered by the library's own formatter", function(t)
         "the first help row is lib.FormatRow's output, indented")
 end)
 
+test("Slash: the About panel's rows go through the SAME formatter, un-indented", function(t)
+    -- Convergence #2 (LIBKA0S-13). The case above pinned the chat half from the
+    -- day of the adoption; the panel half kept its own format string for
+    -- another release, because settings/Panel.lua reaches these rows through
+    -- GetLandingRows rather than by naming COMMANDS, so nothing that grepped
+    -- for the obvious name ever saw the second formatter. This is the other
+    -- half of that pin: two formatters for one table cannot come back without
+    -- a red case.
+    local KCM = load()
+    local lib = LibStub("LibKa0s-Slash-1.0")
+    local rows = KCM.SlashCommands.GetLandingRows()
+    t.eq(#rows, #KCM.COMMANDS, "one rendered row per command")
+    local first = KCM.COMMANDS[1]
+    t.eq(rows[1], lib.FormatRow("/cm " .. first[1], first[2]),
+        "the panel row is lib.FormatRow's output with no indent")
+    -- ...and the two halves differ ONLY by the chat indent, which is exactly
+    -- what the convergence claims.
+    t.eq("  " .. rows[1], KCM.SlashCommands.instance:HelpRows()[1],
+        "chat and panel render one string, differing only by the leading indent")
+end)
+
 test("Slash: the addon's own shipped wording survives the library's strings", function(t)
     local KCM, mock = load()
     -- The regression guard on the L override. Drop that table and three
