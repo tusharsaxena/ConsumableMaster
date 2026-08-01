@@ -125,6 +125,13 @@ end
 -- Render the docs/test-cases.md body from the registered cases, grouped by
 -- suite file. Format mirrors the Ka0s fleet runner so every addon's inventory
 -- reads alike. Suites appear in first-seen order; cases keep registration order.
+--
+-- CRLF-terminated HERE rather than left to a `| sed 's/$/\r/'` on the command
+-- line: .gitattributes pins `*.md text eol=crlf`, a plain redirect writes LF,
+-- and the file then sits in the working tree on the wrong side of the policy
+-- while `git status` stays clean — which is invisible until a byte-level diff
+-- somewhere else has to explain itself. tests/_kit/framework.lua's own
+-- renderer carries the same note; this one had drifted from it.
 function H.formatInventory(tests)
     local order, byFile = {}, {}
     for _, tc in ipairs(tests or {}) do
@@ -161,7 +168,7 @@ function H.formatInventory(tests)
     end
     line(string.format("| **Total** | **%d** |", total))
     line("")
-    return table.concat(out, "\n")
+    return table.concat(out, "\r\n")
 end
 
 return H
