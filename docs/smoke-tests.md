@@ -220,7 +220,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 5. `/cm debug` — toggles debug; UI checkbox flips to match.
 6. `/cm resync` / `/cm rewritemacros` / `/cm resetall` — covered in section 7. Also: a bare `/cm reset` prints the usage line naming `/cm resetall` and raises no popup; `/cm reset macroBar.orientation` echoes the row and moves nothing else.
 7. `/cm list` — schema rows grouped by panel: `enabled` under `[general]`, then the whole `macroBar.*` set under `[macrobar]`. (`debug` is deliberately absent — it's session-only `KCM.State`, never a schema row.)
-8. `/cm get enabled` / `/cm get debug` — single-row read.
+8. `/cm get enabled` / `/cm get macroBar.orientation` — single-row read.
 9. `/cm set enabled false` — toggles off via CLI; UI checkbox flips. Type validation: `/cm set enabled banana` should reject with "expected true/false/on/off/1/0".
 10. `/cm priority hp_pot list` — prints the effective priority for HP_POT.
 11. `/cm priority hp_pot add 12345` — adds itemID 12345 (rejects unknown). `/cm priority hp_pot remove 12345` — removes (and blocks). `/cm priority hp_pot up 12345` / `down` — reorders. `/cm priority hp_pot reset` — wipes added/blocked/pins for the category.
