@@ -85,7 +85,8 @@ Each tab module registers a builder via `KCM.Settings.RegisterTab(key, builder)`
 
 ## Top-level docs
 
-- `README.md` — user-facing.
+- `README.md` — user-facing. Its Version History table is still the per-release summary.
+- `CHANGELOG.md` — user-facing, and deliberately not a duplicate of that table: it starts at the `/cm reset` → `/cm resetall` break (LIBKA0S-12) and carries only the detail a one-line release row cannot.
 - `CLAUDE.md` — stub (standard link + layout + gate + pointer into `docs/`).
 - `docs/agent-context.md` — engineer working notes (hard rules + response style + doc index).
 - `docs/ARCHITECTURE.md` — design overview + invariants + message-bus catalog + doc index.

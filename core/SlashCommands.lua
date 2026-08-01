@@ -35,10 +35,16 @@ local function addonVersion()
     return KCM.VERSION or "?"
 end
 
--- Shared confirmation popup for /cm reset. preferredIndex = 3 dodges the
+-- Shared confirmation popup for /cm resetall. preferredIndex = 3 dodges the
 -- taint cascade that affects popup slots 1/2 when other addons have used
 -- them earlier in the session (a well-known Ace3 footgun around any
 -- StaticPopup that mutates SavedVariables).
+--
+-- It hangs off the global StaticPopupDialogs at file scope and is reached by
+-- name through StaticPopup_Show, so which VERB raises it is the only thing
+-- that ever moved: `/cm reset` used to, `/cm resetall` does now (LIBKA0S-12).
+-- The dialog, its wording and its body are untouched by that swap — the
+-- destructive path keeps the confirmation it has always had.
 StaticPopupDialogs["KCM_CONFIRM_RESET"] = {
     -- Same wording as the Options panel's KCM_RESET_ALL so both global-reset
     -- entry points describe identical scope (they share KCM.ResetAllToDefaults).
@@ -46,7 +52,7 @@ StaticPopupDialogs["KCM_CONFIRM_RESET"] = {
     button1 = YES,
     button2 = NO,
     OnAccept = function()
-        if KCM.ResetAllToDefaults and KCM.ResetAllToDefaults("slash_reset") then
+        if KCM.ResetAllToDefaults and KCM.ResetAllToDefaults("slash_resetall") then
             say("Reset complete — defaults restored.")
         else
             say("Reset failed (DB not ready).")
@@ -551,7 +557,7 @@ local function helpers()
 end
 
 -- Bound at the foot of this file, once the Slash instance exists.
-local cliList, cliGet, cliSet
+local cliList, cliGet, cliSet, cliReset
 
 -- Shared, type-aware, unit-annotated value formatter (slash-commands-§5). The
 -- single source of truth for both `/cm list` rows and the `get`/`set` echo, so
@@ -1196,7 +1202,15 @@ local COMMANDS = {
                 say("rewrote all macros (body + icon). If action bar icons still look stale, /reload to force the bars to refresh.")
             end
         end},
-    {"reset",         "Reset all priority lists and stat overrides to defaults",
+    -- BREAKING, 2026-08-01 (LIBKA0S-12). `reset` used to be this pair's second
+    -- entry — the confirm-gated global wipe. It is now the library's
+    -- path-scoped reset, matching `/at reset <path>` and `/kcd reset <path>`,
+    -- and the wipe moved down one row to `resetall` with its popup intact.
+    -- A bare `/cm reset` cannot silently do the smaller thing: USAGE_RESET is
+    -- overridden below to name `resetall` explicitly.
+    {"reset",         "Reset ONE setting to its default — `/cm reset <path>`",
+        function(rest) cliReset(rest) end},
+    {"resetall",      "Reset every priority list and stat override to defaults (asks first)",
         function()
             if StaticPopup_Show then
                 StaticPopup_Show("KCM_CONFIRM_RESET")
@@ -1230,7 +1244,7 @@ KCM.COMMANDS = COMMANDS
 -- LibKa0s-Slash-1.0 — the dispatcher
 -- ---------------------------------------------------------------------
 --
--- Everything above is this addon's: fifteen verbs, five sub-command tables
+-- Everything above is this addon's: seventeen verbs, five sub-command tables
 -- with three different handler arities, the dump targets, and the schema CLI.
 -- What the library takes is the part that is the same in every Ka0s addon —
 -- trim, split, lowercase the verb only, apply the alias, find the entry, call
@@ -1264,6 +1278,15 @@ local SLASH_STRINGS = {
     -- The hint therefore carries the command literally; it is the same "/cm"
     -- declared as `slash` twenty lines below.
     USAGE_GET       = "Usage: %s get <path>  (try /cm list)",
+    -- The deprecation notice for LIBKA0S-12, and the only place a user who
+    -- has `/cm reset` in a macro finds out the verb changed meaning. The
+    -- library's stock line is a bare "Usage: %s reset <path>", which would let
+    -- a global wipe quietly become a one-row reset. Same arity as the stock
+    -- string — Sl:CliReset formats it with (d.slash) alone, so ONE %s, and
+    -- `resetall` is spelled literally for the same reason USAGE_GET is.
+    USAGE_RESET     = "Usage: %s reset <path> \226\128\148 this resets ONE setting. " ..
+                      "The old global wipe is now |cffffff00/cm resetall|r, " ..
+                      "which still asks before it wipes.",
     -- These three are DEAD and kept only as a record of the wording they were
     -- meant to restore. The parsers that emit them are lib-level (Slash.lua's
     -- parseBool / allowedText / parseColor sit above lib:New), so they read
@@ -1330,6 +1353,11 @@ if slashLib then
     cliList   = function() Sl:CliList() end
     cliGet    = function(rest) Sl:CliGet(rest) end
     cliSet    = function(rest) Sl:CliSet(rest) end
+    -- Sl:CliReset only, never Sl:CliResetAll: the library's resetall walks the
+    -- schema rows, and this addon's global reset is KCM.ResetAllToDefaults,
+    -- which also wipes the priority lists and the stat overrides — data the
+    -- schema does not describe. `/cm resetall` keeps the host body.
+    cliReset  = function(rest) Sl:CliReset(rest) end
 else
     -- LibKa0s is vendored, so this is a tampered install rather than a
     -- supported state. Say so instead of re-implementing the dispatcher.
@@ -1337,7 +1365,7 @@ else
         say((KCM.LIBKA0S_MISSING or "The LibKa0s library is missing") ..
             ", so /cm is unavailable.")
     end
-    cliList, cliGet, cliSet = printHelp, printHelp, printHelp
+    cliList, cliGet, cliSet, cliReset = printHelp, printHelp, printHelp, printHelp
 end
 
 -- Read-only view of the COMMANDS table for the About panel. Each row is

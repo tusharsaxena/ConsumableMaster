@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-549%2F549_passing-green)
+![Tests](https://img.shields.io/badge/Tests-552%2F552_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -86,7 +86,8 @@ You also get a **macro bar** — a bar holding only Consumable Master's macros, 
 | `/cm config` | Open the settings panel. |
 | `/cm resync` | Rescan your bags and update any macro whose best pick changed. |
 | `/cm rewritemacros` | Rewrite every macro and its icon. Use this if an action-bar icon looks stale. |
-| `/cm reset` | Reset every priority list and stat choice back to defaults (asks first). |
+| `/cm reset path` | Put one setting back to its default (e.g. `/cm reset macroBar.orientation`). |
+| `/cm resetall` | Reset every priority list and stat choice back to defaults (asks first). |
 | `/cm debug` | Open or close the debug window; add `on` or `off` to turn logging on or off. |
 | `/cm bar` | Toggle the macro bar; `on`, `off`, `lock`, `unlock`, `reset` do those directly. |
 | `/cm version` | Show the addon version. |
@@ -265,7 +266,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
-| `/cm reset` or "Reset all priorities" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
+| `/cm resetall` or "Reset all priorities" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
 | I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General) clears everything. |
 
 ## Credits and bundled libraries

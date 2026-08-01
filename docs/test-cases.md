@@ -510,7 +510,7 @@ whenever the suite changes.
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
 
-### test_slash.lua (66)
+### test_slash.lua (68)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -527,7 +527,9 @@ whenever the suite changes.
 - /cm lower-cases only the verb, leaving arguments alone
 - /cm tolerates surrounding whitespace
 - /cm help and the About panel read the same command table
-- /cm reset asks for confirmation instead of wiping immediately
+- /cm resetall asks for confirmation instead of wiping immediately
+- /cm resetall's confirmation still performs the full wipe when accepted
+- /cm reset <path> restores exactly that row and leaves its neighbours alone
 - /cm config reports when the settings panel cannot be opened
 - /cm priority with no category prints the sub-verbs and known categories
 - /cm priority with an unknown category reports it and prints help
@@ -579,7 +581,7 @@ whenever the suite changes.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slashsetup.lua (8)
+### test_slashsetup.lua (9)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -588,6 +590,7 @@ whenever the suite changes.
 - Slash: the addon's own shipped wording survives the library's strings
 - Slash: every rendered string resolves to prose, not to its own key
 - Slash: a bare /cm get answers with its usage line rather than raising
+- Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
 
 ### test_spechelper.lua (16)
@@ -673,10 +676,10 @@ whenever the suite changes.
 | test_schema.lua | 33 |
 | test_selector.lua | 36 |
 | test_settingsui.lua | 8 |
-| test_slash.lua | 66 |
-| test_slashsetup.lua | 8 |
+| test_slash.lua | 68 |
+| test_slashsetup.lua | 9 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **549** |
+| **Total** | **552** |

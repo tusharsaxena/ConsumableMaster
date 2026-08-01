@@ -156,16 +156,63 @@ test("/cm help and the About panel read the same command table", function(t)
     end
 end)
 
-test("/cm reset asks for confirmation instead of wiping immediately", function(t)
+-- ---------------------------------------------------------------------------
+-- /cm reset (one path) and /cm resetall (the guarded global wipe)
+--
+-- LIBKA0S-12. `/cm reset` used to BE the global wipe; it now resets one schema
+-- row and the wipe moved to `/cm resetall` with its confirmation intact. The
+-- three cases below are the guard on both halves of that swap: the destructive
+-- verb must still ask, and the path verb must still be surgical.
+-- ---------------------------------------------------------------------------
+
+test("/cm resetall asks for confirmation instead of wiping immediately", function(t)
     local KCM = load()
     local shown
     local saved = _G.StaticPopup_Show
     _G.StaticPopup_Show = function(which) shown = which end
     KCM.Selector.AddItem("FOOD", 960001)
-    KCM:OnSlashCommand("reset")
+    KCM:OnSlashCommand("resetall")
     _G.StaticPopup_Show = saved
     t.eq(shown, "KCM_CONFIRM_RESET", "a destructive reset goes through a confirmation popup")
     t.truthy(KCM.Selector.GetBucket("FOOD").added[960001], "nothing is wiped until the user confirms")
+end)
+
+test("/cm resetall's confirmation still performs the full wipe when accepted", function(t)
+    local KCM, mock = load()
+    -- The half the popup-was-shown case cannot see. Moving the verb without
+    -- moving the body would leave a dialog that asks and then does nothing;
+    -- moving the body without the dialog would wipe on the spot. This drives
+    -- the registered OnAccept, so it fails either way.
+    KCM.Selector.AddItem("FOOD", 960001)
+    KCM.db.profile.enabled = false
+    mock.output = {}
+    local dialog = _G.StaticPopupDialogs and _G.StaticPopupDialogs["KCM_CONFIRM_RESET"]
+    t.truthy(dialog and dialog.OnAccept, "the popup is still registered with an accept handler")
+    dialog.OnAccept()
+    t.falsy(KCM.Selector.GetBucket("FOOD").added[960001], "the added item is gone once confirmed")
+    t.eq(KCM.db.profile.enabled, true, "…and the master enable is restored with it")
+    t.truthy(table.concat(mock.output, "\n"):find("Reset complete", 1, true),
+        "…and the user is told: " .. table.concat(mock.output, "\n"))
+end)
+
+test("/cm reset <path> restores exactly that row and leaves its neighbours alone", function(t)
+    local KCM, mock = load()
+    -- Surgical, not global. Two rows are moved off their defaults and only one
+    -- is named; a `reset` that still wipes everything fails on the neighbour.
+    KCM.Selector.AddItem("FOOD", 960001)
+    KCM:OnSlashCommand("set macroBar.orientation VERTICAL")
+    KCM:OnSlashCommand("set macroBar.enabled false")
+    t.eq(KCM.db.profile.macroBar.orientation, "VERTICAL", "precondition: the row is off its default")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "precondition: the neighbour is off its default too")
+
+    mock.output = {}
+    KCM:OnSlashCommand("reset macroBar.orientation")
+    t.eq(KCM.db.profile.macroBar.orientation, "HORIZONTAL", "the named row is back at its default")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "the row nobody named is untouched")
+    t.truthy(KCM.Selector.GetBucket("FOOD").added[960001],
+        "and the priority lists — what the OLD /cm reset wiped — are not in scope at all")
+    t.truthy(table.concat(mock.output, "\n"):find("macroBar.orientation", 1, true),
+        "…and the echo names the path that moved: " .. table.concat(mock.output, "\n"))
 end)
 
 test("/cm config reports when the settings panel cannot be opened", function(t)

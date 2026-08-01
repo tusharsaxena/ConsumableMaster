@@ -120,6 +120,29 @@ test("Slash: a bare /cm get answers with its usage line rather than raising", fu
         "…and names the command it is the usage for: " .. text)
 end)
 
+test("Slash: a bare /cm reset points at /cm resetall rather than wiping", function(t)
+    local KCM, mock = load()
+    -- The break notice for LIBKA0S-12. Anyone with `/cm reset` in a macro was
+    -- triggering a confirm-gated global wipe; the same keystrokes now reset one
+    -- schema row, and bare they must say where the old behaviour went. The
+    -- library's stock USAGE_RESET is "Usage: %s reset <path>" and says nothing
+    -- about resetall, so an override dropped here regresses silently.
+    mock.output = {}
+    local shown
+    local saved = _G.StaticPopup_Show
+    _G.StaticPopup_Show = function(which) shown = which end
+    local ok, err = pcall(function() KCM:OnSlashCommand("reset") end)
+    _G.StaticPopup_Show = saved
+    t.truthy(ok, "the verb answers instead of erroring: " .. tostring(err))
+    t.eq(shown, nil, "a bare /cm reset no longer reaches the destructive popup")
+
+    local text = table.concat(mock.output, "\n")
+    t.truthy(text:find("/cm reset <path>", 1, true),
+        "it states the new, path-scoped shape: " .. text)
+    t.truthy(text:find("/cm resetall", 1, true),
+        "…and names the verb that kept the global wipe: " .. text)
+end)
+
 test("Slash: the schema CLI reads the addon's shapes through the library", function(t)
     local KCM, mock = load()
     -- The two shapes that blocked this adoption until LIBKA0S-02 fixed them upstream.

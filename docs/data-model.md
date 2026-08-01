@@ -208,7 +208,7 @@ There isn't one. `/cm resync` does a full rescan but **does not** include a GC s
 
 ## Reset path
 
-`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that wipes `categories` + `statPriority` back to `dbDefaults`. Both the Options "Reset all priorities" button and `/cm reset`'s StaticPopup delegate to it so semantics stay identical regardless of entry point.
+`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that wipes `categories` + `statPriority` back to `dbDefaults`. Both the Options "Reset all priorities" button and `/cm resetall`'s StaticPopup delegate to it so semantics stay identical regardless of entry point. (`/cm reset <path>` is unrelated: it is `Sl:CliReset`, which applies one schema row's `default` and leaves both tables alone.)
 
 After the DB wipe, the function drives a full resync: `TooltipCache.InvalidateAll` → `RunAutoDiscovery` → `Pipeline.Recompute`. Macro writes that land in combat defer via the pending queue, so this is safe to run without a combat guard.
 
