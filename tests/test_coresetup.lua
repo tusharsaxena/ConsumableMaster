@@ -12,6 +12,16 @@ local h = require("harness")
 local test = h.test
 local loader = h.loader
 
+-- The vendored Core source, for the library tripwire at the foot of this file.
+local function readCoreSource()
+    local root = _G.KCM_TEST_ROOT or "."
+    local f = assert(io.open(root .. "/libs/LibKa0s/Core.lua", "r"),
+        "cannot open libs/LibKa0s/Core.lua (tests run from the repo root)")
+    local src = f:read("*a")
+    f:close()
+    return src
+end
+
 test("CoreSetup: the addon's stringifier IS the library's, not a lookalike", function(t)
     local KCM = loader.loadPure()
     local core = LibStub("LibKa0s-Core-1.0")
@@ -90,4 +100,51 @@ test("CoreSetup: the degraded stringifier answers the same sentinel as the libra
     t.eq(KCM.SafeToString(hostile), "<secret>", "the fallback masks an unrenderable value")
     t.eq(KCM.SafeToString(nil), "nil", "and still renders nil as the literal")
     t.eq(KCM.SafeToString(false), "false", "and does not mask a boolean")
+end)
+
+-- ── the L trap, such as it applies to Core ─────────────────────────────────────
+--
+-- Every other adopted major in this addon carries a case proving its rendered
+-- strings resolve to prose rather than to their own keys. Core cannot: it has no
+-- STRINGS table and reads no descriptor `L`, so there is no fall-through to
+-- assert on. Writing one anyway would be a case that could never fail, which is
+-- worse than no case at all (testing-§8).
+--
+-- So the guard points at the LIBRARY instead of at this addon. The day Core
+-- grows a user-visible string, this goes red and whoever bumps that minor writes
+-- the real fall-through assertion the other four majors already have. The same
+-- substitute AbsorbTracker and KickCD wrote for the same structurally-empty cell.
+
+test("CoreSetup: LibKa0s-Core-1.0 still has no user-visible strings to trap", function(t)
+    -- red under: adding a `lib.STRINGS = { ... }` table or a `d.L` read to
+    -- libs/LibKa0s/Core.lua
+    loader.loadPure()   -- registers the vendored majors; LibStub is empty before this
+    local core = LibStub("LibKa0s-Core-1.0")
+    t.truthy(core, "the vendored Core major must be registered")
+    t.falsy(core.STRINGS,
+        "Core now ships STRINGS — this major needs an L-trap assertion of its own")
+
+    local src = readCoreSource()
+    t.falsy(src:match("STRINGS"), "Core.lua now names STRINGS")
+    t.falsy(src:match("d%.L[^%w_]"), "Core.lua now reads a descriptor L")
+end)
+
+test("CoreSetup: the prefix is the only library-rendered fragment, and it is prose", function(t)
+    -- The rendered half, such as it is. The prefix is the one string the library
+    -- puts on screen in this major and it is ours, so pin that it is prose and
+    -- nothing key-shaped leaks into it.
+    -- red under: KCM.PREFIX = "ADDON_PREFIX" in core/Constants.lua
+    local KCM  = loader.loadPure()
+    local mock = loader.mock
+    mock.output = {}
+    KCM.Say("hello")
+    local line = mock.output[#mock.output]
+    t.truthy(line, "the printer rendered a line")
+    -- Strip colour codes before testing the shape: |cff...|r is not prose but it
+    -- is not a key either.
+    local bare = line:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    local tag = bare:match("^(%S+)")
+    t.truthy(tag, "the line carries a prefix tag")
+    t.falsy(tag:match("^[A-Z][A-Z0-9_]+$"),
+        "the prefix resolved to prose, not to a SCREAMING_SNAKE key: " .. tostring(tag))
 end)
