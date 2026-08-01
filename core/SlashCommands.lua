@@ -1241,16 +1241,13 @@ KCM.COMMANDS = COMMANDS
 -- the same table onto the About panel, and that page must not acquire a
 -- dependency on the slash library to do it.
 --
--- NOT adopted: the schema CLI (Sl:CliList / CliGet / CliSet). The library's
--- value formatter reads a color as { r =, g =, b =, a = } where this addon —
--- and the Ka0s options widget that writes them — stores { r, g, b, a }
--- positionally, so all seven color rows would render {0.00, 0.00, 0.00, 1.00}.
--- Its enum parser reads `values` as a key map where ours is an ordered array,
--- which would offer "1, 2" as the allowed values for macroBar.orientation and
--- undo the validation commit 6a92e63 added. Both are upstream fixes, tracked
--- as LIBKA0S-02; the host implementations below stay until they land.
+-- The schema CLI (Sl:CliList / CliGet / CliSet) IS adopted, since LIBKA0S-02
+-- fixed both blockers upstream: lib.FormatValue reads this addon's positional
+-- { r, g, b, a } colors directly, and the enum reader takes the ordered
+-- { value =, text = } array rather than the tostring'd keys of a map. The
+-- codecs below are what keep a `/cm set` round-trip in the addon's own shape.
 
--- The three strings whose wording the addon already shipped. A plain table,
+-- The strings whose wording the addon already shipped. A plain table,
 -- deliberately NOT KCM.L: Sl:Text resolves through rawget precisely so a
 -- key-echoing locale table falls through, which also means KCM.L could never
 -- supply these.
@@ -1260,9 +1257,19 @@ local SLASH_STRINGS = {
     -- alias, so the second is unused and string.format drops it.
     HELP_ALIAS      = " (alias: |cffffff00%s|r)",
     UNKNOWN_COMMAND = "Unknown command: |cffffff00%s|r",
-    -- The four the schema CLI has always spelled differently. Each is text a
-    -- user reads today, so it is pinned rather than quietly restyled.
-    USAGE_GET       = "Usage: %s get <path>  (try %s list)",
+    -- ONE %s, not two. Sl:CliGet formats this with (d.slash) alone, so a
+    -- second placeholder is not "unused" the way HELP_ALIAS's is — it is a
+    -- missing argument, and string.format RAISES on that. A bare `/cm get`
+    -- threw a Lua error in game for exactly as long as this line had two.
+    -- The hint therefore carries the command literally; it is the same "/cm"
+    -- declared as `slash` twenty lines below.
+    USAGE_GET       = "Usage: %s get <path>  (try /cm list)",
+    -- These three are DEAD and kept only as a record of the wording they were
+    -- meant to restore. The parsers that emit them are lib-level (Slash.lua's
+    -- parseBool / allowedText / parseColor sit above lib:New), so they read
+    -- lib.STRINGS directly and never pass through Sl:Text — an instance
+    -- override cannot reach them. Reported upstream rather than worked around
+    -- here; see LIBKA0S-09.
     ERR_BOOL        = "expected true/false/on/off/1/0",
     ERR_ALLOWED     = "Allowed values: %s",
     ERR_COLOR       = "expected: r g b [a] (each 0-1 or 0-255)",

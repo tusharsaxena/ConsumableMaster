@@ -135,7 +135,7 @@ whenever the suite changes.
 - Debug: the chat fallback stringifies a hostile tag safely
 - Debug: the sink publishes no Toggle of its own
 
-### test_debuglog.lua (14)
+### test_debuglog.lua (15)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -149,6 +149,7 @@ whenever the suite changes.
 - DebugLog: scrollbar + counter sync run headlessly without error
 - DebugLog: the console IS the library's instance, not a host lookalike
 - DebugLog: the descriptor reproduces the addon's window identity
+- DebugLog: the console's own strings resolve to prose, not to their own keys
 - DebugLog: the flag lives in KCM.State, not in the library
 - DebugLog: with the library absent the console degrades and chat still answers
 
@@ -357,10 +358,11 @@ whenever the suite changes.
 - MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
 - MacroManager.SetWeaponEnchantMacro guards a missing category or DB
 
-### test_perfsetup.lua (9)
+### test_perfsetup.lua (10)
 
 - Perf: the harness IS the library's instance, not a lookalike
 - Perf: the panel half attached to the instance
+- Perf: every panel step's label resolves to prose, not to its own key
 - Perf: the descriptor answers the fields whose defaults are silently wrong
 - Perf: the SavedVariables global the harness writes is actually declared
 - Perf: /cm perf is a published verb and reaches the harness
@@ -497,13 +499,14 @@ whenever the suite changes.
 - Selector: ListAvailable on a composite honors disabled components
 - Selector: ListAvailable returns an empty list for an unknown category
 
-### test_settingsui.lua (7)
+### test_settingsui.lua (8)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
 - Settings UI: the scroll container comes from the library
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
+- Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
 
@@ -576,13 +579,15 @@ whenever the suite changes.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slashsetup.lua (6)
+### test_slashsetup.lua (8)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
 - Slash: the library reads the addon's live COMMANDS table, not a copy
 - Slash: help rows are rendered by the library's own formatter
 - Slash: the addon's own shipped wording survives the library's strings
+- Slash: every rendered string resolves to prose, not to its own key
+- Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: the schema CLI reads the addon's shapes through the library
 
 ### test_spechelper.lua (16)
@@ -653,7 +658,7 @@ whenever the suite changes.
 | test_coresetup.lua | 6 |
 | test_database.lua | 14 |
 | test_debug.lua | 13 |
-| test_debuglog.lua | 14 |
+| test_debuglog.lua | 15 |
 | test_defaults.lua | 28 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
@@ -661,17 +666,17 @@ whenever the suite changes.
 | test_load.lua | 1 |
 | test_macrobar.lua | 86 |
 | test_macromanager.lua | 33 |
-| test_perfsetup.lua | 9 |
+| test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 36 |
-| test_settingsui.lua | 7 |
+| test_settingsui.lua | 8 |
 | test_slash.lua | 66 |
-| test_slashsetup.lua | 6 |
+| test_slashsetup.lua | 8 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **544** |
+| **Total** | **549** |

@@ -99,6 +99,45 @@ test("Settings UI: a panel comes from the library's registry, breadcrumb and all
     t.truthy(ctx.panelKey == "macrobar", "…and the addon's own key alongside the library's")
 end)
 
+test("Settings UI: the library's user-visible strings resolve to prose, not to their own keys",
+    function(t)
+        local KCM  = loader.loadWithSchema()
+        local mock = loader.mock
+        local H = KCM.Settings.Helpers
+        -- The L trap's shape, applied to the one adopted major that cannot
+        -- take the trap: Options.lua has no locale seam at all -- its local
+        -- `L` is lib.LAYOUT, which is also why LIBKA0S-05 had to accept the
+        -- library's shade of grey for the sidebar combat notice rather than
+        -- override it. There is no descriptor field here to get wrong, so
+        -- what these pin is the other half of the same requirement: that the
+        -- library's own STRINGS reach the user as English through the
+        -- accessors this addon actually drives.
+        --
+        -- The media placeholder first, and it is the sharper of the two: the
+        -- string is both the label shown in the dropdown AND the value stored
+        -- in SavedVariables, so a key leaking here is written to disk.
+        local values = H.LSMValues("kcm_no_such_media_type")
+        t.eq(#values, 1, "an unregistered media type still offers exactly one option")
+        t.falsy(values[1].text:match("^[A-Z][A-Z0-9_]+$"),
+            "the empty-media placeholder resolved to prose, not to its own key: "
+            .. values[1].text)
+
+        -- The chat half: the per-page render failure, which reaches the user
+        -- through KCM.Say. Read off the emitted line rather than off
+        -- lib.STRINGS, and never guarded on `if text ~= "" then` -- a refresh
+        -- that reported nothing has to fail here.
+        local ctx = H.CreatePanel("KCMLTrapPanel", "L", { panelKey = "ltrap" })
+        ctx.panel.IsShown = function() return true end
+        H.SetRenderer(ctx, function() error("boom") end)
+        mock.output = {}
+        H.RefreshAllPanels()
+        local notice = (mock.output[1] or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        notice = notice:gsub("^%[CM%]%s*", "")
+        t.truthy(#notice > 0, "the failure was reported at all")
+        t.falsy(notice:match("^[A-Z][A-Z0-9_]+$"),
+            "the render-failure notice resolved to prose, not to its own key: " .. notice)
+    end)
+
 test("Settings UI: ResetScroll reassigns the refresher list rather than wiping it", function(t)
     local KCM = loader.loadWithSchema()
     local H = KCM.Settings.Helpers

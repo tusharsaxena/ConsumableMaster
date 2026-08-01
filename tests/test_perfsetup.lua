@@ -40,6 +40,28 @@ test("Perf: the panel half attached to the instance", function(t)
     t.truthy(KCM.Perf.ShowPanel, "and its show entry point")
 end)
 
+test("Perf: every panel step's label resolves to prose, not to its own key", function(t)
+    local KCM = load()
+    local P = KCM.Perf
+    -- The L trap, on the module that actually shipped it: a sibling addon's
+    -- perf panel rendered PANEL_TITLE_SUFFIX / STEP_START / STEP_MEASURE_A as
+    -- raw keys because its descriptor was handed the addon's locale table,
+    -- whose metatable answers every key with the key. modules/PerfSetup.lua
+    -- passes no L at all, and this case is what stops one being added.
+    --
+    -- P.STEPS[i].label is the string PerfPanel resolved and each row actually
+    -- draws -- re-resolved on every repaint -- so it is the rendered text
+    -- rather than the descriptor or a constant. The count is re-asserted
+    -- first on purpose: an empty STEPS would otherwise make an unguarded loop
+    -- pass with nothing checked, which is the vacuous shape this case exists
+    -- to avoid.
+    t.eq(#P.STEPS, 7, "all seven rows are present to check")
+    for _, step in ipairs(P.STEPS) do
+        t.falsy(step.label:match("^[A-Z][A-Z0-9_]+$"),
+            "step '" .. step.key .. "' resolved to prose, not to its own key: " .. step.label)
+    end
+end)
+
 test("Perf: the descriptor answers the fields whose defaults are silently wrong", function(t)
     local KCM = load()
     local P = KCM.Perf

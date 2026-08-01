@@ -256,6 +256,39 @@ test("DebugLog: the descriptor reproduces the addon's window identity", function
     t.eq(lib.MAX_BUFFER, 500, "the buffer cap still matches the old MAX_LINES")
 end)
 
+test("DebugLog: the console's own strings resolve to prose, not to their own keys", function(t)
+    local _, DL = load()
+    local D = DL.instance
+    -- The L trap. modules/DebugLog.lua omits `L` deliberately -- the library's
+    -- English already matches this addon's -- and this case is what stops one
+    -- being added later. KCM.L answers every key with the key, so a descriptor
+    -- handed it (or handed a plain table whose values were read out of it by
+    -- library key) renders the whole console in SCREAMING_SNAKE, for every
+    -- string at once and only in game.
+    --
+    -- Driven through ConsoleCheckbox because that is the real accessor:
+    -- settings/General.lua renders exactly this spec on the General page, so
+    -- these two strings are the ones a user reads. Not guarded on
+    -- `if spec then` -- a spec that stopped being built has to fail here.
+    local spec = D:ConsoleCheckbox()
+    t.falsy(spec.label:match("^[A-Z][A-Z0-9_]+$"),
+        "the checkbox label resolved to prose, not to its own key: " .. spec.label)
+    t.falsy(spec.tooltip:match("^[A-Z][A-Z0-9_]+$"),
+        "the checkbox tooltip resolved to prose, not to its own key: " .. spec.tooltip)
+
+    -- The chat half of the same seam, and a composed string rather than a bare
+    -- one: ACK is a format whose one argument is STATE_ON. Unresolved, the
+    -- format loses its %s and the whole line collapses to the key.
+    local mock = h.loader.mock
+    mock.output = {}
+    D:SetEnabled(true)
+    D:SetEnabled(false)
+    local ack = (mock.output[1] or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    ack = ack:gsub("^%[CM%]%s*", "")
+    t.falsy(ack:match("^[A-Z][A-Z0-9_]+$"),
+        "the enable acknowledgement resolved to prose, not to its own key: " .. ack)
+end)
+
 test("DebugLog: the flag lives in KCM.State, not in the library", function(t)
     local KCM, DL = load()
     local D = DL.instance

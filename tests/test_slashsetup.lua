@@ -80,6 +80,46 @@ test("Slash: the addon's own shipped wording survives the library's strings", fu
         "the unknown-verb line keeps its capital U and its gold verb")
 end)
 
+test("Slash: every rendered string resolves to prose, not to its own key", function(t)
+    local KCM = load()
+    local Sl = KCM.SlashCommands.instance
+    -- The L trap. `L = SLASH_STRINGS` in core/SlashCommands.lua is a plain
+    -- table of literals; hand that field KCM.L -- or, the form the current
+    -- library cannot defend against, a plain table whose values were read OUT
+    -- of KCM.L by library key -- and every string here renders as its own
+    -- SCREAMING_SNAKE key. It fails for all of them at once and only in game.
+    --
+    -- Asserted on what the instance actually rendered, and deliberately NOT
+    -- guarded on `if header then`: a renamed accessor has to fail here rather
+    -- than pass with nothing checked.
+    local header = Sl:HelpHeader()
+    t.falsy(header:match("^[A-Z][A-Z0-9_]+$"),
+        "the help header resolved to prose, not to its own key: " .. header)
+
+    -- The other side of the same seam. LIST_HEADER is the library's own
+    -- string, which SLASH_STRINGS deliberately does not override, so this one
+    -- still fires when the override table itself is intact and the resolver
+    -- behind it is not.
+    local listHeader = Sl:BuildListLines()[1]
+    t.falsy(listHeader:match("^[A-Z][A-Z0-9_]+$"),
+        "the settings-list header resolved to prose, not to its own key: " .. listHeader)
+end)
+
+test("Slash: a bare /cm get answers with its usage line rather than raising", function(t)
+    local KCM, mock = load()
+    -- Sl:CliGet formats USAGE_GET with (d.slash) alone. This addon's override
+    -- carried two %s for one argument, and string.format RAISES on the second
+    -- -- so the one verb a user reaches for when they do not know the path
+    -- threw a Lua error. Nothing else in the suite calls the verb with no
+    -- argument, which is why it shipped.
+    mock.output = {}
+    local ok, err = pcall(function() KCM:OnSlashCommand("get") end)
+    t.truthy(ok, "the verb answers instead of erroring: " .. tostring(err))
+    local text = table.concat(mock.output, "\n")
+    t.truthy(text:find("Usage: /cm get <path>", 1, true),
+        "…and names the command it is the usage for: " .. text)
+end)
+
 test("Slash: the schema CLI reads the addon's shapes through the library", function(t)
     local KCM, mock = load()
     -- The two shapes that blocked this adoption until LIBKA0S-02 fixed them upstream.
