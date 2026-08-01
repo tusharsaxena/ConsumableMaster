@@ -16,6 +16,40 @@ with red tests or lint errors is not allowed.
 
 Syntax-check a single file with `luac -p path/to/file.lua`.
 
+## Verifying the vendored LibKa0s copies
+
+Neither gate above can see this, and that is the whole problem: the library's suite passes against
+the library, and this addon's passes against a stale vendored copy that still works. Run after any
+re-vendor, and before any release:
+
+```sh
+diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — MUST be empty
+diff -r ../LibKa0s/LibKa0s libs/LibKa0s                        # bytes  — SHOULD be empty
+diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit       # content — MUST be empty
+diff -r ../LibKa0s/testkit tests/_kit                           # bytes  — SHOULD be empty
+```
+
+Both halves, because the two answers are different findings.
+
+**Content differs** → a real fork in `libs/`, which is the forbidden state. Name every hunk.
+
+**Bytes differ but content matches** → a line-ending divergence, not a fork. Both repos pin
+`* text=auto eol=crlf` over LF blobs, so a working tree holding *either* ending reads clean to
+`git status` and neither side's cleanliness proves anything. Find which side drifted (`file -b
+<path>`, and `git cat-file -p HEAD:<path> | file -b -` for what git stores) and renormalise it.
+**Re-vendoring will not converge it, and the fix is never an edit to `libs/`** — that makes a fork
+nobody knows about, which the next re-vendor reverts silently, and the revert reads as a regression
+with no cause anywhere in this repo's history.
+
+This addon has a specific stake in that second case. The 2026-08-01 adoption report ran the bare
+single-diff form and it accused **this repo** of drift while clearing the other two — the accusation
+was backwards, because ConsumableMaster's checkout was the correct one and the library's own ship
+folder had the LF files. Content was byte-identical throughout.
+
+Re-vendoring is **whole-folder**, never file by file: four of the five majors resolve
+`LibKa0s-Core-1.0` before registering, and `Options` and `Perf` are each split across files with
+paired attach guards, so a per-file copy is how cross-major skew gets manufactured.
+
 ## Local toolchain
 
 WoW runs Lua 5.1, so the harness targets 5.1. Install once:
