@@ -291,6 +291,17 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 11. **Console checkbox sync.** General → tick `Debug console` → window opens. Now close it with **Escape** and with the **×**, and re-open the General page: the checkbox must be unticked both times. Both paths bypass the checkbox's own setter, so this is the one thing only the visibility callback keeps honest.
 12. **Bare `/cm debug`** toggles the window only — logging stays on.
 
+### Perf harness (`/cm perf`)
+
+Only meaningful in game, and the SavedVariables half is only verifiable end to end here.
+
+1. `/cm perf` — the seven-step panel opens, and each row's right column shows a `/cm perf …` command.
+2. `start`, then `measure a`. Pull a dummy, kill it. The Stopwatch appears and runs during combat — expected, the library drives it as the indicator.
+3. `measure b`. **The addon should go inert**: the macro bar disappears, macros stop updating. Pull again.
+4. `finish`. The addon comes back — bar returns, macros resume. Then `report` for the figures and `dump` for one JSON line in the debug console.
+5. `/reload`, then check `ConsumableMasterPerfDB` has one record under `runs` with a non-zero `interface`. **This is the only check that the TOC's `## SavedVariables` line is right** — get it wrong and the harness still announces the capture as saved while the data evaporates.
+6. Recovery path: start a run, `measure b`, then `cancel`. The addon must come back exactly as `finish` does.
+
 ### Degraded install (optional, ~2 minutes)
 
 Worth doing once, since it changed. Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` and `/reload`:
@@ -318,7 +329,7 @@ Rename it back and `/reload`.
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
-| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Panel.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
+| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Panel.lua`, `modules/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |

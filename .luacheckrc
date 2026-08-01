@@ -39,6 +39,9 @@ read_globals = {
     -- Lua/WoW shared helpers
     "wipe", "strsplit", "strtrim", "strjoin", "tContains", "Mixin", "CopyTable",
     "date", "time", "GetTime", "format", "tinsert", "tremove", "hooksecurefunc",
+    -- Millisecond profiling clock, read by the perf brackets in
+    -- core/ConsumableMaster.lua and modules/MacroBar.lua.
+    "debugprofilestop",
     "DevTools_Dump",
     -- Frames / UI
     "CreateFrame", "UIParent", "GameTooltip",

@@ -246,6 +246,13 @@ end
 
 function P.Recompute(reason)
     if not KCM.Categories or not KCM.Categories.LIST then return end
+    -- Perf bucket. One bracket around the whole pass — at most one call per
+    -- frame, since RequestRecompute coalesces — covering the 13-category walk,
+    -- the composite re-picks and every macro write. Gated the same way the
+    -- cooldown bracket is, and for the same reason: Note() records whether or
+    -- not a capture is open.
+    local perf = KCM.Perf
+    local perfT0 = (perf and perf.on) and debugprofilestop() or nil
     -- Master enable gates only the macro write loop. The panel refresh
     -- below still runs so that opening the panel while the addon is off
     -- hydrates priority-list rows from item-info events (otherwise rows
@@ -297,6 +304,7 @@ function P.Recompute(reason)
     elseif KCM.Options and KCM.Options.Refresh then
         KCM.Options.Refresh()
     end
+    if perfT0 then perf.Note("recompute", debugprofilestop() - perfT0) end
 end
 
 -- Event/UI → pipeline recompute goes over the bus. Falls back to the direct

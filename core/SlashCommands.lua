@@ -1251,6 +1251,16 @@ local COMMANDS = {
         end},
     {"version",       "Print addon version",
         function() say("v" .. addonVersion()) end},
+    {"perf",          "A/B performance capture — `/cm perf` opens the step panel",
+        function(rest)
+            -- Resolved at call time, exactly as `bar` does: modules/PerfSetup.lua
+            -- loads after this file, and on a build without LibKa0s-Perf it
+            -- never publishes KCM.Perf at all.
+            if not (KCM.Perf and KCM.Perf.OnCommand) then
+                return say("perf capture unavailable.")
+            end
+            for _, line in ipairs(KCM.Perf.OnCommand(rest)) do say(line) end
+        end},
     {"debug",         "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`",
         function(rest)
             local arg = (rest or ""):match("^(%S*)"):lower()

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-535%2F535_passing-green)
+![Tests](https://img.shields.io/badge/Tests-544%2F544_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -90,6 +90,7 @@ You also get a **macro bar** — a bar holding only Consumable Master's macros, 
 | `/cm debug` | Open or close the debug window; add `on` or `off` to turn logging on or off. |
 | `/cm bar` | Toggle the macro bar; `on`, `off`, `lock`, `unlock`, `reset` do those directly. |
 | `/cm version` | Show the addon version. |
+| `/cm perf` | Measure what the addon costs you in a fight. Opens a small step-by-step panel. |
 | `/cm list` | List every setting and its current value. |
 | `/cm get path` | Show one setting's value (e.g. `/cm get enabled`). |
 | `/cm set path value` | Change a setting from chat. |

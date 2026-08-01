@@ -308,14 +308,26 @@ function MB.Refresh()
     if combat and c.flyout then pendingUpdate = true end
 end
 
+-- The one path that runs at near-frame frequency in combat: SPELL_UPDATE_COOLDOWN
+-- and BAG_UPDATE_COOLDOWN both land here, and each one walks every bar button
+-- plus every shown flyout row. That makes it the bucket worth attributing when a
+-- perf capture shows a delta.
+--
+-- The gate is two table lookups when no capture is running — cheaper than the
+-- KCM.Debug.IsOn() gate the pipeline already accepts — and it MUST be a gate:
+-- Note() records unconditionally, so an ungated bracket would accumulate outside
+-- any window and poison the next report.
 function MB.RefreshCooldowns()
     if not bar then return end
+    local perf = KCM.Perf
+    local t0 = (perf and perf.on) and debugprofilestop() or nil
     for _, btn in pairs(buttons) do
         KCM.MacroBarButton.RefreshCooldown(btn)
         -- Flyout cooldowns too: a potion's cooldown starting mid-fight is the
         -- common case, and repainting a Cooldown frame is unprotected.
         if KCM.MacroBarFlyout then KCM.MacroBarFlyout.RefreshCooldowns(btn) end
     end
+    if t0 then perf.Note("cooldown", debugprofilestop() - t0) end
 end
 
 -- Build (once) the container and every slot. Slots are created for ALL

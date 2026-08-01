@@ -357,6 +357,18 @@ whenever the suite changes.
 - MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
 - MacroManager.SetWeaponEnchantMacro guards a missing category or DB
 
+### test_perfsetup.lua (9)
+
+- Perf: the harness IS the library's instance, not a lookalike
+- Perf: the panel half attached to the instance
+- Perf: the descriptor answers the fields whose defaults are silently wrong
+- Perf: the SavedVariables global the harness writes is actually declared
+- Perf: /cm perf is a published verb and reaches the harness
+- Perf: the capture flag is the library's alone, with no second home
+- Perf: the instrumentation records nothing while no capture is running
+- Perf: every Note call site sits in a file that gates on the capture flag
+- Perf: with the library absent the feature is absent, and /cm perf says so
+
 ### test_pipeline.lua (22)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
@@ -649,6 +661,7 @@ whenever the suite changes.
 | test_load.lua | 1 |
 | test_macrobar.lua | 86 |
 | test_macromanager.lua | 33 |
+| test_perfsetup.lua | 9 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
@@ -661,4 +674,4 @@ whenever the suite changes.
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **535** |
+| **Total** | **544** |

@@ -4,7 +4,11 @@
 ## Author: add1kted2ka0s
 ## Version: 1.5.0
 ## IconTexture: Interface\Icons\inv_cooking_100_roastduck
-## SavedVariables: ConsumableMasterDB
+# ConsumableMasterPerfDB is the perf harness's own ring of captures, kept
+# separate from the AceDB tree on purpose: LibKa0s-Perf writes the global
+# directly, so folding it into ConsumableMasterDB would stamp its keys onto
+# AceDB's root and trip AceDB's own discard branch on the next load.
+## SavedVariables: ConsumableMasterDB, ConsumableMasterPerfDB
 ## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
 ## DefaultState: enabled
 ## Category-enUS: Combat
@@ -90,6 +94,11 @@ modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
 modules\DebugLog.lua
+# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. After
+# DebugLog.lua, whose AddLine is where its run log goes; core\SlashCommands.lua
+# loads earlier but resolves KCM.Perf at call time, the same way it does the
+# macro bar.
+modules\PerfSetup.lua
 modules\MacroBarFlyout.lua
 modules\MacroBarButton.lua
 modules\MacroBar.lua

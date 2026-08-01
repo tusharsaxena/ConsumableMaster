@@ -67,6 +67,21 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 
 `<catKey>` is case-insensitive (`flask`, `FLASK`, `hp_aio` all work).
 
+## Measure what the addon costs (`/cm perf`)
+
+`/cm perf` opens a seven-step panel driving `LibKa0s-Perf-1.0` (`modules/PerfSetup.lua`). It is an **A/B capture**, not a profiler: you pull once with the addon live and once with it suspended, and it reports the difference in ms-per-frame.
+
+The protocol, in order: **start** → **measure A** → pull → **measure B** → pull → **finish** → **report** (or **dump** for one line of JSON to paste into an issue). Recording opens automatically when combat starts and closes when it ends; Blizzard's own Stopwatch is driven as the on-screen indicator, so it will appear during a run.
+
+Two things worth knowing before you run one:
+
+- **During arm B the addon is deliberately inert** — every event is unregistered and the macro bar is hidden. `finish` and `cancel` both restore it; nothing else does. If you walk away mid-run the addon stays quiet until you run one of them or `/reload` (the state is session-only).
+- **What it can and cannot see.** Recording only accrues in combat, and this addon's most expensive work is deliberately *out* of combat — the flyout rebuild is skipped in combat, `MB.Update` defers wholesale, and macro writes wait for regen. What the capture does catch is the cooldown repaint, which rides `SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN` and walks every bar button plus every shown flyout row. That is the `cooldown` bucket, and it is the reason the harness is worth having.
+
+Two buckets are instrumented: `cooldown` (`modules/MacroBar.lua`, `MB.RefreshCooldowns`) and `recompute` (`core/ConsumableMaster.lua`, `Pipeline.Recompute`). Both gate on `KCM.Perf.on` and cost two table lookups when idle. `Note()` records unconditionally, so an ungated bracket would accumulate outside any window and poison the next report — `tests/test_perfsetup.lua` pins the gates.
+
+Captures persist in their own SavedVariables global, `ConsumableMasterPerfDB` (a ring of the last 10), separate from `ConsumableMasterDB`. They flush on `/reload` or logout like any SavedVariables.
+
 ## Force a resync
 
 `/cm resync` — invalidates `TooltipCache`, re-runs auto-discovery against bags, then runs a direct (non-coalesced) `Pipeline.Recompute`. Use after editing a scorer / classifier / tooltip pattern to force a fresh evaluation.

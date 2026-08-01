@@ -132,6 +132,16 @@ modules/DebugLog.lua  The addon's half of LibKa0s-DebugLog-1.0: registers
                    FormatColored (the library's) + DL.instance. Windowless stub
                    when the library is absent.
 
+modules/PerfSetup.lua  The addon's half of LibKa0s-Perf-1.0 + its panel.
+                   Publishes KCM.Perf — the instance ITSELF, not a facade,
+                   because the brackets read .on / .run / .suspended as plain
+                   boolean fields the library writes. Supplies /cm as the
+                   taught command, ConsumableMasterPerfDB as the capture ring,
+                   the run-log sink (DebugLog.AddLine, the UNGATED append) and
+                   the suspend/resume pair. Two buckets instrumented:
+                   `cooldown` (MacroBar.RefreshCooldowns) and `recompute`
+                   (Pipeline.Recompute). Absent major -> absent feature.
+
 settings/         Settings UI framework + per-tab modules.
 ├── Panel.lua            The addon's half of LibKa0s-Options-1.0. The chrome
 │                        is the library's — panel factory + header/breadcrumb,
