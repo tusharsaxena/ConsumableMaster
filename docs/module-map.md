@@ -179,8 +179,8 @@ core/SlashCommands.lua  /cm (and /consumablemaster alias) dispatcher, and the
                    (local say = KCM.Say), so every slash line inherits the [CM]
                    tag and secret-safe stringification. GetLandingRows() hands
                    the About panel the SAME rendered rows /cm help prints, so
-                   the two cannot drift apart; GetCommandSummary() is the
-                   unrendered data view. Detail in debug.md.
+                   the two cannot drift apart -- it is the only view of the
+                   command table this file exports. Detail in debug.md.
 
 modules/KCM*.lua  AceGUI custom widgets. Loaded before settings/ so that
                   AceGUI:Create("KCM…") works at panel render time.

@@ -125,8 +125,11 @@ end)
 test("/cm with no argument prints the help table", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "")
-    for _, entry in ipairs(KCM.SlashCommands.GetCommandSummary()) do
-        t.truthy(text:find("/cm " .. entry.name, 1, true), "help lists /cm " .. entry.name)
+    -- Driven from the dispatcher table itself, which is the thing that must be
+    -- fully covered — a view of it could agree with the help output while both
+    -- disagreed with what actually dispatches.
+    for _, entry in ipairs(KCM.COMMANDS) do
+        t.truthy(text:find("/cm " .. entry[1], 1, true), "help lists /cm " .. entry[1])
     end
 end)
 
@@ -147,12 +150,19 @@ test("/cm tolerates surrounding whitespace", function(t)
 end)
 
 test("/cm help and the About panel read the same command table", function(t)
+    -- Was written against a { name =, desc = } data view of COMMANDS. Since
+    -- LIBKA0S-13 the panel renders through the library's formatter, so the view
+    -- had no caller left in the addon and went; this now asks the rows the
+    -- panel actually draws. Same claim — one row per command, in order, from
+    -- the dispatcher table — one step closer to the screen.
     local KCM = load()
-    local summary = KCM.SlashCommands.GetCommandSummary()
-    t.eq(#summary, #KCM.COMMANDS, "one summary row per command")
+    local rows = KCM.SlashCommands.GetLandingRows()
+    t.eq(#rows, #KCM.COMMANDS, "one rendered row per command")
     for i, entry in ipairs(KCM.COMMANDS) do
-        t.eq(summary[i].name, entry[1], "row " .. i .. " name matches the dispatcher")
-        t.eq(summary[i].desc, entry[2], "row " .. i .. " description matches the dispatcher")
+        t.truthy(rows[i]:find("/cm " .. entry[1], 1, true),
+            "row " .. i .. " names the dispatcher's verb")
+        t.truthy(rows[i]:find(entry[2], 1, true),
+            "row " .. i .. " carries the dispatcher's description")
     end
 end)
 

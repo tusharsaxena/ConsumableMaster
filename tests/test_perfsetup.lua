@@ -97,13 +97,15 @@ test("Perf: /cm perf is a published verb and reaches the harness", function(t)
         if entry[1] == "perf" then row = entry end
     end
     t.truthy(row, "perf is in the COMMANDS table")
-    -- Which also means it reaches /cm help and the About page's command list,
-    -- both of which render this same table.
-    local inSummary = false
-    for _, e in ipairs(KCM.SlashCommands.GetCommandSummary()) do
-        if e.name == "perf" then inSummary = true end
+    -- Which also means it reaches /cm help and the About page's command list —
+    -- one table, and since LIBKA0S-13 one formatter, so asking the rendered
+    -- rows is the same question as asking the data used to be, one step closer
+    -- to the screen.
+    local inLanding = false
+    for _, line in ipairs(KCM.SlashCommands.GetLandingRows()) do
+        if line:find("/cm perf", 1, true) then inLanding = true end
     end
-    t.truthy(inSummary, "…so the About page and /cm help stay in lock-step")
+    t.truthy(inLanding, "…so the About page and /cm help stay in lock-step")
 
     local reached = 0
     local real = KCM.Perf.OnCommand

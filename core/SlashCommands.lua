@@ -1251,9 +1251,10 @@ KCM.COMMANDS = COMMANDS
 -- it; plus the help header and rows.
 --
 -- The COMMANDS table is PASSED IN, not owned. That is the library's own design
--- note and it matters here: KCM.SlashCommands.GetCommandSummary below renders
--- the same table onto the About panel, and that page must not acquire a
--- dependency on the slash library to do it.
+-- note and it matters here: KCM.SlashCommands.GetLandingRows below renders the
+-- same table onto the About panel, and that page must not acquire a dependency
+-- on the slash library to do it -- it asks THIS file, and this file asks the
+-- library.
 --
 -- The schema CLI (Sl:CliList / CliGet / CliSet) IS adopted, since LIBKA0S-02
 -- fixed both blockers upstream: lib.FormatValue reads this addon's positional
@@ -1368,20 +1369,6 @@ else
     cliList, cliGet, cliSet, cliReset = printHelp, printHelp, printHelp, printHelp
 end
 
--- Read-only view of the COMMANDS table for the About panel. Each row is
--- {name, summary} — same data the in-chat help table uses, so the panel and
--- /cm help stay in lock-step automatically.
---
--- Kept for callers that want the DATA. What the About panel wants is the
--- rendered line, and that is GetLandingRows below.
-function KCM.SlashCommands.GetCommandSummary()
-    local out = {}
-    for i, entry in ipairs(COMMANDS) do
-        out[i] = { name = entry[1], desc = entry[2] }
-    end
-    return out
-end
-
 -- The About panel's command rows, RENDERED -- convergence #2 (LIBKA0S-13).
 --
 -- The panel used to format these itself, with two spaces either side of the em
@@ -1397,6 +1384,13 @@ end
 -- That is the seam the rest of the addon already uses, and it keeps the About
 -- page free of a LibKa0s lookup of its own -- which is what the note above
 -- lib:New asks for.
+--
+-- This REPLACED a GetCommandSummary() that handed back the unrendered
+-- { name =, desc = } view. Keeping both was the plan for about a day; the data
+-- view had no caller left in the addon once the panel stopped formatting rows
+-- itself, and an export with no caller is the next person's invitation to
+-- format a command row somewhere new. The suite reads the rendered rows now,
+-- which is what ships.
 --
 -- Empty rather than a host-formatted fallback when the library is absent: with
 -- LibKa0s missing the settings panel is not registered at all
