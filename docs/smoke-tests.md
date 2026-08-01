@@ -147,6 +147,7 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 8. Click **Force resync** — TooltipCache invalidates, auto-discovery re-runs, pipeline recomputes. Blocked in combat with a chat notice.
 9. Click **Force rewrite macros** — every `KCM_*` body + icon re-issued unconditionally. Useful when an action-bar framework is showing a stale texture.
 10. Click **Reset all priorities** — StaticPopup confirms; on Yes, the entire `categories` + `statPriority` tree wipes back to seed defaults and the master enable flips back on. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
+10a. **The slash path raises the same popup.** ⚠ `/cm reset` used to *be* this wipe; it now resets one row, and the destructive verb is `/cm resetall`. That move is only safe if the confirmation moved with it. Run `/cm resetall` → **the same StaticPopup appears**. **Cancel** → nothing is wiped (spot-check that a custom added item survives). Run it again and confirm → identical effect to step 10, because both reach the popup through the same file-scope `StaticPopup_Show("KCM_CONFIRM_RESET")`. Then bare `/cm reset` → the usage line naming `/cm resetall`, and **no popup**; `/cm reset macroBar.orientation` → that one row echoes and nothing else moves. (What this pins: the guard on the destructive path. A `/cm resetall` that wipes without asking, or a bare `/cm reset` that wipes at all, is the regression this convergence risked — see `../LibKa0s/docs/adoption-prompt.md`, "The two user-visible convergences".)
 11. Disable the addon (Enable off), then click the top-right **Defaults** button. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`) and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
@@ -290,6 +291,7 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 10. **Debug console.** `/cm debug on` → console opens, header toggle reads green `Debug: ON`, and the `[Debug] logging enabled` + `[Init]` lines land in that order. Copy opens the copy box and `Ctrl+C` works; Clear empties it; the `N / 500 lines` counter tracks.
 11. **Console checkbox sync.** General → tick `Debug console` → window opens. Now close it with **Escape** and with the **×**, and re-open the General page: the checkbox must be unticked both times. Both paths bypass the checkbox's own setter, so this is the one thing only the visibility callback keeps honest.
 12. **Bare `/cm debug`** toggles the window only — logging stays on.
+13. **Nothing renders a raw locale key.** Walk every sub-page of `/cm config`, then the debug console and `/cm perf`. Every label, tooltip title, section heading, button and perf step name reads as **English prose**. A `SCREAMING_SNAKE_CASE` string on screen — `STEP_START`, `PANEL_TITLE_SUFFIX`, `LIST_HEADER` — is the `L` trap: a descriptor was handed `KCM.L`, whose metatable answers every key with the key, so the library's own strings became unreachable. It fails for every key in that module at once, so one sighting means dozens. The one legitimate override here is `core/SlashCommands.lua`'s `L = SLASH_STRINGS`, a plain table of seven literals — never `KCM.L` itself. `tests/test_coresetup.lua` and the per-module suites guard the source; this is the only check that sees what actually rendered. (KickCD shipped this bug once — see `../LibKa0s/docs/adoption-prompt.md`, "The `L` trap".)
 
 ### Perf harness (`/cm perf`)
 
@@ -333,6 +335,7 @@ Rename it back and `/reload`.
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
+| `reset` / `resetall` semantics, or anything touching the confirm popup | §7 step 10 **and** 10a — the button and the slash verb reach the same popup, and both paths have to keep it |
 | Composite category change | §4 + §10 |
 | Auto-discovery GC | §2 step 4–5 |
 | Action-bar icon convention | §3 step 1, §4 step 2 |
