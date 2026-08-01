@@ -564,6 +564,15 @@ whenever the suite changes.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
+### test_slashsetup.lua (6)
+
+- Slash: the dispatcher IS the library's instance, not a host lookalike
+- Slash: /cm routes through the instance rather than a parallel path
+- Slash: the library reads the addon's live COMMANDS table, not a copy
+- Slash: help rows are rendered by the library's own formatter
+- Slash: the addon's own shipped wording survives the library's strings
+- Slash: the schema CLI is still the addon's, colors and enums intact
+
 ### test_spechelper.lua (16)
 
 - SpecHelper.MakeKey joins classID_specID, nil on missing parts
@@ -647,8 +656,9 @@ whenever the suite changes.
 | test_selector.lua | 36 |
 | test_settingsui.lua | 7 |
 | test_slash.lua | 66 |
+| test_slashsetup.lua | 6 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **529** |
+| **Total** | **535** |

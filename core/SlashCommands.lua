@@ -1335,17 +1335,73 @@ local COMMANDS = {
 -- the same source of truth as the /cm dispatcher (standard §7.4).
 KCM.COMMANDS = COMMANDS
 
--- Backwards-compat alias: `/cm rewrite` → `/cm rewritemacros`. The original
--- handler accepted both spellings; preserve that without bloating COMMANDS.
-local ALIASES = {
-    rewrite = "rewritemacros",
+-- ---------------------------------------------------------------------
+-- LibKa0s-Slash-1.0 — the dispatcher
+-- ---------------------------------------------------------------------
+--
+-- Everything above is this addon's: fifteen verbs, five sub-command tables
+-- with three different handler arities, the dump targets, and the schema CLI.
+-- What the library takes is the part that is the same in every Ka0s addon —
+-- trim, split, lowercase the verb only, apply the alias, find the entry, call
+-- it; plus the help header and rows.
+--
+-- The COMMANDS table is PASSED IN, not owned. That is the library's own design
+-- note and it matters here: KCM.SlashCommands.GetCommandSummary below renders
+-- the same table onto the About panel, and that page must not acquire a
+-- dependency on the slash library to do it.
+--
+-- NOT adopted: the schema CLI (Sl:CliList / CliGet / CliSet). The library's
+-- value formatter reads a color as { r =, g =, b =, a = } where this addon —
+-- and the Ka0s options widget that writes them — stores { r, g, b, a }
+-- positionally, so all seven color rows would render {0.00, 0.00, 0.00, 1.00}.
+-- Its enum parser reads `values` as a key map where ours is an ordered array,
+-- which would offer "1, 2" as the allowed values for macroBar.orientation and
+-- undo the validation commit 6a92e63 added. Both are upstream fixes, tracked
+-- as LIBKA0S-02; the host implementations below stay until they land.
+
+-- The three strings whose wording the addon already shipped. A plain table,
+-- deliberately NOT KCM.L: Sl:Text resolves through rawget precisely so a
+-- key-echoing locale table falls through, which also means KCM.L could never
+-- supply these.
+local SLASH_STRINGS = {
+    HELP_HEADER     = "|cffffd100Ka0s Consumable Master|r v%s \226\128\148 slash commands",
+    -- The library passes (alias, slash); this addon has only ever named the
+    -- alias, so the second is unused and string.format drops it.
+    HELP_ALIAS      = " (alias: |cffffff00%s|r)",
+    UNKNOWN_COMMAND = "Unknown command: |cffffff00%s|r",
 }
 
-printHelp = function()
-    say("|cffffd100Ka0s Consumable Master|r v" .. addonVersion()
-        .. " — slash commands (alias: |cffffff00/consumablemaster|r)")
-    for _, entry in ipairs(COMMANDS) do
-        say(("  |cffffff00/cm %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
+local slashLib = LibStub and LibStub("LibKa0s-Slash-1.0", true)
+local Sl
+
+if slashLib then
+    Sl = slashLib:New({
+        slash        = "/cm",
+        -- Only [1] is ever named, in the help header's alias clause.
+        slashAliases = { "/consumablemaster" },
+        commands     = COMMANDS,
+        -- Backwards-compat: `/cm rewrite` → `/cm rewritemacros`. The original
+        -- handler accepted both spellings; this preserves that without
+        -- bloating COMMANDS.
+        aliases      = { rewrite = "rewritemacros" },
+        version      = addonVersion,
+        -- A thunk, not `say` bare: the library snapshots the printer at :New.
+        -- Same note as core/CoreSetup.lua's sink and modules/DebugLog.lua's
+        -- print.
+        print        = function(line) KCM.Say(line) end,
+        L            = SLASH_STRINGS,
+    })
+    -- The instance, so the suite can assert identity rather than lookalike
+    -- behavior. Mirrors KCM.DebugLog.instance and Settings.Helpers.instance.
+    KCM.SlashCommands.instance = Sl
+
+    printHelp = function() Sl:PrintHelp() end
+else
+    -- LibKa0s is vendored, so this is a tampered install rather than a
+    -- supported state. Say so instead of re-implementing the dispatcher.
+    printHelp = function()
+        say((KCM.LIBKA0S_MISSING or "The LibKa0s library is missing") ..
+            ", so /cm is unavailable.")
     end
 end
 
@@ -1361,14 +1417,6 @@ function KCM.SlashCommands.GetCommandSummary()
 end
 
 function KCM:OnSlashCommand(msg)
-    msg = trim(msg)
-    if msg == "" then return printHelp() end
-    local cmd, rest = msg:match("^(%S+)%s*(.*)$")
-    cmd  = (cmd or ""):lower()
-    rest = rest or ""
-    if ALIASES[cmd] then cmd = ALIASES[cmd] end
-    local entry = findCommand(COMMANDS, cmd)
-    if entry then return entry[3](rest) end
-    say("Unknown command: |cffffff00" .. cmd .. "|r")
-    printHelp()
+    if not Sl then return printHelp() end
+    return Sl:OnSlash(msg)
 end
