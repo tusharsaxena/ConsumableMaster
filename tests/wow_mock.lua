@@ -318,6 +318,15 @@ function M.install(NS)
                     font   = { "Friz Quadrata TT", "JetBrains Mono" },
                 },
                 List = function(self, mediaType) return self.media[mediaType] end,
+                -- The real LibSharedMedia-3.0 serves BOTH: List is the ordered
+                -- array, HashTable the self-keyed map. Stubbing only List meant
+                -- any caller reaching for HashTable saw an empty media library
+                -- and could not tell that from one genuinely absent.
+                HashTable = function(self, mediaType)
+                    local out = {}
+                    for _, name in ipairs(self.media[mediaType] or {}) do out[name] = name end
+                    return out
+                end,
                 Fetch = function(self, mediaType, key)
                     for _, name in ipairs(self.media[mediaType] or {}) do
                         if name == key then return mediaType .. ":" .. key end

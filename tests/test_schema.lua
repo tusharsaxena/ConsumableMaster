@@ -73,26 +73,28 @@ test("schema: [Set] logs exactly one line at the write seam, gated by debug", fu
     assert(loadfile("modules/DebugLog.lua"))("ConsumableMaster", KCM)
     assert(loadfile("core/Debug.lua"))("ConsumableMaster", KCM)
 
-    local captured = {}
-    local realAdd = KCM.DebugLog.AddLine
-    KCM.DebugLog.AddLine = function(tag, msg) captured[#captured + 1] = { tag = tag, msg = msg } end
+    -- The console's own buffer, not a stub on KCM.DebugLog.AddLine: the gated
+    -- sink hands off to the library instance, which appends through its own
+    -- Add and never touches the addon's forwarder.
+    local D = KCM.DebugLog.instance
 
     local origEnabled = Helpers.Get("enabled")
     KCM.State.debug = true
-    for i = #captured, 1, -1 do captured[i] = nil end     -- clear before the single write
+    D:Clear()
     Helpers.Set("enabled", false)
-    local setLines = {}
-    for _, c in ipairs(captured) do if c.tag == "Set" then setLines[#setLines + 1] = c end end
-    t.eq(#setLines, 1, "exactly one [Set] line per settings write (no re-echo)")
-    t.eq(setLines[1] and setLines[1].msg, "enabled = false", "[Set] line shows path = value")
+    local setLines = 0
+    for _, line in ipairs(D.buffer) do
+        if line:find("[Set] ", 1, true) then setLines = setLines + 1 end
+    end
+    t.eq(setLines, 1, "exactly one [Set] line per settings write (no re-echo)")
+    t.truthy(D:FindLine("[Set] enabled = false"), "[Set] line shows path = value")
 
     -- gated off: no [Set] line when debug is disabled
     KCM.State.debug = false
-    local n0 = #captured
+    D:Clear()
     Helpers.Set("enabled", true)
-    t.eq(#captured, n0, "no [Set] line captured when debug is off")
+    t.eq(D:BufferSize(), 0, "no [Set] line captured when debug is off")
 
-    KCM.DebugLog.AddLine = realAdd
     Helpers.Set("enabled", origEnabled)
 end)
 

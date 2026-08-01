@@ -127,7 +127,7 @@ whenever the suite changes.
 - Debug: IsOn defers to DebugLog.IsEnabled once the console owns the flag
 - Debug: a call while gated off emits nothing
 - Debug: a call while gated off never reaches the console either
-- Debug: an enabled call routes tag and message to the console
+- Debug: an enabled call is handed to the console instance's own sink
 - Debug: with no console loaded an enabled call falls back to tagged chat
 - Debug: a message with no format args is emitted verbatim
 - Debug: every format arg goes through the secret guard
@@ -142,7 +142,7 @@ whenever the suite changes.
 - DebugLog: SetEnabled/IsEnabled drive State.debug
 - DebugLog: Toggle flips State.debug both directions
 - DebugLog: SafeToString stringifies safely and catches concat-hostile values
-- DebugLog: Debug sink is gated and routes tag/msg through AddLine
+- DebugLog: the Debug sink is gated, and formats into the console buffer
 - DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
 - DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
 - DebugLog: Show/Hide toggle the window without touching the enabled flag

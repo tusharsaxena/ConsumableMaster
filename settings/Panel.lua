@@ -66,13 +66,11 @@ end
 -- spacer looks small on its own; don't "fix" it by raising it without checking
 -- what precedes the heading.
 --
--- The two section spacers themselves are LibKa0s-Options-1.0's now (its
--- LAYOUT table carries the same 10 and 6), so only the ones this file still
--- emits are declared here. The note above stays because the ARITHMETIC is
--- still the reason the top gap looks small, and that reasoning lives with the
--- rows it explains rather than in the library.
+-- All four spacers are LibKa0s-Options-1.0's now — its LAYOUT table carries the
+-- same 10, 6 and 8, and nothing in this file emits one by hand any more. The
+-- note above stays because the ARITHMETIC is still the reason the top gap looks
+-- small, and that reasoning belongs with the rows it explains.
 local SECTION_HEADING_H     = 26
-local ROW_VSPACER           = 8
 local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (standard §6.8)
 
 local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
@@ -226,6 +224,11 @@ if optionsLib then
         -- alpha — so the live preview IS the feature. Release-only is the
         -- library's default and would have taken it away silently.
         sliderCommit = "change",
+
+        -- Resolved at CALL time, never captured: LibSharedMedia is optional and
+        -- other addons register media into it after this file loads, so a list
+        -- read once at :New would freeze whatever happened to exist first.
+        getLSM = function() return LibStub and LibStub("LibSharedMedia-3.0", true) end,
 
         get = function(path) return Helpers.Get(path) end,
         set = function(path, value) Helpers.SetAndRefresh(path, value) end,
@@ -430,15 +433,22 @@ end
 Helpers.EnumValues = enumValues
 
 function Helpers.LSMValues(mediaType)
-    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-    local list = LSM and LSM.List and LSM:List(mediaType) or nil
-    if not list or #list == 0 then
-        return { { value = "None", text = "None" } }
-    end
+    -- A shape adapter over the library's, which answers a deferred closure over
+    -- a self-keyed HASH where this addon's schema declares an ordered
+    -- { value =, text = } array. enumList reads both, so only the row literal
+    -- differs — and the rows here are already written as functions.
+    --
+    -- What it gains is the guarantee: the library's never returns an empty
+    -- list. A media type with nothing registered yields a single "None",
+    -- because an empty one leaves the dropdown unopenable and makes
+    -- ValidateSchemaValue reject even the value already stored. This addon had
+    -- that placeholder first; the library has it now.
+    local hash = UI and UI.LSMValues(mediaType)() or {}
+    local keys = {}
+    for k in pairs(hash) do keys[#keys + 1] = k end
+    table.sort(keys)
     local out = {}
-    for i, key in ipairs(list) do
-        out[i] = { value = key, text = key }
-    end
+    for i2, k in ipairs(keys) do out[i2] = { value = k, text = k } end
     return out
 end
 
@@ -492,48 +502,19 @@ function Helpers.ButtonPair(ctx, leftSpec, rightSpec)
     scroll:AddChild(row)
 end
 
--- Two-column paired grid for the schema-driven body (standard §6.6). Each item
--- is either a schema def (rendered via RenderField) or a custom descriptor with
--- a `make(ctx, parent, relWidth)` function. Items render two-per-row at 0.5
--- relative width, flushing the SimpleGroup at two children; an item flagged
--- `wide = true` breaks onto its own full-width row.
-function Helpers.Grid(ctx, items)
-    local scroll = ensureScroll(ctx)
-    local row, count = nil, 0
-    local function newRow()
-        local r = AceGUI:Create("SimpleGroup")
-        r:SetLayout("Flow")
-        r:SetFullWidth(true)
-        return r
-    end
-    local function flush()
-        if row then
-            scroll:AddChild(row)
-            addSpacer(scroll, ROW_VSPACER)
-            row = nil
-            count = 0
-        end
-    end
-    local function renderInto(item, parent, relW)
-        if item.make then item.make(ctx, parent, relW)
-        else Helpers.RenderField(ctx, item, parent, relW) end
-    end
-    for _, item in ipairs(items) do
-        if item.wide then
-            flush()
-            local r = newRow()
-            renderInto(item, r, nil)
-            scroll:AddChild(r)
-            addSpacer(scroll, ROW_VSPACER)
-        else
-            if not row then row = newRow() end
-            renderInto(item, row, 0.5)
-            count = count + 1
-            if count == 2 then flush() end
-        end
-    end
-    flush()
-end
+-- Two-column paired grid (standard §6.6), the library's. Each item is either a
+-- schema def or a custom descriptor with a `make(ctx, parent, relWidth)`
+-- function; items render two per row at 0.5 relative width, and `wide = true`
+-- breaks one onto its own full-width row.
+--
+-- This addon had its own copy until LibKa0s-Options-1.0 grew RenderGrid. Its
+-- RenderRows could never replace it: that one is SCHEMA-driven and
+-- auto-sections by `group`, where these pages pair their rows by hand and —
+-- the case that forced the issue — settings/MacroBar.lua's per-macro toggle
+-- list has one checkbox per macro, a length no schema knows. That is what made
+-- it a library gap rather than something to work around here. RenderGrid also
+-- guards each item, so one raising `make` costs that cell and not the page.
+Helpers.Grid = UI and UI.RenderGrid
 
 -- A checkbox backed by an arbitrary get/set pair (e.g. session-only State
 -- flags that aren't in the AceDB schema). Registered with the panel's

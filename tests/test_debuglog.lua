@@ -100,23 +100,26 @@ test("DebugLog: SafeToString stringifies safely and catches concat-hostile value
 end)
 
 -- Callable sink: gated + routes tag/msg through DebugLog.AddLine
-test("DebugLog: Debug sink is gated and routes tag/msg through AddLine", function(t)
+test("DebugLog: the Debug sink is gated, and formats into the console buffer", function(t)
+    -- Read off the instance's own buffer rather than by intercepting AddLine.
+    -- core/Debug.lua delegates to the instance's gated sink now, which appends
+    -- through the library's Add directly — the addon's forwarder is not on that
+    -- path, so a stub on it would capture nothing and the case would fail for
+    -- the wrong reason.
     local KCM = load()
-    local captured = {}
-    local realAdd = KCM.DebugLog.AddLine
-    KCM.DebugLog.AddLine = function(tag, msg) captured[#captured + 1] = { tag = tag, msg = msg } end
+    local D = KCM.DebugLog.instance
 
+    D:Clear()
     KCM.State.debug = false
     KCM.Debug("Test", "should not fire %s", "x")
-    t.eq(#captured, 0, "sink is gated off when State.debug is false")
+    t.eq(D:BufferSize(), 0, "sink is gated off when State.debug is false")
 
     KCM.State.debug = true
     KCM.Debug("Test", "value=%s", 7)
-    t.eq(#captured, 1, "sink fires when enabled")
-    t.eq(captured[1].tag, "Test", "sink passes the tag verbatim")
-    t.eq(captured[1].msg, "value=7", "sink formats with SafeToString args")
+    t.eq(D:BufferSize(), 1, "sink fires when enabled")
+    t.truthy(D:LastLine():find("[Test] value=7", 1, true),
+        "tag passed through and args formatted through the secret guard")
 
-    KCM.DebugLog.AddLine = realAdd
     KCM.State.debug = false
 end)
 

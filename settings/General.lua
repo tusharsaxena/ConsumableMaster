@@ -107,22 +107,23 @@ local function render(ctx)
     -- separately via the in-window Debug: ON/OFF toggle or `/cm debug on|off`.
     H.Section(ctx, L["General"])
     local enabledDef = H.FindSchema("enabled")
+    -- The spec is the library's: D:ConsoleCheckbox() returns the
+    -- { label, tooltip, get, set } shape CustomCheckbox already consumes, and
+    -- it is the console's own description of how it is shown and hidden — so
+    -- the wording and the visibility semantics cannot drift from the window
+    -- they describe. The `make` hatch stays because Grid needs an item, and
+    -- this cell is a bespoke widget rather than a schema row.
+    --
+    -- Its tooltip differs from the one this page used to carry: it names
+    -- `/cm debug` in the same sentence rather than in a trailing one. Adopted
+    -- deliberately (LIBKA0S-06) — one description of the console, owned by the
+    -- console.
     local debugConsole = {
         make = function(c, parent, relW)
-            H.CustomCheckbox(c, parent, relW, {
-                label   = L["Debug console"],
-                tooltip = L["Show or hide the on-screen debug console window. This does not turn logging on or off — use the window's Debug: ON/OFF toggle or /cm debug on|off for that. Same as a bare /cm debug."],
-                get     = function() return KCM.DebugLog and KCM.DebugLog.IsWindowShown() end,
-                set     = function(v)
-                    local DL = KCM.DebugLog
-                    if not DL then return end
-                    if v then
-                        if DL.Show then DL.Show() end
-                    else
-                        if DL.Hide then DL.Hide() end
-                    end
-                end,
-            })
+            local DL = KCM.DebugLog
+            local spec = DL and DL.instance and DL.instance:ConsoleCheckbox()
+            if not spec then return end
+            H.CustomCheckbox(c, parent, relW, spec)
         end,
     }
     H.Grid(ctx, { enabledDef, debugConsole })
