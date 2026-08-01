@@ -583,7 +583,7 @@ whenever the suite changes.
 - Slash: the library reads the addon's live COMMANDS table, not a copy
 - Slash: help rows are rendered by the library's own formatter
 - Slash: the addon's own shipped wording survives the library's strings
-- Slash: the schema CLI is still the addon's, colors and enums intact
+- Slash: the schema CLI reads the addon's shapes through the library
 
 ### test_spechelper.lua (16)
 

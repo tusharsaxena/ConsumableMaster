@@ -80,22 +80,25 @@ test("Slash: the addon's own shipped wording survives the library's strings", fu
         "the unknown-verb line keeps its capital U and its gold verb")
 end)
 
-test("Slash: the schema CLI is still the addon's, colors and enums intact", function(t)
+test("Slash: the schema CLI reads the addon's shapes through the library", function(t)
     local KCM, mock = load()
-    -- Deliberately NOT adopted (LIBKA0S-02): the library formats a color from
-    -- { r =, g =, b =, a = } where this addon stores { r, g, b, a }
-    -- positionally, and reads enum `values` as a key map where ours is an
-    -- ordered array. Both would ship green — the color one because nothing
-    -- asserts the rendered value, the enum one by regressing 6a92e63. These
-    -- two assertions are what would go red the day someone wires them up.
+    -- The two shapes that blocked this adoption until LIBKA0S-02 fixed them upstream.
+    -- Both would ship GREEN if they regressed — the colour one because nothing else
+    -- asserts a rendered colour's value, the enum one by quietly restoring the clamp
+    -- that commit 6a92e63 removed.
     mock.output = {}
     KCM:OnSlashCommand("set macroBar.orientation sideways")
     local text = table.concat(mock.output, "\n")
-    t.truthy(text:find("Allowed values: HORIZONTAL, VERTICAL", 1, true),
-        "a bad enum still lists the real allowed values, not the array's 1, 2 keys")
+    t.truthy(text:lower():find("allowed values: horizontal, vertical", 1, true),
+        "an ordered-array enum lists its real values, not the array's 1, 2 keys: " .. text)
 
-    local color = KCM.Settings.Helpers.FindSchema("macroBar.barBackdropColor")
-    t.truthy(color, "the color row exists")
-    t.eq(KCM.FormatSchemaValue(color, { 0.25, 0.5, 0.75, 1 }), "{0.25, 0.50, 0.75, 1.00}",
-        "colors still render from the addon's positional storage")
+    -- Round-trip a colour: written through the codec into the addon's positional
+    -- shape, and read back out of it for the echo.
+    mock.output = {}
+    KCM:OnSlashCommand("set macroBar.barBackdropColor 0.25 0.5 0.75 1")
+    local stored = KCM.Settings.Helpers.Get("macroBar.barBackdropColor")
+    t.truthy(type(stored) == "table" and stored[1], "stored positionally, as the widget writes it")
+    t.eq(stored.r, nil, "and not in the library's named-key form")
+    t.truthy(table.concat(mock.output, "\n"):find("{0.25, 0.50, 0.75, 1.00}", 1, true),
+        "the echo renders it back through the same codec")
 end)

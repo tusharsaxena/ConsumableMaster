@@ -550,6 +550,9 @@ local function helpers()
     return KCM.Settings and KCM.Settings.Helpers
 end
 
+-- Bound at the foot of this file, once the Slash instance exists.
+local cliList, cliGet, cliSet
+
 -- Shared, type-aware, unit-annotated value formatter (slash-commands-§5). The
 -- single source of truth for both `/cm list` rows and the `get`/`set` echo, so
 -- the two paths can never diverge.
@@ -564,149 +567,27 @@ function KCM.FormatSchemaValue(def, v)
     end
     return tostring(v)
 end
-local formatValue = KCM.FormatSchemaValue
+-- KCM.FormatSchemaValue above stays a published export — tests/test_schema.lua
+-- pins it by name, and it is the addon's own renderer for anywhere outside the
+-- CLI. What went with the CLI are its private companions: the key=value
+-- formatter, the dropdown allowed-list reader and its message builder. All
+-- three are LibKa0s-Slash-1.0's now, and the library reads the addon's ordered
+-- {value=, text=} enum shape natively rather than needing a translation here.
 
--- Shared colored `key = value` line (slash-commands-§5): gold key, white value,
--- uncolored ` = ` separator. Reused by the `list` rows and the `get`/`set`
--- echo so the coloring can't drift between them.
-local function formatKV(path, valueStr)
-    return ("|cffffff00%s|r = |cffffffff%s|r"):format(path, valueStr)
-end
+-- The schema CLI is LibKa0s-Slash-1.0's. Forward-declared and bound at the
+-- bottom of this file, where the instance is built: COMMANDS is declared above
+-- that point and its handlers close over these names.
+--
+-- What the library gained that made this possible is recorded as LIBKA0S-02 —
+-- it now reads the ordered {value=, text=} enum shape this addon declares, and
+-- takes a colour codec so a positional { r, g, b, a } round-trips. Before that,
+-- adopting it would have rendered all seven colour rows as {0.00, 0.00, 0.00,
+-- 1.00} and offered "1, 2" as the allowed values for a dropdown — both
+-- silently, and both green.
+--
+-- One thing arrives free: colours may now be given as 0-255 as well as 0-1, and
+-- a mixed-scale triple rescales jointly rather than per channel.
 
--- Allowed values for a dropdown row, in their declared types. Deliberately not
--- tostring'd: a numeric dropdown has to be compared numerically, so coercion
--- happens at the comparison site (per branch) rather than here.
-local function dropdownAllowed(def)
-    local values = type(def.values) == "function" and def.values() or def.values or {}
-    local out = {}
-    for i, item in ipairs(values) do out[i] = item.value end
-    return out
-end
-
--- Shared "not one of the allowed values" message; concat handles the mixed
--- string/number element types the raw list can now carry.
-local function allowedList(allowed)
-    local parts = {}
-    for i, a in ipairs(allowed) do parts[i] = tostring(a) end
-    return table.concat(parts, ", ")
-end
-
-local function applyFromText(def, text)
-    local H = helpers()
-    if not H then return say("Settings layer not ready yet.") end
-    local args = tokenize(text)
-    local fail = function(reason)
-        say(("Invalid value for %s"):format(def.path))
-        if reason and reason ~= "" then say("  " .. reason) end
-    end
-    local newValue
-    if def.type == "bool" then
-        local s = (args[1] or ""):lower()
-        if s == "true" or s == "1" or s == "on"  or s == "yes" then newValue = true
-        elseif s == "false" or s == "0" or s == "off" or s == "no" then newValue = false
-        else return fail("expected true/false/on/off/1/0") end
-    elseif def.type == "number" then
-        local n = tonumber(args[1])
-        if not n then return fail("expected a number") end
-        -- A numeric dropdown constrains the value to its list; min/max clamping
-        -- would silently land between entries, so the membership test comes
-        -- first and rejects rather than clamps.
-        local allowed = dropdownAllowed(def)
-        if #allowed > 0 then
-            local ok = false
-            for _, a in ipairs(allowed) do if tonumber(a) == n then ok = true; break end end
-            if not ok then
-                return fail(("Allowed values: %s"):format(allowedList(allowed)))
-            end
-        else
-            if def.min then n = math.max(def.min, n) end
-            if def.max then n = math.min(def.max, n) end
-        end
-        newValue = n
-    elseif def.type == "string" then
-        local v = args[1]
-        if not v then return fail("expected a value") end
-        local allowed = dropdownAllowed(def)
-        if #allowed > 0 then
-            local ok = false
-            for _, a in ipairs(allowed) do if tostring(a) == v then ok = true; break end end
-            if not ok then
-                return fail(("Allowed values: %s"):format(allowedList(allowed)))
-            end
-        end
-        newValue = v
-    elseif def.type == "color" then
-        local r, g, b = tonumber(args[1]), tonumber(args[2]), tonumber(args[3])
-        local a = tonumber(args[4]) or 1
-        if not (r and g and b) then return fail("expected: r g b [a] (each 0-1)") end
-        local function clamp01(n) return math.max(0, math.min(1, n)) end
-        newValue = { clamp01(r), clamp01(g), clamp01(b), clamp01(a) }
-    else
-        return fail("unknown setting type '" .. tostring(def.type) .. "'")
-    end
-    if not H.SetAndRefresh(def.path, newValue) then
-        return say(("could not set %s — DB not ready?"):format(def.path))
-    end
-    say(formatKV(def.path, formatValue(def, H.Get(def.path))))
-end
-
-local function listSettings()
-    local H = helpers()
-    if not (H and KCM.Settings and KCM.Settings.Schema) then
-        return say("Settings layer not ready yet.")
-    end
-    local schema = KCM.Settings.Schema
-    if #schema == 0 then
-        return say("(no schema rows registered)")
-    end
-    say("|cff33ff99Available settings|r")
-    -- Group by panel for readable output. Today there's only the General panel,
-    -- but the grouping is preserved so future panels render under their own
-    -- header without a code change here.
-    local byPanel, panelOrder = {}, {}
-    for _, def in ipairs(schema) do
-        local key = def.panel or "?"
-        if not byPanel[key] then
-            byPanel[key] = {}
-            panelOrder[#panelOrder + 1] = key
-        end
-        table.insert(byPanel[key], def)
-    end
-    for _, key in ipairs(panelOrder) do
-        say("  |cff3399ff[" .. key .. "]|r")
-        for _, def in ipairs(byPanel[key]) do
-            say("    " .. formatKV(def.path, formatValue(def, H.Get(def.path))))
-        end
-    end
-end
-
-local function getSetting(rest)
-    local H = helpers()
-    if not H then return say("Settings layer not ready yet.") end
-    local path = (rest or ""):match("^(%S+)")
-    if not path or path == "" then
-        return say("Usage: /cm get <path>  (try /cm list)")
-    end
-    local def = H.FindSchema(path)
-    if not def then
-        return say(("Setting not found: %s"):format(path))
-    end
-    say(formatKV(def.path, formatValue(def, H.Get(def.path))))
-end
-
-local function setSetting(rest)
-    local H = helpers()
-    if not H then return say("Settings layer not ready yet.") end
-    local path, value = (rest or ""):match("^(%S+)%s*(.*)$")
-    if not path or path == "" then
-        return say("Usage: /cm set <path> <value>  (try /cm list)")
-    end
-    local def = H.FindSchema(path)
-    if not def then
-        return say(("Setting not found: %s"):format(path))
-    end
-    applyFromText(def, value or "")
-end
 
 -- ---------------------------------------------------------------------------
 -- /cm priority <catKey> <subverb> ...
@@ -1324,11 +1205,11 @@ local COMMANDS = {
             end
         end},
     {"list",          "List every schema setting and its current value",
-        function() listSettings() end},
+        function() cliList() end},
     {"get",           "Print a setting's current value — `/cm get <path>`",
-        function(rest) getSetting(rest) end},
+        function(rest) cliGet(rest) end},
     {"set",           "Set a setting — `/cm set <path> <value>` (try /cm list)",
-        function(rest) setSetting(rest) end},
+        function(rest) cliSet(rest) end},
     {"bar",           "Macro bar — `/cm bar [on|off|lock|unlock|reset]` (bare toggles it)",
         function(rest) runBar(rest) end},
     {"priority",      "Per-category priority list editor — try `/cm priority` for the list",
@@ -1379,6 +1260,12 @@ local SLASH_STRINGS = {
     -- alias, so the second is unused and string.format drops it.
     HELP_ALIAS      = " (alias: |cffffff00%s|r)",
     UNKNOWN_COMMAND = "Unknown command: |cffffff00%s|r",
+    -- The four the schema CLI has always spelled differently. Each is text a
+    -- user reads today, so it is pinned rather than quietly restyled.
+    USAGE_GET       = "Usage: %s get <path>  (try %s list)",
+    ERR_BOOL        = "expected true/false/on/off/1/0",
+    ERR_ALLOWED     = "Allowed values: %s",
+    ERR_COLOR       = "expected: r g b [a] (each 0-1 or 0-255)",
 }
 
 local slashLib = LibStub and LibStub("LibKa0s-Slash-1.0", true)
@@ -1400,12 +1287,42 @@ if slashLib then
         -- print.
         print        = function(line) KCM.Say(line) end,
         L            = SLASH_STRINGS,
+
+        -- The schema half. Every one of these resolves through KCM.Settings at
+        -- CALL time: settings/Panel.lua loads long after this file, and the
+        -- rows themselves are appended by the four page files after that.
+        get          = function(path) local H = helpers(); return H and H.Get(path) end,
+        set          = function(path, value)
+            local H = helpers()
+            if H then H.SetAndRefresh(path, value) end
+        end,
+        findRow      = function(path) local H = helpers(); return H and H.FindSchema(path) end,
+        allRows      = function() return (KCM.Settings and KCM.Settings.Schema) or {} end,
+        applyDefault = function(row)
+            local H = helpers()
+            if H and row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+        end,
+        -- Rows carry `panel`, not the library's default `page`.
+        groupKey     = function(row) return row.panel or "?" end,
+
+        -- Colours are stored POSITIONALLY here — { r, g, b, a } — which is what
+        -- the Ka0s options colour widget writes. The library reads that shape
+        -- directly when rendering, but the codec is what makes a `/cm set`
+        -- WRITE land in it rather than in the named-key form.
+        colorDecode  = function(c)
+            c = type(c) == "table" and c or {}
+            return c[1] or 0, c[2] or 0, c[3] or 0, c[4] or 1
+        end,
+        colorEncode  = function(r, g, b, a) return { r, g, b, a or 1 } end,
     })
     -- The instance, so the suite can assert identity rather than lookalike
     -- behavior. Mirrors KCM.DebugLog.instance and Settings.Helpers.instance.
     KCM.SlashCommands.instance = Sl
 
     printHelp = function() Sl:PrintHelp() end
+    cliList   = function() Sl:CliList() end
+    cliGet    = function(rest) Sl:CliGet(rest) end
+    cliSet    = function(rest) Sl:CliSet(rest) end
 else
     -- LibKa0s is vendored, so this is a tampered install rather than a
     -- supported state. Say so instead of re-implementing the dispatcher.
@@ -1413,6 +1330,7 @@ else
         say((KCM.LIBKA0S_MISSING or "The LibKa0s library is missing") ..
             ", so /cm is unavailable.")
     end
+    cliList, cliGet, cliSet = printHelp, printHelp, printHelp
 end
 
 -- Read-only view of the COMMANDS table for the About panel. Each row is

@@ -75,7 +75,10 @@ test("/cm list colors the header, page group, and key=value rows (no trailing co
     local text = say(KCM, mock, "list")
     t.truthy(text:find("|cff33ff99Available settings|r", 1, true), "green Available settings header")
     t.truthy(text:find("|cff3399ff[general]|r", 1, true), "azure [page] group header")
-    t.truthy(text:find("|cffffff00enabled|r = |cffffffff", 1, true),
+    -- Case-insensitive on the escape: the shared formatter is LibKa0s-Slash-1.0's now and spells
+    -- its hex in upper case, which WoW parses identically. What is pinned is the SHAPE — gold key,
+    -- ` = `, white value, no trailing colon — not which case the digits happen to be in.
+    t.truthy(text:lower():find("|cffffff00enabled|r = |cffffffff", 1, true),
         "gold key + white value via the shared FormatKV")
     t.falsy(text:find("Available settings:", 1, true), "header carries no trailing colon")
 end)
@@ -83,7 +86,7 @@ end)
 test("/cm get echoes the same colored key=value form as list", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "get enabled")
-    t.truthy(text:find("|cffffff00enabled|r = |cffffffff", 1, true),
+    t.truthy(text:lower():find("|cffffff00enabled|r = |cffffffff", 1, true),
         "get reuses the shared gold-key / white-value formatter")
 end)
 
@@ -582,7 +585,7 @@ test("/cm set on a numeric dropdown rejects a value outside the list", function(
     local before = KCM.db.profile.macroBar.perRow
     local text = say(KCM, mock, "set macroBar.perRow 7")
     t.eq(KCM.db.profile.macroBar.perRow, before, "an unlisted value is not written")
-    t.truthy(text:find("Allowed values", 1, true), "and the allowed list is reported")
+    t.truthy(text:lower():find("allowed values", 1, true), "and the allowed list is reported")
     t.truthy(text:find("1, 4, 13", 1, true), "with the numeric entries rendered readably")
 end)
 
@@ -598,7 +601,7 @@ test("/cm set on a string dropdown still matches by text", function(t)
     t.eq(KCM.db.profile.macroBar.orientation, "VERTICAL", "a listed string value is accepted")
     local text = say(KCM, mock, "set macroBar.orientation SIDEWAYS")
     t.eq(KCM.db.profile.macroBar.orientation, "VERTICAL", "an unlisted string value is rejected")
-    t.truthy(text:find("Allowed values", 1, true), "and the allowed list is reported")
+    t.truthy(text:lower():find("allowed values", 1, true), "and the allowed list is reported")
 end)
 
 test("/cm list covers every row in the settings schema", function(t)
