@@ -309,34 +309,19 @@ end
 -- body. The framework calls fn(ctx) on first show and after every Refresh.
 -- The renderer is responsible for releasing existing children before
 -- adding new ones (Helpers.ResetScroll handles that).
-function Helpers.SetRenderer(ctx, fn)
-    ctx._renderFn = fn
-    ctx.panel:SetScript("OnShow", function()
-        -- Header Defaults button, built here rather than at registration time
-        -- so it can't lose the AceGUI skinning load-order race.
-        UI.EnsureDefaultsButton(ctx.panel)
-        -- Block any KCM panel from opening during combat. The Blizzard
-        -- AddOns sidebar bypasses O.Open's guard, so this catches both
-        -- the slash path and a direct sidebar click.
-        if InCombatLockdown and InCombatLockdown() then
-            if SettingsPanel and SettingsPanel.Close then
-                SettingsPanel:Close()
-            elseif HideUIPanel and SettingsPanel then
-                HideUIPanel(SettingsPanel)
-            end
-            sayCombatOpenBlocked()
-            return
-        end
-        -- Render on first show, and re-render when a refresh marked this panel
-        -- dirty while it was hidden (both RefreshAllPanels and RefreshScalars
-        -- defer off-screen work here to keep mutations from stalling on every
-        -- rendered sub-page).
-        if ctx._rendered and not ctx._dirty then return end
-        ctx._rendered = true
-        ctx._dirty = false
-        if ctx._renderFn then ctx._renderFn(ctx) end
-    end)
-end
+-- The library's, and it carries everything this addon's own copy did: the
+-- Defaults button built on first show rather than at registration (the AceGUI
+-- skinning load-order race), the combat guard that closes the Settings window
+-- (the Blizzard AddOns sidebar bypasses KCM.Options.Open, so this is the only
+-- thing covering a direct sidebar click mid-fight), first-show rendering, and
+-- the dirty re-render for a page refreshed while hidden.
+--
+-- Two differences, both accepted and both recorded as LIBKA0S-05. The combat
+-- notice is the library's |cffaaaaaa rather than this addon's |cff808080 —
+-- same sentence, different grey, and Options.lua has no L seam to override it.
+-- And a failing renderer is reported as "settings page '<key>' failed to
+-- render" rather than "panel render failed".
+Helpers.SetRenderer = UI and UI.SetRenderer
 
 -- Release scroll children + reset bookkeeping so a fresh render starts on
 -- a clean slate. Panels with dynamic content (priority list rows that
@@ -691,54 +676,25 @@ end
 -- at least once. Panels that have never been opened stay unrendered to
 -- avoid wasted AceGUI widget allocation.
 -- ---------------------------------------------------------------------
-
--- Rebuilding a panel re-runs its full renderer — a complete AceGUI teardown +
--- rebuild of the whole page. The Blizzard Settings window only ever shows one
--- subcategory at a time, so rebuilding *every* rendered panel on each mutation
--- is wasted work: with 15 sub-pages it stalls the client for a visible beat on
--- every checkbox toggle or button click. Rebuild only the panel that is on
--- screen; flag the rest dirty so they rebuild lazily the next time they are
--- shown (SetRenderer's OnShow honors the flag).
-function Helpers.RefreshAllPanels()
-    for _, ctx in ipairs(KCM.Settings._panels) do
-        if ctx._rendered and ctx._renderFn then
-            if ctx.panel and ctx.panel:IsShown() then
-                local ok, err = pcall(ctx._renderFn, ctx)
-                if not ok then
-                    KCM.Say("panel render failed: " .. tostring(err))
-                end
-                ctx._dirty = false
-            else
-                ctx._dirty = true
-            end
-        end
-    end
-end
-
--- Scalar refresh (standard options-ui-§11). A scalar mutation (a checkbox
--- write or `/cm set`) must NOT rebuild the page: it re-syncs each widget in
--- place through the per-widget updater closures every renderer registers in
--- ctx.refreshers. Only the on-screen panel is re-synced live; off-screen
--- panels are flagged dirty and rebuilt lazily on their next OnShow, so a
--- background page still reflects the new value when the user returns to it
--- (SetRenderer's OnShow honors the flag). This is the cheap counterpart to
--- RefreshAllPanels — no AceGUI teardown, no structural rebuild.
-function Helpers.RefreshScalars()
-    for _, ctx in ipairs(KCM.Settings._panels) do
-        if ctx._rendered then
-            if ctx.panel and ctx.panel:IsShown() then
-                for _, refresh in ipairs(ctx.refreshers) do
-                    local ok, err = pcall(refresh)
-                    if not ok then
-                        KCM.Say("scalar refresh failed: " .. tostring(err))
-                    end
-                end
-            else
-                ctx._dirty = true
-            end
-        end
-    end
-end
+-- The two refresh tiers — both the library's (options-ui-§11)
+-- ---------------------------------------------------------------------
+--
+-- RefreshAllPanels is STRUCTURAL: it re-runs the page's renderer, so rows that
+-- appeared or disappeared are drawn. RefreshScalars is IN PLACE: it re-syncs
+-- each widget through the updater closures a renderer registers in
+-- ctx.refreshers, with no AceGUI teardown. A scalar write — a checkbox, or
+-- `/cm set` — must never rebuild the page, which is the whole reason the split
+-- exists.
+--
+-- Either way, only the page actually on screen is touched; the rest are
+-- flagged dirty and rebuilt on their next OnShow, so a background page still
+-- reflects the change when the user returns to it.
+--
+-- This addon had both tiers first; the library grew them to match, which is
+-- what made the registry adoptable at all (LIBKA0S-05). The names and
+-- semantics are identical, so every caller here is unchanged.
+Helpers.RefreshAllPanels = UI and UI.RefreshAllPanels
+Helpers.RefreshScalars   = UI and UI.RefreshScalars
 
 -- Validate a value against a schema row's declared type, clamping numbers to
 -- min/max. Returns the coerced value, or nil + reason on a type mismatch.

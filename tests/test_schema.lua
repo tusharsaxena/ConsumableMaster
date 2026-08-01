@@ -285,36 +285,43 @@ end)
 -- Panel refresh plumbing
 -- ---------------------------------------------------------------------------
 
+-- Built through Helpers.CreatePanel and Helpers.SetRenderer rather than
+-- hand-assembled and pushed onto KCM.Settings._panels. The registry is
+-- LibKa0s-Options-1.0's now, and only its own factory puts a ctx in it — but
+-- the honest reason to go through the factory is that these cases are about
+-- the refresh CONTRACT, and a fabricated ctx could satisfy it while a real one
+-- did not.
+--
+-- Visibility is the one thing the mock cannot express: its stub answers
+-- IsShown with the frame itself, which is truthy. Overriding that one method
+-- on a real panel is what makes "hidden" reachable.
+local seq = 0
+local function page(KCM, shown)
+    seq = seq + 1
+    local H = KCM.Settings.Helpers
+    local ctx = H.CreatePanel("KCMRefreshPanel" .. seq, "R" .. seq, { panelKey = "r" .. seq })
+    ctx.panel.IsShown = function() return shown and true or false end
+    return ctx, H
+end
+
 test("schema: RefreshAllPanels flags an off-screen page dirty instead of rebuilding it", function(t)
     local KCM = h.loader.loadWithSchema()
     local rebuilt = 0
-    local ctx = {
-        _rendered = true,
-        _renderFn = function() rebuilt = rebuilt + 1 end,
-        panel = { IsShown = function() return false end },
-        refreshers = {},
-    }
-    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
-    KCM.Settings.Helpers.RefreshAllPanels()
-    KCM.Settings._panels[#KCM.Settings._panels] = nil
+    local ctx, H = page(KCM, false)
+    H.SetRenderer(ctx, function() rebuilt = rebuilt + 1 end)
 
-    t.eq(rebuilt, 0, "a hidden page is not rebuilt on every checkbox toggle")
-    t.eq(ctx._dirty, true, "it is flagged so its next OnShow rebuilds it")
+    H.RefreshAllPanels()
+    t.eq(rebuilt, 0, "an off-screen page is not rebuilt in place")
+    t.truthy(ctx._dirty, "it is flagged so its next OnShow rebuilds it")
 end)
 
 test("schema: RefreshAllPanels rebuilds the page that is on screen", function(t)
     local KCM = h.loader.loadWithSchema()
     local rebuilt = 0
-    local ctx = {
-        _rendered = true,
-        _renderFn = function() rebuilt = rebuilt + 1 end,
-        panel = { IsShown = function() return true end },
-        refreshers = {},
-    }
-    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
-    KCM.Settings.Helpers.RefreshAllPanels()
-    KCM.Settings._panels[#KCM.Settings._panels] = nil
+    local ctx, H = page(KCM, true)
+    H.SetRenderer(ctx, function() rebuilt = rebuilt + 1 end)
 
+    H.RefreshAllPanels()
     t.eq(rebuilt, 1, "the visible page is re-rendered")
     t.eq(ctx._dirty, false, "and is no longer dirty")
 end)
@@ -322,64 +329,41 @@ end)
 test("schema: a render failure is reported instead of breaking the refresh loop", function(t)
     local KCM  = h.loader.loadWithSchema()
     local mock = h.loader.mock
-    local later = 0
-    local bad = {
-        _rendered = true, refreshers = {},
-        _renderFn = function() error("boom") end,
-        panel = { IsShown = function() return true end },
-    }
-    local good = {
-        _rendered = true, refreshers = {},
-        _renderFn = function() later = later + 1 end,
-        panel = { IsShown = function() return true end },
-    }
-    local panels = KCM.Settings._panels
-    panels[#panels + 1] = bad
-    panels[#panels + 1] = good
-    mock.output = {}
-    KCM.Settings.Helpers.RefreshAllPanels()
-    panels[#panels] = nil
-    panels[#panels] = nil
+    local healthy = 0
+    local bad  = page(KCM, true)
+    local good, H = page(KCM, true)
+    H.SetRenderer(bad,  function() error("boom") end)
+    H.SetRenderer(good, function() healthy = healthy + 1 end)
 
-    t.eq(later, 1, "one broken page does not stop the others from refreshing")
-    local reported = false
-    for _, line in ipairs(mock.output) do
-        if line:find("panel render failed", 1, true) then reported = true end
-    end
-    t.truthy(reported, "and the failure is surfaced rather than swallowed")
+    mock.output = {}
+    H.RefreshAllPanels()
+    t.eq(healthy, 1, "one broken page does not stop the others from refreshing")
+    local text = table.concat(mock.output, "\n")
+    t.truthy(text:find("failed to render", 1, true), "and the failure is reported: " .. text)
 end)
 
 test("schema: RefreshScalars re-syncs widgets in place without a rebuild", function(t)
     local KCM = h.loader.loadWithSchema()
-    local synced, rebuilt = 0, 0
-    local ctx = {
-        _rendered = true,
-        _renderFn = function() rebuilt = rebuilt + 1 end,
-        panel = { IsShown = function() return true end },
-        refreshers = { function() synced = synced + 1 end },
-    }
-    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
-    KCM.Settings.Helpers.RefreshScalars()
-    KCM.Settings._panels[#KCM.Settings._panels] = nil
+    local rebuilt, synced = 0, 0
+    local ctx, H = page(KCM, true)
+    H.SetRenderer(ctx, function() rebuilt = rebuilt + 1 end)
+    ctx.refreshers[#ctx.refreshers + 1] = function() synced = synced + 1 end
 
+    H.RefreshScalars()
     t.eq(synced, 1, "each registered widget updater ran")
-    t.eq(rebuilt, 0, "no AceGUI teardown for a scalar write (options-ui-§11)")
+    t.eq(rebuilt, 0, "and the page was not torn down and rebuilt")
 end)
 
 test("schema: RefreshScalars flags a hidden page dirty rather than syncing it", function(t)
     local KCM = h.loader.loadWithSchema()
     local synced = 0
-    local ctx = {
-        _rendered = true,
-        panel = { IsShown = function() return false end },
-        refreshers = { function() synced = synced + 1 end },
-    }
-    KCM.Settings._panels[#KCM.Settings._panels + 1] = ctx
-    KCM.Settings.Helpers.RefreshScalars()
-    KCM.Settings._panels[#KCM.Settings._panels] = nil
+    local ctx, H = page(KCM, false)
+    H.SetRenderer(ctx, function() end)
+    ctx.refreshers[#ctx.refreshers + 1] = function() synced = synced + 1 end
 
-    t.eq(synced, 0, "off-screen widgets are not touched")
-    t.eq(ctx._dirty, true, "the page rebuilds when the user next visits it")
+    H.RefreshScalars()
+    t.eq(synced, 0, "an off-screen page is not re-synced")
+    t.truthy(ctx._dirty, "the page rebuilds when the user next visits it")
 end)
 
 test("schema: the tab order lists each panel once and covers every category page", function(t)
