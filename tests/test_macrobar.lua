@@ -728,7 +728,12 @@ test("macrobar schema: border rows are populated from LibSharedMedia", function(
     local H = KCM.Settings.Helpers
     local def = H.FindSchema("macroBar.buttonBorderStyle")
     t.truthy(def, "button border style row exists")
-    t.eq(def.lsm, "border", "declared as an LSM border row so it gets the preview widget")
+    -- `dialogControl` is the library's field name for "render this row with an
+    -- in-tree widget type rather than a plain Dropdown". It used to be the
+    -- addon's own `lsm = "border"` plus a local name map; the map went with the
+    -- makers (LIBKA0S-04) and the row names the widget directly.
+    t.eq(def.dialogControl, "LSM30_Border",
+        "declared as an LSM border row so it gets the preview widget")
     -- `values` must stay a FUNCTION: other addons register media after our
     -- schema is declared, so the list has to be re-queried at click time.
     t.eq(type(def.values), "function", "values is lazily evaluated")

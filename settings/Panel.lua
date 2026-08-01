@@ -207,6 +207,28 @@ if optionsLib then
         -- the panel-registry half we do not use — but passed so a later step
         -- cannot leak an untagged line.
         print = function(line) KCM.Say(line) end,
+
+        -- The row makers are the library's now (LIBKA0S-04), so it needs the
+        -- two things this addon's own makers knew and it could not guess.
+        --
+        -- Colours are stored POSITIONALLY — { r, g, b, a } — which is the shape
+        -- the Ka0s options colour widget has always written. The library's
+        -- default codec is the named-key form, so without this every picker
+        -- would read white and write a table nothing here can unpack.
+        colorDecode = function(c)
+            c = type(c) == "table" and c or {}
+            return c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1
+        end,
+        colorEncode = function(r, g, b, a) return { r, g, b, a or 1 } end,
+
+        -- Sliders commit on the drag, not just on release. The Macro Bar page's
+        -- number rows drive the bar itself — button size, spacing, scale,
+        -- alpha — so the live preview IS the feature. Release-only is the
+        -- library's default and would have taken it away silently.
+        sliderCommit = "change",
+
+        get = function(path) return Helpers.Get(path) end,
+        set = function(path, value) Helpers.SetAndRefresh(path, value) end,
     })
 
     -- Restated because the library resolves AceGUI once at :New and re-resolves
@@ -379,46 +401,34 @@ end
 -- seam (standard §4.5).
 -- ---------------------------------------------------------------------
 
-local function applyWidth(widget, relativeWidth)
-    if relativeWidth then widget:SetRelativeWidth(relativeWidth)
-    else widget:SetFullWidth(true) end
-end
+-- ---------------------------------------------------------------------
+-- Schema-row widgets — all four makers are LibKa0s-Options-1.0's
+-- ---------------------------------------------------------------------
+--
+-- bool -> CheckBox, number -> Slider, string -> Dropdown (or an LSM30_* widget
+-- via `dialogControl`), color -> ColorPicker. Three upstream fixes are what
+-- made these adoptable, all recorded as LIBKA0S-04:
+--
+--   * the dropdown reads `values` as the ordered { value =, text = } array this
+--     addon declares, rather than as a key map;
+--   * `hasAlpha` defaults to TRUE, which is what all seven colour rows here
+--     assume by declaring nothing;
+--   * `sliderCommit` exists at all, so the Macro Bar page keeps its live drag
+--     preview.
+--
+-- A fourth was never in the ledger: the makers read `row.desc` where every Ka0s
+-- schema declares `tooltip`, which would have blanked every tooltip body while
+-- leaving the label rendering — silently, and only in game.
+--
+-- Helpers.EnumValues and Helpers.LSMValues stay here: they are the addon's own
+-- schema vocabulary, called from settings/MacroBar.lua's rows and pinned by
+-- tests/test_macrobar.lua.
 
-local function makeCheckbox(ctx, def, parent, relativeWidth)
-    parent = parent or ensureScroll(ctx)
-    local cb = AceGUI:Create("CheckBox")
-    cb:SetLabel(def.label or def.path)
-    applyWidth(cb, relativeWidth)
-    cb:SetValue(Helpers.Get(def.path) and true or false)
-
-    local function refresh()
-        cb:SetValue(Helpers.Get(def.path) and true or false)
-    end
-
-    cb:SetCallback("OnValueChanged", function(_, _, value)
-        -- Route through the one validate→write→onChange→refresh seam so the
-        -- widget path and the /cm set path share identical wiring (standard §4.5).
-        Helpers.SetAndRefresh(def.path, value and true or false)
-    end)
-
-    attachTooltip(cb, def.label, def.tooltip)
-    parent:AddChild(cb)
-    ctx.refreshers[#ctx.refreshers + 1] = refresh
-    return cb
-end
-
--- Enum rows declare `values` as an ordered array of { value =, text = } so the
--- dropdown's display order is the schema's order (AceGUI's Dropdown needs the
--- key list separately from the key→text map).
 local function enumValues(def)
     return type(def.values) == "function" and def.values() or def.values or {}
 end
 Helpers.EnumValues = enumValues
 
--- Option list for a LibSharedMedia media type, e.g. LSMValues("border").
--- Schema rows pass this as a FUNCTION, not a table, so the list is re-queried
--- at render / click time — other addons can register media after our schema is
--- declared.
 function Helpers.LSMValues(mediaType)
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     local list = LSM and LSM.List and LSM:List(mediaType) or nil
@@ -432,126 +442,8 @@ function Helpers.LSMValues(mediaType)
     return out
 end
 
--- Map a schema row's `lsm` media type to the AceGUI widget type registered by
--- libs/AceGUI-3.0-SharedMediaWidgets, which renders each row with a live
--- preview. Rows without `lsm` use the stock Dropdown.
-local LSM_WIDGET = {
-    border    = "LSM30_Border",
-    font      = "LSM30_Font",
-    statusbar = "LSM30_Statusbar",
-    background = "LSM30_Background",
-}
-
-local function makeSlider(ctx, def, parent, relativeWidth)
-    parent = parent or ensureScroll(ctx)
-    local sl = AceGUI:Create("Slider")
-    sl:SetLabel(def.label or def.path)
-    sl:SetSliderValues(def.min or 0, def.max or 100, def.step or 1)
-    if def.isPercent then sl:SetIsPercent(true) end
-    applyWidth(sl, relativeWidth)
-    sl:SetValue(tonumber(Helpers.Get(def.path)) or def.default or 0)
-
-    local function refresh()
-        sl:SetValue(tonumber(Helpers.Get(def.path)) or def.default or 0)
-    end
-
-    sl:SetCallback("OnValueChanged", function(_, _, value)
-        Helpers.SetAndRefresh(def.path, tonumber(value))
-    end)
-
-    attachTooltip(sl, def.label, def.tooltip)
-    parent:AddChild(sl)
-    ctx.refreshers[#ctx.refreshers + 1] = refresh
-    return sl
-end
-
-local function makeDropdown(ctx, def, parent, relativeWidth)
-    parent = parent or ensureScroll(ctx)
-    local dd = AceGUI:Create(def.lsm and LSM_WIDGET[def.lsm] or "Dropdown")
-    dd:SetLabel(def.label or def.path)
-    applyWidth(dd, relativeWidth)
-
-    local function applyList()
-        local list, order = {}, {}
-        for i, item in ipairs(enumValues(def)) do
-            list[item.value] = item.text or tostring(item.value)
-            order[i] = item.value
-        end
-        dd:SetList(list, order)
-    end
-    applyList()
-    dd:SetValue(Helpers.Get(def.path))
-
-    local function refresh()
-        applyList()      -- an LSM list can grow as other addons register media
-        dd:SetValue(Helpers.Get(def.path))
-    end
-
-    dd:SetCallback("OnValueChanged", function(_, _, key)
-        Helpers.SetAndRefresh(def.path, key)
-        -- The LSM30_* widgets fire OnValueChanged from their row click WITHOUT
-        -- calling SetValue first — they assume AceConfigDialog will re-render
-        -- the whole widget afterwards. Our canvas panel doesn't, so push the
-        -- value back or the dropdown keeps displaying the old name even though
-        -- the DB write landed. Idempotent for the stock Dropdown, which already
-        -- set its own value before firing.
-        dd:SetValue(key)
-    end)
-
-    attachTooltip(dd, def.label, def.tooltip)
-    parent:AddChild(dd)
-    ctx.refreshers[#ctx.refreshers + 1] = refresh
-    return dd
-end
-
-local function makeColorPicker(ctx, def, parent, relativeWidth)
-    parent = parent or ensureScroll(ctx)
-    local cp = AceGUI:Create("ColorPicker")
-    cp:SetLabel(def.label or def.path)
-    cp:SetHasAlpha(def.hasAlpha ~= false)
-    applyWidth(cp, relativeWidth)
-
-    local function current()
-        local c = Helpers.Get(def.path) or def.default or {}
-        return c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1
-    end
-    cp:SetColor(current())
-
-    local function refresh()
-        cp:SetColor(current())
-    end
-
-    -- BOTH events, deliberately. AceGUI's ColorPicker only fires
-    -- OnValueConfirmed from its ALPHA callback, and only when that callback
-    -- happens to land after ColorPickerFrame has closed:
-    --
-    --   if ColorPickerFrame:IsVisible() then Fire("OnValueChanged")
-    --   elseif isAlpha then                  Fire("OnValueConfirmed") end
-    --
-    -- Modern Blizzard pickers don't guarantee that ordering, so listening to
-    -- Confirmed alone meant NO color row ever reached the DB — while the widget
-    -- still repainted its own swatch from OnValueChanged, so the panel looked
-    -- like it had worked. Writing on Changed too costs one restyle per wheel
-    -- movement, which is cheap and only lasts while the picker is open.
-    local function write(_, _, r, g, b, a)
-        Helpers.SetAndRefresh(def.path, { r, g, b, a or 1 })
-    end
-    cp:SetCallback("OnValueChanged", write)
-    cp:SetCallback("OnValueConfirmed", write)
-
-    attachTooltip(cp, def.label, def.tooltip)
-    parent:AddChild(cp)
-    ctx.refreshers[#ctx.refreshers + 1] = refresh
-    return cp
-end
-
-function Helpers.RenderField(ctx, def, parent, relativeWidth)
-    if def.type == "bool"   then return makeCheckbox(ctx, def, parent, relativeWidth) end
-    if def.type == "number" then return makeSlider(ctx, def, parent, relativeWidth) end
-    if def.type == "string" then return makeDropdown(ctx, def, parent, relativeWidth) end
-    if def.type == "color"  then return makeColorPicker(ctx, def, parent, relativeWidth) end
-    return nil
-end
+-- The dispatch itself, by row type. Every maker behind it is the library's.
+Helpers.RenderField = UI and UI.RenderField
 
 -- ---------------------------------------------------------------------
 -- Inline action button helpers. `Button` produces a single full-width

@@ -131,7 +131,7 @@ row{
     tooltip = L["Draw a border around the bar."],
 }
 row{
-    path = "macroBar.barBorderStyle", type = "string", lsm = "border", group = "Bar appearance",
+    path = "macroBar.barBorderStyle", type = "string", dialogControl = "LSM30_Border", group = "Bar appearance",
     values = function() return H.LSMValues("border") end,
     label = L["Bar border style"],
     tooltip = L["LibSharedMedia border texture used for the bar's edge. Any border another addon registers shows up here too."],
@@ -162,7 +162,7 @@ row{
     tooltip = L["Draw a border around each button. Turn off for a flat, borderless grid of icons."],
 }
 row{
-    path = "macroBar.buttonBorderStyle", type = "string", lsm = "border", group = "Button appearance",
+    path = "macroBar.buttonBorderStyle", type = "string", dialogControl = "LSM30_Border", group = "Button appearance",
     values = function() return H.LSMValues("border") end,
     label = L["Button border style"],
     tooltip = L["LibSharedMedia border texture used for each button's edge. Any border another addon registers shows up here too."],
