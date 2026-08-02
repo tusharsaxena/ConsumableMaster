@@ -271,7 +271,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 
 ## Credits and bundled libraries
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.3.1 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.4.0 (MIT).
 
 It supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the settings-panel shell and its row widgets, and the perf-capture harness. It is vendored under `libs/LibKa0s/` and ships with its own `LICENSE`. The version named above is the answer to "which LibKa0s does this build carry?" — it moves whenever `libs/LibKa0s/` is re-vendored, and nothing else in the package records it.
 
