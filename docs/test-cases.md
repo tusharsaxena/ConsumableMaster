@@ -634,6 +634,11 @@ whenever the suite changes.
 - TooltipCache: partial consumable tooltip stays pending until body loads
 - TooltipCache: effectless NON-consumable is cached, not pending
 
+### test_vendor_sync.lua (2)
+
+- libs/LibKa0s is the LibKa0s release the README says this addon bundles
+- tests/_kit is the test kit that shipped with that release
+
 ### test_weaponslots.lua (9)
 
 - WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil
@@ -687,6 +692,7 @@ whenever the suite changes.
 | test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 12 |
+| test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **559** |
+| **Total** | **561** |
