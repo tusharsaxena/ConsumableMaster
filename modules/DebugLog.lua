@@ -164,11 +164,14 @@ local D = lib:New({
     -- silently selects the no-slash wording.
     slash = "/cm",
 
-    -- `skin` is deliberately NOT passed: Core.SKIN is byte-identical to the
-    -- backdrop this file used to carry, and a plain backdrop table would drop
-    -- the bg/border color arrays the library guards for. Nor `L` (the library's
-    -- English already matches ours) nor `safeToString` (it defaults to Core's,
-    -- which is the same function object KCM.SafeToString is bound to).
+    -- `skin` is deliberately NOT passed: Core.SKIN IS the shared Ka0s window edge
+    -- that every Ka0s window wears (standalone-windows-§2), so taking the
+    -- library's is the whole point — a table of our own would draw a console that
+    -- matched this addon and no other, and a plain backdrop table would also drop
+    -- the bg / border / innerBorder / divider / title arrays ApplySkin guards for.
+    -- Nor `L` (the library's English already matches ours) nor `safeToString` (it
+    -- defaults to Core's, which is the same function object KCM.SafeToString is
+    -- bound to).
 })
 
 -- The public surface, unchanged in name, arity and return value. Plain
