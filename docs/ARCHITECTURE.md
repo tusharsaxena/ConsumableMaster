@@ -63,6 +63,9 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
 | Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
+| Test-case inventory (generated — the authoritative pass count) | `tests/` | [test-cases.md](./test-cases.md) |
+| Seed reference + patch-day refresh procedure | `defaults/` | [../defaults/README.md](../defaults/README.md) |
+| Pending-item decision ledger (deferred / closed, with rationale) | — | [pending/LEDGER.md](./pending/LEDGER.md) |
 
 ## Message-bus catalog
 
@@ -83,7 +86,10 @@ Cross-module control flow that crosses feature boundaries travels over the close
 - **Macros are always identified by name**, never by slot index. `perCharacter=false` puts them in the account-wide pool. The addon never calls `DeleteMacro` on a `KCM_*` macro.
 - **Seed lists are data, not code.** Updating a `defaults/Defaults_*.lua` is a zero-migration upgrade — `added`/`discovered`/`blocked` live in SavedVariables and union with the seed at runtime.
 - **English-only — tracked deviation** (localization-§4 / anti-pattern #37; see [scope.md](./scope.md)). Classification keys on the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua`, `core/WeaponSlots.lua`), so category and weapon-affinity detection work on every client. The remaining English dependency is TooltipCache's tooltip-TEXT parsing (heal/mana/stat magnitudes, the `Augment Rune` marker, weapon-application effect). `locales/enUS.lua` is a shell, not localization plumbing; full tooltip localization is a planned future release.
-- **Private-namespace publishing pattern:** every file does `local addonName, NS = ...; local KCM = NS; KCM.Foo = KCM.Foo or {}; local F = KCM.Foo`. Never shadow the local over the namespace.
+- **Private-namespace publishing pattern:** every file does `local addonName, NS = ...; local KCM = NS; KCM.Foo = KCM.Foo or {}; local F = KCM.Foo`. The `or {}` is load-bearing — another file may have reached `KCM.Foo` first, and overwriting it drops whatever it published. Never let the local shadow the namespace (`local KCM = {}` breaks everything downstream). Public API goes on `F`; helpers stay `local` to the file.
+- **Blizzard API churn goes through `core/Compat.lua`.** `KCM.Compat` wraps the spec + spell APIs Blizzard keeps renaming (`GetSpecialization*`, `GetSpecializationInfoForClassID`, spell-name lookup) and the client's `issecretvalue` (`Compat.IsSecret`). SpecHelper, SlashCommands, MacroManager, MacroDisplay and the settings pages call through `Compat.*` and never the raw global, so a rename is one edit. Any gate over client data a combat restriction could turn secret must ask `IsSecret` *before* comparing ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
+- **Reset is centralized.** `KCM.ResetAllToDefaults(reason)` (`core/ConsumableMaster.lua`) is the only wipe-and-resync path; the Options panel's "Reset all priorities" button and `/cm resetall`'s StaticPopup both delegate to it. Don't add a third. `/cm reset path` is unrelated — the library's one-row schema reset (LIBKA0S-12), which never touches `categories` or `statPriority` ([data-model.md](./data-model.md)).
+- **All addon chat carries the cyan `[CM]` prefix, and no layer calls `print` directly.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth; one-shot chat routes through the secret-safe `KCM.Say(fmt, ...)` seam and gated verbose output through `KCM.Debug(tag, fmt, ...)`. The sole sanctioned raw `print` is the one embedded in generated macro-body `/run print(...)` strings ([scope.md](./scope.md)).
 - **Recompute is coalesced.** Callers fire `KCM.MSG.RECOMPUTE` on the bus (or call `Pipeline.RequestRecompute`), never `Pipeline.Recompute` directly — except the rare direct paths (`KCM.ResetAllToDefaults`, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
 - **Priority-list IDs are opaque numbers with sign semantics.** Positive = itemID, negative = `KCM.ID.AsSpell(spellID)`. Only `MacroManager`, `Ranker.Score`'s spell shortcut, and the UI fork on the sign; every other layer treats them as plain table keys.
 - **Score cache lives for one Recompute pass and no longer.** `scoreCache` is created fresh in `Pipeline.Recompute` and threaded through `PickBestForCategory` → `SortCandidates`. Tooltip / bag / spec state can shift between events — never cache across passes. Non-pipeline callers (Options panel, `/cm dump pick`) pass `nil`.
@@ -114,6 +120,42 @@ All vendored under `libs/`:
 - AceGUI-3.0-SharedMediaWidgets (the `LSM30_Border` preview dropdown used by those pickers; `core/LSMPatch.lua` fixes up its misaligned preview tile)
 - LibKa0s — the Ka0s-owned shared modules, vendored whole-folder from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. All five majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows and schema CLI), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture). Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
 
+### LibKa0s adoption
+
+Each major is adopted by the same shape: one host **setup file** resolves what only the addon can
+know, builds ONE instance via `lib:New(descriptor)`, publishes the addon's existing **flat,
+dot-callable** names as thin forwarders onto that instance, publishes the instance itself as
+`.instance` for identity assertions, and carries a degradation stub for a missing library.
+
+| Major | Host half | What the addon keeps |
+|---|---|---|
+| `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on |
+| `DebugLog-1.0` | `modules/DebugLog.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
+| `Slash-1.0` | `core/SlashCommands.lua` | the `COMMANDS` / `DUMP_TARGETS` / `*_COMMANDS` tables (passed in, never owned), the `STRINGS` overrides that keep this addon's shipped wording, the `KCM_CONFIRM_RESET` popup |
+| `Options-1.0` | `settings/Panel.lua` | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order and the `KCM.Options` shim |
+| `Perf-1.0` | `modules/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, the three sinks and the `suspend`/`resume` pair |
+
+Three rules here are load-bearing rather than stylistic:
+
+1. **Never bind a printer or a prefix by value.** Every `lib:New` snapshots its descriptor once, so a
+   captured `KCM.Say` freezes the load-time function object and every later swap — including the
+   suite's — goes unseen. Pass a thunk.
+2. **A degradation stub's OMISSIONS are its contract.** `modules/DebugLog.lua` publishes no `AddLine`
+   precisely because that absence re-arms `core/Debug.lua`'s chat fallback; a no-op would swallow
+   every diagnostic while the addon looked healthy. `settings/Panel.lua` registers no Blizzard
+   category at all, because one opening onto an empty canvas would leave the user unable to tell a
+   broken install from a broken addon. `KCM.LIBKA0S_MISSING` (set in `core/CoreSetup.lua`) is the one
+   shared cause clause; each seam appends only its own "so *what* is unavailable".
+3. **Adoption is per-part, and declining is normal.** Where the library disagrees with the addon it is
+   recorded in [pending/LEDGER.md](./pending/LEDGER.md) as a `LIBKA0S-*` row rather than worked around
+   or silently taken. The three long-running declines — the slash dispatcher (LIBKA0S-01), the options
+   row makers (LIBKA0S-04) and the options page registry (LIBKA0S-05) — have all since been adopted,
+   two of them only after the blockers were fixed upstream and re-vendored; what is still declined is
+   `Sl:CliResetAll` (LIBKA0S-12), because this addon's global reset also wipes `categories` and
+   `statPriority`, which the schema does not describe. Never patch the vendored copy: a fix belongs
+   upstream, then re-vendored (the `core/LSMPatch.lua` precedent — third-party fixups live in `core/`,
+   not in `libs/`).
+
 The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, the Ace3 sub-libraries in dependency order, and LibKa0s last) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120007`.
 
 ## Load order
@@ -128,3 +170,15 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
+
+## Repository
+
+- **Dual-path WSL checkout.** `/home/tushar/GIT/ConsumableMaster/` and
+  `/mnt/d/Profile/Users/Tushar/Documents/GIT/ConsumableMaster/` are the same repo via symlink; either
+  path works for git and file tools.
+- **Remote.** `origin` → `https://github.com/tusharsaxena/consumablemaster.git` (GitHub repo
+  `tusharsaxena/ConsumableMaster`), `master` is the default branch, and the `gh` CLI is authenticated
+  for issues.
+- **Tracked vs ignored.** `libs/` is tracked (vendored Ace3 / LibSharedMedia / LibKa0s — standard WoW
+  addon practice), as are `defaults/`, `docs/`, `tests/`, `locales/` and all `.lua` source.
+  `.gitignore` covers `.claude/settings.local.json`, OS cruft and editor scratch files.

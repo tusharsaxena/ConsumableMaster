@@ -12,20 +12,30 @@ This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tushar
 
 This applies to both new work and anything you discover in passing.
 
-## Layout
+## Hard rules
 
-```
-core/       namespace bootstrap, AceAddon entry, bus, compat, constants, state,
-            DB, pipeline, the pure engine modules (SpecHelper → Classifier), and
-            the macro bar's pure halves (MacroDisplay, MacroBarModel/Layout)
-modules/    Ranker, Selector, MacroManager, DebugLog, PerfSetup,
-            MacroBar(+Button, +Flyout), KCM* AceGUI widgets
-defaults/   seed itemID lists + category table (data, not code)
-settings/   options panel + per-tab pages
-locales/    enUS.lua (KCM.L)
-```
+- **Never auto-stage, auto-commit, or auto-push.** Editing files on disk is fine; touching the git
+  index is not — that includes `git add <file>`, `-A`, `-p`, `--renormalize`, and `git stash`.
+  Offering to stage or commit at the end of a turn is fine; doing it yourself is not. **Exception:**
+  invoking a commit-purpose slash command (e.g. `/wow-addon:commit`) *is* the instruction — a `y`
+  through its confirmation flow authorizes `git add` + `git commit` on the files it named. Pushing
+  still needs a separate ask.
+- **Never bump the version without an explicit instruction.** Not `KCM.VERSION`
+  (`core/ConsumableMaster.lua`), not `## Version:` in the TOC, not the README badge or inline
+  version, and no changelog entry. Releases are the user's call.
+- **Don't create docs or planning files unless asked.** Be terse, cite `file_path:line_number`, and
+  comment only where the *why* is non-obvious.
 
-`ConsumableMaster.toc` is the load-order source of truth.
+## Read the docs
+
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — what this addon is: layout, load order,
+  namespace pattern, message bus, LibKa0s adoption, and the invariants worth not breaking.
+- **[docs/testing.md](./docs/testing.md)** — how to verify: the headless gate, the vendored-LibKa0s
+  copy diff, the toolchain, TDD policy, and badge sync.
+- Topic detail in `docs/` as needed — `file-index.md`, `module-map.md`, `pipeline.md`,
+  `data-model.md`, `macro-manager.md`, `macro-bar.md`, `midnight-quirks.md`, `common-tasks.md`,
+  `debug.md`, `scope.md`, `smoke-tests.md`, `test-cases.md`, `pending/LEDGER.md`.
+- User-facing reference: [README.md](./README.md).
 
 ## Gate
 
@@ -36,11 +46,4 @@ luacheck .              # lint
 
 Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
-**Static badges (Hard rule).** The README `[WoW]` and `[Tests]` badges are static and go stale silently — update each in the same change that moves its source. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate (`lua5.1 tests/run.lua --list > docs/test-cases.md`) and bump the `Tests-<X>/<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: both MUST show the same number and move together on every patch bump. Never defer to a follow-up. Details: [docs/agent-context.md](./docs/agent-context.md#keeping-the-inventory--badge-in-sync).
-
-## Full agent brief
-
-The detailed working notes — hard rules, module-publishing pattern, response
-style, and the topic doc index — live in **[docs/agent-context.md](./docs/agent-context.md)**.
-Read it before touching code. Design overview: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
-User-facing reference: [README.md](./README.md).
+**Static badges (Hard rule).** The README `[WoW]` and `[Tests]` badges are static and go stale silently — update each in the same change that moves its source. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate (`lua5.1 tests/run.lua --list > docs/test-cases.md`) and bump the `Tests-<X>/<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: both MUST show the same number and move together on every patch bump. Never defer to a follow-up. Details: [docs/testing.md](./docs/testing.md#test-case-inventory--badge).
