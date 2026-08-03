@@ -305,6 +305,47 @@ test("Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outran
     t.truthy(R.Score("BLOODLUST", spell, nil, nil) > uncapped, "Bloodlust the spell outranks any drum")
 end)
 
+test("Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5001, { subType = "Other", quality = 3, ilvl = 200, tt = { maxLevel = 60 } })   -- capped
+    mock.setItem(5003, { subType = "Other", quality = 3, ilvl = 200, tt = {} })                  -- uncapped
+
+    local capped = R.Explain("BLOODLUST", 5001, nil)
+    local capRow
+    for _, s in ipairs(capped.signals) do
+        if s.label == "affects up to level" then capRow = s end
+    end
+    t.truthy(capRow, "capped drum has an 'affects up to level' signal")
+    t.eq(capRow.value, 60, "capped drum's signal reports its actual cap, not the sentinel")
+    t.falsy(capRow.note, "capped drum does NOT carry a 'no cap' note")
+    t.eq(capped.score, 60 + 200 + 300, "BLOODLUST Explain score matches the scorer")
+
+    local uncapped = R.Explain("BLOODLUST", 5003, nil)
+    local uncapRow
+    for _, s in ipairs(uncapped.signals) do
+        if s.label == "affects up to level" then uncapRow = s end
+    end
+    t.truthy(uncapRow, "uncapped drum has an 'affects up to level' signal")
+    t.eq(uncapRow.value, 9999, "uncapped drum's signal reports the 9999 sentinel")
+    t.eq(uncapRow.note, "no cap", "uncapped drum DOES carry the 'no cap' note")
+    t.eq(uncapped.score, 9999 + 200 + 300, "BLOODLUST Explain score matches the scorer for the uncapped item")
+end)
+
+test("Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(248486, { subType = "Other", quality = 4, ilvl = 30, tt = {} })
+    local result = R.Explain("BATTLE_REZ", 248486, nil)
+    t.eq(result.score, 30 + 400, "BATTLE_REZ Explain score = ilvl + quality*100")
+    local labels = {}
+    for _, s in ipairs(result.signals) do labels[s.label] = s.value end
+    t.eq(labels.ilvl, 30, "BATTLE_REZ Explain reports the ilvl signal")
+    t.eq(labels["quality x100"], 400, "BATTLE_REZ Explain reports the quality signal")
+end)
+
 test("Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock

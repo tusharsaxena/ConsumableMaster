@@ -401,7 +401,7 @@ whenever the suite changes.
 - ResetAllToDefaults reports whether it mutated anything
 - ResetAllToDefaults leaves the category buckets structurally valid
 
-### test_ranker.lua (20)
+### test_ranker.lua (22)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -421,6 +421,8 @@ whenever the suite changes.
 - Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
 - Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
 - Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one
+- Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped
+- Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
 - Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
 - Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
 
@@ -699,7 +701,7 @@ whenever the suite changes.
 | test_macromanager.lua | 33 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
-| test_ranker.lua | 20 |
+| test_ranker.lua | 22 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 43 |
@@ -711,4 +713,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **577** |
+| **Total** | **579** |

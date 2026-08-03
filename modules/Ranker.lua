@@ -500,7 +500,7 @@ function R.Explain(catKey, itemID, ctx)
         table.insert(result.signals, {
             label = "affects up to level",
             value = cap or UNCAPPED_LEVEL,
-            note  = cap and nil or "no cap",
+            note  = (not cap) and "no cap" or nil,
         })
         pushBase()
         result.score   = (cap or UNCAPPED_LEVEL) + ilvl + qualityScore
