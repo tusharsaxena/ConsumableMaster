@@ -364,21 +364,23 @@ two border-style rows add `lsm = "border"` and pass `values` as a **function**
 (`H.LSMValues("border")`) so the list is re-queried at click time — another addon
 can register a border after our schema is declared.
 
-`macroBar.perRow`'s default (`core/ConsumableMaster.lua`) and its settings-page
-slider `max` (`settings/MacroBar.lua`) are both meant to be the managed
-category count, and both went stale (13 → 15) when this branch added two
-categories. Only the slider `max` can be derived (`#KCM.Categories.LIST`) —
-`settings/` loads after `defaults/` in `ConsumableMaster.toc`. The default
-itself cannot: `core/` loads before `defaults/`, so `KCM.Categories.LIST`
-doesn't exist yet when `dbDefaults` is built, and it stays a hand-maintained
-literal that `tests/test_macrobar.lua` drift-checks against
-`#KCM.Categories.LIST`. (`core/MacroBarLayout.lua`'s own internal `perRow`
-fallback — `normalize(cfg).perRow`, used only when `Grid`/`Dimensions` is
-called with no config at all — is a *third*, untouched copy of the same
-number. It was flagged rather than fixed here: it's a pure call-time function
-that COULD derive from `KCM.Categories.LIST` the same way the settings-page
-max does, but the file wasn't in this change's authorized scope. Left for a
-future pass.)
+`macroBar.perRow` has THREE hand-maintained copies of "the managed category
+count," and all three went stale (13 → 15) when this branch added two
+categories: the `dbDefaults` default (`core/ConsumableMaster.lua`), the
+settings-page slider `max` (`settings/MacroBar.lua`), and
+`core/MacroBarLayout.lua`'s own internal `perRow` fallback inside
+`normalize()`, used only when `Grid`/`Dimensions` is called with no `perRow`
+in `cfg` at all. Only the slider `max` is derived (`#KCM.Categories.LIST`) —
+`settings/` loads after `defaults/` in `ConsumableMaster.toc`, so the table
+already exists when the row is declared. The other two stay literals:
+`core/ConsumableMaster.lua` can't derive because `core/` loads before
+`defaults/`, and `core/MacroBarLayout.lua`'s fallback was kept a literal on
+purpose since `normalize()` is a hot pure-math path and the fallback only
+ever fires when a caller omits `perRow` entirely. All three are pinned
+together by "macrobar defaults: perRow tracks the number of managed
+categories" in `tests/test_macrobar.lua`, which fails if any one drifts from
+`#KCM.Categories.LIST` — the layout fallback is observed indirectly, via
+`Grid`'s reported column count, since `normalize` itself isn't exported.
 
 Two non-scalar fields are edited outside the schema:
 

@@ -96,13 +96,11 @@ end)
 test("macrobar layout: missing config falls back to shipped defaults", function(t)
     local KCM = h.loader.loadPure()
     local g = KCM.MacroBarLayout.Grid(2, nil)
-    -- This is MacroBarLayout.lua's OWN `perRow = ... or 13` fallback
-    -- (core/MacroBarLayout.lua:36), a THIRD copy of the category count
-    -- distinct from dbDefaults.profile.macroBar.perRow (now 15) and the
-    -- settings page's slider max (now derived). It is not exercised by the
-    -- perRow drift test below and was left as-is -- see docs/macro-bar.md's
-    -- "Config shape" section and the task report for why. Either value keeps
-    -- 2 slots on one row, so this assertion doesn't move.
+    -- This exercises MacroBarLayout.lua's OWN `perRow = ... or N` fallback
+    -- (core/MacroBarLayout.lua:36), kept in step with the category count by
+    -- the "macrobar defaults: perRow tracks the number of managed
+    -- categories" case below. 2 slots stay on one row under any fallback
+    -- value that has ever shipped, so this assertion doesn't move.
     t.eq(g.rows, 1, "2 slots stay on one row under the fallback perRow")
     t.eq(g.positions[2].x, 4 + 36 + 4, "default size 36 + spacing 4")
 end)
@@ -530,6 +528,19 @@ test("macrobar defaults: perRow tracks the number of managed categories", functi
     -- default to match the category count -- do not weaken this assertion.
     t.eq(KCM.dbDefaults.profile.macroBar.perRow, #KCM.Categories.LIST,
         "perRow must equal the category count")
+
+    -- core/MacroBarLayout.lua's `normalize()` has its OWN perRow fallback
+    -- (a third hand-maintained copy of the same count), used only when a
+    -- caller omits perRow from cfg entirely. It isn't exported, so observe it
+    -- indirectly through Grid: every category should fit on one row under
+    -- the fallback, same as the real default. If the fallback ever drifts
+    -- BELOW the live category count, this wraps to a second row and fails.
+    -- If this fails, BUMP core/MacroBarLayout.lua's `perRow = ... or N`
+    -- fallback to match the category count -- do not weaken this assertion.
+    local g = KCM.MacroBarLayout.Grid(#KCM.Categories.LIST, {})
+    t.eq(g.cols, #KCM.Categories.LIST,
+        "MacroBarLayout's own perRow fallback fits every category on one row")
+    t.eq(g.rows, 1, "and doesn't wrap to a second row")
 end)
 
 test("macrobar schema: perRow's max slider value is derived from the category count", function(t)

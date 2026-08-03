@@ -27,13 +27,24 @@ local floor, ceil, max = math.floor, math.ceil, math.max
 -- Fill in anything the caller left out so the layout never divides by nil.
 -- Mirrors the dbDefaults.profile.macroBar values; the panel clamps to the same
 -- ranges via its schema rows.
+--
+-- `perRow`'s fallback below is a THIRD hand-maintained copy of "the number of
+-- managed categories" -- alongside dbDefaults.profile.macroBar.perRow
+-- (core/ConsumableMaster.lua) and the settings page's slider max
+-- (settings/MacroBar.lua, derived from #KCM.Categories.LIST). Kept as a
+-- literal here rather than derived, since `normalize` is a hot pure-math path
+-- called on every layout pass and this fallback only ever fires when a
+-- caller omits perRow entirely. All three copies are pinned together by
+-- "macrobar defaults: perRow tracks the number of managed categories" in
+-- tests/test_macrobar.lua, which fails if any one drifts from
+-- #KCM.Categories.LIST.
 local function normalize(cfg)
     cfg = cfg or {}
     return {
         buttonSize  = max(1, tonumber(cfg.buttonSize) or 36),
         spacing     = max(0, tonumber(cfg.spacing) or 4),
         padding     = max(0, tonumber(cfg.padding) or 4),
-        perRow      = max(1, floor(tonumber(cfg.perRow) or 13)),
+        perRow      = max(1, floor(tonumber(cfg.perRow) or 15)),
         orientation = cfg.orientation == "VERTICAL" and "VERTICAL" or "HORIZONTAL",
         growthH     = cfg.growthH == "LEFT" and "LEFT" or "RIGHT",
         growthV     = cfg.growthV == "UP"   and "UP"   or "DOWN",
