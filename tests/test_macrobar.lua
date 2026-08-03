@@ -96,7 +96,14 @@ end)
 test("macrobar layout: missing config falls back to shipped defaults", function(t)
     local KCM = h.loader.loadPure()
     local g = KCM.MacroBarLayout.Grid(2, nil)
-    t.eq(g.rows, 1, "default perRow of 13 keeps 2 slots on one row")
+    -- This is MacroBarLayout.lua's OWN `perRow = ... or 13` fallback
+    -- (core/MacroBarLayout.lua:36), a THIRD copy of the category count
+    -- distinct from dbDefaults.profile.macroBar.perRow (now 15) and the
+    -- settings page's slider max (now derived). It is not exercised by the
+    -- perRow drift test below and was left as-is -- see docs/macro-bar.md's
+    -- "Config shape" section and the task report for why. Either value keeps
+    -- 2 slots on one row, so this assertion doesn't move.
+    t.eq(g.rows, 1, "2 slots stay on one row under the fallback perRow")
     t.eq(g.positions[2].x, 4 + 36 + 4, "default size 36 + spacing 4")
 end)
 
@@ -513,6 +520,24 @@ test("macrobar model: the GCD swipe is suppressed out of the box", function(t)
     local KCM = h.loader.loadPure()
     t.eq(KCM.dbDefaults.profile.macroBar.showGCD, false,
         "showGCD defaults to false, i.e. suppression is ON by default")
+end)
+
+test("macrobar defaults: perRow tracks the number of managed categories", function(t)
+    local KCM = h.loader.loadPure()
+    -- core/ loads before defaults/ (ConsumableMaster.toc), so
+    -- dbDefaults.profile.macroBar.perRow is a hand-maintained literal rather
+    -- than a derived value. If this fails, BUMP core/ConsumableMaster.lua's
+    -- default to match the category count -- do not weaken this assertion.
+    t.eq(KCM.dbDefaults.profile.macroBar.perRow, #KCM.Categories.LIST,
+        "perRow must equal the category count")
+end)
+
+test("macrobar schema: perRow's max slider value is derived from the category count", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local def = KCM.Settings.Helpers.FindSchema("macroBar.perRow")
+    t.truthy(def, "perRow row exists")
+    t.eq(def.max, #KCM.Categories.LIST,
+        "the max is re-derived at settings load, so it can't go stale the way a literal did")
 end)
 
 test("macrobar model: the bar ships on and unlocked so it is discoverable", function(t)

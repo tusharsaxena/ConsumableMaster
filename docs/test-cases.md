@@ -238,7 +238,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (92)
+### test_macrobar.lua (94)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -290,6 +290,8 @@ whenever the suite changes.
 - macrobar model: MacroName and KeyForMacroName round-trip
 - macrobar model: the bar ships centered on screen at 36px buttons
 - macrobar model: the GCD swipe is suppressed out of the box
+- macrobar defaults: perRow tracks the number of managed categories
+- macrobar schema: perRow's max slider value is derived from the category count
 - macrobar model: the bar ships on and unlocked so it is discoverable
 - macrobar model: the shipped default order needs no repair
 - macrobar model: Order repairs and writes back a damaged saved order
@@ -712,7 +714,7 @@ whenever the suite changes.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 92 |
+| test_macrobar.lua | 94 |
 | test_macromanager.lua | 37 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
@@ -728,4 +730,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **594** |
+| **Total** | **596** |

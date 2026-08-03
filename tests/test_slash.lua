@@ -649,7 +649,10 @@ end)
 test("/cm set on a plain number row still clamps to min/max", function(t)
     local KCM, mock = load()
     say(KCM, mock, "set macroBar.perRow 999")
-    t.eq(KCM.db.profile.macroBar.perRow, 13, "no values list means clamping, not rejection")
+    -- perRow's max is derived from #KCM.Categories.LIST (settings/MacroBar.lua),
+    -- not a literal, so this clamps to whatever the category count is today.
+    t.eq(KCM.db.profile.macroBar.perRow, #KCM.Categories.LIST,
+        "no values list means clamping, not rejection")
 end)
 
 test("/cm set on a string dropdown still matches by text", function(t)

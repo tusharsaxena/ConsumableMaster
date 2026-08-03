@@ -72,10 +72,16 @@ row{
     label = L["Lock position"],
     tooltip = L["When unlocked the bar is tinted gold and can be dragged anywhere on screen; its position is saved automatically. Lock it again to click through the empty space around the buttons."],
 }
+-- `max` is derived rather than a literal: it's the slot count, and a
+-- hardcoded number is exactly what just went stale (13 -> 15 when this
+-- branch added two categories). settings/ loads after defaults/ in
+-- ConsumableMaster.toc, so KCM.Categories.LIST already exists here.
 row{
-    path = "macroBar.perRow", type = "number", min = 1, max = 13, step = 1, group = "Layout",
+    path = "macroBar.perRow", type = "number", min = 1,
+    max = KCM.Categories and KCM.Categories.LIST and #KCM.Categories.LIST or 13,
+    step = 1, group = "Layout",
     label = L["Buttons per row"],
-    tooltip = L["How many buttons fit along the axis the bar fills first — a row when the orientation is Horizontal, a column when it is Vertical. 13 puts every macro on one line."],
+    tooltip = L["How many buttons fit along the axis the bar fills first — a row when the orientation is Horizontal, a column when it is Vertical. The maximum puts every macro on one line."],
 }
 row{
     path = "macroBar.buttonSize", type = "number", min = 16, max = 64, step = 1, group = "Layout",

@@ -364,6 +364,22 @@ two border-style rows add `lsm = "border"` and pass `values` as a **function**
 (`H.LSMValues("border")`) so the list is re-queried at click time — another addon
 can register a border after our schema is declared.
 
+`macroBar.perRow`'s default (`core/ConsumableMaster.lua`) and its settings-page
+slider `max` (`settings/MacroBar.lua`) are both meant to be the managed
+category count, and both went stale (13 → 15) when this branch added two
+categories. Only the slider `max` can be derived (`#KCM.Categories.LIST`) —
+`settings/` loads after `defaults/` in `ConsumableMaster.toc`. The default
+itself cannot: `core/` loads before `defaults/`, so `KCM.Categories.LIST`
+doesn't exist yet when `dbDefaults` is built, and it stays a hand-maintained
+literal that `tests/test_macrobar.lua` drift-checks against
+`#KCM.Categories.LIST`. (`core/MacroBarLayout.lua`'s own internal `perRow`
+fallback — `normalize(cfg).perRow`, used only when `Grid`/`Dimensions` is
+called with no config at all — is a *third*, untouched copy of the same
+number. It was flagged rather than fixed here: it's a pure call-time function
+that COULD derive from `KCM.Categories.LIST` the same way the settings-page
+max does, but the file wasn't in this change's authorized scope. Left for a
+future pass.)
+
 Two non-scalar fields are edited outside the schema:
 
 * `order` — the slot order, changed by dragging one slot onto another

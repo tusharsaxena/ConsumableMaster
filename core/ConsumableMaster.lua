@@ -96,12 +96,16 @@ KCM.dbDefaults = {
             scale    = 1.0,
             alpha    = 1.0,
             -- Grid. `perRow` counts buttons along the axis `orientation` fills
-            -- first (row for HORIZONTAL, column for VERTICAL); 13 = one row of
-            -- every managed macro.
+            -- first (row for HORIZONTAL, column for VERTICAL); 15 = one row of
+            -- every managed macro. This CANNOT be `#KCM.Categories.LIST`:
+            -- core/ loads before defaults/ in ConsumableMaster.toc, so that
+            -- table doesn't exist yet when this literal is evaluated. Must be
+            -- kept equal to the category count by hand; the drift test in
+            -- tests/test_macrobar.lua enforces it.
             buttonSize  = 36,
             spacing     = 4,
             padding     = 4,
-            perRow      = 13,
+            perRow      = 15,
             orientation = "HORIZONTAL",   -- HORIZONTAL | VERTICAL
             growthH     = "RIGHT",        -- RIGHT | LEFT
             growthV     = "DOWN",         -- DOWN | UP
