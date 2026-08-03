@@ -12,9 +12,6 @@
 --       "Food & Drink", "Flasks & Phials". tt is the parsed-tooltip table
 --       Classifier/Ranker consume (healValue, healPct, manaValue, hasStatBuff,
 --       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured, …).
---       Also accepts `lines` (an array of raw tooltip-line strings), which feeds
---       C_TooltipInfo.GetItemByID(id) directly so a suite loading the REAL
---       TooltipCache.lua can exercise its pattern parsing (see test_tooltipcache.lua).
 --   M.setBag(id, count)        -- owned count (drives BagScanner + GetItemCount)
 --   M.setSpell(id, { name=, known= })
 --   M.setSpec(classID, specIndex, specID, specName)  -- current player spec
@@ -128,9 +125,6 @@ function M.setItem(id, spec)
         quality     = spec.quality or 1,
         ilvl        = spec.ilvl or 1,
         tt          = spec.tt or {},
-        -- Raw tooltip lines (array of strings), fed to C_TooltipInfo.GetItemByID
-        -- for suites that load the real TooltipCache.lua parser.
-        lines       = spec.lines,
         -- classID/subClassID for GetItemInfoInstant — derived from subType when
         -- not given (real items keep them consistent); explicit spec overrides.
         classID     = spec.classID or (cls and cls[1]) or 0,
@@ -570,17 +564,7 @@ function M.install(NS)
             return M.bagSlots[slot]
         end,
     }
-    -- Real tooltip lines set via M.setItem(id, { lines = {...} }) are served
-    -- here; items without `lines` behave as before (nil = "no tooltip data").
-    _G.C_TooltipInfo = {
-        GetItemByID = function(id)
-            local it = M.items[id]
-            if not it or not it.lines then return nil end
-            local out = {}
-            for i, txt in ipairs(it.lines) do out[i] = { leftText = txt } end
-            return { lines = out }
-        end,
-    }
+    _G.C_TooltipInfo = { GetItemByID = function() return nil end }
     _G.Settings = setmetatable({}, { __index = function() return function() end end })
     _G.NUM_TOTAL_EQUIPPED_BAG_SLOTS = 5
 

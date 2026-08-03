@@ -217,11 +217,13 @@ test("TooltipCache: effectless NON-consumable is cached, not pending", function(
 end)
 
 -- ---- Maximum-level caps ---------------------------------------------------
--- Note: these use newTC()/mock.setItem's `lines` option (fed straight to
--- C_TooltipInfo.GetItemByID) rather than h.loader.loadPure(), which backs
--- KCM.TooltipCache with the mock-`tt` stub and never loads the real parser —
--- see this file's header note. That keeps these cases exercising the actual
--- pattern match, same as every other case in this suite.
+-- Note: these use newTC()/parse() — the pre-existing helpers at the top of
+-- this file that load the REAL TooltipCache.lua and install a local
+-- C_TooltipInfo.GetItemByID override for the given lines — rather than
+-- h.loader.loadPure(), which backs KCM.TooltipCache with the mock-`tt` stub
+-- and never loads the real parser (see this file's header note). That keeps
+-- these cases exercising the actual pattern match, same as every other case
+-- in this suite.
 test("TooltipCache: parses a 'cannot be used by players higher than level' cap", function(t)
     local TC, mock = newTC()
     local rez = parse(TC, mock, 2401, {
