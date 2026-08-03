@@ -96,7 +96,12 @@ end)
 test("macrobar layout: missing config falls back to shipped defaults", function(t)
     local KCM = h.loader.loadPure()
     local g = KCM.MacroBarLayout.Grid(2, nil)
-    t.eq(g.rows, 1, "default perRow of 13 keeps 2 slots on one row")
+    -- This exercises MacroBarLayout.lua's OWN `perRow = ... or N` fallback
+    -- (core/MacroBarLayout.lua:36), kept in step with the category count by
+    -- the "macrobar defaults: perRow tracks the number of managed
+    -- categories" case below. 2 slots stay on one row under any fallback
+    -- value that has ever shipped, so this assertion doesn't move.
+    t.eq(g.rows, 1, "2 slots stay on one row under the fallback perRow")
     t.eq(g.positions[2].x, 4 + 36 + 4, "default size 36 + spacing 4")
 end)
 
@@ -509,6 +514,43 @@ test("macrobar model: the bar ships centered on screen at 36px buttons", functio
     t.eq(d.buttonSize, 36, "standard action-button size")
 end)
 
+test("macrobar model: the GCD swipe is suppressed out of the box", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.dbDefaults.profile.macroBar.showGCD, false,
+        "showGCD defaults to false, i.e. suppression is ON by default")
+end)
+
+test("macrobar defaults: perRow tracks the number of managed categories", function(t)
+    local KCM = h.loader.loadPure()
+    -- core/ loads before defaults/ (ConsumableMaster.toc), so
+    -- dbDefaults.profile.macroBar.perRow is a hand-maintained literal rather
+    -- than a derived value. If this fails, BUMP core/ConsumableMaster.lua's
+    -- default to match the category count -- do not weaken this assertion.
+    t.eq(KCM.dbDefaults.profile.macroBar.perRow, #KCM.Categories.LIST,
+        "perRow must equal the category count")
+
+    -- core/MacroBarLayout.lua's `normalize()` has its OWN perRow fallback
+    -- (a third hand-maintained copy of the same count), used only when a
+    -- caller omits perRow from cfg entirely. It isn't exported, so observe it
+    -- indirectly through Grid: every category should fit on one row under
+    -- the fallback, same as the real default. If the fallback ever drifts
+    -- BELOW the live category count, this wraps to a second row and fails.
+    -- If this fails, BUMP core/MacroBarLayout.lua's `perRow = ... or N`
+    -- fallback to match the category count -- do not weaken this assertion.
+    local g = KCM.MacroBarLayout.Grid(#KCM.Categories.LIST, {})
+    t.eq(g.cols, #KCM.Categories.LIST,
+        "MacroBarLayout's own perRow fallback fits every category on one row")
+    t.eq(g.rows, 1, "and doesn't wrap to a second row")
+end)
+
+test("macrobar schema: perRow's max slider value is derived from the category count", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local def = KCM.Settings.Helpers.FindSchema("macroBar.perRow")
+    t.truthy(def, "perRow row exists")
+    t.eq(def.max, #KCM.Categories.LIST,
+        "the max is re-derived at settings load, so it can't go stale the way a literal did")
+end)
+
 test("macrobar model: the bar ships on and unlocked so it is discoverable", function(t)
     local KCM = h.loader.loadPure()
     t.truthy(KCM.MacroBarModel.IsEnabled(), "macroBar.enabled defaults to true")
@@ -605,6 +647,12 @@ local function fakeCooldownFrame()
     function cd:SetCooldown(s, d) self.start, self.duration = s, d end
     function cd:SetCooldownFromDurationObject(obj) self.durationObject = obj end
     function cd:Clear() self.cleared = true end
+    function cd:SetAlpha(a) self.alpha = a end
+    function cd:SetAlphaFromBoolean(flag, whenTrue, whenFalse)
+        self.alphaFromBoolean = { flag, whenTrue, whenFalse }
+        self.alpha = flag and whenTrue or whenFalse
+    end
+    function cd:SetDrawBling(flag) self.drawBling = flag end
     return cd
 end
 
@@ -670,6 +718,108 @@ test("macrobar cooldowns: a restricted spell still reports whether it is running
     t.truthy(obj, "and a duration object is still available")
     t.falsy(start, "but the secret start is withheld from callers")
     t.falsy(duration, "and so is the secret duration")
+end)
+
+-- ---------------------------------------------------------------------------
+-- GCD-swipe suppression (modules/MacroBarButton.lua — copied from KickCD)
+-- ---------------------------------------------------------------------------
+
+test("macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    -- Remaining well under KCM.GCD_UPPER (1.6s): just the GCD, should hide.
+    local gcdObj = h.loader.mock.makeDuration(0, 0.5)
+    KCM.MacroBarButton.ApplyCooldown(cd, true, gcdObj, 0, 0.5)
+    t.truthy(cd.alphaFromBoolean, "SetAlphaFromBoolean was called")
+    t.eq(cd.alphaFromBoolean[1], true, "flag argument is always true")
+    t.eq(cd.alphaFromBoolean[2], 0, "curve evaluates to 0 (hidden) inside the GCD window")
+
+    -- Remaining well over KCM.GCD_UPPER: a real cooldown, should stay visible.
+    local realObj = h.loader.mock.makeDuration(0, 60)
+    KCM.MacroBarButton.ApplyCooldown(cd, true, realObj, 0, 60)
+    t.eq(cd.alphaFromBoolean[2], 1, "curve evaluates to 1 (visible) past the GCD window")
+end)
+
+test("macrobar cooldowns: showGCD true never suppresses and always shows the swipe", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = true
+    local cd = fakeCooldownFrame()
+    local gcdObj = h.loader.mock.makeDuration(0, 0.5)
+    KCM.MacroBarButton.ApplyCooldown(cd, true, gcdObj, 0, 0.5)
+    t.eq(cd.alpha, 1, "alpha stays fully visible")
+    t.falsy(cd.alphaFromBoolean, "SetAlphaFromBoolean is never reached when showGCD is on")
+end)
+
+test("macrobar cooldowns: no duration object skips suppression without erroring", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    local ok, err = pcall(KCM.MacroBarButton.ApplyCooldown, cd, true, nil, 100, 300)
+    t.truthy(ok, "no error without a duration object: " .. tostring(err))
+    t.eq(cd.alpha, 1, "falls back to fully visible")
+    t.falsy(cd.alphaFromBoolean, "never reached without a duration object")
+end)
+
+test("macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    _G.C_CurveUtil = nil
+    local cd = fakeCooldownFrame()
+    local obj = h.loader.mock.makeDuration(0, 0.5)
+    local ok, err = pcall(KCM.MacroBarButton.ApplyCooldown, cd, true, obj, 0, 0.5)
+    t.truthy(ok, "no error without C_CurveUtil: " .. tostring(err))
+    t.eq(cd.alpha, 1, "falls back to fully visible")
+end)
+
+test("macrobar cooldowns: the GCD-suppress curve is built once and reused", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local calls = 0
+    local realCreate = _G.C_CurveUtil.CreateCurve
+    _G.C_CurveUtil.CreateCurve = function(...)
+        calls = calls + 1
+        return realCreate(...)
+    end
+    for _ = 1, 3 do
+        local cd = fakeCooldownFrame()
+        KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 0.5), 0, 0.5)
+    end
+    t.eq(calls, 1, "CreateCurve is called exactly once across repeated ApplyCooldown calls")
+end)
+
+test("macrobar cooldowns: showGCD false disables the completion bling", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 60), 0, 60)
+    t.eq(cd.drawBling, false, "bling is off while GCD suppression is active")
+end)
+
+test("macrobar cooldowns: showGCD true enables the completion bling", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = true
+    local cd = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 60), 0, 60)
+    t.eq(cd.drawBling, true, "bling is on when the user asked to see the GCD swipe")
+end)
+
+test("macrobar cooldowns: the inactive path still applies the correct bling state", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, false, h.loader.mock.makeDuration(0, 0), 0, 0)
+    t.truthy(cd.cleared, "still clears the swipe on the inactive path")
+    t.eq(cd.drawBling, false, "bling reflects showGCD even though no cooldown is running")
+end)
+
+test("macrobar cooldowns: a frame lacking SetDrawBling degrades without error", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    cd.SetDrawBling = nil
+    local ok, err = pcall(KCM.MacroBarButton.ApplyCooldown, cd, true, h.loader.mock.makeDuration(0, 60), 0, 60)
+    t.truthy(ok, "no error without SetDrawBling: " .. tostring(err))
 end)
 
 -- ---------------------------------------------------------------------------

@@ -35,10 +35,12 @@ whenever the suite changes.
 - bus: RECOMPUTE with no reason still reaches the pipeline
 - bus: RECOMPUTE is inert while the pipeline entry point is missing
 
-### test_categories.lua (2)
+### test_categories.lua (4)
 
 - Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
 - Categories: AUG_RUNE registered with metadata, DB bucket, and seed
+- Categories: BLOODLUST and BATTLE_REZ registered with metadata, buckets and seeds
+- Categories: the Bloodlust seed leads with spells and the class gate names Primal Rage
 
 ### test_classifier.lua (16)
 
@@ -236,7 +238,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (86)
+### test_macrobar.lua (98)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -287,6 +289,9 @@ whenever the suite changes.
 - macrobar model: VisibleKeys hides only slots explicitly set to false
 - macrobar model: MacroName and KeyForMacroName round-trip
 - macrobar model: the bar ships centered on screen at 36px buttons
+- macrobar model: the GCD swipe is suppressed out of the box
+- macrobar defaults: perRow tracks the number of managed categories
+- macrobar schema: perRow's max slider value is derived from the category count
 - macrobar model: the bar ships on and unlocked so it is discoverable
 - macrobar model: the shipped default order needs no repair
 - macrobar model: Order repairs and writes back a damaged saved order
@@ -301,6 +306,15 @@ whenever the suite changes.
 - macrobar cooldowns: a client without duration objects falls back to numbers
 - macrobar cooldowns: restricted cooldowns are never compared or set as numbers
 - macrobar cooldowns: a restricted spell still reports whether it is running
+- macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration
+- macrobar cooldowns: showGCD true never suppresses and always shows the swipe
+- macrobar cooldowns: no duration object skips suppression without erroring
+- macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
+- macrobar cooldowns: the GCD-suppress curve is built once and reused
+- macrobar cooldowns: showGCD false disables the completion bling
+- macrobar cooldowns: showGCD true enables the completion bling
+- macrobar cooldowns: the inactive path still applies the correct bling state
+- macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 - macrobar schema: every macroBar row validates and resolves against the db
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
@@ -325,10 +339,14 @@ whenever the suite changes.
 - macrobar flyout: Close tolerates a nil flyout
 - macrobar schema: the bar publishes its own bus message
 
-### test_macromanager.lua (33)
+### test_macromanager.lua (37)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
+- MacroManager: a targeted category's spell body carries the conditional
+- MacroManager: a targeted category's item body carries the same conditional
+- MacroManager: turning mouseover off drops the conditional
+- MacroManager: an untargeted category is unaffected
 - MacroManager: BuildBody with nil item falls back to category emptyText
 - MacroManager: BuildCompositeBody HP_AIO happy path joins in- and out-of-combat picks
 - MacroManager: BuildCompositeBody drops a disabled sub-category from the in-combat sequence
@@ -399,7 +417,7 @@ whenever the suite changes.
 - ResetAllToDefaults reports whether it mutated anything
 - ResetAllToDefaults leaves the category buckets structurally valid
 
-### test_ranker.lua (18)
+### test_ranker.lua (23)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -418,6 +436,11 @@ whenever the suite changes.
 - Ranker: spell sentinel sorts first and empty input is safe
 - Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
 - Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
+- Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one
+- Ranker: BLOODLUST's cap term is weighted above ilvl (a lower-ilvl higher-cap drum wins)
+- Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped
+- Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
+- Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
 - Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
 
 ### test_runner_list.lua (4)
@@ -463,7 +486,7 @@ whenever the suite changes.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (38)
+### test_selector.lua (44)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -471,11 +494,14 @@ whenever the suite changes.
 - Selector: MarkDiscovered promotes once; blocked items are never discovered
 - Selector: PickBestForCategory returns the one owned item, nil when nothing owned
 - Selector: a known spell entry counts as owned and is picked
+- Selector: a class-gated spell resolves for its class when IsPlayerSpell says no
+- Selector: the class gate does not override a genuinely known spell
 - Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
 - Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
 - Selector: PickBestForSlot filters by weapon affinity + ownership
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
 - Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
+- Selector: PickBestForSlot skips a level-blocked enhancement
 - Selector.MarkDiscovered reports 'new' only on the first sighting
 - Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
 - Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
@@ -503,8 +529,11 @@ whenever the suite changes.
 - Selector: ListAvailable on a composite unions its components, deduped
 - Selector: ListAvailable on a composite honors disabled components
 - Selector: ListAvailable returns an empty list for an unknown category
+- Selector.PickBestForCategory skips an item the player is over the cap for
+- Selector.ListAvailable omits an item the player is over the cap for
+- Selector.PickBestForCategory keeps an item whose tooltip is still pending
 
-### test_settingsui.lua (12)
+### test_settingsui.lua (13)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -518,6 +547,7 @@ whenever the suite changes.
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
+- Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover
 
 ### test_slash.lua (68)
 
@@ -622,7 +652,7 @@ whenever the suite changes.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_tooltipcache.lua (12)
+### test_tooltipcache.lua (18)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -636,6 +666,12 @@ whenever the suite changes.
 - TooltipCache: isAugmentRune fires on an inline 'Augment Rune' marker
 - TooltipCache: partial consumable tooltip stays pending until body loads
 - TooltipCache: effectless NON-consumable is cached, not pending
+- TooltipCache: parses a 'cannot be used by players higher than level' cap
+- TooltipCache: parses a drums 'above level' affect cap
+- TooltipCache: a floor phrasing without a negation does NOT produce a maxLevel
+- TooltipCache: an item whose only recognized line is a max-level cap resolves final, not pending (Emergency Soul Link)
+- TooltipCache: an uncapped item reports no maxLevel
+- TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the cap
 
 ### test_vendor_sync.lua (2)
 
@@ -669,7 +705,7 @@ whenever the suite changes.
 |-------|------:|
 | test_bagscanner.lua | 12 |
 | test_bus.lua | 11 |
-| test_categories.lua | 2 |
+| test_categories.lua | 4 |
 | test_classifier.lua | 16 |
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
@@ -682,20 +718,20 @@ whenever the suite changes.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 86 |
-| test_macromanager.lua | 33 |
+| test_macrobar.lua | 98 |
+| test_macromanager.lua | 37 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
-| test_ranker.lua | 18 |
+| test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
-| test_selector.lua | 38 |
-| test_settingsui.lua | 12 |
+| test_selector.lua | 44 |
+| test_settingsui.lua | 13 |
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
-| test_tooltipcache.lua | 12 |
+| test_tooltipcache.lua | 18 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **564** |
+| **Total** | **600** |

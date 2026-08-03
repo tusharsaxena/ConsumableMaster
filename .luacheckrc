@@ -60,7 +60,9 @@ read_globals = {
     -- Secret values (Midnight). issecretvalue is wrapped by core/Compat.lua;
     -- C_DurationUtil builds the opaque duration objects that are the only way to
     -- paint a restricted cooldown from tainted code (core/MacroDisplay.lua).
-    "issecretvalue", "C_DurationUtil",
+    -- C_CurveUtil + Enum.LuaCurveType are the GCD-suppress step curve
+    -- (modules/MacroBarButton.lua), same secret-safe pattern.
+    "issecretvalue", "C_DurationUtil", "C_CurveUtil", "Enum",
     -- Spell / item (legacy globals wrapped by core/Compat.lua)
     "GetSpellInfo", "GetSpellCooldown", "GetItemInfo", "GetItemInfoInstant",
     "GetItemCount",

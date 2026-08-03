@@ -29,6 +29,40 @@ test("MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
         "spell pick → #showtooltip + /cast <Name>")
 end)
 
+test("MacroManager: a targeted category's spell body carries the conditional", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    local mock = h.loader.mock
+    mock.setSpell(20484, { name = "Rebirth", known = true })
+    local body = M.BuildBody("BATTLE_REZ", KCM.ID.AsSpell(20484))
+    t.eq(body, "#showtooltip Rebirth\n/cast [@mouseover,help][@target,help] Rebirth",
+        "the spell form is targeted, and #showtooltip names the spell explicitly since " ..
+        "[@mouseover,help][@target,help] is non-exhaustive")
+end)
+
+test("MacroManager: a targeted category's item body carries the same conditional", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    local body = M.BuildBody("BATTLE_REZ", 248486)
+    t.eq(body, "#showtooltip item:248486\n/use [@mouseover,help][@target,help] item:248486",
+        "/use takes @unit conditionals too, and #showtooltip names the item explicitly")
+end)
+
+test("MacroManager: turning mouseover off drops the conditional", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    KCM.db.profile.categories.BATTLE_REZ.mouseover = false
+    t.eq(M.BuildBody("BATTLE_REZ", 248486), "#showtooltip\n/use item:248486",
+        "the plain body comes back")
+end)
+
+test("MacroManager: an untargeted category is unaffected", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    t.eq(M.BuildBody("FOOD", 113509), "#showtooltip\n/use item:113509",
+        "no conditional leaks into other categories")
+end)
+
 test("MacroManager: BuildBody with nil item falls back to category emptyText", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager

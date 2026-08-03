@@ -4,11 +4,11 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-564%2F564_passing-green)
+![Tests](https://img.shields.io/badge/Tests-600%2F600_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
-An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across eleven categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
+An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across thirteen categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
 
 Whenever you loot something better, change spec, reload, or drop out of combat, Consumable Master updates each macro to use your best current pick — the right item, or the right spell for class abilities like Recuperate. The macros are account-wide, so one set is shared by all your characters. They're matched by name rather than by slot, so you can move them around your macro list freely and they'll keep working alongside your own macros.
 
@@ -27,8 +27,10 @@ Whenever you loot something better, change spec, reload, or drop out of combat, 
 | 9  |Stat food                                                    |<code>KCM_STAT_FOOD</code> |<strong>Yes</strong> |
 | 10 |Weapon enchant (oil / stone, per hand, weapon-type aware)    |<code>KCM_WPN_ENCH</code> |<strong>Yes</strong> |
 | 11 |Augment rune (primary stat, reusable-aware)                  |<code>KCM_AUG_RUNE</code> |No          |
-| 12 |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
-| 13 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
+| 12 |Bloodlust / Heroism / Time Warp (raid haste, incl. drums)     |<code>KCM_BLOODLUST</code> |No          |
+| 13 |Battle resurrection                                          |<code>KCM_BATTLE_REZ</code> |No          |
+| 14 |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
+| 15 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
 If a better pick comes up while you're in combat, the macro updates the moment you leave — WoW doesn't allow macro changes mid-fight.
 
@@ -138,7 +140,7 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 
 *Layout*
 
-*   **Buttons per row** — how many buttons fit along the axis the bar fills first. 13 puts every macro on one line; 7 gives you two rows, and so on.
+*   **Buttons per row** — how many buttons fit along the axis the bar fills first. 15 puts every macro on one line; 7 gives you two rows, and so on.
 *   **Button size**, **Button spacing**, **Bar padding**, **Bar scale** — the geometry, in pixels (padding is the inset between the outer buttons and the bar's edge).
 *   **Orientation** — *Horizontal* fills a row then wraps to the next row; *Vertical* fills a column then wraps to the next column.
 *   **Horizontal growth** / **Vertical growth** — whether the first button sits at the left or right edge, and whether the first row sits at the top or bottom.
@@ -157,13 +159,14 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 *   **Icon zoom** — crops a percentage off each side of the icon. A little zoom trims the dark edge baked into most item icons so it stops reading as a second border.
 *   **Show stack count** — how many of the picked item you're carrying, in the corner of each button.
 *   **Show tooltips** — show the picked item's or spell's tooltip on hover.
+*   **Show GCD swipe** — paint the cooldown swipe during the global cooldown. Off by default: the 1.5s flash after every ability adds noise without telling you anything. With it off, a real cooldown's swipe also fades over its final second or so rather than counting all the way down, and the sparkle it plays on finishing is suppressed too.
 
 Cooldowns use your normal game settings (the standard sweep, plus countdown numbers if you have those turned on).
 
 *Labels*
 
 *   **Show button labels** — write each button's category name on it. On by default.
-*   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 13-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
+*   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 15-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
 *   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is just outside the bottom edge, which keeps the label clear of both the icon and the flyout band on top. Outside labels can overlap a neighbor when spacing is tight.
 *   **Label size** — a percentage of the button size, so labels stay proportional when you resize the bar.
 *   **Label offset X / Y**, **Outline label text**, **Label color** — the rest of the fine-tuning.
@@ -202,7 +205,7 @@ Because WoW won't let addons move or create bar buttons during a fight, changes 
 
 **Per-category pages**
 
-Each of the eleven single macros has its own page. Spec-aware pages show the viewed spec at the top.
+Each of the thirteen single macros has its own page. Spec-aware pages show the viewed spec at the top.
 
 *   **Draggable macro icon** — the small icon under the title. Drag it onto a bar to place the macro.
 *   **Add item or spell by ID** — choose **Item** or **Spell**, paste the ID, press Enter. A bad ID gives a chat error and keeps your text so you can fix the typo.
@@ -241,7 +244,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 |----------|--------|
 | Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Your macros are never read, moved, or deleted. If you delete one of its macros by hand, it's recreated on the next update. |
 | Do the macros work across all my characters? | Yes. They're **account-wide**, so one set is shared by every character. Your priority lists and stat choices are shared account-wide too. |
-| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, and Vantus rank the same for every spec, so they share one list. |
+| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust, and Battle Rez rank the same for every spec, so they share one list. |
 | How does it pick weapon enchants when I'm dual-wielding? | It checks each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit either — so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is simply left out of the macro. Swapping weapons updates it right away, no reload needed. |
 | Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Pin the reusable rune with **↑** if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, paste the ID, press Enter. |

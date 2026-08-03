@@ -110,6 +110,40 @@ test("Selector: a known spell entry counts as owned and is picked", function(t)
 end)
 
 -- ---------------------------------------------------------------
+-- Class-gated spell entries (pet-granted abilities outside the
+-- player's own spellbook, e.g. Primal Rage)
+-- ---------------------------------------------------------------
+test("Selector: a class-gated spell resolves for its class when IsPlayerSpell says no", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local pet  = KCM.ID.AsSpell(272678)
+
+    mock.setSpell(272678, { name = "Primal Rage", known = false })  -- pet spellbook
+    KCM.SEED.CLASS_GATE = { [pet] = "HUNTER" }
+    S.AddItem("FOOD", pet)
+
+    mock.setPlayerClass("HUNTER")
+    t.eq(S.PickBestForCategory("FOOD"), pet, "a hunter gets the pet ability")
+
+    mock.setPlayerClass("MAGE")
+    t.eq(S.PickBestForCategory("FOOD"), nil, "nobody else does")
+end)
+
+test("Selector: the class gate does not override a genuinely known spell", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local sid  = KCM.ID.AsSpell(80353)
+
+    mock.setSpell(80353, { name = "Time Warp", known = true })
+    KCM.SEED.CLASS_GATE = { [sid] = "PALADIN" }
+    S.AddItem("FOOD", sid)
+    mock.setPlayerClass("MAGE")
+    t.eq(S.PickBestForCategory("FOOD"), sid, "a known spell resolves even though the gate names a different class")
+end)
+
+-- ---------------------------------------------------------------
 -- MoveUp / MoveDown reorder via pins
 -- ---------------------------------------------------------------
 test("Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op", function(t)
@@ -233,6 +267,28 @@ test("Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone"
     mock.setItem(6101, { subType = "Two-Handed Maces" }); mock.setEquipped(16, 6101)
     local mh = S.PickBestForSlot("WPN_ENCH", 16, nil)
     t.truthy(mh == 6002 or mh == 6003, "blunt slot picks weightstone or oil, never the whetstone")
+end)
+
+-- ---------------------------------------------------------------
+-- PickBestForSlot: level-gate parity with PickBestForCategory / isAvailable
+-- ---------------------------------------------------------------
+test("Selector: PickBestForSlot skips a level-blocked enhancement", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+
+    mock.setPlayerLevel(80)
+    mock.setItem(6001, { subType = "Other", tt = {
+        isWeaponEnhance = true, weaponAffinity = "any", maxLevel = 50,
+        statBuffs = { { stat = "AP", amount = 10 } },
+    } })
+    S.AddItem("WPN_ENCH", 6001)
+    mock.setBag(6001, 1)
+
+    -- Main hand is a bladed sword; "any" affinity would otherwise qualify.
+    mock.setItem(6100, { subType = "Two-Handed Swords" }); mock.setEquipped(16, 6100)
+    t.eq(S.PickBestForSlot("WPN_ENCH", 16, nil), nil,
+        "level-blocked enhancement is not written into the macro, matching the flyout")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -586,4 +642,44 @@ end)
 test("Selector: ListAvailable returns an empty list for an unknown category", function(t)
     local KCM = h.loader.loadPure()
     t.eq(#KCM.Selector.ListAvailable("NOPE"), 0, "no such category -> empty")
+end)
+
+-- ---------------------------------------------------------------
+-- Level gate: IsUsableByPlayer must reach the pick path
+-- ---------------------------------------------------------------
+test("Selector.PickBestForCategory skips an item the player is over the cap for", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    mock.setPlayerLevel(80)
+    mock.setItem(940001, { subType = "Other", tt = { maxLevel = 50 } })
+    mock.setBag(940001, 1)
+    S.AddItem("FOOD", 940001)
+    -- Assert the capped item is not chosen, rather than asserting WHICH item
+    -- is: FOOD has a seed roster and the winner depends on Ranker scores, so
+    -- pinning an exact id here would make this test fail for unrelated reasons.
+    t.truthy(S.PickBestForCategory("FOOD") ~= 940001, "the capped item is passed over")
+end)
+
+test("Selector.ListAvailable omits an item the player is over the cap for", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    mock.setPlayerLevel(80)
+    mock.setItem(940003, { subType = "Other", tt = { maxLevel = 50 } })
+    mock.setBag(940003, 1)
+    S.AddItem("FOOD", 940003)
+    t.eqList(S.ListAvailable("FOOD"), {}, "an unusable item is not offered in the flyout")
+end)
+
+-- The load race: during PEW most tooltips are still pending. "Don't know yet"
+-- must not read as "unusable", or picks flap on every login.
+test("Selector.PickBestForCategory keeps an item whose tooltip is still pending", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    mock.setItem(940004, { subType = "Other", pending = true })
+    mock.setBag(940004, 1)
+    S.AddItem("FOOD", 940004)
+    t.eq(S.PickBestForCategory("FOOD"), 940004, "a pending item is still eligible")
 end)

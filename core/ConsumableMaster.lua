@@ -44,6 +44,10 @@ KCM.dbDefaults = {
             HS        = { added = {}, blocked = {}, pins = {}, discovered = {} },
             VANTUS    = { added = {}, blocked = {}, pins = {}, discovered = {} },
             AUG_RUNE  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+            BLOODLUST  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+            -- `mouseover` drives the targeting clause MacroManager splices into
+            -- the body; see defaults/Categories.lua's `targeted` field.
+            BATTLE_REZ = { added = {}, blocked = {}, pins = {}, discovered = {}, mouseover = true },
             STAT_FOOD = { bySpec = {} },
             CMBT_POT  = { bySpec = {} },
             FLASK     = { bySpec = {} },
@@ -92,12 +96,16 @@ KCM.dbDefaults = {
             scale    = 1.0,
             alpha    = 1.0,
             -- Grid. `perRow` counts buttons along the axis `orientation` fills
-            -- first (row for HORIZONTAL, column for VERTICAL); 13 = one row of
-            -- every managed macro.
+            -- first (row for HORIZONTAL, column for VERTICAL); 15 = one row of
+            -- every managed macro. This CANNOT be `#KCM.Categories.LIST`:
+            -- core/ loads before defaults/ in ConsumableMaster.toc, so that
+            -- table doesn't exist yet when this literal is evaluated. Must be
+            -- kept equal to the category count by hand; the drift test in
+            -- tests/test_macrobar.lua enforces it.
             buttonSize  = 36,
             spacing     = 4,
             padding     = 4,
-            perRow      = 13,
+            perRow      = 15,
             orientation = "HORIZONTAL",   -- HORIZONTAL | VERTICAL
             growthH     = "RIGHT",        -- RIGHT | LEFT
             growthV     = "DOWN",         -- DOWN | UP
@@ -121,6 +129,11 @@ KCM.dbDefaults = {
             iconZoom            = 8,     -- % crop per side; trims the icon's own dark edge
             showCount           = true,
             tooltips            = true,
+            -- OFF suppresses the ~1.5s global-cooldown swipe on every button
+            -- (default OFF, i.e. suppression is ON out of the box). A REAL
+            -- cooldown's swipe is unaffected either way. See
+            -- modules/MacroBarButton.lua's GCD-suppress curve.
+            showGCD             = false,
             -- Per-button labels. On by default, tucked just under the bottom
             -- edge so they never fight the icon or the flyout band on top, and
             -- using each category's shortName (defaults/Categories.lua) so a
@@ -177,6 +190,7 @@ KCM.dbDefaults = {
                 "FOOD", "DRINK", "HP_POT", "MP_POT", "HS",
                 "HP_AIO", "MP_AIO",
                 "FLASK", "CMBT_POT", "STAT_FOOD", "WPN_ENCH", "AUG_RUNE", "VANTUS",
+                "BLOODLUST", "BATTLE_REZ",
             },
             -- [catKey] = false hides that slot. Unset means visible, so a
             -- category shipped after the profile was written appears by default.

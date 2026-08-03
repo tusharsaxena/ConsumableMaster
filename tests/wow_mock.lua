@@ -7,17 +7,21 @@
 -- be exercised deterministically.
 --
 -- Item-injection API (used by test suites):
---   M.setItem(id, { name=, subType=, quality=, ilvl=, tt={...} })
+--   M.setItem(id, { name=, subType=, quality=, ilvl=, tt={...}, pending= })
 --       subType matches Classifier's English strings: "Potions",
 --       "Food & Drink", "Flasks & Phials". tt is the parsed-tooltip table
 --       Classifier/Ranker consume (healValue, healPct, manaValue, hasStatBuff,
---       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured, …).
+--       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured,
+--       minLevel, maxLevel, …). pending=true marks the tooltip as not yet
+--       hydrated (see tests/loader.lua's TooltipCache stub).
 --   M.setBag(id, count)        -- owned count (drives BagScanner + GetItemCount)
 --   M.setSpell(id, { name=, known= })
 --   M.setSpec(classID, specIndex, specID, specName)  -- current player spec
 --   M.setCombat(bool)          -- InCombatLockdown() return
 --   M.setEquipped(slot, itemID) -- equip an item into a paperdoll slot (16 main
 --       hand / 17 off hand); drives GetInventoryItemID for WeaponSlots
+--   M.setPlayerLevel(n)        -- backs UnitLevel("player") (default 80)
+--   M.setPlayerClass(classFile) -- backs UnitClass("player")'s 2nd return (default "SHAMAN")
 --
 -- The message bus stub is keyed by (message, target) per the standard's
 -- anti-pattern #33 so future NS.bus receivers are testable.
@@ -36,6 +40,8 @@ M.spec     = { classID = 7, specIndex = 1, specID = 263, specName = "Enhancement
 M.inCombat = false
 M.output   = {}   -- captured print() lines
 M.equipped = {}   -- slot -> itemID (main-hand 16 / off-hand 17)
+M.playerLevel = 80
+M.playerClass = "SHAMAN"  -- UnitClass("player")'s locale-independent 2nd return
 
 function M.reset()
     M.items, M.bags, M.bagSlots, M.spells = {}, {}, {}, {}
@@ -43,6 +49,8 @@ function M.reset()
     M.inCombat = false
     M.output   = {}
     M.equipped = {}
+    M.playerLevel = 80
+    M.playerClass = "SHAMAN"
     M.macros   = {}       -- name -> { icon, body }
     M.busReg   = {}       -- "message" -> { [target] = callback }
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
@@ -82,6 +90,30 @@ function M.setCooldownsRestricted(on)
     end or nil
 end
 
+-- Minimal stand-in for a Midnight LuaCurve (C_CurveUtil): records control
+-- points and evaluates them the way the C side does — the value of the last
+-- point at or below `at`. Needed so modules/MacroBarButton.lua's GCD-suppress
+-- step curve is exercisable headlessly (mirrors KickCD's tests/wow_mock.lua).
+local function evaluateCurve(curve, at)
+    local pts = curve and curve.points
+    if not (pts and pts[1]) then return nil end
+    local chosen = pts[1]
+    for _, p in ipairs(pts) do
+        if p.at <= at then chosen = p else break end
+    end
+    return chosen.value
+end
+
+local function makeCurve()
+    local c = { points = {} }
+    function c.SetType() return c end
+    function c:AddPoint(at, value)
+        self.points[#self.points + 1] = { at = at, value = value }
+        return self
+    end
+    return c
+end
+
 -- A stand-in for a LuaDurationObject. Records what it was configured with so a
 -- test can assert the right span reached it, but exposes no comparison surface
 -- the addon is allowed to use.
@@ -89,6 +121,12 @@ function M.makeDuration(start, duration)
     local d = { start = start, duration = duration }
     function d:SetTimeFromStart(s, dur, rate)
         self.start, self.duration, self.modRate = s, dur, rate
+    end
+    -- The mock has no live clock, so `duration` doubles as "remaining" here —
+    -- close enough for the step curve modules/MacroBarButton.lua evaluates
+    -- against (see EvaluateRemainingDuration's real contract).
+    function d:EvaluateRemainingDuration(curve)
+        return evaluateCurve(curve, self.duration or 0)
     end
     return d
 end
@@ -126,6 +164,11 @@ function M.setItem(id, spec)
         -- not given (real items keep them consistent); explicit spec overrides.
         classID     = spec.classID or (cls and cls[1]) or 0,
         subClassID  = spec.subClassID or (cls and cls[2]) or 0,
+        -- pending marks a tooltip that has not hydrated yet — the pure-layer
+        -- TooltipCache stub (tests/loader.lua) surfaces this as
+        -- IsUsableByPlayer's "pending" sentinel, so the load-race case is
+        -- reachable without driving the real C_TooltipInfo parser.
+        pending     = spec.pending and true or nil,
     }
 end
 
@@ -135,6 +178,8 @@ function M.setBag(id, count)
     M.bagSlots[#M.bagSlots + 1] = { itemID = id, stackCount = count }
 end
 
+function M.setPlayerLevel(n) M.playerLevel = n or 80 end
+
 function M.setSpell(id, spec)
     spec = spec or {}
     M.spells[id] = { name = spec.name or ("Spell " .. tostring(id)), known = spec.known ~= false }
@@ -143,6 +188,10 @@ end
 function M.setSpec(classID, specIndex, specID, specName)
     M.spec = { classID = classID, specIndex = specIndex, specID = specID, specName = specName }
 end
+
+-- classFile is the locale-independent token ("HUNTER", "MAGE", ...) — backs
+-- UnitClass("player")'s SECOND return, not the localized display name.
+function M.setPlayerClass(classFile) M.playerClass = classFile end
 
 function M.setCombat(v) M.inCombat = v and true or false end
 
@@ -403,8 +452,8 @@ function M.install(NS)
 
     -- Combat / unit
     _G.InCombatLockdown = function() return M.inCombat end
-    _G.UnitClass = function() return nil, nil, M.spec.classID end
-    _G.UnitLevel = function() return 80 end
+    _G.UnitClass = function() return nil, M.playerClass, M.spec.classID end
+    _G.UnitLevel = function() return M.playerLevel end
     _G.UnitName  = function() return "Tester" end
     _G.IsPlayerSpell = function(spellID)
         local s = M.spells[spellID]
@@ -551,6 +600,11 @@ function M.install(NS)
     -- back to Cooldown:SetCooldownFromDurationObject, never read it.
     _G.C_DurationUtil = {
         CreateDuration = function() return M.makeDuration() end,
+    }
+    -- Curves (Midnight C_CurveUtil). Only CreateCurve is exercised today —
+    -- the GCD-suppress curve in modules/MacroBarButton.lua.
+    _G.C_CurveUtil = {
+        CreateCurve = function() return makeCurve() end,
     }
     _G.C_Container = {
         GetContainerNumSlots = function(bag) return bag == 0 and #M.bagSlots or 0 end,

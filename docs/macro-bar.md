@@ -258,6 +258,58 @@ the NeverSecret `isActive` and paints from a duration object — the one setter
 the client accepts from us mid-combat. See
 [midnight-quirks.md](./midnight-quirks.md#secret-values).
 
+### GCD-swipe suppression
+
+`macroBar.showGCD` (default `false`, i.e. suppression is ON out of the box)
+hides the ~1.5s global-cooldown swipe that would otherwise flash across every
+button on every cast — noise that tells the user nothing, since a REAL
+cooldown's swipe is unaffected either way.
+
+The same secret-value problem as above rules out the obvious fix
+(`if duration <= 1.5 then hide`): once combat starts, comparing a cooldown's
+duration in Lua is a hard error. `MacroBarButton.ApplyCooldown` instead builds
+a step-shaped curve once, lazily (0 for remaining ≤ `KCM.GCD_UPPER` [1.6s,
+`core/Constants.lua`], 1 above it), and hands it to the duration object's
+`EvaluateRemainingDuration` — a C method that accepts a secret-tainted value
+and runs the comparison C-side. The result feeds
+`SetAlphaFromBoolean(true, value, 0)`, also a C method safe to call with a
+secret-derived value. No secret ever reaches Lua.
+
+The pattern (curve, threshold constant, and the lazy-build-once guard) is
+copied verbatim from the user's KickCD addon
+(`modules/IconGrid_Render.lua`'s `buildGcdSuppressCurve` /
+`applyGcdSuppressionAlpha`, `core/Constants.lua`'s `Const.GCD_UPPER`) rather
+than shared through LibKa0s — see `docs/pending/LEDGER.md` (GCD-01) for why.
+
+**Accepted tail-fade behavior.** The curve evaluates REMAINING duration, which
+can't distinguish a lone 1.5s GCD from the last 1.5s of a 60s cooldown — that
+would need the TOTAL duration, which is also secret. So a real cooldown's
+swipe vanishes for its own final ~1.6s instead of visibly counting down to
+zero. This is a deliberate, documented limitation (matching KickCD), not a bug
+to engineer around.
+
+`BB.ApplyCooldown` always resets to `SetAlpha(1)` when it isn't suppressing —
+load-bearing, since without it a frame faded during a GCD would stay faded
+forever the moment the user turns `showGCD` on.
+
+**Bling.** The completion sparkle (`CooldownFrameTemplate`'s "bling") is not
+covered by the frame's alpha the way the swipe and edge are — confirmed
+in-game, fading the frame suppresses the swipe but the bling still fires — so
+`ApplyCooldown` drives it separately via `cd:SetDrawBling(not suppress)`.
+Unlike the curve-evaluated alpha, `SetDrawBling` takes a plain boolean, so it
+keys off the non-secret `suppress` flag (derived from `cfg.showGCD`) rather
+than the curve's secret-tainted output. It is applied even on the `not active`
+early-return path, since the setting can change while a cooldown is idle.
+
+**Accepted consequence.** With `showGCD` off, a REAL cooldown also loses its
+completion sparkle, not just the GCD's — `SetDrawBling` has no way to tell
+"this bling belongs to a GCD" from "this bling belongs to a real cooldown" any
+more than the alpha curve above can, and distinguishing them would need the
+secret total duration. This is arguably more coherent anyway: the tail-fade
+above already makes a real cooldown's swipe vanish over its final ~1.6s, so a
+sparkle at completion would appear with no swipe behind it. Deliberate, not a
+gap.
+
 ### Label clearance
 
 `MacroBarLayout.IndicatorClearance` pushes a button label clear of the indicator
@@ -329,6 +381,24 @@ so the dropdown and the CLI can't write a value the renderer can't display. The
 two border-style rows add `lsm = "border"` and pass `values` as a **function**
 (`H.LSMValues("border")`) so the list is re-queried at click time — another addon
 can register a border after our schema is declared.
+
+`macroBar.perRow` has THREE hand-maintained copies of "the managed category
+count," and all three went stale (13 → 15) when this branch added two
+categories: the `dbDefaults` default (`core/ConsumableMaster.lua`), the
+settings-page slider `max` (`settings/MacroBar.lua`), and
+`core/MacroBarLayout.lua`'s own internal `perRow` fallback inside
+`normalize()`, used only when `Grid`/`Dimensions` is called with no `perRow`
+in `cfg` at all. Only the slider `max` is derived (`#KCM.Categories.LIST`) —
+`settings/` loads after `defaults/` in `ConsumableMaster.toc`, so the table
+already exists when the row is declared. The other two stay literals:
+`core/ConsumableMaster.lua` can't derive because `core/` loads before
+`defaults/`, and `core/MacroBarLayout.lua`'s fallback was kept a literal on
+purpose since `normalize()` is a hot pure-math path and the fallback only
+ever fires when a caller omits `perRow` entirely. All three are pinned
+together by "macrobar defaults: perRow tracks the number of managed
+categories" in `tests/test_macrobar.lua`, which fails if any one drifts from
+`#KCM.Categories.LIST` — the layout fallback is observed indirectly, via
+`Grid`'s reported column count, since `normalize` itself isn't exported.
 
 Two non-scalar fields are edited outside the schema:
 

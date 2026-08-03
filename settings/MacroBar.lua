@@ -72,10 +72,16 @@ row{
     label = L["Lock position"],
     tooltip = L["When unlocked the bar is tinted gold and can be dragged anywhere on screen; its position is saved automatically. Lock it again to click through the empty space around the buttons."],
 }
+-- `max` is derived rather than a literal: it's the slot count, and a
+-- hardcoded number is exactly what just went stale (13 -> 15 when this
+-- branch added two categories). settings/ loads after defaults/ in
+-- ConsumableMaster.toc, so KCM.Categories.LIST already exists here.
 row{
-    path = "macroBar.perRow", type = "number", min = 1, max = 13, step = 1, group = "Layout",
+    path = "macroBar.perRow", type = "number", min = 1,
+    max = KCM.Categories and KCM.Categories.LIST and #KCM.Categories.LIST or 13,
+    step = 1, group = "Layout",
     label = L["Buttons per row"],
-    tooltip = L["How many buttons fit along the axis the bar fills first — a row when the orientation is Horizontal, a column when it is Vertical. 13 puts every macro on one line."],
+    tooltip = L["How many buttons fit along the axis the bar fills first — a row when the orientation is Horizontal, a column when it is Vertical. The maximum puts every macro on one line."],
 }
 row{
     path = "macroBar.buttonSize", type = "number", min = 16, max = 64, step = 1, group = "Layout",
@@ -196,6 +202,11 @@ row{
     path = "macroBar.tooltips", type = "bool", group = "Button appearance",
     label = L["Show tooltips"],
     tooltip = L["Show the picked item's or spell's tooltip when you hover a button."],
+}
+row{
+    path = "macroBar.showGCD", type = "bool", group = "Button appearance",
+    label = L["Show GCD swipe"],
+    tooltip = L["Off by default: hides the roughly 1.5-second global-cooldown swipe and completion sparkle that would otherwise flash across every button whenever you cast anything. A real cooldown's swipe still shows, but it vanishes for its own final second or so instead of visibly counting down to zero, and its completion sparkle is hidden along with the GCD's — the button can't tell a lone GCD from the last moment of a long cooldown."],
 }
 row{
     path = "macroBar.alpha", type = "number", min = 0.1, max = 1.0, step = 0.05, group = "Bar appearance",
@@ -457,6 +468,7 @@ local function render(ctx)
         defs.buttonBorderStyle, defs.buttonBorderSize,
         defs.buttonBorderOffset, defs.iconZoom,
         defs.showCount, defs.tooltips,
+        defs.showGCD,
     })
 
     H.Section(ctx, L["Labels"])

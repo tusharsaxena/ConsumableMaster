@@ -50,3 +50,26 @@ test("Categories: AUG_RUNE registered with metadata, DB bucket, and seed", funct
     t.truthy(want[243191], "AUG_RUNE seed 243191 (Ethereal, TWW) in candidate set")
     t.truthy(want[140587], "AUG_RUNE seed 140587 (Defiled, Legion) in candidate set")
 end)
+
+test("Categories: BLOODLUST and BATTLE_REZ registered with metadata, buckets and seeds", function(t)
+    local KCM = h.loader.loadPure()
+    for _, key in ipairs({ "BLOODLUST", "BATTLE_REZ" }) do
+        local cat = KCM.Categories.Get(key)
+        t.truthy(cat, key .. " is registered")
+        t.falsy(cat.specAware, key .. " is not spec-aware")
+        t.falsy(cat.composite, key .. " is not a composite")
+        t.truthy(#cat.macroName <= 16, key .. " macro name fits the 16-char limit")
+        t.truthy(KCM.db.profile.categories[key].discovered, key .. " has an item bucket")
+        t.truthy(#KCM.SEED[key] > 0, key .. " has a seed roster")
+    end
+    t.eq(KCM.Categories.Get("BATTLE_REZ").targeted, "[@mouseover,help][@target,help]",
+        "Battle Rez declares its targeting clause")
+    t.eq(KCM.Categories.Get("BLOODLUST").targeted, nil, "Bloodlust targets the player")
+    t.eq(KCM.db.profile.categories.BATTLE_REZ.mouseover, true, "mouseover defaults on")
+end)
+
+test("Categories: the Bloodlust seed leads with spells and the class gate names Primal Rage", function(t)
+    local KCM = h.loader.loadPure()
+    t.truthy(KCM.ID.IsSpell(KCM.SEED.BLOODLUST[1]), "the roster leads with a spell")
+    t.eq(KCM.SEED.CLASS_GATE[KCM.ID.AsSpell(272678)], "HUNTER", "Primal Rage is hunter-gated")
+end)

@@ -284,6 +284,94 @@ test("Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates",
     t.eq(R.Score("AUG_RUNE", 800001, nil, nil), 0 + 0 + 1 + 100, "no stat -> base score only")
 end)
 
+test("Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5001, { subType = "Other", quality = 3, ilvl = 200, tt = { maxLevel = 60 } })   -- old, capped
+    mock.setItem(5002, { subType = "Other", quality = 3, ilvl = 200, tt = { maxLevel = 80 } })   -- newer, capped
+    mock.setItem(5003, { subType = "Other", quality = 3, ilvl = 200, tt = {} })                  -- uncapped
+    local old     = R.Score("BLOODLUST", 5001, nil, nil)
+    local newer   = R.Score("BLOODLUST", 5002, nil, nil)
+    local uncapped = R.Score("BLOODLUST", 5003, nil, nil)
+    t.eq(old, 60 * 1e4 + 200 + 300, "BLOODLUST score = maxLevel * CAP_WEIGHT + ilvl + quality*100")
+    t.eq(newer, 80 * 1e4 + 200 + 300, "BLOODLUST score for the newer drum")
+    t.eq(uncapped, 9999 * 1e4 + 200 + 300, "BLOODLUST uncapped drum uses the 9999 sentinel")
+    t.truthy(uncapped > newer, "uncapped drum outranks every capped one")
+    t.truthy(newer > old, "higher affect-cap outranks a lower one")
+
+    -- Spell forms still outrank every drum via SPELL_SCORE.
+    local spell = KCM.ID.AsSpell(2825)
+    t.truthy(R.Score("BLOODLUST", spell, nil, nil) > uncapped, "Bloodlust the spell outranks any drum")
+end)
+
+test("Ranker: BLOODLUST's cap term is weighted above ilvl (a lower-ilvl higher-cap drum wins)", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    -- Real drums span ilvl ~70-600; a higher cap must not be swamped by that
+    -- range. Low ilvl + high cap vs. high ilvl + low cap: the cap decides.
+    mock.setItem(5004, { subType = "Other", quality = 3, ilvl = 70,  tt = { maxLevel = 80 } })   -- lower ilvl, higher cap
+    mock.setItem(5005, { subType = "Other", quality = 3, ilvl = 600, tt = { maxLevel = 50 } })   -- higher ilvl, lower cap
+    local higherCap = R.Score("BLOODLUST", 5004, nil, nil)
+    local higherIlvl = R.Score("BLOODLUST", 5005, nil, nil)
+    t.truthy(higherCap > higherIlvl,
+        "the lower-ilvl, higher-cap drum outranks the higher-ilvl, lower-cap one")
+end)
+
+test("Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5001, { subType = "Other", quality = 3, ilvl = 200, tt = { maxLevel = 60 } })   -- capped
+    mock.setItem(5003, { subType = "Other", quality = 3, ilvl = 200, tt = {} })                  -- uncapped
+
+    local capped = R.Explain("BLOODLUST", 5001, nil)
+    local capRow
+    for _, s in ipairs(capped.signals) do
+        if s.label == "affects up to level x10000" then capRow = s end
+    end
+    t.truthy(capRow, "capped drum has an 'affects up to level x10000' signal")
+    t.eq(capRow.value, 60 * 1e4, "capped drum's signal reports its weighted cap contribution")
+    t.eq(capRow.note, "cap 60", "capped drum's note names the actual cap")
+    t.eq(capped.score, 60 * 1e4 + 200 + 300, "BLOODLUST Explain score matches the scorer")
+
+    local uncapped = R.Explain("BLOODLUST", 5003, nil)
+    local uncapRow
+    for _, s in ipairs(uncapped.signals) do
+        if s.label == "affects up to level x10000" then uncapRow = s end
+    end
+    t.truthy(uncapRow, "uncapped drum has an 'affects up to level x10000' signal")
+    t.eq(uncapRow.value, 9999 * 1e4, "uncapped drum's signal reports the weighted 9999 sentinel")
+    t.eq(uncapRow.note, "no cap", "uncapped drum DOES carry the 'no cap' note")
+    t.eq(uncapped.score, 9999 * 1e4 + 200 + 300, "BLOODLUST Explain score matches the scorer for the uncapped item")
+end)
+
+test("Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(248486, { subType = "Other", quality = 4, ilvl = 30, tt = {} })
+    local result = R.Explain("BATTLE_REZ", 248486, nil)
+    t.eq(result.score, 30 + 400, "BATTLE_REZ Explain score = ilvl + quality*100")
+    local labels = {}
+    for _, s in ipairs(result.signals) do labels[s.label] = s.value end
+    t.eq(labels.ilvl, 30, "BATTLE_REZ Explain reports the ilvl signal")
+    t.eq(labels["quality x100"], 400, "BATTLE_REZ Explain reports the quality signal")
+end)
+
+test("Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(248486, { subType = "Other", quality = 4, ilvl = 30, tt = {} })
+    t.eq(R.Score("BATTLE_REZ", 248486, nil, nil), 30 + 400, "BATTLE_REZ score = ilvl + quality*100")
+
+    local spell = KCM.ID.AsSpell(20484)
+    t.truthy(R.Score("BATTLE_REZ", spell, nil, nil) > R.Score("BATTLE_REZ", 248486, nil, nil),
+        "Rebirth the spell outranks the soul link item")
+end)
+
 test("Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock

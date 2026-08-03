@@ -55,17 +55,53 @@ local function spellNameFor(spellID)
     return KCM.Compat and KCM.Compat.GetSpellName and KCM.Compat.GetSpellName(spellID) or nil
 end
 
-local function buildActiveBody(id)
+-- The targeting conditional for a category, or nil.
+--
+-- Only Battle Rez acts on someone other than the player. The category row holds
+-- the static default; db.profile.categories[key].mouseover holds the user's
+-- choice, defaulting on. `/use` accepts @unit conditionals exactly as `/cast`
+-- does, so one clause covers both body forms.
+--
+-- The clause is deliberately `help` without `dead`: Soulstone is cast on a
+-- LIVING ally, and `help` already matches dead friendly units, so one clause
+-- serves the rez spells and Soulstone alike. Adding `dead` breaks Soulstone.
+local function targetClauseFor(catKey)
+    local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
+    if not (cat and cat.targeted) then return nil end
+    local bucket = KCM.db and KCM.db.profile and KCM.db.profile.categories
+        and KCM.db.profile.categories[catKey]
+    if bucket and bucket.mouseover == false then return nil end
+    return cat.targeted
+end
+
+local function buildActiveBody(id, clause)
+    local prefix = clause and (clause .. " ") or ""
     if KCM.ID and KCM.ID.IsSpell(id) then
         local spellID = KCM.ID.SpellID(id)
         local name = spellNameFor(spellID)
-        if name then return ("#showtooltip\n/cast %s"):format(name) end
+        if name then
+            -- Bare #showtooltip derives icon/tooltip from the first MATCHING
+            -- conditional clause. [@mouseover,help][@target,help] is non-
+            -- exhaustive: with no friendly mouseover and no friendly target
+            -- (the resting state), nothing matches, and since active bodies
+            -- store DYNAMIC_ICON (the "?" sentinel handing icon control to
+            -- #showtooltip), the button renders "?" on a Blizzard action
+            -- bar. Naming the spell/item explicitly sidesteps that; only do
+            -- it when a clause is present so the untargeted path (which
+            -- always resolves via [combat]/[nocombat] or unconditionally)
+            -- keeps its existing bare-#showtooltip bodies unchanged.
+            if clause then return ("#showtooltip %s\n/cast %s%s"):format(name, prefix, name) end
+            return ("#showtooltip\n/cast %s%s"):format(prefix, name)
+        end
         -- Spell name not yet resolvable (very rare — would imply the spell
         -- book hasn't hydrated). Emit a user-visible stub so the macro
         -- exists and the failure is observable rather than silent.
         return ("#showtooltip\n/run print('%s spell %d name unavailable')"):format(KCM.PREFIX, spellID or 0)
     end
-    return ("#showtooltip\n/use item:%d"):format(id)
+    if clause then
+        return ("#showtooltip item:%d\n/use %sitem:%d"):format(id, prefix, id)
+    end
+    return ("#showtooltip\n/use %sitem:%d"):format(prefix, id)
 end
 
 local function buildEmptyBody(cat)
@@ -80,7 +116,7 @@ local function buildEmptyBody(cat)
 end
 
 function M.BuildBody(catKey, itemID)
-    if itemID then return buildActiveBody(itemID) end
+    if itemID then return buildActiveBody(itemID, targetClauseFor(catKey)) end
     local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
     return buildEmptyBody(cat)
 end

@@ -4,7 +4,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 
 ## In scope
 
-- **Account-wide consumable macros** — eleven single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, VANTUS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, AUG_RUNE) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
+- **Account-wide consumable macros** — thirteen single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, VANTUS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, AUG_RUNE, BLOODLUST, BATTLE_REZ) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
 - **Auto-rewriting macro bodies** based on bag contents, spec, and a per-category scorer.
 - **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH against per-spec stat priority (primary + ordered secondary).
 - **Spell entries** (e.g. Recuperate as a Food entry) via opaque-numeric IDs (positive = item, negative = spell sentinel).

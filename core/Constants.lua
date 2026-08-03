@@ -17,3 +17,14 @@ local KCM = NS
 -- a hand-written literal. No trailing space; KCM.Say adds the separator.
 KCM.PREFIX = "|cff00ffff[CM]|r"
 
+-- Upper bound on the global cooldown, in seconds. Same value and reasoning as
+-- KickCD's Const.GCD_UPPER (its core/Constants.lua) — WoW's GCD is
+-- haste-modified (typically 1.0-1.5s), so 1.6s comfortably covers the
+-- unhasted case plus a small floating-point epsilon.
+--
+-- modules/MacroBarButton.lua's GCD-suppress curve treats any REMAINING
+-- cooldown <= this as "just the GCD -- hide the swipe" and anything above it
+-- as a real cooldown worth showing. Sub-second precision doesn't matter
+-- because the curve is a step, not a gradient.
+KCM.GCD_UPPER = 1.6
+

@@ -33,11 +33,11 @@ Twelve sections, each numbered so you can call out which one failed when reporti
 
 ### 1. Cold boot
 
-Tests: AceDB defaults populate, all 13 macros create, no errors at login.
+Tests: AceDB defaults populate, all 15 macros create, no errors at login.
 
 1. **Fresh-install path:** quit the game; delete `WTF/Account/<acct>/SavedVariables/ConsumableMasterDB.lua`; log in.
 2. Expect: no Lua errors, no `[CM]` chat warnings beyond the one-shot debug-state line if `debug=true`.
-3. Open the macro UI → **General Macros** tab. Expect 13 macros named exactly: `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_HP_AIO`, `KCM_MP_AIO`.
+3. Open the macro UI → **General Macros** tab. Expect 15 macros named exactly: `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`, `KCM_HP_AIO`, `KCM_MP_AIO`.
 4. Each macro's stored icon should be either the picked item's texture (if you own a candidate) or the cooking-pot fallback (`fileID 7704166`). Never the `?` sentinel rendered as a static texture — that's the icon-convention bug.
 5. `/cm dump pick food` (and any spec-aware key) — confirms the pipeline ran post-PEW.
 6. Re-login (no SavedVariables wipe) — same checks. Existing buckets should be respected; no duplicate macros created.
@@ -95,6 +95,18 @@ Tests: the Classifier (`core/Classifier.lua`) and weapon-affinity (`core/WeaponS
 4. **classID-gate guard — a Shield must not read as a Polearm.** Equip a **shield** in the off-hand: the off-hand shows **no** weapon enchant, and `/cm dump item <shieldID>` shows `classID=4 subClassID=6` with `classified: (none)`. (Shield = Armor subclass 6; Polearm = Weapon subclass 6 — same number, different class; the class gate keeps them apart.)
 5. **Definitive locale test (needs a non-English client).** On a deDE/frFR/etc. client (language pack on PTR/beta, or a non-English account), reload with the same consumables in bags. `/cm dump item <id>` shows a **localized** `subType` (e.g. `"Tränke"`) but `classified:` must still be correct and the `KCM_*` macros must populate. *Before* this change every consumable classified as `(none)` and the macros sat empty on that client. If a non-English client isn't available, the headless suite already proves it (`classifier: keys on numeric subclass, not the localized subType` + the WeaponSlots equivalent), so steps 1–4 on English are sufficient sign-off.
 
+### 3d. Macro writes — Bloodlust / Battle Rez (seed-only, no auto-discovery, unverified seed)
+
+Tests: `KCM_BLOODLUST` / `KCM_BATTLE_REZ` resolve the right spell or item per class; the level-cap filter removes a dead drum; `CLASS_GATE` resolves an ability outside the player's own spellbook; the mouseover clause toggles. **The seed itemIDs and spellIDs in `defaults/Defaults_Bloodlust.lua` / `defaults/Defaults_BattleRez.lua` are wiki-sourced and unverified in game as of this writing** — treat a wrong name or a missing pick here as a data bug first, not a logic bug. See the standalone checklist at [superpowers/plans/2026-08-03-bloodlust-battle-rez-VERIFY.md](./superpowers/plans/2026-08-03-bloodlust-battle-rez-VERIFY.md) for the full seed-by-seed walk.
+
+1. On a Shaman / Mage / Evoker, confirm `KCM_BLOODLUST` resolves to that class's raid-haste spell (Bloodlust or Heroism per faction, Time Warp, Fury of the Aspects) over any drums in bags.
+2. On a Marksmanship hunter, confirm Harrier's Cry resolves. On a BM/Survival hunter (no Harrier's Cry — Ferocity pet ability instead), confirm Primal Rage resolves; this is the `KCM.SEED.CLASS_GATE` path (`modules/Selector.lua:258`) — Primal Rage lives in the hunter pet's spellbook, not the player's, so it needs the gate to be found at all. A hunter with **no** pet summoned and no drums should fall to the empty state, not to a `CLASS_GATE`-invalid pick.
+3. On a class with no lust ability, put a drum in bags — confirm it resolves. At max level with **only** a superseded (capped) drum in bags, confirm the slot shows the empty state, not the dead drum — this is the level-cap filter from Task 1 (`TooltipCache.IsUsableByPlayer`).
+4. On Druid / DK / Paladin / Warlock, confirm `KCM_BATTLE_REZ` resolves to that class's rez spell (Rebirth / Raise Ally / Intercession / Soulstone) over Emergency Soul Link. On a class with **no** rez spell and Emergency Soul Link in bags, confirm the item resolves.
+5. `/cm dump pick BLOODLUST` and `/cm dump pick BATTLE_REZ` — open the macro and read the body against the dump's pick.
+6. On the Battle Rez category page, confirm the **Cast on mouseover** checkbox (`settings/Category.lua:319`) is checked by default and the macro body carries `[@mouseover,help][@target,help]`. Uncheck it — confirm the body drops the `[@mouseover,help]` clause and leaves `[@target,help]` alone, and the macro then acts on your current target instead of a moused-over frame.
+7. Confirm neither category auto-discovers: put an un-seeded, un-added item that would otherwise match (e.g. a different drum tier) in bags — it must **not** appear in `/cm dump pick` or the category's priority list, since neither category has a `Classifier.lua` matcher.
+
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
 
 Tests: `/castsequence [combat]` for in-combat, `/use [nocombat]` chain for out-of-combat, asymmetric-empty fallback.
@@ -118,7 +130,7 @@ Tests: spec-aware macros update on `PLAYER_SPECIALIZATION_CHANGED`, score cache 
 
 1. Open `KCM_FLASK` body, note the picked flask.
 2. Switch specs via the talents UI (loadout selector or the spec dropdown).
-3. Within ~1 frame, expect: `KCM_FLASK` / `KCM_CMBT_POT` / `KCM_STAT_FOOD` / `KCM_WPN_ENCH` bodies update against the new spec's stat priority. Non-spec-aware macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`) stay unchanged.
+3. Within ~1 frame, expect: `KCM_FLASK` / `KCM_CMBT_POT` / `KCM_STAT_FOOD` / `KCM_WPN_ENCH` bodies update against the new spec's stat priority. Non-spec-aware macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`) stay unchanged.
 4. Open the **Stat Priority** panel; viewing-spec dropdown shows the new spec's icon + name. Primary + secondary fields populate from the override / seed / class fallback in that order.
 5. `/cm dump pick flask` — score breakdown should weight stats per the new spec's priority.
 
@@ -138,7 +150,7 @@ Tests: macro writes that hit combat queue, flush on regen, retry counter respect
 Tests: `/cm config` lands on About with sub-pages expanded; General-page checkboxes write through schema; resets fire StaticPopup.
 
 1. Close the Settings panel. Run `/cm config`.
-2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 15 sub-pages visible (General, Stat Priority, 11 categories, 2 AIO).
+2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 17 sub-pages visible (General, Stat Priority, 13 categories, 2 AIO).
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
 4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width. A top-right **Defaults** button sits in the page header.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -237,7 +249,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 
 Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBar.lua`. The bar's pure layer is covered headlessly ([test-cases.md](./test-cases.md)); this section is the part only a live client can prove.
 
-1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) dead center of the screen, one row of 13 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked and **Lock position** unchecked.
+1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) dead center of the screen, one row of 15 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked and **Lock position** unchecked.
 1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1` and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and `global.schemaVersion` reads 2. Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot and must not re-enable it every login.
 2. **Disable / re-enable.** Uncheck **Enable macro bar** (or `/cm bar off`) → the bar disappears. Re-check it → it comes back with its layout and position intact.
 3. **Click.** Click a slot out of combat → the consumable is used, exactly as clicking the macro on a normal bar. No taint error, no "Interface action failed because of an AddOn" message. Repeat in combat.
@@ -250,7 +262,7 @@ Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBa
 8. **Reorder by drag.** Drag one slot onto another → the two swap and the swap survives `/reload`. **Reset slot order** puts them back.
 9. **Drag out.** Drag a slot onto a normal Blizzard action bar → the macro lands there and the bar keeps its own copy.
 10. **CM-only.** Pick up a regular item, spell, and a non-KCM macro in turn and drop each on the bar → nothing happens and the cursor keeps holding it. Nothing is ever added to or removed from the bar this way.
-11. **Which macros.** Uncheck a few macros under *Macros on the bar* → those slots disappear and the rest close up the gap. Uncheck all 13 → the bar collapses to an empty backdrop rather than erroring.
+11. **Which macros.** Uncheck a few macros under *Macros on the bar* → those slots disappear and the rest close up the gap. Uncheck all 15 → the bar collapses to an empty backdrop rather than erroring.
 11b. **Flyout.** Each icon should show a shaded band across its top with a small, *un-stretched* arrow centered on it — inside the artwork, not hanging off the edge. Clicking the band still fires the macro (it's hover-only, clicks pass through). Hover the band → a strip opens above it listing every owned item / known spell in that category, best-ranked nearest the button, the macro's own pick included. Click an entry → it's used. Check that: an item you don't own is absent; a known spell on cooldown is present *with* a swipe; moving the mouse from the arrow into the strip keeps it open; leaving either closes it; and an entry cannot be dragged onto an action bar. Walk **Flyout side** through all four values → the arrow and the growth direction both move, and a top/bottom label steps clear of the arrow automatically. Toggle **Reverse flyout order** → the best-ranked entry moves to the far end. Set **Maximum flyout entries** to 2 on a category where you own more → only the top two, and `/cm debug on` logs the cap. Check **Flyout button size**, **Flyout spacing**, and **Gap from button** — at the default the first entry should clear the button's border, and crucially, moving the mouse from the band up into the flyout across that gap must NOT close it. Confirm the arrow points **away from the button** on each of the four sides (up when the flyout is on top) and is comfortably visible, not a speck. Check **Shaded band thickness** (a percentage now — raise **Button size** and confirm the band grows with it; a large percentage on a small button must be capped, not swallow the icon), **Arrow size**, and **Shaded band color** (the band must actually change color — every color picker on this page writes on change, not only on Okay). Confirm flyout entries pick up every **Button appearance** setting, and that **Flyout background** / its color / **Flyout padding** make the strip clearly distinct from a second row of bar buttons. Uncheck **Enable flyout** → bands vanish everywhere and hovering does nothing.
 11e. **Flyout closing.** Set **Auto-close after** to 3 and move the mouse off an open flyout → it must stay up for ~3s, then close (not vanish instantly — instant means the secure `_onleave` is pre-empting the countdown). Move back onto the band or the strip before it expires → the clock resets and it stays open indefinitely. Set the setting to 0 → it closes the moment you leave. Open one and click the macro button → closes. Open one and click an entry → the item is used *and* it closes. Move the mouse off it → closes. Then in combat: moving off the flyout must close it **immediately**, ignoring the delay (the idle poll can't fire mid-fight, so the snippet takes over — driven by the `kcmCombat` attribute driver). Clicking is **expected not to** close it mid-fight; the entry still fires, the strip stays up until you move off it. Confirm no "Interface action failed because of an AddOn" error appears in any of these.
 11c. **Flyout on the special categories.** Hover **AIO Health** → entries from its enabled components (healthstone / healing potion / food), deduped. Disable a component on the AIO Health page → its entries leave the flyout. Hover **Weapon Enchant** with a *sword* equipped → only whetstones and any-weapon oils, never a weightstone; swap to a mace → the list flips. Unequip both weapons → the arrow disappears (nothing to enchant).
@@ -340,6 +352,8 @@ Rename it back and `/reload`.
 | Slash command (new verb) | §11 |
 | `reset` / `resetall` semantics, or anything touching the confirm popup | §7 step 10 **and** 10a — the button and the slash verb reach the same popup, and both paths have to keep it |
 | Composite category change | §4 + §10 |
+| Bloodlust / Battle Rez seed, `KCM.SEED.CLASS_GATE`, or the mouseover clause | §3d |
+| `TooltipCache.IsUsableByPlayer` / the level-cap filter (`tt.maxLevel`) | Quick smoke + §3d step 3 (any category with a max-level item, not only drums) |
 | Auto-discovery GC | §2 step 4–5 |
 | Action-bar icon convention | §3 step 1, §4 step 2 |
 | Combat-deferral retry / flush | §6 |

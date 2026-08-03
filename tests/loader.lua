@@ -98,6 +98,8 @@ L.PURE_LAYER = {
     "defaults/Defaults_Vantus.lua",
     "defaults/Defaults_WpnEnch.lua",
     "defaults/Defaults_AugRune.lua",
+    "defaults/Defaults_Bloodlust.lua",
+    "defaults/Defaults_BattleRez.lua",
     "SpecHelper.lua",
     "core/WeaponSlots.lua",
     "Classifier.lua",
@@ -139,23 +141,34 @@ function L.loadFiles(files, omitLibs)
     if not KCM.db and KCM.OnInitialize then
         pcall(function() KCM:OnInitialize() end)
     end
-    -- The pure layer never loads the real TooltipCache (its parser needs live
-    -- C_TooltipInfo data). Back Classifier/Ranker with a stub sourced from the
-    -- mock's injected `tt` tables so suites control parsed-tooltip inputs.
+    -- The pure layer never loads the real TooltipCache's Get() (its parser
+    -- needs live C_TooltipInfo data). But IsUsableByPlayer's level-verdict
+    -- logic — the pending check, the min/max compare, the reason strings —
+    -- is pure Lua with no client dependency, and Selector's levelBlocked()
+    -- gate has to be exercised against the REAL thing, not a hand-rolled
+    -- copy that can silently drift from it. So load the real
+    -- core/TooltipCache.lua onto this NS (giving it real Get/IsUsableByPlayer/
+    -- Invalidate/InvalidateAll) and then swap ONLY Get() for one sourced from
+    -- the mock's injected `tt` tables. IsUsableByPlayer keeps calling
+    -- `TC.Get(itemID)` through the shared KCM.TooltipCache table, so it runs
+    -- unmodified against mock data. If core/TooltipCache.lua's IsUsableByPlayer
+    -- ever changes, this picks it up for free — nothing here to keep in sync.
     if not KCM.TooltipCache then
-        KCM.TooltipCache = {
-            Get = function(id)
-                local it = mock.items[id]
-                if not it then return { pending = true } end
-                local tt = {}
-                for k, v in pairs(it.tt or {}) do tt[k] = v end
-                tt.itemName = tt.itemName or it.name
-                return tt
-            end,
-            Invalidate = function() end,
-            InvalidateAll = function() end,
-            IsUsableByPlayer = function() return true end,
-        }
+        local path = resolve("core/TooltipCache.lua")
+        local chunk, err = loadfile(path)
+        if not chunk then
+            error("loader: could not load " .. path .. ": " .. tostring(err))
+        end
+        chunk(ADDON_NAME, KCM)
+        KCM.TooltipCache.Get = function(id)
+            local it = mock.items[id]
+            if not it then return { pending = true } end
+            local tt = {}
+            for k, v in pairs(it.tt or {}) do tt[k] = v end
+            tt.itemName = tt.itemName or it.name
+            if it.pending then tt.pending = true end
+            return tt
+        end
     end
     return KCM
 end
