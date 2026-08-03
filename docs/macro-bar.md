@@ -292,6 +292,24 @@ to engineer around.
 load-bearing, since without it a frame faded during a GCD would stay faded
 forever the moment the user turns `showGCD` on.
 
+**Bling.** The completion sparkle (`CooldownFrameTemplate`'s "bling") is not
+covered by the frame's alpha the way the swipe and edge are — confirmed
+in-game, fading the frame suppresses the swipe but the bling still fires — so
+`ApplyCooldown` drives it separately via `cd:SetDrawBling(not suppress)`.
+Unlike the curve-evaluated alpha, `SetDrawBling` takes a plain boolean, so it
+keys off the non-secret `suppress` flag (derived from `cfg.showGCD`) rather
+than the curve's secret-tainted output. It is applied even on the `not active`
+early-return path, since the setting can change while a cooldown is idle.
+
+**Accepted consequence.** With `showGCD` off, a REAL cooldown also loses its
+completion sparkle, not just the GCD's — `SetDrawBling` has no way to tell
+"this bling belongs to a GCD" from "this bling belongs to a real cooldown" any
+more than the alpha curve above can, and distinguishing them would need the
+secret total duration. This is arguably more coherent anyway: the tail-fade
+above already makes a real cooldown's swipe vanish over its final ~1.6s, so a
+sparkle at completion would appear with no swipe behind it. Deliberate, not a
+gap.
+
 ### Label clearance
 
 `MacroBarLayout.IndicatorClearance` pushes a button label clear of the indicator

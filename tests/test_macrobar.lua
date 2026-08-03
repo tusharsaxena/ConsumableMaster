@@ -652,6 +652,7 @@ local function fakeCooldownFrame()
         self.alphaFromBoolean = { flag, whenTrue, whenFalse }
         self.alpha = flag and whenTrue or whenFalse
     end
+    function cd:SetDrawBling(flag) self.drawBling = flag end
     return cd
 end
 
@@ -785,6 +786,40 @@ test("macrobar cooldowns: the GCD-suppress curve is built once and reused", func
         KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 0.5), 0, 0.5)
     end
     t.eq(calls, 1, "CreateCurve is called exactly once across repeated ApplyCooldown calls")
+end)
+
+test("macrobar cooldowns: showGCD false disables the completion bling", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 60), 0, 60)
+    t.eq(cd.drawBling, false, "bling is off while GCD suppression is active")
+end)
+
+test("macrobar cooldowns: showGCD true enables the completion bling", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = true
+    local cd = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 60), 0, 60)
+    t.eq(cd.drawBling, true, "bling is on when the user asked to see the GCD swipe")
+end)
+
+test("macrobar cooldowns: the inactive path still applies the correct bling state", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    KCM.MacroBarButton.ApplyCooldown(cd, false, h.loader.mock.makeDuration(0, 0), 0, 0)
+    t.truthy(cd.cleared, "still clears the swipe on the inactive path")
+    t.eq(cd.drawBling, false, "bling reflects showGCD even though no cooldown is running")
+end)
+
+test("macrobar cooldowns: a frame lacking SetDrawBling degrades without error", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    cd.SetDrawBling = nil
+    local ok, err = pcall(KCM.MacroBarButton.ApplyCooldown, cd, true, h.loader.mock.makeDuration(0, 60), 0, 60)
+    t.truthy(ok, "no error without SetDrawBling: " .. tostring(err))
 end)
 
 -- ---------------------------------------------------------------------------

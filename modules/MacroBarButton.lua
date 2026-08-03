@@ -139,6 +139,29 @@ end
 -- secret and SetCooldown still works.
 function BB.ApplyCooldown(cd, active, durationObject, start, duration)
     if not cd then return end
+
+    -- showGCD defaults to false, i.e. suppression is ON out of the box.
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+    local suppress = not (cfg and cfg.showGCD == true)
+
+    -- The bling (the sparkle CooldownFrameTemplate plays on completion) is not
+    -- covered by the frame's alpha the way the swipe and edge are — confirmed
+    -- in-game: fading the frame via SetAlphaFromBoolean below suppresses the
+    -- swipe correctly, but the bling still fires. It needs its own explicit
+    -- suppression via SetDrawBling. Do not delete this call as redundant with
+    -- the alpha fade; it is the only thing that stops the bling.
+    --
+    -- SetDrawBling takes a plain boolean, unlike SetAlphaFromBoolean /
+    -- SetCooldownFromDurationObject, which accept a secret-tainted value and
+    -- resolve it C-side — so this must key off the non-secret `suppress` flag
+    -- rather than the curve's output, which cannot be compared or branched on
+    -- in Lua. Applied before the `not active` early return: the setting can
+    -- change while a cooldown is inactive, and without this a frame would
+    -- keep a stale bling setting until its next activation.
+    if cd.SetDrawBling then
+        cd:SetDrawBling(not suppress)
+    end
+
     if not active then
         cd:Clear()
         return
@@ -151,9 +174,6 @@ function BB.ApplyCooldown(cd, active, durationObject, start, duration)
         cd:Clear()
     end
 
-    -- showGCD defaults to false, i.e. suppression is ON out of the box.
-    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
-    local suppress = not (cfg and cfg.showGCD == true)
     buildGcdSuppressCurve()
     if suppress and durationObject and gcdSuppressCurve and cd.SetAlphaFromBoolean then
         cd:SetAlphaFromBoolean(true, durationObject:EvaluateRemainingDuration(gcdSuppressCurve), 0)

@@ -238,7 +238,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (94)
+### test_macrobar.lua (98)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -311,6 +311,10 @@ whenever the suite changes.
 - macrobar cooldowns: no duration object skips suppression without erroring
 - macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
 - macrobar cooldowns: the GCD-suppress curve is built once and reused
+- macrobar cooldowns: showGCD false disables the completion bling
+- macrobar cooldowns: showGCD true enables the completion bling
+- macrobar cooldowns: the inactive path still applies the correct bling state
+- macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 - macrobar schema: every macroBar row validates and resolves against the db
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
@@ -714,7 +718,7 @@ whenever the suite changes.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 94 |
+| test_macrobar.lua | 98 |
 | test_macromanager.lua | 37 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
@@ -730,4 +734,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **596** |
+| **Total** | **600** |
