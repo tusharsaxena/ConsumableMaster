@@ -137,10 +137,10 @@ test("Selector: the class gate does not override a genuinely known spell", funct
     local sid  = KCM.ID.AsSpell(80353)
 
     mock.setSpell(80353, { name = "Time Warp", known = true })
-    KCM.SEED.CLASS_GATE = {}
+    KCM.SEED.CLASS_GATE = { [sid] = "PALADIN" }
     S.AddItem("FOOD", sid)
     mock.setPlayerClass("MAGE")
-    t.eq(S.PickBestForCategory("FOOD"), sid, "an ungated known spell still resolves")
+    t.eq(S.PickBestForCategory("FOOD"), sid, "a known spell resolves even though the gate names a different class")
 end)
 
 -- ---------------------------------------------------------------
