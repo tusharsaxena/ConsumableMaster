@@ -466,11 +466,28 @@ end
 -- and never touched here.
 local DISCOVERED_TTL_SEC = 30 * 86400
 
+-- A discovered entry the classifier would no longer admit. Only a DEFINITE
+-- negative counts: Classifier.IsConsumable returns nil while the client is
+-- still resolving the item, and the sweep runs inside exactly that load race,
+-- so `not IsConsumable(id)` would collect good entries.
+--
+-- This exists so profiles carrying an entry misfiled before the classID gate
+-- self-heal on the next PLAYER_ENTERING_WORLD. The TTL alone never reclaimed
+-- them: the item is in bags, so the branch below keeps bumping its timestamp
+-- forever.
+local function noLongerEligible(id)
+    local C = KCM.Classifier
+    return C and C.IsConsumable and C.IsConsumable(id) == false
+end
+
 local function sweepBucket(bucket, bagCounts, nowUnix, cutoff)
     if not (bucket and bucket.discovered) then return 0 end
     local swept = 0
     for id, value in pairs(bucket.discovered) do
-        if bagCounts[id] and bagCounts[id] > 0 then
+        if noLongerEligible(id) then
+            bucket.discovered[id] = nil
+            swept = swept + 1
+        elseif bagCounts[id] and bagCounts[id] > 0 then
             bucket.discovered[id] = nowUnix
         else
             local staleTs = (value == true) and 0 or (type(value) == "number" and value or 0)

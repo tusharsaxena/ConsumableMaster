@@ -40,7 +40,7 @@ whenever the suite changes.
 - Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
 - Categories: AUG_RUNE registered with metadata, DB bucket, and seed
 
-### test_classifier.lua (15)
+### test_classifier.lua (16)
 
 - classifier: FOOD matches Food & Drink with heal and no stat buff
 - classifier: DRINK matches Food & Drink with mana and no stat buff
@@ -53,6 +53,7 @@ whenever the suite changes.
 - classifier: MatchAny never yields composite categories
 - classifier: unrecognized subtype with empty tt matches nothing
 - classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance flag
+- classifier: a recipe carrying its crafted item's tooltip never matches
 - classifier: VANTUS matches whitelisted rune IDs regardless of item data
 - classifier: guard and edge cases for nil/unknown inputs
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
@@ -462,7 +463,7 @@ whenever the suite changes.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (36)
+### test_selector.lua (38)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -484,6 +485,8 @@ whenever the suite changes.
 - Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL
 - Selector.SweepStaleDiscovered refreshes an item that is still in bags
 - Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient
+- Selector.SweepStaleDiscovered evicts a discovered non-consumable still in bags
+- Selector.SweepStaleDiscovered keeps a discovered item whose class is unresolvable
 - Selector.SweepStaleDiscovered never touches user-intentional entries
 - Selector.SweepStaleDiscovered reaches inside per-spec buckets
 - Selector.SweepStaleDiscovered is a no-op before the DB exists
@@ -667,7 +670,7 @@ whenever the suite changes.
 | test_bagscanner.lua | 12 |
 | test_bus.lua | 11 |
 | test_categories.lua | 2 |
-| test_classifier.lua | 15 |
+| test_classifier.lua | 16 |
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 8 |
@@ -686,7 +689,7 @@ whenever the suite changes.
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
-| test_selector.lua | 36 |
+| test_selector.lua | 38 |
 | test_settingsui.lua | 12 |
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
@@ -695,4 +698,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **561** |
+| **Total** | **564** |

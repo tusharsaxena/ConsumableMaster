@@ -152,6 +152,37 @@ local function isHealthstone(itemID)
     return HEALTHSTONE_IDS[itemID] == true
 end
 
+-- The item's numeric classID / subClassID, or nil when the client cannot
+-- resolve them yet.
+--
+-- GetItemInfoInstant is synchronous and reads the client's item DB without a
+-- server round-trip. GetItemInfo would work too (classID/subClassID are its
+-- 12th/13th returns), but can briefly return nil for items whose full metadata
+-- hasn't arrived — and discovery runs on PLAYER_ENTERING_WORLD, when that race
+-- is live. We key on the numbers, not the localized subType display string
+-- (localization-§4).
+local function classOf(itemID)
+    if C_Item and C_Item.GetItemInfoInstant then
+        local _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
+        return classID, subClassID
+    end
+    local _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = GetItemInfo(itemID)
+    return classID, subClassID
+end
+
+-- Tri-state: true, false, or nil when the item's class is not resolvable yet.
+--
+-- The nil case is load-bearing for callers that DELETE state on a negative —
+-- Selector's discovered sweep runs during the same load race classOf documents,
+-- and treating "don't know" as "not a consumable" would collect good entries.
+-- Ask `IsConsumable(id) == false` for a definite negative, never `not …`.
+function C.IsConsumable(itemID)
+    if not itemID then return nil end
+    local classID = classOf(itemID)
+    if not classID then return nil end
+    return classID == CLASS_CONSUMABLE
+end
+
 function C.Match(catKey, itemID)
     if not catKey or not itemID then return false end
     local fn = matchers[catKey]
@@ -164,26 +195,32 @@ function C.Match(catKey, itemID)
         return VANTUS_IDS[itemID] == true
     end
 
-    -- GetItemInfoInstant is synchronous and returns the item's numeric
-    -- classID / subClassID from the client's item DB without waiting on a
-    -- server round-trip. GetItemInfo would work too (its classID/subClassID
-    -- are the 12th/13th returns), but can briefly return nil for items whose
-    -- full metadata hasn't arrived yet — and discovery runs on
-    -- PLAYER_ENTERING_WORLD when that race is live. We key on the numbers, not
-    -- the localized subType display string (localization-§4).
-    local classID, subClassID
-    if C_Item and C_Item.GetItemInfoInstant then
-        local _
-        _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
-    else
-        local _
-        _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = GetItemInfo(itemID)
-    end
+    local classID, subClassID = classOf(itemID)
     if not classID then return false end
+
+    -- Only a Consumable can belong to a managed category — oils, whetstones,
+    -- runes, potions, food and drums all live under classID 0.
+    --
+    -- This gate is what keeps a CRAFTING RECIPE out. A recipe's tooltip embeds
+    -- the crafted item's full text, so "Formula: Smuggler's Enchanted Edge"
+    -- (classID 9) carries the oil's "Coat your weapon" line and TooltipCache
+    -- flags it isWeaponEnhance. The two tooltip-only matchers (WPN_ENCH,
+    -- AUG_RUNE) read no subclass, so without this they admitted the recipe and
+    -- auto-discovery filed it under Weapon Enchant — where it outranked the
+    -- real oils, being the one thing actually in the player's bags.
+    --
+    -- Keyed on the numeric classID, never on the localized "Formula:" /
+    -- "Recipe:" name prefix or the "Crafting Reagent" line: those are display
+    -- strings and matching them would put this file back inside the addon's
+    -- English-only deviation (localization-§4), which its header records it
+    -- having left. The class gate also covers every other item that embeds
+    -- another item's tooltip, not just recipes.
+    if classID ~= CLASS_CONSUMABLE then return false end
+
     -- subClassID is only meaningful within its classID (Armor subclass 6 is a
-    -- Shield; Weapon subclass 6 is a Polearm), so scope it: the consumable
-    -- matchers see the subClassID only for a Consumable, nil otherwise.
-    local sub = (classID == CLASS_CONSUMABLE) and subClassID or nil
+    -- Shield; Weapon subclass 6 is a Polearm). Past the gate above the item is
+    -- always a Consumable, so the matchers' `sub` is always in that namespace.
+    local sub = subClassID
 
     -- FLASK classification reads the subclass only, so skip the tooltip gate.
     -- On /reload, C_TooltipInfo.GetItemByID can return empty lines for

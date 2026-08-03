@@ -221,6 +221,39 @@ test("classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance fl
     t.falsy(C.Match("WPN_ENCH", 1903), "WPN_ENCH negative for flask")
 end)
 
+-- ---- Non-consumables never classify, whatever their tooltip says ---------
+-- A crafting recipe embeds the CRAFTED item's tooltip, so "Formula: Smuggler's
+-- Enchanted Edge" (a Recipe, classID 9) carries the oil's "Coat your weapon"
+-- effect and TooltipCache flags it isWeaponEnhance. The two tooltip-only
+-- matchers (WPN_ENCH, AUG_RUNE) read no subclass, so before the classID gate
+-- the recipe was auto-discovered into Weapon Enchant and outranked the real
+-- oils. Every managed category's items are Consumables (classID 0); nothing
+-- else may reach a matcher.
+test("classifier: a recipe carrying its crafted item's tooltip never matches", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local C    = KCM.Classifier
+
+    -- Recipe | Enchanting, tooltip inherited from the oil it teaches.
+    mock.setItem(256746, {
+        subType = "Enchanting", classID = 9, subClassID = 1,
+        tt = { isWeaponEnhance = true, hasStatBuff = true },
+    })
+    t.falsy(C.Match("WPN_ENCH", 256746), "a Recipe is not a weapon enchant")
+    t.eqList(C.MatchAny(256746), {}, "MatchAny on a recipe -> {}")
+
+    -- Same exposure on the other tooltip-only matcher.
+    mock.setItem(256747, {
+        subType = "Enchanting", classID = 9, subClassID = 1,
+        tt = { isAugmentRune = true },
+    })
+    t.falsy(C.Match("AUG_RUNE", 256747), "a Recipe is not an augment rune")
+
+    -- The real oil, same tooltip, still classifies — the gate is on class only.
+    mock.setItem(256748, { subType = "Other", tt = { isWeaponEnhance = true, hasStatBuff = true } })
+    t.truthy(C.Match("WPN_ENCH", 256748), "the crafted oil itself still matches")
+end)
+
 -- ---- VANTUS: hard-coded itemIDs regardless of tt -------------------------
 test("classifier: VANTUS matches whitelisted rune IDs regardless of item data", function(t)
     local KCM  = h.loader.loadPure()

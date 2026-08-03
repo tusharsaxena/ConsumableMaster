@@ -323,6 +323,37 @@ test("Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient", f
         "an unowned legacy entry with no timestamp is collected")
 end)
 
+-- A recipe misfiled by the pre-classID-gate Classifier sits in `discovered`
+-- forever: it IS in bags, so the TTL branch keeps bumping its timestamp. The
+-- sweep evicts a discovered entry the class gate would no longer admit, so an
+-- existing profile self-heals on the next PEW without a manual resetall.
+test("Selector.SweepStaleDiscovered evicts a discovered non-consumable still in bags", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local now  = 100 * DAY
+    mock.setItem(931007, { subType = "Enchanting", classID = 9, subClassID = 1 })
+    mock.setBag(931007, 1)
+    S.MarkDiscovered("WPN_ENCH", 931007, nil, now)
+    local swept = S.SweepStaleDiscovered(now)
+    t.eq(S.GetBucket("WPN_ENCH").discovered[931007], nil, "the misfiled recipe is evicted")
+    t.eq(swept, 1, "counted as swept")
+end)
+
+-- The eviction needs a DEFINITE verdict. GetItemInfoInstant returns nil for an
+-- item the client hasn't cached, and treating that as "not a consumable" would
+-- delete good entries during the load race the sweep runs in.
+test("Selector.SweepStaleDiscovered keeps a discovered item whose class is unresolvable", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local now  = 100 * DAY
+    mock.setBag(931008, 1)                       -- in bags, but no item data at all
+    S.MarkDiscovered("FOOD", 931008, nil, now)
+    S.SweepStaleDiscovered(now)
+    t.eq(S.GetBucket("FOOD").discovered[931008], now, "an unresolvable item is left alone")
+end)
+
 test("Selector.SweepStaleDiscovered never touches user-intentional entries", function(t)
     local KCM = h.loader.loadPure()
     local S = KCM.Selector
