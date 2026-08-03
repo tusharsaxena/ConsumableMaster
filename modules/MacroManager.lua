@@ -79,11 +79,27 @@ local function buildActiveBody(id, clause)
     if KCM.ID and KCM.ID.IsSpell(id) then
         local spellID = KCM.ID.SpellID(id)
         local name = spellNameFor(spellID)
-        if name then return ("#showtooltip\n/cast %s%s"):format(prefix, name) end
+        if name then
+            -- Bare #showtooltip derives icon/tooltip from the first MATCHING
+            -- conditional clause. [@mouseover,help][@target,help] is non-
+            -- exhaustive: with no friendly mouseover and no friendly target
+            -- (the resting state), nothing matches, and since active bodies
+            -- store DYNAMIC_ICON (the "?" sentinel handing icon control to
+            -- #showtooltip), the button renders "?" on a Blizzard action
+            -- bar. Naming the spell/item explicitly sidesteps that; only do
+            -- it when a clause is present so the untargeted path (which
+            -- always resolves via [combat]/[nocombat] or unconditionally)
+            -- keeps its existing bare-#showtooltip bodies unchanged.
+            if clause then return ("#showtooltip %s\n/cast %s%s"):format(name, prefix, name) end
+            return ("#showtooltip\n/cast %s%s"):format(prefix, name)
+        end
         -- Spell name not yet resolvable (very rare — would imply the spell
         -- book hasn't hydrated). Emit a user-visible stub so the macro
         -- exists and the failure is observable rather than silent.
         return ("#showtooltip\n/run print('%s spell %d name unavailable')"):format(KCM.PREFIX, spellID or 0)
+    end
+    if clause then
+        return ("#showtooltip item:%d\n/use %sitem:%d"):format(id, prefix, id)
     end
     return ("#showtooltip\n/use %sitem:%d"):format(prefix, id)
 end
