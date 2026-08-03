@@ -159,6 +159,7 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 *   **Icon zoom** — crops a percentage off each side of the icon. A little zoom trims the dark edge baked into most item icons so it stops reading as a second border.
 *   **Show stack count** — how many of the picked item you're carrying, in the corner of each button.
 *   **Show tooltips** — show the picked item's or spell's tooltip on hover.
+*   **Show GCD swipe** — paint the cooldown swipe during the global cooldown. Off by default: the 1.5s flash after every ability adds noise without telling you anything. With it off, a real cooldown's swipe also fades over its final second or so rather than counting all the way down, and the sparkle it plays on finishing is suppressed too.
 
 Cooldowns use your normal game settings (the standard sweep, plus countdown numbers if you have those turned on).
 
@@ -243,7 +244,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 |----------|--------|
 | Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Your macros are never read, moved, or deleted. If you delete one of its macros by hand, it's recreated on the next update. |
 | Do the macros work across all my characters? | Yes. They're **account-wide**, so one set is shared by every character. Your priority lists and stat choices are shared account-wide too. |
-| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, and Vantus rank the same for every spec, so they share one list. |
+| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust, and Battle Rez rank the same for every spec, so they share one list. |
 | How does it pick weapon enchants when I'm dual-wielding? | It checks each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit either — so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is simply left out of the macro. Swapping weapons updates it right away, no reload needed. |
 | Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Pin the reusable rune with **↑** if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, paste the ID, press Enter. |
