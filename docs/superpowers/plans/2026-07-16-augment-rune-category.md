@@ -454,7 +454,7 @@ end)
 | 13 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 ```
 
-Add a short behaviour paragraph in the "How picking & ranking works" section (near the Weapon Enchant paragraph):
+Add a short behavior paragraph in the "How picking & ranking works" section (near the Weapon Enchant paragraph):
 
 ```
     *   **Augment Rune** — picks the augment rune granting the most primary stat. "Permanent" runes like Ethereal and Dreambound aren't a longer buff — they're just not used up — so they only win when they tie the best consumable on stat, never when a newer consumable rune grants more. Auto-discovers new runes from their tooltip, so future runes work without an update.

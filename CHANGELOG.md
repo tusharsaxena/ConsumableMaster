@@ -11,6 +11,17 @@ summary. What lands here is the detail a release row is too short to carry.
 
 ### Changed
 
+- **All English text in this addon is now US English spelling**, per the Ka0s
+  WoW Addon Standard v2.17.1 (`localization-§5`). Nothing a player reads
+  changed — no locale key, no locale value, no chat line, no settings label
+  and nothing in the `.toc` carried a British spelling to begin with. What
+  moved was source comments, one test name, and the documentation under
+  `docs/`: `colour`→`color`, `behaviour`→`behavior`, `grey`→`gray`,
+  `neighbour`→`neighbor`, `levelling`→`leveling`, `-ise`/`-isation`→`-ize`/
+  `-ization`. Blizzard item names (`Draught of Rampant Abandon`,
+  `Braised Blood Hunter`) and the vendored `tests/_kit/` copy are reproduced
+  verbatim and were left alone.
+
 - **The slash-command list on the settings About page is spaced slightly
   differently.** The command and its description are now separated by a single
   space either side of the dash instead of two, the dash itself is no longer

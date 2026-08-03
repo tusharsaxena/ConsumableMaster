@@ -201,7 +201,7 @@ function M.setEquipped(slot, id) M.equipped[slot] = id end
 -- Permissive frame + widget stubs
 -- ---------------------------------------------------------------------------
 
--- Methods a frame only has if its template grants them. Modelling this is the
+-- Methods a frame only has if its template grants them. Modeling this is the
 -- difference between the harness catching a "attempt to call a nil value" crash
 -- and shipping it: a fully permissive stub answers SetFrameRef on a plain button
 -- and the bug only shows up in the client. Returning nil (rather than raising)

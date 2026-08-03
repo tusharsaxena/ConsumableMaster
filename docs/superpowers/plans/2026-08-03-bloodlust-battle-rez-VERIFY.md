@@ -149,7 +149,7 @@ change — flag it rather than working around it in the seed file.
 plus a placeholder comment:
 
 ```lua
--- Superseded drums, kept for levelling and Timewalking; the level-cap
+-- Superseded drums, kept for leveling and Timewalking; the level-cap
 -- filter removes them at max level.
 -- (The War Within / Dragonflight / Shadowlands / BfA / Legion / WoD / MoP / TBC
 --  itemIDs go here, newest first, once confirmed with /cm dump item.)

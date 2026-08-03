@@ -56,7 +56,7 @@ overridden by an epic-quality consumable. `AUG_STAT_WEIGHT` (1e4) must exceed
 `REUSABLE_BONUS` + max quality + ilvl so a single point of primary stat outweighs
 reusability.
 
-**Pending-tooltip behaviour:** if the tooltip has not hydrated, `amount` is 0 for
+**Pending-tooltip behavior:** if the tooltip has not hydrated, `amount` is 0 for
 every candidate, so the pick degrades to reusable-first, then quality/ilvl. The
 pipeline recomputes when the tooltip arrives. This is the same
 tooltip-dependency the FLASK / STAT_FOOD categories already have, and the
@@ -128,7 +128,7 @@ Amount resolution in the scorer:
 
 1. the `PRIMARY` entry's amount, if present (modern runes); else
 2. `max(STR, AGI, INT)` across `statBuffs` (Dragonflight-era runes); else
-3. 0 (tooltip pending — see pending behaviour above).
+3. 0 (tooltip pending — see pending behavior above).
 
 ## Category metadata
 

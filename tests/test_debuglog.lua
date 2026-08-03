@@ -286,7 +286,7 @@ test("DebugLog: the console's own strings resolve to prose, not to their own key
     local ack = (mock.output[1] or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     ack = ack:gsub("^%[CM%]%s*", "")
     t.falsy(ack:match("^[A-Z][A-Z0-9_]+$"),
-        "the enable acknowledgement resolved to prose, not to its own key: " .. ack)
+        "the enable acknowledgment resolved to prose, not to its own key: " .. ack)
 end)
 
 test("DebugLog: the flag lives in KCM.State, not in the library", function(t)

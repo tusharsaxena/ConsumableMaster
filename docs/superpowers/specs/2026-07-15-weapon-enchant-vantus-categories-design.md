@@ -146,7 +146,7 @@ executes in one click and harmlessly no-ops when the off-hand can't take an enha
 Add a small per-category body-builder hook so only `WPN_ENCH` deviates from
 `buildActiveBody`; all other categories keep the current path. Body length is well under
 the 255-byte cap (~50 bytes with a 6-digit itemID). Combat-deferral and oversized-body
-fallback behaviour are unchanged.
+fallback behavior are unchanged.
 
 ## Spec-aware integration
 
@@ -188,7 +188,7 @@ existing `KCM.L` keys.
 **Tests** (`tests/`)
 - Classifier: oil → `WPN_ENCH`; rune → `VANTUS`; negatives (flask/food/potion not
   misclassified as either; a non-vantus item not matched by the whitelist)
-- Ranker: spec-aware weapon pick honours stat priority; vantus prefers higher tier
+- Ranker: spec-aware weapon pick honors stat priority; vantus prefers higher tier
 - MacroManager: `WPN_ENCH` two-slot body is well-formed and under 255 bytes; `VANTUS`
   uses the default body
 - Regenerate `docs/test-cases.md` (`--list`) and bump the README `[Tests]` badge in the

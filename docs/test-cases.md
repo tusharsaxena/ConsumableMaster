@@ -568,7 +568,7 @@ whenever the suite changes.
 - /cm help and the About panel read the same command table
 - /cm resetall asks for confirmation instead of wiping immediately
 - /cm resetall's confirmation still performs the full wipe when accepted
-- /cm reset <path> restores exactly that row and leaves its neighbours alone
+- /cm reset <path> restores exactly that row and leaves its neighbors alone
 - /cm config reports when the settings panel cannot be opened
 - /cm priority with no category prints the sub-verbs and known categories
 - /cm priority with an unknown category reports it and prints help

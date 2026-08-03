@@ -211,8 +211,8 @@ if optionsLib then
         -- The row makers are the library's now (LIBKA0S-04), so it needs the
         -- two things this addon's own makers knew and it could not guess.
         --
-        -- Colours are stored POSITIONALLY — { r, g, b, a } — which is the shape
-        -- the Ka0s options colour widget has always written. The library's
+        -- Colors are stored POSITIONALLY — { r, g, b, a } — which is the shape
+        -- the Ka0s options color widget has always written. The library's
         -- default codec is the named-key form, so without this every picker
         -- would read white and write a table nothing here can unpack.
         colorDecode = function(c)
@@ -345,7 +345,7 @@ end
 --
 -- Two differences, both accepted and both recorded as LIBKA0S-05. The combat
 -- notice is the library's |cffaaaaaa rather than this addon's |cff808080 —
--- same sentence, different grey, and Options.lua has no L seam to override it.
+-- same sentence, different gray, and Options.lua has no L seam to override it.
 -- And a failing renderer is reported as "settings page '<key>' failed to
 -- render" rather than "panel render failed".
 Helpers.SetRenderer = UI and UI.SetRenderer
@@ -416,7 +416,7 @@ end
 --
 --   * the dropdown reads `values` as the ordered { value =, text = } array this
 --     addon declares, rather than as a key map;
---   * `hasAlpha` defaults to TRUE, which is what all seven colour rows here
+--   * `hasAlpha` defaults to TRUE, which is what all seven color rows here
 --     assume by declaring nothing;
 --   * `sliderCommit` exists at all, so the Macro Bar page keeps its live drag
 --     preview.
@@ -722,7 +722,7 @@ function Helpers.BuildAboutContent(ctx)
     -- /cm help's rows go through -- so the panel and the chat cannot drift
     -- apart again by an edit to one of them. The visible cost is the one every
     -- other adopter paid: the spacing either side of the em dash halves, the
-    -- dash loses its white colour span, and the description gains one.
+    -- dash loses its white color span, and the description gains one.
     local rows = (KCM.SlashCommands and KCM.SlashCommands.GetLandingRows)
         and KCM.SlashCommands.GetLandingRows() or {}
     for _, line in ipairs(rows) do

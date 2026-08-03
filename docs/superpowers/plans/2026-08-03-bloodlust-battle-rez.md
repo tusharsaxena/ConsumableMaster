@@ -135,7 +135,7 @@ In `PATTERNS` (`core/TooltipCache.lua:43`), after the `Flags` block:
 
 - [ ] **Step 4: Populate `tt.maxLevel` in `parseLines`**
 
-Follow whatever shape the neighbouring flag parses use in `parseLines`; the value is the first match found, `nil` when neither pattern hits:
+Follow whatever shape the neighboring flag parses use in `parseLines`; the value is the first match found, `nil` when neither pattern hits:
 
 ```lua
         local cap = text:match(PATTERNS.maxLevelHigher) or text:match(PATTERNS.maxLevelAbove)
@@ -201,7 +201,7 @@ git commit -m "feat(tooltip): parse maximum level caps and enforce them in IsUsa
 - Consumes: `TC.IsUsableByPlayer(itemID) -> boolean, reason|nil` from Task 1.
 - Produces: no signature change. `PickBestForCategory` and `GetAvailable` simply stop returning unusable items.
 
-**Background:** `IsUsableByPlayer` currently has exactly one caller — the `/cm dump item` diagnostic at `core/SlashCommands.lua:342`. Nothing in the pick path consults it, so today neither `minLevel` nor Task 1's `maxLevel` affects what gets picked. This task closes that, for **all** categories — which also fixes the pre-existing bug where a levelling character can have a too-high-level flask written into a macro.
+**Background:** `IsUsableByPlayer` currently has exactly one caller — the `/cm dump item` diagnostic at `core/SlashCommands.lua:342`. Nothing in the pick path consults it, so today neither `minLevel` nor Task 1's `maxLevel` affects what gets picked. This task closes that, for **all** categories — which also fixes the pre-existing bug where a leveling character can have a too-high-level flask written into a macro.
 
 **The trap:** `IsUsableByPlayer` returns `false, "pending"` for an item whose tooltip hasn't hydrated. Dropping those would make picks flap during load, when most items are pending. Reject only on a **definite** level verdict.
 
@@ -496,7 +496,7 @@ Expected: both fail — `Categories.Get("BLOODLUST")` is nil.
 -- Drums stop AFFECTING players past their expansion's cap, so an old drum in
 -- bags is dead weight at max level. The whole line ships anyway: TooltipCache
 -- parses the cap and Selector filters on it, which leaves them usable while
--- levelling and in Timewalking. See docs/superpowers/specs/2026-08-03-*.
+-- leveling and in Timewalking. See docs/superpowers/specs/2026-08-03-*.
 --
 -- Sources: warcraft.wiki.gg "Bloodlust effect", 2026-08. IDs pending in-game
 -- confirmation via /cm dump item.
@@ -513,7 +513,7 @@ KCM.SEED.BLOODLUST = {
     KCM.ID.AsSpell(466904),  -- Harrier's Cry        (Hunter, Marksmanship)
     KCM.ID.AsSpell(272678),  -- Primal Rage          (Hunter, Ferocity pet — class-gated below)
     244639,                  -- Void-Touched Drums          (Midnight)
-    -- Superseded drums, kept for levelling and Timewalking; the level-cap
+    -- Superseded drums, kept for leveling and Timewalking; the level-cap
     -- filter removes them at max level.
     -- (The War Within / Dragonflight / Shadowlands / BfA / Legion / WoD / MoP / TBC
     --  itemIDs go here, newest first, once confirmed with /cm dump item.)
@@ -628,7 +628,7 @@ defaults\Defaults_Bloodlust.lua
 defaults\Defaults_BattleRez.lua
 ```
 
-Match the path separator and ordering style the neighbouring lines already use.
+Match the path separator and ordering style the neighboring lines already use.
 
 - [ ] **Step 9: Add the Ranker scorers**
 

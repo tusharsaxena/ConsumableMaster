@@ -140,7 +140,7 @@ test("/cm lower-cases only the verb, leaving arguments alone", function(t)
 
     KCM:OnSlashCommand("STAT PRIMARY int SHAMAN:ENHANCEMENT")
     t.eq(KCM.db.profile.statPriority["7_263"].primary, "INT",
-        "argument casing is normalised by the handler, not by the dispatcher")
+        "argument casing is normalized by the handler, not by the dispatcher")
 end)
 
 test("/cm tolerates surrounding whitespace", function(t)
@@ -205,15 +205,15 @@ test("/cm resetall's confirmation still performs the full wipe when accepted", f
         "…and the user is told: " .. table.concat(mock.output, "\n"))
 end)
 
-test("/cm reset <path> restores exactly that row and leaves its neighbours alone", function(t)
+test("/cm reset <path> restores exactly that row and leaves its neighbors alone", function(t)
     local KCM, mock = load()
     -- Surgical, not global. Two rows are moved off their defaults and only one
-    -- is named; a `reset` that still wipes everything fails on the neighbour.
+    -- is named; a `reset` that still wipes everything fails on the neighbor.
     KCM.Selector.AddItem("FOOD", 960001)
     KCM:OnSlashCommand("set macroBar.orientation VERTICAL")
     KCM:OnSlashCommand("set macroBar.enabled false")
     t.eq(KCM.db.profile.macroBar.orientation, "VERTICAL", "precondition: the row is off its default")
-    t.eq(KCM.db.profile.macroBar.enabled, false, "precondition: the neighbour is off its default too")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "precondition: the neighbor is off its default too")
 
     mock.output = {}
     KCM:OnSlashCommand("reset macroBar.orientation")
@@ -616,8 +616,8 @@ test("/cm set rejects a non-boolean value for a bool setting", function(t)
 end)
 
 -- Numeric dropdowns (review 2026-05-02, F-021/LLD-19). The schema ships no
--- numeric `values` row today, so these tests synthesise one on an existing
--- number row to pin the behaviour before the first real one lands.
+-- numeric `values` row today, so these tests synthesize one on an existing
+-- number row to pin the behavior before the first real one lands.
 local function asNumericDropdown(KCM, path, values)
     for _, row in ipairs(KCM.Settings.Schema) do
         if row.path == path then

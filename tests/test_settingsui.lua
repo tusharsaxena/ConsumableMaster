@@ -79,7 +79,7 @@ end)
 -- would notice losing it again: the header button keeps working and looks
 -- equivalent to the user.
 --
--- rawget throughout, because the frame mock synthesises a no-op for any
+-- rawget throughout, because the frame mock synthesizes a no-op for any
 -- PascalCase key — `type(panel.OnDefault) == "function"` is true whether or not
 -- anything ever set it.
 
@@ -184,7 +184,7 @@ test("Settings UI: the library's user-visible strings resolve to prose, not to t
         -- The L trap's shape, applied to the one adopted major that cannot
         -- take the trap: Options.lua has no locale seam at all -- its local
         -- `L` is lib.LAYOUT, which is also why LIBKA0S-05 had to accept the
-        -- library's shade of grey for the sidebar combat notice rather than
+        -- library's shade of gray for the sidebar combat notice rather than
         -- override it. There is no descriptor field here to get wrong, so
         -- what these pin is the other half of the same requirement: that the
         -- library's own STRINGS reach the user as English through the

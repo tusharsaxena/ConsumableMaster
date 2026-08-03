@@ -140,7 +140,7 @@ test("CoreSetup: the prefix is the only library-rendered fragment, and it is pro
     KCM.Say("hello")
     local line = mock.output[#mock.output]
     t.truthy(line, "the printer rendered a line")
-    -- Strip colour codes before testing the shape: |cff...|r is not prose but it
+    -- Strip color codes before testing the shape: |cff...|r is not prose but it
     -- is not a key either.
     local bare = line:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     local tag = bare:match("^(%S+)")

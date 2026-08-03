@@ -32,7 +32,7 @@ end
 -- to delegate to: early boot, because core/Debug.lua sits 37 lines above
 -- modules/DebugLog.lua in the TOC and a file-scope capture would bind nil
 -- forever; and a degraded install, where the console module publishes no
--- instance at all. Both fall through to chat, which is the behaviour those
+-- instance at all. Both fall through to chat, which is the behavior those
 -- paths have always had.
 local mt = {
     __call = function(_, tag, fmt, ...)

@@ -2,7 +2,7 @@
 --
 -- Unlike the other three LibKa0s seams, this one replaced nothing: there is no
 -- host implementation and no oracle suite. So what these cases pin is the
--- WIRING rather than the behaviour — the behaviour is the library's, and
+-- WIRING rather than the behavior — the behavior is the library's, and
 -- libs/ is not this repo's to test. Specifically: that the instance came from
 -- the library, that the panel half attached, that the descriptor answered the
 -- fields whose defaults are silently wrong, that the SavedVariables global is

@@ -59,7 +59,7 @@ above a cap, which is why an old drum in bags must not be picked at max level.
 | Drums of Battle | Burning Crusade | 50 |
 
 The full line ships, not just the current one: with cap parsing in place the obsolete drums are
-filtered out automatically at max level, and they remain genuinely useful while levelling or in
+filtered out automatically at max level, and they remain genuinely useful while leveling or in
 Timewalking.
 
 ### Battle Rez
@@ -133,7 +133,7 @@ English-only deviation (`docs/scope.md`) rather than introducing a new one.
 `maxLevel` nor the existing `minLevel` would affect what gets picked.
 
 `PickBestForCategory` and `isAvailable` will consult it for **every** item candidate, in all
-categories. This also closes the pre-existing hole where a levelling character can have an
+categories. This also closes the pre-existing hole where a leveling character can have an
 unusable, too-high-level flask picked and written into a macro.
 
 **Pending tooltips must not be treated as unusable.** `IsUsableByPlayer` returns `false, "pending"`

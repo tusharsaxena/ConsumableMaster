@@ -145,7 +145,7 @@ test("Slash: a bare /cm reset points at /cm resetall rather than wiping", functi
     local KCM, mock = load()
     -- The break notice for LIBKA0S-12. Anyone with `/cm reset` in a macro was
     -- triggering a confirm-gated global wipe; the same keystrokes now reset one
-    -- schema row, and bare they must say where the old behaviour went. The
+    -- schema row, and bare they must say where the old behavior went. The
     -- library's stock USAGE_RESET is "Usage: %s reset <path>" and says nothing
     -- about resetall, so an override dropped here regresses silently.
     mock.output = {}
@@ -167,8 +167,8 @@ end)
 test("Slash: the schema CLI reads the addon's shapes through the library", function(t)
     local KCM, mock = load()
     -- The two shapes that blocked this adoption until LIBKA0S-02 fixed them upstream.
-    -- Both would ship GREEN if they regressed — the colour one because nothing else
-    -- asserts a rendered colour's value, the enum one by quietly restoring the clamp
+    -- Both would ship GREEN if they regressed — the color one because nothing else
+    -- asserts a rendered color's value, the enum one by quietly restoring the clamp
     -- that commit 6a92e63 removed.
     mock.output = {}
     KCM:OnSlashCommand("set macroBar.orientation sideways")
@@ -176,7 +176,7 @@ test("Slash: the schema CLI reads the addon's shapes through the library", funct
     t.truthy(text:lower():find("allowed values: horizontal, vertical", 1, true),
         "an ordered-array enum lists its real values, not the array's 1, 2 keys: " .. text)
 
-    -- Round-trip a colour: written through the codec into the addon's positional
+    -- Round-trip a color: written through the codec into the addon's positional
     -- shape, and read back out of it for the echo.
     mock.output = {}
     KCM:OnSlashCommand("set macroBar.barBackdropColor 0.25 0.5 0.75 1")

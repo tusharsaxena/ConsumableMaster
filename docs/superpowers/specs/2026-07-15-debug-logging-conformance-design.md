@@ -92,7 +92,7 @@ so nothing allocates the arg list when debug is off (§4/§9).
 ### 4.3 Pure summary formatters (unit-tested, frame-free)
 
 Mirroring LootHistory's `BootSummary` / `RenderSummary`, extract per-pass summaries as pure
-functions so the content is headlessly testable and the coloured/plain lines can't drift:
+functions so the content is headlessly testable and the colored/plain lines can't drift:
 
 - `KCM.Pipeline.BootSummary(schemaVer, catCount, discCount) -> string`
   → `"schema=%s categories=%s discovered=%s"`
@@ -148,10 +148,10 @@ Gate: `lua5.1 tests/run.lua` and `luacheck .` both green (project rule).
 
 ## 7. Out of scope
 
-- Console window layout, colours, fonts, Copy/Clear (already conform §1/§2/§6).
+- Console window layout, colors, fonts, Copy/Clear (already conform §1/§2/§6).
 - Persisting the debug flag (forbidden by §5).
 - New slash verbs / structured dump topics (§4 "MAY"; not requested).
-- Localisation of debug strings (debug is developer-facing, English-only per project scope).
+- Localization of debug strings (debug is developer-facing, English-only per project scope).
 
 ## 8. Deviations flagged
 

@@ -8,7 +8,7 @@
 -- Drums stop AFFECTING players past their expansion's cap, so an old drum in
 -- bags is dead weight at max level. The whole line ships anyway: TooltipCache
 -- parses the cap and Selector filters on it, which leaves them usable while
--- levelling and in Timewalking. See docs/superpowers/specs/2026-08-03-*.
+-- leveling and in Timewalking. See docs/superpowers/specs/2026-08-03-*.
 --
 -- Sources: warcraft.wiki.gg "Bloodlust effect", 2026-08. IDs pending in-game
 -- confirmation via /cm dump item.
@@ -25,7 +25,7 @@ KCM.SEED.BLOODLUST = {
     KCM.ID.AsSpell(466904),  -- Harrier's Cry        (Hunter, Marksmanship)
     KCM.ID.AsSpell(272678),  -- Primal Rage          (Hunter, Ferocity pet — class-gated below)
     244639,                  -- Void-Touched Drums          (Midnight)
-    -- Superseded drums, kept for levelling and Timewalking; the level-cap
+    -- Superseded drums, kept for leveling and Timewalking; the level-cap
     -- filter removes them at max level.
     -- (The War Within / Dragonflight / Shadowlands / BfA / Legion / WoD / MoP / TBC
     --  itemIDs go here, newest first, once confirmed with /cm dump item.)

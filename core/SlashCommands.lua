@@ -586,12 +586,12 @@ end
 --
 -- What the library gained that made this possible is recorded as LIBKA0S-02 —
 -- it now reads the ordered {value=, text=} enum shape this addon declares, and
--- takes a colour codec so a positional { r, g, b, a } round-trips. Before that,
--- adopting it would have rendered all seven colour rows as {0.00, 0.00, 0.00,
+-- takes a color codec so a positional { r, g, b, a } round-trips. Before that,
+-- adopting it would have rendered all seven color rows as {0.00, 0.00, 0.00,
 -- 1.00} and offered "1, 2" as the allowed values for a dropdown — both
 -- silently, and both green.
 --
--- One thing arrives free: colours may now be given as 0-255 as well as 0-1, and
+-- One thing arrives free: colors may now be given as 0-255 as well as 0-1, and
 -- a mixed-scale triple rescales jointly rather than per channel.
 
 
@@ -1336,8 +1336,8 @@ if slashLib then
         -- Rows carry `panel`, not the library's default `page`.
         groupKey     = function(row) return row.panel or "?" end,
 
-        -- Colours are stored POSITIONALLY here — { r, g, b, a } — which is what
-        -- the Ka0s options colour widget writes. The library reads that shape
+        -- Colors are stored POSITIONALLY here — { r, g, b, a } — which is what
+        -- the Ka0s options color widget writes. The library reads that shape
         -- directly when rendering, but the codec is what makes a `/cm set`
         -- WRITE land in it rather than in the named-key form.
         colorDecode  = function(c)

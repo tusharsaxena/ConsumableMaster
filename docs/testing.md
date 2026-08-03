@@ -36,7 +36,7 @@ Both halves, because the two answers are different findings.
 **Bytes differ but content matches** → a line-ending divergence, not a fork. Both repos pin
 `* text=auto eol=crlf` over LF blobs, so a working tree holding *either* ending reads clean to
 `git status` and neither side's cleanliness proves anything. Find which side drifted (`file -b
-<path>`, and `git cat-file -p HEAD:<path> | file -b -` for what git stores) and renormalise it.
+<path>`, and `git cat-file -p HEAD:<path> | file -b -` for what git stores) and renormalize it.
 **Re-vendoring will not converge it, and the fix is never an edit to `libs/`** — that makes a fork
 nobody knows about, which the next re-vendor reverts silently, and the revert reads as a regression
 with no cause anywhere in this repo's history.
