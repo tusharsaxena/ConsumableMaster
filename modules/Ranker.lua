@@ -37,6 +37,9 @@ local CONJURED_BONUS = 1e6
 local PCT_WEIGHT     = 1e4  -- makes %-based food outrank flat-value food
 local QUALITY_WEIGHT = 100
 
+-- An item with no stated cap affects everyone, so it outranks every capped one.
+local UNCAPPED_LEVEL = 9999
+
 -- Augment runes rank by primary-stat amount first; a reusable rune breaks
 -- ties (bonus > max quality contribution of 5*QUALITY_WEIGHT = 500) but is
 -- always overridden by a strictly larger amount (amount weight >> bonus).
@@ -283,6 +286,21 @@ local scorers = {
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
+    -- Spells already outrank every item via SPELL_SCORE, so this only orders
+    -- the drums against each other. A higher affect-cap means a more current
+    -- drum; an uncapped item sorts above all of them.
+    BLOODLUST = function(itemID, ctx, scoreCache)
+        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        return (tt.maxLevel or UNCAPPED_LEVEL)
+             + ilvl
+             + quality * QUALITY_WEIGHT
+    end,
+    -- One seeded item today, so there is nothing to discriminate; ilvl and
+    -- quality keep a future second item ordered sensibly.
+    BATTLE_REZ = function(itemID, ctx, scoreCache)
+        local quality, ilvl = itemFields(itemID, scoreCache)
+        return ilvl + quality * QUALITY_WEIGHT
+    end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -474,6 +492,26 @@ function R.Explain(catKey, itemID, ctx)
         pushBase()
         result.score   = amount * AUG_STAT_WEIGHT + (reusable and REUSABLE_BONUS or 0) + ilvl + qualityScore
         result.summary = "Highest primary-stat amount wins; reusable runes break ties."
+        return result
+    end
+
+    if catKey == "BLOODLUST" then
+        local cap = tt.maxLevel
+        table.insert(result.signals, {
+            label = "affects up to level",
+            value = cap or UNCAPPED_LEVEL,
+            note  = cap and nil or "no cap",
+        })
+        pushBase()
+        result.score   = (cap or UNCAPPED_LEVEL) + ilvl + qualityScore
+        result.summary = "Higher affect-cap wins; an uncapped drum outranks every capped one."
+        return result
+    end
+
+    if catKey == "BATTLE_REZ" then
+        pushBase()
+        result.score   = ilvl + qualityScore
+        result.summary = "Only one seeded item today; ilvl + quality keep a future second item ordered."
         return result
     end
 

@@ -284,6 +284,39 @@ test("Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates",
     t.eq(R.Score("AUG_RUNE", 800001, nil, nil), 0 + 0 + 1 + 100, "no stat -> base score only")
 end)
 
+test("Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5001, { subType = "Other", quality = 3, ilvl = 200, tt = { maxLevel = 60 } })   -- old, capped
+    mock.setItem(5002, { subType = "Other", quality = 3, ilvl = 200, tt = { maxLevel = 80 } })   -- newer, capped
+    mock.setItem(5003, { subType = "Other", quality = 3, ilvl = 200, tt = {} })                  -- uncapped
+    local old     = R.Score("BLOODLUST", 5001, nil, nil)
+    local newer   = R.Score("BLOODLUST", 5002, nil, nil)
+    local uncapped = R.Score("BLOODLUST", 5003, nil, nil)
+    t.eq(old, 60 + 200 + 300, "BLOODLUST score = maxLevel + ilvl + quality*100")
+    t.eq(newer, 80 + 200 + 300, "BLOODLUST score for the newer drum")
+    t.eq(uncapped, 9999 + 200 + 300, "BLOODLUST uncapped drum uses the 9999 sentinel")
+    t.truthy(uncapped > newer, "uncapped drum outranks every capped one")
+    t.truthy(newer > old, "higher affect-cap outranks a lower one")
+
+    -- Spell forms still outrank every drum via SPELL_SCORE.
+    local spell = KCM.ID.AsSpell(2825)
+    t.truthy(R.Score("BLOODLUST", spell, nil, nil) > uncapped, "Bloodlust the spell outranks any drum")
+end)
+
+test("Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(248486, { subType = "Other", quality = 4, ilvl = 30, tt = {} })
+    t.eq(R.Score("BATTLE_REZ", 248486, nil, nil), 30 + 400, "BATTLE_REZ score = ilvl + quality*100")
+
+    local spell = KCM.ID.AsSpell(20484)
+    t.truthy(R.Score("BATTLE_REZ", spell, nil, nil) > R.Score("BATTLE_REZ", 248486, nil, nil),
+        "Rebirth the spell outranks the soul link item")
+end)
+
 test("Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock

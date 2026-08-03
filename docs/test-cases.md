@@ -35,10 +35,12 @@ whenever the suite changes.
 - bus: RECOMPUTE with no reason still reaches the pipeline
 - bus: RECOMPUTE is inert while the pipeline entry point is missing
 
-### test_categories.lua (2)
+### test_categories.lua (4)
 
 - Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
 - Categories: AUG_RUNE registered with metadata, DB bucket, and seed
+- Categories: BLOODLUST and BATTLE_REZ registered with metadata, buckets and seeds
+- Categories: the Bloodlust seed leads with spells and the class gate names Primal Rage
 
 ### test_classifier.lua (16)
 
@@ -399,7 +401,7 @@ whenever the suite changes.
 - ResetAllToDefaults reports whether it mutated anything
 - ResetAllToDefaults leaves the category buckets structurally valid
 
-### test_ranker.lua (18)
+### test_ranker.lua (20)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -418,6 +420,8 @@ whenever the suite changes.
 - Ranker: spell sentinel sorts first and empty input is safe
 - Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
 - Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
+- Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one
+- Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
 - Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
 
 ### test_runner_list.lua (4)
@@ -678,7 +682,7 @@ whenever the suite changes.
 |-------|------:|
 | test_bagscanner.lua | 12 |
 | test_bus.lua | 11 |
-| test_categories.lua | 2 |
+| test_categories.lua | 4 |
 | test_classifier.lua | 16 |
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
@@ -695,7 +699,7 @@ whenever the suite changes.
 | test_macromanager.lua | 33 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
-| test_ranker.lua | 18 |
+| test_ranker.lua | 20 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 43 |
@@ -707,4 +711,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **573** |
+| **Total** | **577** |

@@ -44,6 +44,10 @@ KCM.dbDefaults = {
             HS        = { added = {}, blocked = {}, pins = {}, discovered = {} },
             VANTUS    = { added = {}, blocked = {}, pins = {}, discovered = {} },
             AUG_RUNE  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+            BLOODLUST  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+            -- `mouseover` drives the targeting clause MacroManager splices into
+            -- the body; see defaults/Categories.lua's `targeted` field.
+            BATTLE_REZ = { added = {}, blocked = {}, pins = {}, discovered = {}, mouseover = true },
             STAT_FOOD = { bySpec = {} },
             CMBT_POT  = { bySpec = {} },
             FLASK     = { bySpec = {} },
@@ -177,6 +181,7 @@ KCM.dbDefaults = {
                 "FOOD", "DRINK", "HP_POT", "MP_POT", "HS",
                 "HP_AIO", "MP_AIO",
                 "FLASK", "CMBT_POT", "STAT_FOOD", "WPN_ENCH", "AUG_RUNE", "VANTUS",
+                "BLOODLUST", "BATTLE_REZ",
             },
             -- [catKey] = false hides that slot. Unset means visible, so a
             -- category shipped after the profile was written appears by default.

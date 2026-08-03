@@ -35,6 +35,7 @@ KCM.Settings.order = KCM.Settings.order or {
     "food", "drink", "hp_pot", "mp_pot", "hs",
     "hp_aio", "mp_aio",
     "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune", "vantus",
+    "bloodlust", "battle_rez",
 }
 
 local Helpers = KCM.Settings.Helpers or {}
@@ -123,6 +124,7 @@ local _validPanels = {
     food = true, drink = true, hp_pot = true, mp_pot = true, hs = true, vantus = true,
     flask = true, cmbt_pot = true, stat_food = true, wpn_ench = true, aug_rune = true,
     hp_aio = true, mp_aio = true,
+    bloodlust = true, battle_rez = true,
 }
 local _validSections = { general = true, macrobar = true }
 local _validTypes    = { bool = true, number = true, string = true, color = true }

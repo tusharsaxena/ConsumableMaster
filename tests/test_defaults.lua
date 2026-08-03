@@ -69,11 +69,20 @@ test("Categories: every row carries a display name and an empty-state body", fun
     end
 end)
 
+-- BLOODLUST and BATTLE_REZ are deliberately seed-plus-user-added only: drums
+-- and Emergency Soul Link share broad consumable subclasses with bombs and
+-- toys, so a Classifier matcher would sweep in unrelated junk. See
+-- defaults/Categories.lua's note on these two rows and core/Classifier.lua:157
+-- (Classifier.Match returns false for a category with no matcher, by design).
+local NO_CLASSIFIER = { BLOODLUST = true, BATTLE_REZ = true }
+
 test("Categories: single-pick rows declare both a classifier and a ranker key", function(t)
     local KCM = h.loader.loadPure()
     for _, row in ipairs(KCM.Categories.LIST) do
         if not row.composite then
-            t.truthy(row.classifier, row.key .. " has a classifier hint")
+            if not NO_CLASSIFIER[row.key] then
+                t.truthy(row.classifier, row.key .. " has a classifier hint")
+            end
             t.truthy(row.rankerKey, row.key .. " has a ranker key")
         end
     end

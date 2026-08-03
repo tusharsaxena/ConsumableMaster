@@ -98,6 +98,8 @@ L.PURE_LAYER = {
     "defaults/Defaults_Vantus.lua",
     "defaults/Defaults_WpnEnch.lua",
     "defaults/Defaults_AugRune.lua",
+    "defaults/Defaults_Bloodlust.lua",
+    "defaults/Defaults_BattleRez.lua",
     "SpecHelper.lua",
     "core/WeaponSlots.lua",
     "Classifier.lua",

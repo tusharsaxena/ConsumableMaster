@@ -152,6 +152,29 @@ KCM.Categories.LIST = {
         emptyText   = emptyMacro("no augment rune in bags"),
     },
     {
+        key         = "BLOODLUST",
+        macroName   = "KCM_BLOODLUST",
+        displayName = "Bloodlust",
+        shortName   = "Lust",
+        specAware   = false,
+        rankerKey   = "BLOODLUST",
+        emptyText   = emptyMacro("no bloodlust available"),
+    },
+    {
+        key         = "BATTLE_REZ",
+        macroName   = "KCM_BATTLE_REZ",
+        displayName = "Battle Rez",
+        shortName   = "Brez",
+        specAware   = false,
+        rankerKey   = "BATTLE_REZ",
+        -- Acts on someone else, unlike every other category. `help` without
+        -- `dead` so the one clause also serves Soulstone, which is cast on a
+        -- LIVING ally. MacroManager reads db.profile…BATTLE_REZ.mouseover to
+        -- let the user turn it off.
+        targeted    = "[@mouseover,help][@target,help]",
+        emptyText   = emptyMacro("no battle rez available"),
+    },
+    {
         key         = "HP_AIO",
         macroName   = "KCM_HP_AIO",
         displayName = "AIO Health",
