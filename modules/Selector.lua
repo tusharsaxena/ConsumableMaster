@@ -288,7 +288,7 @@ function S.PickBestForSlot(catKey, slot, scoreCache)
         if not (KCM.ID and KCM.ID.IsSpell(id)) then
             local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(id)
             local aff = (tt and tt.weaponAffinity) or "any"
-            if (aff == "any" or aff == affinity) and hasItem and hasItem(id) then
+            if (aff == "any" or aff == affinity) and hasItem and hasItem(id) and not levelBlocked(id) then
                 return id
             end
         end

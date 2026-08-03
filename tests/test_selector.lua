@@ -269,6 +269,28 @@ test("Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone"
     t.truthy(mh == 6002 or mh == 6003, "blunt slot picks weightstone or oil, never the whetstone")
 end)
 
+-- ---------------------------------------------------------------
+-- PickBestForSlot: level-gate parity with PickBestForCategory / isAvailable
+-- ---------------------------------------------------------------
+test("Selector: PickBestForSlot skips a level-blocked enhancement", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+
+    mock.setPlayerLevel(80)
+    mock.setItem(6001, { subType = "Other", tt = {
+        isWeaponEnhance = true, weaponAffinity = "any", maxLevel = 50,
+        statBuffs = { { stat = "AP", amount = 10 } },
+    } })
+    S.AddItem("WPN_ENCH", 6001)
+    mock.setBag(6001, 1)
+
+    -- Main hand is a bladed sword; "any" affinity would otherwise qualify.
+    mock.setItem(6100, { subType = "Two-Handed Swords" }); mock.setEquipped(16, 6100)
+    t.eq(S.PickBestForSlot("WPN_ENCH", 16, nil), nil,
+        "level-blocked enhancement is not written into the macro, matching the flyout")
+end)
+
 -- ---------------------------------------------------------------------------
 -- Discovery bookkeeping + the 30-day TTL sweep
 -- ---------------------------------------------------------------------------
