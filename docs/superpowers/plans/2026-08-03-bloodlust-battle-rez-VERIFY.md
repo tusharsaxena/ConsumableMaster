@@ -9,6 +9,32 @@ You do NOT need to have read the plan or any other doc to use this file.
 
 ---
 
+## -1. Highest-value check: confirm no existing consumable has become unpickable
+
+`core/TooltipCache.lua`'s max-level-cap patterns (`maxLevelHigher` / `maxLevelAbove`) are
+unanchored two-word substrings tested against **every tooltip line of every item in all 15
+categories**, not just drums — the usability gate now runs for every category. A false
+positive here is silent and severe: it deletes a working pick with no chat warning and no
+visible cause, permanently, for as long as the character stays above the misread cap.
+
+As of this fix wave, a match also requires a negation word on the same line (`Cannot` /
+`Does not` / `can't` / `doesn't`), which rules out a floor phrased as "...above level N"
+(e.g. "Usable by players above level 50.") inverting into a false ceiling. That closes the
+known failure mode but only for phrasings we anticipated — do this check anyway.
+
+**Steps:**
+1. Log in on your highest-level character with a full bag/bank of consumables across every
+   category (food, drink, pots, flasks, oils, runes, drums, etc.).
+2. For each one, `/cm dump item <id>` and read the `usable:` line.
+3. **What a false positive looks like:** an item you know works (you've used it, or it's a
+   normal current-tier consumable) reports `usable: false` with a level-cap reason, or the
+   item silently never appears as a pick / flyout entry despite being in bags. If you see
+   this, capture the exact tooltip line — that phrasing needs to be excluded (e.g. it may
+   need explicit exclusion, or the negation-word check may need to be tightened for that
+   specific case) and this is a real code question, not something to patch around.
+
+---
+
 ## 0. Setup
 
 - Load characters that cover: Shaman, Mage, Evoker, Marksmanship Hunter, BM or Survival
@@ -73,6 +99,14 @@ maxLevelAbove  = "above level (%d+)",         -- e.g. "Does not affect allies ab
 `maxLevelAbove` is the one written for drums — it was designed against the pattern
 "Does not affect allies above level 50." (see `tests/test_tooltipcache.lua`, the case
 `TooltipCache: parses a drums 'above level' affect cap`).
+
+**Also carried by this fix wave:** a cap match now additionally requires a negation word
+(`Cannot` / `Does not` / `can't` / `doesn't`) on the same line — see §-1 above. If a live
+drums tooltip turns out to phrase its cap **without** one of those words, the cap will
+silently stop being recognized (the item just won't be filtered — same as an uncapped item,
+not a crash). That is a **code change** (extending the negation-word list or the cap
+pattern in `core/TooltipCache.lua`, plus a `tests/test_tooltipcache.lua` case), not a data
+change — flag it rather than working around it in the seed file.
 
 **Steps:**
 
@@ -172,6 +206,16 @@ issue in `modules/Selector.lua` or `modules/Ranker.lua`, not a seed fix.
 - [ ] `/cm dump pick BLOODLUST` — read the priority list and the resolved pick. Open the
       `KCM_BLOODLUST` macro in the macro UI and confirm its body matches the dump.
 - [ ] `/cm dump pick BATTLE_REZ` — same, for `KCM_BATTLE_REZ`.
+- [ ] **BLOCKING — action-bar icon (Fix 3).** Drag `KCM_BATTLE_REZ` onto a **Blizzard action
+      bar** (NOT the CM macro bar) and confirm it shows the spell/item icon, both with a
+      friendly target selected and with none selected/moused-over. `[@mouseover,help]
+      [@target,help]` is a non-exhaustive conditional set — with neither a friendly
+      mouseover nor a friendly target (the resting state), nothing matches, and a bare
+      `#showtooltip` would fall back to the `?` icon. The fix makes `#showtooltip` name the
+      spell/item explicitly so this can't happen; this step confirms it in-game. **The CM
+      macro bar cannot reveal this bug** — its buttons resolve their icon from the stored
+      pick (`MD.Texture`), not from `#showtooltip`, so it will show the right icon either
+      way. Only a real Blizzard action bar exercises the code path this fix touches.
 - [ ] **Mouseover targeting.** With the "Cast on mouseover" checkbox checked (default) on
       the Battle Rez settings page, confirm the macro body contains
       `[@mouseover,help][@target,help]`. Hover a dead raid member's frame with **no** unit
