@@ -28,8 +28,8 @@ KCM.Settings.main    = nil
 -- Canonical tab order (the explicit display order for the settings sub-pages;
 -- independent of Categories.LIST and functionally cosmetic). General + Stat
 -- Priority lead, then the basic consumables, the two AIO composites, the
--- spec-aware categories + Augment Rune, and Vantus Rune last. This table is
--- the source of truth for that order.
+-- spec-aware categories + Augment Rune, then Vantus Rune, Bloodlust, and
+-- Battle Rez last. This table is the source of truth for that order.
 KCM.Settings.order = KCM.Settings.order or {
     "general", "statpriority", "macrobar",
     "food", "drink", "hp_pot", "mp_pot", "hs",
