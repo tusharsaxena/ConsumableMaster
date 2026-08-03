@@ -327,10 +327,14 @@ whenever the suite changes.
 - macrobar flyout: Close tolerates a nil flyout
 - macrobar schema: the bar publishes its own bus message
 
-### test_macromanager.lua (33)
+### test_macromanager.lua (37)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
+- MacroManager: a targeted category's spell body carries the conditional
+- MacroManager: a targeted category's item body carries the same conditional
+- MacroManager: turning mouseover off drops the conditional
+- MacroManager: an untargeted category is unaffected
 - MacroManager: BuildBody with nil item falls back to category emptyText
 - MacroManager: BuildCompositeBody HP_AIO happy path joins in- and out-of-combat picks
 - MacroManager: BuildCompositeBody drops a disabled sub-category from the in-combat sequence
@@ -698,7 +702,7 @@ whenever the suite changes.
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
 | test_macrobar.lua | 86 |
-| test_macromanager.lua | 33 |
+| test_macromanager.lua | 37 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 22 |
@@ -713,4 +717,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **579** |
+| **Total** | **583** |
