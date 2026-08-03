@@ -86,7 +86,7 @@ Two buckets are instrumented: `cooldown` (`modules/MacroBar.lua`, `MB.RefreshCoo
 
 `deltaMsPerFrame` is **not** the sum of the buckets, and it is not meant to be. Reconcile them before drawing a conclusion from either.
 
-The **buckets measure Lua**, bracketed at named call sites. The **delta measures everything** — because `suspend()` unregisters every event *and* hides the macro bar, so arm B is missing the addon's Lua **and its thirteen rendered buttons**. Frame drawing is not Lua, so no bucket can ever see it, yet it lands squarely in the delta. That is a real cost of running the addon; it is just not one you can optimise in code, and it is not attributable to any bracket.
+The **buckets measure Lua**, bracketed at named call sites. The **delta measures everything** — because `suspend()` unregisters every event *and* hides the macro bar, so arm B is missing the addon's Lua **and its fifteen rendered buttons**. Frame drawing is not Lua, so no bucket can ever see it, yet it lands squarely in the delta. That is a real cost of running the addon; it is just not one you can optimise in code, and it is not attributable to any bracket.
 
 A gap between the two is therefore expected. A *large* gap usually means the environment, not the addon. The first in-game capture (2026-08-01, v1.5.0) is the worked example:
 

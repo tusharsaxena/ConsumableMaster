@@ -140,7 +140,7 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 
 *Layout*
 
-*   **Buttons per row** — how many buttons fit along the axis the bar fills first. 13 puts every macro on one line; 7 gives you two rows, and so on.
+*   **Buttons per row** — how many buttons fit along the axis the bar fills first. 15 puts every macro on one line; 7 gives you two rows, and so on.
 *   **Button size**, **Button spacing**, **Bar padding**, **Bar scale** — the geometry, in pixels (padding is the inset between the outer buttons and the bar's edge).
 *   **Orientation** — *Horizontal* fills a row then wraps to the next row; *Vertical* fills a column then wraps to the next column.
 *   **Horizontal growth** / **Vertical growth** — whether the first button sits at the left or right edge, and whether the first row sits at the top or bottom.
@@ -165,7 +165,7 @@ Cooldowns use your normal game settings (the standard sweep, plus countdown numb
 *Labels*
 
 *   **Show button labels** — write each button's category name on it. On by default.
-*   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 13-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
+*   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 15-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
 *   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is just outside the bottom edge, which keeps the label clear of both the icon and the flyout band on top. Outside labels can overlap a neighbor when spacing is tight.
 *   **Label size** — a percentage of the button size, so labels stay proportional when you resize the bar.
 *   **Label offset X / Y**, **Outline label text**, **Label color** — the rest of the fine-tuning.

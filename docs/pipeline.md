@@ -175,6 +175,6 @@ Per-recompute cost:
 2. **Score cache** — on a full 15-category recompute covering ~50 total candidates, TooltipCache + scorer work is incurred once per `(catKey, id)`. Estimated 3–5× reduction vs no-cache on warm cache, 8–10× on cold cache.
 3. **`BagScanner.HasItem`** — single `C_Item.GetItemCount` call. `GET_ITEM_INFO_RECEIVED` bursts during first panel open are near-free.
 4. **`MacroManager.SetMacro`** — early-returns "unchanged" when body matches; M-5 dedupe also clears redundant queued pending writes.
-5. **Pipeline `pcall` guard** — 13 per recompute. Negligible.
+5. **Pipeline `pcall` guard** — 15 per recompute. Negligible.
 
 Recompute is frame-coalesced to ≤1 per frame. End-to-end target is ~3 ms per recompute under normal conditions, dropping below 1 ms when the score cache is warm.
