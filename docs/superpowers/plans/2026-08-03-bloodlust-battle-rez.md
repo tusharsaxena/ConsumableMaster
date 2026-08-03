@@ -347,17 +347,23 @@ test("Selector: a class-gated spell resolves for its class when IsPlayerSpell sa
     t.eq(S.PickBestForCategory("FOOD"), nil, "nobody else does")
 end)
 
-test("Selector: the class gate does not override a genuinely known spell", function(t)
+-- The gate must be a FALLBACK, never an override. Set a gate entry naming a
+-- class the player is NOT, on a spell they genuinely know: a gate-first
+-- implementation rejects it, this one must not. Do NOT write this test with an
+-- EMPTY CLASS_GATE — with no entry for the sentinel the gate branch never
+-- executes, IsPlayerSpell short-circuits, and a gate-first implementation
+-- passes identically. The conflicting entry is the whole point.
+test("Selector: the class gate never overrides a genuinely known spell", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local S    = KCM.Selector
     local sid  = KCM.ID.AsSpell(80353)
 
     mock.setSpell(80353, { name = "Time Warp", known = true })
-    KCM.SEED.CLASS_GATE = {}
+    KCM.SEED.CLASS_GATE = { [sid] = "PALADIN" }   -- names a class the player is not
     S.AddItem("FOOD", sid)
     mock.setPlayerClass("MAGE")
-    t.eq(S.PickBestForCategory("FOOD"), sid, "an ungated known spell still resolves")
+    t.eq(S.PickBestForCategory("FOOD"), sid, "a known spell resolves despite a conflicting gate")
 end)
 ```
 
