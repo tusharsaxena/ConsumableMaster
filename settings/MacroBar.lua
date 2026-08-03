@@ -198,6 +198,11 @@ row{
     tooltip = L["Show the picked item's or spell's tooltip when you hover a button."],
 }
 row{
+    path = "macroBar.showGCD", type = "bool", group = "Button appearance",
+    label = L["Show GCD swipe"],
+    tooltip = L["Off by default: hides the roughly 1.5-second global-cooldown swipe that would otherwise flash across every button whenever you cast anything. A real cooldown's swipe still shows, but it vanishes for its own final second or so instead of visibly counting down to zero — the button can't tell a lone GCD from the last moment of a long cooldown."],
+}
+row{
     path = "macroBar.alpha", type = "number", min = 0.1, max = 1.0, step = 0.05, group = "Bar appearance",
     label = L["Bar opacity"],
     tooltip = L["Opacity of the whole bar when it is not faded out."],
@@ -457,6 +462,7 @@ local function render(ctx)
         defs.buttonBorderStyle, defs.buttonBorderSize,
         defs.buttonBorderOffset, defs.iconZoom,
         defs.showCount, defs.tooltips,
+        defs.showGCD,
     })
 
     H.Section(ctx, L["Labels"])

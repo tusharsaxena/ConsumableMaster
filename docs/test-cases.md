@@ -238,7 +238,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (86)
+### test_macrobar.lua (92)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -289,6 +289,7 @@ whenever the suite changes.
 - macrobar model: VisibleKeys hides only slots explicitly set to false
 - macrobar model: MacroName and KeyForMacroName round-trip
 - macrobar model: the bar ships centered on screen at 36px buttons
+- macrobar model: the GCD swipe is suppressed out of the box
 - macrobar model: the bar ships on and unlocked so it is discoverable
 - macrobar model: the shipped default order needs no repair
 - macrobar model: Order repairs and writes back a damaged saved order
@@ -303,6 +304,11 @@ whenever the suite changes.
 - macrobar cooldowns: a client without duration objects falls back to numbers
 - macrobar cooldowns: restricted cooldowns are never compared or set as numbers
 - macrobar cooldowns: a restricted spell still reports whether it is running
+- macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration
+- macrobar cooldowns: showGCD true never suppresses and always shows the swipe
+- macrobar cooldowns: no duration object skips suppression without erroring
+- macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
+- macrobar cooldowns: the GCD-suppress curve is built once and reused
 - macrobar schema: every macroBar row validates and resolves against the db
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
@@ -706,7 +712,7 @@ whenever the suite changes.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 86 |
+| test_macrobar.lua | 92 |
 | test_macromanager.lua | 37 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
@@ -722,4 +728,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **588** |
+| **Total** | **594** |

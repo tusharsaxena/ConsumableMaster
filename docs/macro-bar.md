@@ -258,6 +258,40 @@ the NeverSecret `isActive` and paints from a duration object — the one setter
 the client accepts from us mid-combat. See
 [midnight-quirks.md](./midnight-quirks.md#secret-values).
 
+### GCD-swipe suppression
+
+`macroBar.showGCD` (default `false`, i.e. suppression is ON out of the box)
+hides the ~1.5s global-cooldown swipe that would otherwise flash across every
+button on every cast — noise that tells the user nothing, since a REAL
+cooldown's swipe is unaffected either way.
+
+The same secret-value problem as above rules out the obvious fix
+(`if duration <= 1.5 then hide`): once combat starts, comparing a cooldown's
+duration in Lua is a hard error. `MacroBarButton.ApplyCooldown` instead builds
+a step-shaped curve once, lazily (0 for remaining ≤ `KCM.GCD_UPPER` [1.6s,
+`core/Constants.lua`], 1 above it), and hands it to the duration object's
+`EvaluateRemainingDuration` — a C method that accepts a secret-tainted value
+and runs the comparison C-side. The result feeds
+`SetAlphaFromBoolean(true, value, 0)`, also a C method safe to call with a
+secret-derived value. No secret ever reaches Lua.
+
+The pattern (curve, threshold constant, and the lazy-build-once guard) is
+copied verbatim from the user's KickCD addon
+(`modules/IconGrid_Render.lua`'s `buildGcdSuppressCurve` /
+`applyGcdSuppressionAlpha`, `core/Constants.lua`'s `Const.GCD_UPPER`) rather
+than shared through LibKa0s — see `docs/pending/LEDGER.md` (GCD-01) for why.
+
+**Accepted tail-fade behavior.** The curve evaluates REMAINING duration, which
+can't distinguish a lone 1.5s GCD from the last 1.5s of a 60s cooldown — that
+would need the TOTAL duration, which is also secret. So a real cooldown's
+swipe vanishes for its own final ~1.6s instead of visibly counting down to
+zero. This is a deliberate, documented limitation (matching KickCD), not a bug
+to engineer around.
+
+`BB.ApplyCooldown` always resets to `SetAlpha(1)` when it isn't suppressing —
+load-bearing, since without it a frame faded during a GCD would stay faded
+forever the moment the user turns `showGCD` on.
+
 ### Label clearance
 
 `MacroBarLayout.IndicatorClearance` pushes a button label clear of the indicator

@@ -90,6 +90,30 @@ function M.setCooldownsRestricted(on)
     end or nil
 end
 
+-- Minimal stand-in for a Midnight LuaCurve (C_CurveUtil): records control
+-- points and evaluates them the way the C side does — the value of the last
+-- point at or below `at`. Needed so modules/MacroBarButton.lua's GCD-suppress
+-- step curve is exercisable headlessly (mirrors KickCD's tests/wow_mock.lua).
+local function evaluateCurve(curve, at)
+    local pts = curve and curve.points
+    if not (pts and pts[1]) then return nil end
+    local chosen = pts[1]
+    for _, p in ipairs(pts) do
+        if p.at <= at then chosen = p else break end
+    end
+    return chosen.value
+end
+
+local function makeCurve()
+    local c = { points = {} }
+    function c.SetType() return c end
+    function c:AddPoint(at, value)
+        self.points[#self.points + 1] = { at = at, value = value }
+        return self
+    end
+    return c
+end
+
 -- A stand-in for a LuaDurationObject. Records what it was configured with so a
 -- test can assert the right span reached it, but exposes no comparison surface
 -- the addon is allowed to use.
@@ -97,6 +121,12 @@ function M.makeDuration(start, duration)
     local d = { start = start, duration = duration }
     function d:SetTimeFromStart(s, dur, rate)
         self.start, self.duration, self.modRate = s, dur, rate
+    end
+    -- The mock has no live clock, so `duration` doubles as "remaining" here —
+    -- close enough for the step curve modules/MacroBarButton.lua evaluates
+    -- against (see EvaluateRemainingDuration's real contract).
+    function d:EvaluateRemainingDuration(curve)
+        return evaluateCurve(curve, self.duration or 0)
     end
     return d
 end
@@ -570,6 +600,11 @@ function M.install(NS)
     -- back to Cooldown:SetCooldownFromDurationObject, never read it.
     _G.C_DurationUtil = {
         CreateDuration = function() return M.makeDuration() end,
+    }
+    -- Curves (Midnight C_CurveUtil). Only CreateCurve is exercised today —
+    -- the GCD-suppress curve in modules/MacroBarButton.lua.
+    _G.C_CurveUtil = {
+        CreateCurve = function() return makeCurve() end,
     }
     _G.C_Container = {
         GetContainerNumSlots = function(bag) return bag == 0 and #M.bagSlots or 0 end,

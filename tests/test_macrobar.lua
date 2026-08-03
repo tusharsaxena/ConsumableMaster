@@ -509,6 +509,12 @@ test("macrobar model: the bar ships centered on screen at 36px buttons", functio
     t.eq(d.buttonSize, 36, "standard action-button size")
 end)
 
+test("macrobar model: the GCD swipe is suppressed out of the box", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.dbDefaults.profile.macroBar.showGCD, false,
+        "showGCD defaults to false, i.e. suppression is ON by default")
+end)
+
 test("macrobar model: the bar ships on and unlocked so it is discoverable", function(t)
     local KCM = h.loader.loadPure()
     t.truthy(KCM.MacroBarModel.IsEnabled(), "macroBar.enabled defaults to true")
@@ -605,6 +611,11 @@ local function fakeCooldownFrame()
     function cd:SetCooldown(s, d) self.start, self.duration = s, d end
     function cd:SetCooldownFromDurationObject(obj) self.durationObject = obj end
     function cd:Clear() self.cleared = true end
+    function cd:SetAlpha(a) self.alpha = a end
+    function cd:SetAlphaFromBoolean(flag, whenTrue, whenFalse)
+        self.alphaFromBoolean = { flag, whenTrue, whenFalse }
+        self.alpha = flag and whenTrue or whenFalse
+    end
     return cd
 end
 
@@ -670,6 +681,74 @@ test("macrobar cooldowns: a restricted spell still reports whether it is running
     t.truthy(obj, "and a duration object is still available")
     t.falsy(start, "but the secret start is withheld from callers")
     t.falsy(duration, "and so is the secret duration")
+end)
+
+-- ---------------------------------------------------------------------------
+-- GCD-swipe suppression (modules/MacroBarButton.lua — copied from KickCD)
+-- ---------------------------------------------------------------------------
+
+test("macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    -- Remaining well under KCM.GCD_UPPER (1.6s): just the GCD, should hide.
+    local gcdObj = h.loader.mock.makeDuration(0, 0.5)
+    KCM.MacroBarButton.ApplyCooldown(cd, true, gcdObj, 0, 0.5)
+    t.truthy(cd.alphaFromBoolean, "SetAlphaFromBoolean was called")
+    t.eq(cd.alphaFromBoolean[1], true, "flag argument is always true")
+    t.eq(cd.alphaFromBoolean[2], 0, "curve evaluates to 0 (hidden) inside the GCD window")
+
+    -- Remaining well over KCM.GCD_UPPER: a real cooldown, should stay visible.
+    local realObj = h.loader.mock.makeDuration(0, 60)
+    KCM.MacroBarButton.ApplyCooldown(cd, true, realObj, 0, 60)
+    t.eq(cd.alphaFromBoolean[2], 1, "curve evaluates to 1 (visible) past the GCD window")
+end)
+
+test("macrobar cooldowns: showGCD true never suppresses and always shows the swipe", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = true
+    local cd = fakeCooldownFrame()
+    local gcdObj = h.loader.mock.makeDuration(0, 0.5)
+    KCM.MacroBarButton.ApplyCooldown(cd, true, gcdObj, 0, 0.5)
+    t.eq(cd.alpha, 1, "alpha stays fully visible")
+    t.falsy(cd.alphaFromBoolean, "SetAlphaFromBoolean is never reached when showGCD is on")
+end)
+
+test("macrobar cooldowns: no duration object skips suppression without erroring", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local cd = fakeCooldownFrame()
+    local ok, err = pcall(KCM.MacroBarButton.ApplyCooldown, cd, true, nil, 100, 300)
+    t.truthy(ok, "no error without a duration object: " .. tostring(err))
+    t.eq(cd.alpha, 1, "falls back to fully visible")
+    t.falsy(cd.alphaFromBoolean, "never reached without a duration object")
+end)
+
+test("macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    _G.C_CurveUtil = nil
+    local cd = fakeCooldownFrame()
+    local obj = h.loader.mock.makeDuration(0, 0.5)
+    local ok, err = pcall(KCM.MacroBarButton.ApplyCooldown, cd, true, obj, 0, 0.5)
+    t.truthy(ok, "no error without C_CurveUtil: " .. tostring(err))
+    t.eq(cd.alpha, 1, "falls back to fully visible")
+end)
+
+test("macrobar cooldowns: the GCD-suppress curve is built once and reused", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.showGCD = false
+    local calls = 0
+    local realCreate = _G.C_CurveUtil.CreateCurve
+    _G.C_CurveUtil.CreateCurve = function(...)
+        calls = calls + 1
+        return realCreate(...)
+    end
+    for _ = 1, 3 do
+        local cd = fakeCooldownFrame()
+        KCM.MacroBarButton.ApplyCooldown(cd, true, h.loader.mock.makeDuration(0, 0.5), 0, 0.5)
+    end
+    t.eq(calls, 1, "CreateCurve is called exactly once across repeated ApplyCooldown calls")
 end)
 
 -- ---------------------------------------------------------------------------

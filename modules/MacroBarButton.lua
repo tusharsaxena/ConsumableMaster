@@ -89,8 +89,47 @@ function BB.RefreshIcon(btn)
     end
 end
 
+-- GCD-swipe suppression curve, built once and lazily (mirrors KickCD's
+-- buildGcdSuppressCurve, modules/IconGrid_Render.lua ~line 84 there — same
+-- pattern, deliberately duplicated rather than shared via LibKa0s; see
+-- docs/pending/LEDGER.md).
+--
+-- Under Midnight a spell cooldown's start/duration are SECRET once combat
+-- begins, so Lua may not compare "is this just the GCD" itself (see the
+-- comment block at core/MacroDisplay.lua:79-99). The trick is to never
+-- compare the secret in Lua: build a step curve once and hand it to
+-- EvaluateRemainingDuration, which runs C-side and accepts a secret-tainted
+-- duration object. The curve steps from 0 (hide) to 1 (show) at
+-- KCM.GCD_UPPER, and SetAlphaFromBoolean(true, value, 0) applies whichever
+-- the client resolves — also a C method, also safe to call with a
+-- secret-derived value.
+--
+-- Accepted limitation (do not try to fix): the curve evaluates REMAINING
+-- duration, which can't distinguish a 1.5s GCD from the last 1.5s of a 60s
+-- cooldown — that would need the TOTAL duration, which is also secret. A real
+-- cooldown's swipe therefore vanishes for its own final ~1.6s instead of
+-- visibly counting down to zero. Matches KickCD; see docs/macro-bar.md.
+local gcdSuppressCurve
+
+local function buildGcdSuppressCurve()
+    if gcdSuppressCurve then return end
+    if not (_G.C_CurveUtil and _G.C_CurveUtil.CreateCurve) then return end
+    local upper = KCM.GCD_UPPER or 1.6
+    local curve = _G.C_CurveUtil.CreateCurve()
+    if curve.SetType and Enum and Enum.LuaCurveType then
+        curve:SetType(Enum.LuaCurveType.Linear)
+    end
+    curve:AddPoint(0,             0)   -- remaining <= GCD  -> hide
+    curve:AddPoint(upper,         0)
+    curve:AddPoint(upper + 0.001, 1)   -- remaining >  GCD  -> show
+    curve:AddPoint(3600,          1)
+    gcdSuppressCurve = curve
+end
+
 -- Drive one Cooldown frame from MacroDisplay's cooldown state. Shared with the
--- flyout's entries, which paint the same way.
+-- flyout's entries (modules/MacroBarFlyout.lua:413), which paint the same
+-- way — one applier so the same item never renders differently in the two
+-- places.
 --
 -- Whether there IS a cooldown is decided upstream from data that is safe to
 -- inspect (see MD.CooldownForID); all this does is pick a setter. A duration
@@ -110,6 +149,20 @@ function BB.ApplyCooldown(cd, active, durationObject, start, duration)
         cd:SetCooldown(start, duration)
     else
         cd:Clear()
+    end
+
+    -- showGCD defaults to false, i.e. suppression is ON out of the box.
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+    local suppress = not (cfg and cfg.showGCD == true)
+    buildGcdSuppressCurve()
+    if suppress and durationObject and gcdSuppressCurve and cd.SetAlphaFromBoolean then
+        cd:SetAlphaFromBoolean(true, durationObject:EvaluateRemainingDuration(gcdSuppressCurve), 0)
+    else
+        -- Load-bearing, do not delete: without this reset, a frame left
+        -- faded during a GCD would stay faded forever once the user turns
+        -- showGCD on, or if the curve/API degrades mid-session — nothing
+        -- else ever restores full alpha.
+        cd:SetAlpha(1)
     end
 end
 
