@@ -229,6 +229,18 @@ end
 -- if available, otherwise falls back to C_Item.GetItemCount so the function
 -- remains usable in unit tests with a stubbed environment.
 
+-- True when the player's level definitively rules this item out.
+--
+-- IsUsableByPlayer reports `false, "pending"` for an item whose tooltip hasn't
+-- hydrated, and the discovery/recompute passes run during exactly that race —
+-- so only a level verdict may drop a candidate. "Don't know yet" keeps it.
+local function levelBlocked(id)
+    local TC = KCM.TooltipCache
+    if not (TC and TC.IsUsableByPlayer) then return false end
+    local ok, reason = TC.IsUsableByPlayer(id)
+    return (not ok) and reason ~= "pending"
+end
+
 function S.PickBestForCategory(catKey, specKey, scoreCache)
     local priority = S.GetEffectivePriority(catKey, specKey, scoreCache)
     if #priority == 0 then return nil end
@@ -243,7 +255,7 @@ function S.PickBestForCategory(catKey, specKey, scoreCache)
             if spellID and IsPlayerSpell and IsPlayerSpell(spellID) then
                 return id
             end
-        elseif hasItem and hasItem(id) then
+        elseif hasItem and hasItem(id) and not levelBlocked(id) then
             return id
         end
     end
@@ -295,7 +307,7 @@ local function isAvailable(id)
         return (spellID and IsPlayerSpell and IsPlayerSpell(spellID)) and true or false
     end
     local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
-    return (hasItem and hasItem(id)) and true or false
+    return (hasItem and hasItem(id) and not levelBlocked(id)) and true or false
 end
 
 -- Enhancements that fit either equipped weapon, in rank order without repeats.

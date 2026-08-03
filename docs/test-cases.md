@@ -463,7 +463,7 @@ whenever the suite changes.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (38)
+### test_selector.lua (41)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -503,6 +503,9 @@ whenever the suite changes.
 - Selector: ListAvailable on a composite unions its components, deduped
 - Selector: ListAvailable on a composite honors disabled components
 - Selector: ListAvailable returns an empty list for an unknown category
+- Selector.PickBestForCategory skips an item the player is over the cap for
+- Selector.ListAvailable omits an item the player is over the cap for
+- Selector.PickBestForCategory keeps an item whose tooltip is still pending
 
 ### test_settingsui.lua (12)
 
@@ -693,7 +696,7 @@ whenever the suite changes.
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
-| test_selector.lua | 38 |
+| test_selector.lua | 41 |
 | test_settingsui.lua | 12 |
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
@@ -702,4 +705,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **568** |
+| **Total** | **571** |

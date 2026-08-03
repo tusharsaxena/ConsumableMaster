@@ -7,11 +7,13 @@
 -- be exercised deterministically.
 --
 -- Item-injection API (used by test suites):
---   M.setItem(id, { name=, subType=, quality=, ilvl=, tt={...} })
+--   M.setItem(id, { name=, subType=, quality=, ilvl=, tt={...}, pending= })
 --       subType matches Classifier's English strings: "Potions",
 --       "Food & Drink", "Flasks & Phials". tt is the parsed-tooltip table
 --       Classifier/Ranker consume (healValue, healPct, manaValue, hasStatBuff,
---       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured, …).
+--       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured,
+--       minLevel, maxLevel, …). pending=true marks the tooltip as not yet
+--       hydrated (see tests/loader.lua's TooltipCache stub).
 --   M.setBag(id, count)        -- owned count (drives BagScanner + GetItemCount)
 --   M.setSpell(id, { name=, known= })
 --   M.setSpec(classID, specIndex, specID, specName)  -- current player spec
@@ -129,6 +131,11 @@ function M.setItem(id, spec)
         -- not given (real items keep them consistent); explicit spec overrides.
         classID     = spec.classID or (cls and cls[1]) or 0,
         subClassID  = spec.subClassID or (cls and cls[2]) or 0,
+        -- pending marks a tooltip that has not hydrated yet — the pure-layer
+        -- TooltipCache stub (tests/loader.lua) surfaces this as
+        -- IsUsableByPlayer's "pending" sentinel, so the load-race case is
+        -- reachable without driving the real C_TooltipInfo parser.
+        pending     = spec.pending and true or nil,
     }
 end
 
