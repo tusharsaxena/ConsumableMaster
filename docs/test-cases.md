@@ -405,7 +405,7 @@ whenever the suite changes.
 - ResetAllToDefaults reports whether it mutated anything
 - ResetAllToDefaults leaves the category buckets structurally valid
 
-### test_ranker.lua (22)
+### test_ranker.lua (23)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -425,6 +425,7 @@ whenever the suite changes.
 - Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
 - Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
 - Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one
+- Ranker: BLOODLUST's cap term is weighted above ilvl (a lower-ilvl higher-cap drum wins)
 - Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped
 - Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
 - Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
@@ -473,7 +474,7 @@ whenever the suite changes.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (43)
+### test_selector.lua (44)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -488,6 +489,7 @@ whenever the suite changes.
 - Selector: PickBestForSlot filters by weapon affinity + ownership
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
 - Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
+- Selector: PickBestForSlot skips a level-blocked enhancement
 - Selector.MarkDiscovered reports 'new' only on the first sighting
 - Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
 - Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
@@ -638,7 +640,7 @@ whenever the suite changes.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_tooltipcache.lua (16)
+### test_tooltipcache.lua (17)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -654,6 +656,7 @@ whenever the suite changes.
 - TooltipCache: effectless NON-consumable is cached, not pending
 - TooltipCache: parses a 'cannot be used by players higher than level' cap
 - TooltipCache: parses a drums 'above level' affect cap
+- TooltipCache: a floor phrasing without a negation does NOT produce a maxLevel
 - TooltipCache: an uncapped item reports no maxLevel
 - TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the cap
 
@@ -706,16 +709,16 @@ whenever the suite changes.
 | test_macromanager.lua | 37 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
-| test_ranker.lua | 22 |
+| test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
-| test_selector.lua | 43 |
+| test_selector.lua | 44 |
 | test_settingsui.lua | 13 |
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
-| test_tooltipcache.lua | 16 |
+| test_tooltipcache.lua | 17 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **584** |
+| **Total** | **587** |

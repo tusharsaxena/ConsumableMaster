@@ -40,6 +40,14 @@ local QUALITY_WEIGHT = 100
 -- An item with no stated cap affects everyone, so it outranks every capped one.
 local UNCAPPED_LEVEL = 9999
 
+-- BLOODLUST's discriminating signal (affect-cap) is a bare level number
+-- (50/60/70/80), while ilvl on a real drum spans ~70->600 — without a
+-- weight, ilvl swamps the very term the scorer exists to compare. Every
+-- other scorer lifts its primary signal above its tiebreakers the same way
+-- (CONJURED_BONUS, PCT_WEIGHT, AUG_STAT_WEIGHT); BLOODLUST was the one
+-- scorer that didn't.
+local CAP_WEIGHT = 1e4
+
 -- Augment runes rank by primary-stat amount first; a reusable rune breaks
 -- ties (bonus > max quality contribution of 5*QUALITY_WEIGHT = 500) but is
 -- always overridden by a strictly larger amount (amount weight >> bonus).
@@ -291,7 +299,7 @@ local scorers = {
     -- drum; an uncapped item sorts above all of them.
     BLOODLUST = function(itemID, ctx, scoreCache)
         local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
-        return (tt.maxLevel or UNCAPPED_LEVEL)
+        return (tt.maxLevel or UNCAPPED_LEVEL) * CAP_WEIGHT
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
@@ -497,13 +505,14 @@ function R.Explain(catKey, itemID, ctx)
 
     if catKey == "BLOODLUST" then
         local cap = tt.maxLevel
+        local capContribution = (cap or UNCAPPED_LEVEL) * CAP_WEIGHT
         table.insert(result.signals, {
-            label = "affects up to level",
-            value = cap or UNCAPPED_LEVEL,
-            note  = (not cap) and "no cap" or nil,
+            label = ("affects up to level x%d"):format(CAP_WEIGHT),
+            value = capContribution,
+            note  = cap and ("cap %d"):format(cap) or "no cap",
         })
         pushBase()
-        result.score   = (cap or UNCAPPED_LEVEL) + ilvl + qualityScore
+        result.score   = capContribution + ilvl + qualityScore
         result.summary = "Higher affect-cap wins; an uncapped drum outranks every capped one."
         return result
     end

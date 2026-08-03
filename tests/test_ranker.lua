@@ -294,15 +294,29 @@ test("Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outran
     local old     = R.Score("BLOODLUST", 5001, nil, nil)
     local newer   = R.Score("BLOODLUST", 5002, nil, nil)
     local uncapped = R.Score("BLOODLUST", 5003, nil, nil)
-    t.eq(old, 60 + 200 + 300, "BLOODLUST score = maxLevel + ilvl + quality*100")
-    t.eq(newer, 80 + 200 + 300, "BLOODLUST score for the newer drum")
-    t.eq(uncapped, 9999 + 200 + 300, "BLOODLUST uncapped drum uses the 9999 sentinel")
+    t.eq(old, 60 * 1e4 + 200 + 300, "BLOODLUST score = maxLevel * CAP_WEIGHT + ilvl + quality*100")
+    t.eq(newer, 80 * 1e4 + 200 + 300, "BLOODLUST score for the newer drum")
+    t.eq(uncapped, 9999 * 1e4 + 200 + 300, "BLOODLUST uncapped drum uses the 9999 sentinel")
     t.truthy(uncapped > newer, "uncapped drum outranks every capped one")
     t.truthy(newer > old, "higher affect-cap outranks a lower one")
 
     -- Spell forms still outrank every drum via SPELL_SCORE.
     local spell = KCM.ID.AsSpell(2825)
     t.truthy(R.Score("BLOODLUST", spell, nil, nil) > uncapped, "Bloodlust the spell outranks any drum")
+end)
+
+test("Ranker: BLOODLUST's cap term is weighted above ilvl (a lower-ilvl higher-cap drum wins)", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    -- Real drums span ilvl ~70-600; a higher cap must not be swamped by that
+    -- range. Low ilvl + high cap vs. high ilvl + low cap: the cap decides.
+    mock.setItem(5004, { subType = "Other", quality = 3, ilvl = 70,  tt = { maxLevel = 80 } })   -- lower ilvl, higher cap
+    mock.setItem(5005, { subType = "Other", quality = 3, ilvl = 600, tt = { maxLevel = 50 } })   -- higher ilvl, lower cap
+    local higherCap = R.Score("BLOODLUST", 5004, nil, nil)
+    local higherIlvl = R.Score("BLOODLUST", 5005, nil, nil)
+    t.truthy(higherCap > higherIlvl,
+        "the lower-ilvl, higher-cap drum outranks the higher-ilvl, lower-cap one")
 end)
 
 test("Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped", function(t)
@@ -315,22 +329,22 @@ test("Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' w
     local capped = R.Explain("BLOODLUST", 5001, nil)
     local capRow
     for _, s in ipairs(capped.signals) do
-        if s.label == "affects up to level" then capRow = s end
+        if s.label == "affects up to level x10000" then capRow = s end
     end
-    t.truthy(capRow, "capped drum has an 'affects up to level' signal")
-    t.eq(capRow.value, 60, "capped drum's signal reports its actual cap, not the sentinel")
-    t.falsy(capRow.note, "capped drum does NOT carry a 'no cap' note")
-    t.eq(capped.score, 60 + 200 + 300, "BLOODLUST Explain score matches the scorer")
+    t.truthy(capRow, "capped drum has an 'affects up to level x10000' signal")
+    t.eq(capRow.value, 60 * 1e4, "capped drum's signal reports its weighted cap contribution")
+    t.eq(capRow.note, "cap 60", "capped drum's note names the actual cap")
+    t.eq(capped.score, 60 * 1e4 + 200 + 300, "BLOODLUST Explain score matches the scorer")
 
     local uncapped = R.Explain("BLOODLUST", 5003, nil)
     local uncapRow
     for _, s in ipairs(uncapped.signals) do
-        if s.label == "affects up to level" then uncapRow = s end
+        if s.label == "affects up to level x10000" then uncapRow = s end
     end
-    t.truthy(uncapRow, "uncapped drum has an 'affects up to level' signal")
-    t.eq(uncapRow.value, 9999, "uncapped drum's signal reports the 9999 sentinel")
+    t.truthy(uncapRow, "uncapped drum has an 'affects up to level x10000' signal")
+    t.eq(uncapRow.value, 9999 * 1e4, "uncapped drum's signal reports the weighted 9999 sentinel")
     t.eq(uncapRow.note, "no cap", "uncapped drum DOES carry the 'no cap' note")
-    t.eq(uncapped.score, 9999 + 200 + 300, "BLOODLUST Explain score matches the scorer for the uncapped item")
+    t.eq(uncapped.score, 9999 * 1e4 + 200 + 300, "BLOODLUST Explain score matches the scorer for the uncapped item")
 end)
 
 test("Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score", function(t)
