@@ -243,6 +243,45 @@ wiring, not a data issue.
 
 ---
 
+## 6. Macro-bar UX changes (added after the review pass)
+
+These two shipped on the same branch and have their own in-game checks. Neither is
+covered by anything above.
+
+### 6a. "Show GCD swipe" (default OFF)
+
+The option lives on the Macro Bar settings page under **Button appearance**, or
+`/cm get macroBar.showGCD` / `/cm set macroBar.showGCD true|false`.
+
+- [ ] With it **off** (the default), cast any ability and watch the macro bar. The ~1.5s
+      global-cooldown swipe should NOT paint across the buttons.
+- [ ] Still off: use something with a real cooldown (a potion, or a spell slot like
+      Bloodlust) and confirm the swipe AND the countdown numbers DO appear and animate.
+- [ ] **Expected, not a bug:** the swipe fades out over the final ~1.6 seconds rather than
+      running all the way to zero. The filter reads *remaining* time, and the total
+      duration is a secret value in combat, so a 1.5s GCD and the last 1.5s of a 60s
+      cooldown are indistinguishable. Accepted deliberately (same as KickCD).
+- [ ] Turn it **on**. Confirm the GCD swipe comes back, and — importantly — that buttons
+      which were mid-fade when you flipped it are at full opacity again, not stuck faded.
+- [ ] Open a flyout (hover a button's top strip) during a GCD and confirm entries render
+      the same way the bar slot does. Both go through `BB.ApplyCooldown`, so they must
+      agree.
+- [ ] **In combat.** Repeat the first two checks in an actual fight (a target dummy in a
+      raid/M+ context if you can, since cooldown restriction keys off encounter state).
+      This is the case the headless suite structurally cannot reach — out of combat the
+      durations are plain numbers, in combat they are secret. A Lua error here means the
+      curve path is comparing a secret somewhere.
+
+### 6b. Buttons per row
+
+- [ ] Macro Bar settings → **Layout** → confirm the "Buttons per row" slider now reaches
+      **15**, and that a fresh profile defaults to 15 so all fifteen slots sit on one row.
+- [ ] If you had previously set this to 13, expect it to read 15 now. AceDB does not store
+      a value equal to the default, so a deliberate 13 chosen while 13 *was* the default
+      was never saved. Set it back if you preferred it; it will stick this time.
+
+---
+
 ## What's cheap vs. what's a real fix
 
 - **Cheap (data only, no code change, no re-review needed):** a wrong itemID/spellID in
@@ -258,4 +297,10 @@ wiring, not a data issue.
     resolution broke.
   - The mouseover checkbox doesn't change the macro body — means the `mouseover` wiring in
     `MacroManager` / `settings/Category.lua` broke.
+  - The GCD swipe still paints with "Show GCD swipe" off, or a real cooldown's swipe never
+    paints at all — means the curve/alpha path in `modules/MacroBarButton.lua` regressed.
+  - Buttons stay faded after turning "Show GCD swipe" back on — means the `SetAlpha(1)`
+    else-branch was lost.
   - Any Lua error during any of the above — always a code bug, report the full error text.
+    In the GCD checks specifically, an error mentioning a secret or restricted value means
+    something is comparing a duration in Lua instead of evaluating it through the curve.
