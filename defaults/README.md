@@ -25,8 +25,12 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 | `Defaults_Vantus.lua`         | `KCM.SEED.VANTUS`    | Per-raid Vantus (Versatility) runes                          |
 | `Defaults_WpnEnch.lua`        | `KCM.SEED.WPN_ENCH`  | Weapon oils / whetstones / weightstones (per-hand)           |
 | `Defaults_AugRune.lua`        | `KCM.SEED.AUG_RUNE`  | Augment runes (primary stat; reusable ones break ties)       |
+| `Defaults_Bloodlust.lua`      | `KCM.SEED.BLOODLUST`, `KCM.SEED.CLASS_GATE` | Raid haste (spell forms per class, then drums as the item fallback); seed-plus-user-added only, no Classifier matcher; IDs unverified, sourced from wikis pending in-game confirmation |
+| `Defaults_BattleRez.lua`      | `KCM.SEED.BATTLE_REZ` | Combat resurrection (spell forms per class, then Emergency Soul Link as the item fallback); seed-plus-user-added only, no Classifier matcher; IDs unverified, sourced from wikis pending in-game confirmation |
 
 Composite categories (`HP_AIO`, `MP_AIO`) have **no seed file** — they compose other categories' picks at recompute time.
+
+`BLOODLUST` and `BATTLE_REZ` are deliberately **not** auto-discovering — unlike every other category above, there is no `Classifier.lua` matcher for them, so bag items never join the candidate set on their own. Only the seed and anything a user adds by ID appear.
 
 ## Category scope decisions
 

@@ -83,7 +83,7 @@ for _, cat in ipairs(KCM.Categories.LIST) do
 end
 ```
 
-A bad scorer in one category can no longer break the other twelve macros. The `pcall` cost is negligible (13 per recompute — one per `Categories.LIST` row — and recompute fires at most once per frame).
+A bad scorer in one category can no longer break the other fourteen macros. The `pcall` cost is negligible (15 per recompute — one per `Categories.LIST` row — and recompute fires at most once per frame).
 
 ## Score cache — H-4
 
@@ -172,7 +172,7 @@ Hot paths: PEW (login + reload), `BAG_UPDATE_DELAYED` storms, `GET_ITEM_INFO_REC
 Per-recompute cost:
 
 1. **`BagScanner.Scan`** — one pass, ~5 bags × ~30 slots. ~1 ms.
-2. **Score cache** — on a full 13-category recompute covering ~50 total candidates, TooltipCache + scorer work is incurred once per `(catKey, id)`. Estimated 3–5× reduction vs no-cache on warm cache, 8–10× on cold cache.
+2. **Score cache** — on a full 15-category recompute covering ~50 total candidates, TooltipCache + scorer work is incurred once per `(catKey, id)`. Estimated 3–5× reduction vs no-cache on warm cache, 8–10× on cold cache.
 3. **`BagScanner.HasItem`** — single `C_Item.GetItemCount` call. `GET_ITEM_INFO_RECEIVED` bursts during first panel open are near-free.
 4. **`MacroManager.SetMacro`** — early-returns "unchanged" when body matches; M-5 dedupe also clears redundant queued pending writes.
 5. **Pipeline `pcall` guard** — 13 per recompute. Negligible.
