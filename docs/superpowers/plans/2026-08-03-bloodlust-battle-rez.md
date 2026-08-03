@@ -666,9 +666,11 @@ Find the per-category branches in `Ranker.Explain` and add two that mirror the s
 ```lua
     elseif catKey == "BLOODLUST" then
         local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        -- NOT `tt.maxLevel and nil or "no cap"` — with nil as the middle
+        -- operand that collapses to "no cap" for EVERY item, capped or not.
         rows[#rows + 1] = { label = "Affects up to level",
                             value = tt.maxLevel or UNCAPPED_LEVEL,
-                            note  = tt.maxLevel and nil or "no cap" }
+                            note  = (not tt.maxLevel) and "no cap" or nil }
         rows[#rows + 1] = { label = "Item level", value = ilvl }
         rows[#rows + 1] = { label = "Quality",    value = quality * QUALITY_WEIGHT }
     elseif catKey == "BATTLE_REZ" then
