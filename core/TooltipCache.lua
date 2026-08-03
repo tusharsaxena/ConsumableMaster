@@ -71,11 +71,13 @@ local PATTERNS = {
 
     -- Maximum-level caps. Two real phrasings: the self-restriction ("Cannot be
     -- used by players higher than level 90." — Emergency Soul Link) and the
-    -- drums' affect cap ("...above level 50."). Both reduce to a bare number
-    -- after a "higher than level" / "above level" lead-in, so match that much
-    -- and stay indifferent to the surrounding sentence.
+    -- drums' affect cap ("Does not affect allies above level 50."). Both
+    -- reduce to a bare number after a "higher than level" / "above level"
+    -- lead-in, so match that much and stay indifferent to the rest of the
+    -- sentence.
     maxLevelHigher = "higher than level (%d+)",
     maxLevelAbove  = "above level (%d+)",
+
 
     -- Duration tokens (lenient — match "N unit" anywhere in the line so that
     -- phrasings like "for 30 sec", "over 20 sec", "for the next 1 hour",
@@ -107,6 +109,18 @@ local STAT_TOKENS = {
 local function toNumberCommas(s)
     if not s then return nil end
     return tonumber((s:gsub(",", "")))
+end
+
+-- Whether a line carries one of the negation words that both confirmed
+-- max-level-cap phrasings use ("Cannot be used by...", "Does not affect...").
+-- Required alongside maxLevelHigher/maxLevelAbove — see the comment on those
+-- patterns for why a bare "above level N" / "higher than level N" substring
+-- is not enough on its own.
+local function hasNegation(line)
+    return line:find("[Cc]annot ", 1, false) ~= nil
+        or line:find("[Dd]oes not ", 1, false) ~= nil
+        or line:find("[Cc]an't ", 1, false) ~= nil
+        or line:find("[Dd]oesn't ", 1, false) ~= nil
 end
 
 -- WoW tooltips can include two things that break naive pattern matching:
@@ -307,8 +321,11 @@ local function parseLines(lines)
             if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
             if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
 
+            -- Only accept a captured cap when the same line also carries a
+            -- negation word (see hasNegation's comment) — a floor phrased as
+            -- "...above level N" without one is not a cap.
             local cap = txt:match(PATTERNS.maxLevelHigher) or txt:match(PATTERNS.maxLevelAbove)
-            if cap then result.maxLevel = tonumber(cap) end
+            if cap and hasNegation(txt) then result.maxLevel = tonumber(cap) end
 
             -- Augment runes carry an "Augment Rune" category tag. In-game it
             -- renders as a sentence at the END of the Use line, e.g.

@@ -244,6 +244,18 @@ test("TooltipCache: parses a drums 'above level' affect cap", function(t)
     t.eq(drums.maxLevel, 50, "the affect cap is parsed")
 end)
 
+test("TooltipCache: a floor phrasing without a negation does NOT produce a maxLevel", function(t)
+    local TC, mock = newTC()
+    -- "above level 50" with no "Cannot"/"Does not" etc. is a FLOOR ("you must
+    -- be at least this level"), not a ceiling. Accepting it would silently
+    -- make the item permanently unpickable for a high-level character.
+    local usable = parse(TC, mock, 2405, {
+        "Use: Restores 500 health.",
+        "Usable by players above level 50.",
+    })
+    t.eq(usable.maxLevel, nil, "a floor phrasing without a negation is not treated as a cap")
+end)
+
 test("TooltipCache: an uncapped item reports no maxLevel", function(t)
     local TC, mock = newTC()
     local pot = parse(TC, mock, 2403, { "Use: Restores 500 health." })
