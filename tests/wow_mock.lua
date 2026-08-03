@@ -21,6 +21,7 @@
 --   M.setEquipped(slot, itemID) -- equip an item into a paperdoll slot (16 main
 --       hand / 17 off hand); drives GetInventoryItemID for WeaponSlots
 --   M.setPlayerLevel(n)        -- backs UnitLevel("player") (default 80)
+--   M.setPlayerClass(classFile) -- backs UnitClass("player")'s 2nd return (default "SHAMAN")
 --
 -- The message bus stub is keyed by (message, target) per the standard's
 -- anti-pattern #33 so future NS.bus receivers are testable.
@@ -40,6 +41,7 @@ M.inCombat = false
 M.output   = {}   -- captured print() lines
 M.equipped = {}   -- slot -> itemID (main-hand 16 / off-hand 17)
 M.playerLevel = 80
+M.playerClass = "SHAMAN"  -- UnitClass("player")'s locale-independent 2nd return
 
 function M.reset()
     M.items, M.bags, M.bagSlots, M.spells = {}, {}, {}, {}
@@ -48,6 +50,7 @@ function M.reset()
     M.output   = {}
     M.equipped = {}
     M.playerLevel = 80
+    M.playerClass = "SHAMAN"
     M.macros   = {}       -- name -> { icon, body }
     M.busReg   = {}       -- "message" -> { [target] = callback }
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
@@ -155,6 +158,10 @@ end
 function M.setSpec(classID, specIndex, specID, specName)
     M.spec = { classID = classID, specIndex = specIndex, specID = specID, specName = specName }
 end
+
+-- classFile is the locale-independent token ("HUNTER", "MAGE", ...) — backs
+-- UnitClass("player")'s SECOND return, not the localized display name.
+function M.setPlayerClass(classFile) M.playerClass = classFile end
 
 function M.setCombat(v) M.inCombat = v and true or false end
 
@@ -415,7 +422,7 @@ function M.install(NS)
 
     -- Combat / unit
     _G.InCombatLockdown = function() return M.inCombat end
-    _G.UnitClass = function() return nil, nil, M.spec.classID end
+    _G.UnitClass = function() return nil, M.playerClass, M.spec.classID end
     _G.UnitLevel = function() return M.playerLevel end
     _G.UnitName  = function() return "Tester" end
     _G.IsPlayerSpell = function(spellID)

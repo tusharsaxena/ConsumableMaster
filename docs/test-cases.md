@@ -463,7 +463,7 @@ whenever the suite changes.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (41)
+### test_selector.lua (43)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -471,6 +471,8 @@ whenever the suite changes.
 - Selector: MarkDiscovered promotes once; blocked items are never discovered
 - Selector: PickBestForCategory returns the one owned item, nil when nothing owned
 - Selector: a known spell entry counts as owned and is picked
+- Selector: a class-gated spell resolves for its class when IsPlayerSpell says no
+- Selector: the class gate does not override a genuinely known spell
 - Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
 - Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
 - Selector: PickBestForSlot filters by weapon affinity + ownership
@@ -696,7 +698,7 @@ whenever the suite changes.
 | test_ranker.lua | 18 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
-| test_selector.lua | 41 |
+| test_selector.lua | 43 |
 | test_settingsui.lua | 12 |
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
@@ -705,4 +707,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **571** |
+| **Total** | **573** |

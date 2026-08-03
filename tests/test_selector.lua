@@ -110,6 +110,40 @@ test("Selector: a known spell entry counts as owned and is picked", function(t)
 end)
 
 -- ---------------------------------------------------------------
+-- Class-gated spell entries (pet-granted abilities outside the
+-- player's own spellbook, e.g. Primal Rage)
+-- ---------------------------------------------------------------
+test("Selector: a class-gated spell resolves for its class when IsPlayerSpell says no", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local pet  = KCM.ID.AsSpell(272678)
+
+    mock.setSpell(272678, { name = "Primal Rage", known = false })  -- pet spellbook
+    KCM.SEED.CLASS_GATE = { [pet] = "HUNTER" }
+    S.AddItem("FOOD", pet)
+
+    mock.setPlayerClass("HUNTER")
+    t.eq(S.PickBestForCategory("FOOD"), pet, "a hunter gets the pet ability")
+
+    mock.setPlayerClass("MAGE")
+    t.eq(S.PickBestForCategory("FOOD"), nil, "nobody else does")
+end)
+
+test("Selector: the class gate does not override a genuinely known spell", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+    local sid  = KCM.ID.AsSpell(80353)
+
+    mock.setSpell(80353, { name = "Time Warp", known = true })
+    KCM.SEED.CLASS_GATE = {}
+    S.AddItem("FOOD", sid)
+    mock.setPlayerClass("MAGE")
+    t.eq(S.PickBestForCategory("FOOD"), sid, "an ungated known spell still resolves")
+end)
+
+-- ---------------------------------------------------------------
 -- MoveUp / MoveDown reorder via pins
 -- ---------------------------------------------------------------
 test("Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op", function(t)

@@ -241,6 +241,26 @@ local function levelBlocked(id)
     return (not ok) and reason ~= "pending"
 end
 
+-- Spell availability: the spellbook first, then a seed-declared class gate.
+--
+-- Some seeded abilities are not in the PLAYER's spellbook at all — Primal Rage
+-- lives in the hunter pet's — so IsPlayerSpell reports false even for the class
+-- that has it. The gate names the class that can cast it; the entry is then
+-- available for that class and nobody else. Data, not code: a future
+-- pet-granted ability needs only a seed edit.
+--
+-- UnitClass's SECOND return is the locale-independent class file ("HUNTER");
+-- the first is the localized display name and must never be matched.
+local function spellAvailable(id)
+    local spellID = KCM.ID and KCM.ID.SpellID(id)
+    if not spellID then return false end
+    if IsPlayerSpell and IsPlayerSpell(spellID) then return true end
+    local gate = KCM.SEED and KCM.SEED.CLASS_GATE and KCM.SEED.CLASS_GATE[id]
+    if not gate then return false end
+    local _, classFile = UnitClass("player")
+    return classFile == gate
+end
+
 function S.PickBestForCategory(catKey, specKey, scoreCache)
     local priority = S.GetEffectivePriority(catKey, specKey, scoreCache)
     if #priority == 0 then return nil end
@@ -248,13 +268,7 @@ function S.PickBestForCategory(catKey, specKey, scoreCache)
     local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
     for _, id in ipairs(priority) do
         if KCM.ID and KCM.ID.IsSpell(id) then
-            local spellID = KCM.ID.SpellID(id)
-            -- IsPlayerSpell covers class / spec / talent-granted spells; it
-            -- is the "do I actually have this" API rather than IsSpellKnown,
-            -- which can miss talent-gated abilities.
-            if spellID and IsPlayerSpell and IsPlayerSpell(spellID) then
-                return id
-            end
+            if spellAvailable(id) then return id end
         elseif hasItem and hasItem(id) and not levelBlocked(id) then
             return id
         end
@@ -303,8 +317,7 @@ end
 
 local function isAvailable(id)
     if KCM.ID and KCM.ID.IsSpell(id) then
-        local spellID = KCM.ID.SpellID(id)
-        return (spellID and IsPlayerSpell and IsPlayerSpell(spellID)) and true or false
+        return spellAvailable(id)
     end
     local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
     return (hasItem and hasItem(id) and not levelBlocked(id)) and true or false
