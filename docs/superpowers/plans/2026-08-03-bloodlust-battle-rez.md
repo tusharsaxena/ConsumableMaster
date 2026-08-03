@@ -180,9 +180,9 @@ lua5.1 tests/run.lua --list > docs/test-cases.md
 ```
 Then set `README.md`'s `Tests-<X>/<X>_passing` to the new `**Total**` at the bottom of `docs/test-cases.md`.
 
-- [ ] **Step 8: Offer the commit**
+- [ ] **Step 8: Commit**
 
-Do not run this yourself — present it and wait.
+The user has authorized you to run this. Only these files, only on this branch.
 
 ```bash
 git add core/TooltipCache.lua tests/test_tooltipcache.lua tests/wow_mock.lua docs/test-cases.md README.md
@@ -303,7 +303,7 @@ Expected: green. If an existing test breaks because a fixture item now reads as 
 
 - [ ] **Step 6: Regenerate the inventory and bump the badge** (same two commands as Task 1 Step 7)
 
-- [ ] **Step 7: Offer the commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add modules/Selector.lua tests/test_selector.lua tests/wow_mock.lua docs/test-cases.md README.md
@@ -420,7 +420,7 @@ Expected: green, including the pre-existing spell tests at `tests/test_selector.
 
 - [ ] **Step 6: Regenerate the inventory and bump the badge**
 
-- [ ] **Step 7: Offer the commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add modules/Selector.lua tests/test_selector.lua tests/wow_mock.lua docs/test-cases.md README.md
@@ -680,7 +680,7 @@ Expected: green. The `targeted` field and the `mouseover` bucket key land here a
 
 - [ ] **Step 12: Regenerate the inventory and bump the badge**
 
-- [ ] **Step 13: Offer the commit**
+- [ ] **Step 13: Commit**
 
 ```bash
 git add defaults/Categories.lua defaults/Defaults_Bloodlust.lua defaults/Defaults_BattleRez.lua \
@@ -814,7 +814,7 @@ Expected: green, with the existing body-shape tests at `tests/test_macromanager.
 
 - [ ] **Step 6: Regenerate the inventory and bump the badge**
 
-- [ ] **Step 7: Offer the commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add modules/MacroManager.lua tests/test_macromanager.lua docs/test-cases.md README.md
@@ -880,7 +880,7 @@ Run: `lua5.1 tests/run.lua && luacheck .`
 
 - [ ] **Step 5: Regenerate the inventory and bump the badge**
 
-- [ ] **Step 6: Offer the commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add settings/Category.lua tests/test_settingsui.lua docs/test-cases.md README.md
@@ -944,7 +944,7 @@ grep -rn "Thirteen\|thirteen\|Eleven\|eleven" README.md docs/ defaults/README.md
 
 Run: `lua5.1 tests/run.lua && luacheck .`
 
-- [ ] **Step 8: Offer the commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add README.md docs/ defaults/
