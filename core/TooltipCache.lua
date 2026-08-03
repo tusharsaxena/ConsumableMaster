@@ -373,6 +373,25 @@ local function hasParsedEffect(p)
         or p.isAugmentRune == true
         or p.isConjured == true
         or p.isFeast == true
+        -- maxLevel is a RESTRICTION, not an effect, and it's here deliberately.
+        -- Emergency Soul Link (248486) states its heal as "restoring them to
+        -- life with 35% health and 10% mana" -- wording that matches none of
+        -- the PATTERNS effect forms (pctHealth/pctCombined both require the
+        -- literal "Restores ... of your maximum health"; manaCombinedFlat
+        -- dies on the "%" before "mana"). Without this clause that item never
+        -- satisfies hasParsedEffect and stays pending forever, since
+        -- GET_ITEM_INFO_RECEIVED does not re-fire once basic info is cached.
+        -- Known cost: a consumable whose cap line arrives BEFORE its Use:
+        -- line would cache as final and strand at score 0 -- low-probability
+        -- in practice, since C_TooltipInfo.GetItemByID returns the whole
+        -- body at once; the partial case seen in practice is a name-only
+        -- tooltip (see the guard below), not a body missing just one line.
+        -- Cleaner long-term fix: teach PATTERNS the "restoring them to life
+        -- with N% health and N% mana" form, at which point this clause could
+        -- go. Not done now -- that phrasing is from a screenshot, not a
+        -- captured live dump, BATTLE_REZ's scorer doesn't need this item's
+        -- parse (ilvl + quality only), and adding a speculative pattern is
+        -- exactly what Fix 4 (see git log) just finished arguing against.
         or p.maxLevel ~= nil
 end
 

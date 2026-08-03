@@ -256,6 +256,24 @@ test("TooltipCache: a floor phrasing without a negation does NOT produce a maxLe
     t.eq(usable.maxLevel, nil, "a floor phrasing without a negation is not treated as a cap")
 end)
 
+-- Pins hasParsedEffect's `maxLevel` clause: Emergency Soul Link's real heal
+-- line ("restoring them to life with 35% health and 10% mana") matches NONE
+-- of the PATTERNS effect forms, so its only recognized line is the max-level
+-- cap. Without the `maxLevel` clause, this item would never satisfy
+-- hasParsedEffect and would stay pending forever. If this test starts
+-- failing after someone deletes that clause, that's why it's there --
+-- see the comment on it in core/TooltipCache.lua before removing it.
+test("TooltipCache: an item whose only recognized line is a max-level cap resolves final, not pending (Emergency Soul Link)", function(t)
+    local TC, mock = newTC()
+    local rez = parse(TC, mock, 248486, {
+        "Emergency Soul Link",
+        "Use: Revive a fallen ally, restoring them to life with 35% health and 10% mana.",
+        "Cannot be used by players higher than level 90.",
+    })
+    t.falsy(rez.pending, "the cap line alone is enough to satisfy hasParsedEffect")
+    t.eq(rez.maxLevel, 90, "and it still reports its actual cap")
+end)
+
 test("TooltipCache: an uncapped item reports no maxLevel", function(t)
     local TC, mock = newTC()
     local pot = parse(TC, mock, 2403, { "Use: Restores 500 health." })

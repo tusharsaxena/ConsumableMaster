@@ -76,6 +76,15 @@ yet. See Section 3 below to fill these in.
 | 20707 | Spell | Soulstone (Warlock; pre-cast on a living ally, not a rez-on-death) | `/dump C_Spell.GetSpellName(20707)` | [ ] |
 | 248486 | Item | Emergency Soul Link (Midnight; usable by anyone, in combat) | `/cm dump item 248486` | [ ] |
 
+**While dumping 248486, also capture its exact `Use:` line verbatim.** The `hasParsedEffect`
+guard in `core/TooltipCache.lua` (the `maxLevel` clause) currently assumes it reads
+"restoring them to life with 35% health and 10% mana" — a screenshot capture, not a
+`/cm dump` verified line — and that this phrasing matches none of the `PATTERNS` effect
+forms (confirmed against the code, but not against a live client). If the live wording
+differs, the reasoning in that comment needs rechecking — it may now parse an effect on its
+own (fix is safe to reconsider) or the phrasing may need adding to `PATTERNS` (the "cleaner
+long-term fix" the comment already names).
+
 **If any name doesn't match:** the ID is wrong. Fix it directly in the relevant
 `defaults/Defaults_*.lua` file (comment + numeric ID together) — this is a one-line data
 change, not a code change. Do not touch `core/` or `modules/` for a wrong ID.
