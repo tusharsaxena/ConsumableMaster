@@ -309,6 +309,25 @@ local function renderSingle(ctx, cat)
             "medium")
     end
 
+    -- Mouseover toggle — gated on the row field (cat.targeted), not on the
+    -- category key, so any future targeted category gets the control for
+    -- free. MacroManager.targetClauseFor treats only an explicit `false` as
+    -- off, so the write below must always land a real boolean.
+    if cat.targeted then
+        local bucket = KCM.db.profile.categories[cat.key]
+        makeCheckbox(scroll, {
+            label = L["Cast on mouseover"],
+            tooltip = L["Rez whoever you are hovering (raid frame or corpse), falling back to "
+                .. "your target. Turn off to act on your target only."],
+            value = bucket.mouseover ~= false,
+            onChange = function(v)
+                bucket.mouseover = v and true or false
+                afterMutation("options_mouseover_toggle")
+            end,
+        })
+        H.AddSpacer(scroll, 4)
+    end
+
     -- Add by ID (kind selector | ID input, paired 50/50)
     H.Section(ctx, L["Add item or spell by ID"])
     local addRow = newRow(scroll)

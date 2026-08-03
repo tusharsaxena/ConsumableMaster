@@ -258,3 +258,102 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         end
         t.eq(notices, 1, "the missing-panel notice is said exactly once")
     end)
+
+-- ── the Battle Rez mouseover toggle (settings/Category.lua) ────────────────
+--
+-- The mock's Blizzard `Settings` global answers every call with a no-op
+-- returning nil (wow_mock.lua), so KCM.Settings.Register()'s registerPanel()
+-- cannot run headlessly here — `Settings.RegisterCanvasLayoutCategory(...)`
+-- would hand back nil and the next line's `main:GetID()` would raise. This
+-- suite already has the workaround: skip straight to the per-tab builder
+-- KCM.Settings.RegisterTab parked in KCM.Settings.builders, and pull the ctx
+-- it built back out of the library's own registry via UI.__panelFor (the same
+-- accessor "a panel comes from the library's registry" above relies on).
+--
+-- settings/Category.lua resolves `local AceGUI = LibStub("AceGUI-3.0")` ONCE
+-- at module load, so a spy installed after loadWithSchema() would miss every
+-- AceGUI:Create call the file makes — the swap has to bracket the file's own
+-- load, mirroring tests/test_widgets.lua's loadWidgets().
+test("Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover",
+    function(t)
+        local mock = loader.mock
+
+        local files = {}
+        for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
+        files[#files + 1] = "settings/Panel.lua"
+        local KCM = loader.loadFiles(files)
+
+        t.truthy(KCM.Categories.Get("BATTLE_REZ").targeted, "Battle Rez is targeted")
+        t.falsy(KCM.Categories.Get("BLOODLUST").targeted, "Bloodlust is not targeted")
+        t.eq(KCM.db.profile.categories.BATTLE_REZ.mouseover, true, "and defaults on")
+
+        local checkboxes = {}
+        local AceGUISpy = setmetatable({
+            Create = function(_, kind)
+                if kind == "CheckBox" then
+                    local w = mock.makeStub()
+                    local callbacks = {}
+                    w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+                    w._callbacks = callbacks
+                    checkboxes[#checkboxes + 1] = w
+                    return w
+                end
+                return mock.makeStub()
+            end,
+            RegisterWidgetType = function() end,
+            RegisterLayout     = function() end,
+            GetWidgetVersion   = function() return 0 end,
+        }, { __index = function() return function() return mock.makeStub() end end })
+
+        local realLibStub = _G.LibStub
+        _G.LibStub = function(name, ...)
+            if name == "AceGUI-3.0" then return AceGUISpy end
+            return realLibStub(name, ...)
+        end
+        local root = _G.KCM_TEST_ROOT or "."
+        local chunk = assert(loadfile(root .. "/settings/Category.lua"))
+        chunk("ConsumableMaster", KCM)
+        _G.LibStub = realLibStub
+
+        local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
+
+        local battleRezBuilder = KCM.Settings.builders["battle_rez"]
+        t.truthy(battleRezBuilder, "Battle Rez tab registered a builder")
+        battleRezBuilder({})
+        local ctx = UI.__panelFor("battle_rez")
+        t.truthy(ctx, "the Battle Rez ctx landed in the library's registry")
+        ctx.panel.IsShown = function() return true end
+
+        local recomputeCalls = {}
+        local realRequestRecompute = KCM.Pipeline.RequestRecompute
+        KCM.Pipeline.RequestRecompute = function(reason)
+            recomputeCalls[#recomputeCalls + 1] = reason
+            return realRequestRecompute(reason)
+        end
+
+        H.RefreshAllPanels()
+        t.eq(#checkboxes, 1, "exactly one checkbox rendered on the Battle Rez page")
+
+        local toggle = checkboxes[1]
+        t.truthy(toggle._callbacks.OnValueChanged, "the checkbox is wired to a change handler")
+        toggle._callbacks.OnValueChanged(toggle, "OnValueChanged", false)
+
+        t.eq(KCM.db.profile.categories.BATTLE_REZ.mouseover, false,
+            "unchecking writes a real boolean false, not nil")
+        t.truthy(#recomputeCalls >= 1,
+            "unchecking fires a recompute rather than waiting for the next bag event")
+
+        -- Stop the Battle Rez page from re-rendering into the reset list below.
+        ctx.panel.IsShown = function() return false end
+
+        checkboxes = {}
+        local bloodlustBuilder = KCM.Settings.builders["bloodlust"]
+        t.truthy(bloodlustBuilder, "Bloodlust tab registered a builder")
+        bloodlustBuilder({})
+        local blCtx = UI.__panelFor("bloodlust")
+        t.truthy(blCtx, "the Bloodlust ctx landed in the library's registry")
+        blCtx.panel.IsShown = function() return true end
+
+        H.RefreshAllPanels()
+        t.eq(#checkboxes, 0, "an untargeted category page renders no mouseover checkbox")
+    end)

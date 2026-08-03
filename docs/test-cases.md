@@ -519,7 +519,7 @@ whenever the suite changes.
 - Selector.ListAvailable omits an item the player is over the cap for
 - Selector.PickBestForCategory keeps an item whose tooltip is still pending
 
-### test_settingsui.lua (12)
+### test_settingsui.lua (13)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -533,6 +533,7 @@ whenever the suite changes.
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
+- Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover
 
 ### test_slash.lua (68)
 
@@ -709,7 +710,7 @@ whenever the suite changes.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 33 |
 | test_selector.lua | 43 |
-| test_settingsui.lua | 12 |
+| test_settingsui.lua | 13 |
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
@@ -717,4 +718,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **583** |
+| **Total** | **584** |
