@@ -24,6 +24,8 @@
 --   isAugmentRune                  -- true if tooltip carries the "Augment Rune" marker
 --   weaponAffinity                 -- "bladed" | "blunt" | "any" (weapon enhance only)
 --   minLevel                       -- required player level (0 if none)
+--   maxLevel                       -- maximum player level the item/effect works at,
+--                                     parsed from tooltip text; nil when uncapped
 --   itemName                       -- plain name for friendly dumps
 --   pending = true                 -- tooltip data not loaded yet; retry later
 --
@@ -66,6 +68,14 @@ local PATTERNS = {
     feastSubstr   = "Feast",
     perSecond     = "every second",
     cooldownSub   = "Cooldown",     -- skip duration parse on cooldown lines
+
+    -- Maximum-level caps. Two real phrasings: the self-restriction ("Cannot be
+    -- used by players higher than level 90." — Emergency Soul Link) and the
+    -- drums' affect cap ("...above level 50."). Both reduce to a bare number
+    -- after a "higher than level" / "above level" lead-in, so match that much
+    -- and stay indifferent to the surrounding sentence.
+    maxLevelHigher = "higher than level (%d+)",
+    maxLevelAbove  = "above level (%d+)",
 
     -- Duration tokens (lenient — match "N unit" anywhere in the line so that
     -- phrasings like "for 30 sec", "over 20 sec", "for the next 1 hour",
@@ -297,6 +307,9 @@ local function parseLines(lines)
             if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
             if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
 
+            local cap = txt:match(PATTERNS.maxLevelHigher) or txt:match(PATTERNS.maxLevelAbove)
+            if cap then result.maxLevel = tonumber(cap) end
+
             -- Augment runes carry an "Augment Rune" category tag. In-game it
             -- renders as a sentence at the END of the Use line, e.g.
             --   "Use: Increases Strength by 25 for 1 hrs.  Augment Rune."
@@ -343,6 +356,7 @@ local function hasParsedEffect(p)
         or p.isAugmentRune == true
         or p.isConjured == true
         or p.isFeast == true
+        or p.maxLevel ~= nil
 end
 
 -- Consumables (classID 0) are the only items expected to carry a "Use:"
@@ -427,10 +441,17 @@ end
 function TC.IsUsableByPlayer(itemID)
     local entry = TC.Get(itemID)
     if not entry or entry.pending then return false, "pending" end
-    local need = entry.minLevel or 0
     local have = UnitLevel("player") or 0
+    local need = entry.minLevel or 0
     if have < need then
         return false, ("level %d < %d"):format(have, need)
+    end
+    -- Upper bound. Old drums keep working as items but stop affecting anyone
+    -- past their expansion's cap, so on a max-level character they are dead
+    -- weight the picker must not choose.
+    local cap = entry.maxLevel
+    if cap and have > cap then
+        return false, ("level %d > %d"):format(have, cap)
     end
     return true, nil
 end

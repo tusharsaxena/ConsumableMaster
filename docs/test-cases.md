@@ -622,7 +622,7 @@ whenever the suite changes.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_tooltipcache.lua (12)
+### test_tooltipcache.lua (16)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -636,6 +636,10 @@ whenever the suite changes.
 - TooltipCache: isAugmentRune fires on an inline 'Augment Rune' marker
 - TooltipCache: partial consumable tooltip stays pending until body loads
 - TooltipCache: effectless NON-consumable is cached, not pending
+- TooltipCache: parses a 'cannot be used by players higher than level' cap
+- TooltipCache: parses a drums 'above level' affect cap
+- TooltipCache: an uncapped item reports no maxLevel
+- TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the cap
 
 ### test_vendor_sync.lua (2)
 
@@ -694,8 +698,8 @@ whenever the suite changes.
 | test_slash.lua | 68 |
 | test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
-| test_tooltipcache.lua | 12 |
+| test_tooltipcache.lua | 16 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **564** |
+| **Total** | **568** |

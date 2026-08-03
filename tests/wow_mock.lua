@@ -12,12 +12,16 @@
 --       "Food & Drink", "Flasks & Phials". tt is the parsed-tooltip table
 --       Classifier/Ranker consume (healValue, healPct, manaValue, hasStatBuff,
 --       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured, …).
+--       Also accepts `lines` (an array of raw tooltip-line strings), which feeds
+--       C_TooltipInfo.GetItemByID(id) directly so a suite loading the REAL
+--       TooltipCache.lua can exercise its pattern parsing (see test_tooltipcache.lua).
 --   M.setBag(id, count)        -- owned count (drives BagScanner + GetItemCount)
 --   M.setSpell(id, { name=, known= })
 --   M.setSpec(classID, specIndex, specID, specName)  -- current player spec
 --   M.setCombat(bool)          -- InCombatLockdown() return
 --   M.setEquipped(slot, itemID) -- equip an item into a paperdoll slot (16 main
 --       hand / 17 off hand); drives GetInventoryItemID for WeaponSlots
+--   M.setPlayerLevel(n)        -- backs UnitLevel("player") (default 80)
 --
 -- The message bus stub is keyed by (message, target) per the standard's
 -- anti-pattern #33 so future NS.bus receivers are testable.
@@ -36,6 +40,7 @@ M.spec     = { classID = 7, specIndex = 1, specID = 263, specName = "Enhancement
 M.inCombat = false
 M.output   = {}   -- captured print() lines
 M.equipped = {}   -- slot -> itemID (main-hand 16 / off-hand 17)
+M.playerLevel = 80
 
 function M.reset()
     M.items, M.bags, M.bagSlots, M.spells = {}, {}, {}, {}
@@ -43,6 +48,7 @@ function M.reset()
     M.inCombat = false
     M.output   = {}
     M.equipped = {}
+    M.playerLevel = 80
     M.macros   = {}       -- name -> { icon, body }
     M.busReg   = {}       -- "message" -> { [target] = callback }
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
@@ -122,6 +128,9 @@ function M.setItem(id, spec)
         quality     = spec.quality or 1,
         ilvl        = spec.ilvl or 1,
         tt          = spec.tt or {},
+        -- Raw tooltip lines (array of strings), fed to C_TooltipInfo.GetItemByID
+        -- for suites that load the real TooltipCache.lua parser.
+        lines       = spec.lines,
         -- classID/subClassID for GetItemInfoInstant — derived from subType when
         -- not given (real items keep them consistent); explicit spec overrides.
         classID     = spec.classID or (cls and cls[1]) or 0,
@@ -134,6 +143,8 @@ function M.setBag(id, count)
     M.bags[id] = count
     M.bagSlots[#M.bagSlots + 1] = { itemID = id, stackCount = count }
 end
+
+function M.setPlayerLevel(n) M.playerLevel = n or 80 end
 
 function M.setSpell(id, spec)
     spec = spec or {}
@@ -404,7 +415,7 @@ function M.install(NS)
     -- Combat / unit
     _G.InCombatLockdown = function() return M.inCombat end
     _G.UnitClass = function() return nil, nil, M.spec.classID end
-    _G.UnitLevel = function() return 80 end
+    _G.UnitLevel = function() return M.playerLevel end
     _G.UnitName  = function() return "Tester" end
     _G.IsPlayerSpell = function(spellID)
         local s = M.spells[spellID]
@@ -559,7 +570,17 @@ function M.install(NS)
             return M.bagSlots[slot]
         end,
     }
-    _G.C_TooltipInfo = { GetItemByID = function() return nil end }
+    -- Real tooltip lines set via M.setItem(id, { lines = {...} }) are served
+    -- here; items without `lines` behave as before (nil = "no tooltip data").
+    _G.C_TooltipInfo = {
+        GetItemByID = function(id)
+            local it = M.items[id]
+            if not it or not it.lines then return nil end
+            local out = {}
+            for i, txt in ipairs(it.lines) do out[i] = { leftText = txt } end
+            return { lines = out }
+        end,
+    }
     _G.Settings = setmetatable({}, { __index = function() return function() end end })
     _G.NUM_TOTAL_EQUIPPED_BAG_SLOTS = 5
 

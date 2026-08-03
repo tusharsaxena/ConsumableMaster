@@ -215,3 +215,51 @@ test("TooltipCache: effectless NON-consumable is cached, not pending", function(
     local tt = TC.Get(770001)
     t.falsy(tt.pending, "non-consumable with no effect is final, not pending")
 end)
+
+-- ---- Maximum-level caps ---------------------------------------------------
+-- Note: these use newTC()/mock.setItem's `lines` option (fed straight to
+-- C_TooltipInfo.GetItemByID) rather than h.loader.loadPure(), which backs
+-- KCM.TooltipCache with the mock-`tt` stub and never loads the real parser —
+-- see this file's header note. That keeps these cases exercising the actual
+-- pattern match, same as every other case in this suite.
+test("TooltipCache: parses a 'cannot be used by players higher than level' cap", function(t)
+    local TC, mock = newTC()
+    local rez = parse(TC, mock, 2401, {
+        "Emergency Soul Link",
+        "Use: Convince a dead ally that being alive is much more fun.",
+        "Cannot be used by players higher than level 90.",
+    })
+    t.eq(rez.maxLevel, 90, "the self-restriction cap is parsed")
+end)
+
+test("TooltipCache: parses a drums 'above level' affect cap", function(t)
+    local TC, mock = newTC()
+    local drums = parse(TC, mock, 2402, {
+        "Drums of Rage",
+        "Use: Increases Haste by 15% for all party and raid members.",
+        "Does not affect allies above level 50.",
+    })
+    t.eq(drums.maxLevel, 50, "the affect cap is parsed")
+end)
+
+test("TooltipCache: an uncapped item reports no maxLevel", function(t)
+    local TC, mock = newTC()
+    local pot = parse(TC, mock, 2403, { "Use: Restores 500 health." })
+    t.eq(pot.maxLevel, nil, "no cap line means no cap")
+end)
+
+test("TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the cap", function(t)
+    local TC, mock = newTC()
+    parse(TC, mock, 2404, {
+        "Drums of Rage",
+        "Use: Increases Haste by 15%.",
+        "Does not affect allies above level 50.",
+    })
+    mock.setPlayerLevel(80)
+    local ok, why = TC.IsUsableByPlayer(2404)
+    t.falsy(ok, "an 80 cannot use a level-50-capped drum")
+    t.eq(why, "level 80 > 50", "the reason names both levels")
+
+    mock.setPlayerLevel(50)
+    t.truthy(TC.IsUsableByPlayer(2404), "usable at exactly the cap")
+end)
