@@ -102,13 +102,17 @@ end
 --   TOP_SECONDARY   → weight of secondary[1] (wildcard from tooltips like
 --                     "N of your highest secondary stat")
 --   unranked        → 0
-local function statWeight(stat, specPriority)
-    if not stat or not specPriority then return 0 end
-    local p = specPriority.primary
-    if stat == "AP" then return (p == "STR" or p == "AGI") and PRIMARY_WEIGHT or 0 end
-    if stat == "SP" then return (p == "INT") and PRIMARY_WEIGHT or 0 end
-    if stat == p then return PRIMARY_WEIGHT end
-    local sec = specPriority.secondary
+-- Tooltip stat tokens that stand in for whichever primary stat a spec uses:
+-- attack power reads as STR or AGI, spell power as INT. A module-level constant
+-- because statWeight runs once per stat per candidate inside the ranking loop.
+local PRIMARY_ALIAS = {
+    AP = { STR = true, AGI = true },
+    SP = { INT = true },
+}
+
+-- Weight of a stat that isn't the primary one: 100 * (N - k + 1) for the k-th
+-- secondary, secondary[1]'s weight for the TOP_SECONDARY wildcard, 0 otherwise.
+local function secondaryWeight(stat, sec)
     if not sec then return 0 end
     local n = #sec
     if stat == "TOP_SECONDARY" then
@@ -120,6 +124,15 @@ local function statWeight(stat, specPriority)
         end
     end
     return 0
+end
+
+local function statWeight(stat, specPriority)
+    if not stat or not specPriority then return 0 end
+    local p = specPriority.primary
+    local alias = PRIMARY_ALIAS[stat]
+    if alias then return alias[p] and PRIMARY_WEIGHT or 0 end
+    if stat == p then return PRIMARY_WEIGHT end
+    return secondaryWeight(stat, specPriority.secondary)
 end
 
 -- Raw restored amount for an HP/MP pot tooltip. `kind` is "HP" or "MP".

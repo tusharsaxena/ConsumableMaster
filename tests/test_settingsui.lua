@@ -357,3 +357,177 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
         H.RefreshAllPanels()
         t.eq(#checkboxes, 0, "an untargeted category page renders no mouseover checkbox")
     end)
+
+-- ---------------------------------------------------------------------
+-- settings/Category.lua — the shared reset popup and the add-by-ID field.
+--
+-- Both are file-locals hanging off UI callbacks, and neither had a test. The
+-- popup handler is reachable directly (StaticPopupDialogs is a plain global
+-- table), so it is driven as-is. The add-by-ID validator is only reachable
+-- through the EditBox its renderer builds, so these cases render the page and
+-- fire OnEnterPressed the way a keypress would.
+-- ---------------------------------------------------------------------
+
+-- The pure layer plus BOTH settings files, so the popup table is populated and
+-- the category builders are registered.
+local function loadCategorySettings()
+    local files = {}
+    for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
+    files[#files + 1] = "settings/Panel.lua"
+    files[#files + 1] = "settings/Category.lua"
+    return loader.loadFiles(files)
+end
+
+-- Render one category page and hand back every EditBox the renderer built.
+--
+-- Create is patched on the mock's own AceGUI table rather than behind a LibStub
+-- swap: settings/Panel.lua and settings/Category.lua both captured that table at
+-- load, so patching it in place is what puts the library's Section/Label helpers
+-- and the category renderer on the same stub. `label`/`editbox` are set to a
+-- real `false` because the widget helpers probe those sub-frames before using
+-- them, and the permissive stub would otherwise hand back a function to index.
+local function renderCategoryEditBoxes(KCM, pageKey)
+    local mock = loader.mock
+    local boxes = {}
+    local AceGUI = LibStub("AceGUI-3.0")
+    AceGUI.Create = function(_, kind)
+        local w = mock.makeStub()
+        w.label, w.editbox = false, false
+        if kind == "EditBox" then
+            local callbacks = {}
+            w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+            w._callbacks = callbacks
+            boxes[#boxes + 1] = w
+        end
+        return w
+    end
+
+    local UI = KCM.Settings.Helpers.instance
+    KCM.Settings.builders[pageKey]({})
+    local ctx = UI.__panelFor(pageKey)
+    ctx.panel.IsShown = function() return true end
+    KCM.Settings.Helpers.RefreshAllPanels()
+    return boxes
+end
+
+test("Settings: the category reset popup restores a composite's AIO fields from defaults",
+    function(t)
+        local KCM = loadCategorySettings()
+        local defaults = KCM.dbDefaults.profile.categories.HP_AIO
+        local cfg      = KCM.db.profile.categories.HP_AIO
+        t.truthy(#defaults.orderInCombat > 0, "HP_AIO ships an in-combat order to restore")
+
+        cfg.enabled          = { HP_POT = false }
+        cfg.orderInCombat    = {}
+        cfg.orderOutOfCombat = {}
+
+        local reasons = {}
+        KCM.Pipeline.RequestRecompute = function(reason) reasons[#reasons + 1] = reason end
+
+        StaticPopupDialogs["KCM_RESET_CATEGORY"].OnAccept(nil,
+            { catKey = "HP_AIO", composite = true })
+
+        t.eqList(cfg.orderInCombat, defaults.orderInCombat, "in-combat order restored")
+        t.eqList(cfg.orderOutOfCombat, defaults.orderOutOfCombat, "out-of-combat order restored")
+        t.eq(cfg.enabled.HP_POT, defaults.enabled.HP_POT, "the enabled flags came back too")
+        t.eq(reasons[1], "options_aio_reset_cat", "the composite arm's audit reason")
+
+        -- CopyTable, not an alias: a later edit of the live config must not
+        -- reach the defaults table for the rest of the session.
+        cfg.orderInCombat[1] = "MUTATED"
+        t.ne(defaults.orderInCombat[1], "MUTATED", "the restore is a copy")
+    end)
+
+test("Settings: the category reset popup clears added/blocked/pins but keeps discovered",
+    function(t)
+        local KCM = loadCategorySettings()
+        local bucket = KCM.Selector.GetBucket("HP_POT")
+        t.truthy(bucket, "HP_POT has a bucket")
+        bucket.added      = { 111 }
+        bucket.blocked    = { 222 }
+        bucket.pins       = { 333 }
+        bucket.discovered = { [444] = 1 }
+
+        local reasons = {}
+        KCM.Pipeline.RequestRecompute = function(reason) reasons[#reasons + 1] = reason end
+
+        StaticPopupDialogs["KCM_RESET_CATEGORY"].OnAccept(nil,
+            { catKey = "HP_POT", composite = false })
+
+        t.eq(#bucket.added, 0, "added cleared")
+        t.eq(#bucket.blocked, 0, "blocked cleared")
+        t.eq(#bucket.pins, 0, "pins cleared")
+        t.eq(bucket.discovered[444], 1, "auto-discovery findings survive a category reset")
+        t.eq(reasons[1], "options_reset_cat", "the single arm's reason differs from the composite one")
+    end)
+
+test("Settings: the category reset popup is inert with no payload and on an unknown category",
+    function(t)
+        local KCM = loadCategorySettings()
+        local reasons = {}
+        KCM.Pipeline.RequestRecompute = function(reason) reasons[#reasons + 1] = reason end
+
+        local OnAccept = StaticPopupDialogs["KCM_RESET_CATEGORY"].OnAccept
+        OnAccept(nil, nil)
+        OnAccept(nil, { catKey = "NO_SUCH_CATEGORY", composite = true })
+        OnAccept(nil, { catKey = "NO_SUCH_CATEGORY", composite = false })
+
+        t.eq(#reasons, 0, "no mutation is reported when there is nothing to reset")
+    end)
+
+test("Settings: add-by-ID rejects bad input by kind and says why", function(t)
+    local KCM = loadCategorySettings()
+    local mock = loader.mock
+    mock.setItem(960010, { name = "Test Potion", subType = "Potions" })
+    mock.setSpell(7744, { name = "Will of the Forsaken" })
+
+    local eb = renderCategoryEditBoxes(KCM, "hp_pot")[1]
+    t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field is wired to Enter")
+    local submit = function(text) eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", text) end
+
+    local function lastSaid()
+        return mock.output[#mock.output]
+    end
+
+    submit("abc")
+    t.truthy(lastSaid():find("expected a positive numeric ID; got: abc", 1, true),
+        "non-numeric input is named back to the user")
+    submit("0")
+    t.truthy(lastSaid():find("expected a positive numeric ID; got: 0", 1, true),
+        "zero is rejected, not silently added")
+    submit("999999")
+    t.truthy(lastSaid():find("unknown itemID: 999999", 1, true),
+        "ITEM is the default kind, and an ID the client doesn't know is refused")
+
+    KCM.Options._addKind.HP_POT = "SPELL"
+    submit("999999")
+    t.truthy(lastSaid():find("unknown spellID: 999999", 1, true),
+        "the kind selector switches which existence check runs")
+
+    -- The success path, on both kinds: a resolvable ID reaches Selector.AddItem.
+    local added = {}
+    KCM.Selector.AddItem = function(catKey, id) added[#added + 1] = id; return true end
+    submit("7744")
+    t.eq(added[1], KCM.ID.AsSpell(7744), "a spell ID is stored through the opaque sentinel")
+    KCM.Options._addKind.HP_POT = "ITEM"
+    submit("960010")
+    t.eq(added[2], 960010, "an item ID is stored raw")
+end)
+
+test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec", function(t)
+    local KCM = loadCategorySettings()
+    local mock = loader.mock
+    mock.setItem(960011, { name = "Test Flask", subType = "Flasks & Phials" })
+
+    -- settings/StatPriority.lua is not loaded here, so O.ResolveViewedSpec is
+    -- absent and FLASK renders with no viewed spec — the same state a
+    -- sub-level-10 character sees.
+    t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
+
+    local eb = renderCategoryEditBoxes(KCM, "flask")[1]
+    t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field rendered anyway")
+    eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", "960011")
+
+    t.truthy(mock.output[#mock.output]:find("spec-aware category: no active spec", 1, true),
+        "the ID is valid, but there is nowhere to put it and the user is told")
+end)

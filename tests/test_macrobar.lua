@@ -638,6 +638,83 @@ test("macrodisplay: an empty-state macro reports no pick, count or cooldown", fu
     t.falsy(KCM.MacroDisplay.Cooldown("KCM_FOOD"), "no cooldown")
 end)
 
+-- A GameTooltip that records which setter fired with which arguments. The real
+-- stub answers every method with itself, so it cannot tell a spell tooltip from
+-- an item one — and which setter runs IS the behavior SetTooltip owns.
+local function recordingTooltip()
+    local gt = { calls = {} }
+    local function record(name)
+        return function(_, ...) gt.calls[#gt.calls + 1] = { name, ... } end
+    end
+    gt.SetOwner     = record("SetOwner")
+    gt.SetSpellByID = record("SetSpellByID")
+    gt.SetItemByID  = record("SetItemByID")
+    gt.SetText      = record("SetText")
+    gt.AddLine      = record("AddLine")
+    gt.Show         = record("Show")
+    return gt
+end
+
+local function calledWith(gt, name)
+    for _, c in ipairs(gt.calls) do
+        if c[1] == name then return c end
+    end
+    return nil
+end
+
+test("macrodisplay: SetTooltip points at the spell a spell pick resolves to", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    KCM.db.profile.macroState["KCM_FOOD"] = { lastItemID = KCM.ID.AsSpell(999) }
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_FOOD")
+    t.truthy(calledWith(gt, "SetOwner"), "the owner is set before any setter")
+    t.eq(calledWith(gt, "SetSpellByID")[2], 999, "the spell sentinel resolves to its spellID")
+    t.falsy(calledWith(gt, "SetItemByID"), "no item setter on the spell path")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: SetTooltip points at the item an item pick resolves to", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    h.loader.mock.setItem(1234, { name = "Bread", subType = "Food & Drink" })
+    KCM.db.profile.macroState["KCM_FOOD"] = { lastItemID = 1234 }
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_FOOD")
+    t.eq(calledWith(gt, "SetItemByID")[2], 1234, "the item tooltip is set from the pick")
+    t.falsy(calledWith(gt, "SetSpellByID"), "no spell setter on the item path")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: SetTooltip falls back to the macro name and body when unresolved", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    _G.CreateMacro("KCM_FOOD", 1, "#showtooltip\n/use Bread")
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_FOOD")
+    t.eq(calledWith(gt, "SetText")[2], "KCM_FOOD", "the name heads the fallback tooltip")
+    t.eq(calledWith(gt, "AddLine")[2], "#showtooltip\n/use Bread", "the body follows it")
+    t.truthy(calledWith(gt, "Show"), "the fallback still shows — never a stale tooltip")
+end)
+
+test("macrodisplay: SetTooltip with no such macro shows just the name", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_NOPE")
+    t.eq(calledWith(gt, "SetText")[2], "KCM_NOPE", "the name is still shown")
+    t.falsy(calledWith(gt, "AddLine"), "index 0 means no such macro, so no body line")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: SetTooltip does nothing without an owner", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    KCM.MacroDisplay.SetTooltip(nil, "KCM_FOOD")
+    t.eq(#gt.calls, 0, "no owner, no tooltip work at all")
+end)
+
 -- ---------------------------------------------------------------------------
 -- Cooldown application (modules/MacroBarButton.lua — secret-value safe)
 -- ---------------------------------------------------------------------------
@@ -1039,6 +1116,44 @@ test("macrobar flyout: combat state is driven into the snippet, not polled", fun
         "and it is driven off the [combat] conditional")
 end)
 
+-- bindEntry paints an entry through the BAR's own appliers, so an entry is
+-- chrome-identical to a bar slot. None of that is guarded on KCM.MacroBarButton
+-- being present any more — it never could be, since FO.RefreshCooldown above it
+-- has always called through that table bare — so the border branch is a plain
+-- buttonBorder test. This pins both sides of it.
+test("macrobar flyout: an entry's border follows buttonBorder through the bar's own applier", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    for _, id in ipairs(KCM.SEED.HP_POT) do mock.setBag(id, 1) end
+    mock.setCombat(false)
+
+    local button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
+    button.catKey = "HP_POT"
+    local flyout = KCM.MacroBarFlyout.Create(button, "HP_POT", 1)
+
+    local cfg = KCM.db.profile.macroBar
+    cfg.flyout = true
+    cfg.buttonBorder = true
+    t.truthy(KCM.MacroBarFlyout.Apply(button, cfg), "flyout applied")
+    local entry = flyout.entries[1]
+    t.truthy(entry, "at least one candidate bound an entry")
+
+    -- The stub answers every unknown method truthily, so shown-ness is counted
+    -- at the border rather than queried.
+    local shows, hides = 0, 0
+    entry.border.Show = function() shows = shows + 1 end
+    entry.border.Hide = function() hides = hides + 1 end
+
+    KCM.MacroBarFlyout.Apply(button, cfg)
+    t.eq(shows, 1, "buttonBorder on → the entry border is painted and shown")
+    t.eq(hides, 0, "and never hidden on that pass")
+
+    cfg.buttonBorder = false
+    KCM.MacroBarFlyout.Apply(button, cfg)
+    t.eq(hides, 1, "buttonBorder off → the entry border is hidden")
+    t.eq(shows, 1, "and not re-shown")
+end)
+
 test("macrobar flyout: the idle clock resets while the mouse is on the strip", function(t)
     local KCM  = h.loader.loadFullAddon()
     h.loader.mock.setCombat(false)
@@ -1126,4 +1241,257 @@ test("macrobar schema: the bar publishes its own bus message", function(t)
     local KCM = h.loader.loadFullAddon()
     t.truthy(KCM.MSG.MACROBAR_REFRESH, "MACROBAR_REFRESH is in the catalog")
     t.truthy(KCM._macroBarBusTarget, "the bar registered a receiver on its own target")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Chrome appliers (MacroBarButton.ApplyStyle) and the flyout's bind/apply pass
+--
+-- The mock's generic frame stub answers every method with itself, so it cannot
+-- say WHICH setter ran with WHICH arguments — and that is exactly what these
+-- appliers own. `recFrame` records every call instead, which is enough to pin
+-- the defaulting, the clamps and the show/hide decisions headlessly. The
+-- secure-frame behavior around them stays an in-game smoke test.
+-- ---------------------------------------------------------------------------
+
+local function recFrame(name)
+    local f = { _name = name or "MockFrame", calls = {}, _attrs = {}, _shown = false }
+    local special = {
+        GetName        = function() return f._name end,
+        GetFrameLevel  = function() return 1 end,
+        GetStringWidth = function() return 0 end,
+        GetFont        = function() return "Fonts\\FRIZQT__.TTF" end,
+        IsShown        = function() return f._shown end,
+        SetAttribute   = function(_, k, v) f._attrs[k] = v end,
+        GetAttribute   = function(_, k) return f._attrs[k] end,
+    }
+    setmetatable(f, { __index = function(_, key)
+        if special[key] then return special[key] end
+        return function(_, ...)
+            f.calls[#f.calls + 1] = { key, ... }
+            if key == "Show" then f._shown = true elseif key == "Hide" then f._shown = false end
+            return f
+        end
+    end })
+    return f
+end
+
+-- First recorded call named `name`, as { name, arg1, arg2, ... }, or nil.
+local function firstCall(f, name)
+    for _, c in ipairs(f.calls) do
+        if c[1] == name then return c end
+    end
+    return nil
+end
+
+-- Every recorded call named `name`, in order.
+local function allCalls(f, name)
+    local out = {}
+    for _, c in ipairs(f.calls) do
+        if c[1] == name then out[#out + 1] = c end
+    end
+    return out
+end
+
+local function styleButton()
+    local btn = recFrame("KCMMacroBarButton1")
+    btn.catKey      = "FOOD"
+    btn.border      = recFrame("border")
+    btn.icon        = recFrame("icon")
+    btn.backdropTex = recFrame("backdropTex")
+    btn.count       = recFrame("count")
+    btn.label       = recFrame("label")
+    return btn
+end
+
+test("macrobar button: ApplyStyle sizes the slot and paints the border child", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local btn = styleButton()
+    KCM.MacroBarButton.ApplyStyle(btn, {
+        buttonSize = 44, buttonBorderOffset = 3, buttonBorderSize = 6,
+        buttonBorderStyle = "Blizzard Tooltip", buttonBorderColor = { 0.2 },
+    })
+    local size = firstCall(btn, "SetSize")
+    t.eq(size[2], 44, "width from buttonSize")
+    t.eq(size[3], 44, "height from buttonSize")
+
+    local pts = allCalls(btn.border, "SetPoint")
+    -- The offset pushes the edge slices OUTWARD, so the two corners take
+    -- opposite signs.
+    t.eq(pts[1][2], "TOPLEFT", "border anchors top-left first")
+    t.eq(pts[1][5], -3, "top-left x is -offset")
+    t.eq(pts[1][6], 3, "top-left y is +offset")
+    t.eq(pts[2][5], 3, "bottom-right x is +offset")
+    t.eq(pts[2][6], -3, "bottom-right y is -offset")
+
+    local bd = firstCall(btn.border, "SetBackdrop")
+    t.eq(bd[2].edgeSize, 6, "edge thickness from buttonBorderSize")
+    t.truthy(bd[2].edgeFile, "an edge texture is resolved")
+
+    local col = firstCall(btn.border, "SetBackdropBorderColor")
+    t.eq(col[2], 0.2, "the stored red component is used")
+    t.eq(col[3], 1, "a missing green falls back on its own")
+    t.eq(col[5], 1, "a missing alpha falls back on its own")
+    t.truthy(btn.border._shown, "the border is shown")
+end)
+
+test("macrobar button: ApplyStyle hides the border child when the border is off", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local btn = styleButton()
+    KCM.MacroBarButton.ApplyStyle(btn, { buttonSize = 36, buttonBorder = false })
+    t.falsy(btn.border._shown, "border hidden")
+    t.falsy(firstCall(btn.border, "SetBackdrop"), "and no backdrop is applied to it")
+end)
+
+test("macrobar button: ApplyStyle floors the edge thickness at one pixel", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local btn = styleButton()
+    KCM.MacroBarButton.ApplyStyle(btn, { buttonSize = 36, buttonBorderSize = 0 })
+    t.eq(firstCall(btn.border, "SetBackdrop")[2].edgeSize, 1, "0 clamps to 1")
+end)
+
+test("macrobar button: ApplyStyle clamps the icon zoom to 0..40 percent", function(t)
+    local KCM = h.loader.loadFullAddon()
+
+    local hi = styleButton()
+    KCM.MacroBarButton.ApplyStyle(hi, { buttonSize = 36, iconZoom = 90 })
+    local c = firstCall(hi.icon, "SetTexCoord")
+    t.eq(c[2], 0.4, "left crop clamped to 40%")
+    t.eq(c[3], 0.6, "right crop mirrors it")
+
+    local lo = styleButton()
+    KCM.MacroBarButton.ApplyStyle(lo, { buttonSize = 36, iconZoom = -10 })
+    local d = firstCall(lo.icon, "SetTexCoord")
+    t.eq(d[2], 0, "negative zoom clamped to 0")
+    t.eq(d[3], 1, "so the icon is uncropped")
+end)
+
+test("macrobar button: ApplyStyle fills the backdrop and follows its toggle", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local on = styleButton()
+    KCM.MacroBarButton.ApplyStyle(on, { buttonSize = 36, buttonBackdrop = true })
+    local fill = firstCall(on.backdropTex, "SetColorTexture")
+    t.eq(fill[2], 0, "default fill is black...")
+    t.eq(fill[5], 0.6, "...at 60% alpha")
+    t.truthy(on.backdropTex._shown, "backdrop shown when enabled")
+
+    local off = styleButton()
+    KCM.MacroBarButton.ApplyStyle(off, { buttonSize = 36, buttonBackdrop = false })
+    t.falsy(off.backdropTex._shown, "backdrop hidden when disabled")
+
+    local custom = styleButton()
+    KCM.MacroBarButton.ApplyStyle(custom, {
+        buttonSize = 36, buttonBackdropColor = { 0.1, 0.2, 0.3, 0.4 },
+    })
+    local c = firstCall(custom.backdropTex, "SetColorTexture")
+    t.eq(c[2], 0.1, "stored red")
+    t.eq(c[5], 0.4, "stored alpha")
+end)
+
+-- --- The flyout's apply pass -----------------------------------------------
+
+local function flyoutEntry(name)
+    local e = recFrame(name)
+    e.icon        = recFrame("icon")
+    e.count       = recFrame("count")
+    e.backdropTex = recFrame("backdropTex")
+    e.border      = recFrame("border")
+    e.cooldown    = recFrame("cooldown")
+    return e
+end
+
+-- A bar slot with its flyout already built, and `n` entries already pooled —
+-- entry creation itself needs a real secure template, so the pool is
+-- pre-grown here and the create path stays an in-game concern.
+local function flyoutButton(catKey, n)
+    local button = recFrame("KCMMacroBarButton1")
+    button.catKey = catKey
+    local flyout = recFrame("KCMMacroBarFlyout1")
+    flyout.bg = recFrame("bg")
+    flyout.entries = {}
+    for i = 1, n do flyout.entries[i] = flyoutEntry("Entry" .. i) end
+    local ind = recFrame("KCMMacroBarFlyout1Indicator")
+    ind.shade = recFrame("shade")
+    ind.arrow = recFrame("arrow")
+    button.flyout    = flyout
+    button.indicator = ind
+    return button, flyout, ind
+end
+
+test("macrobar flyout: Apply tears the strip down when the feature is off", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local button, flyout, ind = flyoutButton("HP_POT", 2)
+    flyout.entries[1]:Show()
+
+    t.eq(KCM.MacroBarFlyout.Apply(button, fcfg{ flyout = false }), true, "reports handled")
+    t.falsy(flyout._shown, "container hidden")
+    t.falsy(ind._shown, "indicator hidden")
+    t.falsy(flyout.entries[1]._shown, "pooled entries hidden, never released")
+    t.eq(flyout:GetAttribute("kcmEntries"), 0, "the snippet sees an empty flyout")
+    t.eq(ind:GetAttribute("kcmEntries"), 0, "on the indicator too")
+end)
+
+test("macrobar flyout: Apply binds an owned item entry with its chrome", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local seed = KCM.SEED.HP_POT
+    mock.setItem(seed[1], { name = "Pot", subType = "Potions" })
+    mock.setBag(seed[1], 3)
+
+    local button, flyout = flyoutButton("HP_POT", 3)
+    KCM.MacroBarFlyout.Apply(button, fcfg{
+        flyout = true, iconZoom = 90, buttonBackdrop = true,
+        buttonBorderOffset = 2, buttonBorderSize = 5,
+    })
+
+    local e = flyout.entries[1]
+    t.eq(e.kcmID, seed[1], "entry 1 points at the owned candidate")
+    t.eq(e:GetAttribute("type"), "item", "items click through the item attribute")
+    t.eq(e:GetAttribute("item"), "item:" .. seed[1],
+        "by id, so a localized name cannot break it")
+    t.eq(firstCall(e.icon, "SetTexCoord")[2], 0.4, "the entry takes the same 40% zoom clamp")
+    t.eq(firstCall(e.count, "SetText")[2], 3, "the owned count is shown")
+    t.eq(firstCall(e.backdropTex, "SetColorTexture")[5], 0.6, "default backdrop alpha")
+    t.truthy(e.backdropTex._shown, "backdrop shown with the setting on")
+    t.eq(allCalls(e.border, "SetPoint")[1][5], -2, "border offset pushes outward")
+    t.eq(firstCall(e.border, "SetBackdrop")[2].edgeSize, 5, "border thickness")
+    t.eq(firstCall(e.border, "SetBackdropBorderColor")[2], 1, "border color defaults to white")
+    t.truthy(e._shown, "entry shown")
+
+    t.falsy(flyout.entries[2]._shown, "surplus entries stay hidden")
+    t.eq(flyout:GetAttribute("kcmEntries"), 1, "the snippet is told how many entries there are")
+    t.eq(flyout:GetAttribute("kcmGrace"), 0, "and what the leave grace period is")
+end)
+
+test("macrobar flyout: Apply binds a known spell entry by name", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local SPELL_ID = 1231411
+    mock.setSpell(SPELL_ID, { name = "Healthstone", known = true })
+    KCM.Selector.AddItem("HP_POT", KCM.ID.AsSpell(SPELL_ID))
+
+    local button, flyout = flyoutButton("HP_POT", 2)
+    KCM.MacroBarFlyout.Apply(button, fcfg{ flyout = true })
+
+    local e = flyout.entries[1]
+    t.eq(e:GetAttribute("type"), "spell", "spells click through the spell attribute")
+    t.eq(e:GetAttribute("spell"), "Healthstone", "by NAME, which is what the attribute takes")
+    t.falsy(firstCall(e.count, "Show"), "a spell carries no stack count")
+end)
+
+test("macrobar flyout: Apply hides everything when nothing is available", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local button, flyout, ind = flyoutButton("HP_POT", 1)
+
+    t.eq(KCM.MacroBarFlyout.Apply(button, fcfg{ flyout = true }), true, "reports handled")
+    t.eq(flyout:GetAttribute("kcmEntries"), 0, "no entries to open with")
+    t.falsy(flyout._shown, "container hidden")
+    t.falsy(ind._shown, "and no arrow teasing an empty popup")
+end)
+
+test("macrobar flyout: Apply declines in combat", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local button = flyoutButton("HP_POT", 1)
+    h.loader.mock.setCombat(true)
+    t.eq(KCM.MacroBarFlyout.Apply(button, fcfg{ flyout = true }), false,
+        "false is the signal callers defer on")
 end)

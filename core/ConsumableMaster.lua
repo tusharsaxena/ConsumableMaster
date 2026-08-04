@@ -231,6 +231,17 @@ end
 KCM.Pipeline = KCM.Pipeline or {}
 local P = KCM.Pipeline
 
+-- The session debug gate, in one place instead of once per log site. It stays a
+-- PREDICATE rather than a logging wrapper on purpose: KCM.Debug's arguments
+-- (tostring calls, CalcSummary) must not be evaluated when debug is off, which
+-- is the standard §12 zero-alloc rule these paths are written to. It also reads
+-- KCM.State directly, exactly as the inline sites did — not KCM.Debug.IsOn,
+-- which consults the DebugLog console first and is therefore a different gate.
+local function isDebugOn()
+    if KCM.State and KCM.State.debug then return true end
+    return false
+end
+
 function P.RecomputeOne(catKey, scoreCache, reason)
     if not KCM.Categories or not KCM.Selector or not KCM.MacroManager then
         return
@@ -258,6 +269,59 @@ function P.RecomputeOne(catKey, scoreCache, reason)
     return KCM.MacroManager.SetMacro(cat.macroName, pick, catKey)
 end
 
+-- Master enable. It gates only the macro write loop — the panel refresh runs
+-- either way (see Recompute).
+local function macrosEnabled()
+    return not (KCM.db and KCM.db.profile and KCM.db.profile.enabled == false)
+end
+
+-- One write pass over every category, returning the tally the Calc line reports.
+local function runMacroPass(reason)
+    -- Per-pass score cache. `fields[id]` memoizes GetItemInfo +
+    -- TooltipCache.Get so items appearing across multiple categories
+    -- (pot HOT scans, overlapping seeds) don't re-parse tooltips.
+    -- `[catKey][id]` memoizes the per-category score. Passing nil (as
+    -- /cm dump / panel renders do) falls back to the uncached path.
+    local scoreCache = { fields = {} }
+    local rewrote, skipped, total = 0, 0, 0
+    for _, cat in ipairs(KCM.Categories.LIST) do
+        -- Isolate each category so one bad scorer can't break the
+        -- other seven macros. One pcall per category per recompute
+        -- (8 per frame at peak) is cheap.
+        total = total + 1
+        local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
+        if not ok then
+            if isDebugOn() then KCM.Debug("Macro", "%s recompute failed: %s", cat.key, tostring(res)) end
+        elseif res == "unchanged" then
+            skipped = skipped + 1
+        elseif res ~= nil then
+            rewrote = rewrote + 1   -- created / edited / deferred
+        end
+    end
+    return rewrote, skipped, total
+end
+
+-- Tell the panel and the macro bar the pass is done.
+--
+-- Pipeline → panel refresh crosses a feature boundary, so it is published
+-- on the bus (standard §4.4); the options layer owns the sole PANEL_REFRESH
+-- receiver and debounces the rebuild so a burst of GET_ITEM_INFO_RECEIVED
+-- events collapses into one rebuild. Falls back to a direct call if the bus
+-- hasn't loaded (defensive; Bus.lua loads before any event fires).
+local function publishRefresh()
+    if KCM.bus and KCM.bus.SendMessage then
+        KCM.bus:SendMessage(KCM.MSG.PANEL_REFRESH)
+        -- Macro bar repaint rides its own message: it is undebounced (a live
+        -- on-screen bar should track the macro it just rewrote) and it must not
+        -- be coupled to whether a settings page happens to be open.
+        KCM.bus:SendMessage(KCM.MSG.MACROBAR_REFRESH)
+    elseif KCM.Options and KCM.Options.RequestRefresh then
+        KCM.Options.RequestRefresh()
+    elseif KCM.Options and KCM.Options.Refresh then
+        KCM.Options.Refresh()
+    end
+end
+
 function P.Recompute(reason)
     if not KCM.Categories or not KCM.Categories.LIST then return end
     -- Perf bucket. One bracket around the whole pass — at most one call per
@@ -273,51 +337,15 @@ function P.Recompute(reason)
     -- whose data hadn't loaded sit on `[Loading]` until re-enable). Macros
     -- keep their last-written body until the off→on transition kicks a
     -- recompute via the toggle's onChange in settings/Panel.lua.
-    local enabled = not (KCM.db and KCM.db.profile and KCM.db.profile.enabled == false)
-    if enabled then
-        -- Per-pass score cache. `fields[id]` memoizes GetItemInfo +
-        -- TooltipCache.Get so items appearing across multiple categories
-        -- (pot HOT scans, overlapping seeds) don't re-parse tooltips.
-        -- `[catKey][id]` memoizes the per-category score. Passing nil (as
-        -- /cm dump / panel renders do) falls back to the uncached path.
-        local scoreCache = { fields = {} }
-        local rewrote, skipped, total = 0, 0, 0
-        for _, cat in ipairs(KCM.Categories.LIST) do
-            -- Isolate each category so one bad scorer can't break the
-            -- other seven macros. One pcall per category per recompute
-            -- (8 per frame at peak) is cheap.
-            total = total + 1
-            local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
-            if not ok then
-                if KCM.State and KCM.State.debug then KCM.Debug("Macro", "%s recompute failed: %s", cat.key, tostring(res)) end
-            elseif res == "unchanged" then
-                skipped = skipped + 1
-            elseif res ~= nil then
-                rewrote = rewrote + 1   -- created / edited / deferred
-            end
-        end
-        if KCM.State and KCM.State.debug then
+    if macrosEnabled() then
+        local rewrote, skipped, total = runMacroPass(reason)
+        if isDebugOn() then
             KCM.Debug("Calc", "%s", KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped))
         end
-    elseif KCM.State and KCM.State.debug then
+    elseif isDebugOn() then
         KCM.Debug("Calc", "skipped writes (disabled): reason=%s", tostring(reason))
     end
-    -- Pipeline → panel refresh crosses a feature boundary, so it is published
-    -- on the bus (standard §4.4); the options layer owns the sole PANEL_REFRESH
-    -- receiver and debounces the rebuild so a burst of GET_ITEM_INFO_RECEIVED
-    -- events collapses into one rebuild. Falls back to a direct call if the bus
-    -- hasn't loaded (defensive; Bus.lua loads before any event fires).
-    if KCM.bus and KCM.bus.SendMessage then
-        KCM.bus:SendMessage(KCM.MSG.PANEL_REFRESH)
-        -- Macro bar repaint rides its own message: it is undebounced (a live
-        -- on-screen bar should track the macro it just rewrote) and it must not
-        -- be coupled to whether a settings page happens to be open.
-        KCM.bus:SendMessage(KCM.MSG.MACROBAR_REFRESH)
-    elseif KCM.Options and KCM.Options.RequestRefresh then
-        KCM.Options.RequestRefresh()
-    elseif KCM.Options and KCM.Options.Refresh then
-        KCM.Options.Refresh()
-    end
+    publishRefresh()
     if perfT0 then perf.Note("recompute", debugprofilestop() - perfT0) end
 end
 
@@ -366,6 +394,41 @@ end
 -- false for items whose tooltip isn't loaded yet. Without the retry, an
 -- item present in bags from /reload silently gets skipped on first
 -- discovery pass and never re-enters the candidate set until bags change.
+-- Is this item already in the category's shipped seed? Seeds are small arrays,
+-- so a linear scan beats building a set per pass.
+local function isSeeded(catKey, itemID)
+    local seed = KCM.SEED and KCM.SEED[catKey] or {}
+    for _, sid in ipairs(seed) do
+        if sid == itemID then return true end
+    end
+    return false
+end
+
+-- The spec key a discovery is filed under, resolved PER CATEGORY: only
+-- spec-aware categories get one, and a non-spec-aware category must file at the
+-- category root (nil).
+local function discoverySpecKey(cat)
+    if cat and cat.specAware and KCM.SpecHelper then
+        local _, _, key = KCM.SpecHelper.GetCurrent()
+        return key
+    end
+    return nil
+end
+
+-- Record one discovery, reporting 1 if it was new. When `outNew` is passed
+-- (bulk pass) we collect discovered IDs there for the pass summary; when it's
+-- nil (standalone item_info_received retry) we print the per-item line.
+local function recordDiscovery(catKey, itemID, specKey, reason, nowUnix, outNew)
+    if not KCM.Selector.MarkDiscovered(catKey, itemID, specKey, nowUnix) then return 0 end
+    if outNew then
+        outNew[#outNew + 1] = itemID
+    elseif isDebugOn() then
+        KCM.Debug("Scan", "discovered %s id=%s (reason=%s)",
+            catKey, itemID, tostring(reason))
+    end
+    return 1
+end
+
 local function discoverOne(itemID, reason, nowUnix, outNew)
     if not (itemID and KCM.Classifier and KCM.Classifier.MatchAny
             and KCM.Selector and KCM.Selector.MarkDiscovered) then
@@ -375,32 +438,15 @@ local function discoverOne(itemID, reason, nowUnix, outNew)
     local hits = KCM.Classifier.MatchAny(itemID)
     -- Zero-hit (item isn't a consumable we manage) is the common case on every
     -- bag update and is intentionally NOT logged per-item — the bulk pass in
-    -- runAutoDiscovery emits one summary line instead. When `outNew` is passed
-    -- (bulk pass) we collect discovered IDs there for that summary; when it's
-    -- nil (standalone item_info_received retry) we print the per-item line.
+    -- runAutoDiscovery emits one summary line instead.
+    --
+    -- `nowUnix` defaults once, before the loop, so every bucket touched in one
+    -- pass carries the same timestamp.
     nowUnix = nowUnix or time()
     for _, catKey in ipairs(hits) do
-        local cat = KCM.Categories.Get(catKey)
-        local inSeed = false
-        local seed = KCM.SEED and KCM.SEED[catKey] or {}
-        for _, sid in ipairs(seed) do
-            if sid == itemID then inSeed = true; break end
-        end
-        if not inSeed then
-            local specKey
-            if cat and cat.specAware and KCM.SpecHelper then
-                local _, _, key = KCM.SpecHelper.GetCurrent()
-                specKey = key
-            end
-            if KCM.Selector.MarkDiscovered(catKey, itemID, specKey, nowUnix) then
-                added = added + 1
-                if outNew then
-                    outNew[#outNew + 1] = itemID
-                elseif KCM.State and KCM.State.debug then
-                    KCM.Debug("Scan", "discovered %s id=%s (reason=%s)",
-                        catKey, itemID, tostring(reason))
-                end
-            end
+        if not isSeeded(catKey, itemID) then
+            local specKey = discoverySpecKey(KCM.Categories.Get(catKey))
+            added = added + recordDiscovery(catKey, itemID, specKey, reason, nowUnix, outNew)
         end
     end
     return added
@@ -462,17 +508,23 @@ end
 --
 -- Returns true if the DB was mutated; callers that want user feedback
 -- should print their own confirmation message.
-function KCM.ResetAllToDefaults(reason)
-    if not (KCM.db and KCM.db.profile) then return false end
-    local defaults = KCM.dbDefaults and KCM.dbDefaults.profile or {}
-    KCM.db.profile.categories   = CopyTable(defaults.categories or {})
-    KCM.db.profile.statPriority = CopyTable(defaults.statPriority or {})
+-- The DB half of the reset: every persisted customization back to its shipped
+-- value. CopyTable, never an alias — aliasing dbDefaults would let a later user
+-- edit corrupt the defaults for the rest of the session.
+local function restoreProfileDefaults(profile, defaults)
+    profile.categories   = CopyTable(defaults.categories or {})
+    profile.statPriority = CopyTable(defaults.statPriority or {})
     -- The master enable is a persisted customization too, so a full reset
     -- restores it. `~= false` keeps the addon enabled even if the defaults
     -- table is somehow missing its `enabled` key (fail-safe, not fail-off).
-    KCM.db.profile.enabled      = defaults.enabled ~= false
-    reason = reason or "reset_all"
-    if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
+    profile.enabled      = defaults.enabled ~= false
+end
+
+-- The resync half. Order matters: invalidate → discover → recompute, so
+-- discovery sees a cleared cache and recompute sees the refreshed discovered
+-- set. Deliberately three explicit guarded calls rather than a data-driven
+-- loop — InvalidateAll takes no argument while the other two take `reason`.
+local function afterReset(reason)
     if KCM.TooltipCache and KCM.TooltipCache.InvalidateAll then
         KCM.TooltipCache.InvalidateAll()
     end
@@ -482,6 +534,14 @@ function KCM.ResetAllToDefaults(reason)
     if KCM.Pipeline and KCM.Pipeline.Recompute then
         KCM.Pipeline.Recompute(reason)
     end
+end
+
+function KCM.ResetAllToDefaults(reason)
+    if not (KCM.db and KCM.db.profile) then return false end
+    restoreProfileDefaults(KCM.db.profile, KCM.dbDefaults and KCM.dbDefaults.profile or {})
+    reason = reason or "reset_all"
+    if isDebugOn() then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
+    afterReset(reason)
     return true
 end
 

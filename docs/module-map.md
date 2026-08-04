@@ -433,6 +433,12 @@ KCM.MacroBarButton.RefreshCooldown / ApplyStyle(btn, cfg)
 KCM.MacroBarButton.ApplyCooldown(cd, active, durationObject, start, duration)
                                          -- shared with the flyout's entries;
                                          -- duration object first (combat-safe)
+KCM.MacroBarButton.ApplyBorder(frame, anchorTo, cfg) / ApplyIconZoom(icon, cfg)
+KCM.MacroBarButton.ApplyBackdropTex(tex, cfg)
+                                         -- the chrome appliers ApplyStyle drives;
+                                         -- the flyout's entries call the same three,
+                                         -- and ApplyBorder owns the buttonBorder==false
+                                         -- hide, so no caller repeats that test
 KCM.MacroBarButton.BorderTexture(lsmName) -> edge texture (LSM, with fallback)
 KCM.MacroBarFlyout.Create(button, catKey, index)   -- indicator + secure container
 KCM.MacroBarFlyout.Apply(button, cfg)              -- content; no-op in combat

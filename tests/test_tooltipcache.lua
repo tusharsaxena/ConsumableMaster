@@ -295,3 +295,78 @@ test("TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the 
     mock.setPlayerLevel(50)
     t.truthy(TC.IsUsableByPlayer(2404), "usable at exactly the cap")
 end)
+
+-- ---- Duration parsing: unit precedence, longest-wins, and "over N sec" ----
+-- Characterization of parseDuration. The unit order (hour/hr beats min beats
+-- sec), the longest-duration-wins rule across a whole tooltip, and the
+-- "over N sec" routing away from buffDurationSec are all load-bearing for the
+-- Ranker's immediate-heal vs heal-over-time split.
+test("TooltipCache: hour wins over a shorter unit on the same line", function(t)
+    local TC, mock = newTC()
+    local flask = parse(TC, mock, 771001, {
+        "Flask of Alchemical Chaos",
+        "Use: Increases your Haste by 100 for 1 hour, refreshing every 30 sec.",
+    })
+    t.eq(flask.buffDurationSec, 3600, "the hour form is matched before the sec form")
+
+    local mins = parse(TC, mock, 771002, { "X", "Use: Increases Haste by 10, lasts 30 min and 10 sec." })
+    t.eq(mins.buffDurationSec, 1800, "the min form is matched before the sec form")
+end)
+
+test("TooltipCache: the longest duration seen across lines wins", function(t)
+    local TC, mock = newTC()
+    local late = parse(TC, mock, 771003, {
+        "Potion",
+        "Use: Increases Haste by 10 for 30 sec.",
+        "Increases Mastery by 10 for 20 min.",
+    })
+    t.eq(late.buffDurationSec, 1200, "a later, longer duration replaces the earlier one")
+
+    local early = parse(TC, mock, 771004, {
+        "Potion",
+        "Use: Increases Haste by 10 for 20 min.",
+        "Increases Mastery by 10 for 30 sec.",
+    })
+    t.eq(early.buffDurationSec, 1200, "a later, shorter duration does not replace it")
+end)
+
+test("TooltipCache: 'over N sec' feeds the over-fields, never buffDurationSec", function(t)
+    local TC, mock = newTC()
+    local hot = parse(TC, mock, 771005, {
+        "Healing Potion",
+        "Use: Restores 265,420 health and 30,000 mana over 20 sec.",
+    })
+    t.eq(hot.healOverSec, 20, "flat heal -> healOverSec")
+    t.eq(hot.manaOverSec, 20, "flat mana -> manaOverSec")
+    t.falsy(hot.buffDurationSec, "an 'over' line never sets a buff duration")
+
+    local pct = parse(TC, mock, 771006, {
+        "Food",
+        "Use: Restores 30% of your maximum health and mana over 10 sec.",
+    })
+    t.eq(pct.pctOverDurationSec, 10, "percentage form -> pctOverDurationSec")
+    t.falsy(pct.healOverSec, "no flat value, so no flat over-duration")
+end)
+
+test("TooltipCache: 'over' applies to the seconds form only", function(t)
+    local TC, mock = newTC()
+    local long = parse(TC, mock, 771007, { "X", "Use: Restores 500 health over 1 hour." })
+    t.eq(long.buffDurationSec, 3600, "'over 1 hour' still lands in buffDurationSec")
+    t.falsy(long.healOverSec, "and not in healOverSec")
+end)
+
+test("TooltipCache: a cooldown note is stripped and a bare cooldown line skipped", function(t)
+    local TC, mock = newTC()
+    local flask = parse(TC, mock, 771008, {
+        "Flask",
+        "Use: Increase your Critical Strike by 1515 for 1 hour. (3 Sec Cooldown)",
+    })
+    t.eq(flask.buffDurationSec, 3600, "the parenthesized cooldown note is removed")
+
+    local bare = parse(TC, mock, 771009, {
+        "Potion",
+        "Use: Increases Haste by 10.",
+        "3 Sec Cooldown",
+    })
+    t.falsy(bare.buffDurationSec, "a standalone cooldown line contributes no duration")
+end)

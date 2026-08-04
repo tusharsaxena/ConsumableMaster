@@ -291,6 +291,25 @@ local function categorySpec(cat)
     return nil
 end
 
+-- Does the player have this stored ID right now? Spells answer from the
+-- spellbook, items from the bag scan; both arms fall back to false when the
+-- client API or the scanner is missing, so a degraded load renders "not owned"
+-- rather than erroring mid-list.
+local function ownsID(id)
+    if KCM.ID and KCM.ID.IsSpell(id) then
+        return (IsPlayerSpell and KCM.ID.SpellID and IsPlayerSpell(KCM.ID.SpellID(id))) or false
+    end
+    return KCM.BagScanner and KCM.BagScanner.HasItem and KCM.BagScanner.HasItem(id) or false
+end
+
+-- One rendered row of the priority list. The not-owned tag pads with two
+-- trailing spaces so the ID column lines up under the owned one.
+local function priorityRow(i, id, pick)
+    local haveTag = ownsID(id) and "|cff44ff44[owned]|r" or "|cff888888[---]  |r"
+    local pickTag = (id == pick) and "  |cffffd100<-- pick|r" or ""
+    return ("  %2d. %s %-12s %s%s"):format(i, haveTag, displayID(id), nameForStoredID(id), pickTag)
+end
+
 local function priorityList(cat, _rest)
     if cat.composite then
         return KCM.SlashDump.TARGETS.pick.run(cat.key:lower())
@@ -306,15 +325,7 @@ local function priorityList(cat, _rest)
     local pick     = KCM.Selector.PickBestForCategory(cat.key, specKey)
     say(("%s: %d entries"):format(cat.key, #priority))
     for i, id in ipairs(priority) do
-        local owned
-        if KCM.ID and KCM.ID.IsSpell(id) then
-            owned = (IsPlayerSpell and KCM.ID.SpellID and IsPlayerSpell(KCM.ID.SpellID(id))) or false
-        else
-            owned = KCM.BagScanner and KCM.BagScanner.HasItem and KCM.BagScanner.HasItem(id) or false
-        end
-        local haveTag = owned and "|cff44ff44[owned]|r" or "|cff888888[---]  |r"
-        local pickTag = (id == pick) and "  |cffffd100<-- pick|r" or ""
-        say(("  %2d. %s %-12s %s%s"):format(i, haveTag, displayID(id), nameForStoredID(id), pickTag))
+        say(priorityRow(i, id, pick))
     end
 end
 
@@ -629,46 +640,63 @@ local function aioList(cat)
     end
 end
 
-local function aioToggle(cat, rest)
-    local args = tokenize(rest)
+-- The words `toggle` accepts as an explicit value. Values are strictly
+-- booleans, so a nil lookup means "no explicit value given" — never "given but
+-- false" — and the flip path can key off that without a second test.
+local AIO_BOOL_WORDS = {
+    on = true,  ["true"]  = true,  ["1"] = true,  yes = true,
+    off = false, ["false"] = false, ["0"] = false, no  = false,
+}
+
+-- Shared preamble for the ref-taking aio sub-verbs (toggle, up, down): the ref
+-- token, the composite's DB bucket, and where the ref sits inside it. Says the
+-- matching rejection and returns nil if any of the three is missing, so a
+-- caller's whole guard is `if not cfg then return end`.
+local function requireAIORef(cat, args, usage)
     local ref = args[1] and args[1]:upper() or nil
     if not ref then
-        return say("Usage: /cm aio <key> toggle <ref> [on|off]")
+        say(usage)
+        return nil
     end
     local cfg = compositeCfg(cat)
-    if not cfg then return say("no DB bucket for " .. cat.key) end
-    if not locateAIORef(cfg, ref) then
-        return say(("ref '%s' is not part of %s"):format(ref, cat.key))
+    if not cfg then
+        say("no DB bucket for " .. cat.key)
+        return nil
     end
+    local field, idx = locateAIORef(cfg, ref)
+    if not field then
+        say(("ref '%s' is not part of %s"):format(ref, cat.key))
+        return nil
+    end
+    return cfg, ref, field, idx
+end
+
+local function aioToggle(cat, rest)
+    local args = tokenize(rest)
+    local cfg, ref = requireAIORef(cat, args, "Usage: /cm aio <key> toggle <ref> [on|off]")
+    if not cfg then return end
     cfg.enabled = cfg.enabled or {}
-    local explicit = (args[2] or ""):lower()
-    local newVal
-    if explicit == "on" or explicit == "true" or explicit == "1" or explicit == "yes" then
-        newVal = true
-    elseif explicit == "off" or explicit == "false" or explicit == "0" or explicit == "no" then
-        newVal = false
-    else
+    local newVal = AIO_BOOL_WORDS[(args[2] or ""):lower()]
+    if newVal == nil then
+        -- No explicit word: flip the current value. An unset ref counts as ON,
+        -- matching the composite body builder's `enabled[ref] ~= false` default,
+        -- so the first toggle of an untouched ref turns it off.
         local cur = cfg.enabled[ref]
         if cur == nil then cur = true end
         newVal = not cur
     end
-    cfg.enabled[ref] = newVal and true or false
+    -- Always a real boolean — the body builder tests `~= false`, so a string or
+    -- a nil here would silently re-enable the ref.
+    cfg.enabled[ref] = newVal
     say(("%s.enabled.%s = %s"):format(cat.key, ref, tostring(newVal)))
     afterMutation("slash_aio_toggle")
 end
 
 local function aioMove(cat, rest, dir)
     local args = tokenize(rest)
-    local ref = args[1] and args[1]:upper() or nil
-    if not ref then
-        return say(("Usage: /cm aio <key> %s <ref>"):format(dir))
-    end
-    local cfg = compositeCfg(cat)
-    if not cfg then return say("no DB bucket for " .. cat.key) end
-    local field, idx = locateAIORef(cfg, ref)
-    if not field then
-        return say(("ref '%s' is not part of %s"):format(ref, cat.key))
-    end
+    local cfg, ref, field, idx = requireAIORef(cat, args,
+        ("Usage: /cm aio <key> %s <ref>"):format(dir))
+    if not cfg then return end
     local arr = cfg[field]
     local target = (dir == "up") and (idx - 1) or (idx + 1)
     if target < 1 or target > #arr then

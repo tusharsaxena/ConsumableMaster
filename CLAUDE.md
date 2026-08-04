@@ -70,6 +70,6 @@ Both must be green before committing. Neither gate can see the vendored library,
 `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` and review its diff before the tag — in the same
 change that bumps the version. It is a **report, not a gate**: never block a commit on it, never
 tune the invocation, never hand-edit the output. Rule: `performance-§10`; how-to:
-[docs/testing.md](./docs/testing.md#the-release-checkpoint--regenerate-the-complexity-report).
+[docs/testing.md](./docs/testing.md#automated-test-records--the-consolidated-run).
 
 **Static badges (Hard rule).** The README `[WoW]` and `[Tests]` badges are static and go stale silently — update each in the same change that moves its source. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate (`lua5.1 tests/run.lua --list > docs/test-cases.md`) and bump the `Tests-<X>/<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: both MUST show the same number and move together on every patch bump. Never defer to a follow-up. Details: [docs/testing.md](./docs/testing.md#test-case-inventory--badge).

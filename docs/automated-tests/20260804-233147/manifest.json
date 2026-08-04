@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "addon": "ConsumableMaster",
+  "addonVersion": "1.5.0",
+  "run": "20260804-233147",
+  "startedAt": "2026-08-04T23:31:47+05:30",
+  "durationMs": 58000,
+  "label": null,
+  "release": null,
+  "git": { "sha": "97c05b872ca0ae8defda370c0dc91559cb66afdd", "branch": "feat/fix-ccn", "dirty": true },
+  "host": { "lua": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio", "luacheck": "Luacheck: 1.2.0", "lizard": "1.23.0" },
+  "suites": {
+    "lint": { "status": "pass", "durationMs": 2000, "warnings": 0, "errors": 0, "files": 54, "gating": true },
+    "tests": { "status": "pass", "durationMs": 54000, "passed": 656, "failed": 0, "total": 656, "gating": true },
+    "perf": { "status": "skip", "durationMs": 0, "skipReason": "no tests/perf.lua — this addon ships no offline scenarios", "scenarios": 0, "gating": false },
+    "complexity": { "status": "pass", "durationMs": 2000, "warnings": 0, "maxCcn": 15, "nloc": 15257, "functions": 1630, "avgCcn": 2.7, "avgNloc": 8.0, "avgToken": 63.8, "warnFunRatio": 0.00, "warnNlocRatio": 0.00, "bandFiles": 1, "overCapFiles": 0, "gating": false }
+  },
+  "verdict": "green"
+}

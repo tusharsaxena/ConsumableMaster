@@ -321,28 +321,26 @@ end
 -- icon / count / cooldown for the look. Items use `type="item"` with the
 -- `item:<id>` form so a localized name can't break it; spells need the name,
 -- which is what the secure spell attribute takes.
-local function bindEntry(btn, id, cfg, size)
+-- Which secure attributes make this entry USE the thing it points at. Items go
+-- by id, spells by name — see the block comment above.
+local function bindSecureAction(btn, id)
     local ID = KCM.ID
-    btn.kcmID = id
-    btn:SetSize(size, size)
-
     if ID and ID.IsSpell(id) then
         local name = KCM.Compat and KCM.Compat.GetSpellName
             and KCM.Compat.GetSpellName(ID.SpellID(id))
         btn:SetAttribute("type", "spell")
+        -- A missing name must still be written as "" — nil would leave the
+        -- previous binding's name in place.
         btn:SetAttribute("spell", name or "")
-    else
-        btn:SetAttribute("type", "item")
-        btn:SetAttribute("item", "item:" .. tostring(id))
+        return
     end
+    btn:SetAttribute("type", "item")
+    btn:SetAttribute("item", "item:" .. tostring(id))
+end
 
+-- Stack count, hidden at zero or when the setting is off (spells never have one).
+local function applyEntryCount(btn, id, cfg)
     local MD = KCM.MacroDisplay
-    btn.icon:SetTexture(MD and MD.TextureForID(id) or nil)
-    local zoom = tonumber(cfg.iconZoom) or 0
-    if zoom < 0 then zoom = 0 elseif zoom > 40 then zoom = 40 end
-    local z = zoom / 100
-    btn.icon:SetTexCoord(z, 1 - z, z, 1 - z)
-
     local count = MD and MD.CountForID(id)
     if count and count > 0 and cfg.showCount ~= false then
         btn.count:SetText(count)
@@ -351,30 +349,35 @@ local function bindEntry(btn, id, cfg, size)
         btn.count:SetText("")
         btn.count:Hide()
     end
+end
+
+local function bindEntry(btn, id, cfg, size)
+    btn.kcmID = id
+    btn:SetSize(size, size)
+
+    bindSecureAction(btn, id)
+
+    local MD = KCM.MacroDisplay
+    btn.icon:SetTexture(MD and MD.TextureForID(id) or nil)
+    KCM.MacroBarButton.ApplyIconZoom(btn.icon, cfg)
+
+    applyEntryCount(btn, id, cfg)
 
     FO.RefreshCooldown(btn)
 
     -- Entries take the WHOLE button-appearance block, not just the border, so
-    -- the strip is visibly the same kind of thing as the bar it hangs off.
-    local bg = cfg.buttonBackdropColor or {}
-    btn.backdropTex:SetColorTexture(bg[1] or 0, bg[2] or 0, bg[3] or 0, bg[4] or 0.6)
-    if cfg.buttonBackdrop then btn.backdropTex:Show() else btn.backdropTex:Hide() end
-
-    if cfg.buttonBorder ~= false and KCM.MacroBarButton then
-        local off = tonumber(cfg.buttonBorderOffset) or 0
-        btn.border:ClearAllPoints()
-        btn.border:SetPoint("TOPLEFT",     btn, "TOPLEFT",     -off,  off)
-        btn.border:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT",  off, -off)
-        btn.border:SetBackdrop({
-            edgeFile = KCM.MacroBarButton.BorderTexture(cfg.buttonBorderStyle),
-            edgeSize = math.max(1, tonumber(cfg.buttonBorderSize) or 4),
-        })
-        local c = cfg.buttonBorderColor or {}
-        btn.border:SetBackdropBorderColor(c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1)
-        btn.border:Show()
-    else
-        btn.border:Hide()
-    end
+    -- the strip is visibly the same kind of thing as the bar it hangs off. The
+    -- bar's own appliers do the painting, so the two can never drift apart —
+    -- they used to be verbatim copies kept in sync by hand.
+    KCM.MacroBarButton.ApplyBackdropTex(btn.backdropTex, cfg)
+    -- Called unconditionally: ApplyBorder owns the `buttonBorder == false` arm
+    -- itself — it hides the frame and returns — exactly as it does for the bar's
+    -- own slots. A caller-side copy of that same test is precisely the drift the
+    -- extraction existed to remove. No `and KCM.MacroBarButton` guard either:
+    -- FO.RefreshCooldown above already calls through that table unguarded (it
+    -- always did), as do the two appliers in this function, so a nil
+    -- KCM.MacroBarButton can never reach here — both files ship in the same TOC.
+    KCM.MacroBarButton.ApplyBorder(btn.border, btn, cfg)
 end
 
 -- Backdrop behind the strip. Without one, a flyout opening over a second row of
@@ -382,9 +385,10 @@ end
 -- same icons. The panel of the container is what says "this is a popup". Border
 -- style / thickness / color are shared with the BAR's own frame so the two read
 -- as one design, with only the fill color separate.
-local FLYOUT_FILL_DEFAULT = { 0, 0, 0, 0.85 }
-local BAR_BORDER_DEFAULT  = { 0.25, 0.25, 0.25, 1 }
-local EMPTY_COLOR         = {}
+local FLYOUT_FILL_DEFAULT     = { 0, 0, 0, 0.85 }
+local BAR_BORDER_DEFAULT      = { 0.25, 0.25, 0.25, 1 }
+local INDICATOR_SHADE_DEFAULT = { 0, 0, 0, 0.55 }
+local EMPTY_COLOR             = {}
 
 -- Unpack a saved {r,g,b,a} over its default, component by component. A stored color may be
 -- absent entirely or short a component, and each missing slot falls back on its own.
@@ -423,51 +427,40 @@ function FO.RefreshCooldown(btn)
     KCM.MacroBarButton.ApplyCooldown(btn.cooldown, MD.CooldownForID(btn.kcmID))
 end
 
--- Rebuild one slot's flyout: resolve the available candidates, grow the pool,
--- bind and position the entries, and record the count the secure snippet gates
--- on. No-op in combat — every step here is protected.
-function FO.Apply(button, cfg)
-    local flyout = button and button.flyout
-    if not (flyout and cfg) then return false end
-    if inCombat() then return false end
+-- Feature off: everything goes away, and BOTH kcmEntries attributes are zeroed
+-- so the secure snippet can't reopen a strip that no longer has content.
+-- Entries are POOLED — hidden, never released, since re-creating a secure
+-- template frame would be illegal in combat.
+local function teardownFlyout(button, flyout)
+    button.indicator:Hide()
+    flyout:Hide()
+    for _, e in ipairs(flyout.entries) do e:Hide() end
+    flyout:SetAttribute("kcmEntries", 0)
+    button.indicator:SetAttribute("kcmEntries", 0)
+end
 
-    if not cfg.flyout then
-        button.indicator:Hide()
-        flyout:Hide()
-        for _, e in ipairs(flyout.entries) do e:Hide() end
-        flyout:SetAttribute("kcmEntries", 0)
-        button.indicator:SetAttribute("kcmEntries", 0)
-        return true
-    end
-
-    local BL = KCM.MacroBarLayout
-
-    -- Indicator: a shaded band hugging the chosen edge INSIDE the icon, with a
-    -- square arrow centered on it pointing the way the flyout will open. Frame
-    -- level sits just above the icon so the border and the count/label overlay
-    -- still draw on top; neither of those takes mouse input, so they don't block
-    -- the band's hover.
-    local point, relPoint, dx, dy, rotation, w, h, glyph = BL.IndicatorAnchor(cfg)
+-- Indicator: a shaded band hugging the chosen edge INSIDE the icon, with a
+-- square arrow centered on it pointing the way the flyout will open. Frame
+-- level sits just above the icon so the border and the count/label overlay
+-- still draw on top; neither of those takes mouse input, so they don't block
+-- the band's hover.
+local function applyIndicator(button, cfg)
+    local point, relPoint, dx, dy, rotation, w, h, glyph =
+        KCM.MacroBarLayout.IndicatorAnchor(cfg)
     local ind = button.indicator
     ind:ClearAllPoints()
     ind:SetPoint(point, button, relPoint, dx, dy)
     ind:SetSize(w, h)
     ind:SetFrameLevel(button:GetFrameLevel() + 1)
-    local shade = cfg.flyoutShadeColor or {}
-    ind.shade:SetColorTexture(shade[1] or 0, shade[2] or 0, shade[3] or 0, shade[4] or 0.55)
+    ind.shade:SetColorTexture(rgba(cfg.flyoutShadeColor, INDICATOR_SHADE_DEFAULT))
     ind.arrow:SetSize(glyph, glyph)
     ind.arrow:SetRotation(rotation)
     ind:Show()
+end
 
-    local ids = FO.Candidates(button.catKey, cfg)
-    local grid = BL.Flyout(#ids, cfg)
-
-    flyout:ClearAllPoints()
-    flyout:SetPoint(grid.point, button, grid.relPoint, 0, 0)
-    flyout:SetSize(grid.width, grid.height)
-    flyout:SetFrameStrata("DIALOG")     -- above the bar, and above other bars
-    FO.ApplyBackdrop(flyout, cfg)
-
+-- Bind and place one entry per candidate, growing the pool as needed, then hide
+-- whatever the last pass left over.
+local function layoutEntries(flyout, ids, cfg, grid)
     for i, id in ipairs(ids) do
         local entry = flyout.entries[i]
         if not entry then
@@ -483,6 +476,33 @@ function FO.Apply(button, cfg)
     for i = #ids + 1, #flyout.entries do
         flyout.entries[i]:Hide()
     end
+end
+
+-- Rebuild one slot's flyout: resolve the available candidates, grow the pool,
+-- bind and position the entries, and record the count the secure snippet gates
+-- on. No-op in combat — every step here is protected.
+function FO.Apply(button, cfg)
+    local flyout = button and button.flyout
+    if not (flyout and cfg) then return false end
+    if inCombat() then return false end
+
+    if not cfg.flyout then
+        teardownFlyout(button, flyout)
+        return true
+    end
+
+    applyIndicator(button, cfg)
+
+    local ids = FO.Candidates(button.catKey, cfg)
+    local grid = KCM.MacroBarLayout.Flyout(#ids, cfg)
+
+    flyout:ClearAllPoints()
+    flyout:SetPoint(grid.point, button, grid.relPoint, 0, 0)
+    flyout:SetSize(grid.width, grid.height)
+    flyout:SetFrameStrata("DIALOG")     -- above the bar, and above other bars
+    FO.ApplyBackdrop(flyout, cfg)
+
+    layoutEntries(flyout, ids, cfg, grid)
 
     -- The snippet reads these: kcmEntries to avoid opening an empty flyout, and
     -- kcmGrace to know whether leaving should close now or start the countdown.

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-605%2F605_passing-green)
+![Tests](https://img.shields.io/badge/Tests-656%2F656_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -274,7 +274,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 
 ## Credits and bundled libraries
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.6.3 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.7.0 (MIT).
 
 It supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the settings-panel shell and its row widgets, and the perf-capture harness. It is vendored under `libs/LibKa0s/` and ships with its own `LICENSE`. The version named above is the answer to "which LibKa0s does this build carry?" — it moves whenever `libs/LibKa0s/` is re-vendored, and nothing else in the package records it.
 
