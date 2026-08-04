@@ -571,17 +571,25 @@ end
 Helpers.RefreshAllPanels = UI and UI.RefreshAllPanels
 Helpers.RefreshScalars   = UI and UI.RefreshScalars
 
--- Validate a value against a schema row's declared type, clamping numbers to
--- min/max. Returns the coerced value, or nil + reason on a type mismatch.
-local function validateSchemaValue(def, value)
-    local t = def.type
-    if t == "bool" then
+-- One validator per declared schema type, built once at file load. Each returns
+-- the coerced value, or nil + a reason the caller can put in front of the user.
+-- A type with no entry here is not an error: see validateSchemaValue.
+local VALIDATORS = {
+    bool = function(_, value)
         if type(value) ~= "boolean" then return nil, "expected boolean" end
-    elseif t == "number" then
+        return value
+    end,
+
+    -- min and max are independently optional, so the clamp is two separate
+    -- one-sided tests rather than a range check.
+    number = function(def, value)
         if type(value) ~= "number" then return nil, "expected number" end
         if def.min then value = math.max(def.min, value) end
         if def.max then value = math.min(def.max, value) end
-    elseif t == "string" then
+        return value
+    end,
+
+    string = function(def, value)
         if type(value) ~= "string" then return nil, "expected string" end
         -- Enum rows (a `values` list) reject anything outside the list, so the
         -- dropdown and `/cm set` can't write a value the renderer can't display.
@@ -596,10 +604,25 @@ local function validateSchemaValue(def, value)
                 return nil, "allowed values: " .. table.concat(names, ", ")
             end
         end
-    elseif t == "color" then
+        return value
+    end,
+
+    color = function(_, value)
         if type(value) ~= "table" then return nil, "expected color table" end
-    end
-    return value
+        return value
+    end,
+}
+
+-- Validate a value against a schema row's declared type, clamping numbers to
+-- min/max. Returns the coerced value, or nil + reason on a type mismatch.
+--
+-- An unrecognized (or absent) def.type passes the value through untouched —
+-- that is the fall-through the elseif chain this replaced always had, and
+-- rejecting instead would break every row that declares no type.
+local function validateSchemaValue(def, value)
+    local f = VALIDATORS[def.type]
+    if not f then return value end
+    return f(def, value)
 end
 Helpers.ValidateSchemaValue = validateSchemaValue
 

@@ -211,6 +211,17 @@ test("schema: ValidateSchemaValue enforces each declared type", function(t)
     t.eq(V({ type = "color" }, "#fff"), nil, "a string does not")
 end)
 
+test("schema: ValidateSchemaValue passes a row with no recognized type straight through",
+    function(t)
+        local KCM = h.loader.loadWithSchema()
+        local V = KCM.Settings.Helpers.ValidateSchemaValue
+        -- The fall-through, and it is load-bearing: a row that declares no type
+        -- (or one the validator does not cover) is not rejected, it is accepted
+        -- unchanged. Rejecting instead would make SetAndRefresh refuse the row.
+        t.eq(V({}, "anything"), "anything", "an absent type accepts the value as-is")
+        t.eq(V({ type = "keybind" }, 7), 7, "so does a type with no validator")
+    end)
+
 test("schema: ValidateSchemaValue clamps a number to its declared range", function(t)
     local KCM = h.loader.loadWithSchema()
     local V = KCM.Settings.Helpers.ValidateSchemaValue

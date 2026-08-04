@@ -111,6 +111,46 @@ end
 -- category panels — the active catKey is parked in popup.data on show.
 -- ---------------------------------------------------------------------
 
+-- One gated Debug seam for this file's reset diagnostics. Same gate
+-- (KCM.State.debug) each of them carried inline; the args are plain values, so
+-- evaluating them before the gate costs nothing.
+local function dbg(fmt, ...)
+    if KCM.State and KCM.State.debug then KCM.Debug("Prio", fmt, ...) end
+end
+
+-- The composite arm resets exactly these three fields and nothing else.
+local AIO_RESET_FIELDS = { "enabled", "orderInCombat", "orderOutOfCombat" }
+
+-- Composite reset: restore the enabled flags and both section orders from the
+-- shipped defaults. CopyTable, never an alias — aliasing dbDefaults would let a
+-- later edit corrupt the defaults for the rest of the session.
+local function resetCompositeCategory(catKey)
+    local defaults = KCM.dbDefaults and KCM.dbDefaults.profile
+        and KCM.dbDefaults.profile.categories
+        and KCM.dbDefaults.profile.categories[catKey]
+    local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
+        and KCM.db.profile.categories[catKey]
+    if not (defaults and cfg) then return end
+    for _, f in ipairs(AIO_RESET_FIELDS) do
+        cfg[f] = CopyTable(defaults[f] or {})
+    end
+    dbg("reset %s", catKey)
+    afterMutation("options_aio_reset_cat")
+end
+
+-- Single-category reset: clear the user's own edits. `discovered` is
+-- deliberately left alone — auto-discovery findings survive a category reset.
+local function resetSingleCategory(catKey, specKey)
+    local bucket = KCM.Selector and KCM.Selector.GetBucket
+        and KCM.Selector.GetBucket(catKey, specKey)
+    if not bucket then return end
+    bucket.added   = {}
+    bucket.blocked = {}
+    bucket.pins    = {}
+    dbg("reset %s", catKey)
+    afterMutation("options_reset_cat")
+end
+
 -- Shared between single + composite reset paths. Caller passes the prompt
 -- as the second arg to StaticPopup_Show, which substitutes into %s, and
 -- the catKey/specKey/composite payload as the fourth arg (popup.data).
@@ -124,26 +164,9 @@ StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
     OnAccept = function(self, data)
         if not data then return end
         if data.composite then
-            local defaults = KCM.dbDefaults and KCM.dbDefaults.profile
-                and KCM.dbDefaults.profile.categories
-                and KCM.dbDefaults.profile.categories[data.catKey]
-            local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
-                and KCM.db.profile.categories[data.catKey]
-            if not (defaults and cfg) then return end
-            cfg.enabled          = CopyTable(defaults.enabled or {})
-            cfg.orderInCombat    = CopyTable(defaults.orderInCombat or {})
-            cfg.orderOutOfCombat = CopyTable(defaults.orderOutOfCombat or {})
-            if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset %s", data.catKey) end
-            afterMutation("options_aio_reset_cat")
+            resetCompositeCategory(data.catKey)
         else
-            local bucket = KCM.Selector and KCM.Selector.GetBucket
-                and KCM.Selector.GetBucket(data.catKey, data.specKey)
-            if not bucket then return end
-            bucket.added   = {}
-            bucket.blocked = {}
-            bucket.pins    = {}
-            if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset %s", data.catKey) end
-            afterMutation("options_reset_cat")
+            resetSingleCategory(data.catKey, data.specKey)
         end
     end,
 }
@@ -324,6 +347,29 @@ local function renderCategoryHeader(ctx, scroll, cat, specKey)
     end
 end
 
+-- What the Type dropdown's two choices mean to the validator: how to prove the
+-- ID exists, what to say when it doesn't, and how to store it. Module-level, so
+-- a third kind is one table entry rather than another elseif arm.
+local ID_KINDS = {
+    SPELL = {
+        exists  = function(id) return spellNameByID(id) end,
+        unknown = "unknown spellID: ",
+        -- Spell IDs go in through the opaque sentinel, never raw, or they
+        -- collide with itemIDs.
+        store   = function(id) return KCM.ID.AsSpell(id) end,
+    },
+    ITEM = {
+        -- Classic/Midnight safety: reject only when the API is PRESENT and says
+        -- it doesn't know the ID. An absent API passes the check.
+        exists  = function(id)
+            return not (C_Item and C_Item.GetItemInfoInstant)
+                or C_Item.GetItemInfoInstant(id)
+        end,
+        unknown = "unknown itemID: ",
+        store   = function(id) return id end,
+    },
+}
+
 -- Validate one typed ID and seed it into the category. Every rejection path says why and
 -- stops; only a fully-resolved ID reaches Selector.AddItem.
 local function submitAddByID(cat, specKey, text)
@@ -332,24 +378,16 @@ local function submitAddByID(cat, specKey, text)
         KCM.Say("expected a positive numeric ID; got: " .. tostring(text))
         return
     end
-    local kind = O._addKind[cat.key] or "ITEM"
-    if kind == "SPELL" then
-        if not spellNameByID(id) then
-            KCM.Say("unknown spellID: " .. id)
-            return
-        end
-    else
-        if C_Item and C_Item.GetItemInfoInstant
-           and not C_Item.GetItemInfoInstant(id) then
-            KCM.Say("unknown itemID: " .. id)
-            return
-        end
+    local kind = ID_KINDS[O._addKind[cat.key] or "ITEM"] or ID_KINDS.ITEM
+    if not kind.exists(id) then
+        KCM.Say(kind.unknown .. id)
+        return
     end
     if cat.specAware and not specKey then
         KCM.Say("spec-aware category: no active spec — can't add.")
         return
     end
-    local storedID = (kind == "SPELL") and KCM.ID.AsSpell(id) or id
+    local storedID = kind.store(id)
     local changed = KCM.Selector and KCM.Selector.AddItem
         and KCM.Selector.AddItem(cat.key, storedID, specKey)
     if changed then afterMutation("options_add_item") end
