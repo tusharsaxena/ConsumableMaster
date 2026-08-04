@@ -370,6 +370,57 @@ test("MacroManager.FlushPending re-queues a write if combat resumes mid-flush", 
     t.eq(KCM.MacroManager.FlushPending(), 1, "the entry survived and flushes on the next regen")
 end)
 
+test("MacroManager: a queued write that already matches the live macro is dropped", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941006)
+    ownFood(mock, 941007)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941006, "FOOD")   -- on disk out of combat
+
+    mock.setCombat(true)
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 941007, "FOOD"), "deferred",
+        "a different pick queues behind combat")
+    -- Back to the pick already on disk: the stored fingerprint matches but the
+    -- QUEUED body doesn't, so the queue is rewritten rather than short-circuited.
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 941006, "FOOD"), "deferred",
+        "the stale queued body is replaced")
+    -- Now fingerprint and queue agree: the queued EditMacro would be redundant.
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 941006, "FOOD"), "unchanged",
+        "a queued write matching the live body is a no-op")
+
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 0, "and it was dropped from the queue, not replayed")
+end)
+
+test("MacroManager: a re-queued write keeps its retry count for the combat window", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 941008)
+    ownFood(mock, 941009)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941008, "FOOD")
+
+    -- Every write fails, so each flush burns one attempt of the three.
+    local savedCreate = _G.CreateMacro
+    _G.CreateMacro = function() end
+    mock.setCombat(false)
+    KCM.MacroManager.FlushPending()                        -- attempts = 1
+
+    -- Combat resumes and the pick changes: the entry is re-queued with a new
+    -- body but must carry attempts=1 forward, so two more failures give up.
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 941009, "FOOD")
+    mock.setCombat(false)
+    mock.output = {}
+    KCM.MacroManager.FlushPending()                        -- attempts = 2
+    KCM.MacroManager.FlushPending()                        -- attempts = 3 → give up
+    _G.CreateMacro = savedCreate
+
+    local gaveUp = false
+    for _, line in ipairs(mock.output) do
+        if line:find("gave up on KCM_FOOD", 1, true) then gaveUp = true end
+    end
+    t.truthy(gaveUp, "the retry counter survived the re-queue instead of restarting")
+end)
+
 -- ---------------------------------------------------------------------------
 -- InvalidateState
 -- ---------------------------------------------------------------------------

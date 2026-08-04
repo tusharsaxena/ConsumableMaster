@@ -171,24 +171,23 @@ end
 -- buildEmptyBody). `pickFor` is a function `(refKey) -> pickID|nil` injected
 -- by the caller so this stays unit-testable; production callers pass
 -- `Selector.PickBestForCategory`.
-local function buildCompositeBody(cat, pickFor)
-    if not (cat and cat.composite and cat.components) then return nil end
-    if not pickFor then return nil end
-
+-- The saved config a composite body is assembled from: the per-ref enable set
+-- and the two orderings, each falling back to the Categories metadata. Returns
+-- nil when the category or its saved bucket isn't usable.
+local function compositeConfig(cat)
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
         and KCM.db.profile.categories[cat.key]
     if not cfg then return nil end
+    return cfg.enabled or {},
+        cfg.orderInCombat    or cat.components.inCombat    or {},
+        cfg.orderOutOfCombat or cat.components.outOfCombat or {}
+end
 
-    local enabled  = cfg.enabled or {}
-    local orderIn  = cfg.orderInCombat    or cat.components.inCombat    or {}
-    local orderOut = cfg.orderOutOfCombat or cat.components.outOfCombat or {}
-
-    local lines = {}
-
-    -- In-combat: collect every enabled sub-cat's pick, emit one /castsequence
-    -- line. `enabled[ref] ~= false` defaults to true when the field is unset
-    -- (e.g. for refs added later via Categories metadata that aren't yet in
-    -- the saved bucket).
+-- In-combat: collect every enabled sub-cat's pick into one /castsequence line,
+-- or nil when none of them resolves. `enabled[ref] ~= false` defaults to true
+-- when the field is unset (e.g. for refs added later via Categories metadata
+-- that aren't yet in the saved bucket).
+local function inCombatLine(orderIn, enabled, pickFor)
     local seqTokens = {}
     for _, ref in ipairs(orderIn) do
         if enabled[ref] ~= false then
@@ -197,37 +196,35 @@ local function buildCompositeBody(cat, pickFor)
             if tok then table.insert(seqTokens, tok) end
         end
     end
-    local hasInCombat = #seqTokens > 0
-    if hasInCombat then
-        table.insert(lines,
-            ("/castsequence [combat] reset=combat %s"):format(table.concat(seqTokens, ", ")))
-    end
+    local n = #seqTokens
+    if n == 0 then return nil end
+    return ("/castsequence [combat] reset=combat %s"):format(table.concat(seqTokens, ", "))
+end
 
-    -- Out-of-combat: emit one /use|/cast line per enabled sub-cat with a
-    -- pick. Multiple lines act as a fallback chain through the WoW macro
-    -- engine — `#showtooltip` resolves to the first line whose target is
-    -- currently usable, and the others no-op against the GCD.
-    local hasOutOfCombat = false
+-- Out-of-combat: one /use|/cast line per enabled sub-cat with a pick. Multiple
+-- lines act as a fallback chain through the WoW macro engine — `#showtooltip`
+-- resolves to the first line whose target is currently usable, and the others
+-- no-op against the GCD.
+local function outOfCombatLines(orderOut, enabled, pickFor)
+    local out = {}
     for _, ref in ipairs(orderOut) do
         if enabled[ref] ~= false then
             local pick = pickFor(ref)
             local line = actionLineForPick(pick, "[nocombat]")
-            if line then
-                table.insert(lines, line)
-                hasOutOfCombat = true
-            end
+            if line then table.insert(out, line) end
         end
     end
+    return out
+end
 
-    if not (hasInCombat or hasOutOfCombat) then return nil end
-
-    -- Per-section empty-state fallback. When one combat-state side produced
-    -- usable lines but the other didn't, clicking the macro from the empty
-    -- side would otherwise be silent. Mirror the single-cat empty-state
-    -- behavior (a chat print) but gated on combat state via Lua, since
-    -- /run doesn't accept `[combat]` / `[nocombat]` macro conditionals —
-    -- those are evaluated by the secure-macro parser, which only attaches
-    -- them to /use, /cast, /castsequence, /click, /target, etc.
+-- Per-section empty-state fallback. When one combat-state side produced usable
+-- lines but the other didn't, clicking the macro from the empty side would
+-- otherwise be silent. Mirror the single-cat empty-state behavior (a chat
+-- print) but gated on combat state via Lua, since /run doesn't accept
+-- `[combat]` / `[nocombat]` macro conditionals — those are evaluated by the
+-- secure-macro parser, which only attaches them to /use, /cast, /castsequence,
+-- /click, /target, etc.
+local function appendEmptyStateNotice(lines, cat, hasInCombat, hasOutOfCombat)
     if hasInCombat and not hasOutOfCombat then
         table.insert(lines,
             ('/run if not InCombatLockdown() then print("%s no %s option out of combat") end')
@@ -239,6 +236,27 @@ local function buildCompositeBody(cat, pickFor)
             ('/run if InCombatLockdown() then print("%s no %s option in combat") end')
                 :format(KCM.PREFIX, cat.displayName))
     end
+end
+
+local function buildCompositeBody(cat, pickFor)
+    if not (cat and cat.composite and cat.components) then return nil end
+    if not pickFor then return nil end
+
+    local enabled, orderIn, orderOut = compositeConfig(cat)
+    if not enabled then return nil end
+
+    local seqLine  = inCombatLine(orderIn, enabled, pickFor)
+    local outLines = outOfCombatLines(orderOut, enabled, pickFor)
+
+    local hasInCombat    = seqLine ~= nil
+    local hasOutOfCombat = #outLines > 0
+    if not (hasInCombat or hasOutOfCombat) then return nil end
+
+    local lines = {}
+    if seqLine then table.insert(lines, seqLine) end
+    for _, line in ipairs(outLines) do table.insert(lines, line) end
+
+    appendEmptyStateNotice(lines, cat, hasInCombat, hasOutOfCombat)
 
     table.insert(lines, 1, "#showtooltip")
     return table.concat(lines, "\n")
@@ -299,6 +317,58 @@ local function doEdit(macroName, icon, body, catKey)
     return "edited"
 end
 
+-- One gated Debug seam for this file's three write-path diagnostics. Same gate
+-- (KCM.State.debug) each of them carried inline; the args are all plain values,
+-- so evaluating them before the gate costs nothing.
+local function dbg(fmt, ...)
+    if KCM.State and KCM.State.debug then KCM.Debug("Macro", fmt, ...) end
+end
+
+-- Enforce Blizzard's 255-byte cap. Silent truncation corrupted the macro (e.g.
+-- half a /cast line), so swap to the category's empty-state body and surface the
+-- problem once per catKey per session. Full oversized body goes to Debug for
+-- troubleshooting. Returns the body to write plus whether the swap happened —
+-- a swapped body drags the stored icon inputs with it.
+local function applyBodyLimit(body, catKey, opts)
+    if string.len(body) <= MACRO_BODY_LIMIT then return body, false end
+    local cat = opts.cat
+        or (KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey))
+    dbg(opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s",
+        tostring(catKey), MACRO_BODY_LIMIT, body)
+    if catKey and not alreadyWarnedOversized[catKey] then
+        alreadyWarnedOversized[catKey] = true
+        KCM.Say(opts.oversizeSay
+            or "%s macro body exceeds 255 bytes — macro is inert until the picked entry's body fits. Please report this.",
+            catKey)
+    end
+    return buildEmptyBody(cat), true
+end
+
+-- True when the client already carries this body+icon AND no queued write
+-- disagrees with it. A pending write matching the live body is redundant, so it
+-- is dropped by the caller rather than replayed.
+local function alreadyApplied(state, pending, body, icon)
+    if not (state and state.lastBody == body and state.lastIcon == icon) then return false end
+    return pending == nil or pending.body == body
+end
+
+-- Queue a write for PLAYER_REGEN_ENABLED. `attempts` is preserved across
+-- re-queues during a single combat window so a bad EditMacro doesn't reset its
+-- retry counter on every new pipeline run before the flush fires.
+local function queueForCombat(macroName, body, iconItemID, catKey, opts, pending)
+    pendingUpdates[macroName] = {
+        body     = body,
+        itemID   = iconItemID,
+        catKey   = catKey,
+        -- Composite only. FlushPending dispatches on its presence, so a
+        -- single-category entry must leave it nil (F-001).
+        cat      = opts.cat,
+        attempts = pending and pending.attempts or 0,
+    }
+    dbg(opts.deferDebugFmt or "deferred %s (combat)", macroName)
+    return "deferred"
+end
+
 -- Shared macro-write tail: oversize fallback, unchanged/pending coalescing,
 -- combat deferral, doEdit, and macroState store. `iconItemID` drives the icon
 -- (nil for empty-state). Callers pass an already-built body.
@@ -322,30 +392,16 @@ end
 --                active, not by an item, so it cannot come from iconFor.
 --   oversizeDebugFmt / oversizeSay
 --                the two oversize wordings, which differ only in the noun.
+
 local function commitMacro(macroName, body, iconItemID, catKey, opts)
     opts = opts or {}
     local effectiveItemID = iconItemID
     local active = opts.active
     if active == nil then active = true end
 
-    if #body > MACRO_BODY_LIMIT then
-        -- Silent truncation corrupted the macro (e.g. half a /cast line), so
-        -- swap to the category's empty-state body and surface the problem
-        -- once per catKey per session. Full oversized body goes to Debug for
-        -- troubleshooting.
-        local cat = opts.cat
-            or (KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey))
-        if KCM.State and KCM.State.debug then
-            KCM.Debug("Macro", opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s",
-                tostring(catKey), MACRO_BODY_LIMIT, body)
-        end
-        if catKey and not alreadyWarnedOversized[catKey] then
-            alreadyWarnedOversized[catKey] = true
-            KCM.Say(opts.oversizeSay
-                or "%s macro body exceeds 255 bytes — macro is inert until the picked entry's body fits. Please report this.",
-                catKey)
-        end
-        body = buildEmptyBody(cat)
+    local swapped
+    body, swapped = applyBodyLimit(body, catKey, opts)
+    if swapped then
         effectiveItemID = nil  -- body is now empty-state; stored icon must follow
         active = false         -- ...and so must a sentinel icon
     end
@@ -355,41 +411,18 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
     local state   = KCM.db.profile.macroState[macroName]
     local pending = pendingUpdates[macroName]
 
-    -- If a pending write is queued but already matches the current on-disk
-    -- body+icon, drop it — the queued EditMacro would be redundant.
-    if state and state.lastBody == body and state.lastIcon == icon
-            and pending and pending.body == body then
+    if alreadyApplied(state, pending, body, icon) then
         pendingUpdates[macroName] = nil
-        return "unchanged"
-    end
-    if state and state.lastBody == body and state.lastIcon == icon and pending == nil then
-        -- Same body+icon and no pending write in flight → nothing to do.
         return "unchanged"
     end
 
     if InCombatLockdown and InCombatLockdown() then
-        -- Preserve `attempts` across re-queues during a single combat window
-        -- so a bad EditMacro doesn't reset its retry counter on every new
-        -- pipeline run before PLAYER_REGEN_ENABLED fires.
-        local attempts = pending and pending.attempts or 0
-        pendingUpdates[macroName] = {
-            body     = body,
-            itemID   = iconItemID,
-            catKey   = catKey,
-            -- Composite only. FlushPending dispatches on its presence, so a
-            -- single-category entry must leave it nil (F-001).
-            cat      = opts.cat,
-            attempts = attempts,
-        }
-        if KCM.State and KCM.State.debug then
-            KCM.Debug("Macro", opts.deferDebugFmt or "deferred %s (combat)", macroName)
-        end
-        return "deferred"
+        return queueForCombat(macroName, body, iconItemID, catKey, opts, pending)
     end
 
     local result, err = doEdit(macroName, icon, body, catKey)
     if result == "error" then
-        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "%s failed — %s", macroName, tostring(err)) end
+        dbg("%s failed — %s", macroName, tostring(err))
         return "error", err
     end
 

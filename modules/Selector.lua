@@ -29,31 +29,53 @@ local S = KCM.Selector
 -- Returns nil if the category doesn't exist or if a spec-aware category is
 -- asked for with no resolvable spec (e.g. low-level character under level 10).
 
+local BUCKET_FIELDS = { "added", "blocked", "pins", "discovered" }
+
 local function emptyBucket()
     return { added = {}, blocked = {}, pins = {}, discovered = {} }
 end
 
-function S.GetBucket(catKey, specKey)
+-- AceDB defaults guarantee these fields exist, but be defensive. Fills them on
+-- the LIVE table and returns it — callers mutate the bucket in place, so this
+-- must never hand back a copy.
+local function ensureBucketFields(t)
+    for _, f in ipairs(BUCKET_FIELDS) do
+        t[f] = t[f] or {}
+    end
+    return t
+end
+
+-- The category row and its saved-variables root, or nil when either is missing.
+local function categoryRoot(catKey)
     local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
     if not cat then return nil end
     local root = KCM.db and KCM.db.profile and KCM.db.profile.categories
         and KCM.db.profile.categories[catKey]
     if not root then return nil end
+    return cat, root
+end
+
+-- The caller's spec key, or the character's current one. nil when no spec can
+-- be resolved (e.g. a character under level 10).
+local function currentSpecKey(specKey)
+    if specKey then return specKey end
+    if KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
+        local _, _, key = KCM.SpecHelper.GetCurrent()
+        return key
+    end
+    return nil
+end
+
+function S.GetBucket(catKey, specKey)
+    local cat, root = categoryRoot(catKey)
+    if not cat then return nil end
 
     if not cat.specAware then
-        -- AceDB defaults guarantee these fields exist, but be defensive.
-        root.added      = root.added      or {}
-        root.blocked    = root.blocked    or {}
-        root.pins       = root.pins       or {}
-        root.discovered = root.discovered or {}
-        return root
+        return ensureBucketFields(root)
     end
 
     -- Spec-aware: resolve spec key, lazy-init sub-table.
-    if not specKey and KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
-        local _, _, key = KCM.SpecHelper.GetCurrent()
-        specKey = key
-    end
+    specKey = currentSpecKey(specKey)
     if not specKey then return nil end
 
     root.bySpec = root.bySpec or {}
@@ -61,13 +83,8 @@ function S.GetBucket(catKey, specKey)
     if not bucket then
         bucket = emptyBucket()
         root.bySpec[specKey] = bucket
-    else
-        bucket.added      = bucket.added      or {}
-        bucket.blocked    = bucket.blocked    or {}
-        bucket.pins       = bucket.pins       or {}
-        bucket.discovered = bucket.discovered or {}
     end
-    return bucket
+    return ensureBucketFields(bucket)
 end
 
 -- ---------------------------------------------------------------------------
