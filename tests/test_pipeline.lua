@@ -192,6 +192,58 @@ test("Pipeline.RunAutoDiscovery reports zero when nothing new is in bags", funct
     t.eq(KCM.Pipeline.RunAutoDiscovery("test"), 0, "empty bags discover nothing")
 end)
 
+-- Swap the callable KCM.Debug sink for a recorder. Debug is a table with a
+-- __call metamethod plus an IsOn probe, and runAutoDiscovery reads both, so the
+-- stand-in has to carry both.
+local function recordDebug(KCM)
+    local lines = {}
+    -- loadPure stops short of the modules that create KCM.State, and the
+    -- discovery log gate reads it directly.
+    KCM.State = KCM.State or {}
+    KCM.State.debug = true
+    KCM.Debug = setmetatable({ IsOn = function() return true end }, {
+        __call = function(_, tag, fmt) lines[#lines + 1] = tag .. "|" .. tostring(fmt) end,
+    })
+    return lines
+end
+
+local function findLine(lines, needle)
+    for _, l in ipairs(lines) do
+        if l:find(needle, 1, true) then return true end
+    end
+    return false
+end
+
+test("discovery reports through the bulk summary, not per item, on a bag pass", function(t)
+    local KCM, mock = load()
+    ownFood(mock, 900011)
+    local lines = recordDebug(KCM)
+    KCM.Pipeline.RunAutoDiscovery("test")
+    t.truthy(findLine(lines, "scanned %s items"),
+        "the bulk pass emits one summary line")
+    t.falsy(findLine(lines, "discovered %s id=%s"),
+        "and collects into outNew instead of printing a line per item")
+end)
+
+test("discovery prints a per-item line for a standalone item-info retry", function(t)
+    local KCM, mock = load()
+    ownFood(mock, 900012)
+    local lines = recordDebug(KCM)
+    KCM:OnItemInfoReceived("GET_ITEM_INFO_RECEIVED", 900012, true)
+    t.truthy(findLine(lines, "discovered %s id=%s"),
+        "with no outNew accumulator the retry path reports the item itself")
+end)
+
+test("discovery stays silent for a bag item that matches no category", function(t)
+    local KCM, mock = load()
+    mock.setItem(900013, { subType = "Junk" })
+    mock.setBag(900013, 1)
+    local lines = recordDebug(KCM)
+    KCM:OnItemInfoReceived("GET_ITEM_INFO_RECEIVED", 900013, true)
+    t.falsy(findLine(lines, "discovered %s id=%s"),
+        "zero-hit items are the common case and are never logged per item")
+end)
+
 -- ---------------------------------------------------------------------------
 -- ResetAllToDefaults
 -- ---------------------------------------------------------------------------
@@ -244,6 +296,33 @@ test("ResetAllToDefaults reports whether it mutated anything", function(t)
     local result = KCM.ResetAllToDefaults("test")
     KCM.db = saved
     t.eq(result, false, "with no DB there is nothing to reset")
+end)
+
+test("ResetAllToDefaults keeps the addon on when the defaults have no enabled key", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.dbDefaults.profile.enabled = nil
+    KCM.db.profile.enabled = false
+    KCM.ResetAllToDefaults("test")
+    t.eq(KCM.db.profile.enabled, true,
+        "a missing defaults key is fail-safe (addon on), not fail-off")
+end)
+
+test("ResetAllToDefaults runs invalidate then discover then recompute, in that order", function(t)
+    local KCM = h.loader.loadPure()
+    local order = {}
+    KCM.TooltipCache.InvalidateAll   = function() order[#order + 1] = "invalidate" end
+    KCM.Pipeline.RunAutoDiscovery    = function() order[#order + 1] = "discover" end
+    KCM.Pipeline.Recompute           = function() order[#order + 1] = "recompute" end
+    KCM.ResetAllToDefaults("test")
+    t.eqList(order, { "invalidate", "discover", "recompute" },
+        "discovery must see a cleared cache and recompute the refreshed set")
+end)
+
+test("ResetAllToDefaults copies the defaults rather than aliasing them", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.ResetAllToDefaults("test")
+    t.ne(KCM.db.profile.categories, KCM.dbDefaults.profile.categories,
+        "the live table is a copy, so a later edit cannot corrupt the defaults")
 end)
 
 test("ResetAllToDefaults leaves the category buckets structurally valid", function(t)

@@ -157,27 +157,49 @@ function MD.Cooldown(macroName)
     return MD.CooldownForID(MD.PickID(macroName))
 end
 
+-- Set the tooltip from a resolved pick, reporting whether it managed to. The
+-- API-presence checks stay inside the conditions rather than being hoisted to
+-- load time: Classic/Midnight builds may not have SetSpellByID at all, and a
+-- spell pick on such a build must fall through to the macro-name fallback
+-- rather than to the item setter.
+local function setTooltipForID(id)
+    local ID = KCM.ID
+    if not (ID and id) then return false end
+    if ID.IsSpell(id) and GameTooltip.SetSpellByID then
+        GameTooltip:SetSpellByID(ID.SpellID(id))
+        return true
+    end
+    if ID.IsItem(id) and GameTooltip.SetItemByID then
+        GameTooltip:SetItemByID(id)
+        return true
+    end
+    return false
+end
+
+-- Fallback for a macro with no resolvable pick: the name, plus the body text so
+-- the button is never a mystery. MacroIndex returning 0 means "no such macro",
+-- which is a skip and not an index-0 call.
+local function setTooltipFromMacro(macroName)
+    GameTooltip:SetText(macroName or "", 1, 0.82, 0)
+    local idx = MD.MacroIndex(macroName)
+    if idx ~= 0 and GetMacroInfo then
+        local _, _, body = GetMacroInfo(idx)
+        if body and body ~= "" then
+            GameTooltip:AddLine(body, 1, 1, 1, true)
+        end
+    end
+end
+
 -- Point GameTooltip at whatever the macro currently resolves to. Item and spell
 -- picks get their real in-game tooltip; anything unresolved falls back to the
 -- macro name plus its body so the button is never a mystery.
 function MD.SetTooltip(owner, macroName)
     if not (GameTooltip and owner) then return end
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    local id = MD.PickID(macroName)
-    local ID = KCM.ID
-    if ID and id and ID.IsSpell(id) and GameTooltip.SetSpellByID then
-        GameTooltip:SetSpellByID(ID.SpellID(id))
-    elseif ID and id and ID.IsItem(id) and GameTooltip.SetItemByID then
-        GameTooltip:SetItemByID(id)
-    else
-        GameTooltip:SetText(macroName or "", 1, 0.82, 0)
-        local idx = MD.MacroIndex(macroName)
-        if idx ~= 0 and GetMacroInfo then
-            local _, _, body = GetMacroInfo(idx)
-            if body and body ~= "" then
-                GameTooltip:AddLine(body, 1, 1, 1, true)
-            end
-        end
+    if not setTooltipForID(MD.PickID(macroName)) then
+        setTooltipFromMacro(macroName)
     end
+    -- Show() runs on every path including the fallback — an early return that
+    -- skipped it would leave a stale tooltip anchored to the button.
     GameTooltip:Show()
 end

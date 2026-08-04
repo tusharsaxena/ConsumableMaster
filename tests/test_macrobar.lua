@@ -638,6 +638,83 @@ test("macrodisplay: an empty-state macro reports no pick, count or cooldown", fu
     t.falsy(KCM.MacroDisplay.Cooldown("KCM_FOOD"), "no cooldown")
 end)
 
+-- A GameTooltip that records which setter fired with which arguments. The real
+-- stub answers every method with itself, so it cannot tell a spell tooltip from
+-- an item one — and which setter runs IS the behavior SetTooltip owns.
+local function recordingTooltip()
+    local gt = { calls = {} }
+    local function record(name)
+        return function(_, ...) gt.calls[#gt.calls + 1] = { name, ... } end
+    end
+    gt.SetOwner     = record("SetOwner")
+    gt.SetSpellByID = record("SetSpellByID")
+    gt.SetItemByID  = record("SetItemByID")
+    gt.SetText      = record("SetText")
+    gt.AddLine      = record("AddLine")
+    gt.Show         = record("Show")
+    return gt
+end
+
+local function calledWith(gt, name)
+    for _, c in ipairs(gt.calls) do
+        if c[1] == name then return c end
+    end
+    return nil
+end
+
+test("macrodisplay: SetTooltip points at the spell a spell pick resolves to", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    KCM.db.profile.macroState["KCM_FOOD"] = { lastItemID = KCM.ID.AsSpell(999) }
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_FOOD")
+    t.truthy(calledWith(gt, "SetOwner"), "the owner is set before any setter")
+    t.eq(calledWith(gt, "SetSpellByID")[2], 999, "the spell sentinel resolves to its spellID")
+    t.falsy(calledWith(gt, "SetItemByID"), "no item setter on the spell path")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: SetTooltip points at the item an item pick resolves to", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    h.loader.mock.setItem(1234, { name = "Bread", subType = "Food & Drink" })
+    KCM.db.profile.macroState["KCM_FOOD"] = { lastItemID = 1234 }
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_FOOD")
+    t.eq(calledWith(gt, "SetItemByID")[2], 1234, "the item tooltip is set from the pick")
+    t.falsy(calledWith(gt, "SetSpellByID"), "no spell setter on the item path")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: SetTooltip falls back to the macro name and body when unresolved", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    _G.CreateMacro("KCM_FOOD", 1, "#showtooltip\n/use Bread")
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_FOOD")
+    t.eq(calledWith(gt, "SetText")[2], "KCM_FOOD", "the name heads the fallback tooltip")
+    t.eq(calledWith(gt, "AddLine")[2], "#showtooltip\n/use Bread", "the body follows it")
+    t.truthy(calledWith(gt, "Show"), "the fallback still shows — never a stale tooltip")
+end)
+
+test("macrodisplay: SetTooltip with no such macro shows just the name", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_NOPE")
+    t.eq(calledWith(gt, "SetText")[2], "KCM_NOPE", "the name is still shown")
+    t.falsy(calledWith(gt, "AddLine"), "index 0 means no such macro, so no body line")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: SetTooltip does nothing without an owner", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    KCM.MacroDisplay.SetTooltip(nil, "KCM_FOOD")
+    t.eq(#gt.calls, 0, "no owner, no tooltip work at all")
+end)
+
 -- ---------------------------------------------------------------------------
 -- Cooldown application (modules/MacroBarButton.lua — secret-value safe)
 -- ---------------------------------------------------------------------------
