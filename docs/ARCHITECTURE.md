@@ -62,7 +62,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
 | Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
 | Contributor toolchain — what to install to build, run, test or release | — | [../DEPENDENCIES.md](../DEPENDENCIES.md) |
-| Complexity report (generated at release — a report, not a gate) | — | [complexity.md](./complexity.md) |
+| Automated test records (produced at release — recorded, not a gate) | — | [automated-tests/](./automated-tests/) |
 | Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 | Test-case inventory (generated — the authoritative pass count) | `tests/` | [test-cases.md](./test-cases.md) |

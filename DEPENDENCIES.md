@@ -46,7 +46,7 @@ Then open a new shell (`pipx ensurepath` edits your profile) and run the verific
 |------|---------|---------------------|---------|--------|
 | **Lua 5.1** — and the binary **must be named `lua5.1` on `PATH`** | **5.1 exactly. Not a preference.** | Two independent reasons. (a) The suite **shells out to the literal string `lua5.1`**: `tests/test_runner_list.lua:36` (`local cmd = "lua5.1 " .. root .. "/tests/run.lua --list"`) and `:48` (`os.execute("lua5.1 " .. root .. "/tests/run.lua --list > /dev/null 2>&1")`). With no `lua5.1` on `PATH` those two cases fail, no matter what `lua` points at. (b) The client runs 5.1, so the harness targets 5.1 and lint enforces it: `.luacheckrc:7` sets `std = "lua51"`, which rejects anything outside the 5.1 standard library. Also forward-looking: the vendored test kit sandboxes chunks with `setfenv` (`tests/_kit/loader.lua:31`, `:50`), which does not exist after 5.1 — that kit is not yet wired into the runner (tracked as `CM-34`), but it is byte-verified in-repo and will be. | `sudo apt install -y lua5.1` | `lua5.1 -v` → `Lua 5.1.5` |
 | **luacheck** | **Any recent.** Pinning would be false precision — the config uses no version-specific feature. | The lint half of the green gate. `docs/testing.md:15`, `CLAUDE.md` "Gate" block; configured by `.luacheckrc`. | `sudo apt install -y luarocks && sudo luarocks install luacheck` | `luacheck --version` |
-| **lizard** | **Any recent.** Same reasoning — the invocation uses only stock flags. Record whatever version you used in the report header. | Generates `docs/complexity.md` at every release (`performance-§10`). | `sudo apt install -y pipx && pipx ensurepath && pipx install lizard` | `lizard --version` |
+| **lizard** | **Any recent.** Same reasoning — the invocation uses only stock flags. Record whatever version you used in the report header. | Feeds the `complexity` suite of `tests/_kit/run-automated-tests.sh`, recorded in every run bundle (`automated-tests`). | `sudo apt install -y pipx && pipx ensurepath && pipx install lizard` | `lizard --version` |
 | **git** | Any recent. | Beyond version control, one suite **executes `git`**: `tests/test_vendor_sync.lua:54` runs `git -C "<sibling>" …` to compare `libs/LibKa0s/` and `tests/_kit/` against the LibKa0s tag this repo's README claims. | `sudo apt install -y git` | `git --version` |
 | **A sibling `LibKa0s` checkout** (not software) | matching the tag `README.md:277` names | `tests/test_vendor_sync.lua:39` resolves `SIBLING = ROOT .. "/../LibKa0s"`. Absent, the two vendor-sync cases **go quiet rather than fail** — `siblingTag()` returns `nil` when the sibling has no `HEAD:LibKa0s/Core.lua` (`:110-111`), which the file documents as the one sanctioned quiet case. The suite is still green without the checkout, but the vendored-payload check is then not actually running. | `git clone https://github.com/tusharsaxena/LibKa0s ../LibKa0s` | `ls ../LibKa0s/LibKa0s` |
 | **POSIX `ls`** | any | Test discovery shells out rather than depending on LuaFileSystem: `tests/run.lua:28` (`io.popen("ls " .. ROOT .. "/tests/test_*.lua …")`). Present on any Ubuntu; listed because it is a real, non-obvious runtime requirement of the harness. | preinstalled (coreutils) | `ls --version` |
@@ -89,7 +89,7 @@ ship a change with nothing beyond section 2 installed.
 | Thing | Needed for | Notes |
 |-------|-----------|-------|
 | **The CurseForge packager** | Producing the distributable zip | Runs on CurseForge's side from `.pkgmeta`; nothing to install locally. `.pkgmeta` has no `externals:` block, so packaging fetches nothing. |
-| **`lizard`** | Regenerating `docs/complexity.md` before a release tag | Already listed in section 2. Its absence means the report is **stale, not that the addon is non-compliant** (`performance-§10`) — leave the previous report committed with its own header and say so in the release notes. Never hand-edit it. |
+| **`lizard`** | The `complexity` suite of the automated-test run made before a release tag | Already listed in section 2. Its absence means the report is **stale, not that the addon is non-compliant** (`performance-§10`) — leave the previous report committed with its own header and say so in the release notes. Never hand-edit it. |
 | **`diff`, `git`, a sibling `LibKa0s`** | The pre-release vendored-copy check | `docs/testing.md:19-51`. Already listed in section 2. |
 
 ### Bundled assets — licensed content, not build dependencies
@@ -128,5 +128,5 @@ lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .       # complexity report (per
 ```
 
 The first two are the commit gate. The third is the **release** checkpoint — regenerate
-`docs/complexity.md` and read its diff before tagging; it never gates a commit. Full detail, and
+a full automated-test bundle and read its diff before tagging; it never gates a commit. Full detail, and
 the vendored-copy diff to run after any re-vendor, in [`docs/testing.md`](./docs/testing.md).

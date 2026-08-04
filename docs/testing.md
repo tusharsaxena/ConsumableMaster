@@ -127,41 +127,42 @@ until it passes. No logic change lands without a covering test. Pure, testable l
 exercised headlessly here; genuinely in-client behavior (frame rendering, taint) is
 covered by the in-game smoke tests below.
 
-## The release checkpoint — regenerate the complexity report
+## Automated test records — the consolidated run
 
-This one is **not a commit gate**, and deliberately so. Run it as part of every release, in the
-same change that bumps the version and rolls the README's `## What's new` and `## Version History`
-forward, **before** the tag:
+All four out-of-game suites go through one vendored runner, and every run is recorded
+(`automated-tests`):
 
 ```sh
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .   # from the repo root, exactly this
+tests/_kit/run-automated-tests.sh                            # all four, writes a bundle
+tests/_kit/run-automated-tests.sh --suite complexity          # a subset
+tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the green gate; writes nothing
 ```
 
-Write the output into [complexity.md](./complexity.md) — one file, overwritten in place, never
-dated and never a directory — and then **read the diff against the previous version of that file**.
-That diff is the whole point: a single report is a page of numbers nobody acts on, while the same
-function moving from CCN 9 to CCN 24 since the last tag is a finding with a name attached. Anything
-that newly crossed a lizard threshold, or a file that newly entered the 1000–1500 LOC band, goes
-into the report's `## Watch list` with a one-line disposition.
+| Suite | Command | Gates? |
+|---|---|---|
+| `lint` | `luacheck .` | **yes** |
+| `tests` | `lua tests/run.lua` | **yes** |
+| `perf` | `lua tests/perf.lua` | no — recorded only |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
 
-Three things not to do:
+**`perf` and `complexity` never fail a run.** They are measured, recorded and diffed — a threshold
+that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects nothing
+and the habit remains. They contribute `amber`, which is a signal rather than a stop. **A missing
+tool is a skip recorded with its reason**, never a pass.
 
-- **Do not gate a commit on it.** A complexity threshold that fails a build teaches everyone to
-  reach for `--no-verify`, after which the gate protects nothing and the habit remains. The commit
-  gate is still exactly the two commands at the top of this page.
-- **Do not tune the invocation.** No extra flags, no per-addon thresholds, no narrowing the path.
-  Two reports produced by different invocations cannot be diffed, which costs more than any flag
-  gains.
-- **Do not hand-edit the report.** If `lizard` is not installed the report is *stale*, not
-  non-compliant — leave the previous one committed with its original header (which dates itself)
-  and say so in the release notes. A hand-edited report is worse than an absent one, because it
-  reads as measured.
+The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
+upstream and is re-vendored.
 
-Rule and rationale: the standard's `performance-§10`. Install `lizard` per
-[../DEPENDENCIES.md](../DEPENDENCIES.md).
+**At release, not at commit.** A full bundle is produced as part of every version bump, before the
+tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only.
 
-Regenerate mid-cycle too when a change is what pushed a function over — recording it with the
-commit that caused it beats rediscovering it at release, one commit among thirty.
+Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
+four suites plus the current complexity watch list — **one file, overwritten in place**, so its git
+history is the trend line — and each `<YYYY-MM-DD-HHMMSS>/` is a frozen bundle of that run's raw
+output. Bundles are never edited and never pruned.
+
+`docs/complexity.md` was this addon's standalone complexity report through standard v2.18.0; it is
+**retired** — its raw output is each bundle's `complexity.txt` and its trend line is `RESULTS.md`.
 
 ## In-game smoke tests
 

@@ -53,8 +53,8 @@ are **frozen history** — never treat them as a live requirement, and never "re
   addon, with WSL2/Ubuntu commands and a verification command per tool (`documentation-§7`).
 - Topic detail in `docs/` as needed — `file-index.md`, `module-map.md`, `pipeline.md`,
   `data-model.md`, `macro-manager.md`, `macro-bar.md`, `midnight-quirks.md`, `common-tasks.md`,
-  `debug.md`, `scope.md`, `smoke-tests.md`, `test-cases.md`, `complexity.md`, `pending/LEDGER.md`.
-  `test-cases.md` and `complexity.md` are **generated** — never hand-edit either.
+  `debug.md`, `scope.md`, `smoke-tests.md`, `test-cases.md`, `automated-tests/`, `pending/LEDGER.md`.
+  `test-cases.md` is **generated** — never hand-edit it. So is `automated-tests/RESULTS.md`, and a run bundle is frozen once written.
 - User-facing reference: [README.md](./README.md).
 
 ## Gate
@@ -66,7 +66,7 @@ luacheck .              # lint
 
 Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
-**At release, not at commit.** Regenerate `docs/complexity.md` with
+**At release, not at commit.** Produce a full automated-test bundle with
 `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` and review its diff before the tag — in the same
 change that bumps the version. It is a **report, not a gate**: never block a commit on it, never
 tune the invocation, never hand-edit the output. Rule: `performance-§10`; how-to:
