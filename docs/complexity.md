@@ -51,7 +51,7 @@ remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a compl
 
 | File | LOC | Disposition |
 |------|-----|-------------|
-| `core/SlashCommands.lua` | 1408 | **Already tracked as CM-54** (advisory) and resolved by **CM-47** — the dispatcher belongs in `settings/Slash.lua`; that split takes the `COMMANDS` table, the `LibKa0s-Slash-1.0` descriptor and `OnSlashCommand` out of this file. It holds four of the 22 warnings, including the worst two, so the split is the single highest-value move left in this addon. |
+| `core/SlashCommands.lua` | 1408 | **Already tracked as CM-54** (advisory) and resolved by **CM-47** — the dispatcher belongs in `settings/Slash.lua`; that split takes the `COMMANDS` table, the `LibKa0s-Slash-1.0` descriptor and `OnSlashCommand` out of this file. It holds four of the 21 warnings, including the worst two, so the split is the single highest-value move left in this addon. |
 | `tests/test_macrobar.lua` | 1129 | **Accepted.** It is one suite per behavior over the repo's most in-client-coupled module, with a flat CCN (avg 1.3) — length here is case count, not tangle. Peel by module (bar / button / flyout) only if it crosses 1500. |
 
 ### Functions over CCN 15
