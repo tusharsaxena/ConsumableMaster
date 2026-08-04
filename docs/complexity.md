@@ -17,12 +17,12 @@ are measured, and one of them lands on the watch list below.
 
 ## Watch list
 
-**21 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
+**20 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
 tripped the length (> 1000) or parameter (> 100) thresholds. **One file** sits in `layout-§1`'s
 1000–1500 LOC on-notice band, and it is a test suite. No file exceeds the 1500 LOC cap.
 
 **Four peels landed in this change**, which is why the numbers below are lower than the ones the
-2026-08-04 audit was written against. All 600 tests pass unchanged and `luacheck` is clean:
+2026-08-04 audit was written against. All 605 tests pass and `luacheck` is clean:
 
 - **`R.Explain`** (`modules/Ranker.lua`) — was the worst number in the repo at CCN **68**, one
   `if catKey == …` ladder of per-category breakdowns. Now a dispatch table of eight named
@@ -55,6 +55,17 @@ targets), `core/SlashCommands.lua` (808, the verb bodies) and `settings/Slash.lu
 relocates complexity; it does not reduce it, and claiming otherwise is how a watch list starts
 lying.
 
+**`F-006` also landed.** `M.SetCompositeMacro` re-implemented `commitMacro`'s five-step write
+ladder inline — oversize fallback, fingerprint compare, combat defer, `doEdit`, `macroState` store
+— and the two copies had already diverged in the oversize wording, the icon decision, and the
+pending-entry shape (that last one being the mechanism behind **F-001**). `commitMacro` now takes an
+options table covering the three things a composite genuinely needs differently, and
+`SetCompositeMacro` is a body build plus one call. Its CCN-35 row is gone from this list and
+`commitMacro` rose 27 → 35 absorbing it. The composite write tail had **no** direct test coverage
+before this — the suite only ever stubbed `SetCompositeMacro` — so five tests were added pinning the
+icon sentinel, the absent `lastItemID`, the unchanged-coalesce, the guards, and the deferred entry's
+`cat` field, which is what routes a queued composite write back through the composite path.
+
 **Correction carried by that move:** the two `run` warnings below at CCN 62 and 32 were previously
 recorded here as `core/SlashCommands.lua`'s verb ladder, "resolved by the CM-47 split". They are
 not. They are `DUMP_TARGETS.pick.run` and `DUMP_TARGETS.item.run` — the `/cm dump` diagnostic
@@ -72,11 +83,10 @@ they actually are.
 | Function | CCN | Location | Disposition |
 |----------|-----|----------|-------------|
 | `run` | 62 | `core/SlashDump.lua:155-282` | **Accepted — the branch count *is* the diagnostic.** `DUMP_TARGETS.pick.run`, behind `/cm dump pick`: it walks every category, resolves each one's pick through the whole selection chain and prints why each candidate won or lost. It is the worst number in the repo and it runs when a human types a diagnostic command, never on a hot path or in a frame. Splitting it per printed section would scatter the one place the selection story is told end to end. Compare KickCD's `Castbar:DebugDump` (CCN 27), accepted on the same grounds. Revisit if it grows a branch that is not a printed line. |
-| `M.SetCompositeMacro` | 35 | `modules/MacroManager.lua:418-496` | **Already tracked as review finding F-006** — it re-implements `commitMacro`'s five-step guard ladder inline and has already drifted. Collapsing the two removes most of this CCN. |
 | `run` | 32 | `core/SlashDump.lua:89-149` | **Accepted**, same grounds as `pick` above. `DUMP_TARGETS.item.run`, behind `/cm dump <itemID>`: one branch per field of the classification/tooltip record it prints. |
 | `bindEntry` | 30 | `modules/MacroBarFlyout.lua:324-378` | **Accepted for now.** Secure-frame binding: the branches are the combat / template / secret-value guards that `events-frames-taint` requires, and flattening them would mean widening the guard. Revisit if it grows past ~35. |
-| `buildCompositeBody` | 27 | `modules/MacroManager.lua:174-245` | **Peel next, with F-006.** Macro-body assembly by category conditional; extracting the per-category conditional splice into its own function is a mechanical win and F-006 already opens this file. |
-| `commitMacro` | 27 | `modules/MacroManager.lua:305-371` | **Accepted as the shared write tail** — this is the ladder F-006 wants *everything* to go through, so its CCN is load-bearing. Expect it to rise slightly when F-006 lands; that is the intended direction. |
+| `buildCompositeBody` | 27 | `modules/MacroManager.lua:174-245` | **Peel next — now unblocked.** Macro-body assembly by category conditional. Its disposition was "peel with F-006"; F-006 has landed and left this function untouched, so the reason to wait is gone. Extracting the per-category conditional splice into its own function is a mechanical win, and it is now the highest-CCN item in the addon with no open ID against it. |
+| `commitMacro` | 35 | `modules/MacroManager.lua:325-404` | **Accepted as the shared write tail, and this number going UP is the win.** F-006 landed: `M.SetCompositeMacro` (CCN 35) re-implemented this ladder inline and had drifted in three places, one of which was F-001's mechanism. It now calls this function, so every macro write in the addon goes through one ladder. 27 → 35 is the second copy being absorbed, exactly the direction the previous report predicted. Read a future rise here the same way — as centralization — and only worry if it rises without a caller disappearing. |
 | `P.Recompute` | 26 | `core/ConsumableMaster.lua:261-322` | **Accepted.** The recompute pipeline's stage sequencer, with each stage's skip condition inline. It is bracketed by the perf harness (`recompute` bucket) precisely because it is the hot path, and the branches are cheap early-outs. Re-examine if stages are added. |
 | `S.GetBucket` | 23 | `modules/Selector.lua:36-71` | **Accepted.** Bucket resolution across the spec / class / global fallback chain — the branch count *is* the fallback specification, and the suite pins each arm. |
 | `BB.ApplyStyle` | 21 | `modules/MacroBarButton.lua:254-302` | **Accepted.** Per-option styling switch (icon, border, GCD swipe, cooldown bling) driven by the settings schema; one branch per user-visible toggle. |
@@ -95,10 +105,12 @@ they actually are.
 
 Nothing on this list is a `MUST` violation: `layout-§1` caps files at 1500 LOC (no file is over) and
 lizard's CCN threshold is a report signal, not a gate (performance-§10, "the checkpoint: release, not
-commit"). Two rows are marked *peel next*, and both are deliberately deferred: `buildCompositeBody` and
-`validateSchemaValue` should move **with** review findings F-006 and F-013 rather than before them,
-because both findings change the shape of the code being peeled. The rest are recorded as accepted
-with a reason so the next release's diff shows movement rather than a fresh argument.
+commit"). Two rows are marked *peel next*. `buildCompositeBody` is now unblocked (F-006 landed without
+touching it) and is the top remaining candidate. `validateSchemaValue` is still deliberately
+deferred: F-013 adds a defaults-resolution pass to schema validation, which adds branches to that
+exact function, so it should be restructured into a list of validators as part of that change rather
+than before it. The rest are recorded as accepted with a reason so the next release's diff shows
+movement rather than a fresh argument.
 
 ## Raw output
 
@@ -453,13 +465,14 @@ with a reason so the next release's diff shows movement rather than a fresh argu
       10      5     76      2      10 actionLineForPick@158-167@./modules/MacroManager.lua
       47     27    340      2      72 buildCompositeBody@174-245@./modules/MacroManager.lua
       21      9    112      4      32 doEdit@269-300@./modules/MacroManager.lua
-      52     27    354      4      67 commitMacro@305-371@./modules/MacroManager.lua
-      11     10    109      3      16 M.SetMacro@382-397@./modules/MacroManager.lua
-       8      6     83      3       8 M.SetWeaponEnchantMacro@402-409@./modules/MacroManager.lua
-       3      1     17      1       3 pickFor@430-432@./modules/MacroManager.lua
-      64     35    430      2      79 M.SetCompositeMacro@418-496@./modules/MacroManager.lua
-      33     13    191      0      37 M.FlushPending@506-542@./modules/MacroManager.lua
-       7      3     36      0       7 M.InvalidateState@553-559@./modules/MacroManager.lua
+      62     35    415      5      80 commitMacro@325-404@./modules/MacroManager.lua
+      11     10    109      3      16 M.SetMacro@415-430@./modules/MacroManager.lua
+       8      6     83      3       8 M.SetWeaponEnchantMacro@435-442@./modules/MacroManager.lua
+       3      1     17      1       3 pickFor@463-465@./modules/MacroManager.lua
+       3      3     10      1       3 resolveIcon@480-482@./modules/MacroManager.lua
+      22      9    142      2      37 M.SetCompositeMacro@451-487@./modules/MacroManager.lua
+      33     13    191      0      37 M.FlushPending@497-533@./modules/MacroManager.lua
+       7      3     36      0       7 M.InvalidateState@544-550@./modules/MacroManager.lua
        4      4     34      0       6 suspend@44-49@./modules/PerfSetup.lua
        7      6     54      0       9 resume@51-59@./modules/PerfSetup.lua
        1      1     14      1       1 log@88-88@./modules/PerfSetup.lua
@@ -1112,6 +1125,13 @@ with a reason so the next release's diff shows movement rather than a fresh argu
        7      1     60      1       7 (anonymous)@440-446@./tests/test_macromanager.lua
        6      1     54      1       6 (anonymous)@448-453@./tests/test_macromanager.lua
        9      1     83      1       9 (anonymous)@455-463@./tests/test_macromanager.lua
+       1      1      9      1       1 PickBestForCategory@483-483@./tests/test_macromanager.lua
+       4      1     24      2       4 compositeWith@482-485@./tests/test_macromanager.lua
+       9      1     91      1       9 (anonymous)@487-495@./tests/test_macromanager.lua
+       7      1     55      1       7 (anonymous)@497-503@./tests/test_macromanager.lua
+       7      1     60      1       7 (anonymous)@505-511@./tests/test_macromanager.lua
+      13      1    135      1      15 (anonymous)@513-527@./tests/test_macromanager.lua
+      12      1    105      1      12 (anonymous)@529-540@./tests/test_macromanager.lua
        4      1     22      0       4 load@15-18@./tests/test_perfsetup.lua
        8      1     67      1      12 (anonymous)@20-31@./tests/test_perfsetup.lua
        5      1     27      1       9 (anonymous)@33-41@./tests/test_perfsetup.lua
@@ -1623,7 +1643,7 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
     324      10.1     5.3       73.4        31     ./modules/MacroBar.lua
     220      13.4     7.2      108.2        16     ./modules/MacroBarButton.lua
     309      13.8     6.5      113.1        19     ./modules/MacroBarFlyout.lua
-    322      17.8    10.2      125.2        17     ./modules/MacroManager.lua
+    292      15.2     8.8      106.2        18     ./modules/MacroManager.lua
      32       2.8     2.6       24.4         5     ./modules/PerfSetup.lua
     408      10.3     5.7       75.6        36     ./modules/Ranker.lua
     381      11.3     7.8       87.4        21     ./modules/Selector.lua
@@ -1652,7 +1672,7 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
     131      11.8     4.6       82.8         8     ./tests/test_libka0s.lua
      17      15.0    12.0      154.0         1     ./tests/test_load.lua
     897       7.6     1.3       71.5       119     ./tests/test_macrobar.lua
-    379       7.7     1.2       66.0        50     ./tests/test_macromanager.lua
+    432       7.7     1.2       66.3        57     ./tests/test_macromanager.lua
     123       9.5     2.7       69.7        13     ./tests/test_perfsetup.lua
     210       6.4     1.3       52.5        33     ./tests/test_pipeline.lua
     319      13.7     1.2      172.7        23     ./tests/test_ranker.lua
@@ -1688,8 +1708,7 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
       47     30    475      4      55 bindEntry@324-378@./modules/MacroBarFlyout.lua
       55     17    463      2      69 FO.Apply@429-497@./modules/MacroBarFlyout.lua
       47     27    340      2      72 buildCompositeBody@174-245@./modules/MacroManager.lua
-      52     27    354      4      67 commitMacro@305-371@./modules/MacroManager.lua
-      64     35    430      2      79 M.SetCompositeMacro@418-496@./modules/MacroManager.lua
+      62     35    415      5      80 commitMacro@325-404@./modules/MacroManager.lua
       19     17    129      2      19 statWeight@105-123@./modules/Ranker.lua
       31     23    243      2      36 S.GetBucket@36-71@./modules/Selector.lua
       25     21    241      2      25 OnAccept@124-148@./settings/Category.lua
@@ -1698,5 +1717,5 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
 ==========================================================================================
 Total nloc   Avg.NLOC  AvgCCN  Avg.token   Fun Cnt  Warning cnt   Fun Rt   nloc Rt
 ------------------------------------------------------------------------------------------
-     14316       8.3     3.0       66.5     1469           21      0.01    0.07
+     14339       8.3     3.0       66.3     1477           20      0.01    0.06
 ```

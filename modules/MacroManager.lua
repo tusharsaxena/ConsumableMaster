@@ -302,26 +302,54 @@ end
 -- Shared macro-write tail: oversize fallback, unchanged/pending coalescing,
 -- combat deferral, doEdit, and macroState store. `iconItemID` drives the icon
 -- (nil for empty-state). Callers pass an already-built body.
-local function commitMacro(macroName, body, iconItemID, catKey)
+--
+-- EVERY macro write in the addon goes through here, composite included (F-006).
+-- SetCompositeMacro used to re-implement all five steps inline and the two
+-- copies had already drifted in three places, one of which was the mechanism
+-- behind F-001. `opts` is the whole of what a composite genuinely needs
+-- differently:
+--
+--   cat          the category object. Used for the empty-state body, and stored
+--                on a deferred entry — FlushPending dispatches on
+--                `entry.cat.composite`, so this field is what routes a queued
+--                composite write back through SetCompositeMacro instead of
+--                SetMacro. A single-category write leaves it nil, which is
+--                exactly the distinction FlushPending reads.
+--   active       whether `body` is the built body rather than the empty-state
+--                one. Only composites care; it feeds resolveIcon.
+--   resolveIcon  icon override, called with the post-oversize `active`. A
+--                composite's icon is a sentinel decided by whether the body is
+--                active, not by an item, so it cannot come from iconFor.
+--   oversizeDebugFmt / oversizeSay
+--                the two oversize wordings, which differ only in the noun.
+local function commitMacro(macroName, body, iconItemID, catKey, opts)
+    opts = opts or {}
     local effectiveItemID = iconItemID
+    local active = opts.active
+    if active == nil then active = true end
+
     if #body > MACRO_BODY_LIMIT then
         -- Silent truncation corrupted the macro (e.g. half a /cast line), so
         -- swap to the category's empty-state body and surface the problem
         -- once per catKey per session. Full oversized body goes to Debug for
         -- troubleshooting.
-        local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
+        local cat = opts.cat
+            or (KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey))
         if KCM.State and KCM.State.debug then
-            KCM.Debug("Macro", "%s body exceeds %s bytes: %s",
+            KCM.Debug("Macro", opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s",
                 tostring(catKey), MACRO_BODY_LIMIT, body)
         end
         if catKey and not alreadyWarnedOversized[catKey] then
             alreadyWarnedOversized[catKey] = true
-            KCM.Say("%s macro body exceeds 255 bytes — macro is inert until the picked entry's body fits. Please report this.", catKey)
+            KCM.Say(opts.oversizeSay
+                or "%s macro body exceeds 255 bytes — macro is inert until the picked entry's body fits. Please report this.",
+                catKey)
         end
         body = buildEmptyBody(cat)
         effectiveItemID = nil  -- body is now empty-state; stored icon must follow
+        active = false         -- ...and so must a sentinel icon
     end
-    local icon = iconFor(effectiveItemID)
+    local icon = opts.resolveIcon and opts.resolveIcon(active) or iconFor(effectiveItemID)
 
     KCM.db.profile.macroState = KCM.db.profile.macroState or {}
     local state   = KCM.db.profile.macroState[macroName]
@@ -348,9 +376,14 @@ local function commitMacro(macroName, body, iconItemID, catKey)
             body     = body,
             itemID   = iconItemID,
             catKey   = catKey,
+            -- Composite only. FlushPending dispatches on its presence, so a
+            -- single-category entry must leave it nil (F-001).
+            cat      = opts.cat,
             attempts = attempts,
         }
-        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "deferred %s (combat)", macroName) end
+        if KCM.State and KCM.State.debug then
+            KCM.Debug("Macro", opts.deferDebugFmt or "deferred %s (combat)", macroName)
+        end
         return "deferred"
     end
 
@@ -433,66 +466,24 @@ function M.SetCompositeMacro(cat, scoreCache)
 
     local activeBody = buildCompositeBody(cat, pickFor)
     local body = activeBody or buildEmptyBody(cat)
-    local effectiveActive = activeBody ~= nil
 
-    if #body > MACRO_BODY_LIMIT then
-        if KCM.State and KCM.State.debug then
-            KCM.Debug("Macro", "%s composite body exceeds %s bytes: %s",
-                tostring(catKey), MACRO_BODY_LIMIT, body)
-        end
-        if catKey and not alreadyWarnedOversized[catKey] then
-            alreadyWarnedOversized[catKey] = true
-            KCM.Say("%s macro body exceeds 255 bytes — macro is inert until the composite body fits. Please report this.", catKey)
-        end
-        body = buildEmptyBody(cat)
-        effectiveActive = false
-    end
-    -- Active body has #showtooltip → DYNAMIC_ICON sentinel so the action bar
-    -- adopts the icon of whichever step the current combat conditional
-    -- selects. Empty body has no #showtooltip → DEFAULT_ICON renders the
-    -- cooking pot directly.
-    local icon = effectiveActive and DYNAMIC_ICON or DEFAULT_ICON
-
-    KCM.db.profile.macroState = KCM.db.profile.macroState or {}
-    local state   = KCM.db.profile.macroState[macroName]
-    local pending = pendingUpdates[macroName]
-
-    if state and state.lastBody == body and state.lastIcon == icon
-            and pending and pending.body == body then
-        pendingUpdates[macroName] = nil
-        return "unchanged"
-    end
-    if state and state.lastBody == body and state.lastIcon == icon and pending == nil then
-        return "unchanged"
-    end
-
-    if InCombatLockdown and InCombatLockdown() then
-        local attempts = pending and pending.attempts or 0
-        pendingUpdates[macroName] = {
-            body     = body,
-            itemID   = nil,
-            catKey   = catKey,
-            cat      = cat,           -- drives composite dispatch in FlushPending
-            attempts = attempts,
-        }
-        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "deferred %s composite (combat)", macroName) end
-        return "deferred"
-    end
-
-    local result, err = doEdit(macroName, icon, body, catKey)
-    if result == "error" then
-        if KCM.State and KCM.State.debug then KCM.Debug("Macro", "%s failed — %s", macroName, tostring(err)) end
-        return "error", err
-    end
-
-    KCM.db.profile.macroState[macroName] = {
-        lastItemID = nil,
-        lastBody   = body,
-        lastIcon   = icon,
-        lastCat    = catKey,
-    }
-    pendingUpdates[macroName] = nil
-    return result
+    -- Everything past here is commitMacro's (F-006). `iconItemID` is nil, which
+    -- is what makes the stored `lastItemID` and the deferred entry's `itemID`
+    -- come out nil the way the hand-rolled copy set them explicitly.
+    return commitMacro(macroName, body, nil, catKey, {
+        cat    = cat,
+        active = activeBody ~= nil,
+        -- Active body has #showtooltip → DYNAMIC_ICON sentinel so the action bar
+        -- adopts the icon of whichever step the current combat conditional
+        -- selects. Empty body has no #showtooltip → DEFAULT_ICON renders the
+        -- cooking pot directly.
+        resolveIcon = function(isActive)
+            return isActive and DYNAMIC_ICON or DEFAULT_ICON
+        end,
+        oversizeDebugFmt = "%s composite body exceeds %s bytes: %s",
+        oversizeSay      = "%s macro body exceeds 255 bytes — macro is inert until the composite body fits. Please report this.",
+        deferDebugFmt    = "deferred %s composite (combat)",
+    })
 end
 
 -- ---------------------------------------------------------------------------

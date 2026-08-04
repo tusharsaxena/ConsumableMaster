@@ -461,3 +461,80 @@ test("MacroManager.SetWeaponEnchantMacro guards a missing category or DB", funct
     KCM.db = saved
     t.eq(result, "error", "no DB is an error")
 end)
+
+-- ---------------------------------------------------------------------------
+-- SetCompositeMacro's write tail (F-006)
+-- ---------------------------------------------------------------------------
+-- SetCompositeMacro used to re-implement commitMacro's five-step ladder inline,
+-- and the two copies had drifted in three places. These pin the three, so the
+-- unified path cannot quietly regrow a second opinion:
+--   * the icon is a sentinel chosen by whether the body is active, not iconFor;
+--   * a composite stores no lastItemID, because no single item is behind it;
+--   * a deferred composite carries `cat`, which is what routes the queued write
+--     back through SetCompositeMacro instead of SetMacro on flush -- the
+--     mechanism behind F-001.
+
+-- Mirrors modules/MacroManager.lua. Named here rather than exported: the values
+-- are a client contract (134400 is WoW's "?" fileID, which makes the bar follow
+-- #showtooltip), so a test that hard-codes them fails if the contract moves.
+local DEFAULT_ICON, DYNAMIC_ICON = 7704166, 134400
+
+local function compositeWith(KCM, picks)
+    KCM.Selector.PickBestForCategory = function(refKey) return picks[refKey] end
+    return KCM.Categories.Get("HP_AIO")
+end
+
+test("MacroManager.SetCompositeMacro stores the dynamic icon and no item id", function(t)
+    local KCM = h.loader.loadPure()
+    local aio = compositeWith(KCM, { HS = 5512, HP_POT = 171267, FOOD = 113509 })
+    t.eq(KCM.MacroManager.SetCompositeMacro(aio), "created", "first write creates")
+    local st = KCM.db.profile.macroState[aio.macroName]
+    t.eq(st.lastIcon, DYNAMIC_ICON,
+        "an active composite body has #showtooltip, so the bar follows the live step")
+    t.eq(st.lastItemID, nil, "no single item is behind a composite")
+end)
+
+test("MacroManager.SetCompositeMacro falls back to the default icon with no picks", function(t)
+    local KCM = h.loader.loadPure()
+    local aio = compositeWith(KCM, {})
+    KCM.MacroManager.SetCompositeMacro(aio)
+    t.eq(KCM.db.profile.macroState[aio.macroName].lastIcon, DEFAULT_ICON,
+        "an empty-state body has no #showtooltip, so the pot renders directly")
+end)
+
+test("MacroManager.SetCompositeMacro coalesces an unchanged rewrite", function(t)
+    local KCM = h.loader.loadPure()
+    local aio = compositeWith(KCM, { HS = 5512, HP_POT = 171267, FOOD = 113509 })
+    KCM.MacroManager.SetCompositeMacro(aio)
+    t.eq(KCM.MacroManager.SetCompositeMacro(aio), "unchanged",
+        "same body and icon → no second EditMacro")
+end)
+
+test("MacroManager.SetCompositeMacro defers in combat and replays as a composite", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local aio = compositeWith(KCM, { HS = 5512, HP_POT = 171267, FOOD = 113509 })
+
+    mock.setCombat(true)
+    t.eq(KCM.MacroManager.SetCompositeMacro(aio), "deferred", "no secure write in combat")
+    t.eq(KCM.db.profile.macroState[aio.macroName], nil,
+        "and nothing stored claims it was written")
+
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 1, "the queued entry replays out of combat")
+    t.eq(KCM.db.profile.macroState[aio.macroName].lastIcon, DYNAMIC_ICON,
+        "and it replayed through SetCompositeMacro — a SetMacro replay would have " ..
+        "resolved the icon from an itemID the entry does not carry")
+end)
+
+test("MacroManager.SetCompositeMacro guards a non-composite category and a missing DB", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.MacroManager.SetCompositeMacro(KCM.Categories.Get("FOOD")), "error",
+        "a single category is not a composite")
+    t.eq(KCM.MacroManager.SetCompositeMacro(nil), "error", "no category is an error")
+    local aio = compositeWith(KCM, { HS = 5512 })
+    local saved = KCM.db
+    KCM.db = nil
+    local result = KCM.MacroManager.SetCompositeMacro(aio)
+    KCM.db = saved
+    t.eq(result, "error", "no DB is an error")
+end)
