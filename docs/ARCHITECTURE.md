@@ -61,6 +61,8 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
 | Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
+| Contributor toolchain — what to install to build, run, test or release | — | [../DEPENDENCIES.md](../DEPENDENCIES.md) |
+| Complexity report (generated at release — a report, not a gate) | — | [complexity.md](./complexity.md) |
 | Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 | Test-case inventory (generated — the authoritative pass count) | `tests/` | [test-cases.md](./test-cases.md) |
@@ -106,6 +108,9 @@ Cross-module control flow that crosses feature boundaries travels over the close
 Note the flyout timer's limit: there is no timer inside the *secure* environment, so it cannot close a flyout mid-combat and deliberately stands down instead ([macro-bar.md](./macro-bar.md#closing)).
 
 ## External dependencies
+
+These are the addon's **runtime** libraries. The **contributor toolchain** — what you install to
+build, test or release — is a separate list in [../DEPENDENCIES.md](../DEPENDENCIES.md).
 
 All vendored under `libs/`:
 
@@ -176,7 +181,7 @@ Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMast
 - **Dual-path WSL checkout.** `/home/tushar/GIT/ConsumableMaster/` and
   `/mnt/d/Profile/Users/Tushar/Documents/GIT/ConsumableMaster/` are the same repo via symlink; either
   path works for git and file tools.
-- **Remote.** `origin` → `https://github.com/tusharsaxena/consumablemaster.git` (GitHub repo
+- **Remote.** `origin` → `https://github.com/tusharsaxena/ConsumableMaster.git` (GitHub repo
   `tusharsaxena/ConsumableMaster`), `master` is the default branch, and the `gh` CLI is authenticated
   for issues.
 - **Tracked vs ignored.** `libs/` is tracked (vendored Ace3 / LibSharedMedia / LibKa0s — standard WoW
