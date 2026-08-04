@@ -206,53 +206,62 @@ local function stripCooldownNotes(line)
     end))
 end
 
+-- Duration units in precedence order: hour/hr beats min beats sec, so a line
+-- carrying several ("1 hour ... 3 sec") reports the largest unit's value. Only
+-- the seconds form takes part in the "over N sec" routing below.
+local DUR_UNITS = {
+    { pat = PATTERNS.durHour, mult = 3600 },
+    { pat = PATTERNS.durHr,   mult = 3600 },
+    { pat = PATTERNS.durMin,  mult = 60   },
+    { pat = PATTERNS.durSec,  mult = 1, isSec = true },
+}
+
+-- First unit that matches wins, in DUR_UNITS order.
+local function matchDuration(cleaned)
+    for _, unit in ipairs(DUR_UNITS) do
+        local cap = cleaned:match(unit.pat)
+        if cap then return toNumberCommas(cap) * unit.mult, unit.isSec end
+    end
+end
+
+-- Prefer the longest duration seen (flasks: 1 hour vs unrelated "30 sec"
+-- elsewhere). The comparison reads the accumulating result, so it holds across
+-- every line of one tooltip, not just within a line.
+local function noteLongestBuff(result, n)
+    if not result.buffDurationSec or n > result.buffDurationSec then
+        result.buffDurationSec = n
+    end
+end
+
+-- "over N sec" always indicates channel / regen duration, not a buff. Keep it
+-- out of buffDurationSec; record as pctOverDurationSec for %-based regen and as
+-- healOverSec / manaOverSec for flat-value HOT pots ("Restores 265,420 health
+-- over 20 sec") so the Ranker can distinguish immediate-heal vs heal-over-time
+-- pots. The three tests are independent: one line can set several.
+local function noteOverDuration(result, n)
+    if result.healPct or result.manaPct then
+        result.pctOverDurationSec = n
+    end
+    if result.healValue or result.healValueAvg then
+        result.healOverSec = n
+    end
+    if result.manaValue or result.manaValueAvg then
+        result.manaOverSec = n
+    end
+end
+
 local function parseDuration(line, result)
     local cleaned = stripCooldownNotes(line)
     -- Any remaining bare "cooldown" (no parens) means this is a standalone
     -- cooldown line — skip it.
     if cleaned:lower():find("cooldown", 1, true) then return end
 
-    local h = cleaned:match(PATTERNS.durHour) or cleaned:match(PATTERNS.durHr)
-    if h then
-        local n = toNumberCommas(h) * 3600
-        -- Prefer the longest duration seen (flasks: 1 hour vs unrelated "30 sec" elsewhere).
-        if not result.buffDurationSec or n > result.buffDurationSec then
-            result.buffDurationSec = n
-        end
-        return
+    local n, isSec = matchDuration(cleaned)
+    if not n then return end
+    if isSec and cleaned:find("over ", 1, true) then
+        return noteOverDuration(result, n)
     end
-    local m = cleaned:match(PATTERNS.durMin)
-    if m then
-        local n = toNumberCommas(m) * 60
-        if not result.buffDurationSec or n > result.buffDurationSec then
-            result.buffDurationSec = n
-        end
-        return
-    end
-    local s = cleaned:match(PATTERNS.durSec)
-    if s then
-        local n = toNumberCommas(s)
-        -- "over N sec" always indicates channel / regen duration, not a
-        -- buff. Keep it out of buffDurationSec; record as pctOverDurationSec
-        -- for %-based regen and as healOverSec / manaOverSec for flat-value
-        -- HOT pots ("Restores 265,420 health over 20 sec") so the Ranker can
-        -- distinguish immediate-heal vs heal-over-time pots.
-        if cleaned:find("over ", 1, true) then
-            if result.healPct or result.manaPct then
-                result.pctOverDurationSec = n
-            end
-            if result.healValue or result.healValueAvg then
-                result.healOverSec = n
-            end
-            if result.manaValue or result.manaValueAvg then
-                result.manaOverSec = n
-            end
-            return
-        end
-        if not result.buffDurationSec or n > result.buffDurationSec then
-            result.buffDurationSec = n
-        end
-    end
+    noteLongestBuff(result, n)
 end
 
 local function parsePctHealth(line, result)
@@ -303,6 +312,50 @@ local function parseFlatMana(line, result)
     if v then result.manaValue = toNumberCommas(v) end
 end
 
+-- Standalone per-line item flags.
+--
+-- Augment runes carry an "Augment Rune" category tag. In-game it renders as a
+-- sentence at the END of the Use line, e.g.
+--   "Use: Increases Strength by 25 for 1 hrs.  Augment Rune."
+-- and on some items as its own line. Match either the whole line or the marker
+-- sentence at end-of-line (preceded by the period that closes the Use
+-- sentence). The leading period keeps the item's NAME line — "Ethereal Augment
+-- Rune" — from tripping it.
+local function parseFlags(txt, result)
+    if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
+    if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
+    if txt:match("^Augment Rune%.?%s*$")
+        or txt:match("%.%s*Augment Rune%.?%s*$") then
+        result.isAugmentRune = true
+    end
+end
+
+-- Only accept a captured cap when the same line also carries a negation word
+-- (see hasNegation's comment) — a floor phrased as "...above level N" without
+-- one is not a cap.
+local function parseMaxLevel(txt, result)
+    local cap = txt:match(PATTERNS.maxLevelHigher) or txt:match(PATTERNS.maxLevelAbove)
+    if cap and hasNegation(txt) then result.maxLevel = tonumber(cap) end
+end
+
+-- Temporary weapon enhancement application. Oils "Coat", whetstones
+-- "Sharpen", weightstones "Weight" — the common thread is "your
+-- <weapon>" with an optional weapon adjective ("bladed"/"blunt"/
+-- "two-handed"). Captured on lowercased text (letters/space/hyphen
+-- only, so a comma or clause break stops the run and prevents
+-- over-matching) so the adjective itself can be inspected for
+-- affinity ("bladed" -> whetstone, "blunt" -> weightstone,
+-- anything else -> "any", e.g. plain oils). "any" is first-wins across lines;
+-- bladed / blunt always overwrite.
+local function parseWeaponEnhance(txt, result)
+    local wmid = txt:lower():match("your ([%a%s%-]-)weapon")
+    if not wmid then return end
+    result.isWeaponEnhance = true
+    if wmid:find("bladed", 1, true) then result.weaponAffinity = "bladed"
+    elseif wmid:find("blunt", 1, true) then result.weaponAffinity = "blunt"
+    elseif not result.weaponAffinity then result.weaponAffinity = "any" end
+end
+
 local function parseLines(lines)
     local result = { statBuffs = {} }
     for _, line in ipairs(lines) do
@@ -318,43 +371,9 @@ local function parseLines(lines)
                 parseFlatMana(txt, result)
             end
 
-            if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
-            if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
-
-            -- Only accept a captured cap when the same line also carries a
-            -- negation word (see hasNegation's comment) — a floor phrased as
-            -- "...above level N" without one is not a cap.
-            local cap = txt:match(PATTERNS.maxLevelHigher) or txt:match(PATTERNS.maxLevelAbove)
-            if cap and hasNegation(txt) then result.maxLevel = tonumber(cap) end
-
-            -- Augment runes carry an "Augment Rune" category tag. In-game it
-            -- renders as a sentence at the END of the Use line, e.g.
-            --   "Use: Increases Strength by 25 for 1 hrs.  Augment Rune."
-            -- and on some items as its own line. Match either the whole line
-            -- or the marker sentence at end-of-line (preceded by the period
-            -- that closes the Use sentence). The leading period keeps the
-            -- item's NAME line — "Ethereal Augment Rune" — from tripping it.
-            if txt:match("^Augment Rune%.?%s*$")
-                or txt:match("%.%s*Augment Rune%.?%s*$") then
-                result.isAugmentRune = true
-            end
-
-            -- Temporary weapon enhancement application. Oils "Coat", whetstones
-            -- "Sharpen", weightstones "Weight" — the common thread is "your
-            -- <weapon>" with an optional weapon adjective ("bladed"/"blunt"/
-            -- "two-handed"). Captured on lowercased text (letters/space/hyphen
-            -- only, so a comma or clause break stops the run and prevents
-            -- over-matching) so the adjective itself can be inspected for
-            -- affinity ("bladed" -> whetstone, "blunt" -> weightstone,
-            -- anything else -> "any", e.g. plain oils).
-            local wmid = txt:lower():match("your ([%a%s%-]-)weapon")
-            if wmid then
-                result.isWeaponEnhance = true
-                if wmid:find("bladed", 1, true) then result.weaponAffinity = "bladed"
-                elseif wmid:find("blunt", 1, true) then result.weaponAffinity = "blunt"
-                elseif not result.weaponAffinity then result.weaponAffinity = "any" end
-            end
-
+            parseFlags(txt, result)
+            parseMaxLevel(txt, result)
+            parseWeaponEnhance(txt, result)
             parseDuration(txt, result)
             parseStatBuffs(txt, result)
         end

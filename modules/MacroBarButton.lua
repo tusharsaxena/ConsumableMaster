@@ -249,6 +249,67 @@ local function applyLabel(btn, cfg)
     btn.label:Show()
 end
 
+-- ---------------------------------------------------------------------------
+-- Chrome appliers
+--
+-- Exported on BB because the flyout's entries take the SAME appearance block
+-- (modules/MacroBarFlyout.lua's bindEntry) — the two used to be verbatim copies
+-- of each other and had to be kept in sync by hand. One applier means the same
+-- item can never render differently in the two places, and the zoom clamp's
+-- bounds are shared rather than repeated.
+-- ---------------------------------------------------------------------------
+
+local EMPTY_COLOR           = {}
+local BORDER_COLOR_DEFAULT  = { 1, 1, 1, 1 }
+local BACKDROP_FILL_DEFAULT = { 0, 0, 0, 0.6 }
+
+-- Unpack a saved {r,g,b,a} over its default, component by component. A stored
+-- color may be absent entirely or short a component, and each missing slot
+-- falls back on its own. Returns four values and allocates nothing — this runs
+-- on every layout pass.
+local function rgba(stored, default)
+    stored = stored or EMPTY_COLOR
+    return stored[1] or default[1], stored[2] or default[2],
+           stored[3] or default[3], stored[4] or default[4]
+end
+
+-- Border is its own BackdropTemplate child rather than a texture on the
+-- button, so `buttonBorderOffset` can push the edge slices OUTWARD off the
+-- icon. The old action-button slot art was a fixed 64px frame drawn over a
+-- 36px well, which is exactly why it bled across the icon at every size.
+function BB.ApplyBorder(frame, anchorTo, cfg)
+    if cfg.buttonBorder == false then
+        frame:Hide()
+        return
+    end
+    local off = tonumber(cfg.buttonBorderOffset) or 0
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT",     anchorTo, "TOPLEFT",     -off,  off)
+    frame:SetPoint("BOTTOMRIGHT", anchorTo, "BOTTOMRIGHT",  off, -off)
+    frame:SetBackdrop({
+        edgeFile = borderTexture(cfg.buttonBorderStyle),
+        edgeSize = math.max(1, tonumber(cfg.buttonBorderSize) or 4),
+    })
+    frame:SetBackdropBorderColor(rgba(cfg.buttonBorderColor, BORDER_COLOR_DEFAULT))
+    frame:Show()
+end
+
+-- Icon zoom crops the texture symmetrically, which trims the dark edge
+-- baked into most item icons so it doesn't read as a second border. Anchoring
+-- the icon is the caller's business — the flyout's entries are anchored once at
+-- creation and only ever re-cropped.
+function BB.ApplyIconZoom(icon, cfg)
+    local zoom = tonumber(cfg.iconZoom) or 0
+    if zoom < 0 then zoom = 0 elseif zoom > 40 then zoom = 40 end
+    local z = zoom / 100
+    icon:SetTexCoord(z, 1 - z, z, 1 - z)
+end
+
+function BB.ApplyBackdropTex(tex, cfg)
+    tex:SetColorTexture(rgba(cfg.buttonBackdropColor, BACKDROP_FILL_DEFAULT))
+    if cfg.buttonBackdrop then tex:Show() else tex:Hide() end
+end
+
 -- Apply the size + chrome settings from db.profile.macroBar. Called on every
 -- layout pass so a slider drag repaints without rebuilding the button.
 function BB.ApplyStyle(btn, cfg)
@@ -256,39 +317,13 @@ function BB.ApplyStyle(btn, cfg)
     local size = tonumber(cfg.buttonSize) or 36
     btn:SetSize(size, size)
 
-    -- Border is its own BackdropTemplate child rather than a texture on the
-    -- button, so `buttonBorderOffset` can push the edge slices OUTWARD off the
-    -- icon. The old action-button slot art was a fixed 64px frame drawn over a
-    -- 36px well, which is exactly why it bled across the icon at every size.
-    if cfg.buttonBorder ~= false then
-        local off  = tonumber(cfg.buttonBorderOffset) or 0
-        local edge = math.max(1, tonumber(cfg.buttonBorderSize) or 4)
-        btn.border:ClearAllPoints()
-        btn.border:SetPoint("TOPLEFT",     btn, "TOPLEFT",     -off,  off)
-        btn.border:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT",  off, -off)
-        btn.border:SetBackdrop({
-            edgeFile = borderTexture(cfg.buttonBorderStyle),
-            edgeSize = edge,
-        })
-        local c = cfg.buttonBorderColor or {}
-        btn.border:SetBackdropBorderColor(c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1)
-        btn.border:Show()
-    else
-        btn.border:Hide()
-    end
+    BB.ApplyBorder(btn.border, btn, cfg)
 
     btn.icon:ClearAllPoints()
     btn.icon:SetAllPoints(btn)
-    -- Icon zoom crops the texture symmetrically, which trims the dark edge
-    -- baked into most item icons so it doesn't read as a second border.
-    local zoom = tonumber(cfg.iconZoom) or 0
-    if zoom < 0 then zoom = 0 elseif zoom > 40 then zoom = 40 end
-    local z = zoom / 100
-    btn.icon:SetTexCoord(z, 1 - z, z, 1 - z)
+    BB.ApplyIconZoom(btn.icon, cfg)
 
-    local bg = cfg.buttonBackdropColor or {}
-    btn.backdropTex:SetColorTexture(bg[1] or 0, bg[2] or 0, bg[3] or 0, bg[4] or 0.6)
-    if cfg.buttonBackdrop then btn.backdropTex:Show() else btn.backdropTex:Hide() end
+    BB.ApplyBackdropTex(btn.backdropTex, cfg)
 
     applyLabel(btn, cfg)
 
