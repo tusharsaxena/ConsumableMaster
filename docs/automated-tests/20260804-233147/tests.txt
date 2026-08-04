@@ -1,0 +1,659 @@
+
+  PASS  BagScanner.Scan is empty when bags are empty
+  PASS  BagScanner.Scan aggregates distinct items to itemID -> count
+  PASS  BagScanner.Scan sums separate stacks of the same item
+  PASS  BagScanner.HasItem reports ownership and count
+  PASS  BagScanner.HasItem is false for a nil id
+  PASS  BagScanner.Scan treats a slot with no stackCount as a single item
+  PASS  BagScanner.Scan skips empty slots without inventing entries
+  PASS  BagScanner.Scan returns an empty table when the container API is absent
+  PASS  BagScanner.Scan walks the reagent bag slot, not just the backpack
+  PASS  BagScanner.HasItem answers from Blizzard's tally, not a full bag walk
+  PASS  BagScanner.HasItem counts bank stacks in via the includeBank flag
+  PASS  BagScanner.HasItem reports not-owned when the item count API is absent
+  PASS  bus, NewBusTarget, and message catalog are published
+  PASS  a target hears a message, then goes silent after unregister
+  PASS  RECOMPUTE routes to Pipeline.RequestRecompute
+  PASS  bus: every message name is namespaced and distinct
+  PASS  bus: NewBusTarget hands out a fresh, independently-embedded table
+  PASS  bus: one message fans out to every subscribed target
+  PASS  bus: unregistering one target leaves the others subscribed
+  PASS  bus: a message nobody subscribes to is a silent no-op
+  PASS  bus: the pipeline subscribes on its own target, never on KCM.bus
+  PASS  bus: RECOMPUTE with no reason still reaches the pipeline
+  PASS  bus: RECOMPUTE is inert while the pipeline entry point is missing
+  PASS  Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
+  PASS  Categories: AUG_RUNE registered with metadata, DB bucket, and seed
+  PASS  Categories: BLOODLUST and BATTLE_REZ registered with metadata, buckets and seeds
+  PASS  Categories: the Bloodlust seed leads with spells and the class gate names Primal Rage
+  PASS  classifier: FOOD matches Food & Drink with heal and no stat buff
+  PASS  classifier: DRINK matches Food & Drink with mana and no stat buff
+  PASS  classifier: STAT_FOOD matches stat-buff food and excludes feast
+  PASS  classifier: HP_POT matches healing potions without a stat buff
+  PASS  classifier: MP_POT matches mana potions without a stat buff
+  PASS  classifier: HS matches hard-coded healthstone IDs regardless of item data
+  PASS  classifier: CMBT_POT matches buff potions with 1..60s duration and no heal/mana
+  PASS  classifier: FLASK matches on subtype alone
+  PASS  classifier: MatchAny never yields composite categories
+  PASS  classifier: unrecognized subtype with empty tt matches nothing
+  PASS  classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance flag
+  PASS  classifier: a recipe carrying its crafted item's tooltip never matches
+  PASS  classifier: VANTUS matches whitelisted rune IDs regardless of item data
+  PASS  classifier: guard and edge cases for nil/unknown inputs
+  PASS  classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
+  PASS  classifier: keys on numeric subclass, not the localized subType
+  PASS  Compat.GetSpecialization returns the live spec index
+  PASS  Compat.GetSpecializationInfo maps an index to specID + name
+  PASS  Compat.GetNumSpecializationsForClassID delegates to the client
+  PASS  Compat.GetSpecializationInfoForClassID maps (class,index) to a spec
+  PASS  Compat.GetSpellName resolves known spells and nil otherwise
+  PASS  Compat.IsSecret defers to the client's own issecretvalue
+  PASS  Compat.IsSecret reports nothing secret on a pre-Midnight client
+  PASS  Compat prefers C_SpecializationInfo over the legacy spec globals
+  PASS  Compat falls back to the flat globals when the namespace is absent
+  PASS  Compat.GetSpecializationInfo guards a nil index
+  PASS  Compat.GetNumSpecializationsForClassID reports zero when no API answers
+  PASS  Compat.GetSpecializationInfoForClassID returns nil for an unknown pair
+  PASS  Compat.GetSpellName guards a nil spellID before touching the client
+  PASS  Compat.GetSpellName treats an empty name as unresolved and keeps looking
+  PASS  Compat.GetSpellName falls back to the C_Spell.GetSpellInfo shape
+  PASS  Compat.GetSpellName falls back to the deprecated global last
+  PASS  Compat.GetSpellName returns nil when nothing can resolve the id
+  PASS  Constants: PREFIX is the cyan [CM] tag with no trailing space
+  PASS  Constants: IsConcatSafe accepts strings and numbers
+  PASS  Constants: IsConcatSafe rejects a value table.concat would raise on
+  PASS  Constants: SafeToString renders nil as the literal 'nil'
+  PASS  Constants: SafeToString passes booleans through, which concat itself rejects
+  PASS  Constants: SafeToString passes strings and numbers through unchanged
+  PASS  Constants: SafeToString substitutes <secret> for a concat-hostile value
+  PASS  Constants: Say prints one prefixed line in the single-string form
+  PASS  Constants: Say interpolates the format-string call form
+  PASS  Constants: Say stringifies every format arg through the secret guard
+  PASS  Constants: Say renders a nil format arg as 'nil' rather than dropping it
+  PASS  Constants: Say guards the single-string form too
+  PASS  CoreSetup: the addon's stringifier IS the library's, not a lookalike
+  PASS  CoreSetup: the secret sentinel is the library's, so the docs cannot drift from it
+  PASS  CoreSetup: the prefix is re-read on every line, not frozen at load
+  PASS  CoreSetup: chat still lands in the global print, which is where the harness listens
+  PASS  CoreSetup: with the library absent the addon still prints, and says why once
+  PASS  CoreSetup: the degraded stringifier answers the same sentinel as the library
+  PASS  CoreSetup: LibKa0s-Core-1.0 still has no user-visible strings to trap
+  PASS  CoreSetup: the prefix is the only library-rendered fragment, and it is prose
+  PASS  Database.CURRENT_SCHEMA is the version the code understands
+  PASS  Database.RunMigrations stamps a fresh account at the current schema
+  PASS  Database.RunMigrations is idempotent across repeated logins
+  PASS  Database.RunMigrations is a safe no-op when the DB has no global scope
+  PASS  Database.RunMigrations seeds a missing schemaVersion instead of leaving it nil
+  PASS  Database.RunMigrations upgrades an older stored version to current
+  PASS  Database.RunMigrations leaves unrelated global keys untouched
+  PASS  Database.RunMigrations never writes into the profile scope
+  PASS  Database.RunMigrations is a safe no-op before the DB exists
+  PASS  Database v2: a profile that predates the macro bar gets it on and unlocked
+  PASS  Database v2: an off/locked bar from an earlier build of the feature is turned on
+  PASS  Database v2: the step is one-shot — a later opt-out survives the next login
+  PASS  Database v2: the migration leaves every other bar setting alone
+  PASS  Database v2: MigrateMacroBarV2 tolerates a nil profile
+  PASS  Debug: the sink is published and callable
+  PASS  Debug: IsOn is false by default (State.debug is never persisted on)
+  PASS  Debug: IsOn tracks State.debug when no console module has loaded
+  PASS  Debug: IsOn defers to DebugLog.IsEnabled once the console owns the flag
+  PASS  Debug: a call while gated off emits nothing
+  PASS  Debug: a call while gated off never reaches the console either
+  PASS  Debug: an enabled call is handed to the console instance's own sink
+  PASS  Debug: with no console loaded an enabled call falls back to tagged chat
+  PASS  Debug: a message with no format args is emitted verbatim
+  PASS  Debug: every format arg goes through the secret guard
+  PASS  Debug: a nil format arg renders as 'nil' rather than shifting later args
+  PASS  Debug: the chat fallback stringifies a hostile tag safely
+  PASS  Debug: the sink publishes no Toggle of its own
+  PASS  DebugLog: FormatPlain renders the plain line shape with no color codes
+  PASS  DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
+  PASS  DebugLog: SetEnabled/IsEnabled drive State.debug
+  PASS  DebugLog: Toggle flips State.debug both directions
+  PASS  DebugLog: SafeToString stringifies safely and catches concat-hostile values
+  PASS  DebugLog: the Debug sink is gated, and formats into the console buffer
+  PASS  DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
+  PASS  DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
+  PASS  DebugLog: Show/Hide toggle the window without touching the enabled flag
+  PASS  DebugLog: scrollbar + counter sync run headlessly without error
+  PASS  DebugLog: the console IS the library's instance, not a host lookalike
+  PASS  DebugLog: the descriptor reproduces the addon's window identity
+  PASS  DebugLog: the console's own strings resolve to prose, not to their own keys
+  PASS  DebugLog: the flag lives in KCM.State, not in the library
+  PASS  DebugLog: with the library absent the console degrades and chat still answers
+  PASS  Categories: every row has a unique key and BY_KEY resolves it
+  PASS  Categories: Get returns nil for a key that isn't registered
+  PASS  Categories: every macro name is unique, KCM_-prefixed, and within 16 chars
+  PASS  Categories: every row carries a display name and an empty-state body
+  PASS  Categories: single-pick rows declare both a classifier and a ranker key
+  PASS  Categories: composite rows carry components and no ranker/classifier hint
+  PASS  Categories: every composite component names a real single-pick category
+  PASS  Categories: only the Weapon Enchant row is per-hand, and it is spec-aware
+  PASS  Defaults: every category has a profile bucket of the right shape
+  PASS  Defaults: no profile bucket exists for a category that was removed
+  PASS  Defaults: composite default order matches the category's declared components
+  PASS  Defaults: every composite sub-category ships enabled
+  PASS  Defaults: the addon ships enabled with an empty user-override state
+  PASS  Defaults: every single-pick category ships a non-empty seed list
+  PASS  Defaults: no seed list ships a duplicate entry
+  PASS  Defaults: every seed entry is a non-zero integer ID
+  PASS  Defaults: every seed entry classifies as either an item or a spell sentinel
+  PASS  Defaults: no seed list is shared by reference between two categories
+  PASS  Defaults: a seeded itemID is shared only across a health/mana sibling pair
+  PASS  Defaults: the FOOD seed carries the conjured-food spell as a sentinel
+  PASS  Defaults: the Healthstone seed is item-only
+  PASS  Defaults: every reusable augment rune the Classifier knows is in the seed
+  PASS  Defaults: a consumed augment rune is not flagged reusable
+  PASS  Defaults: every stat-priority key is a well-formed classID_specID pair
+  PASS  Defaults: stat priority covers all thirteen classes
+  PASS  Defaults: every seeded spec names a primary stat the Ranker weights
+  PASS  Defaults: every seeded secondary list is ordered, valid, and duplicate-free
+  PASS  Defaults: a seeded spec resolves through SpecHelper without falling back
+  PASS  OnEnable registers every client event the addon reacts to
+  PASS  OnEnable registers no event without a matching handler method
+  PASS  PLAYER_ENTERING_WORLD discovers, sweeps, then recomputes in that order
+  PASS  PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
+  PASS  BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
+  PASS  PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack
+  PASS  LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked
+  PASS  PLAYER_EQUIPMENT_CHANGED recomputes for a main-hand or off-hand swap
+  PASS  PLAYER_EQUIPMENT_CHANGED ignores every non-weapon slot
+  PASS  PLAYER_REGEN_ENABLED flushes the macro writes deferred during combat
+  PASS  PLAYER_REGEN_ENABLED is safe before the macro layer has loaded
+  PASS  GET_ITEM_INFO_RECEIVED ignores a failed or id-less delivery
+  PASS  GET_ITEM_INFO_RECEIVED for a bag item invalidates its cached tooltip
+  PASS  GET_ITEM_INFO_RECEIVED for a bag item discovers it and recomputes
+  PASS  GET_ITEM_INFO_RECEIVED for a non-bag item refreshes the panel but never recomputes
+  PASS  GET_ITEM_INFO_RECEIVED never discovers an item the player does not own
+  PASS  RequestRecompute keeps the latest reason across a coalesced burst
+  PASS  RequestRecompute falls back to a placeholder reason when given none
+  PASS  RequestRecompute re-arms after its frame callback has fired
+  PASS  RequestRecompute's frame callback is inert if the request was already served
+  PASS  ID.AsSpell negates the spellID into a sentinel
+  PASS  ID.IsSpell is true for negatives, false otherwise
+  PASS  ID.IsItem is true for positives, false for negatives
+  PASS  ID.SpellID recovers magnitude for spells, nil for items
+  PASS  ID.AsSpell/SpellID round-trips
+  PASS  ID predicates reject non-numeric input rather than raising
+  PASS  ID treats zero as neither an item nor a spell
+  PASS  ID: item and spell ranges are disjoint for every real id
+  PASS  LibKa0s: the harness load list matches libs/LibKa0s/LibKa0s.xml exactly
+  PASS  LibKa0s: every vendored library file the loader names exists on disk
+  PASS  LibKa0s: the TOC loads the library through its own packaged XML
+  PASS  LibKa0s: every declared major registers, and reports the minor of every one of its files
+  PASS  LibKa0s: no file registers under a major it does not belong to
+  PASS  LibKa0s: each attach file is paired to the shell minor it actually attached to
+  PASS  LibKa0s: library file basenames are unique across every vendored major
+  PASS  LibKa0s: omitting the vendored files leaves every major absent, not half-wired
+  PASS  full addon loads in TOC order and publishes core handles
+  PASS  macrobar layout: one row of 13 reports 13 columns and one row
+  PASS  macrobar layout: first slot sits at the padding offset
+  PASS  macrobar layout: slots step by size + spacing along the row
+  PASS  macrobar layout: 13 slots at 7 per row wrap into two rows
+  PASS  macrobar layout: growth LEFT mirrors the columns
+  PASS  macrobar layout: growth UP mirrors the rows
+  PASS  macrobar layout: VERTICAL orientation fills columns first
+  PASS  macrobar layout: zero slots still reports a non-zero container
+  PASS  macrobar layout: missing config falls back to shipped defaults
+  PASS  macrobar layout: perRow below 1 is clamped rather than dividing by zero
+  PASS  macrobar label: inside anchors the label's own corner to the button's
+  PASS  macrobar label: outside flips the anchor across that edge
+  PASS  macrobar label: offsets pass through and CENTER never flips
+  PASS  macrobar label: an unknown position falls back to the shipped default
+  PASS  macrobar label: every declared label position resolves to an anchor
+  PASS  macrobar label: font size scales with the button and clamps to legible
+  PASS  macrobar label: every category supplies both a full and a short label
+  PASS  macrobar label: an unknown category degrades to its key
+  PASS  macrobar flyout: entry 1 sits one gap off the button
+  PASS  macrobar flyout: the gap is configurable and can be closed to zero
+  PASS  macrobar flyout: entries step by size + spacing away from the button
+  PASS  macrobar flyout: growing downward mirrors the offsets
+  PASS  macrobar flyout: horizontal sides stack along x instead of y
+  PASS  macrobar flyout: container is sized to the run of entries
+  PASS  macrobar flyout: scale shrinks entries independently of the button
+  PASS  macrobar flyout: an empty flyout still reports a usable frame size
+  PASS  macrobar flyout: padding insets the strip inside its panel
+  PASS  macrobar flyout: padding leaves entries centered on the cross axis
+  PASS  macrobar flyout: the indicator band sits inside the icon's edge
+  PASS  macrobar flyout: each side rotates the arrow to point away from the button
+  PASS  macrobar flyout: arrow size scales off the band and never vanishes
+  PASS  macrobar flyout: a side band swaps its span and thickness
+  PASS  macrobar flyout: band thickness is a ratio of the button, capped at half
+  PASS  macrobar flyout: every flyout side resolves geometry
+  PASS  macrobar flyout: a label sharing the band's edge is pushed clear
+  PASS  macrobar flyout: clearance follows the band to another edge
+  PASS  macrobar flyout: a label on a different edge is left alone
+  PASS  macrobar flyout: no clearance when the flyout is off or the label is outside
+  PASS  macrobar flyout: clearance scales with the band thickness
+  PASS  macrobar model: AllKeys covers every managed category
+  PASS  macrobar model: NormalizeOrder leaves a complete order untouched
+  PASS  macrobar model: NormalizeOrder drops unknown keys
+  PASS  macrobar model: NormalizeOrder appends categories missing from a saved order
+  PASS  macrobar model: NormalizeOrder de-duplicates a repeated key
+  PASS  macrobar model: Swap exchanges two slots
+  PASS  macrobar model: Swap refuses an absent or self-referential key
+  PASS  macrobar model: VisibleKeys hides only slots explicitly set to false
+  PASS  macrobar model: MacroName and KeyForMacroName round-trip
+  PASS  macrobar model: the bar ships centered on screen at 36px buttons
+  PASS  macrobar model: the GCD swipe is suppressed out of the box
+  PASS  macrobar defaults: perRow tracks the number of managed categories
+  PASS  macrobar schema: perRow's max slider value is derived from the category count
+  PASS  macrobar model: the bar ships on and unlocked so it is discoverable
+  PASS  macrobar model: the shipped default order needs no repair
+  PASS  macrobar model: Order repairs and writes back a damaged saved order
+  PASS  macrobar model: Visible reflects the shown map over the saved order
+  PASS  macrodisplay: an unwritten macro falls back to the cooking-pot icon
+  PASS  macrodisplay: an item pick resolves to the item's icon and count
+  PASS  macrodisplay: a spell pick resolves to the spell icon and has no count
+  PASS  macrodisplay: item and spell cooldowns both report active plus a span
+  PASS  macrodisplay: an empty-state macro reports no pick, count or cooldown
+  PASS  macrodisplay: SetTooltip points at the spell a spell pick resolves to
+  PASS  macrodisplay: SetTooltip points at the item an item pick resolves to
+  PASS  macrodisplay: SetTooltip falls back to the macro name and body when unresolved
+  PASS  macrodisplay: SetTooltip with no such macro shows just the name
+  PASS  macrodisplay: SetTooltip does nothing without an owner
+  PASS  macrobar cooldowns: an active cooldown paints from the duration object
+  PASS  macrobar cooldowns: an inactive cooldown clears the swipe
+  PASS  macrobar cooldowns: a client without duration objects falls back to numbers
+  PASS  macrobar cooldowns: restricted cooldowns are never compared or set as numbers
+  PASS  macrobar cooldowns: a restricted spell still reports whether it is running
+  PASS  macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration
+  PASS  macrobar cooldowns: showGCD true never suppresses and always shows the swipe
+  PASS  macrobar cooldowns: no duration object skips suppression without erroring
+  PASS  macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
+  PASS  macrobar cooldowns: the GCD-suppress curve is built once and reused
+  PASS  macrobar cooldowns: showGCD false disables the completion bling
+  PASS  macrobar cooldowns: showGCD true enables the completion bling
+  PASS  macrobar cooldowns: the inactive path still applies the correct bling state
+  PASS  macrobar cooldowns: a frame lacking SetDrawBling degrades without error
+  PASS  macrobar schema: every macroBar row validates and resolves against the db
+  PASS  macrobar schema: enum rows reject a value outside their list
+  PASS  macrobar schema: number rows clamp to their declared range
+  PASS  macrobar schema: the default slot order matches the settings tab order
+  PASS  macrobar schema: border rows are populated from LibSharedMedia
+  PASS  macrobar schema: LSMValues never hands back an empty list
+  PASS  macrobar flyout: candidates come back in rank order, best first
+  PASS  macrobar flyout: invert reverses the order without dropping anything
+  PASS  macrobar flyout: the list is capped to flyoutMax, keeping the top ranks
+  PASS  macrobar flyout: the cap is bounded by the pool ceiling, not just the setting
+  PASS  macrobar flyout: it ships on, opening upward, closing after 3s
+  PASS  macrobar flyout: auto-close is configurable and 0 means never
+  PASS  macrobar flyout: Create wires the secure frames without erroring
+  PASS  macrobar flyout: ApplyBackdrop paints the panel child, not the container
+  PASS  macrobar flyout: leaving hands off to the countdown, and says so securely
+  PASS  macrobar flyout: combat state is driven into the snippet, not polled
+  PASS  macrobar flyout: an entry's border follows buttonBorder through the bar's own applier
+  PASS  macrobar flyout: the idle clock resets while the mouse is on the strip
+  PASS  macrobar flyout: hovering the band alone also holds the flyout open
+  PASS  macrobar flyout: the idle clock stands down in combat
+  PASS  macrobar flyout: an auto-close of 0 never closes on idle
+  PASS  macrobar flyout: Close hides the strip and stands down in combat
+  PASS  macrobar flyout: Close tolerates a nil flyout
+  PASS  macrobar schema: the bar publishes its own bus message
+  PASS  macrobar button: ApplyStyle sizes the slot and paints the border child
+  PASS  macrobar button: ApplyStyle hides the border child when the border is off
+  PASS  macrobar button: ApplyStyle floors the edge thickness at one pixel
+  PASS  macrobar button: ApplyStyle clamps the icon zoom to 0..40 percent
+  PASS  macrobar button: ApplyStyle fills the backdrop and follows its toggle
+  PASS  macrobar flyout: Apply tears the strip down when the feature is off
+  PASS  macrobar flyout: Apply binds an owned item entry with its chrome
+  PASS  macrobar flyout: Apply binds a known spell entry by name
+  PASS  macrobar flyout: Apply hides everything when nothing is available
+  PASS  macrobar flyout: Apply declines in combat
+  PASS  MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
+  PASS  MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
+  PASS  MacroManager: a targeted category's spell body carries the conditional
+  PASS  MacroManager: a targeted category's item body carries the same conditional
+  PASS  MacroManager: turning mouseover off drops the conditional
+  PASS  MacroManager: an untargeted category is unaffected
+  PASS  MacroManager: BuildBody with nil item falls back to category emptyText
+  PASS  MacroManager: BuildCompositeBody HP_AIO happy path joins in- and out-of-combat picks
+  PASS  MacroManager: BuildCompositeBody drops a disabled sub-category from the in-combat sequence
+  PASS  MacroManager: BuildCompositeBody returns nil for no usable picks or invalid inputs
+  PASS  MacroManager: BuildCompositeBody with only in-combat picks adds the out-of-combat /run fallback
+  PASS  MacroManager: BuildCompositeBody with only out-of-combat pick adds the in-combat /run fallback
+  PASS  MacroManager: BuildCompositeBody uses a spell pick's localized name in the /castsequence
+  PASS  MacroManager: BuildCompositeBody assembles #showtooltip, the /castsequence and every /use line in order
+  PASS  MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither
+  PASS  MacroManager: BuildBody VANTUS uses the default single /use body
+  PASS  MacroManager.SetMacro creates the macro on the first write
+  PASS  MacroManager.SetMacro records the body and icon it wrote
+  PASS  MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat
+  PASS  MacroManager.SetMacro edits in place when the pick changes
+  PASS  MacroManager.SetMacro falls back to the empty body when nothing is picked
+  PASS  MacroManager.SetMacro resolves the category from the macro name if not told
+  PASS  MacroManager.SetMacro rejects an empty macro name
+  PASS  MacroManager.SetMacro refuses to write before the DB is ready
+  PASS  MacroManager.SetMacro errors out when the account macro quota is full
+  PASS  MacroManager.SetMacro surfaces a rejected edit as an error
+  PASS  MacroManager.SetMacro defers instead of writing while in combat
+  PASS  MacroManager.FlushPending applies a deferred write once combat ends
+  PASS  MacroManager.FlushPending refuses to run while still in combat
+  PASS  MacroManager.FlushPending gives up on a macro after three failed writes
+  PASS  MacroManager.FlushPending re-queues a write if combat resumes mid-flush
+  PASS  MacroManager: a queued write that already matches the live macro is dropped
+  PASS  MacroManager: a re-queued write keeps its retry count for the combat window
+  PASS  MacroManager.InvalidateState forces the next pass to rewrite every body
+  PASS  MacroManager.InvalidateState drops queued combat writes
+  PASS  MacroManager falls back to the empty body when a body exceeds 255 bytes
+  PASS  MacroManager warns about an oversized body only once per category
+  PASS  MacroManager: the debug gate is a predicate — diagnostic arguments are not evaluated with debug off
+  PASS  MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand has a pick
+  PASS  MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
+  PASS  MacroManager.SetWeaponEnchantMacro guards a missing category or DB
+  PASS  MacroManager.SetCompositeMacro stores the dynamic icon and no item id
+  PASS  MacroManager.SetCompositeMacro falls back to the default icon with no picks
+  PASS  MacroManager.SetCompositeMacro coalesces an unchanged rewrite
+  PASS  MacroManager.SetCompositeMacro defers in combat and replays as a composite
+  PASS  MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
+  PASS  Perf: the harness IS the library's instance, not a lookalike
+  PASS  Perf: the panel half attached to the instance
+  PASS  Perf: every panel step's label resolves to prose, not to its own key
+  PASS  Perf: the descriptor answers the fields whose defaults are silently wrong
+  PASS  Perf: the SavedVariables global the harness writes is actually declared
+  PASS  Perf: /cm perf is a published verb and reaches the harness
+  PASS  Perf: the capture flag is the library's alone, with no second home
+  PASS  Perf: the instrumentation records nothing while no capture is running
+  PASS  Perf: every Note call site sits in a file that gates on the capture flag
+  PASS  Perf: with the library absent the feature is absent, and /cm perf says so
+  PASS  Pipeline.RequestRecompute coalesces a burst into a single run
+  PASS  Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
+  PASS  Pipeline.RunAutoDiscovery keeps a user-blocked item out of candidates
+  PASS  Pipeline.Recompute writes a macro body pointing at the owned pick
+  PASS  Pipeline.Recompute skips macro writes when the addon is disabled
+  PASS  Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMacro
+  PASS  Pipeline.RecomputeOne ignores a category that does not exist
+  PASS  Pipeline.RecomputeOne routes a composite category to the composite writer
+  PASS  Pipeline.RecomputeOne asks for a pick per hand on a per-hand category
+  PASS  Pipeline.Recompute writes one macro per registered category
+  PASS  Pipeline.Recompute isolates a category whose write raises
+  PASS  Pipeline.Recompute refreshes the panel even while the addon is disabled
+  PASS  Pipeline.Recompute is a no-op before the category table has loaded
+  PASS  Pipeline.CalcSummary renders the reason and the rewrite/skip tally
+  PASS  Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set
+  PASS  Pipeline.RunAutoDiscovery reports zero when nothing new is in bags
+  PASS  discovery reports through the bulk summary, not per item, on a bag pass
+  PASS  discovery prints a per-item line for a standalone item-info retry
+  PASS  discovery stays silent for a bag item that matches no category
+  PASS  ResetAllToDefaults wipes category customizations back to the shipped state
+  PASS  ResetAllToDefaults clears stat-priority overrides and re-enables the addon
+  PASS  ResetAllToDefaults preserves macro state so live macros are not orphaned
+  PASS  ResetAllToDefaults rediscovers what is still in bags
+  PASS  ResetAllToDefaults reports whether it mutated anything
+  PASS  ResetAllToDefaults keeps the addon on when the defaults have no enabled key
+  PASS  ResetAllToDefaults runs invalidate then discover then recompute, in that order
+  PASS  ResetAllToDefaults copies the defaults rather than aliasing them
+  PASS  ResetAllToDefaults leaves the category buckets structurally valid
+  PASS  Ranker: spell sentinel scores SPELL_SCORE for any category
+  PASS  Ranker: nil/unknown guards score 0
+  PASS  Ranker: FOOD conjured bonus beats higher flat-value non-conjured
+  PASS  Ranker: FOOD healPct dominates and healValue+healValueAvg are additive
+  PASS  Ranker: DRINK conjured bonus beats higher flat-value non-conjured
+  PASS  Ranker: immediate HP pot outranks similar-amount HOT pot
+  PASS  Ranker: HOT HP pot earns immediate bonus only past the 20% threshold
+  PASS  Ranker: immediate MP pot outranks similar-amount HOT pot
+  PASS  Ranker: HS preference table prefers modern stone and sorts it first
+  PASS  Ranker: _statWeight ranks stats by spec priority
+  PASS  Ranker: FLASK stat-aware primary buff outweighs equal-amount secondary
+  PASS  Ranker: WPN_ENCH stat-aware primary buff outweighs equal-amount secondary
+  PASS  Ranker: VANTUS prefers higher ilvl (current tier) then quality
+  PASS  Ranker: SortCandidates orders by score desc, ties by id asc
+  PASS  Ranker: spell sentinel sorts first and empty input is safe
+  PASS  Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
+  PASS  Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
+  PASS  Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one
+  PASS  Ranker: BLOODLUST's cap term is weighted above ilvl (a lower-ilvl higher-cap drum wins)
+  PASS  Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped
+  PASS  Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
+  PASS  Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
+  PASS  Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
+  PASS  formatInventory groups cases by suite file with counts
+  PASS  formatInventory emits a Totals table summing all cases
+  PASS  --list prints the inventory and runs no tests
+  PASS  --list exits 0 without running the suite
+  PASS  schema: Settings.Helpers and Settings.Schema tables exist
+  PASS  schema: ValidateSchema reports zero errors and at least one row
+  PASS  schema: 'enabled' row exists and is a bool
+  PASS  schema: every row is findable by path and has a valid type
+  PASS  schema: Get('enabled') mirrors db.profile.enabled
+  PASS  schema: Set round-trips a bool setting through Helpers
+  PASS  schema: unknown paths resolve to nil/false
+  PASS  schema: [Set] logs exactly one line at the write seam, gated by debug
+  PASS  schema: Resolve splits a dotted path into its parent table and key
+  PASS  schema: Resolve walks nested tables
+  PASS  schema: Resolve refuses a path that runs through a non-table
+  PASS  schema: Resolve returns nothing for an empty path or a missing DB
+  PASS  schema: Set can write a nested path, not just a top-level one
+  PASS  schema: every row declares a panel that exists in the tab order
+  PASS  schema: every row carries a label and a tooltip for the panel to render
+  PASS  schema: every row's default matches the seeded profile value
+  PASS  schema: ValidateSchema counts a row with a bad panel, section, and type
+  PASS  schema: ValidateSchema flags a row with no path
+  PASS  schema: ValidateSchemaValue enforces each declared type
+  PASS  schema: ValidateSchemaValue passes a row with no recognized type straight through
+  PASS  schema: ValidateSchemaValue clamps a number to its declared range
+  PASS  schema: SetAndRefresh writes the value and fires the row's onChange
+  PASS  schema: SetAndRefresh refuses a value of the wrong type
+  PASS  schema: SetAndRefresh refuses a path that is not in the schema
+  PASS  schema: the published Schema:Set is the same seam as SetAndRefresh
+  PASS  schema: FormatSchemaValue renders nil as 'nil'
+  PASS  schema: FormatSchemaValue renders a color as a four-component table
+  PASS  schema: FormatSchemaValue renders booleans and strings readably
+  PASS  schema: RefreshAllPanels flags an off-screen page dirty instead of rebuilding it
+  PASS  schema: RefreshAllPanels rebuilds the page that is on screen
+  PASS  schema: a render failure is reported instead of breaking the refresh loop
+  PASS  schema: RefreshScalars re-syncs widgets in place without a rebuild
+  PASS  schema: RefreshScalars flags a hidden page dirty rather than syncing it
+  PASS  schema: the tab order lists each panel once and covers every category page
+  PASS  Selector: BuildCandidateSet is seed-first; unknown category is empty
+  PASS  Selector: AddItem adds to the set and is idempotent
+  PASS  Selector: Block removes from set, is idempotent, and AddItem unblocks
+  PASS  Selector: MarkDiscovered promotes once; blocked items are never discovered
+  PASS  Selector: PickBestForCategory returns the one owned item, nil when nothing owned
+  PASS  Selector: a known spell entry counts as owned and is picked
+  PASS  Selector: a class-gated spell resolves for its class when IsPlayerSpell says no
+  PASS  Selector: the class gate does not override a genuinely known spell
+  PASS  Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
+  PASS  Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
+  PASS  Selector: PickBestForSlot filters by weapon affinity + ownership
+  PASS  Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
+  PASS  Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
+  PASS  Selector: PickBestForSlot skips a level-blocked enhancement
+  PASS  Selector.MarkDiscovered reports 'new' only on the first sighting
+  PASS  Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
+  PASS  Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
+  PASS  Selector.MarkDiscovered upgrades a legacy boolean entry to a timestamp
+  PASS  Selector.MarkDiscovered refuses spell sentinels and unknown categories
+  PASS  Selector.SweepStaleDiscovered drops an entry past the 30-day TTL
+  PASS  Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL
+  PASS  Selector.SweepStaleDiscovered refreshes an item that is still in bags
+  PASS  Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient
+  PASS  Selector.SweepStaleDiscovered evicts a discovered non-consumable still in bags
+  PASS  Selector.SweepStaleDiscovered keeps a discovered item whose class is unresolvable
+  PASS  Selector.SweepStaleDiscovered never touches user-intentional entries
+  PASS  Selector.SweepStaleDiscovered reaches inside per-spec buckets
+  PASS  Selector.SweepStaleDiscovered is a no-op before the DB exists
+  PASS  Selector: a pin at position 1 moves its item to the front
+  PASS  Selector: a pin for an item outside the candidate set is ignored
+  PASS  Selector: a pin past the end of the list clamps to last place
+  PASS  Selector: two pins on the same position keep both items in the list
+  PASS  Selector.GetEffectivePriority returns an empty list for an unknown category
+  PASS  Selector: ListAvailable returns every owned candidate, not just the best
+  PASS  Selector: ListAvailable preserves effective-priority order
+  PASS  Selector: ListAvailable skips unknown spells and includes known ones
+  PASS  Selector: ListAvailable on a per-hand category only offers what fits the weapons
+  PASS  Selector: ListAvailable on a per-hand category is empty with no weapon equipped
+  PASS  Selector: ListAvailable on a composite unions its components, deduped
+  PASS  Selector: ListAvailable on a composite honors disabled components
+  PASS  Selector: ListAvailable returns an empty list for an unknown category
+  PASS  Selector.PickBestForCategory skips an item the player is over the cap for
+  PASS  Selector.ListAvailable omits an item the player is over the cap for
+  PASS  Selector.PickBestForCategory keeps an item whose tooltip is still pending
+  PASS  Settings UI: the scrollbar patch IS the library's, not a lookalike
+  PASS  Settings UI: the published instance carries all three of the major's files
+  PASS  Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L
+  PASS  Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh
+  PASS  Settings UI: OnDefault reaches a defaultsOnClick parked after the panel is built
+  PASS  Settings UI: a page with no defaults action still has a callable, inert OnDefault
+  PASS  Settings UI: the scroll container comes from the library
+  PASS  Settings UI: the render helpers are the instance's, not host copies
+  PASS  Settings UI: a panel comes from the library's registry, breadcrumb and all
+  PASS  Settings UI: the library's user-visible strings resolve to prose, not to their own keys
+  PASS  Settings UI: ResetScroll reassigns the refresher list rather than wiping it
+  PASS  Settings UI: with the library absent no panel is registered, and it says why once
+  PASS  Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover
+  PASS  Settings: the category reset popup restores a composite's AIO fields from defaults
+  PASS  Settings: the category reset popup clears added/blocked/pins but keeps discovered
+  PASS  Settings: the category reset popup is inert with no payload and on an unknown category
+  PASS  Settings: add-by-ID rejects bad input by kind and says why
+  PASS  Settings: add-by-ID refuses a spec-aware category with no resolvable spec
+  PASS  /cm set toggles a bool setting through the schema
+  PASS  /cm priority add then remove edits the FOOD candidate set
+  PASS  /cm priority add accepts a spell sentinel (s:ID)
+  PASS  /cm stat primary sets the current spec's primary stat
+  PASS  /cm stat primary resolves a CLASS:SPEC token
+  PASS  /cm version prints the canonical v<version> line, not 'version <v>'
+  PASS  /cm list colors the header, page group, and key=value rows (no trailing colon)
+  PASS  /cm get echoes the same colored key=value form as list
+  PASS  /cm with an unknown command reports it and prints help
+  PASS  /cm dump pick renders a category's effective priority and marks owned picks
+  PASS  /cm rewrite is a back-compat alias for rewritemacros
+  PASS  /cm with no argument prints the help table
+  PASS  /cm lower-cases only the verb, leaving arguments alone
+  PASS  /cm tolerates surrounding whitespace
+  PASS  /cm help and the About panel read the same command table
+  PASS  /cm resetall asks for confirmation instead of wiping immediately
+  PASS  /cm resetall's confirmation still performs the full wipe when accepted
+  PASS  /cm reset <path> restores exactly that row and leaves its neighbors alone
+  PASS  /cm config reports when the settings panel cannot be opened
+  PASS  /cm priority with no category prints the sub-verbs and known categories
+  PASS  /cm priority with an unknown category reports it and prints help
+  PASS  /cm priority <cat> with no sub-verb defaults to the list
+  PASS  /cm priority list marks ownership and the current pick
+  PASS  /cm priority list renders item and spell rows in the same columns
+  PASS  /cm priority on a spec-aware category with no spec explains the refusal
+  PASS  /cm priority rejects an unparseable id with a usage line
+  PASS  /cm priority reset clears the user's edits but keeps discoveries
+  PASS  /cm priority up reorders the list by pinning
+  PASS  /cm priority up on the top entry reports the edge instead of reordering
+  PASS  /cm priority on a composite category points at the aio editor
+  PASS  /cm priority with an unknown sub-verb reports it
+  PASS  /cm stat with no sub-verb prints the stat help
+  PASS  /cm stat list prints the resolved priority for the current spec
+  PASS  /cm stat primary rejects a stat that is not a primary
+  PASS  /cm stat secondary stores an ordered, deduplicated list
+  PASS  /cm stat secondary rejects the whole list if any stat is unknown
+  PASS  /cm stat secondary preserves the existing primary
+  PASS  /cm stat reset drops the override and falls back to the seed
+  PASS  /cm stat reset on a spec with no override says there is nothing to do
+  PASS  /cm stat with an unknown sub-verb reports it
+  PASS  /cm aio with no key prints the sub-verbs and the composite keys
+  PASS  /cm aio on a single-pick category is rejected
+  PASS  /cm aio list shows both sections with their on/off state
+  PASS  /cm aio toggle flips a sub-category and back
+  PASS  /cm aio toggle honors an explicit on/off argument
+  PASS  /cm aio toggle on a ref with no stored flag flips it OFF, not on
+  PASS  /cm aio toggle writes a real boolean, never a string or nil
+  PASS  /cm aio toggle with an unrecognized word falls through to a flip
+  PASS  /cm aio toggle rejects a ref that is not part of the composite
+  PASS  /cm aio down reorders within a section
+  PASS  /cm aio up at the top of a section reports the edge
+  PASS  /cm aio reset restores both the enabled flags and the section order
+  PASS  /cm aio with an unknown sub-verb reports it
+  PASS  /cm dump with no target lists every dump target
+  PASS  /cm dump with an unknown target reports it and lists the valid ones
+  PASS  /cm dump <itemID> is a shortcut for the item target
+  PASS  /cm dump bags lists each owned itemID and its count
+  PASS  /cm dump pick on a composite renders the assembled macro body
+  PASS  /cm dump statpriority prints the current spec's resolved stats
+  PASS  /cm dump item without an itemID prints its usage line
+  PASS  /cm dump item reports header, instant info, classification and usability in that order
+  PASS  /cm dump item on an unclassifiable item says (none) in red
+  PASS  /cm dump item on a pending tooltip says pending and asks no usability question
+  PASS  /cm dump item renders every raw tooltip line, splitting left from right
+  PASS  /cm dump pick without a category prints usage and the known keys
+  PASS  /cm dump pick on an unknown category names the bad key
+  PASS  /cm dump pick on a composite renders both sections with on/off tags
+  PASS  /cm dump pick on a spec-aware category prints the spec context first
+  PASS  /cm resync rediscovers, recomputes, and reports the count
+  PASS  /cm resync warns that macro writes are deferred while in combat
+  PASS  /cm resync drops cached tooltip parses first
+  PASS  /cm rewritemacros clears the fingerprint cache before recomputing
+  PASS  /cm debug on and off drive the logging flag through the DebugLog seam
+  PASS  /cm debug with no argument toggles the window and leaves the flag alone
+  PASS  /cm set reports an unknown setting path
+  PASS  /cm get reports an unknown setting path
+  PASS  /cm set rejects a non-boolean value for a bool setting
+  PASS  /cm set on a numeric dropdown accepts a listed value as a number
+  PASS  /cm set on a numeric dropdown rejects a value outside the list
+  PASS  /cm set on a plain number row still clamps to min/max
+  PASS  /cm set on a string dropdown still matches by text
+  PASS  /cm list covers every row in the settings schema
+  PASS  Slash: the dispatcher IS the library's instance, not a host lookalike
+  PASS  Slash: /cm routes through the instance rather than a parallel path
+  PASS  Slash: the library reads the addon's live COMMANDS table, not a copy
+  PASS  Slash: help rows are rendered by the library's own formatter
+  PASS  Slash: the About panel's rows go through the SAME formatter, un-indented
+  PASS  Slash: the addon's own shipped wording survives the library's strings
+  PASS  Slash: every rendered string resolves to prose, not to its own key
+  PASS  Slash: a bare /cm get answers with its usage line rather than raising
+  PASS  Slash: a bare /cm reset points at /cm resetall rather than wiping
+  PASS  Slash: the schema CLI reads the addon's shapes through the library
+  PASS  SpecHelper.MakeKey joins classID_specID, nil on missing parts
+  PASS  SpecHelper.GetCurrent reads the live spec and re-reads on respec
+  PASS  SpecHelper.GetCurrent returns classID-only when no spec is chosen
+  PASS  SpecHelper.GetStatPriority honors a user override
+  PASS  SpecHelper.GetStatPriority falls back to class primary, never nil
+  PASS  SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
+  PASS  SpecHelper.AllSpecs enumerates specs including the current one
+  PASS  SpecHelper.MakeKey is stable regardless of numeric or string inputs
+  PASS  SpecHelper.GetCurrent returns nothing when the client has no class yet
+  PASS  SpecHelper.GetCurrent stops at the classID when the spec id is unresolvable
+  PASS  SpecHelper.GetStatPriority ignores a user row that names no primary
+  PASS  SpecHelper.GetStatPriority defaults a user override's secondary list to empty
+  PASS  SpecHelper.GetStatPriority falls back on class primary for an unseeded spec
+  PASS  SpecHelper.GetStatPriority never returns nil, even for a malformed key
+  PASS  SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
+  PASS  SpecHelper.AllSpecs skips classes the client reports no specs for
+  PASS  TooltipCache: parses combined flat 'health and mana' into both values
+  PASS  TooltipCache: parses health-only food with no manaValue
+  PASS  TooltipCache: parses mana-only drink with no healValue
+  PASS  TooltipCache: flags weapon enhancements via the 'your <weapon>' effect
+  PASS  TooltipCache: parses combined percentage 'health and mana' form
+  PASS  TooltipCache: parses Attack Power and Spell Power as AP/SP stats
+  PASS  TooltipCache: weaponAffinity from bladed/blunt/plain phrasing
+  PASS  TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff
+  PASS  TooltipCache: sets isAugmentRune from the category marker line
+  PASS  TooltipCache: isAugmentRune fires on an inline 'Augment Rune' marker
+  PASS  TooltipCache: partial consumable tooltip stays pending until body loads
+  PASS  TooltipCache: effectless NON-consumable is cached, not pending
+  PASS  TooltipCache: parses a 'cannot be used by players higher than level' cap
+  PASS  TooltipCache: parses a drums 'above level' affect cap
+  PASS  TooltipCache: a floor phrasing without a negation does NOT produce a maxLevel
+  PASS  TooltipCache: an item whose only recognized line is a max-level cap resolves final, not pending (Emergency Soul Link)
+  PASS  TooltipCache: an uncapped item reports no maxLevel
+  PASS  TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the cap
+  PASS  TooltipCache: hour wins over a shorter unit on the same line
+  PASS  TooltipCache: the longest duration seen across lines wins
+  PASS  TooltipCache: 'over N sec' feeds the over-fields, never buffDurationSec
+  PASS  TooltipCache: 'over' applies to the seconds form only
+  PASS  TooltipCache: a cooldown note is stripped and a bare cooldown line skipped
+  PASS  libs/LibKa0s is the LibKa0s release the README says this addon bundles
+  PASS  tests/_kit is the test kit that shipped with that release
+  PASS  WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil
+  PASS  WeaponSlots: keys on weapon subClassID, not the localized subType
+  PASS  WeaponSlots: every bladed weapon subclass reports bladed affinity
+  PASS  WeaponSlots: every blunt weapon subclass reports blunt affinity
+  PASS  WeaponSlots: ranged and wand subclasses take no stone at all
+  PASS  WeaponSlots: main hand and off hand are read independently
+  PASS  WeaponSlots: an off-hand holdable (armor) is not enhanceable
+  PASS  WeaponSlots: an unknown item in the slot yields no affinity
+  PASS  WeaponSlots: a slot the client cannot report is safe to query
+  PASS  Widgets: every custom widget registers itself with AceGUI
+  PASS  Widgets: each registration supplies a constructor function
+  PASS  Widgets: each registration declares a positive integer version
+  PASS  Widgets: the version guard skips a widget already registered at that version
+  PASS  Widgets: no two widgets claim the same type name
+  PASS  Widgets: every widget name used by the settings pages is registered
+
+  656 passed, 0 failed, 656 total
