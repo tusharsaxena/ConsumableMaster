@@ -20,11 +20,50 @@ Branch `feat/fix-ccn`. Design: `LibKa0s/docs/superpowers/specs/2026-08-04-ccn-el
   unit a reader can name.
 - Dispatch/defaults tables are **module-level**, built once at file load — never per call.
 - `lizard` counts `and`/`or` as decisions. Prefer `== nil` over `or` wherever a stored
-  `false` or `0` must survive.
+  `false` must survive. (Only `false` and `nil` are falsy in Lua: `0` is truthy, so
+  `(0 or 99)` is `0` and an `or` chain never swallowed a stored zero. An earlier draft of
+  this rule said it did.)
 - Hot paths must not gain a per-call allocation.
 - Sixteen functions across the collection have no coverage; where this file says
   `Coverage: NONE`, write a characterization test pinning current behavior **before**
   refactoring.
+
+## As shipped — where the code deviates from this plan
+
+Four proposals below were **not** implemented, or were implemented and then reverted on
+review. This section is the correction; the per-function paragraphs are left as written so
+the reasoning behind each split stays legible. Read them against this list, not on their own.
+
+1. **There is no `dbg(...)` logging wrapper anywhere in the addon.** The `P.Recompute`,
+   `commitMacro`, `discoverOne`, `OnAccept` and `ResetAllToDefaults` items each propose
+   routing debug sites through a shared `dbg(tag, fmt, ...)` wrapper. That shape shipped in
+   `modules/MacroManager.lua`, failed review, and was reverted: Lua evaluates call arguments
+   before the callee runs, so a wrapper makes `KCM.Debug`'s arguments (the `tostring` calls at
+   those sites) allocate even with debug off. The shipped seam is a **predicate**,
+   `local function isDebugOn()`, with the log call inside an `if` at each site —
+   `core/ConsumableMaster.lua`, `modules/MacroManager.lua` and `settings/Category.lua` all
+   carry the same one. `tests/test_macromanager.lua` pins it with a probe key that counts its
+   own `__tostring` calls.
+2. **There is no `KCM.OwnsID`, and `core/Constants.lua` was not touched.** The `priorityList`
+   item proposes hoisting the spell-vs-item ownership predicate there and having both callers
+   use it; the `DUMP_TARGETS.pick.run` item then tells `describeEntry` to share it. What
+   shipped is `local function ownsID(id)` in `core/SlashCommands.lua` and
+   `describeSpellEntry` / `describeItemEntry` in `core/SlashDump.lua`. The two callers want
+   different return shapes (a boolean vs `displayID, name, owned`), and publishing a new
+   cross-file helper was outside a behavior-identical refactor, so the duplication stands.
+   Do not call `KCM.OwnsID` — it does not exist.
+3. **`bindEntry` keeps no `KCM.MacroBarButton` presence guard**, contrary to the `bindEntry`
+   item's "keeping the existing `KCM.MacroBarButton` presence guard at the call site". It was
+   unreachable — `FO.RefreshCooldown` and the other two appliers in the same function already
+   dereference that table bare — so it was dropped. `ApplyBorder` is also called
+   unconditionally: it owns the `buttonBorder == false` arm itself, and a caller-side copy of
+   that test is the drift the shared applier exists to prevent.
+4. **`outOfCombatLines` does not exist and nothing returns an array of lines.** The
+   `buildCompositeBody` item's (c) shipped as `appendOutOfCombatLines(lines, orderOut,
+   enabled, pickFor)` — an out-param helper returning whether it emitted anything, the same
+   shape as `appendEmptyStateNotice`. The array-returning version was reverted because it
+   added a per-build table plus an O(n) copy that master did not have; the body is assembled
+   in the one `lines` table throughout.
 
 ## Functions
 

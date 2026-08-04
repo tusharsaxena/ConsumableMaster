@@ -169,7 +169,9 @@ end)
 -- helper that returned its own table and got copied in would still pass the
 -- `find` assertions above while adding a per-build allocation and an O(n) copy,
 -- and could silently reorder or drop the tail. Two out-of-combat refs, so the
--- order WITHIN that section is pinned too.
+-- order WITHIN that section is pinned too. What a test can see is the assembled
+-- order and the tail, not the allocation itself — mutating the append order or
+-- dropping a line fails here; a table copy that preserves order would not.
 test("MacroManager: BuildCompositeBody assembles #showtooltip, the /castsequence and every /use line in order", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager

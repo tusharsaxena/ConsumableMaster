@@ -111,11 +111,18 @@ end
 -- category panels — the active catKey is parked in popup.data on show.
 -- ---------------------------------------------------------------------
 
--- One gated Debug seam for this file's reset diagnostics. Same gate
--- (KCM.State.debug) each of them carried inline; the args are plain values, so
--- evaluating them before the gate costs nothing.
-local function dbg(fmt, ...)
-    if KCM.State and KCM.State.debug then KCM.Debug("Prio", fmt, ...) end
+-- The session debug gate for this file's reset diagnostics, in one place
+-- instead of once per log site. It stays a PREDICATE rather than a logging
+-- wrapper on purpose: Lua evaluates call arguments before the callee runs, so a
+-- `dbg(fmt, ...)` wrapper would make KCM.Debug's arguments allocate even with
+-- debug off — the standard §12 zero-alloc rule these paths are written to.
+-- Today's two call sites pass only a plain string, but the wrapper shape is
+-- what makes the NEXT diagnostic (a tostring, a concat, a table) pay silently.
+-- Same shape as core/ConsumableMaster.lua's and modules/MacroManager.lua's
+-- isDebugOn, and it reads KCM.State directly exactly as the inline sites did.
+local function isDebugOn()
+    if KCM.State and KCM.State.debug then return true end
+    return false
 end
 
 -- The composite arm resets exactly these three fields and nothing else.
@@ -134,7 +141,7 @@ local function resetCompositeCategory(catKey)
     for _, f in ipairs(AIO_RESET_FIELDS) do
         cfg[f] = CopyTable(defaults[f] or {})
     end
-    dbg("reset %s", catKey)
+    if isDebugOn() then KCM.Debug("Prio", "reset %s", catKey) end
     afterMutation("options_aio_reset_cat")
 end
 
@@ -147,7 +154,7 @@ local function resetSingleCategory(catKey, specKey)
     bucket.added   = {}
     bucket.blocked = {}
     bucket.pins    = {}
-    dbg("reset %s", catKey)
+    if isDebugOn() then KCM.Debug("Prio", "reset %s", catKey) end
     afterMutation("options_reset_cat")
 end
 
