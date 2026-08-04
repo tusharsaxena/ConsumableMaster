@@ -52,15 +52,36 @@ the first one that can say something moved, and this record is what it will be r
 
 ## Complexity watch list
 
-| `run` | 62 | `core/SlashDump.lua` | **Accepted — the branch count *is* the diagnostic.** `/cm dump pick`; runs on a typed command, never a frame. |
-| `run` | 32 | `core/SlashDump.lua` | **Accepted**, same grounds — `/cm dump <itemID>`. |
-| `commitMacro` | 35 | `modules/MacroManager.lua` | **Accepted, and rising is the win.** F-006 collapsed `SetCompositeMacro` into it; 27 → 35 is the second copy being absorbed. |
-| `buildCompositeBody` | 27 | `modules/MacroManager.lua` | **Peel next — now unblocked.** Its "peel with F-006" gate is discharged. |
-| `validateSchemaValue` | 18 | `settings/Panel.lua` | **Peel next, with F-013** — that finding adds branches to this exact function. |
+### Functions `lizard` warned on
 
-Sixteen further entries accepted with reasons recorded 2026-08-04.
+| Function | CCN | Location | Disposition |
+|---|---|---|---|
+| `run` (`DUMP_TARGETS.pick`) | 62 | `core/SlashDump.lua` | **Accepted — the branch count *is* the diagnostic.** `/cm dump pick` walks every category and prints why each candidate won or lost. Runs on a typed command, never a frame. |
+| `M.SetCompositeMacro` → `commitMacro` | 35 | `modules/MacroManager.lua` | **Accepted, and rising is the win.** F-006 collapsed the duplicate write ladder into this one; 27 → 35 is the second copy being absorbed. |
+| `run` (`DUMP_TARGETS.item`) | 32 | `core/SlashDump.lua` | **Accepted**, same grounds — `/cm dump <itemID>`; one branch per printed field. |
+| `bindEntry` | 30 | `modules/MacroBarFlyout.lua` | **Accepted for now.** Secure-frame binding; the branches are the combat/template/secret-value guards `events-frames-taint` requires. |
+| `buildCompositeBody` | 27 | `modules/MacroManager.lua` | **Peel next — now unblocked.** Its "peel with F-006" gate is discharged; F-006 landed without touching it. |
+| `P.Recompute` | 26 | `core/ConsumableMaster.lua` | **Accepted.** The recompute stage sequencer; branches are cheap early-outs on the instrumented hot path. |
+| `S.GetBucket` | 23 | `modules/Selector.lua` | **Accepted.** The branch count *is* the spec/class/global fallback specification, and the suite pins each arm. |
+| `BB.ApplyStyle` | 21 | `modules/MacroBarButton.lua` | **Accepted.** One branch per user-visible styling toggle, driven by the settings schema. |
+| `OnAccept` | 21 | `settings/Category.lua` | **Accepted.** A `StaticPopupDialogs` handler validating free-text item input; branches are the validation cases. |
+| `discoverOne` | 20 | `core/ConsumableMaster.lua` | **Accepted.** Auto-discovery's per-item classification decision. Re-read if review finding **F-005** changes the call pattern. |
+| `parseDuration` | 19 | `core/TooltipCache.lua` | **Accepted, tied to `CM-30`.** The CCN is the English-phrasing ladder that deviation records as an accepted enUS-only limitation. |
+| `validateSchemaValue` | 18 | `settings/Panel.lua` | **Peel next, with F-013** — that finding adds a defaults-resolution pass to this exact function. Restructure into a validator list as part of it, not before. |
+| `statWeight` | 17 | `modules/Ranker.lua` | **Accepted.** Stat-to-weight mapping; would be a lookup table if the weights were constant, but several are spec-conditional. The only warning left in this file. |
+| `FO.Apply` | 17 | `modules/MacroBarFlyout.lua` | **Accepted for now.** Flyout layout application, out-of-combat only and covered by `tests/test_macrobar.lua`. |
+| `KCM.ResetAllToDefaults` | 16 | `core/ConsumableMaster.lua` | **Accepted.** One branch per resettable subtree; tracks the settings schema by construction. |
+| `MD.SetTooltip` | 16 | `core/MacroDisplay.lua` | **Accepted.** Secret-value-safe tooltip assembly — the guards `events-frames-taint-§8` mandates. Simplifying it is how the restricted-cooldown regression returns. |
+| `parseLines` | 16 | `core/TooltipCache.lua` | **Accepted, tied to `CM-30`**, same reasoning as `parseDuration`. |
+| `onSubmit` | 16 | `settings/Category.lua` | **Accepted.** Category-page submit validation, sibling to `OnAccept`. |
+| `submitAddByID` | 16 | `settings/Category.lua` | **Accepted.** Lifted out of `renderSingle` this session: one branch per way a typed ID can be rejected, each saying something different to the player. |
+| `]` (anonymous) | 14 | `modules/KCMItemRow.lua` | **Resolved this session** — was CCN 26 and anonymous; now `refreshDisplay` over five named halves. Listed only to record that it left the list. |
 
-**Files in the 1000–1500 band:** `tests/test_macrobar.lua` (1129) — accepted, case count not tangle.
+### Files by `layout-§1` band
+
+| Band | File | LOC | Disposition |
+|---|---|---|---|
+| 1000–1500 (on notice) | `tests/test_macrobar.lua` | 1129 | **Accepted.** One suite per behaviour over the most in-client-coupled module, avg CCN 1.3 — case count, not tangle. Peel by module only past 1500. |
 
 ## Actions
 
