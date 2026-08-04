@@ -272,6 +272,29 @@ test("/cm priority list marks ownership and the current pick", function(t)
     t.truthy(text:find("<-- pick", 1, true), "and the winning entry is called out")
 end)
 
+-- The row shape itself is the contract users read at a glance: a 2-wide index,
+-- the ownership tag (whose not-owned form pads with two trailing spaces so the
+-- ID column still lines up), a 12-wide ID and the name. Pinned here so the
+-- formatter can move without the columns shifting.
+test("/cm priority list renders item and spell rows in the same columns", function(t)
+    local KCM, mock = load()
+    KCM:OnSlashCommand("priority food add s:5512")
+    local text = say(KCM, mock, "priority food list")
+    t.truthy(text:find("|cff888888[---]  |r", 1, true), "the not-owned tag keeps its two-space pad")
+    t.truthy(text:match("  %d+%. |cff%x+%[[^%]]+%][^|]*|r s:5512 "),
+        "a spell entry renders as s:<id> in the 12-wide ID column")
+end)
+
+test("/cm priority on a spec-aware category with no spec explains the refusal", function(t)
+    local KCM, mock = load()
+    local getCurrent = KCM.SpecHelper.GetCurrent
+    KCM.SpecHelper.GetCurrent = function() return nil, nil, nil, nil end
+    local text = say(KCM, mock, "priority flask list")
+    KCM.SpecHelper.GetCurrent = getCurrent
+    t.truthy(text:find("spec-aware category but no active spec", 1, true),
+        "the user is told why, rather than shown an empty list")
+end)
+
 test("/cm priority rejects an unparseable id with a usage line", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "priority food add notanid")
@@ -436,6 +459,33 @@ test("/cm aio toggle honors an explicit on/off argument", function(t)
     t.eq(KCM.db.profile.categories.HP_AIO.enabled.HS, true, "'yes' is accepted as on")
 end)
 
+test("/cm aio toggle on a ref with no stored flag flips it OFF, not on", function(t)
+    local KCM = load()
+    local cfg = KCM.db.profile.categories.HP_AIO
+    cfg.enabled.HS = nil                       -- never written: the unset case
+    KCM:OnSlashCommand("aio hp_aio toggle HS")
+    t.eq(cfg.enabled.HS, false,
+        "unset reads as currently-on (the body builder's `~= false` default), so a flip is off")
+end)
+
+test("/cm aio toggle writes a real boolean, never a string or nil", function(t)
+    local KCM = load()
+    KCM:OnSlashCommand("aio hp_aio toggle HS 1")
+    t.eq(type(KCM.db.profile.categories.HP_AIO.enabled.HS), "boolean", "'1' stores true, not \"1\"")
+    t.eq(KCM.db.profile.categories.HP_AIO.enabled.HS, true, "and it is on")
+    KCM:OnSlashCommand("aio hp_aio toggle HS 0")
+    t.eq(type(KCM.db.profile.categories.HP_AIO.enabled.HS), "boolean", "'0' stores false, not \"0\"")
+    t.eq(KCM.db.profile.categories.HP_AIO.enabled.HS, false, "and it is off")
+end)
+
+test("/cm aio toggle with an unrecognized word falls through to a flip", function(t)
+    local KCM, mock = load()
+    KCM.db.profile.categories.HP_AIO.enabled.HS = true
+    local text = say(KCM, mock, "aio hp_aio toggle HS maybe")
+    t.eq(KCM.db.profile.categories.HP_AIO.enabled.HS, false, "a junk word is not an explicit value")
+    t.truthy(text:find("HP_AIO.enabled.HS = false", 1, true), "and the new value is echoed")
+end)
+
 test("/cm aio toggle rejects a ref that is not part of the composite", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "aio hp_aio toggle DRINK")
@@ -522,6 +572,114 @@ test("/cm dump statpriority prints the current spec's resolved stats", function(
     local KCM, mock = load()
     local text = say(KCM, mock, "dump statpriority")
     t.truthy(#text > 0, "the target produces output")
+end)
+
+-- The dump targets below are section-level characterization: `item` and `pick`
+-- are the two biggest report builders in the addon, and each assembles several
+-- independent blocks in a fixed ORDER. These pin every block and that order, so
+-- a split into per-block printers cannot silently drop or reshuffle one.
+
+test("/cm dump item without an itemID prints its usage line", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "dump item")
+    t.truthy(text:find("usage: /cm dump item <itemID>", 1, true), "the usage line names the argument")
+end)
+
+-- The whole report for a hydrated item, in order: header, instant info,
+-- classification, usability, raw lines. Driving the REAL TooltipCache off a
+-- stubbed C_TooltipInfo is what makes the non-pending arm reachable at all.
+test("/cm dump item reports header, instant info, classification and usability in that order", function(t)
+    local KCM, mock = load()
+    mock.setItem(960031, { name = "Char Snack", subType = "Potions" })
+    local saved = _G.C_TooltipInfo
+    _G.C_TooltipInfo = {
+        GetItemByID = function()
+            return { lines = { { leftText = "Char Snack" }, { leftText = "Restores 100 health." } } }
+        end,
+    }
+    KCM.TooltipCache.InvalidateAll()
+    local text = say(KCM, mock, "dump item 960031")
+    _G.C_TooltipInfo = saved
+    local header     = text:find("item 960031  (Char Snack)", 1, true)
+    local instant    = text:find('instant: type="Consumable"  subType="Potions"  classID=0  subClassID=1', 1, true)
+    local classified = text:find("classified: HP_POT", 1, true)
+    local usable     = text:find("usable: yes  (minLevel=0, you=80)", 1, true)
+    local raw        = text:find("raw tooltip lines (2)", 1, true)
+    t.truthy(header, "header carries the resolved name")
+    t.truthy(instant, "the GetItemInfoInstant block is rendered")
+    t.truthy(classified, "the Classifier's matches are rendered")
+    t.truthy(usable, "the usability verdict is rendered")
+    t.truthy(raw, "the raw tooltip lines are rendered")
+    t.truthy(header < instant and instant < classified and classified < usable and usable < raw,
+        "and the five blocks come out in that order")
+end)
+
+test("/cm dump item on an unclassifiable item says (none) in red", function(t)
+    local KCM, mock = load()
+    mock.setItem(960035, { name = "Mystery Thing", subType = "Other" })
+    local text = say(KCM, mock, "dump item 960035")
+    t.truthy(text:find("classified: |cffff4444(none)|r", 1, true), "no category match is called out")
+end)
+
+test("/cm dump item on a pending tooltip says pending and asks no usability question", function(t)
+    local KCM, mock = load()
+    mock.setItem(960032, { name = "Not Loaded Yet", subType = "Potions", pending = true })
+    local text = say(KCM, mock, "dump item 960032")
+    t.truthy(text:find("pending: tooltip data not yet loaded", 1, true), "the load race is reported")
+    t.falsy(text:find("usable:", 1, true),
+        "and IsUsableByPlayer is never consulted — its answer would be wrong while pending")
+end)
+
+test("/cm dump item renders every raw tooltip line, splitting left from right", function(t)
+    local KCM, mock = load()
+    mock.setItem(960034, { name = "Two Column", subType = "Potions", tt = {} })
+    local saved = _G.C_TooltipInfo
+    _G.C_TooltipInfo = {
+        GetItemByID = function()
+            return { lines = { { leftText = "Two Column" }, { leftText = "Level", rightText = "80" } } }
+        end,
+    }
+    local text = say(KCM, mock, "dump item 960034")
+    _G.C_TooltipInfo = saved
+    t.truthy(text:find("raw tooltip lines (2)", 1, true), "the line count heads the block")
+    t.truthy(text:find('[ 1] "Two Column"', 1, true), "a left-only line renders bare")
+    t.truthy(text:find('[ 2] L="Level"  R="80"', 1, true), "a two-column line renders L= / R=")
+end)
+
+test("/cm dump pick without a category prints usage and the known keys", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "dump pick")
+    t.truthy(text:find("usage: /cm dump pick <catKey>", 1, true), "the usage line names the argument")
+    t.truthy(text:find("known: ", 1, true), "and the known keys follow it")
+    t.truthy(text:find("food", 1, true), "lower-cased, e.g. food")
+end)
+
+test("/cm dump pick on an unknown category names the bad key", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "dump pick frobnicate")
+    t.truthy(text:find("unknown category: |cffffff00frobnicate|r", 1, true), "echoes what was typed")
+end)
+
+test("/cm dump pick on a composite renders both sections with on/off tags", function(t)
+    local KCM, mock = load()
+    KCM:OnSlashCommand("aio hp_aio toggle HS off")
+    local text = say(KCM, mock, "dump pick hp_aio")
+    t.truthy(text:find("HP_AIO (composite)", 1, true), "the composite header")
+    t.truthy(text:find("  In Combat", 1, true), "the In Combat section")
+    t.truthy(text:find("  Out of Combat", 1, true), "the Out of Combat section")
+    t.truthy(text:find("|cff888888[off]|r HS -> ", 1, true), "a disabled ref carries the gray [off] tag")
+    t.truthy(text:find("|cff44ff44[on]|r  HP_POT -> ", 1, true), "an enabled one the green [on] tag")
+    t.truthy(text:find("(no pick)", 1, true), "and a ref with nothing owned resolves to (no pick)")
+end)
+
+test("/cm dump pick on a spec-aware category prints the spec context first", function(t)
+    local KCM, mock = load()
+    local _, _, specKey, specName = KCM.SpecHelper.GetCurrent()
+    local text = say(KCM, mock, "dump pick flask")
+    t.truthy(text:find(("FLASK for spec %s (%s)"):format(specName or "?", specKey), 1, true),
+        "the spec line heads the report")
+    t.truthy(text:find("  primary=", 1, true), "with the resolved stat priority under it")
+    t.truthy(text:find("effective priority", 1, true), "and the priority rows after that")
 end)
 
 -- ---------------------------------------------------------------------------
