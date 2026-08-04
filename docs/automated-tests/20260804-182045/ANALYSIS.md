@@ -1,8 +1,9 @@
-# Analysis — 20260804-122513
+# Analysis — 20260804-182045
 
 - **Addon:** ConsumableMaster 1.5.0
 - **Verdict:** green
-- **Commit:** a840025c4b5a (master), dirty
+- **Commit:** 3a809822b68a (master), dirty
+- **Started:** 2026-08-04T18:20:45+05:30
 - **Previous run:** none — this is the first recorded run
 
 ## Headline
@@ -57,7 +58,7 @@ the first one that can say something moved, and this record is what it will be r
 | `buildCompositeBody` | 27 | `modules/MacroManager.lua` | **Peel next — now unblocked.** Its "peel with F-006" gate is discharged. |
 | `validateSchemaValue` | 18 | `settings/Panel.lua` | **Peel next, with F-013** — that finding adds branches to this exact function. |
 
-Sixteen further entries accepted with reasons recorded at 2026-08-04.
+Sixteen further entries accepted with reasons recorded 2026-08-04.
 
 **Files in the 1000–1500 band:** `tests/test_macrobar.lua` (1129) — accepted, case count not tangle.
 
