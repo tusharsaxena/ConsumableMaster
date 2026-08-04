@@ -80,7 +80,7 @@ local main = Settings.RegisterCanvasLayoutCategory(panel, PANEL_TITLE)
 KCM._settingsCategoryID = main:GetID()
 ```
 
-`/cm config` (in `core/SlashCommands.lua`) uses the parent's ID stored in `KCM._settingsCategoryID` to land on the About splash.
+`/cm config` (in `settings/Slash.lua`'s `COMMANDS` table) uses the parent's ID stored in `KCM._settingsCategoryID` to land on the About splash.
 
 ## Forcing a parent category to render expanded in the AddOns sidebar
 

@@ -169,18 +169,30 @@ settings/         Settings UI framework + per-tab modules.
                           single (Add-by-ID + Priority list) or composite
                           (In Combat / Out of Combat) rendering.
 
-core/SlashCommands.lua  /cm (and /consumablemaster alias) dispatcher, and the
-                   addon's half of LibKa0s-Slash-1.0: the routing, the help
-                   header and rows, the version verb and the schema CLI
-                   (list / get / set / reset) are the library's, driven by the
-                   addon's own ordered tables — COMMANDS, DUMP_TARGETS, and the
-                   *_COMMANDS verb namespaces — which are PASSED IN, not owned.
-                   The file-local say is an alias of the shared seam
+core/SlashDump.lua  The /cm dump <target> diagnostics namespace: DUMP_TARGETS,
+                   DUMP_ORDER and the dump dispatcher. A leaf — it reads only
+                   KCM.Say and addon state, no slash parsing helpers — so it
+                   loads FIRST of the three. Published as KCM.SlashDump.
+
+core/SlashCommands.lua  The slash VERB BODIES: the priority / stat / aio / bar
+                   namespaces and their *_COMMANDS tables, the shared parsing
+                   helpers, KCM.FormatSchemaValue, and the KCM_CONFIRM_RESET
+                   popup raised by /cm resetall. Publishes five entry points on
+                   KCM.SlashCommands.Verbs and knows nothing about how they are
+                   dispatched. The file-local say is an alias of the shared seam
                    (local say = KCM.Say), so every slash line inherits the [CM]
-                   tag and secret-safe stringification. GetLandingRows() hands
-                   the About panel the SAME rendered rows /cm help prints, so
-                   the two cannot drift apart -- it is the only view of the
-                   command table this file exports. Detail in debug.md.
+                   tag and secret-safe stringification.
+
+settings/Slash.lua  The DISPATCHER (CM-47 — slash-commands-§1 names this file).
+                   The addon's half of LibKa0s-Slash-1.0: routing, the help
+                   header and rows, the version verb and the schema CLI
+                   (list / get / set / reset) are the library's, driven by this
+                   file's ordered COMMANDS table, which is PASSED IN, not owned.
+                   Holds the instance, addonVersion(), the schema helpers()
+                   accessor, GetLandingRows() and KCM:OnSlashCommand.
+                   GetLandingRows() hands the About panel the SAME rendered rows
+                   /cm help prints, so the two cannot drift apart. Detail in
+                   debug.md.
 
 modules/KCM*.lua  AceGUI custom widgets. Loaded before settings/ so that
                   AceGUI:Create("KCM…") works at panel render time.
@@ -483,7 +495,7 @@ local F = KCM.Foo
 
 1. **Libraries** — LibStub + every Ace3 sub-library + LibSharedMedia + `AceGUI-3.0-SharedMediaWidgets` (last, since its widgets need both AceGUI and LibSharedMedia), listed directly in the TOC (no `embeds.xml` wrapper).
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
-3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
+3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Categories.lua` then each `defaults/Defaults_*.lua`.
 5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → `MacroBarFlyout` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
 6. **Settings** — `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua`.

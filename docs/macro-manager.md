@@ -142,7 +142,16 @@ SetMacro(name, id, catKey):
     return result
 ```
 
-`SetCompositeMacro` follows the same ladder, with the body coming from `buildCompositeBody(cat, pickFor)` instead of `BuildBody`. Pending entries for composites carry `entry.cat = cat` so `FlushPending` can dispatch.
+`SetCompositeMacro` **is** that ladder — it builds its body from `buildCompositeBody(cat, pickFor)` instead of `BuildBody` and then calls `commitMacro` (F-006). It used to re-implement all five steps inline, and the two copies had drifted in the oversize wording, the icon decision and the pending-entry shape. `commitMacro`'s `opts` carries the whole of the remaining difference:
+
+| opt | why a composite needs it |
+|---|---|
+| `cat` | the empty-state body, and the field `FlushPending` dispatches on. A single-category write leaves it nil, which **is** the distinction `FlushPending` reads. |
+| `active` | whether the body is the built one rather than the empty-state one; feeds `resolveIcon`, and is forced false when the oversize fallback swaps the body. |
+| `resolveIcon` | a composite's icon is a sentinel chosen by whether the body is active, not by an item, so it cannot come from `iconFor`. |
+| `oversizeDebugFmt` / `oversizeSay` / `deferDebugFmt` | the three wordings, which differ only in the noun. |
+
+`SetCompositeMacro` passes `iconItemID = nil`, which is what makes the stored `lastItemID` and the deferred entry's `itemID` come out nil.
 
 ## Combat deferral
 

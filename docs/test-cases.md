@@ -339,7 +339,7 @@ whenever the suite changes.
 - macrobar flyout: Close tolerates a nil flyout
 - macrobar schema: the bar publishes its own bus message
 
-### test_macromanager.lua (37)
+### test_macromanager.lua (42)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -378,6 +378,11 @@ whenever the suite changes.
 - MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand has a pick
 - MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
 - MacroManager.SetWeaponEnchantMacro guards a missing category or DB
+- MacroManager.SetCompositeMacro stores the dynamic icon and no item id
+- MacroManager.SetCompositeMacro falls back to the default icon with no picks
+- MacroManager.SetCompositeMacro coalesces an unchanged rewrite
+- MacroManager.SetCompositeMacro defers in combat and replays as a composite
+- MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
 
 ### test_perfsetup.lua (10)
 
@@ -719,7 +724,7 @@ whenever the suite changes.
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
 | test_macrobar.lua | 98 |
-| test_macromanager.lua | 37 |
+| test_macromanager.lua | 42 |
 | test_perfsetup.lua | 10 |
 | test_pipeline.lua | 22 |
 | test_ranker.lua | 23 |
@@ -734,4 +739,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **600** |
+| **Total** | **605** |

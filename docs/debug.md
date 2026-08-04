@@ -55,7 +55,7 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 
 ## Dump internals
 
-`/cm dump <target>` — inspect runtime state. `DUMP_TARGETS` in `core/SlashCommands.lua` is the single source of truth; adding a row makes it appear in `/cm dump` help automatically.
+`/cm dump <target>` — inspect runtime state. `DUMP_TARGETS` in `core/SlashDump.lua` is the single source of truth; adding a row (plus its `DUMP_ORDER` name) makes it appear in `/cm dump` help automatically.
 
 | Target | What it shows |
 |--------|---------------|
