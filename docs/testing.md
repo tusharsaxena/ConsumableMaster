@@ -52,12 +52,21 @@ paired attach guards, so a per-file copy is how cross-major skew gets manufactur
 
 ## Local toolchain
 
-WoW runs Lua 5.1, so the harness targets 5.1. Install once:
+WoW runs Lua 5.1, so the harness targets 5.1 — and the binary has to be named `lua5.1` on `PATH`,
+because two cases in `tests/test_runner_list.lua` shell out to that literal name.
+
+The full toolchain, with install commands, versions and a verification command per tool, lives in
+[../DEPENDENCIES.md](../DEPENDENCIES.md) (the standard's `documentation-§7`). It answers *what to
+install*; this page answers *how to verify*. The short form:
 
 ```sh
-sudo apt-get update && sudo apt-get install -y lua5.1 luarocks
+sudo apt update && sudo apt install -y lua5.1 luarocks git
 sudo luarocks install luacheck
+sudo apt install -y pipx && pipx ensurepath && pipx install lizard
 ```
+
+`pipx`, not `pip` — Ubuntu 24.04 marks its Python externally managed (PEP 668) and
+`pip install lizard` fails. See DEPENDENCIES.md for the alternative.
 
 ## Test-case inventory & badge
 
@@ -117,6 +126,42 @@ until it passes. No logic change lands without a covering test. Pure, testable l
 (classification, ranking, selection, schema validation, migrations, formatting) is
 exercised headlessly here; genuinely in-client behavior (frame rendering, taint) is
 covered by the in-game smoke tests below.
+
+## The release checkpoint — regenerate the complexity report
+
+This one is **not a commit gate**, and deliberately so. Run it as part of every release, in the
+same change that bumps the version and rolls the README's `## What's new` and `## Version History`
+forward, **before** the tag:
+
+```sh
+lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .   # from the repo root, exactly this
+```
+
+Write the output into [complexity.md](./complexity.md) — one file, overwritten in place, never
+dated and never a directory — and then **read the diff against the previous version of that file**.
+That diff is the whole point: a single report is a page of numbers nobody acts on, while the same
+function moving from CCN 9 to CCN 24 since the last tag is a finding with a name attached. Anything
+that newly crossed a lizard threshold, or a file that newly entered the 1000–1500 LOC band, goes
+into the report's `## Watch list` with a one-line disposition.
+
+Three things not to do:
+
+- **Do not gate a commit on it.** A complexity threshold that fails a build teaches everyone to
+  reach for `--no-verify`, after which the gate protects nothing and the habit remains. The commit
+  gate is still exactly the two commands at the top of this page.
+- **Do not tune the invocation.** No extra flags, no per-addon thresholds, no narrowing the path.
+  Two reports produced by different invocations cannot be diffed, which costs more than any flag
+  gains.
+- **Do not hand-edit the report.** If `lizard` is not installed the report is *stale*, not
+  non-compliant — leave the previous one committed with its original header (which dates itself)
+  and say so in the release notes. A hand-edited report is worse than an absent one, because it
+  reads as measured.
+
+Rule and rationale: the standard's `performance-§10`. Install `lizard` per
+[../DEPENDENCIES.md](../DEPENDENCIES.md).
+
+Regenerate mid-cycle too when a change is what pushed a function over — recording it with the
+commit that caused it beats rediscovering it at release, one commit among thirty.
 
 ## In-game smoke tests
 
