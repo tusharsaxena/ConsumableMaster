@@ -17,11 +17,11 @@ are measured, and one of them lands on the watch list below.
 
 ## Watch list
 
-**22 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
+**21 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
 tripped the length (> 1000) or parameter (> 100) thresholds. **Two files** sit in `layout-§1`'s
 1000–1500 LOC on-notice band. No file exceeds the 1500 LOC cap.
 
-**Three peels landed in this change**, which is why the numbers below are lower than the ones the
+**Four peels landed in this change**, which is why the numbers below are lower than the ones the
 2026-08-04 audit was written against. All 600 tests pass unchanged and `luacheck` is clean:
 
 - **`R.Explain`** (`modules/Ranker.lua`) — was the worst number in the repo at CCN **68**, one
@@ -36,8 +36,14 @@ tripped the length (> 1000) or parameter (> 100) thresholds. **Two files** sit i
 - **`FO.ApplyBackdrop`** (`modules/MacroBarFlyout.lua`) — was CCN **19**, almost entirely a
   nil-guard per backdrop color component. Collapsed into an `rgba(stored, default)` helper over two
   default tables, as the audit's "cheapest win on this list" note called for.
+- **`RefreshDisplay`** (`modules/KCMItemRow.lua`) — was CCN **26** and, worse, *anonymous*: a
+  53-NLOC table value, so every frame error in a priority row pointed at
+  `function <KCMItemRow.lua:193>`. Now a named `refreshDisplay` over five named halves
+  (`refreshPickIndicators`, `refreshHandTag`, `refreshIcon`, `refreshQualityGlyph`,
+  `refreshLabelText`), separating the layout decisions from the text ones. **The file now has no
+  warnings at all**, its heaviest function being `refreshLabelText` at 9.
 
-That took the addon from **25** warnings to **22**, and its worst function from CCN 68 to 62. The
+That took the addon from **25** warnings to **21**, and its worst function from CCN 68 to 62. The
 remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a complexity fix — it is
 `CM-47` / `CM-54`, the dispatcher-in-the-wrong-file split.
 
@@ -59,7 +65,6 @@ remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a compl
 | `buildCompositeBody` | 27 | `modules/MacroManager.lua:174-245` | **Peel next, with F-006.** Macro-body assembly by category conditional; extracting the per-category conditional splice into its own function is a mechanical win and F-006 already opens this file. |
 | `commitMacro` | 27 | `modules/MacroManager.lua:305-371` | **Accepted as the shared write tail** — this is the ladder F-006 wants *everything* to go through, so its CCN is load-bearing. Expect it to rise slightly when F-006 lands; that is the intended direction. |
 | `P.Recompute` | 26 | `core/ConsumableMaster.lua:261-322` | **Accepted.** The recompute pipeline's stage sequencer, with each stage's skip condition inline. It is bracketed by the perf harness (`recompute` bucket) precisely because it is the hot path, and the branches are cheap early-outs. Re-examine if stages are added. |
-| `]` (anonymous) | 26 | `modules/KCMItemRow.lua:193-264` | **Peel next.** An anonymous widget-construction closure in an AceGUI row; unnamed and 53 NLOC is the combination that makes a stack trace useless. Name it and split the layout half from the behavior half. Now the highest-value peel that no open ID already covers. |
 | `S.GetBucket` | 23 | `modules/Selector.lua:36-71` | **Accepted.** Bucket resolution across the spec / class / global fallback chain — the branch count *is* the fallback specification, and the suite pins each arm. |
 | `BB.ApplyStyle` | 21 | `modules/MacroBarButton.lua:254-302` | **Accepted.** Per-option styling switch (icon, border, GCD swipe, cooldown bling) driven by the settings schema; one branch per user-visible toggle. |
 | `OnAccept` | 21 | `settings/Category.lua:124-148` | **Accepted.** A `StaticPopupDialogs` accept handler validating free-text item input. Small (25 NLOC) and its branches are the validation cases. |
@@ -77,8 +82,10 @@ remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a compl
 
 Nothing on this list is a `MUST` violation: `layout-§1` caps files at 1500 LOC (no file is over) and
 lizard's CCN threshold is a report signal, not a gate (performance-§10, "the checkpoint: release, not
-commit"). Three rows are marked *peel next*; the rest are recorded as accepted with a reason so the
-next release's diff shows movement rather than a fresh argument.
+commit"). Two rows are marked *peel next*, and both are deliberately deferred: `buildCompositeBody` and
+`validateSchemaValue` should move **with** review findings F-006 and F-013 rather than before them,
+because both findings change the shape of the code being peeled. The rest are recorded as accepted
+with a reason so the next release's diff shows movement rather than a fresh argument.
 
 ## Raw output
 
@@ -358,15 +365,20 @@ next release's diff shows movement rather than a fresh argument.
        3      4     22      1       3 spellIDFromEntry@99-101@./modules/KCMItemRow.lua
       15      9    115      1      15 applyLabelWidth@107-121@./modules/KCMItemRow.lua
       18     11    107      1      18 craftingQualityAtlas@130-147@./modules/KCMItemRow.lua
-      13      1     63      1      13 ]@150-162@./modules/KCMItemRow.lua
-       1      1      6      2       1 ]@167-167@./modules/KCMItemRow.lua
-       1      1      6      2       1 ]@168-168@./modules/KCMItemRow.lua
-      11     14    103      2      11 ]@181-191@./modules/KCMItemRow.lua
-      53     26    385      1      72 ]@193-264@./modules/KCMItemRow.lua
-       4      1     17      2       4 ]@266-269@./modules/KCMItemRow.lua
-      11      5     62      1      11 (anonymous)@335-345@./modules/KCMItemRow.lua
-       3      1      8      0       3 (anonymous)@346-348@./modules/KCMItemRow.lua
-      47      3    343      0      84 Constructor@272-355@./modules/KCMItemRow.lua
+       8      6     48      1       8 refreshPickIndicators@157-164@./modules/KCMItemRow.lua
+      13      5     65      1      13 refreshHandTag@169-181@./modules/KCMItemRow.lua
+       7      2     36      2       7 refreshIcon@183-189@./modules/KCMItemRow.lua
+      12      4     95      2      17 refreshQualityGlyph@193-209@./modules/KCMItemRow.lua
+      17      9    117      2      20 refreshLabelText@211-230@./modules/KCMItemRow.lua
+      10      5     69      1      11 refreshDisplay@232-242@./modules/KCMItemRow.lua
+      13      1     63      1      13 ]@245-257@./modules/KCMItemRow.lua
+       1      1      6      2       1 ]@262-262@./modules/KCMItemRow.lua
+       1      1      6      2       1 ]@263-263@./modules/KCMItemRow.lua
+      11     14    103      2      11 ]@276-286@./modules/KCMItemRow.lua
+       4      1     17      2       4 ]@290-293@./modules/KCMItemRow.lua
+      11      5     62      1      11 (anonymous)@359-369@./modules/KCMItemRow.lua
+       3      1      8      0       3 (anonymous)@370-372@./modules/KCMItemRow.lua
+      47      3    343      0      84 Constructor@296-379@./modules/KCMItemRow.lua
        3      3     20      1       3 macroIndex@34-36@./modules/KCMMacroDragIcon.lua
        3      3     20      1       3 macroIcon@38-40@./modules/KCMMacroDragIcon.lua
        3      2     23      2       3 showMacroTooltip@42-44@./modules/KCMMacroDragIcon.lua
@@ -1591,7 +1603,7 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
       4       1.0     1.0        8.0         1     ./locales/enUS.lua
      89       2.3     1.9       19.4        28     ./modules/DebugLog.lua
     111      11.4     2.3       73.3         9     ./modules/KCMIconButton.lua
-    242      12.9     6.3       86.0        17     ./modules/KCMItemRow.lua
+    257      10.6     5.1       68.5        22     ./modules/KCMItemRow.lua
      91       6.7     2.0       40.2        12     ./modules/KCMMacroDragIcon.lua
      86       8.7     2.0       54.1         9     ./modules/KCMScoreButton.lua
     324      10.1     5.3       73.4        31     ./modules/MacroBar.lua
@@ -1657,7 +1669,6 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
       27     19    217      2      27 aioToggle@963-989@./core/SlashCommands.lua
       39     19    226      2      48 parseDuration@209-256@./core/TooltipCache.lua
       31     16    245      1      58 parseLines@306-363@./core/TooltipCache.lua
-      53     26    385      1      72 ]@193-264@./modules/KCMItemRow.lua
       32     21    342      2      49 BB.ApplyStyle@254-302@./modules/MacroBarButton.lua
       47     30    475      4      55 bindEntry@324-378@./modules/MacroBarFlyout.lua
       55     17    463      2      69 FO.Apply@429-497@./modules/MacroBarFlyout.lua
@@ -1672,5 +1683,5 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
 ==========================================================================================
 Total nloc   Avg.NLOC  AvgCCN  Avg.token   Fun Cnt  Warning cnt   Fun Rt   nloc Rt
 ------------------------------------------------------------------------------------------
-     14282       8.3     3.0       66.7     1464           22      0.02    0.07
+     14297       8.3     3.0       66.5     1469           21      0.01    0.07
 ```

@@ -146,6 +146,101 @@ local function craftingQualityAtlas(itemID)
     return nil
 end
 
+-- RefreshDisplay, split by concern. It was one 53-NLOC anonymous table value doing icon, glyph,
+-- anchor, tag and text in a single body, which is the combination that makes a stack trace
+-- useless: every frame error in a row pointed at "function <KCMItemRow.lua:193>". Each half is
+-- now named, and the layout decisions (which texture, which anchor) are separable from the text
+-- decisions.
+
+-- Owned swatch plus the "picked in macro" star. The star shows for any pick flavor, so a
+-- per-hand row that is picked for either hand still gets it.
+local function refreshPickIndicators(self)
+    self.ownedTex:SetTexture(self.owned and OWNED_TEX or NOT_OWNED_TEX)
+    if self.isPick or self.pickMH or self.pickOH then
+        self.pickTex:Show()
+    else
+        self.pickTex:Hide()
+    end
+end
+
+-- The MH / OH / MH+OH tag. ASCII rather than a middle-dot glyph: WoW's default font (Friz
+-- Quadrata TT) has narrow Unicode coverage and renders unsupported glyphs as tofu dots (see
+-- feedback notes on WoW glyph rendering). ASCII is guaranteed to render.
+local function refreshHandTag(self)
+    if self.pickMH and self.pickOH then
+        self.handTag:SetText("MH+OH")
+    elseif self.pickMH then
+        self.handTag:SetText("MH")
+    elseif self.pickOH then
+        self.handTag:SetText("OH")
+    else
+        self.handTag:Hide()
+        return
+    end
+    self.handTag:Show()
+end
+
+local function refreshIcon(self, spellID)
+    if spellID then
+        self.itemTex:SetTexture(iconForSpell(spellID))
+    else
+        self.itemTex:SetTexture(iconForItem(self.itemID))
+    end
+end
+
+-- Crafting-quality glyph, and the label anchor that depends on whether it is showing. Only
+-- applies to items; spells never carry one.
+local function refreshQualityGlyph(self, spellID)
+    local qualityAtlas = (not spellID) and craftingQualityAtlas(self.itemID) or nil
+    self.label:ClearAllPoints()
+    -- LEFT anchor only — width is enforced by applyLabelWidth's SetWidth.
+    -- Setting both LEFT and RIGHT alongside SetWidth made truncation
+    -- unreliable on some layout passes.
+    -- Pass useAtlasSize=false so SetAtlas respects our SetSize(14,14);
+    -- without it the texture snaps to the atlas's native size.
+    if qualityAtlas then
+        self.qualityTex:SetAtlas(qualityAtlas, false)
+        self.qualityTex:Show()
+        self.label:SetPoint("LEFT", self.qualityTex, "RIGHT", QUALITY_GAP, 0)
+    else
+        self.qualityTex:Hide()
+        self.label:SetPoint("LEFT", self.itemTex, "RIGHT", ICON_GAP, 0)
+    end
+end
+
+local function refreshLabelText(self, spellID)
+    if spellID then
+        self.label:SetText(spellDisplayName(spellID))
+    elseif self.itemID then
+        local name = itemDisplayName(self.itemID)
+        local count = (self.itemID and _G.GetItemCount) and _G.GetItemCount(self.itemID) or 0
+        if count and count > 0 then
+            self.label:SetText(("[%d] %s"):format(count, name))
+        else
+            self.label:SetText(name)
+        end
+    elseif self.fallbackName then
+        -- AIO panel rows pass their sub-category displayName here so a
+        -- row with no current pick still reads as "Healthstone" rather
+        -- than the generic "[Loading]" placeholder.
+        self.label:SetText(self.fallbackName)
+    else
+        self.label:SetText("[Loading]")
+    end
+end
+
+local function refreshDisplay(self)
+    refreshPickIndicators(self)
+    refreshHandTag(self)
+    self.frame:SetAlpha(self.applicable and 1.0 or NOT_APPLICABLE_ALPHA)
+
+    local spellID = isSpellEntry(self.itemID) and spellIDFromEntry(self.itemID) or nil
+    refreshIcon(self, spellID)
+    refreshQualityGlyph(self, spellID)
+    refreshLabelText(self, spellID)
+    applyLabelWidth(self)
+end
+
 local methods = {
     ["OnAcquire"] = function(self)
         self.itemID = nil
@@ -190,78 +285,7 @@ local methods = {
         self:RefreshDisplay()
     end,
 
-    ["RefreshDisplay"] = function(self)
-        self.ownedTex:SetTexture(self.owned and OWNED_TEX or NOT_OWNED_TEX)
-        if self.isPick or self.pickMH or self.pickOH then
-            self.pickTex:Show()
-        else
-            self.pickTex:Hide()
-        end
-
-        if self.pickMH and self.pickOH then
-            -- ASCII "MH+OH" rather than a middle-dot glyph: WoW's default
-            -- font (Friz Quadrata TT) has narrow Unicode coverage and
-            -- renders unsupported glyphs as tofu dots (see feedback notes
-            -- on WoW glyph rendering). ASCII is guaranteed to render.
-            self.handTag:SetText("MH+OH")
-            self.handTag:Show()
-        elseif self.pickMH then
-            self.handTag:SetText("MH")
-            self.handTag:Show()
-        elseif self.pickOH then
-            self.handTag:SetText("OH")
-            self.handTag:Show()
-        else
-            self.handTag:Hide()
-        end
-
-        self.frame:SetAlpha(self.applicable and 1.0 or NOT_APPLICABLE_ALPHA)
-
-        local spellID = isSpellEntry(self.itemID) and spellIDFromEntry(self.itemID) or nil
-
-        if spellID then
-            self.itemTex:SetTexture(iconForSpell(spellID))
-        else
-            self.itemTex:SetTexture(iconForItem(self.itemID))
-        end
-
-        -- Crafting-quality glyph only applies to items; skip for spells.
-        local qualityAtlas = (not spellID) and craftingQualityAtlas(self.itemID) or nil
-        self.label:ClearAllPoints()
-        -- LEFT anchor only — width is enforced by applyLabelWidth's SetWidth.
-        -- Setting both LEFT and RIGHT alongside SetWidth made truncation
-        -- unreliable on some layout passes.
-        -- Pass useAtlasSize=false so SetAtlas respects our SetSize(14,14);
-        -- without it the texture snaps to the atlas's native size.
-        if qualityAtlas then
-            self.qualityTex:SetAtlas(qualityAtlas, false)
-            self.qualityTex:Show()
-            self.label:SetPoint("LEFT", self.qualityTex, "RIGHT", QUALITY_GAP, 0)
-        else
-            self.qualityTex:Hide()
-            self.label:SetPoint("LEFT", self.itemTex, "RIGHT", ICON_GAP, 0)
-        end
-
-        if spellID then
-            self.label:SetText(spellDisplayName(spellID))
-        elseif self.itemID then
-            local name = itemDisplayName(self.itemID)
-            local count = (self.itemID and _G.GetItemCount) and _G.GetItemCount(self.itemID) or 0
-            if count and count > 0 then
-                self.label:SetText(("[%d] %s"):format(count, name))
-            else
-                self.label:SetText(name)
-            end
-        elseif self.fallbackName then
-            -- AIO panel rows pass their sub-category displayName here so a
-            -- row with no current pick still reads as "Healthstone" rather
-            -- than the generic "[Loading]" placeholder.
-            self.label:SetText(self.fallbackName)
-        else
-            self.label:SetText("[Loading]")
-        end
-        applyLabelWidth(self)
-    end,
+    ["RefreshDisplay"] = refreshDisplay,
 
     ["OnWidthSet"] = function(self, width)
         self.frame.width = width
