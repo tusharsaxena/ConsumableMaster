@@ -17,31 +17,49 @@ are measured, and one of them lands on the watch list below.
 
 ## Watch list
 
-**25 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
+**22 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
 tripped the length (> 1000) or parameter (> 100) thresholds. **Two files** sit in `layout-§1`'s
 1000–1500 LOC on-notice band. No file exceeds the 1500 LOC cap.
+
+**Three peels landed in this change**, which is why the numbers below are lower than the ones the
+2026-08-04 audit was written against. All 600 tests pass unchanged and `luacheck` is clean:
+
+- **`R.Explain`** (`modules/Ranker.lua`) — was the worst number in the repo at CCN **68**, one
+  `if catKey == …` ladder of per-category breakdowns. Now a dispatch table of eight named
+  `explain*` functions, heaviest `explainPotion` at **14**; the file's only remaining warning is
+  `statWeight`, which was already accepted. Adding a category is now a table entry, not a branch.
+- **`renderSingle`** (`settings/Category.lua`) — was CCN **66** / 229 lines rendering a whole
+  category page. Split along the section comments it already had into `renderCategoryHeader`,
+  `renderAddByID`, `computePerHand`, `renderPriorityLegend`, `renderPriorityList` and
+  `renderPriorityRow`. Only `submitAddByID` (16) still warns, and that is the input-validation
+  ladder, one branch per rejection case.
+- **`FO.ApplyBackdrop`** (`modules/MacroBarFlyout.lua`) — was CCN **19**, almost entirely a
+  nil-guard per backdrop color component. Collapsed into an `rgba(stored, default)` helper over two
+  default tables, as the audit's "cheapest win on this list" note called for.
+
+That took the addon from **25** warnings to **22**, and its worst function from CCN 68 to 62. The
+remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a complexity fix — it is
+`CM-47` / `CM-54`, the dispatcher-in-the-wrong-file split.
 
 ### Files in the 1000–1500 LOC on-notice band (`layout-§1`)
 
 | File | LOC | Disposition |
 |------|-----|-------------|
-| `core/SlashCommands.lua` | 1408 | **Already tracked as CM-54** (advisory) and resolved by **CM-47** — the dispatcher belongs in `settings/Slash.lua`; that split takes the `COMMANDS` table, the `LibKa0s-Slash-1.0` descriptor and `OnSlashCommand` out of this file. |
+| `core/SlashCommands.lua` | 1408 | **Already tracked as CM-54** (advisory) and resolved by **CM-47** — the dispatcher belongs in `settings/Slash.lua`; that split takes the `COMMANDS` table, the `LibKa0s-Slash-1.0` descriptor and `OnSlashCommand` out of this file. It holds four of the 22 warnings, including the worst two, so the split is the single highest-value move left in this addon. |
 | `tests/test_macrobar.lua` | 1129 | **Accepted.** It is one suite per behavior over the repo's most in-client-coupled module, with a flat CCN (avg 1.3) — length here is case count, not tangle. Peel by module (bar / button / flyout) only if it crosses 1500. |
 
 ### Functions over CCN 15
 
 | Function | CCN | Location | Disposition |
 |----------|-----|----------|-------------|
-| `R.Explain` | 68 | `modules/Ranker.lua:401-556` | **Peel next — the worst number in the repo by a wide margin.** It is the `/cm explain` renderer: one linear ladder of "if this term contributed, print a line". Split per scoring term (a table of `{label, applies, render}` walked in order) so adding a term stops adding a branch. No open ID covers it; this report is its first record. |
-| `renderSingle` | 66 | `settings/Category.lua:296-524` | **Peel next.** 153 NLOC / 229 lines rendering one category page; the branching is per widget kind. It is the same shape `CM-46` peels out of `settings/Panel.lua`, one file over. Route widget construction through the `LibKa0s-Options-1.0` instance rather than an inline ladder. |
-| `run` | 62 | `core/SlashCommands.lua:375-502` | **Already tracked as CM-47 / CM-54.** A verb ladder inside the file the standard says should not hold the dispatcher; the split is the fix. |
+| `run` | 62 | `core/SlashCommands.lua:375-502` | **Already tracked as CM-47 / CM-54.** A verb ladder inside the file the standard says should not hold the dispatcher; the split is the fix, and it is now the worst number in the repo. |
 | `M.SetCompositeMacro` | 35 | `modules/MacroManager.lua:418-496` | **Already tracked as review finding F-006** — it re-implements `commitMacro`'s five-step guard ladder inline and has already drifted. Collapsing the two removes most of this CCN. |
 | `run` | 32 | `core/SlashCommands.lua:309-369` | **Already tracked as CM-47 / CM-54**, same ladder as above. |
 | `bindEntry` | 30 | `modules/MacroBarFlyout.lua:324-378` | **Accepted for now.** Secure-frame binding: the branches are the combat / template / secret-value guards that `events-frames-taint` requires, and flattening them would mean widening the guard. Revisit if it grows past ~35. |
 | `buildCompositeBody` | 27 | `modules/MacroManager.lua:174-245` | **Peel next, with F-006.** Macro-body assembly by category conditional; extracting the per-category conditional splice into its own function is a mechanical win and F-006 already opens this file. |
 | `commitMacro` | 27 | `modules/MacroManager.lua:305-371` | **Accepted as the shared write tail** — this is the ladder F-006 wants *everything* to go through, so its CCN is load-bearing. Expect it to rise slightly when F-006 lands; that is the intended direction. |
 | `P.Recompute` | 26 | `core/ConsumableMaster.lua:261-322` | **Accepted.** The recompute pipeline's stage sequencer, with each stage's skip condition inline. It is bracketed by the perf harness (`recompute` bucket) precisely because it is the hot path, and the branches are cheap early-outs. Re-examine if stages are added. |
-| `]` (anonymous) | 26 | `modules/KCMItemRow.lua:193-264` | **Peel next.** An anonymous widget-construction closure in an AceGUI row; unnamed and 53 NLOC is the combination that makes a stack trace useless. Name it and split the layout half from the behavior half. |
+| `]` (anonymous) | 26 | `modules/KCMItemRow.lua:193-264` | **Peel next.** An anonymous widget-construction closure in an AceGUI row; unnamed and 53 NLOC is the combination that makes a stack trace useless. Name it and split the layout half from the behavior half. Now the highest-value peel that no open ID already covers. |
 | `S.GetBucket` | 23 | `modules/Selector.lua:36-71` | **Accepted.** Bucket resolution across the spec / class / global fallback chain — the branch count *is* the fallback specification, and the suite pins each arm. |
 | `BB.ApplyStyle` | 21 | `modules/MacroBarButton.lua:254-302` | **Accepted.** Per-option styling switch (icon, border, GCD swipe, cooldown bling) driven by the settings schema; one branch per user-visible toggle. |
 | `OnAccept` | 21 | `settings/Category.lua:124-148` | **Accepted.** A `StaticPopupDialogs` accept handler validating free-text item input. Small (25 NLOC) and its branches are the validation cases. |
@@ -49,18 +67,17 @@ tripped the length (> 1000) or parameter (> 100) thresholds. **Two files** sit i
 | `priorityList` | 19 | `core/SlashCommands.lua:625-650` | **Already tracked as CM-47 / CM-54.** |
 | `aioToggle` | 19 | `core/SlashCommands.lua:963-989` | **Already tracked as CM-47 / CM-54.** |
 | `parseDuration` | 19 | `core/TooltipCache.lua:209-256` | **Accepted, and tied to CM-30.** The CCN is the English-phrasing pattern ladder that `CM-30` records as an accepted enUS-only deviation. Localizing tooltip parsing is the change that restructures this; doing it before then would just move the ladder. |
-| `FO.ApplyBackdrop` | 19 | `modules/MacroBarFlyout.lua:385-405` | **Peel next — cheapest win on this list.** 21 NLOC, CCN 19: it is almost entirely a nil-guard-per-backdrop-field ladder that a defaults table collapses. |
 | `validateSchemaValue` | 18 | `settings/Panel.lua:576-603` | **Peel next, with F-013.** Review finding **F-013** requires adding a defaults-resolution pass to schema validation, which adds branches here. Restructure it into a list of validators before that lands, not after. |
-| `statWeight` | 17 | `modules/Ranker.lua:105-123` | **Accepted.** 19 NLOC of stat-to-weight mapping; the branches are the stat set. Would be a lookup table if the weights were constant, but several are spec-conditional. |
-| `FO.Apply` | 17 | `modules/MacroBarFlyout.lua:419-487` | **Accepted for now.** Flyout layout application; out-of-combat only and covered by `tests/test_macrobar.lua`. Watch alongside `bindEntry` — this file has three of the 25 entries and is the next whole-file candidate after `Ranker.lua`. |
+| `statWeight` | 17 | `modules/Ranker.lua:105-123` | **Accepted.** 19 NLOC of stat-to-weight mapping; the branches are the stat set. Would be a lookup table if the weights were constant, but several are spec-conditional. Now the only warning left in this file. |
+| `FO.Apply` | 17 | `modules/MacroBarFlyout.lua:429-497` | **Accepted for now.** Flyout layout application; out-of-combat only and covered by `tests/test_macrobar.lua`. Watch alongside `bindEntry` — with `ApplyBackdrop` peeled this file is down to two warnings. |
 | `KCM.ResetAllToDefaults` | 16 | `core/ConsumableMaster.lua:465-486` | **Accepted.** One branch per resettable subtree; it tracks the settings schema by construction. |
 | `MD.SetTooltip` | 16 | `core/MacroDisplay.lua:163-183` | **Accepted.** Secret-value-safe tooltip assembly — the branches are the "is this value readable by tainted code?" guards that `events-frames-taint-§8` mandates. Simplifying it is how the restricted-cooldown regression comes back. |
 | `parseLines` | 16 | `core/TooltipCache.lua:306-363` | **Accepted, and tied to CM-30**, same reasoning as `parseDuration`. Also the function review finding **F-015** re-runs forever on unparsed items — F-015's attempt ceiling is a caller change, not a change to this shape. |
-| `onSubmit` | 16 | `settings/Category.lua:350-377` | **Accepted.** Category-page submit validation, sibling to `OnAccept` above. If `renderSingle` is peeled, fold this in with it. |
+| `submitAddByID` | 16 | `settings/Category.lua:329-356` | **Accepted.** Lifted out of `renderSingle` by this change: one branch per way a typed ID can be rejected (non-numeric, non-positive, unknown spellID, unknown itemID, no active spec). The ladder *is* the input contract, and each arm says something different to the player. |
 
 Nothing on this list is a `MUST` violation: `layout-§1` caps files at 1500 LOC (no file is over) and
 lizard's CCN threshold is a report signal, not a gate (performance-§10, "the checkpoint: release, not
-commit"). Six rows are marked *peel next*; the rest are recorded as accepted with a reason so the
+commit"). Three rows are marked *peel next*; the rest are recorded as accepted with a reason so the
 next release's diff shows movement rather than a fresh argument.
 
 ## Raw output
@@ -432,10 +449,11 @@ next release's diff shows movement rather than a fresh argument.
       26      2    243      2      40 createEntry@184-223@./modules/MacroBarFlyout.lua
       45      6    310      3      88 FO.Create@227-314@./modules/MacroBarFlyout.lua
       47     30    475      4      55 bindEntry@324-378@./modules/MacroBarFlyout.lua
-      21     19    195      2      21 FO.ApplyBackdrop@385-405@./modules/MacroBarFlyout.lua
-       6      5     54      1       8 FO.RefreshCooldown@407-414@./modules/MacroBarFlyout.lua
-      55     17    463      2      69 FO.Apply@419-487@./modules/MacroBarFlyout.lua
-       7      5     48      1       7 FO.RefreshCooldowns@514-520@./modules/MacroBarFlyout.lua
+       5      6     52      2       5 rgba@391-395@./modules/MacroBarFlyout.lua
+      19      9    131      2      19 FO.ApplyBackdrop@397-415@./modules/MacroBarFlyout.lua
+       6      5     54      1       8 FO.RefreshCooldown@417-424@./modules/MacroBarFlyout.lua
+      55     17    463      2      69 FO.Apply@429-497@./modules/MacroBarFlyout.lua
+       7      5     48      1       7 FO.RefreshCooldowns@524-530@./modules/MacroBarFlyout.lua
        3      3     11      1       3 iconFor@30-32@./modules/MacroManager.lua
        3      4     26      1       3 spellNameFor@54-56@./modules/MacroManager.lua
        8     10     86      1       8 targetClauseFor@68-75@./modules/MacroManager.lua
@@ -483,8 +501,17 @@ next release's diff shows movement rather than a fresh argument.
       18      9    109      4      22 R.BuildContext@350-371@./modules/Ranker.lua
        4      2     32      2       4 (anonymous)@382-385@./modules/Ranker.lua
       11      4    110      4      14 R.SortCandidates@376-389@./modules/Ranker.lua
-       8      4     54      0       8 pushBase@414-421@./modules/Ranker.lua
-     138     68    965      3     156 R.Explain@401-556@./modules/Ranker.lua
+       3      2     24      2       3 registerExplainer@413-415@./modules/Ranker.lua
+      23      9    182      2      23 explainRestore@423-445@./modules/Ranker.lua
+      25     14    175      2      25 explainPotion@448-472@./modules/Ranker.lua
+       6      2     44      2       7 explainHealthstone@475-481@./modules/Ranker.lua
+       4      1     17      2       4 explainVantus@484-487@./modules/Ranker.lua
+       8      8    116      2       8 explainAugRune@490-497@./modules/Ranker.lua
+      11      4     78      2      11 explainBloodlust@500-510@./modules/Ranker.lua
+       4      1     17      2       4 explainBattleRez@513-516@./modules/Ranker.lua
+      25     10    162      2      25 explainStatBuffs@519-543@./modules/Ranker.lua
+       8      4     67      2       8 pushBaseSignals@547-554@./modules/Ranker.lua
+      21      6    171      3      28 R.Explain@556-583@./modules/Ranker.lua
        3      1     26      0       3 emptyBucket@32-34@./modules/Selector.lua
       31     23    243      2      36 S.GetBucket@36-71@./modules/Selector.lua
        5      4     35      1       5 push@89-93@./modules/Selector.lua
@@ -525,22 +552,31 @@ next release's diff shows movement rather than a fresh argument.
       16      9    133      2      24 makeEditBox@252-275@./settings/Category.lua
        1      3     18      3       1 (anonymous)@285-285@./settings/Category.lua
       14      8    115      2      14 makeCheckbox@277-290@./settings/Category.lua
-       4      3     17      1       4 onChange@323-326@./settings/Category.lua
-       3      1     14      1       3 onChange@341-343@./settings/Category.lua
-      28     16    167      1      28 onSubmit@350-377@./settings/Category.lua
-       6      4     34      0       6 onClick@478-483@./settings/Category.lua
-       6      4     34      0       6 onClick@490-495@./settings/Category.lua
-       6      4     34      0       6 onClick@502-507@./settings/Category.lua
-       1      1      7      0       1 onClick@520-520@./settings/Category.lua
-     153     66   1084      2     229 renderSingle@296-524@./settings/Category.lua
-       5      2     26      1       5 onChange@580-584@./settings/Category.lua
-       6      3     47      0       6 onClick@591-596@./settings/Category.lua
-       7      3     46      0       7 onClick@603-609@./settings/Category.lua
-       1      1      7      0       1 onClick@619-619@./settings/Category.lua
-       1      1      7      0       1 defaultsAction@639-639@./settings/Category.lua
-       4      2     23      1       4 (anonymous)@641-644@./settings/Category.lua
-      12      3     81      1      17 (anonymous)@630-646@./settings/Category.lua
-       3      1      8      1      19 buildCategory@629-647@./settings/Category.lua
+       4      3     17      1       4 onChange@318-321@./settings/Category.lua
+      20      5    134      4      29 renderCategoryHeader@297-325@./settings/Category.lua
+      28     16    172      3      28 submitAddByID@329-356@./settings/Category.lua
+       3      1     14      1       3 onChange@369-371@./settings/Category.lua
+       1      1     12      1       1 onSubmit@378-378@./settings/Category.lua
+      20      2    118      4      22 renderAddByID@359-380@./settings/Category.lua
+       9     14    108      1       9 computePerHand@384-392@./settings/Category.lua
+      14      4     98      4      14 renderPriorityLegend@395-408@./settings/Category.lua
+       8     13     99      3       8 perHandFlags@412-419@./settings/Category.lua
+       4      4     35      0       4 (anonymous)@425-428@./settings/Category.lua
+       3      1     10      2       6 selectorAction@424-429@./settings/Category.lua
+      24      1    132      6      29 renderRowButtons@423-451@./settings/Category.lua
+      23      9    184      7      25 renderPriorityRow@455-479@./settings/Category.lua
+      10      7     73      3      10 buildRankerCtx@483-492@./settings/Category.lua
+      25     12    183      8      28 renderPriorityList@495-522@./settings/Category.lua
+       1      1      7      0       1 onClick@547-547@./settings/Category.lua
+      21      7    189      2      28 renderSingle@524-551@./settings/Category.lua
+       5      2     26      1       5 onChange@607-611@./settings/Category.lua
+       6      3     47      0       6 onClick@618-623@./settings/Category.lua
+       7      3     46      0       7 onClick@630-636@./settings/Category.lua
+       1      1      7      0       1 onClick@646-646@./settings/Category.lua
+       1      1      7      0       1 defaultsAction@666-666@./settings/Category.lua
+       4      2     23      1       4 (anonymous)@668-671@./settings/Category.lua
+      12      3     81      1      17 (anonymous)@657-673@./settings/Category.lua
+       3      1      8      1      19 buildCategory@656-674@./settings/Category.lua
        3      1     13      1       3 inCombatNotice@19-21@./settings/General.lua
       15      9     81      0      15 doForceResync@23-37@./settings/General.lua
       13      7     67      0      13 doForceRewriteMacros@39-51@./settings/General.lua
@@ -1560,12 +1596,12 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
      86       8.7     2.0       54.1         9     ./modules/KCMScoreButton.lua
     324      10.1     5.3       73.4        31     ./modules/MacroBar.lua
     220      13.4     7.2      108.2        16     ./modules/MacroBarButton.lua
-    303      14.4     7.1      120.1        18     ./modules/MacroBarFlyout.lua
+    309      13.8     6.5      113.1        19     ./modules/MacroBarFlyout.lua
     322      17.8    10.2      125.2        17     ./modules/MacroManager.lua
      32       2.8     2.6       24.4         5     ./modules/PerfSetup.lua
-    402      14.0     8.0       99.5        27     ./modules/Ranker.lua
+    408      10.3     5.7       75.6        36     ./modules/Ranker.lua
     381      11.3     7.8       87.4        21     ./modules/Selector.lua
-    519      12.5     6.5       90.7        35     ./settings/Category.lua
+    531      10.2     5.2       76.6        44     ./settings/Category.lua
     116      10.3     4.3       60.0        10     ./settings/General.lua
     454      10.0     2.8       65.3        15     ./settings/MacroBar.lua
     484       9.9     4.7       66.4        42     ./settings/Panel.lua
@@ -1624,20 +1660,17 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
       53     26    385      1      72 ]@193-264@./modules/KCMItemRow.lua
       32     21    342      2      49 BB.ApplyStyle@254-302@./modules/MacroBarButton.lua
       47     30    475      4      55 bindEntry@324-378@./modules/MacroBarFlyout.lua
-      21     19    195      2      21 FO.ApplyBackdrop@385-405@./modules/MacroBarFlyout.lua
-      55     17    463      2      69 FO.Apply@419-487@./modules/MacroBarFlyout.lua
+      55     17    463      2      69 FO.Apply@429-497@./modules/MacroBarFlyout.lua
       47     27    340      2      72 buildCompositeBody@174-245@./modules/MacroManager.lua
       52     27    354      4      67 commitMacro@305-371@./modules/MacroManager.lua
       64     35    430      2      79 M.SetCompositeMacro@418-496@./modules/MacroManager.lua
       19     17    129      2      19 statWeight@105-123@./modules/Ranker.lua
-     138     68    965      3     156 R.Explain@401-556@./modules/Ranker.lua
       31     23    243      2      36 S.GetBucket@36-71@./modules/Selector.lua
       25     21    241      2      25 OnAccept@124-148@./settings/Category.lua
-      28     16    167      1      28 onSubmit@350-377@./settings/Category.lua
-     153     66   1084      2     229 renderSingle@296-524@./settings/Category.lua
+      28     16    172      3      28 submitAddByID@329-356@./settings/Category.lua
       26     18    216      2      28 validateSchemaValue@576-603@./settings/Panel.lua
 ==========================================================================================
 Total nloc   Avg.NLOC  AvgCCN  Avg.token   Fun Cnt  Warning cnt   Fun Rt   nloc Rt
 ------------------------------------------------------------------------------------------
-     14258       8.4     3.0       67.4     1445           25      0.02    0.10
+     14282       8.3     3.0       66.7     1464           22      0.02    0.07
 ```

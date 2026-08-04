@@ -293,13 +293,8 @@ end
 -- Single-category render
 -- ---------------------------------------------------------------------
 
-local function renderSingle(ctx, cat)
-    H.ResetScroll(ctx)
-    local scroll = H.EnsureScroll(ctx)
-
-    local specKey = cat.specAware and (O.ResolveViewedSpec and O.ResolveViewedSpec()) or nil
-
-    -- Drag icon
+-- Drag icon, spec banner and the mouseover toggle — everything above the first Section.
+local function renderCategoryHeader(ctx, scroll, cat, specKey)
     makeMacroDragIcon(scroll, cat.macroName)
     H.AddSpacer(scroll, 6)
 
@@ -327,8 +322,41 @@ local function renderSingle(ctx, cat)
         })
         H.AddSpacer(scroll, 4)
     end
+end
 
-    -- Add by ID (kind selector | ID input, paired 50/50)
+-- Validate one typed ID and seed it into the category. Every rejection path says why and
+-- stops; only a fully-resolved ID reaches Selector.AddItem.
+local function submitAddByID(cat, specKey, text)
+    local id = tonumber(text)
+    if not id or id <= 0 then
+        KCM.Say("expected a positive numeric ID; got: " .. tostring(text))
+        return
+    end
+    local kind = O._addKind[cat.key] or "ITEM"
+    if kind == "SPELL" then
+        if not spellNameByID(id) then
+            KCM.Say("unknown spellID: " .. id)
+            return
+        end
+    else
+        if C_Item and C_Item.GetItemInfoInstant
+           and not C_Item.GetItemInfoInstant(id) then
+            KCM.Say("unknown itemID: " .. id)
+            return
+        end
+    end
+    if cat.specAware and not specKey then
+        KCM.Say("spec-aware category: no active spec — can't add.")
+        return
+    end
+    local storedID = (kind == "SPELL") and KCM.ID.AsSpell(id) or id
+    local changed = KCM.Selector and KCM.Selector.AddItem
+        and KCM.Selector.AddItem(cat.key, storedID, specKey)
+    if changed then afterMutation("options_add_item") end
+end
+
+-- Add by ID (kind selector | ID input, paired 50/50)
+local function renderAddByID(ctx, scroll, cat, specKey)
     H.Section(ctx, L["Add item or spell by ID"])
     local addRow = newRow(scroll)
     makeDropdown(addRow, {
@@ -347,56 +375,27 @@ local function renderSingle(ctx, cat)
         tooltip       = L["Enter an itemID or spellID to add to this category. Press Enter to add."],
         relativeWidth = 0.6,
         maxLetters    = 12,
-        onSubmit = function(text)
-            local id = tonumber(text)
-            if not id or id <= 0 then
-                KCM.Say("expected a positive numeric ID; got: " .. tostring(text))
-                return
-            end
-            local kind = O._addKind[cat.key] or "ITEM"
-            if kind == "SPELL" then
-                if not spellNameByID(id) then
-                    KCM.Say("unknown spellID: " .. id)
-                    return
-                end
-            else
-                if C_Item and C_Item.GetItemInfoInstant
-                   and not C_Item.GetItemInfoInstant(id) then
-                    KCM.Say("unknown itemID: " .. id)
-                    return
-                end
-            end
-            if cat.specAware and not specKey then
-                KCM.Say("spec-aware category: no active spec — can't add.")
-                return
-            end
-            local storedID = (kind == "SPELL") and KCM.ID.AsSpell(id) or id
-            local changed = KCM.Selector and KCM.Selector.AddItem
-                and KCM.Selector.AddItem(cat.key, storedID, specKey)
-            if changed then afterMutation("options_add_item") end
-        end,
+        onSubmit      = function(text) submitAddByID(cat, specKey, text) end,
     })
+end
 
-    -- Per-hand picks + affinity (Weapon Enchant only). Computed once up front
-    -- so both the header note and the per-row pickMH/pickOH/applicable flags
-    -- below use the same numbers.
-    local mh, oh, mhAff, ohAff
-    if cat.perHand then
-        mh = KCM.Selector and KCM.Selector.PickBestForSlot
-            and KCM.Selector.PickBestForSlot(cat.key, 16) or nil
-        oh = KCM.Selector and KCM.Selector.PickBestForSlot
-            and KCM.Selector.PickBestForSlot(cat.key, 17) or nil
-        mhAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity and KCM.WeaponSlots.SlotAffinity(16) or nil
-        ohAff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity and KCM.WeaponSlots.SlotAffinity(17) or nil
-    end
+-- Per-hand picks + affinity (Weapon Enchant only). Computed once up front so both the header
+-- note and the per-row pickMH/pickOH/applicable flags use the same numbers.
+local function computePerHand(cat)
+    if not cat.perHand then return nil, nil, nil, nil end
+    local Sel = KCM.Selector
+    local WS  = KCM.WeaponSlots
+    return (Sel and Sel.PickBestForSlot and Sel.PickBestForSlot(cat.key, 16)) or nil,
+           (Sel and Sel.PickBestForSlot and Sel.PickBestForSlot(cat.key, 17)) or nil,
+           (WS and WS.SlotAffinity and WS.SlotAffinity(16)) or nil,
+           (WS and WS.SlotAffinity and WS.SlotAffinity(17)) or nil
+end
 
-    -- Priority list
-    H.Section(ctx, L["Priority list"])
+-- The icon legend above the list, plus the main/off-hand affinity line when per-hand.
+local function renderPriorityLegend(ctx, cat, mhAff, ohAff)
     if cat.perHand then
-        local mhAffName = mhAff or L["(none)"]
-        local ohAffName = ohAff or L["(none)"]
         H.Label(ctx,
-            (L["Main hand: %s | Off hand: %s"]):format(mhAffName, ohAffName),
+            (L["Main hand: %s | Off hand: %s"]):format(mhAff or L["(none)"], ohAff or L["(none)"]),
             "medium")
         H.Label(ctx,
             (L["%s in bags    %s not in bags    %s picked (MH/OH) in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
@@ -406,109 +405,137 @@ local function renderSingle(ctx, cat)
             (L["%s in bags    %s not in bags    %s picked in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
             "medium")
     end
-    H.AddSpacer(scroll, 4)
+end
 
+-- Per-hand pick/applicability flags for one row. Nil across the board for categories that are
+-- not per-hand, which is what makeItemRow expects for "this axis does not apply".
+local function perHandFlags(cat, rowID, p)
+    if not cat.perHand then return nil, nil, nil end
+    local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(rowID)
+    local aff = (tt and tt.weaponAffinity) or "any"
+    return (p.mh and rowID == p.mh) and true or false,
+           (p.oh and rowID == p.oh) and true or false,
+           (aff == "any" or aff == p.mhAff or aff == p.ohAff)
+end
+
+-- Move up / move down / remove. Each guards the Selector call and only reports a mutation when
+-- the Selector says something actually changed.
+local function renderRowButtons(row, cat, specKey, rowID, isFirst, isLast)
+    local function selectorAction(verb, reason)
+        return function()
+            local fn = KCM.Selector and KCM.Selector[verb]
+            if fn and fn(cat.key, rowID, specKey) then afterMutation(reason) end
+        end
+    end
+    makeIconBtn(row, {
+        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
+        label    = L["Move up"],
+        tooltip  = L["Move higher in priority"],
+        disabled = isFirst,
+        onClick  = selectorAction("MoveUp", "options_move_up"),
+    })
+    makeIconBtn(row, {
+        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
+        label    = L["Move down"],
+        tooltip  = L["Move lower in priority"],
+        disabled = isLast,
+        onClick  = selectorAction("MoveDown", "options_move_down"),
+    })
+    makeIconBtn(row, {
+        image    = "atlas:transmog-icon-remove",
+        size     = 22,
+        label    = L["Remove"],
+        tooltip  = L["Remove from this category. Blocks the item so auto-discovery won't re-add it."],
+        onClick  = selectorAction("Block", "options_remove"),
+    })
+end
+
+-- One priority row: the item cell, its score tooltip, and the move/remove buttons.
+-- `p` carries the list-wide facts the row reads: rankerCtx, pick, mh, oh, mhAff, ohAff.
+local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p)
+    local explain = KCM.Ranker and KCM.Ranker.Explain
+        and KCM.Ranker.Explain(cat.key, rowID, p.rankerCtx) or nil
+    local scoreTitle = explain
+        and (L["Rank score: %s"]):format(formatNumber(explain.score))
+        or L["Rank score"]
+
+    local rowPickMH, rowPickOH, applicableArg = perHandFlags(cat, rowID, p)
+
+    local row = newRow(scroll, 28)
+    makeItemRow(row, {
+        itemID     = rowID,
+        owned      = isOwned(rowID),
+        isPick     = (p.pick and rowID == p.pick) and true or false,
+        pickMH     = rowPickMH,
+        pickOH     = rowPickOH,
+        applicable = applicableArg,
+    }, ITEM_ROW_RW_SINGLE)
+    makeScoreBtn(row, {
+        image   = "Interface\\FriendsFrame\\InformationIcon",
+        label   = scoreTitle,
+        tooltip = formatScoreTooltipDesc(explain),
+    })
+    renderRowButtons(row, cat, specKey, rowID, isFirst, isLast)
+end
+
+-- Ranker context shared across rows so every score tooltip uses the same numbers as the
+-- effective sort.
+local function buildRankerCtx(cat, specKey, priority)
+    local rankerCtx
+    if cat.specAware and specKey and KCM.SpecHelper and KCM.SpecHelper.GetStatPriority then
+        rankerCtx = { specPriority = KCM.SpecHelper.GetStatPriority(specKey) }
+    end
+    if KCM.Ranker and KCM.Ranker.BuildContext then
+        rankerCtx = KCM.Ranker.BuildContext(cat.key, priority, rankerCtx)
+    end
+    return rankerCtx
+end
+
+-- The priority list proper: the no-spec and empty states, or one row per candidate.
+local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAff)
     if cat.specAware and not specKey then
         H.Label(ctx,
             L["|cffff8800No active spec.|r Spec-aware categories need a resolvable spec to display a priority list."],
             "medium")
-    else
-        local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
-            and KCM.Selector.GetEffectivePriority(cat.key, specKey)) or {}
-        local pick     = (not cat.perHand) and KCM.Selector and KCM.Selector.PickBestForCategory
-            and KCM.Selector.PickBestForCategory(cat.key, specKey) or nil
-
-        if #priority == 0 then
-            H.Label(ctx,
-                L["|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery."],
-                "medium")
-        else
-            -- Ranker context shared across rows so every score tooltip uses
-            -- the same numbers as the effective sort.
-            local rankerCtx
-            if cat.specAware and specKey and KCM.SpecHelper and KCM.SpecHelper.GetStatPriority then
-                rankerCtx = { specPriority = KCM.SpecHelper.GetStatPriority(specKey) }
-            end
-            if KCM.Ranker and KCM.Ranker.BuildContext then
-                rankerCtx = KCM.Ranker.BuildContext(cat.key, priority, rankerCtx)
-            end
-
-            for i, id in ipairs(priority) do
-                local isFirst = (i == 1)
-                local isLast  = (i == #priority)
-                local rowID   = id
-
-                local explain = KCM.Ranker and KCM.Ranker.Explain
-                    and KCM.Ranker.Explain(cat.key, rowID, rankerCtx) or nil
-                local scoreTitle = explain
-                    and (L["Rank score: %s"]):format(formatNumber(explain.score))
-                    or L["Rank score"]
-
-                local rowPickMH, rowPickOH, rowApplicable
-                if cat.perHand then
-                    rowPickMH = (mh and rowID == mh) and true or false
-                    rowPickOH = (oh and rowID == oh) and true or false
-                    local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(rowID)
-                    local aff = (tt and tt.weaponAffinity) or "any"
-                    rowApplicable = (aff == "any" or aff == mhAff or aff == ohAff)
-                end
-
-                local applicableArg
-                if cat.perHand then applicableArg = rowApplicable end
-
-                local row = newRow(scroll, 28)
-                makeItemRow(row, {
-                    itemID     = rowID,
-                    owned      = isOwned(rowID),
-                    isPick     = (pick and rowID == pick) and true or false,
-                    pickMH     = rowPickMH,
-                    pickOH     = rowPickOH,
-                    applicable = applicableArg,
-                }, ITEM_ROW_RW_SINGLE)
-                makeScoreBtn(row, {
-                    image   = "Interface\\FriendsFrame\\InformationIcon",
-                    label   = scoreTitle,
-                    tooltip = formatScoreTooltipDesc(explain),
-                })
-                makeIconBtn(row, {
-                    image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-                    label    = L["Move up"],
-                    tooltip  = L["Move higher in priority"],
-                    disabled = isFirst,
-                    onClick  = function()
-                        if KCM.Selector and KCM.Selector.MoveUp
-                            and KCM.Selector.MoveUp(cat.key, rowID, specKey) then
-                            afterMutation("options_move_up")
-                        end
-                    end,
-                })
-                makeIconBtn(row, {
-                    image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-                    label    = L["Move down"],
-                    tooltip  = L["Move lower in priority"],
-                    disabled = isLast,
-                    onClick  = function()
-                        if KCM.Selector and KCM.Selector.MoveDown
-                            and KCM.Selector.MoveDown(cat.key, rowID, specKey) then
-                            afterMutation("options_move_down")
-                        end
-                    end,
-                })
-                makeIconBtn(row, {
-                    image    = "atlas:transmog-icon-remove",
-                    size     = 22,
-                    label    = L["Remove"],
-                    tooltip  = L["Remove from this category. Blocks the item so auto-discovery won't re-add it."],
-                    onClick  = function()
-                        if KCM.Selector and KCM.Selector.Block
-                            and KCM.Selector.Block(cat.key, rowID, specKey) then
-                            afterMutation("options_remove")
-                        end
-                    end,
-                })
-            end
-        end
+        return
     end
+
+    local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
+        and KCM.Selector.GetEffectivePriority(cat.key, specKey)) or {}
+    if #priority == 0 then
+        H.Label(ctx,
+            L["|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery."],
+            "medium")
+        return
+    end
+
+    local p = {
+        rankerCtx = buildRankerCtx(cat, specKey, priority),
+        pick = (not cat.perHand) and KCM.Selector and KCM.Selector.PickBestForCategory
+            and KCM.Selector.PickBestForCategory(cat.key, specKey) or nil,
+        mh = mh, oh = oh, mhAff = mhAff, ohAff = ohAff,
+    }
+
+    for i, id in ipairs(priority) do
+        renderPriorityRow(scroll, cat, specKey, id, i == 1, i == #priority, p)
+    end
+end
+
+local function renderSingle(ctx, cat)
+    H.ResetScroll(ctx)
+    local scroll = H.EnsureScroll(ctx)
+
+    local specKey = cat.specAware and (O.ResolveViewedSpec and O.ResolveViewedSpec()) or nil
+
+    renderCategoryHeader(ctx, scroll, cat, specKey)
+    renderAddByID(ctx, scroll, cat, specKey)
+
+    local mh, oh, mhAff, ohAff = computePerHand(cat)
+
+    H.Section(ctx, L["Priority list"])
+    renderPriorityLegend(ctx, cat, mhAff, ohAff)
+    H.AddSpacer(scroll, 4)
+    renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAff)
 
     -- Inline reset
     H.AddSpacer(scroll, 12)

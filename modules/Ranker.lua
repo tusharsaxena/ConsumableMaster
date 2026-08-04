@@ -398,6 +398,161 @@ end
 -- bonus, healthstones with the preference table, stat-priority categories)
 -- get custom breakdowns. Spell entries short-circuit to SPELL_SCORE — the
 -- sentinel that keeps them on top unless the user pins otherwise.
+--
+-- One explainer per category family, in EXPLAINERS below. Each appends its own
+-- signals to `result` and returns (score, summary); R.Explain pushes the shared
+-- ilvl/quality signals afterwards, so signal order stays "category terms, then
+-- base terms" exactly as it was when this was one ladder. Adding a category is a
+-- table entry, not another branch.
+--
+-- `f` carries the facts every explainer shares: catKey, itemID, ilvl, tt (the
+-- parsed tooltip), qualityScore and the caller's ctx.
+
+local EXPLAINERS = {}
+
+local function registerExplainer(keys, fn)
+    for _, k in ipairs(keys) do EXPLAINERS[k] = fn end
+end
+
+-- FOOD and DRINK score identically off different tooltip fields, so the difference is data.
+local RESTORE_FIELDS = {
+    FOOD  = { avg = "healValueAvg", flat = "healValue", pct = "healPct", label = "heal value" },
+    DRINK = { avg = "manaValueAvg", flat = "manaValue", pct = "manaPct", label = "mana value" },
+}
+
+local function explainRestore(result, f)
+    local tt = f.tt
+    local F  = RESTORE_FIELDS[f.catKey]
+    local flat = (tt[F.avg] or 0) + (tt[F.flat] or 0)
+    local pct  = tt[F.pct] or 0
+    local pctContribution = pct * PCT_WEIGHT
+    local conjured = tt.isConjured and CONJURED_BONUS or 0
+    if flat > 0 then
+        table.insert(result.signals, { label = F.label, value = flat })
+    end
+    if pct > 0 then
+        table.insert(result.signals, {
+            label = ("pct x%d"):format(PCT_WEIGHT),
+            value = pctContribution,
+            note  = ("%g%% of max"):format(pct),
+        })
+    end
+    if conjured > 0 then
+        table.insert(result.signals, { label = "conjured bonus", value = conjured })
+    end
+    return flat + pctContribution + conjured + f.ilvl + f.qualityScore,
+           "Flat + %-based restore, conjured outranks crafted, ilvl + quality break ties."
+end
+registerExplainer({ "FOOD", "DRINK" }, explainRestore)
+
+local function explainPotion(result, f)
+    local tt         = f.tt
+    local kind       = (f.catKey == "HP_POT") and "HP" or "MP"
+    local amount     = potAmount(tt, kind)
+    local immediate  = potIsImmediate(tt, kind)
+    local qualifies  = qualifiesForImmediateBonus(tt, kind, f.ctx)
+    local bonus      = qualifies and IMMEDIATE_POT_BONUS or 0
+    if amount > 0 then
+        table.insert(result.signals, {
+            label = (kind == "HP") and "heal value" or "mana value",
+            value = amount,
+            note  = immediate and "immediate" or "over time",
+        })
+    end
+    table.insert(result.signals, {
+        label = "immediate bonus",
+        value = bonus,
+        note  = immediate and "immediate"
+            or (qualifies
+                and ("HOT > %d%% of best immediate"):format(HOT_OVER_IMMEDIATE_PCT)
+                or  ("HOT <= %d%% of best immediate"):format(HOT_OVER_IMMEDIATE_PCT)),
+    })
+    return amount + bonus + f.ilvl + f.qualityScore,
+           ("Immediate wins unless a HOT pot's amount beats the best immediate by more than %d%%."):format(HOT_OVER_IMMEDIATE_PCT)
+end
+registerExplainer({ "HP_POT", "MP_POT" }, explainPotion)
+
+local function explainHealthstone(result, f)
+    local pref = HEALTHSTONE_PREFERENCE[f.itemID] or 0
+    table.insert(result.signals, { label = "preference rank", value = pref })
+    -- No quality term: the preference table already encodes the ordering quality would.
+    return pref + f.ilvl,
+           "Hard-coded preference table (modern > legacy) + ilvl tiebreak."
+end
+registerExplainer({ "HS" }, explainHealthstone)
+
+local function explainVantus(_, f)
+    return f.ilvl + f.qualityScore,
+           "Current-tier rune preferred (ilvl + quality)."
+end
+registerExplainer({ "VANTUS" }, explainVantus)
+
+local function explainAugRune(result, f)
+    local amount   = augAmount(f.tt)
+    local reusable = KCM.Classifier and KCM.Classifier.IsReusableAugRune(f.itemID)
+    table.insert(result.signals, { label = "primary stat", value = amount * AUG_STAT_WEIGHT, note = ("amount %d"):format(amount) })
+    table.insert(result.signals, { label = "reusable bonus", value = reusable and REUSABLE_BONUS or 0, note = reusable and "not consumed on use" or "consumable" })
+    return amount * AUG_STAT_WEIGHT + (reusable and REUSABLE_BONUS or 0) + f.ilvl + f.qualityScore,
+           "Highest primary-stat amount wins; reusable runes break ties."
+end
+registerExplainer({ "AUG_RUNE" }, explainAugRune)
+
+local function explainBloodlust(result, f)
+    local cap = f.tt.maxLevel
+    local capContribution = (cap or UNCAPPED_LEVEL) * CAP_WEIGHT
+    table.insert(result.signals, {
+        label = ("affects up to level x%d"):format(CAP_WEIGHT),
+        value = capContribution,
+        note  = cap and ("cap %d"):format(cap) or "no cap",
+    })
+    return capContribution + f.ilvl + f.qualityScore,
+           "Higher affect-cap wins; an uncapped drum outranks every capped one."
+end
+registerExplainer({ "BLOODLUST" }, explainBloodlust)
+
+local function explainBattleRez(_, f)
+    return f.ilvl + f.qualityScore,
+           "Only one seeded item today; ilvl + quality keep a future second item ordered."
+end
+registerExplainer({ "BATTLE_REZ" }, explainBattleRez)
+
+local function explainStatBuffs(result, f)
+    local specPriority = f.ctx and f.ctx.specPriority
+    local statTotal    = 0
+    for _, sb in ipairs(f.tt.statBuffs or {}) do
+        local w       = statWeight(sb.stat, specPriority)
+        local contrib = w * (sb.amount or 1)
+        if contrib > 0 then
+            table.insert(result.signals, {
+                label = ("%s buff"):format(sb.stat),
+                value = contrib,
+                note  = ("amount %d x weight %d"):format(sb.amount or 0, w),
+            })
+            statTotal = statTotal + contrib
+        end
+    end
+    if #result.signals == 0 then
+        table.insert(result.signals, {
+            label = "stat buffs",
+            value = 0,
+            note  = specPriority and "no buffs match spec priority" or "spec priority unresolved",
+        })
+    end
+    return statTotal + f.ilvl + f.qualityScore,
+           "Primary-stat buffs outweigh any secondary; secondary ranks by priority position."
+end
+registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK", "WPN_ENCH" }, explainStatBuffs)
+
+-- The ilvl / quality terms every category shares, appended after the category's own signals.
+local function pushBaseSignals(result, f)
+    if f.ilvl and f.ilvl > 0 then
+        table.insert(result.signals, { label = "ilvl", value = f.ilvl })
+    end
+    if f.qualityScore > 0 then
+        table.insert(result.signals, { label = "quality x100", value = f.qualityScore })
+    end
+end
+
 function R.Explain(catKey, itemID, ctx)
     local result = { score = 0, summary = "", signals = {} }
     if not catKey or not itemID then return result end
@@ -409,149 +564,21 @@ function R.Explain(catKey, itemID, ctx)
         return result
     end
 
+    -- Read before the dispatch, as the ladder did: itemFields warms the tooltip cache, and an
+    -- unrecognized category must not change whether that happens.
     local quality, ilvl, _, tt = itemFields(itemID)
-    local qualityScore = quality * QUALITY_WEIGHT
-    local function pushBase()
-        if ilvl and ilvl > 0 then
-            table.insert(result.signals, { label = "ilvl", value = ilvl })
-        end
-        if qualityScore > 0 then
-            table.insert(result.signals, { label = "quality x100", value = qualityScore })
-        end
-    end
 
-    if catKey == "FOOD" or catKey == "DRINK" then
-        local isFood = (catKey == "FOOD")
-        local flat   = isFood and ((tt.healValueAvg or 0) + (tt.healValue or 0))
-                                or ((tt.manaValueAvg or 0) + (tt.manaValue or 0))
-        local pct    = isFood and (tt.healPct or 0) or (tt.manaPct or 0)
-        local pctContribution = pct * PCT_WEIGHT
-        local conjured = tt.isConjured and CONJURED_BONUS or 0
-        if flat > 0 then
-            table.insert(result.signals, {
-                label = isFood and "heal value" or "mana value",
-                value = flat,
-            })
-        end
-        if pct > 0 then
-            table.insert(result.signals, {
-                label = ("pct x%d"):format(PCT_WEIGHT),
-                value = pctContribution,
-                note  = ("%g%% of max"):format(pct),
-            })
-        end
-        if conjured > 0 then
-            table.insert(result.signals, { label = "conjured bonus", value = conjured })
-        end
-        pushBase()
-        result.score   = flat + pctContribution + conjured + ilvl + qualityScore
-        result.summary = "Flat + %-based restore, conjured outranks crafted, ilvl + quality break ties."
-        return result
-    end
+    local explain = EXPLAINERS[catKey]
+    if not explain then return result end
 
-    if catKey == "HP_POT" or catKey == "MP_POT" then
-        local kind       = (catKey == "HP_POT") and "HP" or "MP"
-        local amount     = potAmount(tt, kind)
-        local immediate  = potIsImmediate(tt, kind)
-        local qualifies  = qualifiesForImmediateBonus(tt, kind, ctx)
-        local bonus      = qualifies and IMMEDIATE_POT_BONUS or 0
-        if amount > 0 then
-            table.insert(result.signals, {
-                label = (kind == "HP") and "heal value" or "mana value",
-                value = amount,
-                note  = immediate and "immediate" or "over time",
-            })
-        end
-        table.insert(result.signals, {
-            label = "immediate bonus",
-            value = bonus,
-            note  = immediate and "immediate"
-                or (qualifies
-                    and ("HOT > %d%% of best immediate"):format(HOT_OVER_IMMEDIATE_PCT)
-                    or  ("HOT <= %d%% of best immediate"):format(HOT_OVER_IMMEDIATE_PCT)),
-        })
-        pushBase()
-        result.score = amount + bonus + ilvl + qualityScore
-        result.summary = ("Immediate wins unless a HOT pot's amount beats the best immediate by more than %d%%."):format(HOT_OVER_IMMEDIATE_PCT)
-        return result
-    end
+    local f = {
+        catKey = catKey, itemID = itemID, ctx = ctx,
+        ilvl = ilvl, tt = tt, qualityScore = quality * QUALITY_WEIGHT,
+    }
 
-    if catKey == "HS" then
-        local pref = HEALTHSTONE_PREFERENCE[itemID] or 0
-        table.insert(result.signals, { label = "preference rank", value = pref })
-        pushBase()
-        result.score   = pref + ilvl
-        result.summary = "Hard-coded preference table (modern > legacy) + ilvl tiebreak."
-        return result
-    end
-
-    if catKey == "VANTUS" then
-        pushBase()
-        result.score   = ilvl + qualityScore
-        result.summary = "Current-tier rune preferred (ilvl + quality)."
-        return result
-    end
-
-    if catKey == "AUG_RUNE" then
-        local amount   = augAmount(tt)
-        local reusable = KCM.Classifier and KCM.Classifier.IsReusableAugRune(itemID)
-        table.insert(result.signals, { label = "primary stat", value = amount * AUG_STAT_WEIGHT, note = ("amount %d"):format(amount) })
-        table.insert(result.signals, { label = "reusable bonus", value = reusable and REUSABLE_BONUS or 0, note = reusable and "not consumed on use" or "consumable" })
-        pushBase()
-        result.score   = amount * AUG_STAT_WEIGHT + (reusable and REUSABLE_BONUS or 0) + ilvl + qualityScore
-        result.summary = "Highest primary-stat amount wins; reusable runes break ties."
-        return result
-    end
-
-    if catKey == "BLOODLUST" then
-        local cap = tt.maxLevel
-        local capContribution = (cap or UNCAPPED_LEVEL) * CAP_WEIGHT
-        table.insert(result.signals, {
-            label = ("affects up to level x%d"):format(CAP_WEIGHT),
-            value = capContribution,
-            note  = cap and ("cap %d"):format(cap) or "no cap",
-        })
-        pushBase()
-        result.score   = capContribution + ilvl + qualityScore
-        result.summary = "Higher affect-cap wins; an uncapped drum outranks every capped one."
-        return result
-    end
-
-    if catKey == "BATTLE_REZ" then
-        pushBase()
-        result.score   = ilvl + qualityScore
-        result.summary = "Only one seeded item today; ilvl + quality keep a future second item ordered."
-        return result
-    end
-
-    if catKey == "STAT_FOOD" or catKey == "CMBT_POT" or catKey == "FLASK" or catKey == "WPN_ENCH" then
-        local specPriority = ctx and ctx.specPriority
-        local statTotal    = 0
-        for _, sb in ipairs(tt.statBuffs or {}) do
-            local w       = statWeight(sb.stat, specPriority)
-            local contrib = w * (sb.amount or 1)
-            if contrib > 0 then
-                table.insert(result.signals, {
-                    label = ("%s buff"):format(sb.stat),
-                    value = contrib,
-                    note  = ("amount %d x weight %d"):format(sb.amount or 0, w),
-                })
-                statTotal = statTotal + contrib
-            end
-        end
-        if #result.signals == 0 then
-            table.insert(result.signals, {
-                label = "stat buffs",
-                value = 0,
-                note  = specPriority and "no buffs match spec priority" or "spec priority unresolved",
-            })
-        end
-        pushBase()
-        result.score   = statTotal + ilvl + qualityScore
-        result.summary = "Primary-stat buffs outweigh any secondary; secondary ranks by priority position."
-        return result
-    end
-
+    local score, summary = explain(result, f)
+    pushBaseSignals(result, f)
+    result.score, result.summary = score, summary
     return result
 end
 

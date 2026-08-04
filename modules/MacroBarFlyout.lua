@@ -382,6 +382,18 @@ end
 -- same icons. The panel of the container is what says "this is a popup". Border
 -- style / thickness / color are shared with the BAR's own frame so the two read
 -- as one design, with only the fill color separate.
+local FLYOUT_FILL_DEFAULT = { 0, 0, 0, 0.85 }
+local BAR_BORDER_DEFAULT  = { 0.25, 0.25, 0.25, 1 }
+local EMPTY_COLOR         = {}
+
+-- Unpack a saved {r,g,b,a} over its default, component by component. A stored color may be
+-- absent entirely or short a component, and each missing slot falls back on its own.
+local function rgba(stored, default)
+    stored = stored or EMPTY_COLOR
+    return stored[1] or default[1], stored[2] or default[2],
+           stored[3] or default[3], stored[4] or default[4]
+end
+
 function FO.ApplyBackdrop(flyout, cfg)
     local bg = flyout and flyout.bg
     if not (bg and bg.SetBackdrop and cfg) then return end
@@ -398,10 +410,8 @@ function FO.ApplyBackdrop(flyout, cfg)
         edgeFile = edge,
         edgeSize = math.max(1, tonumber(cfg.barBorderSize) or 4),
     })
-    local fill = cfg.flyoutBackdropColor or {}
-    bg:SetBackdropColor(fill[1] or 0, fill[2] or 0, fill[3] or 0, fill[4] or 0.85)
-    local bc = cfg.barBorderColor or {}
-    bg:SetBackdropBorderColor(bc[1] or 0.25, bc[2] or 0.25, bc[3] or 0.25, bc[4] or 1)
+    bg:SetBackdropColor(rgba(cfg.flyoutBackdropColor, FLYOUT_FILL_DEFAULT))
+    bg:SetBackdropBorderColor(rgba(cfg.barBorderColor, BAR_BORDER_DEFAULT))
 end
 
 function FO.RefreshCooldown(btn)
