@@ -1116,6 +1116,44 @@ test("macrobar flyout: combat state is driven into the snippet, not polled", fun
         "and it is driven off the [combat] conditional")
 end)
 
+-- bindEntry paints an entry through the BAR's own appliers, so an entry is
+-- chrome-identical to a bar slot. None of that is guarded on KCM.MacroBarButton
+-- being present any more — it never could be, since FO.RefreshCooldown above it
+-- has always called through that table bare — so the border branch is a plain
+-- buttonBorder test. This pins both sides of it.
+test("macrobar flyout: an entry's border follows buttonBorder through the bar's own applier", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    for _, id in ipairs(KCM.SEED.HP_POT) do mock.setBag(id, 1) end
+    mock.setCombat(false)
+
+    local button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
+    button.catKey = "HP_POT"
+    local flyout = KCM.MacroBarFlyout.Create(button, "HP_POT", 1)
+
+    local cfg = KCM.db.profile.macroBar
+    cfg.flyout = true
+    cfg.buttonBorder = true
+    t.truthy(KCM.MacroBarFlyout.Apply(button, cfg), "flyout applied")
+    local entry = flyout.entries[1]
+    t.truthy(entry, "at least one candidate bound an entry")
+
+    -- The stub answers every unknown method truthily, so shown-ness is counted
+    -- at the border rather than queried.
+    local shows, hides = 0, 0
+    entry.border.Show = function() shows = shows + 1 end
+    entry.border.Hide = function() hides = hides + 1 end
+
+    KCM.MacroBarFlyout.Apply(button, cfg)
+    t.eq(shows, 1, "buttonBorder on → the entry border is painted and shown")
+    t.eq(hides, 0, "and never hidden on that pass")
+
+    cfg.buttonBorder = false
+    KCM.MacroBarFlyout.Apply(button, cfg)
+    t.eq(hides, 1, "buttonBorder off → the entry border is hidden")
+    t.eq(shows, 1, "and not re-shown")
+end)
+
 test("macrobar flyout: the idle clock resets while the mouse is on the strip", function(t)
     local KCM  = h.loader.loadFullAddon()
     h.loader.mock.setCombat(false)

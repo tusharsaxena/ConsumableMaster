@@ -205,16 +205,25 @@ end
 -- lines act as a fallback chain through the WoW macro engine — `#showtooltip`
 -- resolves to the first line whose target is currently usable, and the others
 -- no-op against the GCD.
-local function outOfCombatLines(orderOut, enabled, pickFor)
-    local out = {}
+--
+-- Appends into the caller's `lines` (out-param, like appendEmptyStateNotice)
+-- rather than returning a fresh table: master built one `lines` table for the
+-- whole body and a second one here would be a per-build allocation plus an
+-- O(n) copy that the refactor was not supposed to add. Returns whether it
+-- emitted anything.
+local function appendOutOfCombatLines(lines, orderOut, enabled, pickFor)
+    local added = false
     for _, ref in ipairs(orderOut) do
         if enabled[ref] ~= false then
             local pick = pickFor(ref)
             local line = actionLineForPick(pick, "[nocombat]")
-            if line then table.insert(out, line) end
+            if line then
+                table.insert(lines, line)
+                added = true
+            end
         end
     end
-    return out
+    return added
 end
 
 -- Per-section empty-state fallback. When one combat-state side produced usable
@@ -245,16 +254,14 @@ local function buildCompositeBody(cat, pickFor)
     local enabled, orderIn, orderOut = compositeConfig(cat)
     if not enabled then return nil end
 
-    local seqLine  = inCombatLine(orderIn, enabled, pickFor)
-    local outLines = outOfCombatLines(orderOut, enabled, pickFor)
+    local lines = {}
+
+    local seqLine = inCombatLine(orderIn, enabled, pickFor)
+    if seqLine then table.insert(lines, seqLine) end
 
     local hasInCombat    = seqLine ~= nil
-    local hasOutOfCombat = #outLines > 0
+    local hasOutOfCombat = appendOutOfCombatLines(lines, orderOut, enabled, pickFor)
     if not (hasInCombat or hasOutOfCombat) then return nil end
-
-    local lines = {}
-    if seqLine then table.insert(lines, seqLine) end
-    for _, line in ipairs(outLines) do table.insert(lines, line) end
 
     appendEmptyStateNotice(lines, cat, hasInCombat, hasOutOfCombat)
 
@@ -317,11 +324,16 @@ local function doEdit(macroName, icon, body, catKey)
     return "edited"
 end
 
--- One gated Debug seam for this file's three write-path diagnostics. Same gate
--- (KCM.State.debug) each of them carried inline; the args are all plain values,
--- so evaluating them before the gate costs nothing.
-local function dbg(fmt, ...)
-    if KCM.State and KCM.State.debug then KCM.Debug("Macro", fmt, ...) end
+-- The session debug gate for this file's three write-path diagnostics, in one
+-- place instead of once per log site. It stays a PREDICATE rather than a
+-- logging wrapper on purpose: Lua evaluates call arguments before the callee
+-- runs, so a wrapper would make KCM.Debug's arguments (the tostring calls
+-- below) allocate even with debug off — the standard §12 zero-alloc rule these
+-- paths are written to. Same shape as core/ConsumableMaster.lua's isDebugOn,
+-- and it reads KCM.State directly exactly as the inline sites did.
+local function isDebugOn()
+    if KCM.State and KCM.State.debug then return true end
+    return false
 end
 
 -- Enforce Blizzard's 255-byte cap. Silent truncation corrupted the macro (e.g.
@@ -333,8 +345,10 @@ local function applyBodyLimit(body, catKey, opts)
     if string.len(body) <= MACRO_BODY_LIMIT then return body, false end
     local cat = opts.cat
         or (KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey))
-    dbg(opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s",
-        tostring(catKey), MACRO_BODY_LIMIT, body)
+    if isDebugOn() then
+        KCM.Debug("Macro", opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s",
+            tostring(catKey), MACRO_BODY_LIMIT, body)
+    end
     if catKey and not alreadyWarnedOversized[catKey] then
         alreadyWarnedOversized[catKey] = true
         KCM.Say(opts.oversizeSay
@@ -365,7 +379,9 @@ local function queueForCombat(macroName, body, iconItemID, catKey, opts, pending
         cat      = opts.cat,
         attempts = pending and pending.attempts or 0,
     }
-    dbg(opts.deferDebugFmt or "deferred %s (combat)", macroName)
+    if isDebugOn() then
+        KCM.Debug("Macro", opts.deferDebugFmt or "deferred %s (combat)", macroName)
+    end
     return "deferred"
 end
 
@@ -422,7 +438,9 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
 
     local result, err = doEdit(macroName, icon, body, catKey)
     if result == "error" then
-        dbg("%s failed — %s", macroName, tostring(err))
+        if isDebugOn() then
+            KCM.Debug("Macro", "%s failed — %s", macroName, tostring(err))
+        end
         return "error", err
     end
 

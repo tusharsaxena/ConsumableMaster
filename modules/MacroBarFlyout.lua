@@ -370,7 +370,12 @@ local function bindEntry(btn, id, cfg, size)
     -- bar's own appliers do the painting, so the two can never drift apart —
     -- they used to be verbatim copies kept in sync by hand.
     KCM.MacroBarButton.ApplyBackdropTex(btn.backdropTex, cfg)
-    if cfg.buttonBorder ~= false and KCM.MacroBarButton then
+    -- No `and KCM.MacroBarButton` on this branch: FO.RefreshCooldown above
+    -- already calls through that table unguarded (it always did), as do the two
+    -- appliers in this function, so a nil KCM.MacroBarButton can never reach
+    -- here. The old guard read as a live safety net for a degraded load that
+    -- does not exist — both files ship in the same TOC.
+    if cfg.buttonBorder ~= false then
         KCM.MacroBarButton.ApplyBorder(btn.border, btn, cfg)
     else
         btn.border:Hide()

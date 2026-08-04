@@ -164,6 +164,28 @@ test("MacroManager: BuildCompositeBody uses a spell pick's localized name in the
         "spell pick contributes its localized name to the /castsequence line")
 end)
 
+-- Pins the exact assembled body, line for line. The out-of-combat lines are
+-- appended straight into the one `lines` table the whole body is built in — a
+-- helper that returned its own table and got copied in would still pass the
+-- `find` assertions above while adding a per-build allocation and an O(n) copy,
+-- and could silently reorder or drop the tail. Two out-of-combat refs, so the
+-- order WITHIN that section is pinned too.
+test("MacroManager: BuildCompositeBody assembles #showtooltip, the /castsequence and every /use line in order", function(t)
+    local KCM = h.loader.loadPure()
+    local M   = KCM.MacroManager
+    local aio = KCM.Categories.Get("HP_AIO")
+
+    local cfg = KCM.db.profile.categories.HP_AIO
+    cfg.orderOutOfCombat = { "FOOD", "HP_POT" }
+
+    t.eq(M.BuildCompositeBody(aio, pickAll),
+        "#showtooltip\n" ..
+        "/castsequence [combat] reset=combat item:5512, item:171267\n" ..
+        "/use [nocombat] item:113509\n" ..
+        "/use [nocombat] item:171267",
+        "in-combat line first, then every out-of-combat line in configured order")
+end)
+
 test("MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager
@@ -482,6 +504,39 @@ test("MacroManager warns about an oversized body only once per category", functi
         if line:find("exceeds 255 bytes", 1, true) then warnings = warnings + 1 end
     end
     t.eq(warnings, 1, "one chat line per category per session, not one per recompute")
+end)
+
+-- The write path's debug gate must be a PREDICATE, never a logging wrapper:
+-- Lua evaluates call arguments before the callee runs, so `dbg(fmt, tostring(x))`
+-- pays for tostring(x) with debug OFF. The probe key counts its own __tostring
+-- calls, which is exactly the allocation the standard's zero-alloc rule forbids
+-- on a gated diagnostic.
+test("MacroManager: the debug gate is a predicate — diagnostic arguments are not evaluated with debug off", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 943010)
+    local realBuild = KCM.MacroManager.BuildBody
+    KCM.MacroManager.BuildBody = function() return string.rep("x", 300) end
+
+    local stringified = 0
+    local probeKey = setmetatable({}, {
+        __tostring = function() stringified = stringified + 1 return "PROBE" end,
+    })
+
+    KCM.State = KCM.State or {}
+    KCM.State.debug = false
+    KCM.MacroManager.SetMacro("KCM_PROBE", 943010, probeKey)
+    t.eq(stringified, 0, "debug off → the oversize diagnostic's tostring(catKey) never runs")
+
+    -- loadPure does not load core/Debug.lua, so the sink has to be stood up
+    -- before the gate is allowed to open.
+    local sunk = 0
+    KCM.Debug = function() sunk = sunk + 1 end
+    KCM.State.debug = true
+    KCM.MacroManager.SetMacro("KCM_PROBE2", 943010, probeKey)
+    t.eq(sunk, 1, "debug on → the oversize diagnostic reaches the sink")
+    KCM.MacroManager.BuildBody = realBuild
+    KCM.State.debug = false
+    t.truthy(stringified > 0, "debug on → the same diagnostic does run")
 end)
 
 -- ---------------------------------------------------------------------------
