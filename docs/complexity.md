@@ -18,8 +18,8 @@ are measured, and one of them lands on the watch list below.
 ## Watch list
 
 **21 functions** exceeded lizard's default cyclomatic-complexity threshold (CCN > 15); no function
-tripped the length (> 1000) or parameter (> 100) thresholds. **Two files** sit in `layout-§1`'s
-1000–1500 LOC on-notice band. No file exceeds the 1500 LOC cap.
+tripped the length (> 1000) or parameter (> 100) thresholds. **One file** sits in `layout-§1`'s
+1000–1500 LOC on-notice band, and it is a test suite. No file exceeds the 1500 LOC cap.
 
 **Four peels landed in this change**, which is why the numbers below are lower than the ones the
 2026-08-04 audit was written against. All 600 tests pass unchanged and `luacheck` is clean:
@@ -43,24 +43,37 @@ tripped the length (> 1000) or parameter (> 100) thresholds. **Two files** sit i
   `refreshLabelText`), separating the layout decisions from the text ones. **The file now has no
   warnings at all**, its heaviest function being `refreshLabelText` at 9.
 
-That took the addon from **25** warnings to **21**, and its worst function from CCN 68 to 62. The
-remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a complexity fix — it is
-`CM-47` / `CM-54`, the dispatcher-in-the-wrong-file split.
+That took the addon from **25** warnings to **21**, and its worst function from CCN 68 to 62.
+
+**`CM-47` and `CM-54` also landed in this change, and they moved the warning count by zero — which
+is the correct outcome.** Both are *layout* deviations, not complexity ones: `slash-commands-§1`
+names `settings/Slash.lua` as where the dispatcher is wired, and `core/SlashCommands.lua` was the
+repo's largest file at 1408 LOC. It is now three files — `core/SlashDump.lua` (334, the `/cm dump`
+targets), `core/SlashCommands.lua` (808, the verb bodies) and `settings/Slash.lua` (343, the
+`COMMANDS` table, the `LibKa0s-Slash-1.0` descriptor and instance, `GetLandingRows` and
+`OnSlashCommand`). No file is in the 1000–1500 band any more except one test suite. A split
+relocates complexity; it does not reduce it, and claiming otherwise is how a watch list starts
+lying.
+
+**Correction carried by that move:** the two `run` warnings below at CCN 62 and 32 were previously
+recorded here as `core/SlashCommands.lua`'s verb ladder, "resolved by the CM-47 split". They are
+not. They are `DUMP_TARGETS.pick.run` and `DUMP_TARGETS.item.run` — the `/cm dump` diagnostic
+handlers — and CM-47 never touched their shape. Their dispositions below are rewritten to say what
+they actually are.
 
 ### Files in the 1000–1500 LOC on-notice band (`layout-§1`)
 
 | File | LOC | Disposition |
 |------|-----|-------------|
-| `core/SlashCommands.lua` | 1408 | **Already tracked as CM-54** (advisory) and resolved by **CM-47** — the dispatcher belongs in `settings/Slash.lua`; that split takes the `COMMANDS` table, the `LibKa0s-Slash-1.0` descriptor and `OnSlashCommand` out of this file. It holds four of the 21 warnings, including the worst two, so the split is the single highest-value move left in this addon. |
 | `tests/test_macrobar.lua` | 1129 | **Accepted.** It is one suite per behavior over the repo's most in-client-coupled module, with a flat CCN (avg 1.3) — length here is case count, not tangle. Peel by module (bar / button / flyout) only if it crosses 1500. |
 
 ### Functions over CCN 15
 
 | Function | CCN | Location | Disposition |
 |----------|-----|----------|-------------|
-| `run` | 62 | `core/SlashCommands.lua:375-502` | **Already tracked as CM-47 / CM-54.** A verb ladder inside the file the standard says should not hold the dispatcher; the split is the fix, and it is now the worst number in the repo. |
+| `run` | 62 | `core/SlashDump.lua:155-282` | **Accepted — the branch count *is* the diagnostic.** `DUMP_TARGETS.pick.run`, behind `/cm dump pick`: it walks every category, resolves each one's pick through the whole selection chain and prints why each candidate won or lost. It is the worst number in the repo and it runs when a human types a diagnostic command, never on a hot path or in a frame. Splitting it per printed section would scatter the one place the selection story is told end to end. Compare KickCD's `Castbar:DebugDump` (CCN 27), accepted on the same grounds. Revisit if it grows a branch that is not a printed line. |
 | `M.SetCompositeMacro` | 35 | `modules/MacroManager.lua:418-496` | **Already tracked as review finding F-006** — it re-implements `commitMacro`'s five-step guard ladder inline and has already drifted. Collapsing the two removes most of this CCN. |
-| `run` | 32 | `core/SlashCommands.lua:309-369` | **Already tracked as CM-47 / CM-54**, same ladder as above. |
+| `run` | 32 | `core/SlashDump.lua:89-149` | **Accepted**, same grounds as `pick` above. `DUMP_TARGETS.item.run`, behind `/cm dump <itemID>`: one branch per field of the classification/tooltip record it prints. |
 | `bindEntry` | 30 | `modules/MacroBarFlyout.lua:324-378` | **Accepted for now.** Secure-frame binding: the branches are the combat / template / secret-value guards that `events-frames-taint` requires, and flattening them would mean widening the guard. Revisit if it grows past ~35. |
 | `buildCompositeBody` | 27 | `modules/MacroManager.lua:174-245` | **Peel next, with F-006.** Macro-body assembly by category conditional; extracting the per-category conditional splice into its own function is a mechanical win and F-006 already opens this file. |
 | `commitMacro` | 27 | `modules/MacroManager.lua:305-371` | **Accepted as the shared write tail** — this is the ladder F-006 wants *everything* to go through, so its CCN is load-bearing. Expect it to rise slightly when F-006 lands; that is the intended direction. |
@@ -69,8 +82,8 @@ remaining 62 is `core/SlashCommands.lua`'s verb ladder, which is **not** a compl
 | `BB.ApplyStyle` | 21 | `modules/MacroBarButton.lua:254-302` | **Accepted.** Per-option styling switch (icon, border, GCD swipe, cooldown bling) driven by the settings schema; one branch per user-visible toggle. |
 | `OnAccept` | 21 | `settings/Category.lua:124-148` | **Accepted.** A `StaticPopupDialogs` accept handler validating free-text item input. Small (25 NLOC) and its branches are the validation cases. |
 | `discoverOne` | 20 | `core/ConsumableMaster.lua:369-407` | **Accepted.** Auto-discovery's per-item classification decision. Adjacent to review finding **F-005** (which is about *how often* discovery runs, not this function's shape) — if F-005's fix changes the call pattern, re-read this row then. |
-| `priorityList` | 19 | `core/SlashCommands.lua:625-650` | **Already tracked as CM-47 / CM-54.** |
-| `aioToggle` | 19 | `core/SlashCommands.lua:963-989` | **Already tracked as CM-47 / CM-54.** |
+| `priorityList` | 19 | `core/SlashCommands.lua:294-319` | **Accepted.** The `/cm priority <cat>` renderer: composite categories delegate to the `pick` dump target, the rest print owned/picked state per candidate. One branch per display case. It stayed in the verb file when the dispatcher moved (CM-47), which is where it belongs. |
+| `aioToggle` | 19 | `core/SlashCommands.lua:632-658` | **Accepted.** Composite-category enable/disable across both order sections, with the section and reference lookups guarded individually. One branch per way the reference can fail to resolve. |
 | `parseDuration` | 19 | `core/TooltipCache.lua:209-256` | **Accepted, and tied to CM-30.** The CCN is the English-phrasing pattern ladder that `CM-30` records as an accepted enUS-only deviation. Localizing tooltip parsing is the change that restructures this; doing it before then would just move the ladder. |
 | `validateSchemaValue` | 18 | `settings/Panel.lua:576-603` | **Peel next, with F-013.** Review finding **F-013** requires adding a defaults-resolution pass to schema validation, which adds branches here. Restructure it into a list of validators before that lands, not after. |
 | `statWeight` | 17 | `modules/Ranker.lua:105-123` | **Accepted.** 19 NLOC of stat-to-weight mapping; the branches are the stat set. Would be a lookup table if the weights were constant, but several are spec-conditional. Now the only warning left in this file. |
@@ -190,111 +203,75 @@ with a reason so the next release's diff shows movement rather than a fresh argu
        3      1     19      1       3 MD.Count@152-154@./core/MacroDisplay.lua
        3      1     19      1       3 MD.Cooldown@156-158@./core/MacroDisplay.lua
       21     16    166      2      21 MD.SetTooltip@163-183@./core/MacroDisplay.lua
-       6      8     48      0       6 addonVersion@31-36@./core/SlashCommands.lua
-       7      3     25      0       7 OnAccept@54-60@./core/SlashCommands.lua
-       3      2     25      1       3 trim@71-73@./core/SlashCommands.lua
-       4      4     34      1       4 lowerFirst@81-84@./core/SlashCommands.lua
-       5      3     29      2       5 findCommand@86-90@./core/SlashCommands.lua
-       8      6     46      1       8 afterMutation@97-104@./core/SlashCommands.lua
-       4      2     27      1       4 normSpecToken@126-129@./core/SlashCommands.lua
-       8      4     41      1       8 classIDFromFile@131-138@./core/SlashCommands.lua
-      12      9     86      2      12 specIDFromToken@140-151@./core/SlashCommands.lua
-      19     12    117      1      21 resolveSpecKey@153-173@./core/SlashCommands.lua
-      14     13    137      1      14 describeSpec@176-189@./core/SlashCommands.lua
-      10      8     73      1      10 parsePriorityID@200-209@./core/SlashCommands.lua
-      18     14    111      1      18 nameForStoredID@211-228@./core/SlashCommands.lua
-       7      5     50      1       7 displayID@230-236@./core/SlashCommands.lua
-      14      5     81      0      14 run@248-261@./core/SlashCommands.lua
-      20      7    133      0      20 run@266-285@./core/SlashCommands.lua
-      14      5     66      0      14 run@290-303@./core/SlashCommands.lua
-      58     32    386      1      61 run@309-369@./core/SlashCommands.lua
-      14     14    134      1      14 describePick@407-420@./core/SlashCommands.lua
-       1      1     13      1       1 (anonymous)@440-440@./core/SlashCommands.lua
-     111     62    816      1     128 run@375-502@./core/SlashCommands.lua
-      10      4     62      1      10 printDumpLines@509-518@./core/SlashCommands.lua
-       4      1     12      0       4 dumpHelp@520-523@./core/SlashCommands.lua
-      20      6     89      1      21 dumpDispatch@525-545@./core/SlashCommands.lua
-       3      2     14      0       3 helpers@555-557@./core/SlashCommands.lua
-      11     10     93      2      11 KCM.FormatSchemaValue@565-575@./core/SlashCommands.lua
-       5      7     54      1       5 resolveCatKey@606-610@./core/SlashCommands.lua
-       8      5     48      1      12 categorySpec@612-623@./core/SlashCommands.lua
-      26     19    233      2      26 priorityList@625-650@./core/SlashCommands.lua
-       8      2     40      2       8 rejectComposite@652-659@./core/SlashCommands.lua
-      20      8    133      2      20 priorityAdd@661-680@./core/SlashCommands.lua
-      16      6    119      2      16 priorityRemove@682-697@./core/SlashCommands.lua
-      18     11    163      3      18 priorityMove@699-716@./core/SlashCommands.lua
-      16      9    135      1      16 priorityReset@718-733@./core/SlashCommands.lua
-       1      1     12      2       1 (anonymous)@737-737@./core/SlashCommands.lua
-       1      1     12      2       1 (anonymous)@739-739@./core/SlashCommands.lua
-       1      1     12      2       1 (anonymous)@741-741@./core/SlashCommands.lua
-       1      1     14      2       1 (anonymous)@743-743@./core/SlashCommands.lua
-       1      1     14      2       1 (anonymous)@745-745@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@747-747@./core/SlashCommands.lua
-      18      5    119      1      19 runPriority@762-780@./core/SlashCommands.lua
-      14      5    116      1      14 statList@791-804@./core/SlashCommands.lua
-      17      6    132      1      17 statPrimary@806-822@./core/SlashCommands.lua
-      31     10    219      1      35 statSecondary@824-858@./core/SlashCommands.lua
-      14      6    124      1      14 statReset@860-873@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@877-877@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@879-879@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@881-881@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@883-883@./core/SlashCommands.lua
-       7      2     42      0       7 statHelp@886-892@./core/SlashCommands.lua
-       8      3     58      1       8 runStat@894-901@./core/SlashCommands.lua
-       4      4     36      1       4 compositeCfg@919-922@./core/SlashCommands.lua
-       6      4     31      2       6 findInSection@924-929@./core/SlashCommands.lua
-       7      3     42      2       7 locateAIORef@934-940@./core/SlashCommands.lua
-      20     13    168      1      20 aioList@942-961@./core/SlashCommands.lua
-      27     19    217      2      27 aioToggle@963-989@./core/SlashCommands.lua
-      23     12    215      3      23 aioMove@991-1013@./core/SlashCommands.lua
-      13      9    131      1      13 aioReset@1015-1027@./core/SlashCommands.lua
-       1      1     10      2       1 (anonymous)@1031-1031@./core/SlashCommands.lua
-       1      1     12      2       1 (anonymous)@1033-1033@./core/SlashCommands.lua
-       1      1     14      2       1 (anonymous)@1035-1035@./core/SlashCommands.lua
-       1      1     14      2       1 (anonymous)@1037-1037@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1039-1039@./core/SlashCommands.lua
-      16      7    125      1      16 runAIO@1056-1071@./core/SlashCommands.lua
-       1      1     16      0       1 (anonymous)@1084-1084@./core/SlashCommands.lua
-       1      1     16      0       1 (anonymous)@1086-1086@./core/SlashCommands.lua
-       1      1     16      0       1 (anonymous)@1088-1088@./core/SlashCommands.lua
-       1      1     16      0       1 (anonymous)@1090-1090@./core/SlashCommands.lua
-       1      1     15      0       1 (anonymous)@1092-1092@./core/SlashCommands.lua
-      10      8     80      0      10 barHelp@1095-1104@./core/SlashCommands.lua
-      16      9    120      1      17 runBar@1106-1122@./core/SlashCommands.lua
-       1      1      6      0       1 (anonymous)@1132-1132@./core/SlashCommands.lua
-       5      4     30      0       5 (anonymous)@1134-1138@./core/SlashCommands.lua
-       1      1     12      0       1 (anonymous)@1140-1140@./core/SlashCommands.lua
-       6      4     46      1       9 (anonymous)@1142-1150@./core/SlashCommands.lua
-      19     11    103      1      23 (anonymous)@1152-1174@./core/SlashCommands.lua
-      16      9     92      0      16 (anonymous)@1176-1191@./core/SlashCommands.lua
-      12      7     58      0      12 (anonymous)@1193-1204@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1212-1212@./core/SlashCommands.lua
-       7      2     16      0       7 (anonymous)@1214-1220@./core/SlashCommands.lua
-       1      1      6      0       1 (anonymous)@1222-1222@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1224-1224@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1226-1226@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1228-1228@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1230-1230@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1232-1232@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1234-1234@./core/SlashCommands.lua
-       1      1      8      1       1 (anonymous)@1236-1236@./core/SlashCommands.lua
-       1      1     10      1       1 print@1319-1319@./core/SlashCommands.lua
-       1      2     20      1       1 get@1325-1325@./core/SlashCommands.lua
-       4      2     24      2       4 set@1326-1329@./core/SlashCommands.lua
-       1      2     20      1       1 findRow@1330-1330@./core/SlashCommands.lua
-       1      3     18      0       1 allRows@1331-1331@./core/SlashCommands.lua
-       4      3     33      1       4 applyDefault@1332-1335@./core/SlashCommands.lua
-       1      2     10      1       1 groupKey@1337-1337@./core/SlashCommands.lua
-       4      7     45      1       4 colorDecode@1343-1346@./core/SlashCommands.lua
-       1      2     22      4       1 colorEncode@1347-1347@./core/SlashCommands.lua
-       1      1      8      0       1 printHelp@1353-1353@./core/SlashCommands.lua
-       1      1      8      0       1 cliList@1354-1354@./core/SlashCommands.lua
-       1      1     10      1       1 cliGet@1355-1355@./core/SlashCommands.lua
-       1      1     10      1       1 cliSet@1356-1356@./core/SlashCommands.lua
-       1      1     10      1       1 cliReset@1361-1361@./core/SlashCommands.lua
-       4      2     16      0       4 printHelp@1365-1368@./core/SlashCommands.lua
-       4      2     22      0       4 KCM.SlashCommands.GetLandingRows@1400-1403@./core/SlashCommands.lua
-       4      2     23      0       4 KCM@1405-1408@./core/SlashCommands.lua
+       7      3     25      0       7 OnAccept@45-51@./core/SlashCommands.lua
+       3      2     25      1       3 trim@62-64@./core/SlashCommands.lua
+       4      4     34      1       4 lowerFirst@72-75@./core/SlashCommands.lua
+       5      3     29      2       5 findCommand@77-81@./core/SlashCommands.lua
+       8      6     46      1       8 afterMutation@88-95@./core/SlashCommands.lua
+       4      2     27      1       4 normSpecToken@117-120@./core/SlashCommands.lua
+       8      4     41      1       8 classIDFromFile@122-129@./core/SlashCommands.lua
+      12      9     86      2      12 specIDFromToken@131-142@./core/SlashCommands.lua
+      19     12    117      1      21 resolveSpecKey@144-164@./core/SlashCommands.lua
+      14     13    137      1      14 describeSpec@167-180@./core/SlashCommands.lua
+      10      8     73      1      10 parsePriorityID@191-200@./core/SlashCommands.lua
+      18     14    111      1      18 nameForStoredID@202-219@./core/SlashCommands.lua
+       7      5     50      1       7 displayID@221-227@./core/SlashCommands.lua
+      11     10     93      2      11 KCM.FormatSchemaValue@234-244@./core/SlashCommands.lua
+       5      7     54      1       5 resolveCatKey@275-279@./core/SlashCommands.lua
+       8      5     48      1      12 categorySpec@281-292@./core/SlashCommands.lua
+      26     19    237      2      26 priorityList@294-319@./core/SlashCommands.lua
+       8      2     40      2       8 rejectComposite@321-328@./core/SlashCommands.lua
+      20      8    133      2      20 priorityAdd@330-349@./core/SlashCommands.lua
+      16      6    119      2      16 priorityRemove@351-366@./core/SlashCommands.lua
+      18     11    163      3      18 priorityMove@368-385@./core/SlashCommands.lua
+      16      9    135      1      16 priorityReset@387-402@./core/SlashCommands.lua
+       1      1     12      2       1 (anonymous)@406-406@./core/SlashCommands.lua
+       1      1     12      2       1 (anonymous)@408-408@./core/SlashCommands.lua
+       1      1     12      2       1 (anonymous)@410-410@./core/SlashCommands.lua
+       1      1     14      2       1 (anonymous)@412-412@./core/SlashCommands.lua
+       1      1     14      2       1 (anonymous)@414-414@./core/SlashCommands.lua
+       1      1      8      1       1 (anonymous)@416-416@./core/SlashCommands.lua
+      18      5    119      1      19 runPriority@431-449@./core/SlashCommands.lua
+      14      5    116      1      14 statList@460-473@./core/SlashCommands.lua
+      17      6    132      1      17 statPrimary@475-491@./core/SlashCommands.lua
+      31     10    219      1      35 statSecondary@493-527@./core/SlashCommands.lua
+      14      6    124      1      14 statReset@529-542@./core/SlashCommands.lua
+       1      1      8      1       1 (anonymous)@546-546@./core/SlashCommands.lua
+       1      1      8      1       1 (anonymous)@548-548@./core/SlashCommands.lua
+       1      1      8      1       1 (anonymous)@550-550@./core/SlashCommands.lua
+       1      1      8      1       1 (anonymous)@552-552@./core/SlashCommands.lua
+       7      2     42      0       7 statHelp@555-561@./core/SlashCommands.lua
+       8      3     58      1       8 runStat@563-570@./core/SlashCommands.lua
+       4      4     36      1       4 compositeCfg@588-591@./core/SlashCommands.lua
+       6      4     31      2       6 findInSection@593-598@./core/SlashCommands.lua
+       7      3     42      2       7 locateAIORef@603-609@./core/SlashCommands.lua
+      20     13    168      1      20 aioList@611-630@./core/SlashCommands.lua
+      27     19    217      2      27 aioToggle@632-658@./core/SlashCommands.lua
+      23     12    215      3      23 aioMove@660-682@./core/SlashCommands.lua
+      13      9    131      1      13 aioReset@684-696@./core/SlashCommands.lua
+       1      1     10      2       1 (anonymous)@700-700@./core/SlashCommands.lua
+       1      1     12      2       1 (anonymous)@702-702@./core/SlashCommands.lua
+       1      1     14      2       1 (anonymous)@704-704@./core/SlashCommands.lua
+       1      1     14      2       1 (anonymous)@706-706@./core/SlashCommands.lua
+       1      1      8      1       1 (anonymous)@708-708@./core/SlashCommands.lua
+      16      7    125      1      16 runAIO@725-740@./core/SlashCommands.lua
+       1      1     16      0       1 (anonymous)@753-753@./core/SlashCommands.lua
+       1      1     16      0       1 (anonymous)@755-755@./core/SlashCommands.lua
+       1      1     16      0       1 (anonymous)@757-757@./core/SlashCommands.lua
+       1      1     16      0       1 (anonymous)@759-759@./core/SlashCommands.lua
+       1      1     15      0       1 (anonymous)@761-761@./core/SlashCommands.lua
+      10      8     80      0      10 barHelp@764-773@./core/SlashCommands.lua
+      16      9    120      1      17 runBar@775-791@./core/SlashCommands.lua
+      14      5     81      0      14 run@28-41@./core/SlashDump.lua
+      20      7    133      0      20 run@46-65@./core/SlashDump.lua
+      14      5     66      0      14 run@70-83@./core/SlashDump.lua
+      58     32    386      1      61 run@89-149@./core/SlashDump.lua
+      14     14    134      1      14 describePick@187-200@./core/SlashDump.lua
+       1      1     13      1       1 (anonymous)@220-220@./core/SlashDump.lua
+     111     62    816      1     128 run@155-282@./core/SlashDump.lua
+      10      4     62      1      10 printDumpLines@289-298@./core/SlashDump.lua
+       4      1     12      0       4 dumpHelp@300-303@./core/SlashDump.lua
+      20      6     89      1      21 dumpDispatch@305-325@./core/SlashDump.lua
        4      3     33      2       4 SpecHelper.MakeKey@30-33@./core/SpecHelper.lua
        9      4     88      0      12 SpecHelper.GetCurrent@37-48@./core/SpecHelper.lua
       18      5     97      0      18 SpecHelper.AllSpecs@53-70@./core/SpecHelper.lua
@@ -656,6 +633,42 @@ with a reason so the next release's diff shows movement rather than a fresh argu
        7      4     36      3       7 (anonymous)@900-906@./settings/Panel.lua
        4      3     24      0       4 (anonymous)@917-920@./settings/Panel.lua
        6      5     42      0       6 (anonymous)@921-926@./settings/Panel.lua
+       6      8     48      0       6 addonVersion@37-42@./settings/Slash.lua
+       3      2     14      0       3 helpers@52-54@./settings/Slash.lua
+       1      1      6      0       1 (anonymous)@67-67@./settings/Slash.lua
+       5      4     30      0       5 (anonymous)@69-73@./settings/Slash.lua
+       1      1     12      0       1 (anonymous)@75-75@./settings/Slash.lua
+       6      4     46      1       9 (anonymous)@77-85@./settings/Slash.lua
+      19     11    103      1      23 (anonymous)@87-109@./settings/Slash.lua
+      16      9     92      0      16 (anonymous)@111-126@./settings/Slash.lua
+      12      7     58      0      12 (anonymous)@128-139@./settings/Slash.lua
+       1      1      8      1       1 (anonymous)@147-147@./settings/Slash.lua
+       7      2     16      0       7 (anonymous)@149-155@./settings/Slash.lua
+       1      1      6      0       1 (anonymous)@157-157@./settings/Slash.lua
+       1      1      8      1       1 (anonymous)@159-159@./settings/Slash.lua
+       1      1      8      1       1 (anonymous)@161-161@./settings/Slash.lua
+       1      1     10      1       1 (anonymous)@163-163@./settings/Slash.lua
+       1      1     10      1       1 (anonymous)@165-165@./settings/Slash.lua
+       1      1     10      1       1 (anonymous)@167-167@./settings/Slash.lua
+       1      1     10      1       1 (anonymous)@169-169@./settings/Slash.lua
+       1      1     10      1       1 (anonymous)@171-171@./settings/Slash.lua
+       1      1     10      1       1 print@254-254@./settings/Slash.lua
+       1      2     20      1       1 get@260-260@./settings/Slash.lua
+       4      2     24      2       4 set@261-264@./settings/Slash.lua
+       1      2     20      1       1 findRow@265-265@./settings/Slash.lua
+       1      3     18      0       1 allRows@266-266@./settings/Slash.lua
+       4      3     33      1       4 applyDefault@267-270@./settings/Slash.lua
+       1      2     10      1       1 groupKey@272-272@./settings/Slash.lua
+       4      7     45      1       4 colorDecode@278-281@./settings/Slash.lua
+       1      2     22      4       1 colorEncode@282-282@./settings/Slash.lua
+       1      1      8      0       1 printHelp@288-288@./settings/Slash.lua
+       1      1      8      0       1 cliList@289-289@./settings/Slash.lua
+       1      1     10      1       1 cliGet@290-290@./settings/Slash.lua
+       1      1     10      1       1 cliSet@291-291@./settings/Slash.lua
+       1      1     10      1       1 cliReset@296-296@./settings/Slash.lua
+       4      2     16      0       4 printHelp@300-303@./settings/Slash.lua
+       4      2     22      0       4 KCM.SlashCommands.GetLandingRows@335-338@./settings/Slash.lua
+       4      2     23      0       4 KCM@340-343@./settings/Slash.lua
        7      3     34      0       7 currentSpecKey@44-50@./settings/StatPriority.lua
        9      4     43      0      11 resolveViewedSpec@52-62@./settings/StatPriority.lua
       24     14    201      1      28 formatSpec@66-93@./settings/StatPriority.lua
@@ -1562,7 +1575,7 @@ with a reason so the next release's diff shows movement rather than a fresh argu
        1      1      5      0       1 GetItemByID@616-616@./tests/wow_mock.lua
        1      1      3      0       1 (anonymous)@617-617@./tests/wow_mock.lua
        1      1      6      0       1 __index@617-617@./tests/wow_mock.lua
-87 file analyzed.
+89 file analyzed.
 ==============================================================
 NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
 --------------------------------------------------------------
@@ -1580,7 +1593,8 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
      90       7.1     5.1       52.3        11     ./core/MacroBarModel.lua
     112       8.9     7.3       66.2        12     ./core/MacroDisplay.lua
       2       0.0     0.0        0.0         0     ./core/Namespace.lua
-   1056       8.6     5.1       63.2       105     ./core/SlashCommands.lua
+    611       8.8     5.2       68.5        59     ./core/SlashCommands.lua
+    291      26.6    13.7      179.2        10     ./core/SlashDump.lua
      74      13.8     6.5       90.8         4     ./core/SpecHelper.lua
       4       0.0     0.0        0.0         0     ./core/State.lua
     275      14.0     6.8       94.4        17     ./core/TooltipCache.lua
@@ -1617,6 +1631,7 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
     116      10.3     4.3       60.0        10     ./settings/General.lua
     454      10.0     2.8       65.3        15     ./settings/MacroBar.lua
     484       9.9     4.7       66.4        42     ./settings/Panel.lua
+    173       3.3     2.6       22.6        36     ./settings/Slash.lua
     232      10.2     3.9       68.8        21     ./settings/StatPriority.lua
     126       7.6     3.1       53.5        15     ./tests/harness.lua
     154       5.9     2.2       35.2         9     ./tests/loader.lua
@@ -1663,10 +1678,10 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
       34     20    221      4      39 discoverOne@369-407@./core/ConsumableMaster.lua
       19     16    178      1      22 KCM.ResetAllToDefaults@465-486@./core/ConsumableMaster.lua
       21     16    166      2      21 MD.SetTooltip@163-183@./core/MacroDisplay.lua
-      58     32    386      1      61 run@309-369@./core/SlashCommands.lua
-     111     62    816      1     128 run@375-502@./core/SlashCommands.lua
-      26     19    233      2      26 priorityList@625-650@./core/SlashCommands.lua
-      27     19    217      2      27 aioToggle@963-989@./core/SlashCommands.lua
+      26     19    237      2      26 priorityList@294-319@./core/SlashCommands.lua
+      27     19    217      2      27 aioToggle@632-658@./core/SlashCommands.lua
+      58     32    386      1      61 run@89-149@./core/SlashDump.lua
+     111     62    816      1     128 run@155-282@./core/SlashDump.lua
       39     19    226      2      48 parseDuration@209-256@./core/TooltipCache.lua
       31     16    245      1      58 parseLines@306-363@./core/TooltipCache.lua
       32     21    342      2      49 BB.ApplyStyle@254-302@./modules/MacroBarButton.lua
@@ -1683,5 +1698,5 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
 ==========================================================================================
 Total nloc   Avg.NLOC  AvgCCN  Avg.token   Fun Cnt  Warning cnt   Fun Rt   nloc Rt
 ------------------------------------------------------------------------------------------
-     14297       8.3     3.0       66.5     1469           21      0.01    0.07
+     14316       8.3     3.0       66.5     1469           21      0.01    0.07
 ```

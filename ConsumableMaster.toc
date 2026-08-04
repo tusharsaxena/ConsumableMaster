@@ -72,6 +72,11 @@ core\LSMPatch.lua
 core\MacroDisplay.lua
 core\MacroBarModel.lua
 core\MacroBarLayout.lua
+# SlashDump before SlashCommands: the `/cm dump` targets are a leaf that only
+# reads addon state, and SlashCommands' `priority` verb renders composite
+# categories through the `pick` target. The dispatcher that binds both is
+# settings\Slash.lua (CM-47).
+core\SlashDump.lua
 core\SlashCommands.lua
 
 # Defaults
@@ -121,3 +126,8 @@ settings\General.lua
 settings\MacroBar.lua
 settings\StatPriority.lua
 settings\Category.lua
+# The /cm dispatcher (CM-47). Last in this block because it is the one settings
+# file nothing else here reads: it consumes core\SlashCommands.lua's published
+# verb table and publishes KCM:OnSlashCommand, which AceConsole resolves by name
+# when a command is typed rather than at load.
+settings\Slash.lua
