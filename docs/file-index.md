@@ -87,8 +87,7 @@ Each tab module registers a builder via `KCM.Settings.RegisterTab(key, builder)`
 
 ## Top-level docs
 
-- `README.md` — user-facing. Its Version History table is still the per-release summary.
-- `CHANGELOG.md` — user-facing, and deliberately not a duplicate of that table: it starts at the `/cm reset` → `/cm resetall` break (LIBKA0S-12) and carries only the detail a one-line release row cannot.
+- `README.md` — user-facing. Its `## What's new` section and `## Version History` table are this addon's only release history (`documentation-§1` forbids a root `CHANGELOG.md`).
 - `CLAUDE.md` — stub (standard link + hard rules + gate + pointer into `docs/`).
 - `DEPENDENCIES.md` — what to install to build, run, test or release this addon, with a verification command per tool (`documentation-§7`). Answers *what to install*; `docs/testing.md` answers *how to verify*.
 - `docs/ARCHITECTURE.md` — design overview + invariants + message-bus catalog + LibKa0s adoption + doc index.
