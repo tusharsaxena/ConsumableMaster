@@ -370,7 +370,7 @@ Everything here follows from one rule: **buttons are protected frames.**
 ## Config shape
 
 `db.profile.macroBar`, seeded from `KCM.dbDefaults` in
-[`core/ConsumableMaster.lua`](../core/ConsumableMaster.lua). AceDB merges the
+[`defaults/Profile.lua`](../defaults/Profile.lua). AceDB merges the
 defaults, so adding the table needed no schema migration.
 
 Every scalar has a matching `KCM.Settings.Schema` row registered by
@@ -384,15 +384,15 @@ can register a border after our schema is declared.
 
 `macroBar.perRow` has THREE hand-maintained copies of "the managed category
 count," and all three went stale (13 → 15) when this branch added two
-categories: the `dbDefaults` default (`core/ConsumableMaster.lua`), the
+categories: the `dbDefaults` default (`defaults/Profile.lua`), the
 settings-page slider `max` (`settings/MacroBar.lua`), and
 `core/MacroBarLayout.lua`'s own internal `perRow` fallback inside
 `normalize()`, used only when `Grid`/`Dimensions` is called with no `perRow`
 in `cfg` at all. Only the slider `max` is derived (`#KCM.Categories.LIST`) —
 `settings/` loads after `defaults/` in `ConsumableMaster.toc`, so the table
 already exists when the row is declared. The other two stay literals:
-`core/ConsumableMaster.lua` can't derive because `core/` loads before
-`defaults/`, and `core/MacroBarLayout.lua`'s fallback was kept a literal on
+`defaults/Profile.lua` can't derive because it loads before
+`defaults/Categories.lua`, and `core/MacroBarLayout.lua`'s fallback was kept a literal on
 purpose since `normalize()` is a hot pure-math path and the fallback only
 ever fires when a caller omits `perRow` entirely. All three are pinned
 together by "macrobar defaults: perRow tracks the number of managed

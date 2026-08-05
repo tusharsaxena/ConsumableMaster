@@ -38,7 +38,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
   through its confirmation flow authorizes `git add` + `git commit` on the files it named. Pushing
   still needs a separate ask.
 - **Never bump the version without an explicit instruction.** Not `KCM.VERSION`
-  (`core/ConsumableMaster.lua`), not `## Version:` in the TOC, not the README badge or inline
+  (`core/Namespace.lua`), not `## Version:` in the TOC, not the README badge or inline
   version, and no changelog entry. Releases are the user's call.
 - **Don't create docs or planning files unless asked.** Be terse, cite `file_path:line_number`, and
   comment only where the *why* is non-obvious.
@@ -53,7 +53,8 @@ are **frozen history** — never treat them as a live requirement, and never "re
   addon, with WSL2/Ubuntu commands and a verification command per tool (`documentation-§7`).
 - Topic detail in `docs/` as needed — `file-index.md`, `module-map.md`, `pipeline.md`,
   `data-model.md`, `macro-manager.md`, `macro-bar.md`, `midnight-quirks.md`, `common-tasks.md`,
-  `debug.md`, `scope.md`, `smoke-tests.md`, `test-cases.md`, `automated-tests/`, `pending/LEDGER.md`.
+  `debug.md`, `performance.md`, `perf-runs/`, `scope.md`, `smoke-tests.md`, `test-cases.md`,
+  `automated-tests/`, `pending/LEDGER.md`.
   `test-cases.md` is **generated** — never hand-edit it. So is `automated-tests/RESULTS.md`, and a run bundle is frozen once written.
 - User-facing reference: [README.md](./README.md).
 

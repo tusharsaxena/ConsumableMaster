@@ -25,8 +25,8 @@ core/ConsumableMaster.lua ── AceAddon entry (AceAddon:NewAddon(NS, ...)).
                    RequestRecompute orchestrate every recompute; event
                    handlers publish RECOMPUTE onto the bus. Also houses
                    KCM.ID sentinel helpers (AsSpell / IsSpell / IsItem /
-                   SpellID / ItemID), KCM.dbDefaults, and
-                   KCM.ResetAllToDefaults.
+                   SpellID / ItemID) and KCM.ResetAllToDefaults.
+                   KCM.dbDefaults is NOT here — it is defaults/Profile.lua's.
 
 core/Bus.lua ───── Closed message bus. KCM.bus (AceEvent embed),
                    KCM.NewBusTarget(), KCM.MSG.{RECOMPUTE, PANEL_REFRESH,
@@ -505,10 +505,10 @@ local F = KCM.Foo
 
 1. **Libraries** — LibStub + every Ace3 sub-library + LibSharedMedia + `AceGUI-3.0-SharedMediaWidgets` (last, since its widgets need both AceGUI and LibSharedMedia), listed directly in the TOC (no `embeds.xml` wrapper).
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
-3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `DebugLogSetup` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
+3. **Core** — `core/Namespace.lua` (names `NS`, `KCM.VERSION`) → `PerfSetup` (`performance-§1`: ahead of every load-time `local Perf = NS.Perf`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `CoreSetup` → `Compat` → `State` → `DebugLogSetup` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Profile.lua` (`KCM.dbDefaults`) → `defaults/Categories.lua` → each `defaults/Defaults_*.lua`.
 5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `MacroBarFlyout` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
-6. **Settings** — `settings/OptionsSetup.lua` → `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua`.
+6. **Settings** — `settings/OptionsSetup.lua` → `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua` → `settings/Slash.lua` (last: it consumes `core/SlashCommands.lua`'s verb table and nothing in `settings/` reads it).
 
 `settings/OptionsSetup.lua` must come first within `settings/` because it is the `LibKa0s-Options-1.0` seam: it creates `KCM.Settings.Helpers` and publishes the instance as `KCM.Settings.optionsUI`, which `settings/Panel.lua` takes as a file-scope local. `settings/Panel.lua` comes next because it publishes `KCM.Settings.RegisterTab`, which the per-tab modules call at file-bottom. Widgets load before `settings/` so `AceGUI:Create("KCM…")` works at panel-render time. Event handlers and `Pipeline` functions are *defined* in `core/ConsumableMaster.lua` but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
 
