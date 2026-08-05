@@ -481,7 +481,7 @@ whenever the suite changes.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (34)
+### test_schema.lua (35)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -506,6 +506,7 @@ whenever the suite changes.
 - schema: ValidateSchemaValue clamps a number to its declared range
 - schema: SetAndRefresh writes the value and fires the row's onChange
 - schema: SetAndRefresh refuses a value of the wrong type
+- schema: SetAndRefresh refuses an explicit nil rather than deleting the key
 - schema: SetAndRefresh refuses a path that is not in the schema
 - schema: the published Schema:Set is the same seam as SetAndRefresh
 - schema: FormatSchemaValue renders nil as 'nil'
@@ -565,7 +566,7 @@ whenever the suite changes.
 - Selector.ListAvailable omits an item the player is over the cap for
 - Selector.PickBestForCategory keeps an item whose tooltip is still pending
 
-### test_settingsui.lua (18)
+### test_settingsui.lua (21)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -579,6 +580,9 @@ whenever the suite changes.
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
+- Settings UI: with the library absent Helpers still reaches both refresh tiers
+- Settings UI: with the library absent a schema WRITE completes and reports success
+- Settings UI: Helpers reads the library's members off the instance, not off a copy
 - Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
@@ -780,9 +784,9 @@ whenever the suite changes.
 | test_pipeline.lua | 28 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 34 |
+| test_schema.lua | 35 |
 | test_selector.lua | 44 |
-| test_settingsui.lua | 18 |
+| test_settingsui.lua | 21 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 10 |
 | test_spechelper.lua | 16 |
@@ -790,4 +794,4 @@ whenever the suite changes.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **656** |
+| **Total** | **660** |

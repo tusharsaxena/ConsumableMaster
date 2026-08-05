@@ -259,6 +259,85 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         t.eq(notices, 1, "the missing-panel notice is said exactly once")
     end)
 
+test("Settings UI: with the library absent Helpers still reaches both refresh tiers",
+    function(t)
+        -- The gap the copy-across left. `Helpers.RefreshAllPanels = UI and
+        -- UI.RefreshAllPanels` binds nil when UI is nil, and both call sites
+        -- call the field BARE. Reproduced as
+        -- "attempt to call field 'RefreshAllPanels' (a nil value)".
+        --
+        -- red under: rebinding either name to `UI and UI.<name>`, or dropping
+        -- the degraded no-op arm at the optionsLib seam in settings/Panel.lua.
+        local KCM = loader.loadWithSchemaDegraded()
+        local H   = KCM.Settings.Helpers
+        t.eq(type(H.RefreshAllPanels), "function", "the structural tier is callable")
+        t.eq(type(H.RefreshScalars), "function", "the in-place tier is callable")
+
+        -- O.Refresh is what the PANEL_REFRESH bus message reaches, and Pipeline
+        -- fires that on every recompute — so this is a path a degraded install
+        -- takes without the user going anywhere near the settings panel.
+        local ok, err = pcall(KCM.Options.Refresh)
+        t.truthy(ok, "O.Refresh does not raise on the degraded path: " .. tostring(err))
+    end)
+
+test("Settings UI: with the library absent a schema WRITE completes and reports success",
+    function(t)
+        -- The write half, which the read-only degraded case above cannot see.
+        -- SetAndRefresh validated, wrote, fired onChange and THEN called
+        -- Helpers.RefreshScalars() — so the raise landed after the mutation had
+        -- already persisted, and a pcall'ing caller was told the write failed
+        -- while the profile disagreed.
+        --
+        -- red under: the same two rebindings the case above names.
+        local KCM = loader.loadWithSchemaDegraded()
+        local H   = KCM.Settings.Helpers
+        H.Set("enabled", true)
+
+        local ok, res = pcall(H.SetAndRefresh, "enabled", false)
+        t.truthy(ok, "the write does not raise: " .. tostring(res))
+        t.eq(res, true, "and it reports the success that actually happened")
+        t.eq(KCM.db.profile.enabled, false, "the value landed in the profile")
+
+        -- And the validation half degrades identically: no library, same answer.
+        t.eq(H.SetAndRefresh("enabled", "yes please"), false,
+            "a wrong-typed write is still rejected with the library absent")
+        t.eq(H.SetAndRefresh("enabled", nil), false,
+            "and an explicit nil still cannot delete the key")
+        t.eq(KCM.db.profile.enabled, false, "neither rejected write moved the value")
+    end)
+
+test("Settings UI: Helpers reads the library's members off the instance, not off a copy",
+    function(t)
+        -- CM-A-04: Helpers used to re-export eleven members by hand, so any
+        -- member the list forgot read back nil at the call site with no way to
+        -- tell it apart from one the library never had. It delegates now, so
+        -- EVERY member the instance publishes is reachable and is the same
+        -- function object.
+        --
+        -- red under: deleting the setmetatable at the optionsLib seam, or
+        -- reinstating a per-member copy that a library rename can outrun.
+        local KCM = loader.loadWithSchema()
+        local H   = KCM.Settings.Helpers
+        local UI  = H.instance
+        t.truthy(UI, "the instance is published")
+        for _, name in ipairs({
+            "AttachTooltip", "EnsureScroll", "PatchAlwaysShowScrollbar",
+            "SetRenderer", "AddSpacer", "RenderField",
+            "RefreshAllPanels", "RefreshScalars",
+        }) do
+            t.eq(rawget(H, name), nil, name .. " is not copied onto Helpers")
+            t.eq(H[name], UI[name], name .. " resolves to the instance's own function")
+        end
+
+        -- The wrappers stay OWN keys and shadow the library's same-named member
+        -- — which is the only reason each can call the instance's version
+        -- without recursing into itself.
+        for _, name in ipairs({ "CreatePanel", "Section", "LSMValues" }) do
+            t.truthy(rawget(H, name), name .. " is the addon's own wrapper")
+            t.falsy(rawget(H, name) == UI[name], name .. " shadows the library's")
+        end
+    end)
+
 -- ── the Battle Rez mouseover toggle (settings/Category.lua) ────────────────
 --
 -- The mock's Blizzard `Settings` global answers every call with a no-op

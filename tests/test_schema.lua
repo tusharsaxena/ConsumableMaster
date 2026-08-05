@@ -258,6 +258,26 @@ test("schema: SetAndRefresh refuses a value of the wrong type", function(t)
     t.truthy(#mock.output > 0, "and the user is told why")
 end)
 
+test("schema: SetAndRefresh refuses an explicit nil rather than deleting the key", function(t)
+    -- The guard used to read `if coerced == nil and value ~= nil`, so a nil
+    -- value skipped the report — every validator rejects nil, so `coerced` was
+    -- nil too — and fell through to Helpers.Set(path, nil), which does not
+    -- write nil but DELETES the key out of db.profile. The row then read back
+    -- absent rather than as its default, and the seam returned true for it.
+    --
+    -- red under: restoring the `and value ~= nil` clause — the write returns
+    -- true, db.profile.enabled becomes nil, and nothing is printed.
+    local KCM  = h.loader.loadWithSchema()
+    local mock = h.loader.mock
+    local Helpers = KCM.Settings.Helpers
+    Helpers.Set("enabled", true)
+    mock.output = {}
+    local ok = Helpers.SetAndRefresh("enabled", nil)
+    t.eq(ok, false, "the write is rejected")
+    t.eq(KCM.db.profile.enabled, true, "and the key still exists with its value")
+    t.truthy(#mock.output > 0, "and the user is told why")
+end)
+
 test("schema: SetAndRefresh refuses a path that is not in the schema", function(t)
     local KCM = h.loader.loadWithSchema()
     t.eq(KCM.Settings.Helpers.SetAndRefresh("not.a.setting", true), false,

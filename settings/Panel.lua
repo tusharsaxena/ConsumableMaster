@@ -38,6 +38,18 @@ KCM.Settings.order = KCM.Settings.order or {
     "bloodlust", "battle_rez",
 }
 
+-- Helpers is the addon's own half of the settings framework AND the published
+-- view of LibKa0s-Options-1.0's instance. Once the instance exists it is
+-- installed as this table's __index (see the optionsLib block below), so every
+-- library member resolves off the LIVE instance at call time rather than off a
+-- snapshot taken at file load. That is the whole point: the copy-across this
+-- replaced re-exported eleven members by hand, and any member the list forgot —
+-- or any member bound while `UI` was still nil — read back nil at the call site
+-- with no way to tell it apart from a member the library never had
+-- (options-ui-§1). The addon's own wrappers stay as OWN keys and shadow the
+-- library's same-named function, which is what keeps Section / CreatePanel /
+-- LSMValues able to call the instance's version without recursing into
+-- themselves.
 local Helpers = KCM.Settings.Helpers or {}
 KCM.Settings.Helpers = Helpers
 
@@ -240,13 +252,35 @@ if optionsLib then
     -- it only inside its own CreateOptionsPanel, which this addon never calls.
     UI.AceGUI = AceGUI
 
-    Helpers.PatchAlwaysShowScrollbar = UI.PatchAlwaysShowScrollbar
-    ensureScroll = function(ctx) return UI.EnsureScroll(ctx) end
-    Helpers.EnsureScroll = ensureScroll
+    ensureScroll = UI.EnsureScroll
+
+    -- THE binding, replacing the hand-written re-export list. Every member the
+    -- library publishes — AttachTooltip, EnsureScroll, PatchAlwaysShowScrollbar,
+    -- SetRenderer, AddSpacer, RenderField, RefreshAllPanels, RefreshScalars and
+    -- the rest — is now reachable on Helpers without being copied, so the two
+    -- tables cannot drift and no member can be silently absent.
+    setmetatable(Helpers, { __index = UI })
 
     -- The instance, so the suite can assert IDENTITY against the library rather
     -- than lookalike behavior. Mirrors KCM.DebugLog.instance.
     Helpers.instance = UI
+else
+    -- Degraded install: there is no instance to delegate to, and every
+    -- library-owned member stays absent — a page cannot be built without the
+    -- library's chrome, so nothing that would draw one is reachable anyway.
+    --
+    -- The two refresh tiers are the exception, and they are supplied as real
+    -- no-ops rather than left nil because they are called UNCONDITIONALLY on
+    -- paths a degraded install still reaches: Helpers.SetAndRefresh calls
+    -- RefreshScalars after every schema write, and O.Refresh calls
+    -- RefreshAllPanels off the PANEL_REFRESH bus message that Pipeline fires on
+    -- every recompute. Bound to `UI and UI.X` they read back nil and the bare
+    -- call raised "attempt to call field 'RefreshAllPanels' (a nil value)" —
+    -- in SetAndRefresh's case AFTER the write had already landed, so a pcall'ing
+    -- caller saw a failure over a mutation that had persisted. With nothing on
+    -- screen there is nothing to refresh, so doing nothing is the correct body.
+    Helpers.RefreshAllPanels = function() end
+    Helpers.RefreshScalars   = function() end
 end
 
 -- Whether the panel can be built at all. Read by registerPanel and O.Open far
@@ -273,10 +307,10 @@ end
 -- ---------------------------------------------------------------------
 
 -- Both the tooltip helper and the spacer/section pair below are
--- LibKa0s-Options-1.0's. Kept as file locals as well as published names because
--- the schema-row makers further down call them directly.
+-- LibKa0s-Options-1.0's. Kept as file locals because the schema-row makers
+-- further down call them directly; the PUBLISHED names come off the instance
+-- through Helpers' __index, so there is nothing to re-export here.
 local attachTooltip = UI and UI.AttachTooltip
-Helpers.AttachTooltip = attachTooltip
 
 -- ---------------------------------------------------------------------
 -- CreatePanel — the canvas Frame, its header and its Defaults button
@@ -348,7 +382,8 @@ end
 -- same sentence, different gray, and Options.lua has no L seam to override it.
 -- And a failing renderer is reported as "settings page '<key>' failed to
 -- render" rather than "panel render failed".
-Helpers.SetRenderer = UI and UI.SetRenderer
+--
+-- Same name in both, so Helpers.SetRenderer resolves through __index.
 
 -- Release scroll children + reset bookkeeping so a fresh render starts on
 -- a clean slate. Panels with dynamic content (priority list rows that
@@ -381,7 +416,6 @@ end
 -- ---------------------------------------------------------------------
 
 local addSpacer = UI and UI.AddSpacer
-Helpers.AddSpacer = addSpacer
 
 -- A wrapper rather than a bare binding, and the one line it adds is
 -- load-bearing. The library sets ctx.lastGroup only inside its own two-column
@@ -454,8 +488,9 @@ function Helpers.LSMValues(mediaType)
     return out
 end
 
--- The dispatch itself, by row type. Every maker behind it is the library's.
-Helpers.RenderField = UI and UI.RenderField
+-- The dispatch itself, by row type, is the library's under the same name, so
+-- Helpers.RenderField resolves through __index. Every maker behind it is the
+-- library's too.
 
 -- ---------------------------------------------------------------------
 -- Inline action button helpers. `Button` produces a single full-width
@@ -568,8 +603,11 @@ end
 -- This addon had both tiers first; the library grew them to match, which is
 -- what made the registry adoptable at all (LIBKA0S-05). The names and
 -- semantics are identical, so every caller here is unchanged.
-Helpers.RefreshAllPanels = UI and UI.RefreshAllPanels
-Helpers.RefreshScalars   = UI and UI.RefreshScalars
+--
+-- Both resolve through __index when the library is present and are the no-ops
+-- bound at the seam above when it is not, so the two bare calls below —
+-- SetAndRefresh's RefreshScalars and O.Refresh's RefreshAllPanels — are
+-- callable on BOTH paths.
 
 -- One validator per declared schema type, built once at file load. Each returns
 -- the coerced value, or nil + a reason the caller can put in front of the user.
@@ -633,8 +671,18 @@ function Helpers.SetAndRefresh(path, value)
     local def = Helpers.FindSchema(path)
     if not def then return false end
     local coerced, reason = validateSchemaValue(def, value)
-    if coerced == nil and value ~= nil then
-        KCM.Say("invalid value for " .. tostring(path) .. ": " .. tostring(reason))
+    -- `coerced == nil` alone, with no `and value ~= nil` escape clause. Every
+    -- validator rejects nil (nil is not a boolean, a number, a string or a
+    -- table), so the old second half let an EXPLICIT nil skip the report and
+    -- fall through to Helpers.Set(path, nil) — which does not "write nil", it
+    -- DELETES the key out of the profile. The row then read back as absent
+    -- rather than as its default, and SetAndRefresh returned true for it.
+    -- A typeless row has no validator and passes its value through untouched,
+    -- so it reaches here with coerced == value and is rejected on nil for the
+    -- same reason and with the same message.
+    if coerced == nil then
+        KCM.Say("invalid value for " .. tostring(path) .. ": "
+              .. tostring(reason or "value must not be nil"))
         return false
     end
     if not Helpers.Set(def.path, coerced) then return false end
