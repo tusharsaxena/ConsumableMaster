@@ -83,8 +83,15 @@ end
 -- same 10, 6 and 8, and nothing in this file emits one by hand any more. The
 -- note above stays because the ARITHMETIC is still the reason the top gap looks
 -- small, and that reasoning belongs with the rows it explains.
-local SECTION_HEADING_H     = 26
-local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (options-ui-§8)
+--
+-- SECTION_HEADING_H (26) and BUTTON_PAIR_REL (0.492) used to be host copies
+-- here. They are not any more: options-ui-§8 says a host copy is the copy that
+-- goes stale, and the whole point of the library owning these is that five
+-- addons cannot drift apart. Both are published on the Options instance, which
+-- `Helpers` delegates to through its `__index`, so the two draw sites below read
+-- `Helpers.SECTION_HEADING_H` and `Helpers.BUTTON_PAIR_REL` directly. Neither
+-- site is reachable on a build without the library — nothing registers a panel
+-- there — so there is no nil arm to guard.
 
 local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
 local LOGO_PIXELS  = 300
@@ -542,8 +549,8 @@ function Helpers.ButtonPair(ctx, leftSpec, rightSpec)
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     row:SetHeight(28)
-    if leftSpec  then makeButton(row, leftSpec,  BUTTON_PAIR_REL) end
-    if rightSpec then makeButton(row, rightSpec, BUTTON_PAIR_REL) end
+    if leftSpec  then makeButton(row, leftSpec,  Helpers.BUTTON_PAIR_REL) end
+    if rightSpec then makeButton(row, rightSpec, Helpers.BUTTON_PAIR_REL) end
     scroll:AddChild(row)
 end
 
@@ -787,7 +794,7 @@ function Helpers.BuildAboutContent(ctx)
 
     local heading = AceGUI:Create("Heading")
     heading:SetFullWidth(true)
-    heading:SetHeight(SECTION_HEADING_H)
+    heading:SetHeight(Helpers.SECTION_HEADING_H)
     heading:SetText(L["Slash Commands"])
     if heading.label and heading.label.SetFontObject and _G.GameFontNormalLarge then
         heading.label:SetFontObject(_G.GameFontNormalLarge)
