@@ -165,7 +165,7 @@ local D = lib:New({
     slash = "/cm",
 
     -- `skin` is deliberately NOT passed: Core.SKIN IS the shared Ka0s window edge
-    -- that every Ka0s window wears (standalone-windows-§2), so taking the
+    -- that every Ka0s window wears (standalone-windows), so taking the
     -- library's is the whole point — a table of our own would draw a console that
     -- matched this addon and no other, and a plain backdrop table would also drop
     -- the bg / border / innerBorder / divider / title arrays ApplySkin guards for.

@@ -1,7 +1,7 @@
 -- core/State.lua — session-only runtime state.
 --
 -- Anything here is deliberately NOT persisted to SavedVariables: it resets to
--- these defaults every login / reload (standard §12.5). The debug-console flag
+-- these defaults every login / reload (debug-logging-§5). The debug-console flag
 -- lives here (not in profile) so a session left with debug on doesn't leak
 -- verbose logging into the next login.
 

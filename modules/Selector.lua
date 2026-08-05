@@ -128,7 +128,7 @@ end
 -- ---------------------------------------------------------------------------
 -- Pin merge
 -- ---------------------------------------------------------------------------
--- See TECHNICAL_DESIGN §5.3. Given an auto-ranked list and a pins array of
+-- See docs/module-map.md (Selector). Given an auto-ranked list and a pins array of
 -- { itemID, position } entries, produce a final list where each pin lands at
 -- its requested 1-based position and non-pinned items fill the remaining
 -- slots in auto-rank order.

@@ -1,7 +1,7 @@
 -- Debug.lua — conditional logging gated on the session-only KCM.State.debug.
 --
 -- The enabled flag lives in KCM.State (session-only, default off, never
--- persisted — standard §12.5) and is owned by DebugLog. Emitted diagnostics go
+-- persisted — debug-logging-§5) and is owned by DebugLog. Emitted diagnostics go
 -- to the on-screen DebugLog console (standard §12); if the console module
 -- hasn't loaded yet (very early boot) they fall back to the chat frame.
 --

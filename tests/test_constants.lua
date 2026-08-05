@@ -4,7 +4,7 @@
 -- Every one-shot chat line in the addon funnels through KCM.Say, so its two
 -- call forms and the secret guard it inherits from KCM.SafeToString are the
 -- single most load-bearing formatting contract in the addon
--- (events-frames-taint-§8 / standard §7.4).
+-- (events-frames-taint-§8 / slash-commands-§4).
 
 local h = _G.KCM_TEST
 local test = h.test

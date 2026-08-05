@@ -194,7 +194,7 @@ local COMMANDS = {
 }
 
 -- Publish the command table so the About panel and any future consumer read
--- the same source of truth as the /cm dispatcher (standard §7.4).
+-- the same source of truth as the /cm dispatcher (slash-commands-§4).
 KCM.COMMANDS = COMMANDS
 
 -- ---------------------------------------------------------------------

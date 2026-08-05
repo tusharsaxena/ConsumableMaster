@@ -440,7 +440,7 @@ function MB.SwapSlots(fromKey, toKey)
 end
 
 -- ---------------------------------------------------------------------------
--- Bus receiver (standard §4.4). The bar owns the sole MACROBAR_REFRESH
+-- Bus receiver (architecture-§4). The bar owns the sole MACROBAR_REFRESH
 -- subscription, on its own target — the pipeline publishes it after every
 -- recompute so icons and counts track the freshly-written macro bodies.
 -- ---------------------------------------------------------------------------

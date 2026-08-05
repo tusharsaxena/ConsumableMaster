@@ -179,7 +179,7 @@ StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
 }
 
 -- Show the per-category reset confirmation. Shared by the inline "Reset
--- category" buttons and the top-right Defaults button (standard §6.5) so both
+-- category" buttons and the top-right Defaults button (options-ui-§5) so both
 -- entry points land on the same popup with identical scope. For spec-aware
 -- single categories the viewed spec is resolved at call time, matching the
 -- panel the user is looking at.
@@ -706,7 +706,7 @@ local function buildCategory(cat)
         local panelName = "KCMCatPanel_" .. cat.key
         local ctx = H.CreatePanel(panelName, cat.displayName, {
             panelKey = cat.key:lower(),
-            -- Top-right Defaults button (standard §6.5) → same per-category
+            -- Top-right Defaults button (options-ui-§5) → same per-category
             -- reset as this page's inline button.
             defaultsAction = function() promptResetCategory(cat) end,
         })

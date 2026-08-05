@@ -32,7 +32,7 @@ end
 -- ---------------------------------------------------------------------------
 -- `row()` appends to KCM.Settings.Schema and hands the def back so the renderer
 -- below can place it in a grid without a second FindSchema lookup. Defaults are
--- sourced from dbDefaults, never duplicated as literals (standard §4.5).
+-- sourced from dbDefaults, never duplicated as literals (architecture-§5).
 
 local defs = {}
 
@@ -384,7 +384,7 @@ local function doResetOrder()
     KCM.Say("macro bar slot order reset.")
 end
 
--- Top-right Defaults button (standard §6.5): every macroBar setting back to
+-- Top-right Defaults button (options-ui-§5): every macroBar setting back to
 -- its shipped value, including position, order and per-macro visibility. Other
 -- pages' settings are untouched.
 local function doResetPage()

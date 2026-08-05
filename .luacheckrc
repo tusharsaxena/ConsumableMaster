@@ -25,7 +25,7 @@ ignore = { "212", "542", "241" }
 -- The SavedVariables table is written by us. Frame-registry tables receive
 -- field assignments (StaticPopupDialogs[...], tinsert(UISpecialFrames, ...)) so
 -- they must be writable, not read_globals. State is threaded through the private
--- NS table (local KCM = NS), so there is no addon global to declare (standard §4.1),
+-- NS table (local KCM = NS), so there is no addon global to declare (architecture-§1),
 -- and slash globals are registered dynamically by AceConsole, not by name here.
 globals = {
     "ConsumableMasterDB",

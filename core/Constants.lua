@@ -12,7 +12,7 @@
 local _, NS = ...
 local KCM = NS
 
--- Cyan [CM] chat prefix — the single source of truth (standard §7.4). Every
+-- Cyan [CM] chat prefix — the single source of truth (slash-commands-§4). Every
 -- chat line and every macro-body `/run print(...)` references this instead of
 -- a hand-written literal. No trailing space; KCM.Say adds the separator.
 KCM.PREFIX = "|cff00ffff[CM]|r"

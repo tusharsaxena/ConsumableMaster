@@ -24,7 +24,7 @@ function KCM.ID.SpellID(id) return (type(id) == "number" and id < 0) and -id or 
 
 KCM.dbDefaults = {
     -- Schema shape is account-wide, so its version lives in `global`, not
-    -- `profile` (standard §2.2 / §5.1). Database.RunMigrations reads it.
+    -- `profile` (savedvariables-§1). Database.RunMigrations reads it.
     global = {
         -- Deliberately the ORIGINAL version, not Database.CURRENT_SCHEMA (which
         -- isn't loaded yet anyway): an account with no stored version is treated
@@ -222,7 +222,8 @@ end
 -- ---------------------------------------------------------------------------
 -- All event handlers enqueue a recompute via RequestRecompute; RequestRecompute
 -- coalesces calls within the same frame by gating on `_recomputePending` and
--- scheduling a single `C_Timer.After(0, ...)` (see TECHNICAL_DESIGN §6.2).
+-- scheduling a single `C_Timer.After(0, ...)` (see docs/pipeline.md,
+-- "Pull-based, frame-coalesced").
 --
 -- Recompute itself walks KCM.Categories.LIST, asks Selector for the best-owned
 -- item, and passes the result to MacroManager. MacroManager handles early-out
@@ -304,7 +305,7 @@ end
 -- Tell the panel and the macro bar the pass is done.
 --
 -- Pipeline → panel refresh crosses a feature boundary, so it is published
--- on the bus (standard §4.4); the options layer owns the sole PANEL_REFRESH
+-- on the bus (architecture-§4); the options layer owns the sole PANEL_REFRESH
 -- receiver and debounces the rebuild so a burst of GET_ITEM_INFO_RECEIVED
 -- events collapses into one rebuild. Falls back to a direct call if the bus
 -- hasn't loaded (defensive; Bus.lua loads before any event fires).
@@ -580,7 +581,7 @@ function KCM:OnSpecChanged()
     requestRecompute("spec_changed")
     -- The Stat Priority page's retrack-to-current-spec behavior is a panel
     -- concern, so it is published as SPEC_CHANGED and handled by the options
-    -- layer's own receiver rather than reached into from here (standard §4.4).
+    -- layer's own receiver rather than reached into from here (architecture-§4).
     if KCM.bus and KCM.bus.SendMessage then
         KCM.bus:SendMessage(KCM.MSG.SPEC_CHANGED)
     end

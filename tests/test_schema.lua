@@ -286,7 +286,7 @@ end)
 
 test("schema: the published Schema:Set is the same seam as SetAndRefresh", function(t)
     local KCM = h.loader.loadWithSchema()
-    t.eq(KCM.Schema:Set("enabled", false), true, "standard §4.5 setter writes")
+    t.eq(KCM.Schema:Set("enabled", false), true, "architecture-§5 setter writes")
     t.eq(KCM.db.profile.enabled, false, "through the same validate-write-refresh path")
     t.eq(KCM.Schema:Set("enabled", 12345), false, "and inherits the same validation")
     KCM.Settings.Helpers.Set("enabled", true)

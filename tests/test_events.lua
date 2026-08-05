@@ -119,7 +119,7 @@ test("PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack", 
 
     t.eqList(reasons, { "spec_changed" }, "picks are re-evaluated against the new spec")
     t.eq(specChanges, 1,
-        "the Stat Priority page retracks via its own SPEC_CHANGED receiver (standard §4.4)")
+        "the Stat Priority page retracks via its own SPEC_CHANGED receiver (architecture-§4)")
 end)
 
 test("LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked", function(t)

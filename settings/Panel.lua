@@ -84,7 +84,7 @@ end
 -- note above stays because the ARITHMETIC is still the reason the top gap looks
 -- small, and that reasoning belongs with the rows it explains.
 local SECTION_HEADING_H     = 26
-local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (standard §6.8)
+local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (options-ui-§8)
 
 local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
 local LOGO_PIXELS  = 300
@@ -445,7 +445,7 @@ end
 --   color  -> ColorPicker ({ r, g, b, a } array in the DB)
 -- Every one routes its write through Helpers.SetAndRefresh so the widget path
 -- and the `/cm set` path share a single validate → write → onChange → refresh
--- seam (standard §4.5).
+-- seam (architecture-§5).
 -- ---------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------
@@ -547,7 +547,7 @@ function Helpers.ButtonPair(ctx, leftSpec, rightSpec)
     scroll:AddChild(row)
 end
 
--- Two-column paired grid (standard §6.6), the library's. Each item is either a
+-- Two-column paired grid (options-ui-§6), the library's. Each item is either a
 -- schema def or a custom descriptor with a `make(ctx, parent, relWidth)`
 -- function; items render two per row at 0.5 relative width, and `wide = true`
 -- breaks one onto its own full-width row.
@@ -674,7 +674,7 @@ Helpers.ValidateSchemaValue = validateSchemaValue
 
 -- The single mutation seam for schema-backed settings: validate → write →
 -- fire onChange → refresh panels. Both the panel widgets and /cm set route
--- through here (standard §4.5). Returns true on success.
+-- through here (architecture-§5). Returns true on success.
 function Helpers.SetAndRefresh(path, value)
     local def = Helpers.FindSchema(path)
     if not def then return false end
@@ -700,7 +700,7 @@ function Helpers.SetAndRefresh(path, value)
     return true
 end
 
--- Published unified setter (standard §4.5): NS.Schema:Set(path, value).
+-- Published unified setter (architecture-§5): NS.Schema:Set(path, value).
 KCM.Schema = KCM.Schema or {}
 function KCM.Schema:Set(path, value)
     return Helpers.SetAndRefresh(path, value)
@@ -718,7 +718,7 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     label    = L["Enable"],
     tooltip  = L["Master enable for the addon. When off, the recompute pipeline is a no-op — macros keep their last-written body and stop updating with bag / spec / combat events."],
     -- Default sourced from the AceDB defaults constant, not a duplicated
-    -- literal, so the schema and the seeded profile can never drift (standard §4.5).
+    -- literal, so the schema and the seeded profile can never drift (architecture-§5).
     default  = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.enabled,
     onChange = function(v)
         local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
@@ -736,7 +736,7 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
 -- The debug flag is deliberately NOT a schema row: it is session-only state
 -- (KCM.State.debug, default off, never persisted) driven by DebugLog. The
 -- General page renders it as a custom State-backed checkbox instead (CM-14 /
--- standard §12.5).
+-- debug-logging-§5).
 
 -- ---------------------------------------------------------------------
 -- About content (parent canvas). Logo + addon notes + slash command list.
@@ -985,7 +985,7 @@ bootstrap:SetScript("OnEvent", function(self, event, arg1)
 end)
 
 -- ---------------------------------------------------------------------
--- Bus receivers (standard §4.4). The options layer owns the sole
+-- Bus receivers (architecture-§4). The options layer owns the sole
 -- subscriptions to PANEL_REFRESH (debounced rebuild of any open page) and
 -- SPEC_CHANGED (retrack the Stat Priority page to the new spec when the page
 -- is auto-tracking). Each is registered on its own target — never two on one.

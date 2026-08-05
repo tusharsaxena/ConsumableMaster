@@ -3,7 +3,7 @@
 -- Invoked from Core:OnInitialize right after AceDB:New. Migrations are keyed
 -- off `db.global.schemaVersion` (account-wide — schema shape is not per
 -- profile). The runner exists so schema changes have a single, ordered home
--- rather than ad-hoc guards scattered across modules (standard §5.1).
+-- rather than ad-hoc guards scattered across modules (savedvariables-§1).
 --
 -- Version history:
 --   1 — original shape.

@@ -1,6 +1,6 @@
 -- locales/enUS.lua — English strings + key-returning fallback.
 --
--- English is the only shipped locale (standard §8.3 allows an English-only
+-- English is the only shipped locale (localization-§3 allows an English-only
 -- addon, but the module shell is still required). KCM.L is a table with a
 -- metatable that returns the key itself for any unset string, so wrapping a
 -- user-facing literal in L["..."] is always safe — an untranslated string just

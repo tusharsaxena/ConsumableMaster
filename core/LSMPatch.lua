@@ -23,7 +23,7 @@
 -- Lives in core/ (addon code), not in libs/, so future refreshes of
 -- the vendored AceGUI-3.0-SharedMediaWidgets lib don't blow it away.
 
-local _, _ = ...           -- standard bootstrap header (§4.1); this file is a
+local _, _ = ...           -- standard bootstrap header (architecture-§1); this file is
                            -- standalone LSM widget fixup and doesn't use NS.
 
 local hookFrame = CreateFrame("Frame")
