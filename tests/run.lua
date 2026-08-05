@@ -126,24 +126,20 @@ local function resolve(rel)
     return ROOT .. "/" .. rel
 end
 
--- The vendored library files, spelled out in the order libs/LibKa0s/LibKa0s.xml
--- uses them. They cannot be derived from the TOC the way the addon's own files
--- are: the TOC names one aggregate XML, and Loader.tocFiles skips `libs\`
--- outright. Getting this list wrong is silent — a module whose dependency is
--- absent returns BEFORE LibStub:NewLibrary, so the major is never registered,
--- the host's setup file takes its degradation stub, and the suite happily
--- measures the stub while staying green (Ka0s standard testing-§9).
--- tests/test_libka0s.lua pins this list against the XML.
-L.LIB_FILES = {
-    "libs/LibKa0s/Core.lua",
-    "libs/LibKa0s/DebugLog.lua",
-    "libs/LibKa0s/Slash.lua",
-    "libs/LibKa0s/Options.lua",
-    "libs/LibKa0s/OptionsWidgets.lua",
-    "libs/LibKa0s/OptionsScroll.lua",
-    "libs/LibKa0s/Perf.lua",
-    "libs/LibKa0s/PerfPanel.lua",
-}
+-- The vendored library files, DERIVED from libs/LibKa0s/LibKa0s.xml in the order
+-- the XML declares them, as directly-loadable paths (Loader.xmlFiles prefixes the
+-- XML's own directory). They cannot come from the TOC the way the addon's own
+-- files do: the TOC names one aggregate XML, and Loader.tocFiles skips `libs\`
+-- outright — so before the kit shipped a derivation, every runner in the
+-- collection re-typed the same eight-entry list.
+--
+-- Getting this list wrong is silent, which is why it must not be typed: a module
+-- whose dependency is absent returns BEFORE LibStub:NewLibrary, so the major is
+-- never registered, the host's setup file takes its degradation stub, and the
+-- suite happily measures the stub while staying green (Ka0s standard
+-- testing-§9). A missing XML raises rather than yielding an empty list, which
+-- would read exactly like a clean run.
+L.LIB_FILES = Loader.xmlFiles(ROOT .. "/libs/LibKa0s/LibKa0s.xml")
 
 -- Compiled once and re-executed per build. Every suite rebuilds its whole
 -- environment (mock.install wipes the LibStub registry), so the chunks have to
@@ -156,8 +152,7 @@ local libEnv = Loader.makeEnv({})
 local function loadLibs()
     if not libChunks then
         libChunks = {}
-        for _, rel in ipairs(L.LIB_FILES) do
-            local path = ROOT .. "/" .. rel
+        for _, path in ipairs(L.LIB_FILES) do
             local chunk, err = loadfile(path)
             if not chunk then
                 error("loader: could not load " .. path .. ": " .. tostring(err))
@@ -169,41 +164,64 @@ local function loadLibs()
     for _, chunk in ipairs(libChunks) do chunk() end
 end
 
-L.PURE_LAYER = {
-    "locales/enUS.lua",
-    "Namespace.lua",
-    "ConsumableMaster.lua",
-    "Bus.lua",
-    "Constants.lua",
-    "core/CoreSetup.lua",
-    "Compat.lua",
-    "Database.lua",
-    "defaults/Categories.lua",
-    "defaults/Defaults_StatPriority.lua",
-    "defaults/Defaults_Food.lua",
-    "defaults/Defaults_Drink.lua",
-    "defaults/Defaults_StatFood.lua",
-    "defaults/Defaults_HPPot.lua",
-    "defaults/Defaults_MPPot.lua",
-    "defaults/Defaults_Healthstone.lua",
-    "defaults/Defaults_CombatPot.lua",
-    "defaults/Defaults_Flask.lua",
-    "defaults/Defaults_Vantus.lua",
-    "defaults/Defaults_WpnEnch.lua",
-    "defaults/Defaults_AugRune.lua",
-    "defaults/Defaults_Bloodlust.lua",
-    "defaults/Defaults_BattleRez.lua",
-    "SpecHelper.lua",
-    "core/WeaponSlots.lua",
-    "Classifier.lua",
-    "Ranker.lua",
-    "Selector.lua",
-    "MacroManager.lua",
-    "BagScanner.lua",
-    "core/MacroDisplay.lua",
-    "core/MacroBarModel.lua",
-    "core/MacroBarLayout.lua",
+-- The addon's own files, in the TOC's order. Derived rather than
+-- hand-maintained, so a file added to the TOC cannot go untested.
+function L.tocFiles()
+    return Loader.tocFiles(ROOT .. "/" .. ADDON_NAME .. ".toc")
+end
+
+-- What the PURE LAYER is NOT. The pure layer is "the whole addon minus anything
+-- that needs a live client seam", and it is DERIVED — the TOC's order, filtered
+-- by this exclusion set — rather than re-typed. A hand-typed subset was the
+-- second load list in this file that could silently disagree with the TOC
+-- (testing-§9): a module added to the TOC simply never reached the several
+-- hundred pure-layer builds, and nothing said so.
+--
+-- Every exclusion carries its reason, because an entry added here without one is
+-- how coverage quietly leaves:
+local PURE_LAYER_OMITS = {
+    -- Session state and the debug console/sink. tests/test_debug.lua builds the
+    -- sink WITHOUT the console on purpose, to reach the chat-fallback path, so
+    -- these three come in only through L.loadConsole.
+    ["core/State.lua"]           = true,
+    ["core/Debug.lua"]           = true,
+    ["modules/DebugLog.lua"]     = true,
+    -- Its Get() parser needs live C_TooltipInfo data. L.loadFiles loads the real
+    -- file afterwards and swaps ONLY Get(), so IsUsableByPlayer still runs for
+    -- real — see the comment at that swap.
+    ["core/TooltipCache.lua"]    = true,
+    -- Needs LibSharedMedia's live registry to patch.
+    ["core/LSMPatch.lua"]        = true,
+    -- The slash surface and the settings pages: exercised by their own suites
+    -- through L.loadWithSchema / L.loadFullAddon, which is where the panel and
+    -- dispatcher seams are actually under test.
+    ["core/SlashDump.lua"]       = true,
+    ["core/SlashCommands.lua"]   = true,
+    ["settings/Panel.lua"]       = true,
+    ["settings/General.lua"]     = true,
+    ["settings/MacroBar.lua"]    = true,
+    ["settings/StatPriority.lua"] = true,
+    ["settings/Category.lua"]    = true,
+    ["settings/Slash.lua"]       = true,
+    -- The frame layer: every one of these builds real widgets at load, which is
+    -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
+    -- through the full-addon load.
+    ["modules/PerfSetup.lua"]      = true,
+    ["modules/MacroBarFlyout.lua"] = true,
+    ["modules/MacroBarButton.lua"] = true,
+    ["modules/MacroBar.lua"]       = true,
+    ["modules/KCMIconButton.lua"]  = true,
+    ["modules/KCMScoreButton.lua"] = true,
+    ["modules/KCMMacroDragIcon.lua"] = true,
+    ["modules/KCMItemRow.lua"]     = true,
 }
+
+L.PURE_LAYER = {}
+for _, rel in ipairs(L.tocFiles()) do
+    if not PURE_LAYER_OMITS[rel] then
+        L.PURE_LAYER[#L.PURE_LAYER + 1] = rel
+    end
+end
 
 -- Load an explicit list of source files onto a fresh mocked namespace.
 -- Returns the namespace table (KCM / NS).
@@ -288,12 +306,6 @@ function L.loadConsole(omitLibs)
     return L.loadFiles(files, omitLibs)
 end
 
--- The addon's own files, in the TOC's order. Derived rather than
--- hand-maintained, so a file added to the TOC cannot go untested.
-function L.tocFiles()
-    return Loader.tocFiles(ROOT .. "/" .. ADDON_NAME .. ".toc")
-end
-
 -- Load the ENTIRE addon in the exact order the TOC declares (skipping the
 -- libs XML, which the mock provides). This is the headless proxy for an
 -- in-game load — it catches load-order breaks (a file referencing another's
@@ -355,29 +367,49 @@ _G.KCM_TEST = KCM_TEST
 -- The suite list
 -- ---------------------------------------------------------------------------
 
--- Discover test_*.lua deterministically without relying on LuaFileSystem:
--- shell out to `ls` (portable enough for this WSL/Linux dev env).
-local function discover()
-    local names = {}
-    local pipe = io.popen and io.popen("ls " .. ROOT .. "/tests/test_*.lua 2>/dev/null")
-    if pipe then
-        for line in pipe:lines() do
-            local base = line:match("([^/\\]+)%.lua$")
-            if base then names[#names + 1] = base end
-        end
-        pipe:close()
-    end
-    table.sort(names)
-    return names
-end
+-- DECLARED, not discovered. `ls tests/test_*.lua` was one line shorter and could
+-- not fail: a suite file nobody remembered to write still ran zero cases, and a
+-- suite that vanished took its coverage with it in silence, because the list and
+-- the directory were the same fact stated once. Kit.assertSuiteInventory below
+-- compares this list against the directory in BOTH directions and reports every
+-- divergence in one message — which only means something if the list is written
+-- down (Ka0s standard testing-§9, the third list that MUST be pinned).
+--
+-- A suite being written can stay listed as { name = "test_foo", pending = "why" }
+-- — it registers as a SKIP rather than as nothing, and declaring `pending` on a
+-- file that does exist is itself an error.
+local SUITES = {
+    "test_bagscanner",
+    "test_bus",
+    "test_categories",
+    "test_classifier",
+    "test_compat",
+    "test_constants",
+    "test_coresetup",
+    "test_database",
+    "test_debug",
+    "test_debuglog",
+    "test_defaults",
+    "test_events",
+    "test_id",
+    "test_libka0s",
+    "test_load",
+    "test_macrobar",
+    "test_macromanager",
+    "test_perfsetup",
+    "test_pipeline",
+    "test_ranker",
+    "test_runner_list",
+    "test_schema",
+    "test_selector",
+    "test_settingsui",
+    "test_slash",
+    "test_slashsetup",
+    "test_spechelper",
+    "test_tooltipcache",
+    "test_vendor_sync",
+    "test_weaponslots",
+    "test_widgets",
+}
 
-local suites = discover()
-if #suites == 0 then
-    print("run.lua: no test_*.lua suites found under " .. ROOT .. "/tests/")
-    os.exit(1)
-end
-
--- `suiteInventory = false` because the list above is DISCOVERED: asserting a
--- discovered list against the directory it was discovered from is a gate that
--- cannot fire. It switches on with a declared list.
-Kit.run({ dir = ROOT .. "/tests/", suites = suites, suiteInventory = false })
+Kit.run({ dir = ROOT .. "/tests/", suites = SUITES })
