@@ -153,9 +153,16 @@ stop. **A missing tool is a skip recorded with its reason**, never a pass.
 **At the tag they do gate**, and that is a different checkpoint evaluated by a different actor:
 `/wow-addon:bump-version` reads the release run's `manifest.json` and refuses the bump unless all
 **four** suites read `pass` and `suites.complexity.warnings` is `0`. A `skip` is **not evaluated** —
-it is a gate that did not pass, never a pass — with one sanctioned exception, `perf` skipped because
-the addon ships no `tests/perf.lua`, which the release notes must state out loud
-(`automated-tests-§3`).
+it is a gate that did not pass, never a pass. `automated-tests-§3` sanctions one exception — `perf`
+skipped because the addon ships no `tests/perf.lua`, stated out loud in the release notes — and it
+**does not apply here**: this addon ships `tests/perf.lua` and its `perf` column reads `pass`.
+
+`tests/perf.lua` runs the whole addon under the test mock and drives four scenarios: `recompute`,
+`cooldownRefresh`, and the `probeOverheadOff` / `probeOverheadOn` pair that is `performance-§9`'s
+zero-overhead evidence. It asserts only the deterministic half — per-iteration byte counts and the
+bucket-note count — because wall-clock numbers on a developer machine are not stable enough to fail
+anything on. `lua tests/run.lua` does not invoke it. Detail in
+[performance.md](./performance.md).
 
 The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
 upstream and is re-vendored.

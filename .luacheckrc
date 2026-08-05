@@ -28,6 +28,14 @@ ignore = { "212", "542" }
 -- and slash globals are registered dynamically by AceConsole, not by name here.
 globals = {
     "ConsumableMasterDB",
+    -- The perf harness's own ring of captures, declared alongside
+    -- ConsumableMasterDB at ConsumableMaster.toc:11 and kept separate from the
+    -- AceDB tree on purpose (the TOC comment there says why). LibKa0s-Perf
+    -- writes the global directly, so it is written by us in exactly the sense
+    -- ConsumableMasterDB is — and a declared SavedVariable that this file does
+    -- not name reads as a typo the moment anything here touches it
+    -- (performance-§5).
+    "ConsumableMasterPerfDB",
     "StaticPopupDialogs",
     "UISpecialFrames",
 }
