@@ -197,6 +197,7 @@ local PURE_LAYER_OMITS = {
     -- dispatcher seams are actually under test.
     ["core/SlashDump.lua"]       = true,
     ["core/SlashCommands.lua"]   = true,
+    ["settings/OptionsSetup.lua"] = true,
     ["settings/Panel.lua"]       = true,
     ["settings/General.lua"]     = true,
     ["settings/MacroBar.lua"]    = true,
@@ -314,16 +315,23 @@ function L.loadFullAddon(omitLibs)
     return L.loadFiles(L.tocFiles(), omitLibs)
 end
 
--- Pure layer + the settings schema (Panel.lua), for schema tests.
+-- Pure layer + the options seam and the settings schema, for schema tests.
 --
--- `omitLibs` runs it with libs/LibKa0s/ absent, so settings/Panel.lua takes its
--- real degradation path — no panel registered — rather than a hand-stubbed one
--- (testing-§8). The schema half of the file is declared above that seam and
--- keeps working either way, which is what the degraded suite pins.
+-- `omitLibs` runs it with libs/LibKa0s/ absent, so settings/OptionsSetup.lua
+-- takes its real degradation path — no instance, no panel registered — rather
+-- than a hand-stubbed one (testing-§8). The schema half in settings/Panel.lua
+-- never touches the seam and keeps working either way, which is what the
+-- degraded suite pins.
+--
+-- The two load in the TOC's order and BOTH are needed: Panel.lua reads
+-- KCM.Settings.optionsUI as a file-scope local, so loading it alone would pin a
+-- degraded panel on an arm that has the library.
+L.SETTINGS_SEAM = { "settings/OptionsSetup.lua", "settings/Panel.lua" }
+
 function L.loadWithSchema(omitLibs)
     local files = {}
     for _, f in ipairs(L.PURE_LAYER) do files[#files + 1] = f end
-    files[#files + 1] = "settings/Panel.lua"
+    for _, f in ipairs(L.SETTINGS_SEAM) do files[#files + 1] = f end
     return L.loadFiles(files, omitLibs)
 end
 

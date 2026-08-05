@@ -134,14 +134,15 @@ test("Parity: the LibKa0s-Slash stub carries the whole live seam", function(t)
         "the degraded landing rows are empty, not absent")
 end)
 
--- ── LibKa0s-Options-1.0, at settings/Panel.lua ─────────────────────────────
+-- ── LibKa0s-Options-1.0, at settings/OptionsSetup.lua ──────────────────────
 --
 -- Member list produced by:
 --     grep -rhno 'Helpers\.[A-Za-z_]*' core/ modules/ settings/ | sort -u
 -- i.e. every member the addon actually calls on the seam. That is the right list
 -- here rather than the assignments in settings/Panel.lua, because the live half
--- publishes most of them by `setmetatable(Helpers, { __index = UI })` (:262) and
--- an assignment grep would miss exactly the delegated members.
+-- publishes most of them by settings/OptionsSetup.lua's
+-- `setmetatable(Helpers, { __index = UI })` and an assignment grep would miss
+-- exactly the delegated members.
 local OPTIONS_SEAM = {
     "BuildAboutContent", "Button", "ButtonPair", "CreatePanel", "CustomCheckbox",
     "EnumValues", "FindSchema", "Get", "Grid", "LSMValues", "Label",
@@ -151,12 +152,12 @@ local OPTIONS_SEAM = {
 }
 
 -- Live-only ON PURPOSE. With the library absent the panel is not registered AT
--- ALL — settings/Panel.lua:844 returns before a single page renders — so every
--- member below is unreachable degraded by construction, and supplying it would
--- mean keeping a verbatim copy of the chrome the adoption removed. Each of the
--- five is a library member bound at the seam (:404 ResetScroll, :562 Grid, :570
--- CustomCheckbox, and RenderField / SetRenderer through __index); `instance` is
--- the library object itself (:266).
+-- ALL — settings/Panel.lua's registerPanel returns before a single page renders
+-- — so every member below is unreachable degraded by construction, and supplying
+-- it would mean keeping a verbatim copy of the chrome the adoption removed. Each
+-- of the five is a library member bound off the instance (ResetScroll, Grid and
+-- CustomCheckbox in settings/Panel.lua; RenderField / SetRenderer through
+-- __index); `instance` is the library object itself.
 --
 -- What is NOT on this list is the point of the case: RefreshAllPanels and
 -- RefreshScalars are called UNCONDITIONALLY on paths a degraded install reaches

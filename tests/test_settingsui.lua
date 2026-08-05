@@ -233,7 +233,7 @@ end)
 
 test("Settings UI: with the library absent no panel is registered, and it says why once",
     function(t)
-        -- Loaded for real with libs/LibKa0s/ omitted, so settings/Panel.lua
+        -- Loaded for real with libs/LibKa0s/ omitted, so settings/OptionsSetup.lua
         -- takes its own degraded path rather than a hand-written stub.
         local KCM  = loader.loadWithSchemaDegraded()
         local mock = loader.mock
@@ -270,7 +270,7 @@ test("Settings UI: with the library absent Helpers still reaches both refresh ti
         -- "attempt to call field 'RefreshAllPanels' (a nil value)".
         --
         -- red under: rebinding either name to `UI and UI.<name>`, or dropping
-        -- the degraded no-op arm at the optionsLib seam in settings/Panel.lua.
+        -- the degraded no-op arm at the seam in settings/OptionsSetup.lua.
         local KCM = loader.loadWithSchemaDegraded()
         local H   = KCM.Settings.Helpers
         t.eq(type(H.RefreshAllPanels), "function", "the structural tier is callable")
@@ -317,7 +317,7 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
         -- EVERY member the instance publishes is reachable and is the same
         -- function object.
         --
-        -- red under: deleting the setmetatable at the optionsLib seam, or
+        -- red under: deleting the setmetatable in settings/OptionsSetup.lua, or
         -- reinstating a per-member copy that a library rename can outrun.
         local KCM = loader.loadWithSchema()
         local H   = KCM.Settings.Helpers
@@ -362,7 +362,7 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
 
         local files = {}
         for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
-        files[#files + 1] = "settings/Panel.lua"
+        for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
         local KCM = loader.loadFiles(files)
 
         t.truthy(KCM.Categories.Get("BATTLE_REZ").targeted, "Battle Rez is targeted")
@@ -455,7 +455,7 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
 local function loadCategorySettings()
     local files = {}
     for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
-    files[#files + 1] = "settings/Panel.lua"
+    for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
     files[#files + 1] = "settings/Category.lua"
     return loader.loadFiles(files)
 end

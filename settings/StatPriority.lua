@@ -20,7 +20,11 @@ local _, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
-local AceGUI = LibStub("AceGUI-3.0")
+-- Silent-mode (library-stack-§4): AceGUI is an OptionalDep and the hard form
+-- raises during load on an install that lacks it. Nothing on this page is
+-- reachable without the panel, which settings/OptionsSetup.lua already refuses
+-- to build when AceGUI is nil.
+local AceGUI = LibStub("AceGUI-3.0", true)
 
 KCM.Options = KCM.Options or {}
 local O = KCM.Options
