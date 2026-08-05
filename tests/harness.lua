@@ -80,6 +80,39 @@ end
 local T = makeAssertions(function(msg) error(msg, 2) end)
 H.T = T
 
+-- ── skip: the third case status ────────────────────────────────────────────
+--
+-- A case that CANNOT look — no sibling checkout, no git, a fixture this
+-- platform cannot produce — used to be written as a bare `return`, which
+-- registers as PASS. That is a gate reporting "checked, fine" for a check that
+-- never ran. `H.skip(reason)` raises a sentinel instead, so it can be called
+-- from any depth inside a case body (inside a helper, inside a loop) without
+-- restructuring the case into a predicate plus a body.
+--
+-- Two properties, both non-negotiable, both mirroring tests/_kit/framework.lua:
+--   * a skip is NEVER folded into `passed` — the README [tests] badge and
+--     docs/test-cases.md count passes, and a skip counted as one is the
+--     original lie in a new place;
+--   * a skip NEVER changes the exit code. A skip is "not evaluated", which is
+--     a fact for the release flow to judge, not a failure re-litigated here.
+--
+-- This is the private harness's half of the contract tests/_kit/vendor_sync.lua
+-- depends on; it goes away with the harness itself when the kit becomes the
+-- runner.
+local SKIP = {}
+
+--- Abandon the current case with a reason, reported as SKIP rather than PASS or FAIL.
+function H.skip(reason)
+    error(setmetatable({ reason = tostring(reason or "no reason given") }, SKIP), 0)
+end
+T.skip = H.skip
+
+--- The reason, if `err` is a skip sentinel; nil for any other error value.
+local function skipReasonOf(err)
+    if type(err) == "table" and getmetatable(err) == SKIP then return err.reason end
+    return nil
+end
+
 -- Register one test case. Execution is deferred to H.run so a non-executing
 -- --list pass can enumerate cases without running them.
 function H.test(name, fn)
@@ -104,11 +137,15 @@ end
 
 -- Run every registered case in registration order; one pcall per case.
 function H.run()
-    local passed, failed = 0, 0
+    local passed, failed, skipped = 0, 0, 0
     realprint("")
     for _, tc in ipairs(H._tests) do
         local ok, err = pcall(tc.fn, T)
-        if ok then
+        local reason = (not ok) and skipReasonOf(err) or nil
+        if reason then
+            skipped = skipped + 1
+            realprint(string.format("  \27[33mSKIP\27[0m  %s — %s", tc.name, reason))
+        elseif ok then
             passed = passed + 1
             realprint(string.format("  \27[32mPASS\27[0m  %s", tc.name))
         else
@@ -118,7 +155,16 @@ function H.run()
         end
     end
     realprint("")
-    realprint(string.format("  %d passed, %d failed, %d total", passed, failed, passed + failed))
+    -- The skipped column appears only when something was skipped. The vendored
+    -- tests/_kit/run-automated-tests.sh scrapes this line with
+    -- `[0-9]+ passed, [0-9]+ failed(, [0-9]+ total)?`, so an unconditional
+    -- column would cost every ordinary run its recorded total.
+    if skipped > 0 then
+        realprint(string.format("  %d passed, %d failed, %d skipped, %d total",
+            passed, failed, skipped, passed + failed + skipped))
+    else
+        realprint(string.format("  %d passed, %d failed, %d total", passed, failed, passed + failed))
+    end
     return failed == 0
 end
 
