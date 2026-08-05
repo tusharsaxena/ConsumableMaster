@@ -337,27 +337,48 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
         -- EVERY member the instance publishes is reachable and is the same
         -- function object.
         --
+        -- Walked EXHAUSTIVELY over what the instance publishes rather than over
+        -- a hand-listed eight, because a hand-listed eight is the CM-A-04 defect
+        -- in miniature: it can only catch a forgotten member that someone
+        -- remembered to add to the list.
+        --
+        -- And reachability is all that is asserted. An earlier version of this
+        -- case also demanded `rawget(H, name) == nil` for each of the eight —
+        -- which forbids an addon-side wrapper for any of them, even though the
+        -- second loop below shows a wrapper is a legitimate, currently-shipped
+        -- pattern. A future author who needs to wrap RefreshScalars would ship
+        -- behaviourally identical code and redden the suite; and the rawget half
+        -- detected nothing the `H[name] == UI[name]` line beside it did not,
+        -- since __index delegation is exactly what makes that line pass.
+        --
         -- red under: deleting the setmetatable in settings/OptionsSetup.lua, or
         -- reinstating a per-member copy that a library rename can outrun.
         local KCM = loader.loadWithSchema()
         local H   = KCM.Settings.Helpers
         local UI  = H.instance
         t.truthy(UI, "the instance is published")
-        for _, name in ipairs({
-            "AttachTooltip", "EnsureScroll", "PatchAlwaysShowScrollbar",
-            "SetRenderer", "AddSpacer", "RenderField",
-            "RefreshAllPanels", "RefreshScalars",
-        }) do
-            t.eq(rawget(H, name), nil, name .. " is not copied onto Helpers")
-            t.eq(H[name], UI[name], name .. " resolves to the instance's own function")
-        end
 
-        -- The wrappers stay OWN keys and shadow the library's same-named member
-        -- — which is the only reason each can call the instance's version
-        -- without recursing into itself.
-        for _, name in ipairs({ "CreatePanel", "Section", "LSMValues" }) do
-            t.truthy(rawget(H, name), name .. " is the addon's own wrapper")
-            t.falsy(rawget(H, name) == UI[name], name .. " shadows the library's")
+        -- The three the addon deliberately wraps. Each stays an OWN key that
+        -- SHADOWS the library's same-named member — which is the only reason
+        -- each can call the instance's version without recursing into itself.
+        local WRAPPED = { CreatePanel = true, Section = true, LSMValues = true }
+
+        local walked = 0
+        for name, member in pairs(UI) do
+            if type(member) == "function" then
+                walked = walked + 1
+                if WRAPPED[name] then
+                    t.truthy(rawget(H, name), name .. " is the addon's own wrapper")
+                    t.falsy(rawget(H, name) == member, name .. " shadows the library's")
+                else
+                    t.eq(H[name], member,
+                        name .. " resolves through Helpers to the instance's own function")
+                end
+            end
+        end
+        t.truthy(walked >= 20, "the whole published surface was walked (" .. walked .. ")")
+        for name in pairs(WRAPPED) do
+            t.eq(type(UI[name]), "function", name .. " is a member the library really publishes")
         end
     end)
 
