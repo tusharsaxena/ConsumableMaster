@@ -20,7 +20,11 @@ local _, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
-local AceGUI = LibStub("AceGUI-3.0")
+-- Silent-mode (library-stack-§4): AceGUI is an OptionalDep and the hard form
+-- raises during load on an install that lacks it. Nothing on this page is
+-- reachable without the panel, which settings/OptionsSetup.lua already refuses
+-- to build when AceGUI is nil.
+local AceGUI = LibStub("AceGUI-3.0", true)
 
 KCM.Options = KCM.Options or {}
 local O = KCM.Options
@@ -151,7 +155,7 @@ end
 
 -- Drop the user override for the currently-viewed spec (resolved at call
 -- time). Shared by the inline "Reset stat priority" button and the top-right
--- Defaults button (standard §6.5) so both reset the same spec the user is
+-- Defaults button (options-ui-§5) so both reset the same spec the user is
 -- looking at.
 local function doResetStatPriority()
     local specKey = resolveViewedSpec()
@@ -291,7 +295,7 @@ local function Build(mainCategory)
     end
     local ctx = H.CreatePanel("KCMStatPriorityPanel", L["Stat Priority"], {
         panelKey = "statpriority",
-        -- Top-right Defaults button (standard §6.5) → drops the viewed spec's
+        -- Top-right Defaults button (options-ui-§5) → drops the viewed spec's
         -- override, same as this page's inline reset.
         defaultsAction = doResetStatPriority,
     })

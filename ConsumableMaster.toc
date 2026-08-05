@@ -39,13 +39,22 @@ libs\LibKa0s\LibKa0s.xml
 locales\enUS.lua
 
 # Core
-# Namespace.lua first: names the private addon table (`local addonName, NS = ...`).
+# Namespace.lua first: names the private addon table (`local addonName, NS = ...`)
+# and the version string PerfSetup reads at load.
 # ConsumableMaster.lua promotes NS to the AceAddon object and owns the DB
 # bootstrap + recompute pipeline. Constants (KCM.PREFIX), CoreSetup (KCM.Say off
 # LibKa0s-Core-1.0), Compat (spec + spell API seam), State (session-only flags),
 # and Database (SV migrations) load next; the pure engine modules
 # (SpecHelper → Classifier) follow.
 core\Namespace.lua
+# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. It sits here,
+# second, because performance-§1 requires it BEFORE any file that takes
+# `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua and
+# modules\MacroBar.lua both do. Its only load-time read is KCM.VERSION, which is
+# why that constant lives in core\Namespace.lua; the run log, the printer, the
+# suspend/resume pair and the macro bar are all reached through thunks at call
+# time, so loading before them costs nothing.
+core\PerfSetup.lua
 core\ConsumableMaster.lua
 core\Bus.lua
 core\Constants.lua
@@ -55,6 +64,14 @@ core\Constants.lua
 core\CoreSetup.lua
 core\Compat.lua
 core\State.lua
+# DebugLogSetup builds the on-screen console from LibKa0s-DebugLog-1.0
+# (debug-logging-§1 names the file and the folder). It sits after
+# core\Constants.lua + core\CoreSetup.lua (the printer it thunks onto) and
+# core\State.lua (KCM.State.debug, the flag's single home), and before
+# core\Debug.lua and every other file that writes to the sink. Every seam it
+# reaches outward through -- the printer, KCM.State, KCM.Options.Refresh -- is a
+# call-time thunk, so nothing here is a load-time dependency.
+core\DebugLogSetup.lua
 core\Database.lua
 core\Debug.lua
 core\SpecHelper.lua
@@ -80,6 +97,12 @@ core\SlashDump.lua
 core\SlashCommands.lua
 
 # Defaults
+# Profile.lua first: KCM.dbDefaults, the AceDB defaults tree and THE
+# declaration site for every shipped default (savedvariables-§2). It sits at
+# the head of this block so it is evaluated in the same position it held when
+# it lived at the top of core/ConsumableMaster.lua — after the whole # Core
+# block, before defaults/Categories.lua, which its `perRow` comment relies on.
+defaults\Profile.lua
 defaults\Categories.lua
 defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
@@ -100,12 +123,6 @@ defaults\Defaults_BattleRez.lua
 modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
-modules\DebugLog.lua
-# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. After
-# DebugLog.lua, whose AddLine is where its run log goes; core\SlashCommands.lua
-# loads earlier but resolves KCM.Perf at call time, the same way it does the
-# macro bar.
-modules\PerfSetup.lua
 modules\MacroBarFlyout.lua
 modules\MacroBarButton.lua
 modules\MacroBar.lua
@@ -115,10 +132,16 @@ modules\KCMMacroDragIcon.lua
 modules\KCMItemRow.lua
 
 # Settings
-# settings/Panel.lua first: it owns the LibKa0s-Options-1.0 seam (the panel
-# chrome and the scroll container) and creates KCM.Settings.{Helpers, Schema,
-# builders} and exposes KCM.Settings.RegisterTab, which the per-tab modules
-# below call.
+# settings/OptionsSetup.lua first: it is the LibKa0s-Options-1.0 seam (the panel
+# chrome and the scroll container) and the only place the library is
+# constructed. It creates KCM.Settings.Helpers and publishes the instance as
+# KCM.Settings.optionsUI, which settings/Panel.lua takes as a file-scope local —
+# so it has to load before Panel.lua, not after.
+settings\OptionsSetup.lua
+# settings/Panel.lua next: the addon's own half — the schema rows, the
+# Resolve/Get/Set/FindSchema/ValidateSchema helpers, the SetAndRefresh write
+# seam, the wrappers that shadow a library member — and it exposes
+# KCM.Settings.RegisterTab, which the per-tab modules below call.
 # It also publishes the KCM.Options shim (Register/Refresh/RequestRefresh/Open)
 # so the core / pipeline callers keep working unchanged.
 settings\Panel.lua

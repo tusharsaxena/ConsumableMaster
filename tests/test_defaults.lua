@@ -7,7 +7,7 @@
 -- only shows up as a macro that never resolves. These cases are the guard rail
 -- for hand-maintained seed data.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Blizzard truncates macro names past 16 characters, and GetMacroIndexByName

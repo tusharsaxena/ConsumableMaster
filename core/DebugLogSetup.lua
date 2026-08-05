@@ -1,4 +1,4 @@
--- modules/DebugLog.lua — the addon's half of LibKa0s-DebugLog-1.0.
+-- core/DebugLogSetup.lua — the addon's half of LibKa0s-DebugLog-1.0.
 --
 -- The console window itself — the drag bar, the flat Copy/Clear/× buttons, the
 -- ScrollingMessageFrame, the hand-driven scrollbar, the line counter, the copy
@@ -86,21 +86,30 @@ if not lib then
 
     -- Show and Toggle_Window are the two entry points a user reaches for on
     -- purpose, so they are the two that explain themselves. Hide and
-    -- IsWindowShown stay SILENT: settings/General.lua calls Hide on the
-    -- Defaults action and IsWindowShown on every single panel refresh, and a
-    -- notice on either would spam a window the user never asked to see.
+    -- IsWindowShown stay SILENT: `settings/General.lua:79` calls Hide from the
+    -- Defaults action, and IsWindowShown is a bare status query with no
+    -- production caller at all (only the suites read it), so a notice on
+    -- either would announce a window the user never asked to see. The
+    -- [Debug console] checkbox does not route through this seam either:
+    -- `settings/General.lua:121-127` builds it from
+    -- `DL.instance:ConsoleCheckbox()`, and this path publishes no instance, so
+    -- the checkbox is simply not built.
     function DL.Show() notice() end
     function DL.Toggle_Window() notice() end
     function DL.Hide() end
     function DL.IsWindowShown() return false end
 
-    -- Deliberately publishes NO AddLine. core/Debug.lua probes
-    -- `KCM.DebugLog.AddLine` to decide whether a console exists, and falls back
-    -- to the chat frame when it does not — withholding the member is exactly
-    -- what re-arms that fallback. A no-op AddLine would swallow every
-    -- diagnostic while the addon looked healthy. Same for Clear / ShowCopy /
-    -- RefreshHeader / UpdateScrollBar / UpdateStatus / the formatters: no
-    -- consumer outside this file, so there is nothing to degrade.
+    -- Deliberately publishes NO instance and NO AddLine. core/Debug.lua's
+    -- emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
+    -- whether a console exists, and falls back to the chat frame when it does
+    -- not — withholding the instance is exactly what re-arms that fallback.
+    -- AddLine is withheld for the matching reason: its one production caller is
+    -- `core/PerfSetup.lua:98`, inside a table that file only ever builds when
+    -- the LibKa0s Perf major loaded (`core/PerfSetup.lua:46` returns
+    -- otherwise), so a no-op here would swallow diagnostics rather than degrade
+    -- anything. Same for Clear / ShowCopy / RefreshHeader / UpdateScrollBar /
+    -- UpdateStatus / the formatters: no consumer outside this file, so there is
+    -- nothing to degrade.
     return
 end
 
@@ -165,7 +174,7 @@ local D = lib:New({
     slash = "/cm",
 
     -- `skin` is deliberately NOT passed: Core.SKIN IS the shared Ka0s window edge
-    -- that every Ka0s window wears (standalone-windows-§2), so taking the
+    -- that every Ka0s window wears (standalone-windows), so taking the
     -- library's is the whole point — a table of our own would draw a console that
     -- matched this addon and no other, and a plain backdrop table would also drop
     -- the bg / border / innerBorder / divider / title arrays ApplySkin guards for.
@@ -175,9 +184,9 @@ local D = lib:New({
 })
 
 -- The public surface, unchanged in name, arity and return value. Plain
--- functions, not methods: core/Debug.lua, core/SlashCommands.lua and
--- settings/General.lua all dot-call, and three suites monkeypatch
--- KCM.DebugLog.AddLine as their interception seam.
+-- functions, not methods: core/Debug.lua (IsEnabled), core/PerfSetup.lua
+-- (AddLine, Show) and settings/General.lua (SetEnabled, Hide) all dot-call,
+-- and three suites reach KCM.DebugLog.AddLine as their interception seam.
 function DL.AddLine(tag, msg)  D:Add(tag, msg) end
 function DL.IsEnabled()        return D:IsEnabled() end
 function DL.Show()             D:Show() end

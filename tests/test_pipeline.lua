@@ -1,7 +1,7 @@
 -- test_pipeline.lua — the recompute pipeline: coalescing, auto-discovery, and
 -- the macro-write loop (KCM.Pipeline in core/ConsumableMaster.lua).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()

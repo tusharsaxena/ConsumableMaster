@@ -1,10 +1,10 @@
 # Test Cases
 
-The full inventory of every headless test case, grouped by suite. This file is the
-**authoritative pass count** for the addon.
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
 
-**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
-whenever the suite changes.
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
 ### test_bagscanner.lua (12)
 
@@ -238,7 +238,7 @@ whenever the suite changes.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (114)
+### test_macrobar.lua (116)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -321,6 +321,8 @@ whenever the suite changes.
 - macrobar cooldowns: the inactive path still applies the correct bling state
 - macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 - macrobar schema: every macroBar row validates and resolves against the db
+- macrobar schema: locking and unlocking reaches the bar frame, whichever surface asked
+- macrobar schema: a flag written from /cm re-syncs the open Macro Bar page in place
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
 - macrobar schema: the default slot order matches the settings tab order
@@ -404,7 +406,7 @@ whenever the suite changes.
 - MacroManager.SetCompositeMacro defers in combat and replays as a composite
 - MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
 
-### test_perfsetup.lua (10)
+### test_perfsetup.lua (11)
 
 - Perf: the harness IS the library's instance, not a lookalike
 - Perf: the panel half attached to the instance
@@ -414,6 +416,7 @@ whenever the suite changes.
 - Perf: /cm perf is a published verb and reaches the harness
 - Perf: the capture flag is the library's alone, with no second home
 - Perf: the instrumentation records nothing while no capture is running
+- Perf: every declared bucket is reached by a real call path
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
@@ -476,12 +479,12 @@ whenever the suite changes.
 
 ### test_runner_list.lua (4)
 
-- formatInventory groups cases by suite file with counts
-- formatInventory emits a Totals table summing all cases
+- --list groups cases by suite file with counts
+- --list emits a Totals table summing all cases
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (34)
+### test_schema.lua (35)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -506,6 +509,7 @@ whenever the suite changes.
 - schema: ValidateSchemaValue clamps a number to its declared range
 - schema: SetAndRefresh writes the value and fires the row's onChange
 - schema: SetAndRefresh refuses a value of the wrong type
+- schema: SetAndRefresh refuses an explicit nil rather than deleting the key
 - schema: SetAndRefresh refuses a path that is not in the schema
 - schema: the published Schema:Set is the same seam as SetAndRefresh
 - schema: FormatSchemaValue renders nil as 'nil'
@@ -565,7 +569,7 @@ whenever the suite changes.
 - Selector.ListAvailable omits an item the player is over the cap for
 - Selector.PickBestForCategory keeps an item whose tooltip is still pending
 
-### test_settingsui.lua (18)
+### test_settingsui.lua (21)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -579,6 +583,9 @@ whenever the suite changes.
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
+- Settings UI: with the library absent Helpers still reaches both refresh tiers
+- Settings UI: with the library absent a schema WRITE completes and reports success
+- Settings UI: Helpers reads the library's members off the instance, not off a copy
 - Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
@@ -671,7 +678,7 @@ whenever the suite changes.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slashsetup.lua (10)
+### test_slashsetup.lua (15)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -683,6 +690,11 @@ whenever the suite changes.
 - Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
+- Slash: with the library absent every host-owned verb still dispatches
+- Slash: with the library absent only the five library-backed verbs degrade
+- Slash: a bare /cm degrades without latching, and an unknown verb still reports
+- Slash: the degraded path keeps the library's parse — verb only is lowercased
+- Slash: the panel's degraded advice agrees with what /cm actually answers
 
 ### test_spechelper.lua (16)
 
@@ -702,6 +714,13 @@ whenever the suite changes.
 - SpecHelper.GetStatPriority never returns nil, even for a malformed key
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
+
+### test_surface_parity.lua (4)
+
+- Parity: the LibKa0s-Core stub carries the whole live seam
+- Parity: the LibKa0s-DebugLog stub carries the whole live seam
+- Parity: the LibKa0s-Slash stub carries the whole live seam
+- Parity: the LibKa0s-Options stub carries the whole live seam
 
 ### test_tooltipcache.lua (23)
 
@@ -774,20 +793,21 @@ whenever the suite changes.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 114 |
+| test_macrobar.lua | 116 |
 | test_macromanager.lua | 46 |
-| test_perfsetup.lua | 10 |
+| test_perfsetup.lua | 11 |
 | test_pipeline.lua | 28 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 34 |
+| test_schema.lua | 35 |
 | test_selector.lua | 44 |
-| test_settingsui.lua | 18 |
+| test_settingsui.lua | 21 |
 | test_slash.lua | 82 |
-| test_slashsetup.lua | 10 |
+| test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
+| test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **656** |
+| **Total** | **672** |

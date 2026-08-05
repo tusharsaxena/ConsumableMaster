@@ -44,16 +44,32 @@ executed instead, 656 cases per run. Three warning codes are also suppressed glo
 
 ## Perf
 
-Zero scenarios. This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip`
-rather than a transient tooling gap, and every bundle records it as one
-(`"skipReason": "no tests/perf.lua — this addon ships no offline scenarios"`). A skip is not a pass:
-two things follow, and both are standing facts rather than any one run's news — the record says
-**nothing** about the addon's runtime cost, and `performance-§9`'s zero-overhead evidence, that
-bracketed instrumentation is free when capture is off, does not exist for it. Adding scenarios is
-the only thing that changes either. The in-game side is empty too: the standing capture store
-`docs/perf-runs/` does not exist in this repo yet, tracked as deviation **CM-43**. So neither half of
-`performance-§8` has evidence here, and neither one would fill the other's gap — an offline scenario
-and a live capture are different measurements.
+**Four scenarios, and the column reads `pass`.** Every `skip` in the table above predates
+`tests/perf.lua`; the rows are left as they were recorded, because a run record is what that run
+measured and not what a later run would have.
+
+The suite drives `recompute` and `cooldownRefresh` — the out-of-combat pass and the
+near-frame-frequency in-combat path — plus the `probeOverheadOff` / `probeOverheadOn` pair that is
+`performance-§9`'s zero-overhead evidence: the same cooldown walk with the brackets dormant and
+armed. The dormant arm carries an **absolute** byte ceiling as well as the relation to the armed
+one, because a relation alone cannot go red when an allocation is added to the measured path itself
+— both arms rise together and the relation still holds. A third assertion counts the bucket notes an
+armed capture records, so a build where `core/PerfSetup.lua` returned early cannot masquerade as a
+perfect zero-overhead result.
+
+**Recorded, never gating** for a run or a commit; `automated-tests-§3` has it gate the tag, where a
+`skip` is not evaluated and a `pass` is.
+
+Standing gaps, both real and neither one filled by the other — an offline scenario and a live
+capture are different measurements:
+
+- The in-game half has no committed capture yet. `docs/perf-runs/` exists now with its README and
+  the naming convention (`performance-§8`), but no `<date>-ingame-<label>.json` has been filed.
+- Offline timings are orientation only. The machine-independent figures are the per-iteration byte
+  counts and the call counts; the millisecond columns say nothing across machines.
+
+Background, the bucket list and the gate idiom: [../performance.md](../performance.md). Record shape
+and naming: [../perf-runs/README.md](../perf-runs/README.md).
 
 ## Complexity watch list
 

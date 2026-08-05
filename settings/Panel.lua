@@ -16,7 +16,10 @@
 local _, NS = ...
 local KCM = NS
 local L = KCM.L
-local AceGUI = LibStub("AceGUI-3.0")
+-- Silent-mode (library-stack-§4): AceGUI is an OptionalDep, and the hard form
+-- raises during load on an install that lacks it. See settings/OptionsSetup.lua,
+-- which treats a nil AceGUI as a degraded load.
+local AceGUI = LibStub("AceGUI-3.0", true)
 
 KCM.Settings         = KCM.Settings         or {}
 KCM.Settings.Schema  = KCM.Settings.Schema  or {}
@@ -38,13 +41,24 @@ KCM.Settings.order = KCM.Settings.order or {
     "bloodlust", "battle_rez",
 }
 
+-- Helpers is the addon's own half of the settings framework AND the published
+-- view of LibKa0s-Options-1.0's instance. settings/OptionsSetup.lua creates this
+-- table and installs the instance as its __index, so every library member
+-- resolves off the LIVE instance at call time rather than off a snapshot taken
+-- at file load. That is the whole point: the copy-across this replaced
+-- re-exported eleven members by hand, and any member the list forgot — or any
+-- member bound while `UI` was still nil — read back nil at the call site with no
+-- way to tell it apart from a member the library never had (options-ui-§1). The
+-- addon's own wrappers below stay as OWN keys and shadow the library's
+-- same-named function, which is what keeps Section / CreatePanel / LSMValues
+-- able to call the instance's version without recursing into themselves.
 local Helpers = KCM.Settings.Helpers or {}
 KCM.Settings.Helpers = Helpers
 
 KCM.Options = KCM.Options or {}
 local O = KCM.Options
 
-local PANEL_TITLE   = L["Ka0s Consumable Master"]
+local PANEL_TITLE   = KCM.Settings.PANEL_TITLE
 -- PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
 -- separator all live in LibKa0s-Options-1.0's LAYOUT table now, carrying the
 -- same values they carried here.
@@ -71,8 +85,15 @@ end
 -- same 10, 6 and 8, and nothing in this file emits one by hand any more. The
 -- note above stays because the ARITHMETIC is still the reason the top gap looks
 -- small, and that reasoning belongs with the rows it explains.
-local SECTION_HEADING_H     = 26
-local BUTTON_PAIR_REL       = 0.492  -- paired action-button relative width (standard §6.8)
+--
+-- SECTION_HEADING_H (26) and BUTTON_PAIR_REL (0.492) used to be host copies
+-- here. They are not any more: options-ui-§8 says a host copy is the copy that
+-- goes stale, and the whole point of the library owning these is that five
+-- addons cannot drift apart. Both are published on the Options instance, which
+-- `Helpers` delegates to through its `__index`, so the two draw sites below read
+-- `Helpers.SECTION_HEADING_H` and `Helpers.BUTTON_PAIR_REL` directly. Neither
+-- site is reachable on a build without the library — nothing registers a panel
+-- there — so there is no nil arm to guard.
 
 local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
 local LOGO_PIXELS  = 300
@@ -158,7 +179,7 @@ function Helpers.ValidateSchema()
 end
 
 -- ---------------------------------------------------------------------
--- LibKa0s-Options-1.0 — the panel shell's seam
+-- LibKa0s-Options-1.0 — the panel shell's seam, read back
 -- ---------------------------------------------------------------------
 --
 -- Everything ABOVE this line is the schema half and stays the addon's: the
@@ -166,92 +187,21 @@ end
 -- below) the SetAndRefresh write seam. None of it touches the library, which is
 -- what keeps `/cm list|get|set` working on an install where LibKa0s is missing.
 --
--- What the library supplies is chrome: the panel factory, the lazy Defaults
--- button, the scroll container and the always-visible scrollbar patch. That
--- last block was hand-transcribed from KickCD — the comment above it said so
--- outright — and sits in the same shape in every Ka0s addon, which is the drift
--- the library exists to end. The metrics were compared constant by constant
--- before the swap (padding, header height, the three section spacers, the 0.492
--- button-pair inset, the scroll insets, the 20px gutter, the thumb tints, the
--- breadcrumb atlas) and they are identical, so nothing moves on screen.
---
--- Adopted in PARTS, deliberately. The schema-row widget makers further down are
--- NOT the library's: its dropdown reads `values` as a key map where ours is an
--- ordered array of { value =, text = }, its color picker defaults hasAlpha to
--- false where ours defaults it to true (all seven pickers would lose their
--- alpha slider), and its slider commits on mouse-up where ours commits live —
--- which is the whole point of the Macro Bar page's drag preview. Recorded in
--- docs/pending/LEDGER.md as LIBKA0S-04.
+-- The seam ITSELF — the :New call, its codecs and thunks, the __index binding
+-- and the degraded no-op arm — lives in settings/OptionsSetup.lua now
+-- (options-ui-§1, CM-A-14), which the TOC loads immediately before this file.
+-- What is left here is three file-scope reads of what it published.
 
-local optionsLib = LibStub and LibStub("LibKa0s-Options-1.0", true)
-local UI
+local UI = KCM.Settings.optionsUI
 
--- Forward-declared: Section, Grid and the makers below all call it as a local.
-local ensureScroll
-
-if optionsLib then
-    UI = optionsLib:New({
-        -- The one field lib:New validates, and it raises rather than warns: an
-        -- anonymous canvas is one /framestack cannot attribute and two addons
-        -- can collide on, with nothing visible in game. Reproduces the frame
-        -- name this panel has always carried.
-        mainPanelName = "KCMMainPanel",
-
-        -- The breadcrumb's left half, so a sub-page reads "<brand> > <page>".
-        parentTitle = PANEL_TITLE,
-
-        -- A thunk, not `KCM.Say` bare: the library snapshots the printer at
-        -- :New, so a captured value would freeze the load-time function object.
-        -- Same note as core/CoreSetup.lua's sink and modules/DebugLog.lua's
-        -- print. Inert in the adopted scope — both lines that reach it live in
-        -- the panel-registry half we do not use — but passed so a later step
-        -- cannot leak an untagged line.
-        print = function(line) KCM.Say(line) end,
-
-        -- The row makers are the library's now (LIBKA0S-04), so it needs the
-        -- two things this addon's own makers knew and it could not guess.
-        --
-        -- Colors are stored POSITIONALLY — { r, g, b, a } — which is the shape
-        -- the Ka0s options color widget has always written. The library's
-        -- default codec is the named-key form, so without this every picker
-        -- would read white and write a table nothing here can unpack.
-        colorDecode = function(c)
-            c = type(c) == "table" and c or {}
-            return c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1
-        end,
-        colorEncode = function(r, g, b, a) return { r, g, b, a or 1 } end,
-
-        -- Sliders commit on the drag, not just on release. The Macro Bar page's
-        -- number rows drive the bar itself — button size, spacing, scale,
-        -- alpha — so the live preview IS the feature. Release-only is the
-        -- library's default and would have taken it away silently.
-        sliderCommit = "change",
-
-        -- Resolved at CALL time, never captured: LibSharedMedia is optional and
-        -- other addons register media into it after this file loads, so a list
-        -- read once at :New would freeze whatever happened to exist first.
-        getLSM = function() return LibStub and LibStub("LibSharedMedia-3.0", true) end,
-
-        get = function(path) return Helpers.Get(path) end,
-        set = function(path, value) Helpers.SetAndRefresh(path, value) end,
-    })
-
-    -- Restated because the library resolves AceGUI once at :New and re-resolves
-    -- it only inside its own CreateOptionsPanel, which this addon never calls.
-    UI.AceGUI = AceGUI
-
-    Helpers.PatchAlwaysShowScrollbar = UI.PatchAlwaysShowScrollbar
-    ensureScroll = function(ctx) return UI.EnsureScroll(ctx) end
-    Helpers.EnsureScroll = ensureScroll
-
-    -- The instance, so the suite can assert IDENTITY against the library rather
-    -- than lookalike behavior. Mirrors KCM.DebugLog.instance.
-    Helpers.instance = UI
-end
+-- Section, Grid and the schema-row makers below all call it as a local.
+local ensureScroll = UI and UI.EnsureScroll
 
 -- Whether the panel can be built at all. Read by registerPanel and O.Open far
--- below; the schema half above neither reads it nor needs it.
-local libAbsent = not optionsLib
+-- below; the schema half above neither reads it nor needs it. Derived from the
+-- instance rather than from a second flag, so "the library answered" and "the
+-- panel can be built" cannot disagree.
+local libAbsent = not UI
 
 -- Said once, on the first attempt to REACH the panel, never at load: a degraded
 -- install still has a working addon and a working CLI, and stapling the notice
@@ -262,9 +212,17 @@ local function sayPanelUnavailable()
     if announcedMissing then return end
     announcedMissing = true
     if KCM.Say then
+        -- This USED to end "every setting is still reachable with /cm list,
+        -- /cm get and /cm set", which was the one thing it must not do: those
+        -- three are the schema CLI, they route through LibKa0s-Slash-1.0, and
+        -- with the library absent they are exactly the verbs that answer
+        -- "unavailable". Sending the user at them was sending them at a second
+        -- dead end. The verbs named here are the ones settings/Slash.lua's own
+        -- degraded arm reports as still working (CM-R-03).
         KCM.Say(KCM.LIBKA0S_MISSING ..
-            ", so the settings panel is unavailable; every setting is still " ..
-            "reachable with /cm list, /cm get and /cm set.")
+            ", so the settings panel is unavailable, and so are /cm list, " ..
+            "/cm get and /cm set. The rest of /cm still works — type /cm for " ..
+            "the list.")
     end
 end
 
@@ -273,10 +231,10 @@ end
 -- ---------------------------------------------------------------------
 
 -- Both the tooltip helper and the spacer/section pair below are
--- LibKa0s-Options-1.0's. Kept as file locals as well as published names because
--- the schema-row makers further down call them directly.
+-- LibKa0s-Options-1.0's. Kept as file locals because the schema-row makers
+-- further down call them directly; the PUBLISHED names come off the instance
+-- through Helpers' __index, so there is nothing to re-export here.
 local attachTooltip = UI and UI.AttachTooltip
-Helpers.AttachTooltip = attachTooltip
 
 -- ---------------------------------------------------------------------
 -- CreatePanel — the canvas Frame, its header and its Defaults button
@@ -348,7 +306,8 @@ end
 -- same sentence, different gray, and Options.lua has no L seam to override it.
 -- And a failing renderer is reported as "settings page '<key>' failed to
 -- render" rather than "panel render failed".
-Helpers.SetRenderer = UI and UI.SetRenderer
+--
+-- Same name in both, so Helpers.SetRenderer resolves through __index.
 
 -- Release scroll children + reset bookkeeping so a fresh render starts on
 -- a clean slate. Panels with dynamic content (priority list rows that
@@ -381,7 +340,6 @@ end
 -- ---------------------------------------------------------------------
 
 local addSpacer = UI and UI.AddSpacer
-Helpers.AddSpacer = addSpacer
 
 -- A wrapper rather than a bare binding, and the one line it adds is
 -- load-bearing. The library sets ctx.lastGroup only inside its own two-column
@@ -403,7 +361,7 @@ end
 --   color  -> ColorPicker ({ r, g, b, a } array in the DB)
 -- Every one routes its write through Helpers.SetAndRefresh so the widget path
 -- and the `/cm set` path share a single validate → write → onChange → refresh
--- seam (standard §4.5).
+-- seam (architecture-§5).
 -- ---------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------
@@ -454,8 +412,9 @@ function Helpers.LSMValues(mediaType)
     return out
 end
 
--- The dispatch itself, by row type. Every maker behind it is the library's.
-Helpers.RenderField = UI and UI.RenderField
+-- The dispatch itself, by row type, is the library's under the same name, so
+-- Helpers.RenderField resolves through __index. Every maker behind it is the
+-- library's too.
 
 -- ---------------------------------------------------------------------
 -- Inline action button helpers. `Button` produces a single full-width
@@ -499,12 +458,12 @@ function Helpers.ButtonPair(ctx, leftSpec, rightSpec)
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     row:SetHeight(28)
-    if leftSpec  then makeButton(row, leftSpec,  BUTTON_PAIR_REL) end
-    if rightSpec then makeButton(row, rightSpec, BUTTON_PAIR_REL) end
+    if leftSpec  then makeButton(row, leftSpec,  Helpers.BUTTON_PAIR_REL) end
+    if rightSpec then makeButton(row, rightSpec, Helpers.BUTTON_PAIR_REL) end
     scroll:AddChild(row)
 end
 
--- Two-column paired grid (standard §6.6), the library's. Each item is either a
+-- Two-column paired grid (options-ui-§6), the library's. Each item is either a
 -- schema def or a custom descriptor with a `make(ctx, parent, relWidth)`
 -- function; items render two per row at 0.5 relative width, and `wide = true`
 -- breaks one onto its own full-width row.
@@ -568,8 +527,11 @@ end
 -- This addon had both tiers first; the library grew them to match, which is
 -- what made the registry adoptable at all (LIBKA0S-05). The names and
 -- semantics are identical, so every caller here is unchanged.
-Helpers.RefreshAllPanels = UI and UI.RefreshAllPanels
-Helpers.RefreshScalars   = UI and UI.RefreshScalars
+--
+-- Both resolve through __index when the library is present and are the no-ops
+-- bound at the seam above when it is not, so the two bare calls below —
+-- SetAndRefresh's RefreshScalars and O.Refresh's RefreshAllPanels — are
+-- callable on BOTH paths.
 
 -- One validator per declared schema type, built once at file load. Each returns
 -- the coerced value, or nil + a reason the caller can put in front of the user.
@@ -628,13 +590,23 @@ Helpers.ValidateSchemaValue = validateSchemaValue
 
 -- The single mutation seam for schema-backed settings: validate → write →
 -- fire onChange → refresh panels. Both the panel widgets and /cm set route
--- through here (standard §4.5). Returns true on success.
+-- through here (architecture-§5). Returns true on success.
 function Helpers.SetAndRefresh(path, value)
     local def = Helpers.FindSchema(path)
     if not def then return false end
     local coerced, reason = validateSchemaValue(def, value)
-    if coerced == nil and value ~= nil then
-        KCM.Say("invalid value for " .. tostring(path) .. ": " .. tostring(reason))
+    -- `coerced == nil` alone, with no `and value ~= nil` escape clause. Every
+    -- validator rejects nil (nil is not a boolean, a number, a string or a
+    -- table), so the old second half let an EXPLICIT nil skip the report and
+    -- fall through to Helpers.Set(path, nil) — which does not "write nil", it
+    -- DELETES the key out of the profile. The row then read back as absent
+    -- rather than as its default, and SetAndRefresh returned true for it.
+    -- A typeless row has no validator and passes its value through untouched,
+    -- so it reaches here with coerced == value and is rejected on nil for the
+    -- same reason and with the same message.
+    if coerced == nil then
+        KCM.Say("invalid value for " .. tostring(path) .. ": "
+              .. tostring(reason or "value must not be nil"))
         return false
     end
     if not Helpers.Set(def.path, coerced) then return false end
@@ -644,7 +616,7 @@ function Helpers.SetAndRefresh(path, value)
     return true
 end
 
--- Published unified setter (standard §4.5): NS.Schema:Set(path, value).
+-- Published unified setter (architecture-§5): NS.Schema:Set(path, value).
 KCM.Schema = KCM.Schema or {}
 function KCM.Schema:Set(path, value)
     return Helpers.SetAndRefresh(path, value)
@@ -662,7 +634,7 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     label    = L["Enable"],
     tooltip  = L["Master enable for the addon. When off, the recompute pipeline is a no-op — macros keep their last-written body and stop updating with bag / spec / combat events."],
     -- Default sourced from the AceDB defaults constant, not a duplicated
-    -- literal, so the schema and the seeded profile can never drift (standard §4.5).
+    -- literal, so the schema and the seeded profile can never drift (architecture-§5).
     default  = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.enabled,
     onChange = function(v)
         local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
@@ -680,7 +652,7 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
 -- The debug flag is deliberately NOT a schema row: it is session-only state
 -- (KCM.State.debug, default off, never persisted) driven by DebugLog. The
 -- General page renders it as a custom State-backed checkbox instead (CM-14 /
--- standard §12.5).
+-- debug-logging-§5).
 
 -- ---------------------------------------------------------------------
 -- About content (parent canvas). Logo + addon notes + slash command list.
@@ -731,7 +703,7 @@ function Helpers.BuildAboutContent(ctx)
 
     local heading = AceGUI:Create("Heading")
     heading:SetFullWidth(true)
-    heading:SetHeight(SECTION_HEADING_H)
+    heading:SetHeight(Helpers.SECTION_HEADING_H)
     heading:SetText(L["Slash Commands"])
     if heading.label and heading.label.SetFontObject and _G.GameFontNormalLarge then
         heading.label:SetFontObject(_G.GameFontNormalLarge)
@@ -929,7 +901,7 @@ bootstrap:SetScript("OnEvent", function(self, event, arg1)
 end)
 
 -- ---------------------------------------------------------------------
--- Bus receivers (standard §4.4). The options layer owns the sole
+-- Bus receivers (architecture-§4). The options layer owns the sole
 -- subscriptions to PANEL_REFRESH (debounced rebuild of any open page) and
 -- SPEC_CHANGED (retrack the Stat Priority page to the new spec when the page
 -- is auto-tracking). Each is registered on its own target — never two on one.

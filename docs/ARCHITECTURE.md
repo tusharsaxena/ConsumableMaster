@@ -2,7 +2,7 @@
 
 Orient-yourself map for **Ka0s Consumable Master**. This file is the high-level index; topic detail lives alongside it in `docs/`. Ka0s WoW Addon Standard.
 
-## What it does
+## Overview
 
 Fifteen account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`, `KCM_HP_AIO`, `KCM_MP_AIO`) whose bodies auto-rewrite to point at the best consumable currently in your bags. Thirteen macros run a per-category scorer; two are composites that compose other categories' picks via combat conditionals. Identified by name, never by slot — coexists with every other macro in the user's account-wide pool.
 
@@ -18,14 +18,14 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 | Folder | Holds |
 |--------|-------|
 | `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the LSM widget fixup (LSMPatch), the `/cm dump` targets (SlashDump) and the slash **verb bodies** (SlashCommands) — the dispatcher itself is `settings/Slash.lua` |
-| `modules/` | Ranker, Selector, MacroManager, DebugLog console, PerfSetup (the A/B capture harness), the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
+| `modules/` | Ranker, Selector, MacroManager, DebugLog console, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + per-tab pages |
 | `locales/` | `enUS.lua` (`KCM.L`) — English only |
 
 `ConsumableMaster.toc` is the load-order source of truth (dependency order, not alphabetical).
 
-## Subsystems at a glance
+## Module Map
 
 ```
 WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─▶ Ranker     ─▶ candidate score
@@ -49,14 +49,14 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 |-----------|----------|------|
 | Per-module APIs + roles | `core/*.lua`, `modules/*.lua`, `settings/*.lua` | [module-map.md](./module-map.md) |
 | Recompute pipeline + score cache + events | `core/ConsumableMaster.lua` (`KCM.Pipeline`) | [pipeline.md](./pipeline.md) |
-| AceDB schema + opaque IDs + discovered GC | `core/ConsumableMaster.lua` (`KCM.dbDefaults`, `KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
+| AceDB schema + opaque IDs + discovered GC | `defaults/Profile.lua` (`KCM.dbDefaults`), `core/ConsumableMaster.lua` (`KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
 | MacroManager (body builders, composite assembly, combat deferral, action-bar icons) | `modules/MacroManager.lua` | [macro-manager.md](./macro-manager.md) |
 | Tooltip parsing + Midnight gotchas | `core/Classifier.lua`, `core/TooltipCache.lua` | [midnight-quirks.md](./midnight-quirks.md) |
 | Settings panel + slash CLI + schema layer | `settings/*.lua` (incl. `settings/Slash.lua`, the dispatcher), `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` + `core/SlashDump.lua` (verb bodies), `libs/LibKa0s/Slash.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
-| Debug console | `modules/DebugLog.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
-| Perf A/B capture (`/cm perf`) | `modules/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
+| Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
+| Perf A/B capture (`/cm perf`) | `core/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
@@ -69,7 +69,23 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Seed reference + patch-day refresh procedure | `defaults/` | [../defaults/README.md](../defaults/README.md) |
 | Pending-item decision ledger (deferred / closed, with rationale) | — | [pending/LEDGER.md](./pending/LEDGER.md) |
 
-## Message-bus catalog
+## Settings Schema
+
+Two layers, and it is worth keeping them apart.
+
+**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 2`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [data-model.md](./data-model.md) — this section does not duplicate them.
+
+**Declared scalars** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua:22` and appended to by the tab files. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings tab, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:286` hands the whole array to LibKa0s-Slash-1.0), and the validator applied on write by the `Resolve` → `SetAndRefresh` seam.
+
+```
+grep -c '^\s*path\s*=' settings/*.lua
+```
+
+reports **55 rows**: 54 `macroBar.*` rows in `settings/MacroBar.lua`, plus the master `enabled` row at `settings/Panel.lua:722-728`.
+
+Two things are deliberately *not* schema rows. `KCM.State.debug` is session-only and never persisted, so it has no path to declare (`settings/Panel.lua:743`). The per-category priority lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (`LIBKA0S-12` in [pending/LEDGER.md](./pending/LEDGER.md)).
+
+## Message Bus
 
 Cross-module control flow that crosses feature boundaries travels over the closed bus (`core/Bus.lua`), never by reaching into another module's tables. Pure-function queries (MacroManager asking Selector/Ranker/Classifier for data) stay direct synchronous calls — they are data reads, not control flow.
 
@@ -81,6 +97,41 @@ Cross-module control flow that crosses feature boundaries travels over the close
 | `PANEL_REFRESH` | `Ka0s_ConsumableMaster_PanelRefresh` | pipeline → options panel | The pipeline finished a pass; any open settings page does a debounced rebuild against the new picks. |
 | `SPEC_CHANGED` | `Ka0s_ConsumableMaster_SpecChanged` | spec change → options panel | Active spec changed; the Stat Priority page retracks to the new spec when auto-tracking. |
 | `MACROBAR_REFRESH` | `Ka0s_ConsumableMaster_MacroBarRefresh` | pipeline → macro bar | The pipeline finished a pass; the optional macro bar repaints slot icons + counts. Undebounced (unlike `PANEL_REFRESH`) because a live on-screen bar should track the macro it just rewrote. |
+
+## Slash Commands
+
+`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:87-195`, published as `KCM.COMMANDS` at `:199` so the About panel and the dispatcher read one source of truth (`slash-commands-§4`).
+
+Seventeen verbs are declared, in this order: `help`, `config`, `version`, `perf`, `debug`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `bar`, `priority`, `stat`, `aio`, `dump`. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; this file holds only the table and the dispatcher wiring. The user-facing description of each verb is the table in [README.md](../README.md).
+
+Six of the seventeen are library-backed, listed as `LIB_BACKED_VERBS` at `settings/Slash.lua:83-85`: `help`, `list`, `get`, `set` and `reset` bind to `Sl:PrintHelp` / `Sl:CliList` / `Sl:CliGet` / `Sl:CliSet` / `Sl:CliReset` at `:307-316`, and `perf` resolves `KCM.Perf` at call time. On a degraded install those are what stop working — the five schema-CLI verbs are rebound to the "unavailable" responder at `:339-340`, which names the eleven that still answer. `resetall` deliberately stays host-owned rather than binding `Sl:CliResetAll` (`LIBKA0S-12`, and the comment at `:312-315`).
+
+## Event Subscriptions
+
+Every client event this addon listens to is registered in one place — `KCM:OnEnable`, `core/ConsumableMaster.lua:649-657` — through AceEvent. No module body subscribes on its own, so the whole surface is readable at a glance.
+
+| Event | Handler | Purpose |
+|---|---|---|
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:556`) | Login and `/reload`: auto-discovery, then the discovered-set sweep, then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
+| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:582`) | Bag contents moved; re-run discovery and request a coalesced recompute |
+| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:587`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:597`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle |
+| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:611`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
+| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:632`) | A spell-backed candidate became known after the spell book hydrated; recompute |
+| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:640`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
+| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:576`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
+| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:576`) | The same repaint, from the item-cooldown side |
+
+Internal control flow that crosses a feature boundary does **not** ride a client event — it rides the closed bus above.
+
+## Taint Notes
+
+The addon's protected surface is small and deliberately fenced.
+
+- **`modules/MacroManager.lua` is the only caller of the protected macro writers.** `CreateMacro` (`:309`) and `EditMacro` (`:320`) appear nowhere else in the tree, and `DeleteMacro` is never called at all. Every engine module the pipeline calls — Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper — is pure, so a recompute can run mid-combat without touching a protected API.
+- **The macro bar owns the only protected frames.** Slots and flyout entries are secure buttons: creating, anchoring, showing or hiding them is combat-forbidden. Everything funnels through `MacroBar.Update()`, which defers to `PLAYER_REGEN_ENABLED`. Combat-conditional visibility goes to `RegisterStateDriver`, flyout hover to `_onenter` / `_onleave` snippets, and combat state reaches those snippets via `RegisterAttributeDriver` — the decisions happen inside the secure environment rather than in tainted Lua. A slot's `macro` attribute is stamped once at creation and never rewritten.
+- **Restricted (secret) values are tested before they are touched.** Midnight wraps combat-restricted data — cooldown start/duration among it — in opaque values that raise on comparison or arithmetic. Any gate over client data asks `KCM.Compat.IsSecret` first, and `core/MacroDisplay.lua` hands the opaque `C_DurationUtil` object straight back to the client rather than unpacking it ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
+- **Options registration is not combat-gated; only opening is.** Registering a Blizzard settings category never taints, so registration runs eagerly at load. What is gated is the *open* path — `settings/Panel.lua:962` turns a mid-fight `/cm config` into a chat notice instead of a silent failure — and the panel's Defaults action, `settings/Panel.lua:369`, for the same reason.
 
 ## Invariants worth not breaking
 
@@ -135,19 +186,20 @@ dot-callable** names as thin forwarders onto that instance, publishes the instan
 | Major | Host half | What the addon keeps |
 |---|---|---|
 | `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on |
-| `DebugLog-1.0` | `modules/DebugLog.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
+| `DebugLog-1.0` | `core/DebugLogSetup.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
 | `Slash-1.0` | `settings/Slash.lua` | the `COMMANDS` table and the `STRINGS` overrides that keep this addon's shipped wording (both passed in, never owned). The verb bodies and their `*_COMMANDS` namespaces stay in `core/SlashCommands.lua`, the `/cm dump` targets in `core/SlashDump.lua`, and the `KCM_CONFIRM_RESET` popup with the verbs (CM-47). |
-| `Options-1.0` | `settings/Panel.lua` | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order and the `KCM.Options` shim |
-| `Perf-1.0` | `modules/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, the three sinks and the `suspend`/`resume` pair |
+| `Options-1.0` | `settings/OptionsSetup.lua` (the seam) + `settings/Panel.lua` (the addon's half) | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order and the `KCM.Options` shim |
+| `Perf-1.0` | `core/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, the three sinks and the `suspend`/`resume` pair |
 
 Three rules here are load-bearing rather than stylistic:
 
 1. **Never bind a printer or a prefix by value.** Every `lib:New` snapshots its descriptor once, so a
    captured `KCM.Say` freezes the load-time function object and every later swap — including the
    suite's — goes unseen. Pass a thunk.
-2. **A degradation stub's OMISSIONS are its contract.** `modules/DebugLog.lua` publishes no `AddLine`
-   precisely because that absence re-arms `core/Debug.lua`'s chat fallback; a no-op would swallow
-   every diagnostic while the addon looked healthy. `settings/Panel.lua` registers no Blizzard
+2. **A degradation stub's OMISSIONS are its contract.** `core/DebugLogSetup.lua` publishes no
+   `instance` precisely because that absence re-arms `core/Debug.lua`'s chat fallback — the emitter
+   at `core/Debug.lua:39-40` probes `DL and DL.instance`, not any named method. It publishes no
+   `AddLine` either, so a stub can never silently swallow `core/PerfSetup.lua`'s ungated perf log. `settings/Panel.lua` registers no Blizzard
    category at all, because one opening onto an empty canvas would leave the user unable to tell a
    broken install from a broken addon. `KCM.LIBKA0S_MISSING` (set in `core/CoreSetup.lua`) is the one
    shared cause clause; each seam appends only its own "so *what* is unavailable".
@@ -169,12 +221,23 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), AceGUI-3.0-SharedMediaWidgets, then LibKa0s last, listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS`) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
-4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`
-5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → `PerfSetup` (after DebugLog, whose ungated `AddLine` is where its run log goes) → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
-6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
+3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
+4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
+5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
+6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab` and the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
+
+## Known Limitations
+
+Things that are true today, understood, and not bugs. Each is either a ratified deviation with its own register row below, or a consequence of a client rule this addon cannot argue with.
+
+- **English clients only, for tooltip magnitudes.** Category and weapon-affinity detection are locale-independent (numeric `classID` / `subClassID`), but `core/TooltipCache.lua` reads heal / mana / stat magnitudes, the `Augment Rune` marker and the weapon-application effect out of English tooltip text. Ratified below against `localization-§4`; reasoning in [scope.md](./scope.md).
+- **A flyout cannot auto-close mid-combat.** The idle auto-close is a `C_Timer`, and there is no timer inside the secure environment, so a flyout opened as combat starts stays open until the hover state changes or combat ends. It deliberately stands down rather than attempting a hide the client would refuse ([macro-bar.md](./macro-bar.md#closing)).
+- **Macro-bar changes made in combat land late.** Building, relayouting or restyling the bar anchors protected frames, so `MacroBar.Update()` defers the whole batch to `PLAYER_REGEN_ENABLED`. The same is true of macro writes, which queue in MacroManager and flush on regen.
+- **A pick can be briefly wrong while item data hydrates.** `C_TooltipInfo` and `GetItemInfo` are asynchronous; an item whose body has not arrived is cached `pending` and re-parsed on the next `Get()`, but until then it scores on what was readable.
+- **The perf harness measures in-combat cost only.** Recording opens at combat start and closes at combat end by design, so the addon's genuinely expensive paths — the flyout rebuild, `MacroBar.Update`, macro writes — never appear in a capture, because they are deliberately not in combat (`core/PerfSetup.lua:12-25`).
+- **The addon never deletes a `KCM_*` macro.** The account macro quota is 120; when it is full, `modules/MacroManager.lua:306-308` refuses the create and returns `"error", "account macro quota full (120)"`. It will not free a slot on the user's behalf.
 
 ## Repository
 
@@ -187,3 +250,18 @@ Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMast
 - **Tracked vs ignored.** `libs/` is tracked (vendored Ace3 / LibSharedMedia / LibKa0s — standard WoW
   addon practice), as are `defaults/`, `docs/`, `tests/`, `locales/` and all `.lua` source.
   `.gitignore` covers `.claude/settings.local.json`, OS cruft and editor scratch files.
+
+## Documented deviations
+
+The single home for a ratified deviation from the Ka0s WoW Addon Standard (`documentation-§3`). A
+decision may be reasoned at length elsewhere — `docs/scope.md`, an audit or review bundle — but a
+deviation that is not in this table is not ratified, and an audit re-files it as an open failure.
+The **Re-check trigger** is the condition that ends the deviation; a row without one is a permanent
+opt-out wearing a table's clothes.
+
+| Rule | What differs | Why | Decided | Re-check trigger |
+|---|---|---|---|---|
+| `localization-§4` | `core/TooltipCache.lua` parses English tooltip **text** — heal/mana/stat magnitudes, the `Augment Rune` marker, and the weapon-application effect | There is no stable-ID substitute for reading a numeric magnitude out of free text. The deviation is deliberately narrow: item and weapon **classification** already runs on the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua:167-170`, `core/WeaponSlots.lua`), so category and weapon-affinity detection work on every client. Reasoned at `docs/scope.md` → *Out of scope* → Localization; audit finding `CM-A-01` | 2026-08-05 | A client API that exposes those magnitudes as structured data, or the first non-enUS client this addon commits to supporting |
+| `toc-file-§5` | The within-`core/` file sequence is `Namespace → ConsumableMaster → Bus → Constants → CoreSetup → Compat → State → Database`, not the section's illustrative `Compat → Constants → Namespace` | `core/Namespace.lua` bootstraps the private `KCM` table that Compat and Constants attach **to**, so it cannot come after them, and `core/CoreSetup.lua` builds `KCM.Say` from `KCM.PREFIX` and so must sit after `core/Constants.lua`. `toc-file-§5`'s only MUST is the **section-header** order — Libraries → Locales → Core → Defaults → Modules → Settings — which this TOC satisfies; the within-section sequence in its code block is illustrative. Rationale is also carried in the TOC's own comments (`ConsumableMaster.toc:42-47`, `:52-54`); audit finding `CM-A-16` (filed as `CM-49`) | 2026-08-05 | `toc-file-§5` making the within-section file sequence an ordered MUST |
+| `compat` | `core/TooltipCache.lua:459` and `modules/Ranker.lua:88` call the `GetItemInfo` global directly, with none of the "namespaced first, legacy global as fallback" chain that `core/Classifier.lua:164-170` and `core/WeaponSlots.lua:33-36` use for the same item-info family | The neighbours' chain reaches for `C_Item.GetItemInfoInstant`, which is a **different** API: it returns itemID, type, subType, equip location, icon, `classID` and `subClassID`, and no name, quality, item level or required level. The two sites here need exactly those async fields, so `GetItemInfoInstant` has nothing to offer them and the chain would be a fallback with no first branch. `compat`'s routing MUST is scoped to **deprecated** APIs; `GetItemInfo` and `GetItemCount` are live retail globals, so routing them through `core/Compat.lua` would add a seam over an API that is not moving. The `.luacheckrc` comment that used to assert they were wrapped was false and is corrected in place. Review finding `CM-R-10`, audit finding `CM-A-30` | 2026-08-05 | Blizzard deprecating the `GetItemInfo` / `GetItemCount` globals, or a namespaced replacement becoming the only source of an item's name, quality and item level |
+| `preview-mode` | The macro bar shows no synthetic **placeholder** while unlocked, and has no preview verb to toggle | The rule's placeholder clause is a SHOULD, and it exists so a positionable display is never an invisible frame the user cannot aim. This bar cannot be that: every enabled slot draws a real button on every pass, and `core/MacroDisplay.lua`'s `MD.Texture` degrades pick icon → stored macro icon → `MD.FALLBACK_ICON` (`:24`), so a slot always has something to draw even with an empty bag and unhydrated item data. Unlocked is also already unmistakable without fake data — `modules/MacroBar.lua`'s `applyLock` shows a translucent gold wash over the whole frame and a labelled drag handle above it. A placeholder here would have to *replace* live, correct icons and counts with invented ones, and the bar's footprint is a function of the real slot count, so a preview would move the very thing being positioned. Bullet 3's MUST — clear the preview on re-lock or on the verb going off — has nothing to clear, because nothing is ever previewed. Audit finding `CM-A-34` | 2026-08-05 | The bar gaining any state in which a slot renders blank or the frame renders empty (a slot that draws nothing when a category has no candidate, an unlocked bar with every slot hidden), **or** a preview / test verb being added to `/cm` — either one re-arms the placeholder SHOULD and bullet 3's clear-on-re-lock MUST with it |

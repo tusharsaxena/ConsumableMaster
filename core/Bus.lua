@@ -1,4 +1,4 @@
--- core/Bus.lua — the closed cross-module message bus (standard §4.4).
+-- core/Bus.lua — the closed cross-module message bus (architecture-§4).
 --
 -- Modules never reach into each other's tables to trigger work; instead the
 -- event layer and the pipeline publish named messages on KCM.bus, and each

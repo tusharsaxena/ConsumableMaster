@@ -1,4 +1,4 @@
-# CLAUDE.md
+# CLAUDE.md — Ka0s Consumable Master
 
 **Ka0s Consumable Master** — an auto-managed consumable-macro addon for WoW: Midnight (Interface 120007, Ace3, Lua 5.1, English only).
 
@@ -38,7 +38,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
   through its confirmation flow authorizes `git add` + `git commit` on the files it named. Pushing
   still needs a separate ask.
 - **Never bump the version without an explicit instruction.** Not `KCM.VERSION`
-  (`core/ConsumableMaster.lua`), not `## Version:` in the TOC, not the README badge or inline
+  (`core/Namespace.lua`), not `## Version:` in the TOC, not the README badge or inline
   version, and no changelog entry. Releases are the user's call.
 - **Don't create docs or planning files unless asked.** Be terse, cite `file_path:line_number`, and
   comment only where the *why* is non-obvious.
@@ -53,7 +53,8 @@ are **frozen history** — never treat them as a live requirement, and never "re
   addon, with WSL2/Ubuntu commands and a verification command per tool (`documentation-§7`).
 - Topic detail in `docs/` as needed — `file-index.md`, `module-map.md`, `pipeline.md`,
   `data-model.md`, `macro-manager.md`, `macro-bar.md`, `midnight-quirks.md`, `common-tasks.md`,
-  `debug.md`, `scope.md`, `smoke-tests.md`, `test-cases.md`, `automated-tests/`, `pending/LEDGER.md`.
+  `debug.md`, `performance.md`, `perf-runs/`, `scope.md`, `smoke-tests.md`, `test-cases.md`,
+  `automated-tests/`, `pending/LEDGER.md`.
   `test-cases.md` is **generated** — never hand-edit it. So is `automated-tests/RESULTS.md`, and a run bundle is frozen once written.
 - User-facing reference: [README.md](./README.md).
 
@@ -68,8 +69,11 @@ Both must be green before committing. Neither gate can see the vendored library,
 
 **At release, not at commit.** Produce a full automated-test bundle with
 `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` and review its diff before the tag — in the same
-change that bumps the version. It is a **report, not a gate**: never block a commit on it, never
-tune the invocation, never hand-edit the output. Rule: `performance-§10`; how-to:
+change that bumps the version. Between commits it is a **report, not a gate**: never fail a run or
+block a commit on it, never tune the invocation, never hand-edit the output. **At the tag it gates** —
+`/wow-addon:bump-version` refuses the bump unless the release run's `manifest.json` shows all four
+suites at `pass` and zero functions above CCN 15, where a `skip` is not evaluated rather than a pass.
+Rules: `performance-§10`, `automated-tests-§3`; how-to:
 [docs/testing.md](./docs/testing.md#automated-test-records--the-consolidated-run).
 
 **Static badges (Hard rule).** The README `[WoW]` and `[Tests]` badges are static and go stale silently — update each in the same change that moves its source. `[Tests]` ↔ `docs/test-cases.md`: when the suite changes (a case added/removed/renamed, or the pass count moves — i.e. whenever a failing test is resolved), regenerate (`lua5.1 tests/run.lua --list > docs/test-cases.md`) and bump the `Tests-<X>/<Y>_passing` count. `[WoW]` ↔ TOC `## Interface:`: both MUST show the same number and move together on every patch bump. Never defer to a follow-up. Details: [docs/testing.md](./docs/testing.md#test-case-inventory--badge).

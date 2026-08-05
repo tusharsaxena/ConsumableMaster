@@ -1,6 +1,6 @@
 -- tests/test_classifier.lua — Classifier.Match / Classifier.MatchAny coverage.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- ---- FOOD: Food & Drink + heal, not hasStatBuff ----------------------------

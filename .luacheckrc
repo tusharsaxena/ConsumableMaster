@@ -15,20 +15,27 @@ exclude_files = {
     "tests/",
 }
 
--- Conventional-in-Ace / intentional patterns, plus two pre-existing dead-code
--- smells tracked as follow-ups (not fixed in this compliance pass):
+-- Conventional-in-Ace / intentional patterns. Both are properties of code we
+-- mean to keep, not known defects parked behind a suppression:
 --   212 — unused arguments (self on widget methods, event/reason on handlers)
 --   542 — intentional empty branch (CSV skip in /cm stat secondary)
---   241 — TooltipCache.pendingIDs set is populated but never read  [follow-up]
-ignore = { "212", "542", "241" }
+ignore = { "212", "542" }
 
 -- The SavedVariables table is written by us. Frame-registry tables receive
 -- field assignments (StaticPopupDialogs[...], tinsert(UISpecialFrames, ...)) so
 -- they must be writable, not read_globals. State is threaded through the private
--- NS table (local KCM = NS), so there is no addon global to declare (standard §4.1),
+-- NS table (local KCM = NS), so there is no addon global to declare (architecture-§1),
 -- and slash globals are registered dynamically by AceConsole, not by name here.
 globals = {
     "ConsumableMasterDB",
+    -- The perf harness's own ring of captures, declared alongside
+    -- ConsumableMasterDB at ConsumableMaster.toc:11 and kept separate from the
+    -- AceDB tree on purpose (the TOC comment there says why). LibKa0s-Perf
+    -- writes the global directly, so it is written by us in exactly the sense
+    -- ConsumableMasterDB is — and a declared SavedVariable that this file does
+    -- not name reads as a typo the moment anything here touches it
+    -- (performance-§5).
+    "ConsumableMasterPerfDB",
     "StaticPopupDialogs",
     "UISpecialFrames",
 }
@@ -53,7 +60,10 @@ read_globals = {
     -- Combat / unit
     "InCombatLockdown", "UnitClass", "UnitLevel", "UnitName", "UnitGUID",
     "IsPlayerSpell", "IsSpellKnown", "PlayerHasToy", "GetInventoryItemID",
-    -- Spec APIs (wrapped by core/Compat.lua)
+    -- Spec APIs. core/Compat.lua wraps exactly four of these — GetSpecialization,
+    -- GetSpecializationInfo, GetNumSpecializationsForClassID and
+    -- GetSpecializationInfoForClassID — each as the legacy fallback behind the
+    -- C_SpecializationInfo namespace. GetClassInfo is read directly.
     "GetSpecialization", "GetSpecializationInfo", "GetNumSpecializations",
     "GetSpecializationInfoForClassID", "GetNumSpecializationsForClassID",
     "GetClassInfo", "C_SpecializationInfo",
@@ -63,7 +73,13 @@ read_globals = {
     -- C_CurveUtil + Enum.LuaCurveType are the GCD-suppress step curve
     -- (modules/MacroBarButton.lua), same secret-safe pattern.
     "issecretvalue", "C_DurationUtil", "C_CurveUtil", "Enum",
-    -- Spell / item (legacy globals wrapped by core/Compat.lua)
+    -- Spell / item. Of these, only GetSpellInfo goes through core/Compat.lua —
+    -- it is the deprecated last fallback inside Compat.GetSpellName, behind
+    -- C_Spell.GetSpellName and C_Spell.GetSpellInfo. The item globals are NOT
+    -- wrapped: GetItemInfo, GetItemInfoInstant and GetItemCount are live retail
+    -- globals, not deprecated ones, so `compat`'s routing rule does not reach
+    -- them and callers read them directly (see docs/ARCHITECTURE.md's deviation
+    -- register for the two direct GetItemInfo call sites).
     "GetSpellInfo", "GetSpellCooldown", "GetItemInfo", "GetItemInfoInstant",
     "GetItemCount",
     -- Macro APIs. Only the PROTECTED writers (CreateMacro/EditMacro/DeleteMacro)

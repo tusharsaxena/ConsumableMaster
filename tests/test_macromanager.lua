@@ -1,7 +1,7 @@
 -- tests/test_macromanager.lua — pure body builders in MacroManager.lua:
 --   M.BuildBody(catKey, itemID) and M.BuildCompositeBody(cat, pickFor).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Shared HP_AIO composite picks: HS + HP_POT are in-combat refs, FOOD is the

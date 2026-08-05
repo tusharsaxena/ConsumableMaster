@@ -1,6 +1,8 @@
 # defaults/ — seed item IDs and stat priorities
 
-Everything in this folder is **seed data**, not persistent user state. Files here are evaluated at addon load and written into `KCM.SEED.*` constants. The runtime candidate set for each category is computed as:
+One file here is not seed data: `Profile.lua` holds `KCM.dbDefaults`, the AceDB defaults tree, and is the single declaration site for every shipped default value (`savedvariables-§2`) — schema rows, page fallbacks and migrations read through it rather than restating a literal.
+
+Everything else in this folder is **seed data**, not persistent user state. Files here are evaluated at addon load and written into `KCM.SEED.*` constants. The runtime candidate set for each category is computed as:
 
 ```
 candidates = SEED ∪ db.added ∪ db.discovered − db.blocked
@@ -12,6 +14,7 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 
 | File                          | Populates            | Purpose                                                      |
 | ----------------------------- | -------------------- | ------------------------------------------------------------ |
+| `Profile.lua`                 | `KCM.dbDefaults`     | The AceDB defaults tree: `global.schemaVersion`, `profile.enabled`, the per-category buckets, `statPriority` / `macroState` and the whole `macroBar` table |
 | `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key); composite rows for HP_AIO / MP_AIO |
 | `Defaults_StatPriority.lua`   | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` |
 | `Defaults_Food.lua`           | `KCM.SEED.FOOD`      | Basic Well Fed food (non-stat); may include spell sentinels (e.g. Recuperate) |

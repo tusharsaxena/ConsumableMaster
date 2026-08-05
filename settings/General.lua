@@ -63,7 +63,7 @@ local function doResetAll()
     H.RefreshAllPanels()
 end
 
--- Top-right Defaults button (standard §6.5) resets THIS page only: the
+-- Top-right Defaults button (options-ui-§5) resets THIS page only: the
 -- persisted master enable back to its default, and the debug console back to
 -- its login state — logging off AND the window hidden (the [Debug console]
 -- checkbox mirrors window visibility, so hiding it unchecks the box). The
@@ -100,7 +100,7 @@ local function render(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
 
-    -- General: two-column paired grid (standard §6.6). [Enable] is the
+    -- General: two-column paired grid (options-ui-§6). [Enable] is the
     -- schema-backed master toggle; [Debug console] shows/hides the console
     -- WINDOW only — it never touches the session debug flag (KCM.State.debug),
     -- exactly like a bare `/cm debug` (debug-logging-§5). Logging is armed
@@ -156,7 +156,7 @@ local function Build(mainCategory)
 
     local ctx = H.CreatePanel("KCMGeneralPanel", L["General"], {
         panelKey = "general",
-        -- Top-right Defaults button (standard §6.5) → resets this page only
+        -- Top-right Defaults button (options-ui-§5) → resets this page only
         -- (master enable + session debug console), NOT the whole DB.
         defaultsAction = doResetGeneralPage,
     })

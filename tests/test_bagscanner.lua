@@ -1,6 +1,6 @@
 -- test_bagscanner.lua — bag enumeration + ownership (KCM.BagScanner).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()

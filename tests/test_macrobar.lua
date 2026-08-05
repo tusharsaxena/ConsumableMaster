@@ -9,7 +9,7 @@
 -- behavior can only be validated in-game (docs/smoke-tests.md). The flyout's
 -- candidate SOURCE is covered in tests/test_selector.lua
 -- (Selector.ListAvailable).
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function cfg(over)
@@ -917,6 +917,166 @@ test("macrobar schema: every macroBar row validates and resolves against the db"
     end
     t.truthy(rows >= 20, "the Macro Bar page registered its rows (" .. rows .. ")")
 end)
+
+-- CM-R-05's two flags. `macroBar.enabled` and `macroBar.locked` used to have TWO
+-- write paths: the page's checkbox went through Helpers.SetAndRefresh while
+-- MB.SetEnabled / MB.SetLocked — which is every `/cm bar on|off|lock|unlock` —
+-- assigned the profile field directly. Two user-visible consequences:
+--   1. `/cm bar lock` with the Macro Bar page open left the checkbox stale.
+--   2. `macroBar.locked` had no onChange at all, so `/cm set macroBar.locked true`
+--      wrote a flag and NOTHING on screen changed — the bar stayed grabbable.
+--
+-- The two cases below observe those two symptoms directly, on the frame and on
+-- the rendered widget. Asserting that the row "carries an onChange of type
+-- function" would not: `function() end` satisfies it, and a build whose
+-- ApplyLock is a no-op is exactly the bug.
+
+-- The container is a file-local in modules/MacroBar.lua, built lazily by the
+-- first MB.Update() — so the only way to reach the frame the user actually sees
+-- is to watch CreateFrame across that first build. Returns a plain record of the
+-- four things applyLock()/applyVisibility() drive, none of which the shared
+-- frame stub keeps for itself.
+local function buildMacroBar(KCM)
+    local mock = h.loader.mock
+    local seen = {}
+    local realCreate = _G.CreateFrame
+    local frames = {}
+    _G.CreateFrame = function(kind, name, parent, template)
+        local f = realCreate(kind, name, parent, template)
+        if name then frames[name] = f end
+        if name == "KCMMacroBar" then
+            -- wow_mock's CreateTexture answers from the frame's own metatable and
+            -- hands the FRAME back, so `bar.moveHint` would BE `bar` and the gold
+            -- unlocked wash could not be told apart from the bar's own
+            -- visibility. Hand out a distinct object for this one frame.
+            f.CreateTexture = function()
+                local tex = mock.makeStub()
+                tex.Show = function() seen.hintShown = true end
+                tex.Hide = function() seen.hintShown = false end
+                return tex
+            end
+        end
+        return f
+    end
+    KCM.MacroBar.Update()
+    _G.CreateFrame = realCreate
+
+    local bar, handle = frames.KCMMacroBar, frames.KCMMacroBarHandle
+    bar.EnableMouse = function(_, on) seen.mouseEnabled = on and true or false end
+    bar.Show        = function() seen.barVisible = true end
+    bar.Hide        = function() seen.barVisible = false end
+    handle.SetShown = function(_, on) seen.handleShown = on and true or false end
+    return seen, bar, handle
+end
+
+test("macrobar schema: locking and unlocking reaches the bar frame, whichever surface asked",
+    function(t)
+        -- Symptom 2. What the user is promised by `/cm bar lock` is a bar that
+        -- has stopped eating clicks, with no drag handle and no gold wash — so
+        -- that is what is observed, on the frame, rather than the flag's value
+        -- or the shape of the row that carries the onChange.
+        --
+        -- red under: making MB.ApplyLock a no-op, dropping the `macroBar.locked`
+        -- row's onChange, or reinstating a direct `c.locked = …` in MB.SetLocked.
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+        local seen = buildMacroBar(KCM)
+
+        -- Supplementary, and deliberately not the load-bearing assertion: an
+        -- exact call count would redden on a correct build that reached the page
+        -- through RefreshAllPanels or refreshed twice harmlessly.
+        local refreshes = 0
+        local realRefresh = H.RefreshScalars
+        H.RefreshScalars = function(...) refreshes = refreshes + 1; return realRefresh(...) end
+
+        -- `/cm bar lock`
+        t.eq(KCM.MacroBar.SetLocked(true), true, "the write reports success")
+        t.eq(KCM.db.profile.macroBar.locked, true, "the flag landed")
+        t.eq(seen.mouseEnabled, false, "the locked bar stops swallowing clicks")
+        t.eq(seen.handleShown, false, "and the drag handle is gone")
+        t.eq(seen.hintShown, false, "and the gold unlocked wash is cleared")
+
+        -- `/cm bar unlock`
+        KCM.MacroBar.SetLocked(false)
+        t.eq(seen.mouseEnabled, true, "unlocking makes the bar grabbable again")
+        t.eq(seen.handleShown, true, "the drag handle comes back")
+        t.eq(seen.hintShown, true, "and the gold wash says which frame is grabbable")
+
+        -- `/cm set macroBar.locked true` — the other caller of the same seam,
+        -- which is the write that used to land and do nothing at all.
+        KCM.Schema:Set("macroBar.locked", true)
+        t.eq(seen.mouseEnabled, false, "a raw schema write applies to the frame too")
+        t.eq(seen.handleShown, false, "…handle and all")
+
+        -- `/cm bar off` / `/cm set macroBar.enabled true`
+        KCM.MacroBar.SetEnabled(false)
+        t.eq(KCM.db.profile.macroBar.enabled, false, "/cm bar off stored the flag")
+        t.eq(seen.barVisible, false, "and the bar actually left the screen")
+        KCM.Schema:Set("macroBar.enabled", true)
+        t.eq(seen.barVisible, true, "and a schema write brings it back")
+
+        t.truthy(refreshes >= 1, "the writes went through the page-refreshing seam")
+        H.RefreshScalars = realRefresh
+    end)
+
+test("macrobar schema: a flag written from /cm re-syncs the open Macro Bar page in place",
+    function(t)
+        -- Symptom 1, observed on the rendered widget: the value the checkbox
+        -- DISPLAYS, after a write that never went near the page.
+        --
+        -- red under: reinstating the direct `c.locked = …` / `c.enabled = …`
+        -- writes in MB.SetLocked / MB.SetEnabled, or dropping the refresher
+        -- registration the library makes for a bool row.
+        local KCM  = h.loader.loadFullAddon()
+        local mock = h.loader.mock
+        local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
+        buildMacroBar(KCM)   -- so the two onChanges have a frame to talk to
+
+        -- Capture every checkbox the page draws, keyed by the label the user
+        -- reads, and record what each one is told to display.
+        local boxes = {}
+        local realAceGUI = UI.AceGUI
+        UI.AceGUI = setmetatable({
+            Create = function(_, kind)
+                local w = mock.makeAceWidget()
+                if kind == "CheckBox" then
+                    w.SetLabel = function(self, label) boxes[label] = self; return self end
+                    w.SetValue = function(self, v) self.__value = v; return self end
+                end
+                return w
+            end,
+            RegisterWidgetType = function() end,
+            RegisterLayout     = function() end,
+            GetWidgetVersion   = function() return 0 end,
+        }, { __index = function() return function() end end })
+
+        KCM.MacroBar.SetLocked(false)
+
+        local builder = KCM.Settings.builders and KCM.Settings.builders.macrobar
+        t.truthy(builder, "the Macro Bar tab registered a builder")
+        builder({})
+        local ctx = UI.__panelFor("macrobar")
+        t.truthy(ctx, "…and its ctx landed in the library's registry")
+        ctx.panel.IsShown = function() return true end
+        H.RefreshAllPanels()
+
+        local lockBox   = boxes[KCM.L["Lock position"]]
+        local enableBox = boxes[KCM.L["Enable macro bar"]]
+        t.truthy(lockBox, "the Bar section drew the lock checkbox")
+        t.truthy(enableBox, "the Bar section drew the enable checkbox")
+        t.eq(lockBox.__value, false, "it opens showing the stored value")
+
+        KCM.MacroBar.SetLocked(true)
+        t.eq(lockBox.__value, true, "/cm bar lock re-syncs the open page, no rebuild needed")
+
+        KCM.Schema:Set("macroBar.locked", false)
+        t.eq(lockBox.__value, false, "and so does /cm set macroBar.locked false")
+
+        KCM.MacroBar.SetEnabled(false)
+        t.eq(enableBox.__value, false, "the enable checkbox tracks /cm bar off the same way")
+
+        UI.AceGUI = realAceGUI
+    end)
 
 test("macrobar schema: enum rows reject a value outside their list", function(t)
     local KCM = h.loader.loadFullAddon()

@@ -27,6 +27,13 @@ local KCM = NS
 KCM.MacroBar = KCM.MacroBar or {}
 local MB = KCM.MacroBar
 
+-- The perf probe, a LOAD-TIME upvalue rather than a KCM lookup inside the
+-- bracket (performance-§2). core/PerfSetup.lua sits near the top of the TOC's
+-- # Core section, far ahead of this file. Nil-tolerant for the same reason it is
+-- in core/ConsumableMaster.lua: a build without the vendored library publishes
+-- no harness at all, and the bar must not care.
+local Perf = KCM.Perf
+
 local BAR_NAME       = "KCMMacroBar"
 local FADE_THROTTLE  = 0.1    -- seconds between mouse-over polls in fade mode
 local BACKDROP_TEX   = [[Interface\Buttons\WHITE8X8]]
@@ -285,10 +292,6 @@ end
 -- Public surface
 -- ---------------------------------------------------------------------------
 
-function MB.IsShown()
-    return (bar and bar:IsShown()) and true or false
-end
-
 function MB.Refresh()
     if not bar then return end
     local c = cfg() or {}
@@ -313,21 +316,20 @@ end
 -- plus every shown flyout row. That makes it the bucket worth attributing when a
 -- perf capture shows a delta.
 --
--- The gate is two table lookups when no capture is running — cheaper than the
--- KCM.Debug.IsOn() gate the pipeline already accepts — and it MUST be a gate:
+-- The gate is an upvalue read, a nil test and a field read when no capture is
+-- running — no table lookup through KCM at all — and it MUST be a gate:
 -- Note() records unconditionally, so an ungated bracket would accumulate outside
 -- any window and poison the next report.
 function MB.RefreshCooldowns()
     if not bar then return end
-    local perf = KCM.Perf
-    local t0 = (perf and perf.on) and debugprofilestop() or nil
+    local t0 = (Perf and Perf.on) and debugprofilestop() or nil
     for _, btn in pairs(buttons) do
         KCM.MacroBarButton.RefreshCooldown(btn)
         -- Flyout cooldowns too: a potion's cooldown starting mid-fight is the
         -- common case, and repainting a Cooldown frame is unprotected.
         if KCM.MacroBarFlyout then KCM.MacroBarFlyout.RefreshCooldowns(btn) end
     end
-    if t0 then perf.Note("cooldown", debugprofilestop() - t0) end
+    if t0 then Perf.Note("cooldown", debugprofilestop() - t0) end
 end
 
 -- Build (once) the container and every slot. Slots are created for ALL
@@ -386,10 +388,28 @@ function MB.FlushPending()
     return MB.Update()
 end
 
-function MB.SetEnabled(on)
+-- ---------------------------------------------------------------------
+-- The two Bar-section flags: one write path, two apply halves
+-- ---------------------------------------------------------------------
+--
+-- CM-R-05. `macroBar.enabled` and `macroBar.locked` are schema rows like every
+-- other `macroBar.*` field, and options-ui-§1 wants one write seam per setting.
+-- These two used to have two: the page's checkbox went through
+-- Helpers.SetAndRefresh, while `/cm bar on|off|lock|unlock` assigned
+-- `c.enabled` / `c.locked` here directly. The consequences were both real —
+-- `/cm bar lock` with the Macro Bar page open left the checkbox showing the old
+-- state until the page was rebuilt, and `macroBar.locked` had no `onChange`, so
+-- `/cm set macroBar.locked true` wrote the flag and never applied it.
+--
+-- Now: `MB.Apply*` are apply-only and are what settings/MacroBar.lua's two rows
+-- name as their `onChange`. `MB.Set*` are write-then-apply and route through
+-- the schema seam, so validation, the onChange and the panel's in-place
+-- re-sync all happen exactly once no matter who called.
+
+-- Apply-only. The value is already in the profile; make the screen agree.
+function MB.ApplyEnabled()
     local c = cfg()
     if not c then return false end
-    c.enabled = on and true or false
     local applied = MB.Update()
     if not applied and inCombat() then
         KCM.Say("in combat — the macro bar will %s when combat ends.",
@@ -398,15 +418,27 @@ function MB.SetEnabled(on)
     return true
 end
 
-function MB.SetLocked(locked)
-    local c = cfg()
-    if not c then return false end
-    c.locked = locked and true or false
-    -- EnableMouse and a texture toggle on the (unprotected) container are safe
-    -- mid-combat; only anchoring and visibility have to wait for regen.
-    if bar then applyLock() end
+-- Apply-only. EnableMouse and a texture toggle on the (unprotected) container
+-- are safe mid-combat; only anchoring and visibility have to wait for regen.
+function MB.ApplyLock()
+    if not bar then return true end
+    applyLock()
     return true
 end
+
+-- THE write path for both flags. Schema:Set is the published unified setter
+-- (architecture-§5); it validates, writes through Helpers.Set, fires the row's
+-- onChange — which is the matching MB.Apply* above — and re-syncs the open
+-- page's widget in place.
+local function writeFlag(field, value)
+    if not cfg() then return false end
+    local setter = KCM.Schema
+    if not (setter and setter.Set) then return false end
+    return setter:Set("macroBar." .. field, value and true or false) and true or false
+end
+
+function MB.SetEnabled(on)     return writeFlag("enabled", on) end
+function MB.SetLocked(locked)  return writeFlag("locked", locked) end
 
 function MB.ResetPosition()
     local c = cfg()
@@ -440,7 +472,7 @@ function MB.SwapSlots(fromKey, toKey)
 end
 
 -- ---------------------------------------------------------------------------
--- Bus receiver (standard §4.4). The bar owns the sole MACROBAR_REFRESH
+-- Bus receiver (architecture-§4). The bar owns the sole MACROBAR_REFRESH
 -- subscription, on its own target — the pipeline publishes it after every
 -- recompute so icons and counts track the freshly-written macro bodies.
 -- ---------------------------------------------------------------------------

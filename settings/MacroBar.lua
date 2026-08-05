@@ -32,7 +32,7 @@ end
 -- ---------------------------------------------------------------------------
 -- `row()` appends to KCM.Settings.Schema and hands the def back so the renderer
 -- below can place it in a grid without a second FindSchema lookup. Defaults are
--- sourced from dbDefaults, never duplicated as literals (standard §4.5).
+-- sourced from dbDefaults, never duplicated as literals (architecture-§5).
 
 local defs = {}
 
@@ -59,11 +59,14 @@ row{
     path = "macroBar.enabled", type = "bool", group = "Bar",
     label = L["Enable macro bar"],
     tooltip = L["Show a dedicated bar holding your ConsumableMaster macros. Only CM macros can occupy it. On by default; turning it off hides the bar and stops all its work until you turn it back on."],
-    onChange = function(v)
-        if KCM.MacroBar and KCM.MacroBar.SetEnabled then
-            -- SetEnabled re-reads the flag we just wrote; it exists so the
-            -- slash path and this row share the in-combat notice.
-            KCM.MacroBar.SetEnabled(v)
+    -- Apply-only, and deliberately so (CM-R-05): the write has already landed
+    -- by the time an onChange runs. MB.ApplyEnabled re-reads the flag and
+    -- reconciles the frames, and it owns the in-combat "will appear/hide when
+    -- combat ends" notice — which is why `/cm bar on|off` routes back through
+    -- Schema:Set to this same row rather than applying on its own.
+    onChange = function()
+        if KCM.MacroBar and KCM.MacroBar.ApplyEnabled then
+            KCM.MacroBar.ApplyEnabled()
         end
     end,
 }
@@ -71,6 +74,15 @@ row{
     path = "macroBar.locked", type = "bool", group = "Bar",
     label = L["Lock position"],
     tooltip = L["When unlocked the bar is tinted gold and can be dragged anywhere on screen; its position is saved automatically. Lock it again to click through the empty space around the buttons."],
+    -- The row had NO onChange, which meant `/cm set macroBar.locked true`
+    -- wrote the flag and nothing on screen changed until the next full apply
+    -- pass (CM-R-05). Same shape as `macroBar.enabled` above: apply-only, and
+    -- the single write path for the flag is Schema:Set.
+    onChange = function()
+        if KCM.MacroBar and KCM.MacroBar.ApplyLock then
+            KCM.MacroBar.ApplyLock()
+        end
+    end,
 }
 -- `max` is derived rather than a literal: it's the slot count, and a
 -- hardcoded number is exactly what just went stale (13 -> 15 when this
@@ -384,7 +396,7 @@ local function doResetOrder()
     KCM.Say("macro bar slot order reset.")
 end
 
--- Top-right Defaults button (standard §6.5): every macroBar setting back to
+-- Top-right Defaults button (options-ui-§5): every macroBar setting back to
 -- its shipped value, including position, order and per-macro visibility. Other
 -- pages' settings are untouched.
 local function doResetPage()

@@ -1,6 +1,6 @@
 -- tests/test_weaponslots.lua — equipped-weapon affinity mapping.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil", function(t)

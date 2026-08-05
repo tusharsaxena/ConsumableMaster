@@ -1,5 +1,5 @@
 -- tests/test_schema.lua — settings/Panel.lua schema + Helpers.ValidateSchema.
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("schema: Settings.Helpers and Settings.Schema tables exist", function(t)
@@ -70,7 +70,7 @@ test("schema: [Set] logs exactly one line at the write seam, gated by debug", fu
 
     -- [Set] logging at the write seam (debug-logging-§10)
     if not KCM.State then assert(loadfile("core/State.lua"))("ConsumableMaster", KCM) end
-    assert(loadfile("modules/DebugLog.lua"))("ConsumableMaster", KCM)
+    assert(loadfile("core/DebugLogSetup.lua"))("ConsumableMaster", KCM)
     assert(loadfile("core/Debug.lua"))("ConsumableMaster", KCM)
 
     -- The console's own buffer, not a stub on KCM.DebugLog.AddLine: the gated
@@ -258,6 +258,26 @@ test("schema: SetAndRefresh refuses a value of the wrong type", function(t)
     t.truthy(#mock.output > 0, "and the user is told why")
 end)
 
+test("schema: SetAndRefresh refuses an explicit nil rather than deleting the key", function(t)
+    -- The guard used to read `if coerced == nil and value ~= nil`, so a nil
+    -- value skipped the report — every validator rejects nil, so `coerced` was
+    -- nil too — and fell through to Helpers.Set(path, nil), which does not
+    -- write nil but DELETES the key out of db.profile. The row then read back
+    -- absent rather than as its default, and the seam returned true for it.
+    --
+    -- red under: restoring the `and value ~= nil` clause — the write returns
+    -- true, db.profile.enabled becomes nil, and nothing is printed.
+    local KCM  = h.loader.loadWithSchema()
+    local mock = h.loader.mock
+    local Helpers = KCM.Settings.Helpers
+    Helpers.Set("enabled", true)
+    mock.output = {}
+    local ok = Helpers.SetAndRefresh("enabled", nil)
+    t.eq(ok, false, "the write is rejected")
+    t.eq(KCM.db.profile.enabled, true, "and the key still exists with its value")
+    t.truthy(#mock.output > 0, "and the user is told why")
+end)
+
 test("schema: SetAndRefresh refuses a path that is not in the schema", function(t)
     local KCM = h.loader.loadWithSchema()
     t.eq(KCM.Settings.Helpers.SetAndRefresh("not.a.setting", true), false,
@@ -266,7 +286,7 @@ end)
 
 test("schema: the published Schema:Set is the same seam as SetAndRefresh", function(t)
     local KCM = h.loader.loadWithSchema()
-    t.eq(KCM.Schema:Set("enabled", false), true, "standard §4.5 setter writes")
+    t.eq(KCM.Schema:Set("enabled", false), true, "architecture-§5 setter writes")
     t.eq(KCM.db.profile.enabled, false, "through the same validate-write-refresh path")
     t.eq(KCM.Schema:Set("enabled", 12345), false, "and inherits the same validation")
     KCM.Settings.Helpers.Set("enabled", true)

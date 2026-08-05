@@ -1,6 +1,6 @@
 -- test_database.lua — SavedVariables migration runner (KCM.Database).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)
@@ -59,7 +59,7 @@ test("Database.RunMigrations never writes into the profile scope", function(t)
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.enabled, false, "profile settings are not reset by a migration pass")
     t.eq(KCM.db.profile.schemaVersion, nil,
-        "the version lives account-wide in global, never per profile (standard §2.2)")
+        "the version lives account-wide in global, never per profile (savedvariables-§1)")
 end)
 
 test("Database.RunMigrations is a safe no-op before the DB exists", function(t)

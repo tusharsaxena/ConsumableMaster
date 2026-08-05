@@ -12,5 +12,7 @@ ignore:
   - .pkgmeta
   - .gitignore
   - .gitattributes
+  - .claude        # agent tooling config — dev-only, never loaded by the client
+  - .superpowers   # same
   - "*.bak"
   - media/screenshots

@@ -1,7 +1,7 @@
 -- Debug.lua — conditional logging gated on the session-only KCM.State.debug.
 --
 -- The enabled flag lives in KCM.State (session-only, default off, never
--- persisted — standard §12.5) and is owned by DebugLog. Emitted diagnostics go
+-- persisted — debug-logging-§5) and is owned by DebugLog. Emitted diagnostics go
 -- to the on-screen DebugLog console (standard §12); if the console module
 -- hasn't loaded yet (very early boot) they fall back to the chat frame.
 --
@@ -30,7 +30,7 @@ end
 -- The probe stays host-side and cannot move, which is why this is a wrapper
 -- rather than a bare binding to D.Debug. Two paths reach here with no instance
 -- to delegate to: early boot, because core/Debug.lua sits 37 lines above
--- modules/DebugLog.lua in the TOC and a file-scope capture would bind nil
+-- core/DebugLogSetup.lua in the TOC and a file-scope capture would bind nil
 -- forever; and a degraded install, where the console module publishes no
 -- instance at all. Both fall through to chat, which is the behavior those
 -- paths have always had.

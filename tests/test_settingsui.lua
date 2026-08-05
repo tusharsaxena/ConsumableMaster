@@ -8,7 +8,7 @@
 -- a host copy left in place, which is exactly what "the swap silently no-opped"
 -- looks like from the outside.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 local loader = h.loader
 
@@ -233,7 +233,7 @@ end)
 
 test("Settings UI: with the library absent no panel is registered, and it says why once",
     function(t)
-        -- Loaded for real with libs/LibKa0s/ omitted, so settings/Panel.lua
+        -- Loaded for real with libs/LibKa0s/ omitted, so settings/OptionsSetup.lua
         -- takes its own degraded path rather than a hand-written stub.
         local KCM  = loader.loadWithSchemaDegraded()
         local mock = loader.mock
@@ -241,9 +241,32 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         t.eq(KCM.Settings.Helpers.instance, nil, "no instance is published")
 
         -- The schema half is declared above the seam and does not touch it, so
-        -- every setting stays readable and writable through /cm list|get|set.
+        -- the rows still load and Helpers still reads and writes them. NOT via
+        -- /cm list|get|set, though — those three are the schema CLI and they
+        -- live in LibKa0s-Slash-1.0, so they degrade with it
+        -- (tests/test_slashsetup.lua's degraded block).
+        --
+        -- CM-R-04: this claim used to be carried by two READS —
+        -- `#Schema > 0` and `FindSchema("enabled")` — and a read cannot go red
+        -- over a broken write. The write half is exercised here, through the
+        -- settings path the panel itself uses (Resolve → Set), and the
+        -- assertion is on what LANDED IN THE PROFILE rather than on what the
+        -- call returned: a Set that reports true and stores nothing is exactly
+        -- the failure the old pair could not see.
+        --
+        -- red under: making Helpers.Set return true without writing, or having
+        -- Helpers.Resolve hand back a throwaway table on the degraded arm.
+        local H = KCM.Settings.Helpers
         t.truthy(#KCM.Settings.Schema > 0, "the schema still loads")
-        t.truthy(KCM.Settings.Helpers.FindSchema("enabled"), "rows are still resolvable")
+        local row = H.FindSchema("enabled")
+        t.truthy(row, "rows are still resolvable")
+
+        local before = H.Get(row.path)
+        t.eq(before, KCM.db.profile.enabled, "the read agrees with the store to begin with")
+        t.truthy(H.Set(row.path, not before), "the write through the settings path reports success")
+        t.eq(KCM.db.profile.enabled, not before, "…and the new value is what the profile now holds")
+        t.eq(H.Get(row.path), not before, "…and what a read back through the same path returns")
+        H.Set(row.path, before)
 
         mock.output = {}
         KCM.Settings.Register()
@@ -257,6 +280,106 @@ test("Settings UI: with the library absent no panel is registered, and it says w
             end
         end
         t.eq(notices, 1, "the missing-panel notice is said exactly once")
+    end)
+
+test("Settings UI: with the library absent Helpers still reaches both refresh tiers",
+    function(t)
+        -- The gap the copy-across left. `Helpers.RefreshAllPanels = UI and
+        -- UI.RefreshAllPanels` binds nil when UI is nil, and both call sites
+        -- call the field BARE. Reproduced as
+        -- "attempt to call field 'RefreshAllPanels' (a nil value)".
+        --
+        -- red under: rebinding either name to `UI and UI.<name>`, or dropping
+        -- the degraded no-op arm at the seam in settings/OptionsSetup.lua.
+        local KCM = loader.loadWithSchemaDegraded()
+        local H   = KCM.Settings.Helpers
+        t.eq(type(H.RefreshAllPanels), "function", "the structural tier is callable")
+        t.eq(type(H.RefreshScalars), "function", "the in-place tier is callable")
+
+        -- O.Refresh is what the PANEL_REFRESH bus message reaches, and Pipeline
+        -- fires that on every recompute — so this is a path a degraded install
+        -- takes without the user going anywhere near the settings panel.
+        local ok, err = pcall(KCM.Options.Refresh)
+        t.truthy(ok, "O.Refresh does not raise on the degraded path: " .. tostring(err))
+    end)
+
+test("Settings UI: with the library absent a schema WRITE completes and reports success",
+    function(t)
+        -- The write half, which the read-only degraded case above cannot see.
+        -- SetAndRefresh validated, wrote, fired onChange and THEN called
+        -- Helpers.RefreshScalars() — so the raise landed after the mutation had
+        -- already persisted, and a pcall'ing caller was told the write failed
+        -- while the profile disagreed.
+        --
+        -- red under: the same two rebindings the case above names.
+        local KCM = loader.loadWithSchemaDegraded()
+        local H   = KCM.Settings.Helpers
+        H.Set("enabled", true)
+
+        local ok, res = pcall(H.SetAndRefresh, "enabled", false)
+        t.truthy(ok, "the write does not raise: " .. tostring(res))
+        t.eq(res, true, "and it reports the success that actually happened")
+        t.eq(KCM.db.profile.enabled, false, "the value landed in the profile")
+
+        -- And the validation half degrades identically: no library, same answer.
+        t.eq(H.SetAndRefresh("enabled", "yes please"), false,
+            "a wrong-typed write is still rejected with the library absent")
+        t.eq(H.SetAndRefresh("enabled", nil), false,
+            "and an explicit nil still cannot delete the key")
+        t.eq(KCM.db.profile.enabled, false, "neither rejected write moved the value")
+    end)
+
+test("Settings UI: Helpers reads the library's members off the instance, not off a copy",
+    function(t)
+        -- CM-A-04: Helpers used to re-export eleven members by hand, so any
+        -- member the list forgot read back nil at the call site with no way to
+        -- tell it apart from one the library never had. It delegates now, so
+        -- EVERY member the instance publishes is reachable and is the same
+        -- function object.
+        --
+        -- Walked EXHAUSTIVELY over what the instance publishes rather than over
+        -- a hand-listed eight, because a hand-listed eight is the CM-A-04 defect
+        -- in miniature: it can only catch a forgotten member that someone
+        -- remembered to add to the list.
+        --
+        -- And reachability is all that is asserted. An earlier version of this
+        -- case also demanded `rawget(H, name) == nil` for each of the eight —
+        -- which forbids an addon-side wrapper for any of them, even though the
+        -- second loop below shows a wrapper is a legitimate, currently-shipped
+        -- pattern. A future author who needs to wrap RefreshScalars would ship
+        -- behaviourally identical code and redden the suite; and the rawget half
+        -- detected nothing the `H[name] == UI[name]` line beside it did not,
+        -- since __index delegation is exactly what makes that line pass.
+        --
+        -- red under: deleting the setmetatable in settings/OptionsSetup.lua, or
+        -- reinstating a per-member copy that a library rename can outrun.
+        local KCM = loader.loadWithSchema()
+        local H   = KCM.Settings.Helpers
+        local UI  = H.instance
+        t.truthy(UI, "the instance is published")
+
+        -- The three the addon deliberately wraps. Each stays an OWN key that
+        -- SHADOWS the library's same-named member — which is the only reason
+        -- each can call the instance's version without recursing into itself.
+        local WRAPPED = { CreatePanel = true, Section = true, LSMValues = true }
+
+        local walked = 0
+        for name, member in pairs(UI) do
+            if type(member) == "function" then
+                walked = walked + 1
+                if WRAPPED[name] then
+                    t.truthy(rawget(H, name), name .. " is the addon's own wrapper")
+                    t.falsy(rawget(H, name) == member, name .. " shadows the library's")
+                else
+                    t.eq(H[name], member,
+                        name .. " resolves through Helpers to the instance's own function")
+                end
+            end
+        end
+        t.truthy(walked >= 20, "the whole published surface was walked (" .. walked .. ")")
+        for name in pairs(WRAPPED) do
+            t.eq(type(UI[name]), "function", name .. " is a member the library really publishes")
+        end
     end)
 
 -- ── the Battle Rez mouseover toggle (settings/Category.lua) ────────────────
@@ -280,7 +403,7 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
 
         local files = {}
         for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
-        files[#files + 1] = "settings/Panel.lua"
+        for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
         local KCM = loader.loadFiles(files)
 
         t.truthy(KCM.Categories.Get("BATTLE_REZ").targeted, "Battle Rez is targeted")
@@ -373,7 +496,7 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
 local function loadCategorySettings()
     local files = {}
     for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
-    files[#files + 1] = "settings/Panel.lua"
+    for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
     files[#files + 1] = "settings/Category.lua"
     return loader.loadFiles(files)
 end

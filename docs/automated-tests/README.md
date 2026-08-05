@@ -18,16 +18,23 @@ silently by the next re-vendor.
 
 ## What gates, and what only records
 
-| Suite | Command | Gates? |
-|---|---|---|
-| `lint` | `luacheck .` | **yes** |
-| `tests` | `lua tests/run.lua` | **yes** |
-| `perf` | `lua tests/perf.lua` | no — recorded only |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
+| Suite | Command | Gates the run and the commit? | Gates the tag? |
+|---|---|---|---|
+| `lint` | `luacheck .` | **yes** | **yes** |
+| `tests` | `lua tests/run.lua` | **yes** | **yes** |
+| `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
-`perf` and `complexity` are **measured, recorded and diffed — never used to fail a run.** A
-threshold that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects
-nothing and the habit remains. They contribute `amber`, which is a signal rather than a stop.
+`perf` and `complexity` are **measured, recorded and diffed — they never fail a run and never gate a
+commit.** A threshold that fails a run teaches everyone to reach for `--no-verify`, after which the
+gate protects nothing and the habit remains. They contribute `amber`, which is a signal rather than a
+stop.
+
+**At the tag, all four gate.** `/wow-addon:bump-version` reads the release run's `manifest.json` and
+refuses the bump unless every suite reads `pass` and `suites.complexity.warnings` is `0`. A `skip` is
+**not evaluated** rather than a pass, so a release cannot claim zero CCN > 15 on a run where `lizard`
+never executed; the one sanctioned exception is `perf` skipped because the addon ships no
+`tests/perf.lua`, and the release notes say so out loud.
 
 **A missing tool is a skip, not a failure**, and the skip is recorded with its reason — so a green
 run that measured nothing cannot be mistaken for a green run that measured everything.

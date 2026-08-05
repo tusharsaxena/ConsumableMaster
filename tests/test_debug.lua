@@ -7,10 +7,10 @@
 -- (debug-logging-§4/§5).
 --
 -- The suites load the pure layer PLUS State + Debug but deliberately WITHOUT
--- modules/DebugLog.lua, so the early-boot fallback path is the default and the
+-- core/DebugLogSetup.lua, so the early-boot fallback path is the default and the
 -- console path is opted into per case by installing a stub console.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function loadDebug()

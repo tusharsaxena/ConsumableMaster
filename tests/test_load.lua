@@ -5,7 +5,7 @@
 -- dependencies (no module reaching for another's symbols before it loads).
 -- It is the regression guard for the modular folder move + namespace migration.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("full addon loads in TOC order and publishes core handles", function(t)

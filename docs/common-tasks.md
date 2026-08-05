@@ -22,7 +22,7 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
    KCM.SEED.NEW = { itemID1, itemID2, ... }
    ```
 6. Add the file to `ConsumableMaster.toc` in the `# Defaults` section (after `Categories.lua`, before the `# Modules` section).
-7. Update `dbDefaults.profile.categories` in `core/ConsumableMaster.lua` so AceDB creates the bucket:
+7. Update `dbDefaults.profile.categories` in `defaults/Profile.lua` so AceDB creates the bucket:
    ```lua
    NEW = { added = {}, blocked = {}, pins = {}, discovered = {} },   -- non-spec
    NEW = { bySpec = {} },                                              -- spec-aware
@@ -42,7 +42,7 @@ Composites compose other categories' picks via `[combat]` / `[nocombat]` macro c
      emptyText="/run print('|cff00ffff[CM]|r no AIO new option available')" },
    ```
    `inCombat` / `outOfCombat` ref keys must be existing single-category keys (e.g. `"HS"`, `"HP_POT"`, `"FOOD"`).
-2. Add a bucket to `dbDefaults.profile.categories` in `core/ConsumableMaster.lua`:
+2. Add a bucket to `dbDefaults.profile.categories` in `defaults/Profile.lua`:
    ```lua
    NEW_AIO = {
        enabled          = { REF1=true, REF2=true, REF3=true },

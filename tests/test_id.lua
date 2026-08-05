@@ -1,6 +1,6 @@
 -- test_id.lua — opaque ID sentinel helpers (KCM.ID.*).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function ID() return h.loader.loadPure().ID end

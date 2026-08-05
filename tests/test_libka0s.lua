@@ -19,7 +19,7 @@
 -- The per-module wiring lives in each module's own suite. This one is about
 -- the copy.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 local loader = h.loader
 
@@ -65,18 +65,21 @@ test("LibKa0s: the harness load list matches libs/LibKa0s/LibKa0s.xml exactly", 
     t.truthy(xml, "libs/LibKa0s/LibKa0s.xml is vendored")
     local fromXml = {}
     for file in (xml or ""):gmatch('<Script%s+file="([^"]+)"') do
-        fromXml[#fromXml + 1] = "libs/LibKa0s/" .. file
+        fromXml[#fromXml + 1] = ROOT .. "/libs/LibKa0s/" .. file
     end
     t.truthy(#fromXml > 0, "the XML names at least one script")
-    -- The list is hand-maintained because the TOC names one aggregate XML and
-    -- the TOC-derived addon list skips libs\ outright. This case is what makes
-    -- the hand-maintenance safe: a file added to the library shows up here.
+    -- The list is no longer hand-maintained: tests/run.lua derives it with
+    -- Loader.xmlFiles. What this case still buys is that the DERIVATION is right
+    -- — the expected side is re-read from the raw XML text with an independent
+    -- pattern, so a parser that dropped a commented-out entry's neighbour, lost
+    -- the XML's order, or forgot the directory prefix shows up here rather than
+    -- as a library module that quietly never registered.
     t.eqList(loader.LIB_FILES, fromXml, "LIB_FILES is the XML's file list, in the XML's order")
 end)
 
 test("LibKa0s: every vendored library file the loader names exists on disk", function(t)
-    for _, rel in ipairs(loader.LIB_FILES) do
-        t.truthy(readFile(ROOT .. "/" .. rel) ~= nil, rel .. " is present under libs/")
+    for _, path in ipairs(loader.LIB_FILES) do
+        t.truthy(readFile(path) ~= nil, path .. " is present under libs/")
     end
 end)
 

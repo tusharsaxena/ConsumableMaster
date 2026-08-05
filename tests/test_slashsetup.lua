@@ -6,7 +6,7 @@
 -- swap. What this suite adds is the part they cannot see — that the dispatch is
 -- coming from the library rather than from a host copy that happens to agree.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()
@@ -185,4 +185,156 @@ test("Slash: the schema CLI reads the addon's shapes through the library", funct
     t.eq(stored.r, nil, "and not in the library's named-key form")
     t.truthy(table.concat(mock.output, "\n"):find("{0.25, 0.50, 0.75, 1.00}", 1, true),
         "the echo renders it back through the same codec")
+end)
+
+-- ── the degraded path (CM-A-32, CM-R-03) ──────────────────────────────────
+--
+-- KCM:OnSlashCommand used to read `if not Sl then return printHelp() end`, so
+-- with libs/LibKa0s/ absent all seventeen verbs collapsed into one
+-- "/cm is unavailable" line — including the eleven that never touched the
+-- library at all. Loaded for real with the libs omitted, so settings/Slash.lua
+-- takes its own degraded arm rather than a hand-written stub (testing-§8).
+
+local function loadDegraded()
+    local KCM = h.loader.loadFullAddon(true)
+    return KCM, h.loader.mock
+end
+
+-- The verbs slash-commands-§1 calls host-owned: they are implemented in this
+-- addon and reach nothing in LibKa0s, so a degraded install must keep them.
+local HOST_VERBS = {
+    "config", "version", "debug", "resync", "rewritemacros", "resetall",
+    "bar", "priority", "stat", "aio", "dump",
+}
+
+test("Slash: with the library absent every host-owned verb still dispatches", function(t)
+    local KCM, mock = loadDegraded()
+    t.falsy(LibStub("LibKa0s-Slash-1.0", true), "the major really is absent")
+
+    -- Dispatch is proved by the verb BODY running, not by what it prints: two
+    -- of these eleven print nothing on a fresh profile, and asserting on chat
+    -- would let "it printed the unavailable line instead" hide behind that.
+    --
+    -- red under: restoring `if not Sl then return printHelp() end` — all eleven
+    -- report fired = 0.
+    for _, verb in ipairs(HOST_VERBS) do
+        local entry
+        for _, c in ipairs(KCM.COMMANDS) do
+            if c[1] == verb then entry = c end
+        end
+        t.truthy(entry, verb .. " is in COMMANDS")
+
+        local fired, real = 0, entry[3]
+        entry[3] = function(rest) fired = fired + 1; return real(rest) end
+        mock.output = {}
+        local ok, err = pcall(function() KCM:OnSlashCommand(verb) end)
+        entry[3] = real
+
+        t.truthy(ok, "/cm " .. verb .. " does not raise: " .. tostring(err))
+        t.eq(fired, 1, "/cm " .. verb .. " reaches its host body")
+        t.falsy(table.concat(mock.output, "\n"):find("are unavailable", 1, true),
+            "/cm " .. verb .. " is not answered with the degraded notice")
+    end
+end)
+
+test("Slash: with the library absent only the five library-backed verbs degrade", function(t)
+    local KCM, mock = loadDegraded()
+    -- help/list/get/set/reset are the schema CLI plus the help renderer, and
+    -- all five live in LibKa0s-Slash-1.0. They are the ones that must say so.
+    --
+    -- red under: dispatching them to a host re-implementation, or restoring the
+    -- blanket printHelp (which takes the host verbs down with them).
+    for _, verb in ipairs({ "help", "list", "get enabled", "set enabled false", "reset enabled" }) do
+        mock.output = {}
+        KCM:OnSlashCommand(verb)
+        local text = table.concat(mock.output, "\n")
+        t.truthy(text:find("help, list, get, set and reset are unavailable", 1, true),
+            "/cm " .. verb .. " says which verbs are gone: " .. text)
+    end
+
+    -- And the same line names what survived, read off COMMANDS rather than
+    -- hand-listed, so a new verb cannot fall out of it.
+    mock.output = {}
+    KCM:OnSlashCommand("list")
+    local text = table.concat(mock.output, "\n")
+    for _, verb in ipairs(HOST_VERBS) do
+        t.truthy(text:find(verb, 1, true), "the notice names " .. verb .. ": " .. text)
+    end
+    t.falsy(text:find("perf", 1, true),
+        "…and not perf, which needs LibKa0s-Perf to answer: " .. text)
+end)
+
+test("Slash: a bare /cm degrades without latching, and an unknown verb still reports", function(t)
+    local KCM, mock = loadDegraded()
+    -- A degraded install that explains itself once and then goes silent is
+    -- worse than an error, so this must answer every time.
+    --
+    -- red under: guarding sayDegraded with an `announced` latch.
+    for i = 1, 3 do
+        mock.output = {}
+        KCM:OnSlashCommand("")
+        t.truthy(table.concat(mock.output, "\n"):find("are unavailable", 1, true),
+            "bare /cm answers on invocation " .. i)
+    end
+
+    mock.output = {}
+    KCM:OnSlashCommand("frobnicate")
+    local text = table.concat(mock.output, "\n")
+    t.truthy(text:lower():find("unknown command", 1, true),
+        "an unknown verb is still named: " .. text)
+end)
+
+test("Slash: the degraded path keeps the library's parse — verb only is lowercased", function(t)
+    local KCM = loadDegraded()
+    -- The same typed line must mean the same thing either way, so the degraded
+    -- split matches Sl:OnSlash's: lowercase the verb, leave `rest` alone.
+    --
+    -- red under: lowercasing the whole message, or dropping the alias map.
+    local seen
+    for _, c in ipairs(KCM.COMMANDS) do
+        if c[1] == "dump" then
+            local real = c[3]
+            c[3] = function(rest) seen = rest; return real(rest) end
+            KCM:OnSlashCommand("DuMp Item 241304")
+            c[3] = real
+        end
+    end
+    t.eq(seen, "Item 241304", "the verb is lowercased and the rest is not")
+
+    local ran = 0
+    for _, c in ipairs(KCM.COMMANDS) do
+        if c[1] == "rewritemacros" then
+            local real = c[3]
+            c[3] = function(rest) ran = ran + 1; return real(rest) end
+            KCM:OnSlashCommand("rewrite")
+            c[3] = real
+        end
+    end
+    t.eq(ran, 1, "/cm rewrite is still the back-compat alias for rewritemacros")
+end)
+
+test("Slash: the panel's degraded advice agrees with what /cm actually answers", function(t)
+    -- CM-R-03. settings/Panel.lua used to end its notice with "every setting is
+    -- still reachable with /cm list, /cm get and /cm set" — the three verbs
+    -- that answer "unavailable" on exactly the path that notice fires on.
+    --
+    -- red under: restoring that sentence.
+    local KCM, mock = loadDegraded()
+    mock.output = {}
+    KCM.Settings.Register()
+    local advice = table.concat(mock.output, "\n")
+    t.truthy(advice:find("settings panel is unavailable", 1, true),
+        "the panel still says it is unavailable: " .. advice)
+
+    for _, verb in ipairs({ "/cm list", "/cm get", "/cm set" }) do
+        mock.output = {}
+        KCM:OnSlashCommand(verb:sub(5))
+        local answer = table.concat(mock.output, "\n")
+        t.truthy(answer:find("are unavailable", 1, true),
+            verb .. " answers unavailable")
+        -- So the advice must not send the user at it as a way to reach a
+        -- setting. Naming it as ALSO unavailable is what it does instead.
+        t.truthy(advice:find("and so are /cm list, /cm get and /cm set", 1, true),
+            "the advice names " .. verb .. " as unavailable rather than recommending it")
+    end
 end)

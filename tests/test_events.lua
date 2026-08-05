@@ -6,7 +6,7 @@
 -- a recompute, which deliberately does NOT (the GET_ITEM_INFO_RECEIVED burst
 -- guard), what reason each pass carries, and the OnEnable registration table.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Load the pure layer and replace the pipeline's terminal entry point with a
@@ -119,7 +119,7 @@ test("PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack", 
 
     t.eqList(reasons, { "spec_changed" }, "picks are re-evaluated against the new spec")
     t.eq(specChanges, 1,
-        "the Stat Priority page retracks via its own SPEC_CHANGED receiver (standard §4.4)")
+        "the Stat Priority page retracks via its own SPEC_CHANGED receiver (architecture-§4)")
 end)
 
 test("LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked", function(t)

@@ -4,7 +4,7 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ## AceDB profile (one profile, account-wide)
 
-`KCM.dbDefaults` (declared in `core/ConsumableMaster.lua`). `schemaVersion` lives in the account-wide **global** tree; everything else is in the profile:
+`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). `schemaVersion` lives in the account-wide **global** tree; everything else is in the profile:
 
 ```
 db.global

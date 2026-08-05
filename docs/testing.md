@@ -138,23 +138,38 @@ tests/_kit/run-automated-tests.sh --suite complexity          # a subset
 tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the green gate; writes nothing
 ```
 
-| Suite | Command | Gates? |
-|---|---|---|
-| `lint` | `luacheck .` | **yes** |
-| `tests` | `lua tests/run.lua` | **yes** |
-| `perf` | `lua tests/perf.lua` | no — recorded only |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
+| Suite | Command | Gates the run and the commit? | Gates the tag? |
+|---|---|---|---|
+| `lint` | `luacheck .` | **yes** | **yes** |
+| `tests` | `lua tests/run.lua` | **yes** | **yes** |
+| `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
-**`perf` and `complexity` never fail a run.** They are measured, recorded and diffed — a threshold
-that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects nothing
-and the habit remains. They contribute `amber`, which is a signal rather than a stop. **A missing
-tool is a skip recorded with its reason**, never a pass.
+**`perf` and `complexity` never fail a run and never gate a commit.** They are measured, recorded and
+diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which the
+gate protects nothing and the habit remains. They contribute `amber`, which is a signal rather than a
+stop. **A missing tool is a skip recorded with its reason**, never a pass.
+
+**At the tag they do gate**, and that is a different checkpoint evaluated by a different actor:
+`/wow-addon:bump-version` reads the release run's `manifest.json` and refuses the bump unless all
+**four** suites read `pass` and `suites.complexity.warnings` is `0`. A `skip` is **not evaluated** —
+it is a gate that did not pass, never a pass. `automated-tests-§3` sanctions one exception — `perf`
+skipped because the addon ships no `tests/perf.lua`, stated out loud in the release notes — and it
+**does not apply here**: this addon ships `tests/perf.lua` and its `perf` column reads `pass`.
+
+`tests/perf.lua` runs the whole addon under the test mock and drives four scenarios: `recompute`,
+`cooldownRefresh`, and the `probeOverheadOff` / `probeOverheadOn` pair that is `performance-§9`'s
+zero-overhead evidence. It asserts only the deterministic half — per-iteration byte counts and the
+bucket-note count — because wall-clock numbers on a developer machine are not stable enough to fail
+anything on. `lua tests/run.lua` does not invoke it. Detail in
+[performance.md](./performance.md).
 
 The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
 upstream and is re-vendored.
 
 **At release, not at commit.** A full bundle is produced as part of every version bump, before the
-tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only.
+tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only; the tag is gated on all
+four.
 
 Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
 four suites plus the current complexity watch list — **one file, overwritten in place**, so its git

@@ -2,7 +2,7 @@
 -- KCM:OnSlashCommand seam (the parsers themselves are file-local). Loads the
 -- full addon so SlashCommands + the settings schema are present.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()

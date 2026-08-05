@@ -8,7 +8,7 @@
 -- Chalcocite Lava Cake (227326), which must populate BOTH healValue and
 -- manaValue so it classifies as Food AND Drink.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Load Namespace + the real parser onto a fresh mocked namespace.

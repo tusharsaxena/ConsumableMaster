@@ -1,4 +1,13 @@
--- modules/PerfSetup.lua — the addon's half of LibKa0s-Perf-1.0.
+-- core/PerfSetup.lua — the addon's half of LibKa0s-Perf-1.0.
+--
+-- It lives in core/ and sits immediately after core/Namespace.lua in the TOC.
+-- performance-§1 names `core/PerfSetup.lua` and requires it be positioned
+-- BEFORE any file taking `local Perf = NS.Perf` as a load-time upvalue —
+-- core/ConsumableMaster.lua and modules/MacroBar.lua both do. The only thing it
+-- needs at load is KCM.VERSION, which is why that constant lives in
+-- core/Namespace.lua. Every other host member it touches (KCM.DebugLog,
+-- KCM.Say, KCM.OnEnable, KCM.MacroBar) is reached through a thunk, at call
+-- time, so loading this early costs nothing.
 --
 -- An A/B capture harness, not a profiler. The protocol is: pull once with the
 -- addon live, pull again with it suspended, and report the difference in
@@ -30,9 +39,10 @@ local lib = LibStub and LibStub("LibKa0s-Perf-1.0", true)
 
 -- One probe covers both failure modes: Perf.lua absent, and Core absent or too
 -- old (Perf.lua returns before NewLibrary in that case, so the major never
--- registers). No fallback — nothing in this addon reads KCM.Perf, so an absent
--- major means an absent feature and the one /cm perf handler says so. There is
--- no separate PerfPanel major to probe; it attaches onto the instance.
+-- registers). No stub is published: an absent major means an absent feature,
+-- the /cm perf handler says so, and the two bracket sites take their upvalue
+-- nil-tolerantly (`(Perf and Perf.on)`) so neither errors on that build. There
+-- is no separate PerfPanel major to probe; it attaches onto the instance.
 if not lib then return end
 
 -- What "inert" means for this addon. Two rules the library's contract depends
@@ -78,7 +88,7 @@ local P = lib:New({
     version = KCM.VERSION,
 
     -- Thunks, never bare: lib:New snapshots all three. Same note as
-    -- core/CoreSetup.lua's sink and modules/DebugLog.lua's print.
+    -- core/CoreSetup.lua's sink and core/DebugLogSetup.lua's print.
     --
     -- log goes to DL.AddLine, NOT to KCM.Debug. AddLine is the ungated append —
     -- the library's own console documents that it is ungated precisely so a

@@ -1,13 +1,13 @@
 -- test_debuglog.lua — the addon's half of the debug console.
 --
--- The window is LibKa0s-DebugLog-1.0's now; modules/DebugLog.lua is the setup
+-- The window is LibKa0s-DebugLog-1.0's now; core/DebugLogSetup.lua is the setup
 -- file that builds one instance and publishes the flat KCM.DebugLog.* surface
 -- the addon has always called. These cases are the oracle for that swap: they
 -- were written against the host implementation, so what they still pin is that
 -- the addon's own contract — the flat names, the flag's home, the return
 -- values, the [Debug]/[Init] brackets — survived it.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Fresh KCM with DebugLog + Debug wired onto it; returns (KCM, DebugLog).
@@ -259,7 +259,7 @@ end)
 test("DebugLog: the console's own strings resolve to prose, not to their own keys", function(t)
     local _, DL = load()
     local D = DL.instance
-    -- The L trap. modules/DebugLog.lua omits `L` deliberately -- the library's
+    -- The L trap. core/DebugLogSetup.lua omits `L` deliberately -- the library's
     -- English already matches this addon's -- and this case is what stops one
     -- being added later. KCM.L answers every key with the key, so a descriptor
     -- handed it (or handed a plain table whose values were read out of it by
@@ -308,7 +308,7 @@ test("DebugLog: the flag lives in KCM.State, not in the library", function(t)
 end)
 
 test("DebugLog: with the library absent the console degrades and chat still answers", function(t)
-    -- Loaded for real with libs/LibKa0s/ omitted, so modules/DebugLog.lua takes
+    -- Loaded for real with libs/LibKa0s/ omitted, so core/DebugLogSetup.lua takes
     -- its own stub rather than a hand-written one (testing-§8).
     local KCM  = h.loader.loadConsole(true)
     local DL   = KCM.DebugLog

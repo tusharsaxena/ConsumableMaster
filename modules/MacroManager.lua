@@ -7,7 +7,7 @@
 -- which replays the queue. We never call macro APIs in combat.
 --
 -- Macro scope: the third arg to CreateMacro is `perCharacter`. We pass false
--- to get account-wide macros, matching REQUIREMENTS §11.7 (one set of 8
+-- to get account-wide macros, matching docs/scope.md (one set of 8
 -- macros shared across the account).
 
 local _, NS = ...
