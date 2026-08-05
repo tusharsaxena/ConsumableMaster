@@ -206,7 +206,7 @@ local PURE_LAYER_OMITS = {
     -- The frame layer: every one of these builds real widgets at load, which is
     -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
     -- through the full-addon load.
-    ["modules/PerfSetup.lua"]      = true,
+    ["core/PerfSetup.lua"]         = true,
     ["modules/MacroBarFlyout.lua"] = true,
     ["modules/MacroBarButton.lua"] = true,
     ["modules/MacroBar.lua"]       = true,

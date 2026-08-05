@@ -144,6 +144,38 @@ test("Perf: the instrumentation records nothing while no capture is running", fu
     t.eq(n, 0, "no bucket accrued with the harness idle")
 end)
 
+test("Perf: every declared bucket is reached by a real call path", function(t)
+    local KCM = load()
+    local P = KCM.Perf
+    -- The positive half of the case above, and the one CM-A-08 named: that case
+    -- pins that nothing accrues while the harness is idle, which a bucket
+    -- declared and never written by anything also satisfies. Membership in
+    -- `buckets` controls PRESENTATION only -- Note() accepts any key -- so a
+    -- declared bucket that no call path reaches is a permanently empty row in
+    -- every report, and nothing says so.
+    --
+    -- `P.on` is flipped directly because that is exactly what the library's own
+    -- openWindow does when combat starts inside an experiment (Perf.lua's
+    -- `P.on = true  -- the brackets record only inside an experiment`); the
+    -- public route needs a live combat transition, which is not available here.
+    t.truthy(#P.BUCKET_ORDER >= 2, "the descriptor declares both buckets")
+    P.on = true
+    -- Build the bar first: MB.RefreshCooldowns returns before its bracket when
+    -- `bar` is nil, so without this the cooldown bucket would go unreached for
+    -- a reason that has nothing to do with the declaration.
+    KCM.MacroBar.Update()
+    KCM.Pipeline.Recompute("perf_bucket_reachability")
+    KCM.MacroBar.RefreshCooldowns()
+    P.on = false
+
+    local buckets = P.__buckets()
+    for _, key in ipairs(P.BUCKET_ORDER) do
+        local b = buckets[key]
+        t.truthy(b, "declared bucket '" .. key .. "' was reached by a call path")
+        t.truthy(b and b.calls >= 1, "declared bucket '" .. key .. "' recorded at least one call")
+    end
+end)
+
 test("Perf: every Note call site sits in a file that gates on the capture flag", function(t)
     -- Blunt on purpose, and cheap. The failure it guards is the one the library
     -- warns about in its own header: an ungated bracket records forever. A file

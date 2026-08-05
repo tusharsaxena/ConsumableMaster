@@ -404,7 +404,7 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.SetCompositeMacro defers in combat and replays as a composite
 - MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
 
-### test_perfsetup.lua (10)
+### test_perfsetup.lua (11)
 
 - Perf: the harness IS the library's instance, not a lookalike
 - Perf: the panel half attached to the instance
@@ -414,6 +414,7 @@ badge and any count quoted in the docs must agree with it.
 - Perf: /cm perf is a published verb and reaches the harness
 - Perf: the capture flag is the library's alone, with no second home
 - Perf: the instrumentation records nothing while no capture is running
+- Perf: every declared bucket is reached by a real call path
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
@@ -792,7 +793,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_macrobar.lua | 114 |
 | test_macromanager.lua | 46 |
-| test_perfsetup.lua | 10 |
+| test_perfsetup.lua | 11 |
 | test_pipeline.lua | 28 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
@@ -807,4 +808,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **669** |
+| **Total** | **670** |

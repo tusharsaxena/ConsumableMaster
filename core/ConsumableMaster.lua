@@ -6,7 +6,14 @@ local KCM = NS
 local addon = LibStub("AceAddon-3.0"):NewAddon(NS, addonName, "AceEvent-3.0", "AceConsole-3.0")
 NS.addon = addon
 
-KCM.VERSION = "1.5.0"
+-- The perf probe (the LibKa0s-Perf instance built in core/PerfSetup.lua), taken
+-- as a LOAD-TIME upvalue rather than looked up through KCM on every call
+-- (performance-§2). PerfSetup sits immediately after core/Namespace.lua in the
+-- TOC, ahead of this file, precisely so this binding is the real instance.
+-- It is nil-tolerant because the pure test layer and a build with the vendored
+-- library omitted both load without PerfSetup publishing anything, and an
+-- absent diagnostics harness must not break the addon's own function.
+local Perf = KCM.Perf
 
 -- Priority-list entries are opaque numeric IDs. Positive = itemID; negative
 -- is a spell-sentinel whose absolute value is the spellID. Using a disjoint
@@ -330,8 +337,7 @@ function P.Recompute(reason)
     -- the composite re-picks and every macro write. Gated the same way the
     -- cooldown bracket is, and for the same reason: Note() records whether or
     -- not a capture is open.
-    local perf = KCM.Perf
-    local perfT0 = (perf and perf.on) and debugprofilestop() or nil
+    local perfT0 = (Perf and Perf.on) and debugprofilestop() or nil
     -- Master enable gates only the macro write loop. The panel refresh
     -- below still runs so that opening the panel while the addon is off
     -- hydrates priority-list rows from item-info events (otherwise rows
@@ -347,7 +353,7 @@ function P.Recompute(reason)
         KCM.Debug("Calc", "skipped writes (disabled): reason=%s", tostring(reason))
     end
     publishRefresh()
-    if perfT0 then perf.Note("recompute", debugprofilestop() - perfT0) end
+    if perfT0 then Perf.Note("recompute", debugprofilestop() - perfT0) end
 end
 
 -- Event/UI → pipeline recompute goes over the bus. Falls back to the direct

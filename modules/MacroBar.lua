@@ -27,6 +27,13 @@ local KCM = NS
 KCM.MacroBar = KCM.MacroBar or {}
 local MB = KCM.MacroBar
 
+-- The perf probe, a LOAD-TIME upvalue rather than a KCM lookup inside the
+-- bracket (performance-§2). core/PerfSetup.lua sits near the top of the TOC's
+-- # Core section, far ahead of this file. Nil-tolerant for the same reason it is
+-- in core/ConsumableMaster.lua: a build without the vendored library publishes
+-- no harness at all, and the bar must not care.
+local Perf = KCM.Perf
+
 local BAR_NAME       = "KCMMacroBar"
 local FADE_THROTTLE  = 0.1    -- seconds between mouse-over polls in fade mode
 local BACKDROP_TEX   = [[Interface\Buttons\WHITE8X8]]
@@ -313,21 +320,20 @@ end
 -- plus every shown flyout row. That makes it the bucket worth attributing when a
 -- perf capture shows a delta.
 --
--- The gate is two table lookups when no capture is running — cheaper than the
--- KCM.Debug.IsOn() gate the pipeline already accepts — and it MUST be a gate:
+-- The gate is an upvalue read, a nil test and a field read when no capture is
+-- running — no table lookup through KCM at all — and it MUST be a gate:
 -- Note() records unconditionally, so an ungated bracket would accumulate outside
 -- any window and poison the next report.
 function MB.RefreshCooldowns()
     if not bar then return end
-    local perf = KCM.Perf
-    local t0 = (perf and perf.on) and debugprofilestop() or nil
+    local t0 = (Perf and Perf.on) and debugprofilestop() or nil
     for _, btn in pairs(buttons) do
         KCM.MacroBarButton.RefreshCooldown(btn)
         -- Flyout cooldowns too: a potion's cooldown starting mid-fight is the
         -- common case, and repainting a Cooldown frame is unprotected.
         if KCM.MacroBarFlyout then KCM.MacroBarFlyout.RefreshCooldowns(btn) end
     end
-    if t0 then perf.Note("cooldown", debugprofilestop() - t0) end
+    if t0 then Perf.Note("cooldown", debugprofilestop() - t0) end
 end
 
 -- Build (once) the container and every slot. Slots are created for ALL

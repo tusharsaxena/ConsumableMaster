@@ -39,13 +39,22 @@ libs\LibKa0s\LibKa0s.xml
 locales\enUS.lua
 
 # Core
-# Namespace.lua first: names the private addon table (`local addonName, NS = ...`).
+# Namespace.lua first: names the private addon table (`local addonName, NS = ...`)
+# and the version string PerfSetup reads at load.
 # ConsumableMaster.lua promotes NS to the AceAddon object and owns the DB
 # bootstrap + recompute pipeline. Constants (KCM.PREFIX), CoreSetup (KCM.Say off
 # LibKa0s-Core-1.0), Compat (spec + spell API seam), State (session-only flags),
 # and Database (SV migrations) load next; the pure engine modules
 # (SpecHelper → Classifier) follow.
 core\Namespace.lua
+# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. It sits here,
+# second, because performance-§1 requires it BEFORE any file that takes
+# `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua and
+# modules\MacroBar.lua both do. Its only load-time read is KCM.VERSION, which is
+# why that constant lives in core\Namespace.lua; the run log, the printer, the
+# suspend/resume pair and the macro bar are all reached through thunks at call
+# time, so loading before them costs nothing.
+core\PerfSetup.lua
 core\ConsumableMaster.lua
 core\Bus.lua
 core\Constants.lua
@@ -101,11 +110,6 @@ modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
 modules\DebugLog.lua
-# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. After
-# DebugLog.lua, whose AddLine is where its run log goes; core\SlashCommands.lua
-# loads earlier but resolves KCM.Perf at call time, the same way it does the
-# macro bar.
-modules\PerfSetup.lua
 modules\MacroBarFlyout.lua
 modules\MacroBarButton.lua
 modules\MacroBar.lua

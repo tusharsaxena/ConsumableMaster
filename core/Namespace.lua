@@ -11,3 +11,13 @@
 
 local addonName, NS = ...
 NS.name = addonName
+
+-- The version string lives HERE, in the bootstrap, rather than in
+-- core/ConsumableMaster.lua where it used to sit. core/PerfSetup.lua reads it
+-- at LOAD time for the perf record's `version` field, and performance-§1 puts
+-- PerfSetup ahead of every file that takes `local Perf = NS.Perf` as a
+-- load-time upvalue -- which includes core/ConsumableMaster.lua. The version
+-- therefore has to be set before either of them, and the bootstrap is the only
+-- file that runs earlier. (AbsorbTracker carries `NS.version` in its own
+-- core/Namespace.lua for exactly this reason.)
+NS.VERSION = "1.5.0"

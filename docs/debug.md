@@ -69,7 +69,7 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 
 ## Measure what the addon costs (`/cm perf`)
 
-`/cm perf` opens a seven-step panel driving `LibKa0s-Perf-1.0` (`modules/PerfSetup.lua`). It is an **A/B capture**, not a profiler: you pull once with the addon live and once with it suspended, and it reports the difference in ms-per-frame.
+`/cm perf` opens a seven-step panel driving `LibKa0s-Perf-1.0` (`core/PerfSetup.lua`). It is an **A/B capture**, not a profiler: you pull once with the addon live and once with it suspended, and it reports the difference in ms-per-frame.
 
 The protocol, in order: **start** → **measure A** → pull → **measure B** → pull → **finish** → **report** (or **dump** for one line of JSON to paste into an issue). Recording opens automatically when combat starts and closes when it ends; Blizzard's own Stopwatch is driven as the on-screen indicator, so it will appear during a run.
 

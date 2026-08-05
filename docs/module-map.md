@@ -3,8 +3,22 @@
 Per-module roles + public APIs. Pair this with [pipeline.md](./pipeline.md) for how the modules talk to each other.
 
 ```
-core/Namespace.lua ── Loads first. Names the private namespace (NS.name);
-                   every other file picks it up via `local _, NS = ...`.
+core/Namespace.lua ── Loads first. Names the private namespace (NS.name) and
+                   KCM.VERSION; every other file picks the table up via
+                   `local _, NS = ...`.
+
+core/PerfSetup.lua  The addon's half of LibKa0s-Perf-1.0 + its panel.
+                   Publishes KCM.Perf — the instance ITSELF, not a facade,
+                   because the brackets read .on / .run / .suspended as plain
+                   boolean fields the library writes. Supplies /cm as the
+                   taught command, ConsumableMasterPerfDB as the capture ring,
+                   the run-log sink (DebugLog.AddLine, the UNGATED append) and
+                   the suspend/resume pair. Two buckets instrumented:
+                   `cooldown` (MacroBar.RefreshCooldowns) and `recompute`
+                   (Pipeline.Recompute). Absent major -> absent feature and
+                   no stub; the two bracket sites take their upvalue
+                   nil-tolerantly. Loads SECOND in # Core (performance-§1:
+                   ahead of every load-time `local Perf = NS.Perf`).
 
 core/ConsumableMaster.lua ── AceAddon entry (AceAddon:NewAddon(NS, ...)).
                    OnInitialize creates the DB; Pipeline.Recompute /
@@ -131,16 +145,6 @@ modules/DebugLog.lua  The addon's half of LibKa0s-DebugLog-1.0: registers
                    Toggle_Window / ShowCopy forwarders + DL.FormatPlain /
                    FormatColored (the library's) + DL.instance. Windowless stub
                    when the library is absent.
-
-modules/PerfSetup.lua  The addon's half of LibKa0s-Perf-1.0 + its panel.
-                   Publishes KCM.Perf — the instance ITSELF, not a facade,
-                   because the brackets read .on / .run / .suspended as plain
-                   boolean fields the library writes. Supplies /cm as the
-                   taught command, ConsumableMasterPerfDB as the capture ring,
-                   the run-log sink (DebugLog.AddLine, the UNGATED append) and
-                   the suspend/resume pair. Two buckets instrumented:
-                   `cooldown` (MacroBar.RefreshCooldowns) and `recompute`
-                   (Pipeline.Recompute). Absent major -> absent feature.
 
 settings/         Settings UI framework + per-tab modules.
 ├── Panel.lua            The addon's half of LibKa0s-Options-1.0. The chrome

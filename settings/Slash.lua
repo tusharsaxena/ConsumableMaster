@@ -72,7 +72,7 @@ local ALIASES = { rewrite = "rewritemacros" }
 -- The verbs that actually ROUTE THROUGH LibKa0s, and therefore stop answering
 -- when it is absent (slash-commands-§1). `help` and the four schema CLI verbs
 -- go to LibKa0s-Slash-1.0; `perf` goes to LibKa0s-Perf-1.0 by way of
--- modules/PerfSetup.lua, which never publishes KCM.Perf on a build without it.
+-- core/PerfSetup.lua, which never publishes KCM.Perf on a build without it.
 --
 -- Every OTHER verb in COMMANDS is the host's own and keeps working, which is
 -- the whole point: this table exists so the degraded notice can name what is
@@ -97,9 +97,10 @@ local COMMANDS = {
         function() say("v" .. addonVersion()) end},
     {"perf",          "A/B performance capture — `/cm perf` opens the step panel",
         function(rest)
-            -- Resolved at call time, exactly as `bar` does: modules/PerfSetup.lua
-            -- loads after this file, and on a build without LibKa0s-Perf it
-            -- never publishes KCM.Perf at all.
+            -- Resolved at call time, exactly as `bar` does: on a build without
+            -- LibKa0s-Perf, core/PerfSetup.lua never publishes KCM.Perf at all.
+            -- (This file is in settings/, so PerfSetup loads long before it —
+            -- the call-time resolve is about the degraded build, not order.)
             if not (KCM.Perf and KCM.Perf.OnCommand) then
                 return say("perf capture unavailable.")
             end

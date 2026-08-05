@@ -287,7 +287,7 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 
 ## LibKa0s seam pass
 
-Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `modules/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
+Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `core/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
 
 The swap was designed to be pixel-identical, so **the pass is looking for "nothing changed"** — anything that looks different is the finding, with one standing exception. The **window edge** on the debug console and the perf panel is the library's, not this addon's, and the library moved it at LibKa0s v1.3.0: the flat 1px black edge with its 1px gray inner highlight, a gold title and a gray divider, in place of the old 12px `UI-Tooltip-Border`, black divider and untinted title. That one is expected, and step 10a below is where it is checked deliberately; everywhere else, different still means broken.
 
@@ -346,7 +346,7 @@ Rename it back and `/reload`.
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
-| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Panel.lua`, `modules/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
+| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `modules/DebugLog.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
