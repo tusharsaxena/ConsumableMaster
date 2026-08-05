@@ -296,9 +296,17 @@ local function sayPanelUnavailable()
     if announcedMissing then return end
     announcedMissing = true
     if KCM.Say then
+        -- This USED to end "every setting is still reachable with /cm list,
+        -- /cm get and /cm set", which was the one thing it must not do: those
+        -- three are the schema CLI, they route through LibKa0s-Slash-1.0, and
+        -- with the library absent they are exactly the verbs that answer
+        -- "unavailable". Sending the user at them was sending them at a second
+        -- dead end. The verbs named here are the ones settings/Slash.lua's own
+        -- degraded arm reports as still working (CM-R-03).
         KCM.Say(KCM.LIBKA0S_MISSING ..
-            ", so the settings panel is unavailable; every setting is still " ..
-            "reachable with /cm list, /cm get and /cm set.")
+            ", so the settings panel is unavailable, and so are /cm list, " ..
+            "/cm get and /cm set. The rest of /cm still works — type /cm for " ..
+            "the list.")
     end
 end
 

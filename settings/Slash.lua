@@ -62,6 +62,28 @@ local cliList, cliGet, cliSet, cliReset
 
 local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 
+-- Backwards-compat: `/cm rewrite` → `/cm rewritemacros`. The original handler
+-- accepted both spellings; this preserves that without bloating COMMANDS. Held
+-- as a file local rather than inline in the library descriptor because the
+-- degraded dispatcher at the foot of this file applies the same map, and two
+-- alias tables for one addon is exactly the drift LIBKA0S-13 collapsed.
+local ALIASES = { rewrite = "rewritemacros" }
+
+-- The verbs that actually ROUTE THROUGH LibKa0s, and therefore stop answering
+-- when it is absent (slash-commands-§1). `help` and the four schema CLI verbs
+-- go to LibKa0s-Slash-1.0; `perf` goes to LibKa0s-Perf-1.0 by way of
+-- modules/PerfSetup.lua, which never publishes KCM.Perf on a build without it.
+--
+-- Every OTHER verb in COMMANDS is the host's own and keeps working, which is
+-- the whole point: this table exists so the degraded notice can name what is
+-- gone by reading COMMANDS rather than by repeating a hand-written list that a
+-- new verb would silently fall out of. `perf` still DISPATCHES on the degraded
+-- path — it answers "perf capture unavailable." itself — it is only kept off
+-- the "these still work" half of the notice.
+local LIB_BACKED_VERBS = {
+    help = true, list = true, get = true, set = true, reset = true, perf = true,
+}
+
 local COMMANDS = {
     {"help",          "Show this help",
         function() printHelp() end},
@@ -243,10 +265,7 @@ if slashLib then
         -- Only [1] is ever named, in the help header's alias clause.
         slashAliases = { "/consumablemaster" },
         commands     = COMMANDS,
-        -- Backwards-compat: `/cm rewrite` → `/cm rewritemacros`. The original
-        -- handler accepted both spellings; this preserves that without
-        -- bloating COMMANDS.
-        aliases      = { rewrite = "rewritemacros" },
+        aliases      = ALIASES,
         version      = addonVersion,
         -- A thunk, not `say` bare: the library snapshots the printer at :New.
         -- Same note as core/CoreSetup.lua's sink and modules/DebugLog.lua's
@@ -296,12 +315,28 @@ if slashLib then
     cliReset  = function(rest) Sl:CliReset(rest) end
 else
     -- LibKa0s is vendored, so this is a tampered install rather than a
-    -- supported state. Say so instead of re-implementing the dispatcher.
-    printHelp = function()
+    -- supported state. The dispatcher is still not re-implemented here — see
+    -- degradedDispatch at the foot of this file, which is a verb lookup in
+    -- COMMANDS and nothing else.
+    --
+    -- What degrades is exactly the half that WENT to the library. The old line
+    -- said "/cm is unavailable", which was not true of eleven of the seventeen
+    -- verbs and told the user to stop typing commands that worked.
+    local function sayDegraded()
+        local live = {}
+        for _, entry in ipairs(COMMANDS) do
+            if not LIB_BACKED_VERBS[entry[1]] then live[#live + 1] = entry[1] end
+        end
         say((KCM.LIBKA0S_MISSING or "The LibKa0s library is missing") ..
-            ", so /cm is unavailable.")
+            ", so /cm help, list, get, set and reset are unavailable. " ..
+            "These still work: " .. table.concat(live, ", ") .. ".")
     end
-    cliList, cliGet, cliSet, cliReset = printHelp, printHelp, printHelp, printHelp
+    -- Not latched: a degraded install that explains itself once and then goes
+    -- silent is worse than one that answers every time (options-ui-§1's sibling
+    -- rule for the panel seam is the said-once one, and it is said-once because
+    -- it fires unprompted; this one only ever fires because the user typed).
+    printHelp = sayDegraded
+    cliList, cliGet, cliSet, cliReset = sayDegraded, sayDegraded, sayDegraded, sayDegraded
 end
 
 -- The About panel's command rows, RENDERED -- convergence #2 (LIBKA0S-13).
@@ -337,7 +372,39 @@ function KCM.SlashCommands.GetLandingRows()
     return Sl:LandingRows()
 end
 
+-- The degraded dispatcher (slash-commands-§1, CM-A-32).
+--
+-- `if not Sl then return printHelp() end` used to stand in for the whole of
+-- OnSlash, so with libs/LibKa0s/ absent every one of the seventeen verbs — all
+-- eleven of which are the host's own and never touched the library — answered
+-- one "unavailable" line. A stub that blacks out the whole command surface is
+-- non-compliant: the host verbs keep working, so they must keep answering.
+--
+-- Deliberately NOT a second dispatcher: no help renderer, no sub-command
+-- tables, no landing rows. It trims, splits, lowercases the verb, applies the
+-- one alias and looks the verb up in COMMANDS — the same five steps the
+-- library's own OnSlash takes, because doing fewer would change what the same
+-- typed line means depending on whether the library loaded.
+local function degradedDispatch(msg)
+    local raw = (msg or ""):match("^%s*(.-)%s*$") or ""
+    if raw == "" then return printHelp() end
+
+    -- Only the verb is lowercased. `rest` keeps its case because schema paths
+    -- are case-sensitive, and its internal spacing because a color is several
+    -- tokens. Same split as the library's.
+    local cmd, rest = raw:match("^(%S+)%s*(.*)$")
+    cmd = (cmd or ""):lower()
+    cmd = ALIASES[cmd] or cmd
+
+    for _, entry in ipairs(COMMANDS) do
+        if entry[1] == cmd then return entry[3](rest or "") end
+    end
+
+    say(SLASH_STRINGS.UNKNOWN_COMMAND:format(cmd))
+    return printHelp()
+end
+
 function KCM:OnSlashCommand(msg)
-    if not Sl then return printHelp() end
+    if not Sl then return degradedDispatch(msg) end
     return Sl:OnSlash(msg)
 end

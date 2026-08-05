@@ -675,7 +675,7 @@ whenever the suite changes.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slashsetup.lua (10)
+### test_slashsetup.lua (15)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -687,6 +687,11 @@ whenever the suite changes.
 - Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
+- Slash: with the library absent every host-owned verb still dispatches
+- Slash: with the library absent only the five library-backed verbs degrade
+- Slash: a bare /cm degrades without latching, and an unknown verb still reports
+- Slash: the degraded path keeps the library's parse — verb only is lowercased
+- Slash: the panel's degraded advice agrees with what /cm actually answers
 
 ### test_spechelper.lua (16)
 
@@ -788,10 +793,10 @@ whenever the suite changes.
 | test_selector.lua | 44 |
 | test_settingsui.lua | 21 |
 | test_slash.lua | 82 |
-| test_slashsetup.lua | 10 |
+| test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **660** |
+| **Total** | **665** |

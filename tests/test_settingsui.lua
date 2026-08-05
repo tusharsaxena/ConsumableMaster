@@ -241,7 +241,10 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         t.eq(KCM.Settings.Helpers.instance, nil, "no instance is published")
 
         -- The schema half is declared above the seam and does not touch it, so
-        -- every setting stays readable and writable through /cm list|get|set.
+        -- the rows still load and Helpers still reads and writes them. NOT via
+        -- /cm list|get|set, though — those three are the schema CLI and they
+        -- live in LibKa0s-Slash-1.0, so they degrade with it
+        -- (tests/test_slashsetup.lua's degraded block).
         t.truthy(#KCM.Settings.Schema > 0, "the schema still loads")
         t.truthy(KCM.Settings.Helpers.FindSchema("enabled"), "rows are still resolvable")
 
