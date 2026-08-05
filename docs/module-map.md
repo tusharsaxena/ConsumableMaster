@@ -431,7 +431,7 @@ KCM.MacroBar.Update()                    -- the single apply seam; self-defers i
 KCM.MacroBar.FlushPending()              -- called from KCM:OnRegenEnabled
 KCM.MacroBar.SetEnabled(on) / SetLocked(locked) / ResetPosition()
 KCM.MacroBar.SwapSlots(fromKey, toKey)   -- blocked in combat
-KCM.MacroBar.Refresh() / RefreshCooldowns() / IsShown()
+KCM.MacroBar.Refresh() / RefreshCooldowns()
 KCM.MacroBarButton.Create(parent, catKey, index) / Refresh / RefreshIcon
 KCM.MacroBarButton.RefreshCooldown / ApplyStyle(btn, cfg)
 KCM.MacroBarButton.ApplyCooldown(cd, active, durationObject, start, duration)

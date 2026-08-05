@@ -292,10 +292,6 @@ end
 -- Public surface
 -- ---------------------------------------------------------------------------
 
-function MB.IsShown()
-    return (bar and bar:IsShown()) and true or false
-end
-
 function MB.Refresh()
     if not bar then return end
     local c = cfg() or {}

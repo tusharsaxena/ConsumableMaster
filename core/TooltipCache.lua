@@ -29,9 +29,11 @@
 --   itemName                       -- plain name for friendly dumps
 --   pending = true                 -- tooltip data not loaded yet; retry later
 --
--- When C_TooltipInfo returns nothing yet, the entry is marked `pending` and
--- the itemID is added to a pending set. Core (M5) wires GET_ITEM_INFO_RECEIVED
--- to call Invalidate(itemID) + request a recompute.
+-- When C_TooltipInfo returns nothing yet, the entry is cached with
+-- `pending = true`, which is the whole record of pendingness — a later Get()
+-- sees it and re-fetches. core/ConsumableMaster.lua registers
+-- GET_ITEM_INFO_RECEIVED (`:OnItemInfoReceived`) to call Invalidate(itemID)
+-- and request a recompute.
 
 local _, NS = ...
 local KCM = NS
@@ -143,17 +145,16 @@ end
 -- Cache state
 -- ---------------------------------------------------------------------------
 
+-- A pending entry is recorded in `cache` itself, with `pending = true`, so a
+-- re-`Get()` re-fetches it. There is no separate pending set to keep in step.
 local cache = {}
-local pendingIDs = {}
 
 function TC.Invalidate(itemID)
     cache[itemID] = nil
-    pendingIDs[itemID] = nil
 end
 
 function TC.InvalidateAll()
     cache = {}
-    pendingIDs = {}
 end
 
 -- ---------------------------------------------------------------------------
@@ -445,7 +446,6 @@ function TC.Get(itemID)
     if not data or not data.lines or #data.lines == 0 then
         local stub = { pending = true, statBuffs = {} }
         cache[itemID] = stub
-        pendingIDs[itemID] = true
         return stub
     end
 
@@ -460,7 +460,6 @@ function TC.Get(itemID)
     if not name then
         local stub = { pending = true, statBuffs = {} }
         cache[itemID] = stub
-        pendingIDs[itemID] = true
         return stub
     end
 
@@ -477,7 +476,6 @@ function TC.Get(itemID)
     if not hasParsedEffect(parsed) and isConsumableItem(itemID) then
         local stub = { pending = true, statBuffs = {} }
         cache[itemID] = stub
-        pendingIDs[itemID] = true
         return stub
     end
 
@@ -485,7 +483,6 @@ function TC.Get(itemID)
     parsed.minLevel = minLevel or 0
 
     cache[itemID] = parsed
-    pendingIDs[itemID] = nil
     return parsed
 end
 
