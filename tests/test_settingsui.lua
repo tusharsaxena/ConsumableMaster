@@ -245,8 +245,28 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         -- /cm list|get|set, though — those three are the schema CLI and they
         -- live in LibKa0s-Slash-1.0, so they degrade with it
         -- (tests/test_slashsetup.lua's degraded block).
+        --
+        -- CM-R-04: this claim used to be carried by two READS —
+        -- `#Schema > 0` and `FindSchema("enabled")` — and a read cannot go red
+        -- over a broken write. The write half is exercised here, through the
+        -- settings path the panel itself uses (Resolve → Set), and the
+        -- assertion is on what LANDED IN THE PROFILE rather than on what the
+        -- call returned: a Set that reports true and stores nothing is exactly
+        -- the failure the old pair could not see.
+        --
+        -- red under: making Helpers.Set return true without writing, or having
+        -- Helpers.Resolve hand back a throwaway table on the degraded arm.
+        local H = KCM.Settings.Helpers
         t.truthy(#KCM.Settings.Schema > 0, "the schema still loads")
-        t.truthy(KCM.Settings.Helpers.FindSchema("enabled"), "rows are still resolvable")
+        local row = H.FindSchema("enabled")
+        t.truthy(row, "rows are still resolvable")
+
+        local before = H.Get(row.path)
+        t.eq(before, KCM.db.profile.enabled, "the read agrees with the store to begin with")
+        t.truthy(H.Set(row.path, not before), "the write through the settings path reports success")
+        t.eq(KCM.db.profile.enabled, not before, "…and the new value is what the profile now holds")
+        t.eq(H.Get(row.path), not before, "…and what a read back through the same path returns")
+        H.Set(row.path, before)
 
         mock.output = {}
         KCM.Settings.Register()
