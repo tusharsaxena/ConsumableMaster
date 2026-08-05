@@ -89,6 +89,12 @@ core\SlashDump.lua
 core\SlashCommands.lua
 
 # Defaults
+# Profile.lua first: KCM.dbDefaults, the AceDB defaults tree and THE
+# declaration site for every shipped default (savedvariables-§2). It sits at
+# the head of this block so it is evaluated in the same position it held when
+# it lived at the top of core/ConsumableMaster.lua — after the whole # Core
+# block, before defaults/Categories.lua, which its `perRow` comment relies on.
+defaults\Profile.lua
 defaults\Categories.lua
 defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua

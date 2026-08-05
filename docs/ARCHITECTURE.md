@@ -49,7 +49,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 |-----------|----------|------|
 | Per-module APIs + roles | `core/*.lua`, `modules/*.lua`, `settings/*.lua` | [module-map.md](./module-map.md) |
 | Recompute pipeline + score cache + events | `core/ConsumableMaster.lua` (`KCM.Pipeline`) | [pipeline.md](./pipeline.md) |
-| AceDB schema + opaque IDs + discovered GC | `core/ConsumableMaster.lua` (`KCM.dbDefaults`, `KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
+| AceDB schema + opaque IDs + discovered GC | `defaults/Profile.lua` (`KCM.dbDefaults`), `core/ConsumableMaster.lua` (`KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
 | MacroManager (body builders, composite assembly, combat deferral, action-bar icons) | `modules/MacroManager.lua` | [macro-manager.md](./macro-manager.md) |
 | Tooltip parsing + Midnight gotchas | `core/Classifier.lua`, `core/TooltipCache.lua` | [midnight-quirks.md](./midnight-quirks.md) |
 | Settings panel + slash CLI + schema layer | `settings/*.lua` (incl. `settings/Slash.lua`, the dispatcher), `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` + `core/SlashDump.lua` (verb bodies), `libs/LibKa0s/Slash.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
@@ -73,7 +73,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 
 Two layers, and it is worth keeping them apart.
 
-**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` literal in `core/ConsumableMaster.lua`. `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 2`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [data-model.md](./data-model.md) — this section does not duplicate them.
+**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 2`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [data-model.md](./data-model.md) — this section does not duplicate them.
 
 **Declared scalars** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua:22` and appended to by the tab files. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings tab, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:286` hands the whole array to LibKa0s-Slash-1.0), and the validator applied on write by the `Resolve` → `SetAndRefresh` seam.
 
@@ -222,7 +222,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), AceGUI-3.0-SharedMediaWidgets, then LibKa0s last, listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
 3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
-4. `# Defaults` — `Categories.lua` then `Defaults_*.lua`
+4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
 
