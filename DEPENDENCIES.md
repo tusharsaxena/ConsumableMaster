@@ -98,7 +98,7 @@ These ship inside the addon. They are **not** software you install and **not** t
 step regenerates, so they are recorded here for their licensing rather than as dependencies:
 
 - **JetBrains Mono** — `media/fonts/JetBrainsMono-Regular.ttf`, under the SIL Open Font License
-  (`media/fonts/OFL.txt`). Registered with LibSharedMedia at `modules/DebugLog.lua:39-40` and used
+  (`media/fonts/OFL.txt`). Registered with LibSharedMedia at `core/DebugLogSetup.lua:39-40` and used
   as the debug console's reference font. Nothing on your machine needs JetBrains Mono installed;
   the client reads the `.ttf` out of the addon folder.
 - **Logos and screenshots** — `media/logos/`, `media/screenshots/`. Hand-produced and committed.

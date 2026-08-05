@@ -1,4 +1,4 @@
--- modules/DebugLog.lua — the addon's half of LibKa0s-DebugLog-1.0.
+-- core/DebugLogSetup.lua — the addon's half of LibKa0s-DebugLog-1.0.
 --
 -- The console window itself — the drag bar, the flat Copy/Clear/× buttons, the
 -- ScrollingMessageFrame, the hand-driven scrollbar, the line counter, the copy

@@ -70,7 +70,7 @@ test("schema: [Set] logs exactly one line at the write seam, gated by debug", fu
 
     -- [Set] logging at the write seam (debug-logging-§10)
     if not KCM.State then assert(loadfile("core/State.lua"))("ConsumableMaster", KCM) end
-    assert(loadfile("modules/DebugLog.lua"))("ConsumableMaster", KCM)
+    assert(loadfile("core/DebugLogSetup.lua"))("ConsumableMaster", KCM)
     assert(loadfile("core/Debug.lua"))("ConsumableMaster", KCM)
 
     -- The console's own buffer, not a stub on KCM.DebugLog.AddLine: the gated

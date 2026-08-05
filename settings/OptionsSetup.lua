@@ -85,7 +85,7 @@ if optionsLib and AceGUI then
 
         -- A thunk, not `KCM.Say` bare: the library snapshots the printer at
         -- :New, so a captured value would freeze the load-time function object.
-        -- Same note as core/CoreSetup.lua's sink and modules/DebugLog.lua's
+        -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
         -- print. Inert in the adopted scope — both lines that reach it live in
         -- the panel-registry half we do not use — but passed so a later step
         -- cannot leak an untagged line.

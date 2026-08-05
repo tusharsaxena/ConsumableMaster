@@ -64,6 +64,14 @@ core\Constants.lua
 core\CoreSetup.lua
 core\Compat.lua
 core\State.lua
+# DebugLogSetup builds the on-screen console from LibKa0s-DebugLog-1.0
+# (debug-logging-§1 names the file and the folder). It sits after
+# core\Constants.lua + core\CoreSetup.lua (the printer it thunks onto) and
+# core\State.lua (KCM.State.debug, the flag's single home), and before
+# core\Debug.lua and every other file that writes to the sink. Every seam it
+# reaches outward through -- the printer, KCM.State, KCM.Options.Refresh -- is a
+# call-time thunk, so nothing here is a load-time dependency.
+core\DebugLogSetup.lua
 core\Database.lua
 core\Debug.lua
 core\SpecHelper.lua
@@ -115,7 +123,6 @@ defaults\Defaults_BattleRez.lua
 modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
-modules\DebugLog.lua
 modules\MacroBarFlyout.lua
 modules\MacroBarButton.lua
 modules\MacroBar.lua

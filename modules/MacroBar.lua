@@ -388,10 +388,28 @@ function MB.FlushPending()
     return MB.Update()
 end
 
-function MB.SetEnabled(on)
+-- ---------------------------------------------------------------------
+-- The two Bar-section flags: one write path, two apply halves
+-- ---------------------------------------------------------------------
+--
+-- CM-R-05. `macroBar.enabled` and `macroBar.locked` are schema rows like every
+-- other `macroBar.*` field, and options-ui-§1 wants one write seam per setting.
+-- These two used to have two: the page's checkbox went through
+-- Helpers.SetAndRefresh, while `/cm bar on|off|lock|unlock` assigned
+-- `c.enabled` / `c.locked` here directly. The consequences were both real —
+-- `/cm bar lock` with the Macro Bar page open left the checkbox showing the old
+-- state until the page was rebuilt, and `macroBar.locked` had no `onChange`, so
+-- `/cm set macroBar.locked true` wrote the flag and never applied it.
+--
+-- Now: `MB.Apply*` are apply-only and are what settings/MacroBar.lua's two rows
+-- name as their `onChange`. `MB.Set*` are write-then-apply and route through
+-- the schema seam, so validation, the onChange and the panel's in-place
+-- re-sync all happen exactly once no matter who called.
+
+-- Apply-only. The value is already in the profile; make the screen agree.
+function MB.ApplyEnabled()
     local c = cfg()
     if not c then return false end
-    c.enabled = on and true or false
     local applied = MB.Update()
     if not applied and inCombat() then
         KCM.Say("in combat — the macro bar will %s when combat ends.",
@@ -400,15 +418,27 @@ function MB.SetEnabled(on)
     return true
 end
 
-function MB.SetLocked(locked)
-    local c = cfg()
-    if not c then return false end
-    c.locked = locked and true or false
-    -- EnableMouse and a texture toggle on the (unprotected) container are safe
-    -- mid-combat; only anchoring and visibility have to wait for regen.
-    if bar then applyLock() end
+-- Apply-only. EnableMouse and a texture toggle on the (unprotected) container
+-- are safe mid-combat; only anchoring and visibility have to wait for regen.
+function MB.ApplyLock()
+    if not bar then return true end
+    applyLock()
     return true
 end
+
+-- THE write path for both flags. Schema:Set is the published unified setter
+-- (architecture-§5); it validates, writes through Helpers.Set, fires the row's
+-- onChange — which is the matching MB.Apply* above — and re-syncs the open
+-- page's widget in place.
+local function writeFlag(field, value)
+    if not cfg() then return false end
+    local setter = KCM.Schema
+    if not (setter and setter.Set) then return false end
+    return setter:Set("macroBar." .. field, value and true or false) and true or false
+end
+
+function MB.SetEnabled(on)     return writeFlag("enabled", on) end
+function MB.SetLocked(locked)  return writeFlag("locked", locked) end
 
 function MB.ResetPosition()
     local c = cfg()

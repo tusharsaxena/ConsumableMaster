@@ -269,7 +269,7 @@ if slashLib then
         aliases      = ALIASES,
         version      = addonVersion,
         -- A thunk, not `say` bare: the library snapshots the printer at :New.
-        -- Same note as core/CoreSetup.lua's sink and modules/DebugLog.lua's
+        -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
         -- print.
         print        = function(line) KCM.Say(line) end,
         L            = SLASH_STRINGS,

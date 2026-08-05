@@ -55,7 +55,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Settings panel + slash CLI + schema layer | `settings/*.lua` (incl. `settings/Slash.lua`, the dispatcher), `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` + `core/SlashDump.lua` (verb bodies), `libs/LibKa0s/Slash.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
-| Debug console | `modules/DebugLog.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
+| Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
 | Perf A/B capture (`/cm perf`) | `core/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [file-index.md](./file-index.md) |
@@ -186,7 +186,7 @@ dot-callable** names as thin forwarders onto that instance, publishes the instan
 | Major | Host half | What the addon keeps |
 |---|---|---|
 | `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on |
-| `DebugLog-1.0` | `modules/DebugLog.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
+| `DebugLog-1.0` | `core/DebugLogSetup.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
 | `Slash-1.0` | `settings/Slash.lua` | the `COMMANDS` table and the `STRINGS` overrides that keep this addon's shipped wording (both passed in, never owned). The verb bodies and their `*_COMMANDS` namespaces stay in `core/SlashCommands.lua`, the `/cm dump` targets in `core/SlashDump.lua`, and the `KCM_CONFIRM_RESET` popup with the verbs (CM-47). |
 | `Options-1.0` | `settings/OptionsSetup.lua` (the seam) + `settings/Panel.lua` (the addon's half) | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order and the `KCM.Options` shim |
 | `Perf-1.0` | `core/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, the three sinks and the `suspend`/`resume` pair |
@@ -196,7 +196,7 @@ Three rules here are load-bearing rather than stylistic:
 1. **Never bind a printer or a prefix by value.** Every `lib:New` snapshots its descriptor once, so a
    captured `KCM.Say` freezes the load-time function object and every later swap — including the
    suite's — goes unseen. Pass a thunk.
-2. **A degradation stub's OMISSIONS are its contract.** `modules/DebugLog.lua` publishes no
+2. **A degradation stub's OMISSIONS are its contract.** `core/DebugLogSetup.lua` publishes no
    `instance` precisely because that absence re-arms `core/Debug.lua`'s chat fallback — the emitter
    at `core/Debug.lua:39-40` probes `DL and DL.instance`, not any named method. It publishes no
    `AddLine` either, so a stub can never silently swallow `core/PerfSetup.lua`'s ungated perf log. `settings/Panel.lua` registers no Blizzard
@@ -221,10 +221,10 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), AceGUI-3.0-SharedMediaWidgets, then LibKa0s last, listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
+3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
 4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
-5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
-6. `# Settings` — `Panel.lua` (must come first — registers `KCM.Settings.Helpers` + `RegisterTab`, publishes the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
+5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
+6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab` and the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
 

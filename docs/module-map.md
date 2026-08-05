@@ -116,6 +116,16 @@ core/Classifier.lua  (itemID) → which of the 11 single-pick categories. Reads
                    tooltip. FLASK is subclass-only (tooltip-free) so first-bag-
                    scan discovery is deterministic for already-cached flasks.
 
+core/DebugLogSetup.lua  The addon's half of LibKa0s-DebugLog-1.0: registers
+                   JetBrains Mono with LibSharedMedia, resolves the font path,
+                   and builds ONE console instance (ConsumableMasterDebugWindow)
+                   over the KCM.State.debug flag, the KCM.Say printer, the
+                   [Init] summary and the options repaint. Publishes the flat
+                   DL.SetEnabled / IsEnabled / Toggle / AddLine / Show / Hide /
+                   Toggle_Window / ShowCopy forwarders + DL.FormatPlain /
+                   FormatColored (the library's) + DL.instance. Windowless stub
+                   when the library is absent.
+
 modules/Ranker.lua  Pure scorers per category. Spec-aware scorers weight stats
                    against { primary, secondary[] } from SpecHelper. Spell
                    entries short-circuit to a fixed SPELL_SCORE above any
@@ -135,16 +145,6 @@ modules/MacroManager.lua  The ONLY module that calls CreateMacro / EditMacro.
                    MP_AIO. Combat-deferral queue, fingerprint cache,
                    bounded flush retry, action-bar icon convention.
                    Detail in macro-manager.md.
-
-modules/DebugLog.lua  The addon's half of LibKa0s-DebugLog-1.0: registers
-                   JetBrains Mono with LibSharedMedia, resolves the font path,
-                   and builds ONE console instance (ConsumableMasterDebugWindow)
-                   over the KCM.State.debug flag, the KCM.Say printer, the
-                   [Init] summary and the options repaint. Publishes the flat
-                   DL.SetEnabled / IsEnabled / Toggle / AddLine / Show / Hide /
-                   Toggle_Window / ShowCopy forwarders + DL.FormatPlain /
-                   FormatColored (the library's) + DL.instance. Windowless stub
-                   when the library is absent.
 
 settings/         Settings UI framework + per-tab modules.
 ├── Panel.lua            The addon's half of LibKa0s-Options-1.0. The chrome
@@ -460,7 +460,7 @@ upgrading profiles to the same state, once. Slots are
 never rewritten, so reordering moves anchors only. Full design + combat contract
 in [macro-bar.md](./macro-bar.md).
 
-### Debug (`core/Debug.lua` + `modules/DebugLog.lua`)
+### Debug (`core/Debug.lua` + `core/DebugLogSetup.lua`)
 
 ```lua
 KCM.Debug.IsOn() -> bool                      -- reads the flag (DebugLog.IsEnabled, else State.debug)
@@ -505,9 +505,9 @@ local F = KCM.Foo
 
 1. **Libraries** — LibStub + every Ace3 sub-library + LibSharedMedia + `AceGUI-3.0-SharedMediaWidgets` (last, since its widgets need both AceGUI and LibSharedMedia), listed directly in the TOC (no `embeds.xml` wrapper).
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
-3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
+3. **Core** — `core/Namespace.lua` (names `NS`) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `Compat` → `State` → `DebugLogSetup` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Profile.lua` (`KCM.dbDefaults`) → `defaults/Categories.lua` → each `defaults/Defaults_*.lua`.
-5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `DebugLog` → `MacroBarFlyout` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
+5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `MacroBarFlyout` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
 6. **Settings** — `settings/OptionsSetup.lua` → `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua`.
 
 `settings/OptionsSetup.lua` must come first within `settings/` because it is the `LibKa0s-Options-1.0` seam: it creates `KCM.Settings.Helpers` and publishes the instance as `KCM.Settings.optionsUI`, which `settings/Panel.lua` takes as a file-scope local. `settings/Panel.lua` comes next because it publishes `KCM.Settings.RegisterTab`, which the per-tab modules call at file-bottom. Widgets load before `settings/` so `AceGUI:Create("KCM…")` works at panel-render time. Event handlers and `Pipeline` functions are *defined* in `core/ConsumableMaster.lua` but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.

@@ -918,6 +918,57 @@ test("macrobar schema: every macroBar row validates and resolves against the db"
     t.truthy(rows >= 20, "the Macro Bar page registered its rows (" .. rows .. ")")
 end)
 
+test("macrobar schema: /cm bar's two flags write through the schema seam, not around it",
+    function(t)
+        -- CM-R-05. `macroBar.enabled` and `macroBar.locked` are schema rows, and
+        -- they used to have TWO write paths: the page's checkbox went through
+        -- Helpers.SetAndRefresh while MB.SetEnabled / MB.SetLocked — which is
+        -- all `/cm bar on|off|lock|unlock` calls — assigned the profile field
+        -- directly. So `/cm bar lock` with the page open left the checkbox
+        -- stale, and `macroBar.locked` had no onChange at all, so
+        -- `/cm set macroBar.locked true` wrote a flag nothing acted on.
+        --
+        -- Both halves are asserted here rather than the value alone, because
+        -- the value landing is exactly what the OLD code also did. What has to
+        -- be true now is that it landed BY WAY OF the seam.
+        --
+        -- red under: reinstating a direct `c.locked = …` in MB.SetLocked, or
+        -- dropping either row's onChange.
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+
+        for _, row in ipairs({ "macroBar.enabled", "macroBar.locked" }) do
+            local def = H.FindSchema(row)
+            t.truthy(def, row .. " is a schema row")
+            t.eq(type(def.onChange), "function", row .. " carries an onChange")
+        end
+
+        -- Every write through the seam re-syncs the open page in place
+        -- (options-ui-§11). Counting the calls is what separates "the seam ran"
+        -- from "the field happens to hold the right value".
+        local refreshes = 0
+        local realRefresh = H.RefreshScalars
+        H.RefreshScalars = function(...) refreshes = refreshes + 1; return realRefresh(...) end
+
+        KCM.MacroBar.SetLocked(true)
+        t.eq(KCM.db.profile.macroBar.locked, true, "/cm bar lock stored the flag")
+        t.eq(refreshes, 1, "…through Schema:Set, which re-synced the page once")
+
+        KCM.MacroBar.SetLocked(false)
+        t.eq(KCM.db.profile.macroBar.locked, false, "/cm bar unlock stored the flag")
+        t.eq(refreshes, 2, "…through the same seam")
+
+        KCM.MacroBar.SetEnabled(false)
+        t.eq(KCM.db.profile.macroBar.enabled, false, "/cm bar off stored the flag")
+        t.eq(refreshes, 3, "…and so does the enable flag")
+
+        KCM.MacroBar.SetEnabled(true)
+        t.eq(KCM.db.profile.macroBar.enabled, true, "/cm bar on stored the flag")
+        t.eq(refreshes, 4, "…every time, with no second path around it")
+
+        H.RefreshScalars = realRefresh
+    end)
+
 test("macrobar schema: enum rows reject a value outside their list", function(t)
     local KCM = h.loader.loadFullAddon()
     local H = KCM.Settings.Helpers

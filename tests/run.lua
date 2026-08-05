@@ -185,7 +185,7 @@ local PURE_LAYER_OMITS = {
     -- these three come in only through L.loadConsole.
     ["core/State.lua"]           = true,
     ["core/Debug.lua"]           = true,
-    ["modules/DebugLog.lua"]     = true,
+    ["core/DebugLogSetup.lua"]   = true,
     -- Its Get() parser needs live C_TooltipInfo data. L.loadFiles loads the real
     -- file afterwards and swaps ONLY Get(), so IsUsableByPlayer still runs for
     -- real — see the comment at that swap.
@@ -293,16 +293,16 @@ end
 
 -- Pure layer + the debug console and its gated sink, in TOC order.
 --
--- modules/DebugLog.lua is deliberately NOT in PURE_LAYER: tests/test_debug.lua
+-- core/DebugLogSetup.lua is deliberately NOT in PURE_LAYER: tests/test_debug.lua
 -- builds the sink WITHOUT the console on purpose, to exercise the chat-fallback
 -- path. `omitLibs` runs the whole stack with libs/LibKa0s/ absent so
--- modules/DebugLog.lua takes its real degradation stub rather than a
+-- core/DebugLogSetup.lua takes its real degradation stub rather than a
 -- hand-written one (testing-§8).
 function L.loadConsole(omitLibs)
     local files = {}
     for _, f in ipairs(L.PURE_LAYER) do files[#files + 1] = f end
     files[#files + 1] = "core/State.lua"
-    files[#files + 1] = "modules/DebugLog.lua"
+    files[#files + 1] = "core/DebugLogSetup.lua"
     files[#files + 1] = "core/Debug.lua"
     return L.loadFiles(files, omitLibs)
 end

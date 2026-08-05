@@ -57,10 +57,10 @@ test("Parity: the LibKa0s-Core stub carries the whole live seam", function(t)
     t.eq(type(degraded.Say), "function", "KCM.Say survives a degraded load")
 end)
 
--- ── LibKa0s-DebugLog-1.0, at modules/DebugLog.lua ──────────────────────────
+-- ── LibKa0s-DebugLog-1.0, at core/DebugLogSetup.lua ──────────────────────────
 --
 -- Member list produced by:
---     grep -n '^function DL\.\|^DL\.' modules/DebugLog.lua
+--     grep -n '^function DL\.\|^DL\.' core/DebugLogSetup.lua
 -- which is the live surface (:181-:211). The degraded branch (:57-:104)
 -- publishes seven of them.
 local DEBUGLOG_SEAM = {
@@ -69,7 +69,7 @@ local DEBUGLOG_SEAM = {
     "SetEnabled", "Toggle", "FormatPlain", "FormatColored", "instance",
 }
 
--- Live-only ON PURPOSE, each argued at modules/DebugLog.lua:102-114:
+-- Live-only ON PURPOSE, each argued at core/DebugLogSetup.lua:102-114:
 --   * `instance` is WITHHELD, and that is the load-bearing one: core/Debug.lua's
 --     emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
 --     whether a console exists and falls back to the chat frame when it does not.
@@ -81,7 +81,7 @@ local DEBUGLOG_SEAM = {
 --     two formatters have no consumer outside that file, so there is nothing to
 --     degrade — confirmed by
 --         grep -rn 'DebugLog\.\(Clear\|ShowCopy\|RefreshHeader\|UpdateScrollBar\|UpdateStatus\|FormatPlain\|FormatColored\)' core/ modules/ settings/
---     which returns nothing at all: even modules/DebugLog.lua reaches them as
+--     which returns nothing at all: even core/DebugLogSetup.lua reaches them as
 --     `DL.`, so there is no caller anywhere left raising.
 --     (`instance` itself is the library object; there is no library to publish.)
 local DEBUGLOG_LIVE_ONLY = {

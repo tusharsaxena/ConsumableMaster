@@ -88,7 +88,7 @@ local P = lib:New({
     version = KCM.VERSION,
 
     -- Thunks, never bare: lib:New snapshots all three. Same note as
-    -- core/CoreSetup.lua's sink and modules/DebugLog.lua's print.
+    -- core/CoreSetup.lua's sink and core/DebugLogSetup.lua's print.
     --
     -- log goes to DL.AddLine, NOT to KCM.Debug. AddLine is the ungated append —
     -- the library's own console documents that it is ungated precisely so a
