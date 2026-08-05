@@ -293,9 +293,10 @@ local function runMacroPass(reason)
     local scoreCache = { fields = {} }
     local rewrote, skipped, total = 0, 0, 0
     for _, cat in ipairs(KCM.Categories.LIST) do
-        -- Isolate each category so one bad scorer can't break the
-        -- other seven macros. One pcall per category per recompute
-        -- (8 per frame at peak) is cheap.
+        -- Isolate each category so one bad scorer can't break the other
+        -- fourteen macros. One pcall per category per recompute (15 per
+        -- frame at peak — `KCM.Categories.LIST` in defaults/Categories.lua
+        -- carries 13 consumable categories plus HP_AIO and MP_AIO) is cheap.
         total = total + 1
         local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
         if not ok then
@@ -333,7 +334,7 @@ end
 function P.Recompute(reason)
     if not KCM.Categories or not KCM.Categories.LIST then return end
     -- Perf bucket. One bracket around the whole pass — at most one call per
-    -- frame, since RequestRecompute coalesces — covering the 13-category walk,
+    -- frame, since RequestRecompute coalesces — covering the 15-category walk,
     -- the composite re-picks and every macro write. Gated the same way the
     -- cooldown bracket is, and for the same reason: Note() records whether or
     -- not a capture is open.

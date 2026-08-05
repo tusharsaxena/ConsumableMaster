@@ -69,18 +69,21 @@ local DEBUGLOG_SEAM = {
     "SetEnabled", "Toggle", "FormatPlain", "FormatColored", "instance",
 }
 
--- Live-only ON PURPOSE, each argued at modules/DebugLog.lua:97-104:
---   * AddLine is WITHHELD, and that is load-bearing: core/Debug.lua probes
---     `KCM.DebugLog.AddLine` to decide whether a console exists and falls back to
---     the chat frame when it does not. A no-op AddLine would swallow every
---     diagnostic while the addon looked healthy.
+-- Live-only ON PURPOSE, each argued at modules/DebugLog.lua:102-114:
+--   * `instance` is WITHHELD, and that is the load-bearing one: core/Debug.lua's
+--     emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
+--     whether a console exists and falls back to the chat frame when it does not.
+--   * AddLine is withheld too. Its one production caller is
+--     `core/PerfSetup.lua:98`, which that file only builds when the LibKa0s Perf
+--     major loaded, so a no-op AddLine would swallow diagnostics rather than
+--     degrade anything.
 --   * Clear / ShowCopy / RefreshHeader / UpdateScrollBar / UpdateStatus and the
 --     two formatters have no consumer outside that file, so there is nothing to
 --     degrade — confirmed by
 --         grep -rn 'DebugLog\.\(Clear\|ShowCopy\|RefreshHeader\|UpdateScrollBar\|UpdateStatus\|FormatPlain\|FormatColored\)' core/ modules/ settings/
 --     which returns nothing at all: even modules/DebugLog.lua reaches them as
 --     `DL.`, so there is no caller anywhere left raising.
---   * `instance` is the library object; there is no library to publish.
+--     (`instance` itself is the library object; there is no library to publish.)
 local DEBUGLOG_LIVE_ONLY = {
     "AddLine", "Clear", "ShowCopy", "RefreshHeader", "UpdateScrollBar",
     "UpdateStatus", "FormatPlain", "FormatColored", "instance",
@@ -91,11 +94,14 @@ test("Parity: the LibKa0s-DebugLog stub carries the whole live seam", function(t
     local degraded = h.loader.loadConsole(true)
     h.assertSurfaceParity(project(live.DebugLog, DEBUGLOG_SEAM), degraded.DebugLog,
         "KCM.DebugLog seam", DEBUGLOG_LIVE_ONLY)
-    -- The withheld member, asserted as withheld rather than left to the ignore
-    -- list to imply: core/Debug.lua's chat fallback is re-armed by its ABSENCE,
-    -- so a well-meaning no-op added later has to fail something.
+    -- The two withheld members, asserted as withheld rather than left to the
+    -- ignore list to imply it: core/Debug.lua's chat fallback is re-armed by the
+    -- ABSENCE of `instance`, so a well-meaning stub added later has to fail
+    -- something.
+    t.eq(degraded.DebugLog.instance, nil,
+        "instance stays absent so core/Debug.lua falls back to chat")
     t.eq(degraded.DebugLog.AddLine, nil,
-        "AddLine stays absent so core/Debug.lua falls back to chat")
+        "AddLine stays absent rather than silently swallowing the perf log")
 end)
 
 -- ── LibKa0s-Slash-1.0, at settings/Slash.lua ───────────────────────────────
