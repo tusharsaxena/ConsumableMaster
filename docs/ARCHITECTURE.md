@@ -187,3 +187,16 @@ Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMast
 - **Tracked vs ignored.** `libs/` is tracked (vendored Ace3 / LibSharedMedia / LibKa0s — standard WoW
   addon practice), as are `defaults/`, `docs/`, `tests/`, `locales/` and all `.lua` source.
   `.gitignore` covers `.claude/settings.local.json`, OS cruft and editor scratch files.
+
+## Documented deviations
+
+The single home for a ratified deviation from the Ka0s WoW Addon Standard (`documentation-§3`). A
+decision may be reasoned at length elsewhere — `docs/scope.md`, an audit or review bundle — but a
+deviation that is not in this table is not ratified, and an audit re-files it as an open failure.
+The **Re-check trigger** is the condition that ends the deviation; a row without one is a permanent
+opt-out wearing a table's clothes.
+
+| Rule | What differs | Why | Decided | Re-check trigger |
+|---|---|---|---|---|
+| `localization-§4` | `core/TooltipCache.lua` parses English tooltip **text** — heal/mana/stat magnitudes, the `Augment Rune` marker, and the weapon-application effect | There is no stable-ID substitute for reading a numeric magnitude out of free text. The deviation is deliberately narrow: item and weapon **classification** already runs on the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua:167-170`, `core/WeaponSlots.lua`), so category and weapon-affinity detection work on every client. Reasoned at `docs/scope.md` → *Out of scope* → Localization; audit finding `CM-A-01` | 2026-08-05 | A client API that exposes those magnitudes as structured data, or the first non-enUS client this addon commits to supporting |
+| `toc-file-§5` | The within-`core/` file sequence is `Namespace → ConsumableMaster → Bus → Constants → CoreSetup → Compat → State → Database`, not the section's illustrative `Compat → Constants → Namespace` | `core/Namespace.lua` bootstraps the private `KCM` table that Compat and Constants attach **to**, so it cannot come after them, and `core/CoreSetup.lua` builds `KCM.Say` from `KCM.PREFIX` and so must sit after `core/Constants.lua`. `toc-file-§5`'s only MUST is the **section-header** order — Libraries → Locales → Core → Defaults → Modules → Settings — which this TOC satisfies; the within-section sequence in its code block is illustrative. Rationale is also carried in the TOC's own comments (`ConsumableMaster.toc:42-47`, `:52-54`); audit finding `CM-A-16` (filed as `CM-49`) | 2026-08-05 | `toc-file-§5` making the within-section file sequence an ordered MUST |
