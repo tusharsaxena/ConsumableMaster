@@ -712,6 +712,13 @@ badge and any count quoted in the docs must agree with it.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
+### test_surface_parity.lua (4)
+
+- Parity: the LibKa0s-Core stub carries the whole live seam
+- Parity: the LibKa0s-DebugLog stub carries the whole live seam
+- Parity: the LibKa0s-Slash stub carries the whole live seam
+- Parity: the LibKa0s-Options stub carries the whole live seam
+
 ### test_tooltipcache.lua (23)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
@@ -795,8 +802,9 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
+| test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **665** |
+| **Total** | **669** |

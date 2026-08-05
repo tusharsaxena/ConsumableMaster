@@ -406,6 +406,7 @@ local SUITES = {
     "test_slash",
     "test_slashsetup",
     "test_spechelper",
+    "test_surface_parity",
     "test_tooltipcache",
     "test_vendor_sync",
     "test_weaponslots",
