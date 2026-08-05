@@ -7,7 +7,7 @@
 -- the addon's own contract — the flat names, the flag's home, the return
 -- values, the [Debug]/[Init] brackets — survived it.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Fresh KCM with DebugLog + Debug wired onto it; returns (KCM, DebugLog).

@@ -8,7 +8,7 @@
 -- coming from the library rather than from a host copy that happens to agree,
 -- and that the addon still speaks when the library is not installed.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 local loader = h.loader
 

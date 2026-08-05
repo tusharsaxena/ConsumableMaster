@@ -9,7 +9,7 @@
 -- behavior can only be validated in-game (docs/smoke-tests.md). The flyout's
 -- candidate SOURCE is covered in tests/test_selector.lua
 -- (Selector.ListAvailable).
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function cfg(over)

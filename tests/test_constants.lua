@@ -6,7 +6,7 @@
 -- single most load-bearing formatting contract in the addon
 -- (events-frames-taint-§8 / standard §7.4).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- A value that survives tostring()/`..` but raises the moment it reaches

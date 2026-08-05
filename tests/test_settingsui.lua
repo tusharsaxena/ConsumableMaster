@@ -8,7 +8,7 @@
 -- a host copy left in place, which is exactly what "the swap silently no-opped"
 -- looks like from the outside.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 local loader = h.loader
 

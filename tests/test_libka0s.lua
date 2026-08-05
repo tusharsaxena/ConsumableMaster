@@ -19,7 +19,7 @@
 -- The per-module wiring lives in each module's own suite. This one is about
 -- the copy.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 local loader = h.loader
 

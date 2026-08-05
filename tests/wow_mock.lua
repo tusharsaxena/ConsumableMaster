@@ -1,10 +1,20 @@
--- tests/wow_mock.lua — a headless stand-in for the WoW client environment.
+-- tests/wow_mock.lua — this addon's extender over the shared testkit mock base.
 --
--- Installs into _G the globals the addon reads at load and call time: LibStub
--- (with Ace3 stubs), the C_* namespaces, legacy item/spell/spec globals, a
--- permissive CreateFrame, and helpers (CopyTable/wipe/strtrim/...). It also
--- exposes a controllable item / bag / spell / spec store so the pure layer can
--- be exercised deterministically.
+-- The universal half of the WoW-API mock lives in `tests/_kit/mock_base.lua` and
+-- is vendored, not written here (testing-§1). This file is the ConsumableMaster
+-- half: the controllable item / bag / spell / spec / macro / cooldown stores, the
+-- Midnight secret-value and duration-object stand-ins, the template-gated frame
+-- stub, and the Ace3 fakes whose semantics this addon's suites depend on.
+--
+-- It takes the kit's base BUILDER as its argument rather than dofile-ing it, so
+-- `tests/run.lua` holds the one and only reference to each kit file.
+--
+-- Installs into _G, not into a loader environment table: this addon's suites
+-- rebuild the whole world per case and reach straight into `_G.LibStub` /
+-- `_G.C_AddOns` to drive the Compat fallbacks, which an env-table mock would
+-- shadow. `M.install` publishes the kit base into _G first and then overwrites,
+-- key by key, everything below — so the addon-specific stub always wins and the
+-- delta against the shared base is exactly what this file spells out.
 --
 -- Item-injection API (used by test suites):
 --   M.setItem(id, { name=, subType=, quality=, ilvl=, tt={...}, pending= })
@@ -13,7 +23,7 @@
 --       Classifier/Ranker consume (healValue, healPct, manaValue, hasStatBuff,
 --       isFeast, buffDurationSec, statBuffs={ {stat=,amount=} }, isConjured,
 --       minLevel, maxLevel, …). pending=true marks the tooltip as not yet
---       hydrated (see tests/loader.lua's TooltipCache stub).
+--       hydrated (see tests/run.lua's TooltipCache stub).
 --   M.setBag(id, count)        -- owned count (drives BagScanner + GetItemCount)
 --   M.setSpell(id, { name=, known= })
 --   M.setSpec(classID, specIndex, specID, specName)  -- current player spec
@@ -25,6 +35,8 @@
 --
 -- The message bus stub is keyed by (message, target) per the standard's
 -- anti-pattern #33 so future NS.bus receivers are testable.
+
+return function(base)
 
 local M = {}
 
@@ -165,7 +177,7 @@ function M.setItem(id, spec)
         classID     = spec.classID or (cls and cls[1]) or 0,
         subClassID  = spec.subClassID or (cls and cls[2]) or 0,
         -- pending marks a tooltip that has not hydrated yet — the pure-layer
-        -- TooltipCache stub (tests/loader.lua) surfaces this as
+        -- TooltipCache stub (tests/run.lua) surfaces this as
         -- IsUsableByPlayer's "pending" sentinel, so the load-race case is
         -- reachable without driving the real C_TooltipInfo parser.
         pending     = spec.pending and true or nil,
@@ -340,6 +352,16 @@ end
 function M.install(NS)
     M.reset()
 
+    -- The kit's universal half first. A fresh build per install, so nothing
+    -- leaks between cases. `__`-prefixed keys are the base's own test seams
+    -- (`__stubFrame`, `__libs`, `__timers`, …), not client globals — they are
+    -- kept on M.base rather than published into _G.
+    local B = base()
+    M.base = B
+    for k, v in pairs(B) do
+        if type(k) == "string" and not k:find("^__") then _G[k] = v end
+    end
+
     local libs = {
         ["AceAddon-3.0"]   = makeAceAddon(NS),
         ["AceEvent-3.0"]   = makeAceEvent(),
@@ -408,7 +430,7 @@ function M.install(NS)
     end
     function LibStub:GetLibrary(major) return libs[major] end
     _G.LibStub = LibStub
-    -- Exposed so tests/loader.lua can see which majors actually registered.
+    -- Exposed so tests/run.lua can see which majors actually registered.
     M.libs = libs
 
     -- 4th arg is the template list; the stub grants template-gated methods from it.
@@ -621,3 +643,5 @@ function M.install(NS)
 end
 
 return M
+
+end

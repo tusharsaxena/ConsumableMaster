@@ -6,7 +6,7 @@
 -- swap. What this suite adds is the part they cannot see — that the dispatch is
 -- coming from the library rather than from a host copy that happens to agree.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()

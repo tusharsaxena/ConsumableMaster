@@ -1,6 +1,6 @@
 -- tests/test_categories.lua — new-category wiring: metadata, seeds, DB buckets.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets", function(t)

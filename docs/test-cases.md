@@ -1,10 +1,10 @@
 # Test Cases
 
-The full inventory of every headless test case, grouped by suite. This file is the
-**authoritative pass count** for the addon.
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
 
-**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`
-whenever the suite changes.
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
 ### test_bagscanner.lua (12)
 
@@ -476,8 +476,8 @@ whenever the suite changes.
 
 ### test_runner_list.lua (4)
 
-- formatInventory groups cases by suite file with counts
-- formatInventory emits a Totals table summing all cases
+- --list groups cases by suite file with counts
+- --list emits a Totals table summing all cases
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 

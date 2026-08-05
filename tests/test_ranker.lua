@@ -1,6 +1,6 @@
 -- tests/test_ranker.lua — unit suite for Ranker.lua scoring + sorting.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local SPELL_SCORE     = 1e9

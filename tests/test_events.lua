@@ -6,7 +6,7 @@
 -- a recompute, which deliberately does NOT (the GET_ITEM_INFO_RECEIVED burst
 -- guard), what reason each pass carries, and the OnEnable registration table.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 -- Load the pure layer and replace the pipeline's terminal entry point with a

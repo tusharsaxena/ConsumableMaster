@@ -1,6 +1,6 @@
 -- tests/test_selector.lua — Selector.lua candidate-set + priority + picking.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function has(list, val)

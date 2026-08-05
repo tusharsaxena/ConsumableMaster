@@ -25,22 +25,13 @@
 -- The case names are unchanged from that copy, deliberately: they are what
 -- `docs/test-cases.md` counts, and adopting the shared gate must not move them.
 --
--- THE ADAPTER BELOW IS TEMPORARY. `VendorSync.register` takes the kit's test table
--- (`test`, `skip`, `assertTrue`, `assertEqual`); this repo still runs on the private
--- `tests/harness.lua`, whose surface is `h.test` plus `h.T.truthy` / `h.T.eq`. The
--- four-key shim is the whole difference, and it goes away when the kit becomes this
--- repo's runner.
+-- THE ADAPTER THAT USED TO SIT HERE IS GONE. `VendorSync.register` takes the kit's
+-- test table (`test`, `skip`, `assertTrue`, `assertEqual`), and the kit is this
+-- repo's runner now, so `_G.KCM_TEST` already IS that table.
 
-local h    = require("harness")
+local h    = _G.KCM_TEST
 local ROOT = _G.KCM_TEST_ROOT or "."
-
-local T = {
-    test        = h.test,
-    skip        = h.skip,
-    assertTrue  = h.T.truthy,
-    assertEqual = h.T.eq,
-}
 
 local VendorSync = dofile(ROOT .. "/tests/_kit/vendor_sync.lua")
 
-VendorSync.register(T, { root = ROOT })
+VendorSync.register(h, { root = ROOT })

@@ -3,7 +3,7 @@
 -- The mock provides only the legacy globals (no C_SpecializationInfo), so these
 -- exercise Compat's fallback chain down to GetSpecialization* / GetSpellInfo.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()

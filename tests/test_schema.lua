@@ -1,5 +1,5 @@
 -- tests/test_schema.lua — settings/Panel.lua schema + Helpers.ValidateSchema.
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("schema: Settings.Helpers and Settings.Schema tables exist", function(t)

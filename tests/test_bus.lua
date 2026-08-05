@@ -4,7 +4,7 @@
 -- receiver subscribes on its own NewBusTarget(), and a RECOMPUTE message routes
 -- through to the pipeline's coalescing entry point.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("bus, NewBusTarget, and message catalog are published", function(t)

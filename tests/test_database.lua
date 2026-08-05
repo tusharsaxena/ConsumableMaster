@@ -1,6 +1,6 @@
 -- test_database.lua — SavedVariables migration runner (KCM.Database).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)

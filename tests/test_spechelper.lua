@@ -1,6 +1,6 @@
 -- test_spechelper.lua — spec identity + stat-priority resolution (KCM.SpecHelper).
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()

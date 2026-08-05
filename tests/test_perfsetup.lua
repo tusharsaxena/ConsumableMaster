@@ -9,7 +9,7 @@
 -- actually declared, and that the instrumentation is inert when no capture is
 -- running.
 
-local h = require("harness")
+local h = _G.KCM_TEST
 local test = h.test
 
 local function load()
