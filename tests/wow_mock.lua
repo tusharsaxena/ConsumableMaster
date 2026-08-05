@@ -270,6 +270,27 @@ local function makeStub(template, name)
 end
 M.makeStub = makeStub
 
+-- An AceGUI WIDGET stub, which is not the same shape as a frame stub.
+--
+-- A real AceGUI widget carries `.label` / `.text` FontString OBJECTS, and both
+-- LibKa0s-Options (OptionsWidgets.lua's heading font bump) and settings/Panel.lua's
+-- Helpers.Label guard on `w.label and w.label.SetFontObject` before calling through.
+-- makeStub answers EVERY key with a function, so `w.label` came back callable, the
+-- guard passed, and `w.label:SetFontObject(...)` raised — which renderCtx swallows into
+-- a "failed to render" print, so a page under test silently stopped drawing part-way.
+-- Handing back real sub-objects makes a full page render reachable headlessly.
+local function makeAceWidget()
+    local w = makeStub()
+    local function fontString()
+        local fs = {}
+        return setmetatable(fs, { __index = function() return function() return fs end end })
+    end
+    rawset(w, "label", fontString())
+    rawset(w, "text", fontString())
+    return w
+end
+M.makeAceWidget = makeAceWidget
+
 -- ---------------------------------------------------------------------------
 -- Ace3 stubs
 -- ---------------------------------------------------------------------------
@@ -371,7 +392,7 @@ function M.install(NS)
         -- returns 0 (a number, so widget files' `>= Version` guard compares
         -- cleanly and proceeds to register). Everything else is a no-op.
         ["AceGUI-3.0"]     = setmetatable({
-                                Create = function() return makeStub() end,
+                                Create = function() return makeAceWidget() end,
                                 RegisterWidgetType = function() end,
                                 RegisterLayout = function() end,
                                 GetWidgetVersion = function() return 0 end,

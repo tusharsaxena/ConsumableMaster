@@ -238,7 +238,7 @@ badge and any count quoted in the docs must agree with it.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (115)
+### test_macrobar.lua (116)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -321,7 +321,8 @@ badge and any count quoted in the docs must agree with it.
 - macrobar cooldowns: the inactive path still applies the correct bling state
 - macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 - macrobar schema: every macroBar row validates and resolves against the db
-- macrobar schema: /cm bar's two flags write through the schema seam, not around it
+- macrobar schema: locking and unlocking reaches the bar frame, whichever surface asked
+- macrobar schema: a flag written from /cm re-syncs the open Macro Bar page in place
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
 - macrobar schema: the default slot order matches the settings tab order
@@ -792,7 +793,7 @@ badge and any count quoted in the docs must agree with it.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 115 |
+| test_macrobar.lua | 116 |
 | test_macromanager.lua | 46 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 28 |
@@ -809,4 +810,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **671** |
+| **Total** | **672** |
