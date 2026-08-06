@@ -31,6 +31,12 @@ diff -r ../LibKa0s/testkit tests/_kit                           # bytes  — SHO
 
 Both halves, because the two answers are different findings.
 
+`tests/test_vendor_sync.lua` runs the same comparison inside the suite, and the tag it compares
+against is **not hardcoded** — it is the `Bundles [LibKa0s](…) vX.Y.Z (MIT).` line in the root
+[`CLAUDE.md`](../CLAUDE.md), so that line moves in the same commit as the bytes. (It lived in
+`README.md` until test-kit revision 9 / LibKa0s v1.8.1; there is deliberately no fallback to the
+old location, so a repo that re-vendors without moving its line goes red.)
+
 **Content differs** → a real fork in `libs/`, which is the forbidden state. Name every hunk.
 
 **Bytes differ but content matches** → a line-ending divergence, not a fork. Both repos pin

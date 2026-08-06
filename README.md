@@ -3,7 +3,7 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
-[![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
+![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-672%2F672_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
@@ -271,14 +271,6 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
 | `/cm resetall` or "Reset all priorities" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
 | I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General) clears everything. |
-
-## Credits and bundled libraries
-
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.0 (MIT).
-
-It supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the settings-panel shell and its row widgets, and the perf-capture harness. It is vendored under `libs/LibKa0s/` and ships with its own `LICENSE`. The version named above is the answer to "which LibKa0s does this build carry?" — it moves whenever `libs/LibKa0s/` is re-vendored, and nothing else in the package records it.
-
-Consumable Master itself is MIT — see [`LICENSE`](./LICENSE).
 
 ## Issues and feature requests
 

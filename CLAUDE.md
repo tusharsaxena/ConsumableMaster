@@ -43,6 +43,22 @@ are **frozen history** — never treat them as a live requirement, and never "re
 - **Don't create docs or planning files unless asked.** Be terse, cite `file_path:line_number`, and
   comment only where the *why* is non-obvious.
 
+## Vendored payload — the LibKa0s provenance line
+
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.1 (MIT).
+
+That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
+not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
+payloads — `libs/LibKa0s/` and `tests/_kit/` — against that tag in the sibling `../LibKa0s`
+checkout. So it moves in the **same commit** as the bytes it describes; a line and a payload that
+disagree is exactly the drift the gate exists to catch. It lives here rather than in `README.md`
+because it answers a maintainer's question on a page written for players — the kit stopped reading
+`README.md` at revision 9 (LibKa0s v1.8.1), and there is no fallback.
+
+LibKa0s supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the
+settings-panel shell and its row widgets, and the perf-capture harness. It is vendored whole-folder
+and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
+
 ## Read the docs
 
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — what this addon is: layout, load order,
