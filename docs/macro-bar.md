@@ -279,7 +279,7 @@ The pattern (curve, threshold constant, and the lazy-build-once guard) is
 copied verbatim from the user's KickCD addon
 (`modules/IconGrid_Render.lua`'s `buildGcdSuppressCurve` /
 `applyGcdSuppressionAlpha`, `core/Constants.lua`'s `Const.GCD_UPPER`) rather
-than shared through LibKa0s — see `docs/pending/LEDGER.md` (GCD-01) for why.
+than shared through LibKa0s — see closed issue [GCD-01](https://github.com/tusharsaxena/ConsumableMaster/issues/26) for why.
 
 **Accepted tail-fade behavior.** The curve evaluates REMAINING duration, which
 can't distinguish a lone 1.5s GCD from the last 1.5s of a 60s cooldown — that

@@ -67,7 +67,6 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 | Test-case inventory (generated — the authoritative pass count) | `tests/` | [test-cases.md](./test-cases.md) |
 | Seed reference + patch-day refresh procedure | `defaults/` | [../defaults/README.md](../defaults/README.md) |
-| Pending-item decision ledger (deferred / closed, with rationale) | — | [pending/LEDGER.md](./pending/LEDGER.md) |
 
 ## Settings Schema
 
@@ -83,7 +82,7 @@ grep -c '^\s*path\s*=' settings/*.lua
 
 reports **55 rows**: 54 `macroBar.*` rows in `settings/MacroBar.lua`, plus the master `enabled` row at `settings/Panel.lua:722-728`.
 
-Two things are deliberately *not* schema rows. `KCM.State.debug` is session-only and never persisted, so it has no path to declare (`settings/Panel.lua:743`). The per-category priority lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (`LIBKA0S-12` in [pending/LEDGER.md](./pending/LEDGER.md)).
+Two things are deliberately *not* schema rows. `KCM.State.debug` is session-only and never persisted, so it has no path to declare (`settings/Panel.lua:743`). The per-category priority lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
 
 ## Message Bus
 
@@ -104,7 +103,7 @@ Cross-module control flow that crosses feature boundaries travels over the close
 
 Seventeen verbs are declared, in this order: `help`, `config`, `version`, `perf`, `debug`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `bar`, `priority`, `stat`, `aio`, `dump`. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; this file holds only the table and the dispatcher wiring. The user-facing description of each verb is the table in [README.md](../README.md).
 
-Six of the seventeen are library-backed, listed as `LIB_BACKED_VERBS` at `settings/Slash.lua:83-85`: `help`, `list`, `get`, `set` and `reset` bind to `Sl:PrintHelp` / `Sl:CliList` / `Sl:CliGet` / `Sl:CliSet` / `Sl:CliReset` at `:307-316`, and `perf` resolves `KCM.Perf` at call time. On a degraded install those are what stop working — the five schema-CLI verbs are rebound to the "unavailable" responder at `:339-340`, which names the eleven that still answer. `resetall` deliberately stays host-owned rather than binding `Sl:CliResetAll` (`LIBKA0S-12`, and the comment at `:312-315`).
+Six of the seventeen are library-backed, listed as `LIB_BACKED_VERBS` at `settings/Slash.lua:83-85`: `help`, `list`, `get`, `set` and `reset` bind to `Sl:PrintHelp` / `Sl:CliList` / `Sl:CliGet` / `Sl:CliSet` / `Sl:CliReset` at `:307-316`, and `perf` resolves `KCM.Perf` at call time. On a degraded install those are what stop working — the five schema-CLI verbs are rebound to the "unavailable" responder at `:339-340`, which names the eleven that still answer. `resetall` deliberately stays host-owned rather than binding `Sl:CliResetAll` ([`LIBKA0S-12`](https://github.com/tusharsaxena/ConsumableMaster/issues/27), and the comment at `:312-315`).
 
 ## Event Subscriptions
 
@@ -141,7 +140,7 @@ The addon's protected surface is small and deliberately fenced.
 - **English-only — tracked deviation** (localization-§4 / anti-pattern #37; see [scope.md](./scope.md)). Classification keys on the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua`, `core/WeaponSlots.lua`), so category and weapon-affinity detection work on every client. The remaining English dependency is TooltipCache's tooltip-TEXT parsing (heal/mana/stat magnitudes, the `Augment Rune` marker, weapon-application effect). `locales/enUS.lua` is a shell, not localization plumbing; full tooltip localization is a planned future release.
 - **Private-namespace publishing pattern:** every file does `local addonName, NS = ...; local KCM = NS; KCM.Foo = KCM.Foo or {}; local F = KCM.Foo`. The `or {}` is load-bearing — another file may have reached `KCM.Foo` first, and overwriting it drops whatever it published. Never let the local shadow the namespace (`local KCM = {}` breaks everything downstream). Public API goes on `F`; helpers stay `local` to the file.
 - **Blizzard API churn goes through `core/Compat.lua`.** `KCM.Compat` wraps the spec + spell APIs Blizzard keeps renaming (`GetSpecialization*`, `GetSpecializationInfoForClassID`, spell-name lookup) and the client's `issecretvalue` (`Compat.IsSecret`). SpecHelper, SlashCommands, MacroManager, MacroDisplay and the settings pages call through `Compat.*` and never the raw global, so a rename is one edit. Any gate over client data a combat restriction could turn secret must ask `IsSecret` *before* comparing ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
-- **Reset is centralized.** `KCM.ResetAllToDefaults(reason)` (`core/ConsumableMaster.lua`) is the only wipe-and-resync path; the Options panel's "Reset all priorities" button and `/cm resetall`'s StaticPopup both delegate to it. Don't add a third. `/cm reset path` is unrelated — the library's one-row schema reset (LIBKA0S-12), which never touches `categories` or `statPriority` ([schema.md](./schema.md)).
+- **Reset is centralized.** `KCM.ResetAllToDefaults(reason)` (`core/ConsumableMaster.lua`) is the only wipe-and-resync path; the Options panel's "Reset all priorities" button and `/cm resetall`'s StaticPopup both delegate to it. Don't add a third. `/cm reset path` is unrelated — the library's one-row schema reset ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)), which never touches `categories` or `statPriority` ([schema.md](./schema.md)).
 - **All addon chat carries the cyan `[CM]` prefix, and no layer calls `print` directly.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth; one-shot chat routes through the secret-safe `KCM.Say(fmt, ...)` seam and gated verbose output through `KCM.Debug(tag, fmt, ...)`. The sole sanctioned raw `print` is the one embedded in generated macro-body `/run print(...)` strings ([scope.md](./scope.md)).
 - **Recompute is coalesced.** Callers fire `KCM.MSG.RECOMPUTE` on the bus (or call `Pipeline.RequestRecompute`), never `Pipeline.Recompute` directly — except the rare direct paths (`KCM.ResetAllToDefaults`, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
 - **Priority-list IDs are opaque numbers with sign semantics.** Positive = itemID, negative = `KCM.ID.AsSpell(spellID)`. Only `MacroManager`, `Ranker.Score`'s spell shortcut, and the UI fork on the sign; every other layer treats them as plain table keys.
@@ -204,11 +203,11 @@ Three rules here are load-bearing rather than stylistic:
    broken install from a broken addon. `KCM.LIBKA0S_MISSING` (set in `core/CoreSetup.lua`) is the one
    shared cause clause; each seam appends only its own "so *what* is unavailable".
 3. **Adoption is per-part, and declining is normal.** Where the library disagrees with the addon it is
-   recorded in [pending/LEDGER.md](./pending/LEDGER.md) as a `LIBKA0S-*` row rather than worked around
-   or silently taken. The three long-running declines — the slash dispatcher (LIBKA0S-01), the options
-   row makers (LIBKA0S-04) and the options page registry (LIBKA0S-05) — have all since been adopted,
+   recorded as a `LIBKA0S-*` issue in this repo's GitHub issues rather than worked around
+   or silently taken. The three long-running declines — the slash dispatcher ([LIBKA0S-01](https://github.com/tusharsaxena/ConsumableMaster/issues/20)), the options
+   row makers ([LIBKA0S-04](https://github.com/tusharsaxena/ConsumableMaster/issues/22)) and the options page registry ([LIBKA0S-05](https://github.com/tusharsaxena/ConsumableMaster/issues/24)) — have all since been adopted,
    two of them only after the blockers were fixed upstream and re-vendored; what is still declined is
-   `Sl:CliResetAll` (LIBKA0S-12), because this addon's global reset also wipes `categories` and
+   `Sl:CliResetAll` ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)), because this addon's global reset also wipes `categories` and
    `statPriority`, which the schema does not describe. Never patch the vendored copy: a fix belongs
    upstream, then re-vendored (the `core/LSMPatch.lua` precedent — third-party fixups live in `core/`,
    not in `libs/`).
@@ -254,12 +253,13 @@ Things that are true today, understood, and not bugs. Each is either a ratified 
 ## Documentation map
 
 Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
-generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/pending/`, `docs/superpowers/`, `docs/perf-runs/`.
+generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`, `docs/perf-runs/`.
 
 ### Required (documentation-§3, Tier 1)
 
 | Doc | Covers |
 |---|---|
+| `ARCHITECTURE.md` | This file — the hub: overview, layout, module map, schema, bus, slash, events, invariants, and the ratified deviations |
 | `scope.md` | What the manager picks and macros, and what it leaves to the player |
 | `module-map.md` | Every non-vendored file, its responsibility, and load order |
 | `schema.md` | The AceDB profile, the composite buckets, and the discovered-set GC |

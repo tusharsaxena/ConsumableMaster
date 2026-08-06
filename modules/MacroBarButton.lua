@@ -92,7 +92,7 @@ end
 -- GCD-swipe suppression curve, built once and lazily (mirrors KickCD's
 -- buildGcdSuppressCurve, modules/IconGrid_Render.lua ~line 84 there — same
 -- pattern, deliberately duplicated rather than shared via LibKa0s; see
--- docs/pending/LEDGER.md).
+-- closed issue #26 (GCD-01)).
 --
 -- Under Midnight a spell cooldown's start/duration are SECRET once combat
 -- begins, so Lua may not compare "is this just the GCD" itself (see the

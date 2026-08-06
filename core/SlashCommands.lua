@@ -33,7 +33,7 @@ local say = KCM.Say
 --
 -- It hangs off the global StaticPopupDialogs at file scope and is reached by
 -- name through StaticPopup_Show, so which VERB raises it is the only thing
--- that ever moved: `/cm reset` used to, `/cm resetall` does now (LIBKA0S-12).
+-- that ever moved: `/cm reset` used to, `/cm resetall` does now (LIBKA0S-12, issue #27).
 -- The dialog, its wording and its body are untouched by that swap — the
 -- destructive path keeps the confirmation it has always had.
 StaticPopupDialogs["KCM_CONFIRM_RESET"] = {
@@ -253,7 +253,7 @@ end
 -- bottom of this file, where the instance is built: COMMANDS is declared above
 -- that point and its handlers close over these names.
 --
--- What the library gained that made this possible is recorded as LIBKA0S-02 —
+-- What the library gained that made this possible is recorded as LIBKA0S-02 (issue #25) —
 -- it now reads the ordered {value=, text=} enum shape this addon declares, and
 -- takes a color codec so a positional { r, g, b, a } round-trips. Before that,
 -- adopting it would have rendered all seven color rows as {0.00, 0.00, 0.00,

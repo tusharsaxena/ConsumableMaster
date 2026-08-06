@@ -73,7 +73,7 @@ not gaps:
 
 - The **per-category priority lists** and the **per-spec stat priorities** are collections, not
   scalars. No row shape describes them, which is also why `/cm resetall` stays host-owned rather than
-  adopting the library's `Sl:CliResetAll` (`LIBKA0S-12` in [pending/LEDGER.md](./pending/LEDGER.md)).
+  adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
 - The **debug-console checkbox** shows and hides the console *window* only — it never touches the
   session debug flag `KCM.State.debug`, exactly like a bare `/cm debug` (`debug-logging-§5`). Logging
   is armed separately, via the in-window `Debug: ON/OFF` toggle or `/cm debug on|off`. Its spec comes

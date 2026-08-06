@@ -301,7 +301,7 @@ end
 -- thing covering a direct sidebar click mid-fight), first-show rendering, and
 -- the dirty re-render for a page refreshed while hidden.
 --
--- Two differences, both accepted and both recorded as LIBKA0S-05. The combat
+-- Two differences, both accepted and both recorded as LIBKA0S-05 (issue #24). The combat
 -- notice is the library's |cffaaaaaa rather than this addon's |cff808080 —
 -- same sentence, different gray, and Options.lua has no L seam to override it.
 -- And a failing renderer is reported as "settings page '<key>' failed to
@@ -370,7 +370,7 @@ end
 --
 -- bool -> CheckBox, number -> Slider, string -> Dropdown (or an LSM30_* widget
 -- via `dialogControl`), color -> ColorPicker. Three upstream fixes are what
--- made these adoptable, all recorded as LIBKA0S-04:
+-- made these adoptable, all recorded in closed issue #22 (LIBKA0S-04):
 --
 --   * the dropdown reads `values` as the ordered { value =, text = } array this
 --     addon declares, rather than as a key map;
@@ -379,7 +379,7 @@ end
 --   * `sliderCommit` exists at all, so the Macro Bar page keeps its live drag
 --     preview.
 --
--- A fourth was never in the ledger: the makers read `row.desc` where every Ka0s
+-- A fourth was never recorded there: the makers read `row.desc` where every Ka0s
 -- schema declares `tooltip`, which would have blanked every tooltip body while
 -- leaving the label rendering — silently, and only in game.
 --
@@ -525,7 +525,7 @@ end
 -- reflects the change when the user returns to it.
 --
 -- This addon had both tiers first; the library grew them to match, which is
--- what made the registry adoptable at all (LIBKA0S-05). The names and
+-- what made the registry adoptable at all (LIBKA0S-05, issue #24). The names and
 -- semantics are identical, so every caller here is unchanged.
 --
 -- Both resolve through __index when the library is present and are the no-ops

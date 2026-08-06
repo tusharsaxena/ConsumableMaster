@@ -1118,7 +1118,7 @@ test("macrobar schema: border rows are populated from LibSharedMedia", function(
     -- `dialogControl` is the library's field name for "render this row with an
     -- in-tree widget type rather than a plain Dropdown". It used to be the
     -- addon's own `lsm = "border"` plus a local name map; the map went with the
-    -- makers (LIBKA0S-04) and the row names the widget directly.
+    -- makers (LIBKA0S-04, issue #22) and the row names the widget directly.
     t.eq(def.dialogControl, "LSM30_Border",
         "declared as an LSM border row so it gets the preview widget")
     -- `values` must stay a FUNCTION: other addons register media after our

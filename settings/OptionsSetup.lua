@@ -64,7 +64,7 @@ KCM.Settings.PANEL_TITLE = PANEL_TITLE
 -- defaults hasAlpha to false where ours defaults it to true (all seven pickers
 -- would lose their alpha slider), and its slider commits on mouse-up where ours
 -- commits live — which is the whole point of the Macro Bar page's drag preview.
--- Recorded in docs/pending/LEDGER.md as LIBKA0S-04.
+-- Recorded in closed issue #22 (LIBKA0S-04).
 
 local optionsLib = LibStub and LibStub("LibKa0s-Options-1.0", true)
 local UI
@@ -91,7 +91,7 @@ if optionsLib and AceGUI then
         -- cannot leak an untagged line.
         print = function(line) KCM.Say(line) end,
 
-        -- The row makers are the library's now (LIBKA0S-04), so it needs the
+        -- The row makers are the library's now (LIBKA0S-04, issue #22), so it needs the
         -- two things this addon's own makers knew and it could not guess.
         --
         -- Colors are stored POSITIONALLY — { r, g, b, a } — which is the shape

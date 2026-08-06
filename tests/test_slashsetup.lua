@@ -143,7 +143,7 @@ end)
 
 test("Slash: a bare /cm reset points at /cm resetall rather than wiping", function(t)
     local KCM, mock = load()
-    -- The break notice for LIBKA0S-12. Anyone with `/cm reset` in a macro was
+    -- The break notice for LIBKA0S-12 (issue #27). Anyone with `/cm reset` in a macro was
     -- triggering a confirm-gated global wipe; the same keystrokes now reset one
     -- schema row, and bare they must say where the old behavior went. The
     -- library's stock USAGE_RESET is "Usage: %s reset <path>" and says nothing
@@ -166,7 +166,7 @@ end)
 
 test("Slash: the schema CLI reads the addon's shapes through the library", function(t)
     local KCM, mock = load()
-    -- The two shapes that blocked this adoption until LIBKA0S-02 fixed them upstream.
+    -- The two shapes that blocked this adoption until LIBKA0S-02 (issue #25) fixed them upstream.
     -- Both would ship GREEN if they regressed — the color one because nothing else
     -- asserts a rendered color's value, the enum one by quietly restoring the clamp
     -- that commit 6a92e63 removed.

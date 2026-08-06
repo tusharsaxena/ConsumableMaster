@@ -183,7 +183,7 @@ test("Settings UI: the library's user-visible strings resolve to prose, not to t
         local H = KCM.Settings.Helpers
         -- The L trap's shape, applied to the one adopted major that cannot
         -- take the trap: Options.lua has no locale seam at all -- its local
-        -- `L` is lib.LAYOUT, which is also why LIBKA0S-05 had to accept the
+        -- `L` is lib.LAYOUT, which is also why LIBKA0S-05 (issue #24) had to accept the
         -- library's shade of gray for the sidebar combat notice rather than
         -- override it. There is no descriptor field here to get wrong, so
         -- what these pin is the other half of the same requirement: that the

@@ -160,7 +160,7 @@ local COMMANDS = {
                 say("rewrote all macros (body + icon). If action bar icons still look stale, /reload to force the bars to refresh.")
             end
         end},
-    -- BREAKING, 2026-08-01 (LIBKA0S-12). `reset` used to be this pair's second
+    -- BREAKING, 2026-08-01 (LIBKA0S-12, issue #27). `reset` used to be this pair's second
     -- entry — the confirm-gated global wipe. It is now the library's
     -- path-scoped reset, matching `/at reset <path>` and `/kcd reset <path>`,
     -- and the wipe moved down one row to `resetall` with its popup intact.
@@ -214,7 +214,7 @@ KCM.COMMANDS = COMMANDS
 -- on the slash library to do it -- it asks THIS file, and this file asks the
 -- library.
 --
--- The schema CLI (Sl:CliList / CliGet / CliSet) IS adopted, since LIBKA0S-02
+-- The schema CLI (Sl:CliList / CliGet / CliSet) IS adopted, since LIBKA0S-02 (issue #25)
 -- fixed both blockers upstream: lib.FormatValue reads this addon's positional
 -- { r, g, b, a } colors directly, and the enum reader takes the ordered
 -- { value =, text = } array rather than the tostring'd keys of a map. The
@@ -237,7 +237,7 @@ local SLASH_STRINGS = {
     -- The hint therefore carries the command literally; it is the same "/cm"
     -- declared as `slash` twenty lines below.
     USAGE_GET       = "Usage: %s get <path>  (try /cm list)",
-    -- The deprecation notice for LIBKA0S-12, and the only place a user who
+    -- The deprecation notice for LIBKA0S-12 (issue #27), and the only place a user who
     -- has `/cm reset` in a macro finds out the verb changed meaning. The
     -- library's stock line is a bare "Usage: %s reset <path>", which would let
     -- a global wipe quietly become a one-row reset. Same arity as the stock
@@ -251,7 +251,7 @@ local SLASH_STRINGS = {
     -- parseBool / allowedText / parseColor sit above lib:New), so they read
     -- lib.STRINGS directly and never pass through Sl:Text — an instance
     -- override cannot reach them. Reported upstream rather than worked around
-    -- here; see LIBKA0S-09.
+    -- here; see LIBKA0S-09 (issue #16).
     ERR_BOOL        = "expected true/false/on/off/1/0",
     ERR_ALLOWED     = "Allowed values: %s",
     ERR_COLOR       = "expected: r g b [a] (each 0-1 or 0-255)",

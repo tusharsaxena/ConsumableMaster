@@ -117,7 +117,7 @@ Scalar settings live as rows in `KCM.Settings.Schema` (the array is created in `
 | `/cm list` | Every schema row, grouped by panel, with current value. |
 | `/cm get <path>` | Single-row read (e.g. `/cm get enabled`). |
 | `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. |
-| `/cm reset <path>` | ONE row back to its `default`. Not the global wipe — that is `/cm resetall`, which keeps the host body and its confirm popup (LIBKA0S-12). |
+| `/cm reset <path>` | ONE row back to its `default`. Not the global wipe — that is `/cm resetall`, which keeps the host body and its confirm popup ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)). |
 
 `KCM.Schema:Set(path, value)` is the unified validate → write → onChange → refresh seam — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row. Row shape:
 

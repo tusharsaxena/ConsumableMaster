@@ -169,7 +169,7 @@ end)
 -- ---------------------------------------------------------------------------
 -- /cm reset (one path) and /cm resetall (the guarded global wipe)
 --
--- LIBKA0S-12. `/cm reset` used to BE the global wipe; it now resets one schema
+-- LIBKA0S-12 (issue #27). `/cm reset` used to BE the global wipe; it now resets one schema
 -- row and the wipe moved to `/cm resetall` with its confirmation intact. The
 -- three cases below are the guard on both halves of that swap: the destructive
 -- verb must still ask, and the path verb must still be surgical.
