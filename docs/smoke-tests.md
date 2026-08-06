@@ -200,7 +200,8 @@ Tests: spec selector drives the spec-aware editor and the spec-aware category pa
 Tests: drag icon, Add by ID (item + spell), priority list (up / down / X), score tooltip.
 
 1. Open any single-category page (e.g. **Healing Potion**).
-2. Drag the macro icon at the top onto an action bar. Confirm placement worked (Blizzard PickupMacro path — taint-free).
+2. Drag the macro icon at the top onto an action bar. Confirm placement worked (Blizzard `PlaceAction` drop — taint-free).
+   - **In combat:** the drag is refused with `[CM] in combat — drag a macro to an action bar once combat ends.` and no Lua error. `PickupMacro` is protected; the same guard covers the macro-bar slots.
 3. Add by ID — Type=Item, paste an item ID you don't own (e.g. an old-tier potion). Press Enter. The row appears in the priority list with the red-X "not owned" glyph.
 4. Add by ID — Type=Spell, paste a spell ID (e.g. `1231411` for Recuperate, only valid on Rogues). Press Enter. The row appears with the spell name and icon. On a non-Rogue: validation rejects with `[CM] unknown spellID`.
 5. Submit an invalid ID (e.g. `99999999`). Validation rejects; the typed text persists in the EditBox so you can correct without re-typing.

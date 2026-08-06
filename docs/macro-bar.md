@@ -322,7 +322,7 @@ user's own offsets are the only sensible answer.
 ## The drag handle
 
 A full bar has no bare container left to grab — every pixel inside it is a
-button, and a button's `OnDragStart` runs `PickupMacro`. So unlocking the bar
+button, and a button's `OnDragStart` picks the macro up. So unlocking the bar
 shows a labeled strip above it (`KCMMacroBarHandle`, a child of the container)
 whose drag scripts call `StartMoving` on the bar. It's sized to the wider of its
 own contents and the bar, and hidden again on lock. The gold wash over the bar
@@ -361,7 +361,7 @@ Everything here follows from one rule: **buttons are protected frames.**
 | combat-conditional visibility | `RegisterStateDriver(bar, "visibility", "[combat] hide; show")` — Blizzard's secure environment performs the toggle, so it works mid-fight, taint-free |
 | hover fade | `SetAlpha`, unprotected and safe in combat. Faded buttons stay clickable by design |
 | lock / unlock | `EnableMouse` + a texture toggle on the unprotected container — safe in combat |
-| drag out to a Blizzard bar | `PickupMacro`, the same taint-free pattern the settings-panel drag icon uses |
+| drag out to a Blizzard bar | `MacroDisplay.Pickup`, shared with the settings-panel drag icon. `PickupMacro` is **protected**, so it is blocked in combat with a chat notice rather than an `ADDON_ACTION_BLOCKED` error; the drop itself is Blizzard's own taint-free `PlaceAction` flow |
 | drag-to-swap | blocked in combat with a chat notice (the relayout that follows anchors protected frames) |
 
 `MacroManager` remains the sole caller of `CreateMacro` / `EditMacro` /

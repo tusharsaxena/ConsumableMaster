@@ -3,9 +3,11 @@
 -- One place that answers "what icon / tooltip / count / cooldown belongs to
 -- KCM_FOOD right now", shared by the macro-bar buttons (modules/MacroBar*.lua)
 -- and the per-category drag icon (modules/KCMMacroDragIcon.lua). Read-only by
--- design: it never touches a protected macro API, so it stays on the same
--- taint-free footing as the rest of the pure layer (MacroManager remains the
--- sole caller of CreateMacro / EditMacro).
+-- design: it never *writes* a macro, so it stays on the same taint-free footing
+-- as the rest of the pure layer (MacroManager remains the sole caller of
+-- CreateMacro / EditMacro). The one exception is MD.Pickup at the bottom — the
+-- shared, combat-guarded entry point to PickupMacro that both drag surfaces
+-- call, kept here so neither can forget the guard.
 --
 -- The pick itself comes from `db.profile.macroState[macroName].lastItemID`,
 -- which MacroManager stamps on every write. That value is an opaque KCM ID:
@@ -202,4 +204,25 @@ function MD.SetTooltip(owner, macroName)
     -- Show() runs on every path including the fallback — an early return that
     -- skipped it would leave a stale tooltip anchored to the button.
     GameTooltip:Show()
+end
+
+-- Put a KCM macro on the cursor, for both drag surfaces (the macro-bar slot and
+-- the settings drag icon).
+--
+-- PickupMacro is PROTECTED: calling it under InCombatLockdown() raises
+-- ADDON_ACTION_BLOCKED and the drag dies with a Lua error in the user's face.
+-- So the combat case is a refusal with a chat line, the same shape the settings
+-- panel and the macro bar use when combat blocks them. Returns true only when
+-- the macro actually reached the cursor.
+function MD.Pickup(macroName)
+    local idx = MD.MacroIndex(macroName)
+    if idx == 0 or not PickupMacro then return false end
+    if InCombatLockdown and InCombatLockdown() then
+        if KCM.Say then
+            KCM.Say("in combat — drag a macro to an action bar once combat ends.")
+        end
+        return false
+    end
+    PickupMacro(idx)
+    return true
 end

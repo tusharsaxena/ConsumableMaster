@@ -5,8 +5,10 @@
 --
 -- Drag / click behavior is the standard Blizzard macro-pickup pattern:
 -- PickupMacro(index) on OnDragStart + left-click, which puts the macro on the
--- cursor. Dropping on an action slot calls Blizzard's own PlaceAction flow —
--- no protected-API call from us, so this stays taint-free even mid-combat.
+-- cursor. Dropping on an action slot calls Blizzard's own PlaceAction flow, so
+-- the drop stays taint-free. The pickup itself is protected in combat, so it
+-- goes through core/MacroDisplay.lua's guarded MD.Pickup, which refuses with a
+-- chat line under InCombatLockdown() instead of erroring.
 --
 -- Acquired via `AceGUI:Create("KCMMacroDragIcon")` in settings/Category.lua,
 -- then configured with `:SetCustomData({ macroName = "KCM_FOO" })`. Icon and
@@ -108,9 +110,7 @@ local function Constructor()
 
     local function pickup()
         if not widget.macroName then return end
-        local idx = macroIndex(widget.macroName)
-        if idx == 0 then return end
-        if PickupMacro then PickupMacro(idx) end
+        if KCM.MacroDisplay then KCM.MacroDisplay.Pickup(widget.macroName) end
     end
 
     frame:SetScript("OnClick", pickup)

@@ -238,7 +238,7 @@ badge and any count quoted in the docs must agree with it.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (116)
+### test_macrobar.lua (119)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -306,6 +306,9 @@ badge and any count quoted in the docs must agree with it.
 - macrodisplay: SetTooltip falls back to the macro name and body when unresolved
 - macrodisplay: SetTooltip with no such macro shows just the name
 - macrodisplay: SetTooltip does nothing without an owner
+- macrodisplay: Pickup puts the macro on the cursor out of combat
+- macrodisplay: Pickup refuses in combat instead of calling the protected API
+- macrodisplay: Pickup on a macro that does not exist is a silent no-op
 - macrobar cooldowns: an active cooldown paints from the duration object
 - macrobar cooldowns: an inactive cooldown clears the swipe
 - macrobar cooldowns: a client without duration objects falls back to numbers
@@ -793,7 +796,7 @@ badge and any count quoted in the docs must agree with it.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 116 |
+| test_macrobar.lua | 119 |
 | test_macromanager.lua | 46 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 28 |
@@ -810,4 +813,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **672** |
+| **Total** | **675** |

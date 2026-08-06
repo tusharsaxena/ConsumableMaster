@@ -716,6 +716,37 @@ test("macrodisplay: SetTooltip does nothing without an owner", function(t)
 end)
 
 -- ---------------------------------------------------------------------------
+-- Pickup (core/MacroDisplay.lua) — PickupMacro is protected in combat
+-- ---------------------------------------------------------------------------
+
+test("macrodisplay: Pickup puts the macro on the cursor out of combat", function(t)
+    local KCM = h.loader.loadPure()
+    _G.CreateMacro("KCM_FOOD", 1, "/use Bread")
+    t.truthy(KCM.MacroDisplay.Pickup("KCM_FOOD"), "the pickup is reported as done")
+    local kind, idx = _G.GetCursorInfo()
+    t.eq(kind, "macro", "and the cursor holds a macro")
+    t.eq(idx, _G.GetMacroIndexByName("KCM_FOOD"), "the one asked for")
+end)
+
+test("macrodisplay: Pickup refuses in combat instead of calling the protected API", function(t)
+    local KCM = h.loader.loadPure()
+    _G.CreateMacro("KCM_FOOD", 1, "/use Bread")
+    h.loader.mock.setCombat(true)
+    local ok = KCM.MacroDisplay.Pickup("KCM_FOOD")
+    h.loader.mock.setCombat(false)
+    t.falsy(ok, "PickupMacro would raise ADDON_ACTION_BLOCKED, so it is not called")
+    t.falsy(_G.GetCursorInfo(), "and nothing lands on the cursor")
+    local said = table.concat(h.loader.mock.output, "\n")
+    t.truthy(said:find("in combat", 1, true), "the refusal is explained in chat")
+end)
+
+test("macrodisplay: Pickup on a macro that does not exist is a silent no-op", function(t)
+    local KCM = h.loader.loadPure()
+    t.falsy(KCM.MacroDisplay.Pickup("KCM_NOPE"), "index 0 means no such macro")
+    t.falsy(_G.GetCursorInfo(), "so the cursor is left alone")
+end)
+
+-- ---------------------------------------------------------------------------
 -- Cooldown application (modules/MacroBarButton.lua — secret-value safe)
 -- ---------------------------------------------------------------------------
 

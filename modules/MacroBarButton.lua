@@ -19,9 +19,10 @@
 -- alongside the button; its content is rebuilt by MacroBar.Refresh.
 --
 -- Drag model:
---   * OnDragStart  -> PickupMacro, so a slot can be dragged onto a normal
---                     Blizzard action bar. Taint-free at any time, exactly like
---                     the settings panel's KCMMacroDragIcon.
+--   * OnDragStart  -> MacroDisplay.Pickup, so a slot can be dragged onto a
+--                     normal Blizzard action bar. Taint-free, and refused with
+--                     a chat line in combat (PickupMacro is protected) —
+--                     exactly like the settings panel's KCMMacroDragIcon.
 --   * OnReceiveDrag -> if the cursor holds a KCM macro, swap the two slots.
 --                     Anything else is ignored and the cursor is left untouched,
 --                     which is what keeps this bar CM-only.
@@ -400,8 +401,7 @@ function BB.Create(parent, catKey, index)
     end)
 
     btn:SetScript("OnDragStart", function(self)
-        local idx = KCM.MacroDisplay and KCM.MacroDisplay.MacroIndex(macroName(self.catKey)) or 0
-        if idx ~= 0 and PickupMacro then PickupMacro(idx) end
+        if KCM.MacroDisplay then KCM.MacroDisplay.Pickup(macroName(self.catKey)) end
     end)
 
     btn:SetScript("OnReceiveDrag", function(self)
