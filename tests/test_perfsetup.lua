@@ -46,7 +46,7 @@ test("Perf: every panel step's label resolves to prose, not to its own key", fun
     -- The L trap, on the module that actually shipped it: a sibling addon's
     -- perf panel rendered PANEL_TITLE_SUFFIX / STEP_START / STEP_MEASURE_A as
     -- raw keys because its descriptor was handed the addon's locale table,
-    -- whose metatable answers every key with the key. modules/PerfSetup.lua
+    -- whose metatable answers every key with the key. core/PerfSetup.lua
     -- passes no L at all, and this case is what stops one being added.
     --
     -- P.STEPS[i].label is the string PerfPanel resolved and each row actually

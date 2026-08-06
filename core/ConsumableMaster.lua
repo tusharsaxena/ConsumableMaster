@@ -1,4 +1,4 @@
--- Core.lua — AceAddon entry point, DB bootstrap, slash registration.
+-- ConsumableMaster.lua — AceAddon entry point, DB bootstrap, slash registration.
 
 local addonName, NS = ...
 local KCM = NS
