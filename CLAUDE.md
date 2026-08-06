@@ -51,11 +51,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
   copy diff, the toolchain, TDD policy, and badge sync.
 - **[DEPENDENCIES.md](./DEPENDENCIES.md)** — what to install to build, run, test or release this
   addon, with WSL2/Ubuntu commands and a verification command per tool (`documentation-§7`).
-- Topic detail in `docs/` as needed — `file-index.md`, `module-map.md`, `pipeline.md`,
-  `data-model.md`, `macro-manager.md`, `macro-bar.md`, `midnight-quirks.md`, `common-tasks.md`,
-  `debug.md`, `performance.md`, `perf-runs/`, `scope.md`, `smoke-tests.md`, `test-cases.md`,
-  `automated-tests/`, `pending/LEDGER.md`.
-  `test-cases.md` is **generated** — never hand-edit it. So is `automated-tests/RESULTS.md`, and a run bundle is frozen once written.
+- Topic detail in `docs/` — **Tier 1 is always present**: `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`. Conditional and addon-specific docs vary; `docs/ARCHITECTURE.md` → `## Documentation map` lists every page under `docs/` and says which conditional ones do not apply here (`documentation-§3`).
 - User-facing reference: [README.md](./README.md).
 
 ## Gate

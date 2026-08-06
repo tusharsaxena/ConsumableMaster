@@ -88,7 +88,7 @@ Make `WPN_ENCH` score Attack Power / Spell Power by role, and pick the **best ap
 
 **Tests**: TooltipCache (AP/SP parse; `weaponAffinity` from bladed/blunt/any), Ranker (AP→primary for STR/AGI, 0 for INT; SP mirror), WeaponSlots (subtype→affinity map incl. none cases; mockable equipment), Selector (`PickBestForSlot` filters by affinity + ownership), MacroManager (per-hand body: both/one/neither slot; empty fallback), Pipeline (perHand routing; equip-change recompute). Regenerate `docs/test-cases.md` + bump `[Tests]` badge.
 
-**Docs**: README (weapon-enchant behavior + macro), `docs/ARCHITECTURE.md` (new module + event), `docs/agent-context.md`, `docs/data-model.md`, `docs/smoke-tests.md` (weapon-swap + per-hand cases).
+**Docs**: README (weapon-enchant behavior + macro), `docs/ARCHITECTURE.md` (new module + event), `docs/agent-context.md`, `docs/schema.md`, `docs/smoke-tests.md` (weapon-swap + per-hand cases).
 
 ## Open items to confirm in-game
 

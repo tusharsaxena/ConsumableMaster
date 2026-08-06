@@ -436,10 +436,10 @@ end
 ### Task 7: Docs, smoke tests, inventory + badge
 
 **Files:**
-- Modify: `README.md`, `docs/ARCHITECTURE.md`, `docs/agent-context.md`, `docs/data-model.md`, `docs/smoke-tests.md`, `docs/test-cases.md`
+- Modify: `README.md`, `docs/ARCHITECTURE.md`, `docs/agent-context.md`, `docs/schema.md`, `docs/smoke-tests.md`, `docs/test-cases.md`
 
 - [ ] **Step 1:** README — update the Weapon Enchant description + the "How picking & ranking works" weapon-enchant bullet to describe per-hand, weapon-type-aware application and AP/SP scoring. Note the macro applies the best *applicable* enhancement to each equipped weapon.
-- [ ] **Step 2:** `docs/ARCHITECTURE.md` — add `core/WeaponSlots.lua` to the module map and `PLAYER_EQUIPMENT_CHANGED` to Event Subscriptions; `docs/agent-context.md` + `docs/data-model.md` — note the per-hand `WPN_ENCH` model, `weaponAffinity`, and AP/SP stats.
+- [ ] **Step 2:** `docs/ARCHITECTURE.md` — add `core/WeaponSlots.lua` to the module map and `PLAYER_EQUIPMENT_CHANGED` to Event Subscriptions; `docs/agent-context.md` + `docs/schema.md` — note the per-hand `WPN_ENCH` model, `weaponAffinity`, and AP/SP stats.
 - [ ] **Step 3:** `docs/smoke-tests.md` — add cases: (a) equip a bladed weapon → whetstone picked/starred, weightstone dimmed; (b) swap to a blunt weapon → macro + UI update without reload; (c) dual-wield mismatched types → each hand gets its own enhancement; (d) 2H weapon → only slot 16 in the macro.
 - [ ] **Step 4:** Regenerate the inventory and bump the badge:
   Run `lua5.1 tests/run.lua --list > docs/test-cases.md`; read the total from `lua5.1 tests/run.lua 2>&1 | tail -1`; set the README `[Tests]` badge to `<N>%2F<N>`. Confirm `diff <(lua5.1 tests/run.lua --list) docs/test-cases.md` is empty.

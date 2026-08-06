@@ -48,17 +48,17 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Subsystem | Lives in | Read |
 |-----------|----------|------|
 | Per-module APIs + roles | `core/*.lua`, `modules/*.lua`, `settings/*.lua` | [module-map.md](./module-map.md) |
-| Recompute pipeline + score cache + events | `core/ConsumableMaster.lua` (`KCM.Pipeline`) | [pipeline.md](./pipeline.md) |
-| AceDB schema + opaque IDs + discovered GC | `defaults/Profile.lua` (`KCM.dbDefaults`), `core/ConsumableMaster.lua` (`KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [data-model.md](./data-model.md) |
+| Recompute pipeline + score cache + events | `core/ConsumableMaster.lua` (`KCM.Pipeline`) | [data-flow.md](./data-flow.md) |
+| AceDB schema + opaque IDs + discovered GC | `defaults/Profile.lua` (`KCM.dbDefaults`), `core/ConsumableMaster.lua` (`KCM.ID`), `core/Database.lua`, `modules/Selector.lua` | [schema.md](./schema.md) |
 | MacroManager (body builders, composite assembly, combat deferral, action-bar icons) | `modules/MacroManager.lua` | [macro-manager.md](./macro-manager.md) |
 | Tooltip parsing + Midnight gotchas | `core/Classifier.lua`, `core/TooltipCache.lua` | [midnight-quirks.md](./midnight-quirks.md) |
-| Settings panel + slash CLI + schema layer | `settings/*.lua` (incl. `settings/Slash.lua`, the dispatcher), `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` + `core/SlashDump.lua` (verb bodies), `libs/LibKa0s/Slash.lua` | [debug.md](./debug.md), [file-index.md](./file-index.md) |
+| Settings panel + slash CLI + schema layer | `settings/*.lua` (incl. `settings/Slash.lua`, the dispatcher), `libs/LibKa0s/Options.lua`, `core/SlashCommands.lua` + `core/SlashDump.lua` (verb bodies), `libs/LibKa0s/Slash.lua` | [debug.md](./debug.md), [module-map.md](./module-map.md) |
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec + spell APIs) | `core/Compat.lua` | [module-map.md](./module-map.md) |
 | Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua` | [debug.md](./debug.md) |
 | Perf A/B capture (`/cm perf`) | `core/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
-| Per-file responsibility map | — | [file-index.md](./file-index.md) |
+| Per-file responsibility map | — | [module-map.md](./module-map.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
 | Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
 | Contributor toolchain — what to install to build, run, test or release | — | [../DEPENDENCIES.md](../DEPENDENCIES.md) |
@@ -73,7 +73,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 
 Two layers, and it is worth keeping them apart.
 
-**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 2`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [data-model.md](./data-model.md) — this section does not duplicate them.
+**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 2`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
 
 **Declared scalars** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua:22` and appended to by the tab files. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings tab, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:286` hands the whole array to LibKa0s-Slash-1.0), and the validator applied on write by the `Resolve` → `SetAndRefresh` seam.
 
@@ -141,7 +141,7 @@ The addon's protected surface is small and deliberately fenced.
 - **English-only — tracked deviation** (localization-§4 / anti-pattern #37; see [scope.md](./scope.md)). Classification keys on the locale-independent numeric `classID`/`subClassID` (`core/Classifier.lua`, `core/WeaponSlots.lua`), so category and weapon-affinity detection work on every client. The remaining English dependency is TooltipCache's tooltip-TEXT parsing (heal/mana/stat magnitudes, the `Augment Rune` marker, weapon-application effect). `locales/enUS.lua` is a shell, not localization plumbing; full tooltip localization is a planned future release.
 - **Private-namespace publishing pattern:** every file does `local addonName, NS = ...; local KCM = NS; KCM.Foo = KCM.Foo or {}; local F = KCM.Foo`. The `or {}` is load-bearing — another file may have reached `KCM.Foo` first, and overwriting it drops whatever it published. Never let the local shadow the namespace (`local KCM = {}` breaks everything downstream). Public API goes on `F`; helpers stay `local` to the file.
 - **Blizzard API churn goes through `core/Compat.lua`.** `KCM.Compat` wraps the spec + spell APIs Blizzard keeps renaming (`GetSpecialization*`, `GetSpecializationInfoForClassID`, spell-name lookup) and the client's `issecretvalue` (`Compat.IsSecret`). SpecHelper, SlashCommands, MacroManager, MacroDisplay and the settings pages call through `Compat.*` and never the raw global, so a rename is one edit. Any gate over client data a combat restriction could turn secret must ask `IsSecret` *before* comparing ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
-- **Reset is centralized.** `KCM.ResetAllToDefaults(reason)` (`core/ConsumableMaster.lua`) is the only wipe-and-resync path; the Options panel's "Reset all priorities" button and `/cm resetall`'s StaticPopup both delegate to it. Don't add a third. `/cm reset path` is unrelated — the library's one-row schema reset (LIBKA0S-12), which never touches `categories` or `statPriority` ([data-model.md](./data-model.md)).
+- **Reset is centralized.** `KCM.ResetAllToDefaults(reason)` (`core/ConsumableMaster.lua`) is the only wipe-and-resync path; the Options panel's "Reset all priorities" button and `/cm resetall`'s StaticPopup both delegate to it. Don't add a third. `/cm reset path` is unrelated — the library's one-row schema reset (LIBKA0S-12), which never touches `categories` or `statPriority` ([schema.md](./schema.md)).
 - **All addon chat carries the cyan `[CM]` prefix, and no layer calls `print` directly.** `KCM.PREFIX` (`core/Constants.lua`) is the single source of truth; one-shot chat routes through the secret-safe `KCM.Say(fmt, ...)` seam and gated verbose output through `KCM.Debug(tag, fmt, ...)`. The sole sanctioned raw `print` is the one embedded in generated macro-body `/run print(...)` strings ([scope.md](./scope.md)).
 - **Recompute is coalesced.** Callers fire `KCM.MSG.RECOMPUTE` on the bus (or call `Pipeline.RequestRecompute`), never `Pipeline.Recompute` directly — except the rare direct paths (`KCM.ResetAllToDefaults`, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
 - **Priority-list IDs are opaque numbers with sign semantics.** Positive = itemID, negative = `KCM.ID.AsSpell(spellID)`. Only `MacroManager`, `Ranker.Score`'s spell shortcut, and the UI fork on the sign; every other layer treats them as plain table keys.
@@ -250,6 +250,52 @@ Things that are true today, understood, and not bugs. Each is either a ratified 
 - **Tracked vs ignored.** `libs/` is tracked (vendored Ace3 / LibSharedMedia / LibKa0s — standard WoW
   addon practice), as are `defaults/`, `docs/`, `tests/`, `locales/` and all `.lua` source.
   `.gitignore` covers `.claude/settings.local.json`, OS cruft and editor scratch files.
+
+## Documentation map
+
+Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
+generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/pending/`, `docs/superpowers/`, `docs/perf-runs/`.
+
+### Required (documentation-§3, Tier 1)
+
+| Doc | Covers |
+|---|---|
+| `scope.md` | What the manager picks and macros, and what it leaves to the player |
+| `module-map.md` | Every non-vendored file, its responsibility, and load order |
+| `schema.md` | The AceDB profile, the composite buckets, and the discovered-set GC |
+| `settings-panel.md` | The panel tree, per-option behavior, and the write seam |
+| `data-flow.md` | Bag scan → classify → rank → select → macro rewrite |
+| `common-tasks.md` | Recipes for the changes made most often here |
+
+### Conditional (documentation-§3, Tier 2)
+
+| Doc | Status | Trigger |
+|---|---|---|
+| `slash-dispatch.md` | Not applicable | 17 verbs, but they are a flat set with no subcommand tree; the table lives in `ARCHITECTURE.md` → `## Slash Commands` |
+| `midnight-quirks.md` | Present | Client-version workarounds of the addon’s own |
+| `debug.md` | Present | `/cm dump` targets in `core/SlashDump.lua` are the addon’s own beyond the library console |
+| `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message Bus` |
+| `compat-layer.md` | Not applicable | `core/Compat.lua` normalizes spell and item APIs with no addon-specific shim to document separately |
+| `profiles.md` | Not applicable | No profile control ships in the options UI; the addon uses a single AceDB profile |
+| `perf-runs/README.md` | Present | The performance harness is wired (`core/PerfSetup.lua`) |
+
+### Verification and record
+
+| Doc | Covers |
+|---|---|
+| `testing.md` | How to run the harness and lint; the green commit gate |
+| `smoke-tests.md` | The in-game smoke-test suite |
+| `test-cases.md` | The generated case inventory (authoritative pass count) |
+| `performance.md` | The addon performance page |
+| `automated-tests/README.md` | What the automated-test record is and how to produce it |
+| `automated-tests/RESULTS.md` | One row per run; generated, never hand-edited |
+
+### Addon-specific (documentation-§3, Tier 3)
+
+| Doc | Covers |
+|---|---|
+| `macro-bar.md` | The optional on-screen macro bar — its model, slots and repaint path |
+| `macro-manager.md` | Macro ownership, fingerprints, and the rewrite protocol |
 
 ## Documented deviations
 

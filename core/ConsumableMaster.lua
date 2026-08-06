@@ -58,7 +58,7 @@ end
 -- ---------------------------------------------------------------------------
 -- All event handlers enqueue a recompute via RequestRecompute; RequestRecompute
 -- coalesces calls within the same frame by gating on `_recomputePending` and
--- scheduling a single `C_Timer.After(0, ...)` (see docs/pipeline.md,
+-- scheduling a single `C_Timer.After(0, ...)` (see docs/data-flow.md,
 -- "Pull-based, frame-coalesced").
 --
 -- Recompute itself walks KCM.Categories.LIST, asks Selector for the best-owned
