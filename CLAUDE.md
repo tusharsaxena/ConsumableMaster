@@ -7,16 +7,26 @@
 This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
 
 **Deviation rule (MUST).** If a change you are about to make would deviate from the standard — or you notice existing code that already deviates — **stop and flag it to the user**. Never silently diverge. Let the user decide whether it should be:
-1. a **tracked deviation** — a documented, intentional exception for this addon; or
+1. an **accepted deviation** — this addon intentionally differs; record it as a row in
+   [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) → `## Documented deviations`, shaped
+   `| Rule | What differs | Why | Decided | Re-check trigger |`, where Rule is the
+   `filename-§N` reference. That register is the single home: the reasoning may live in the
+   issue-audit GitHub issue or an audit bundle and the row cites it, but a deviation not in
+   the register is not ratified; or
 2. a **change to the standard itself** — upstreamed to the [WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards) repo so every addon benefits.
 
 This applies to both new work and anything you discover in passing.
 
 ## The `docs/` set — there is no `agent-context.md`
 
-The canonical `docs/` set is exactly three files: **`ARCHITECTURE.md`** (what this addon is),
-**`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks) — plus the generated
-`test-cases.md` and the topic-detail docs.
+The canonical `docs/` set is the **trio** — **`ARCHITECTURE.md`** (what this addon is),
+**`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks) — plus the five
+verification-and-record docs `test-cases.md`, `performance.md`, `perf-runs/README.md`,
+`automated-tests/README.md` and `automated-tests/RESULTS.md`, plus the topic-detail docs in three
+tiers: Tier 1's six (`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`,
+`data-flow.md`, `common-tasks.md`) always present, whichever Tier 2 triggers have fired, and any
+Tier 3 docs this addon ships (`documentation-§3`). `ARCHITECTURE.md` is the hub of that set, not
+the whole of it.
 
 **`docs/agent-context.md` does not exist in this repo and MUST NOT be created.** The standard
 deleted it in **v2.17.0**; shipping it is **anti-pattern #49**. It held `NEW_ADDON_CONTEXT.md` —

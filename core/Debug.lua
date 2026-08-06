@@ -2,7 +2,7 @@
 --
 -- The enabled flag lives in KCM.State (session-only, default off, never
 -- persisted — debug-logging-§5) and is owned by DebugLog. Emitted diagnostics go
--- to the on-screen DebugLog console (standard §12); if the console module
+-- to the on-screen DebugLog console (debug-logging); if the console module
 -- hasn't loaded yet (very early boot) they fall back to the chat frame.
 --
 -- KCM.Debug is itself callable: KCM.Debug("Tag", "%s -> %s", a, b).

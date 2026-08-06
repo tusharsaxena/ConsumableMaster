@@ -4,7 +4,7 @@
 -- globals to the C_SpecializationInfo / C_Spell namespaces. Rather than scatter
 -- "modern first, legacy fallback" chains across SpecHelper, SlashCommands,
 -- MacroManager, the widgets, and the settings tabs, every caller goes through
--- KCM.Compat so a future rename is one edit here (standard §11).
+-- KCM.Compat so a future rename is one edit here (compat).
 --
 -- Loaded right after Constants so all downstream modules can rely on it.
 

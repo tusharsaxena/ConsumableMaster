@@ -467,12 +467,12 @@ in [macro-bar.md](./macro-bar.md).
 KCM.Debug.IsOn() -> bool                      -- reads the flag (DebugLog.IsEnabled, else State.debug)
 KCM.Debug(tag, fmt, ...)                      -- callable sink; gated, secret-safe; early-returns when off
                                               --   Read side only — there is no KCM.Debug.Toggle;
-                                              --   DebugLog.SetEnabled is the single write path (§5)
+                                              --   DebugLog.SetEnabled is the single write path (debug-logging-§5)
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Clear()
 KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
-KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header, scrollbar + line counter (§11)
+KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header, scrollbar + line counter (debug-logging-§11)
 KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters (the library's)
 KCM.DebugLog.instance                         -- the LibKa0s-DebugLog-1.0 instance itself
 ```

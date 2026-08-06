@@ -71,7 +71,7 @@ local P = KCM.Pipeline
 -- The session debug gate, in one place instead of once per log site. It stays a
 -- PREDICATE rather than a logging wrapper on purpose: KCM.Debug's arguments
 -- (tostring calls, CalcSummary) must not be evaluated when debug is off, which
--- is the standard §12 zero-alloc rule these paths are written to. It also reads
+-- is the debug-logging-§4 zero-alloc rule these paths are written to. It also reads
 -- KCM.State directly, exactly as the inline sites did — not KCM.Debug.IsOn,
 -- which consults the DebugLog console first and is therefore a different gate.
 local function isDebugOn()
@@ -294,7 +294,7 @@ local function runAutoDiscovery(reason)
     local counts = KCM.BagScanner.Scan()
     local discovered = 0
     local nowUnix = time()
-    -- Only build the scanned/new lists when debug is on (standard §12 zero-alloc
+    -- Only build the scanned/new lists when debug is on (debug-logging-§4 zero-alloc
     -- gate) — this runs on every BAG_UPDATE_DELAYED. `newIds`, when non-nil, is
     -- the accumulator discoverOne fills instead of printing per-item lines.
     local debugOn = KCM.Debug and KCM.Debug.IsOn and KCM.Debug.IsOn()

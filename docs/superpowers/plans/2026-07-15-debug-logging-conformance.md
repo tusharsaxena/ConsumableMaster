@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Bring Consumable Master's debug logging into full conformance with the Ka0s WoW Addon Standard `debug-logging` §3/§4/§8/§9/§10 — a single callable, secret-safe, tagged sink; complete flow coverage; one coalesced line per pass; and `[Set]` logging at the schema write seam.
+**Goal:** Bring Consumable Master's debug logging into full conformance with the Ka0s WoW Addon Standard `debug-logging-§3`/`-§4`/`-§8`/`-§9`/`-§10` — a single callable, secret-safe, tagged sink; complete flow coverage; one coalesced line per pass; and `[Set]` logging at the schema write seam.
 
 **Architecture:** Make `KCM.Debug` a callable sink (`KCM.Debug(tag, fmt, …)`) with a `__call` metamethod, routing every vararg through a new secret-safe `KCM.SafeToString`. Migrate all tagless `KCM.Debug.Print` sites to functional-area tags (`Boot`, `DB`, `Scan`, `Calc`, `Macro`, `GC`, `Set`, `Prio`). Add missing coverage (boot summary, recompute summary, settings + data-mutation logging) as one gated line per event, with per-pass summaries extracted as pure, unit-tested formatters.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **Standard:** debug-logging §3 line format `<HH:MM:SS> | [<Tag>] <content>` (already implemented in `DebugLog.FormatPlain/FormatColored` — do NOT change).
+- **Standard:** debug-logging-§3 line format `<HH:MM:SS> | [<Tag>] <content>` (already implemented in `DebugLog.FormatPlain/FormatColored` — do NOT change).
 - **Zero-alloc gate (§4):** the enabled check is the FIRST statement in the sink; every ordinary call site is double-gated with `if KCM.State.debug then …`.
 - **Secret-safe (§4):** all sink varargs pass through `KCM.SafeToString`; all format placeholders are `%s` (never `%d`/`%f`).
 - **Coalescing (§9):** never one line per item/macro/slot on a repeating path — one summary line per pass.

@@ -12,12 +12,12 @@ The console window is drawn by **`LibKa0s-DebugLog-1.0`** (`libs/LibKa0s/DebugLo
 KCM.Debug.IsOn()      -- bool; reads the flag (DebugLog.IsEnabled, else State.debug)
 KCM.Debug(tag, fmt, ...)        -- callable sink: gated, secret-safe line to the console
                                 -- read side only: core/Debug.lua publishes no Toggle,
-                                -- because SetEnabled below is the single write path (§5)
+                                -- because SetEnabled below is the single write path (debug-logging-§5)
 
 KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Clear()
 KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
-KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header + scrollbar + line counter (§11)
+KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header + scrollbar + line counter (debug-logging-§11)
 KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters (the library's)
 KCM.DebugLog.instance                                                  -- the library instance itself
 ```
