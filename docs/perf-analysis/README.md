@@ -90,9 +90,12 @@ Object keys are emitted in sorted order so two records diff cleanly.
 - **`fps.deltaMsPerFrame`** reads `0` unless **both** arms were sampled; with one arm empty a
   subtraction would report the whole frame time as the addon's cost.
 - **`buckets[*].totalMs`** is Lua execution time only.
-- **`interface`** reads `0` in every record, in-game ones included. `GetAddOnMetadata` does not
-  expose the `Interface` TOC field, so the lookup returns nil and the record stamps 0. Do not read
-  this field as the client version.
+- **`interface`** stamps the addon's `## Interface` TOC field, and in the first committed capture it
+  reads `120007` — matching the TOC. An earlier note here claimed it reads `0` in every record
+  because `GetAddOnMetadata` does not expose the field; the record below disproves that, so treat a
+  `0` as the exceptional case (an older client build, or a record from before the lookup worked)
+  rather than the rule. It is still not the *client* version — it is what the addon declared it
+  builds against.
 - **Encoder wart:** Lua has a single table type, so an **empty** list and an empty map are
   indistinguishable to the encoder and both come out as `{}`. An empty `failures` therefore emits as
   `{}`, not `[]`. Non-empty lists encode as proper arrays.
@@ -129,10 +132,12 @@ against the repo and the TOC, stamps the bundle and writes `ANALYSIS.md`.
 
 ## Capture index
 
-**Empty. No in-game capture has been committed yet.** That is a real gap in the evidence, not an
-absence of tooling — the harness is wired (`core/PerfSetup.lua`), the verb dispatches, and the store
-is here waiting. Nothing in this addon's docs may cite an in-game figure until a bundle sits below.
+One capture committed. Newest last.
 
 | Stamp | Version | Label | What it measured |
 |---|---|---|---|
-| _(none yet)_ | | | |
+| [`20260807-132029`](20260807-132029/) | 1.5.0 | `2026-08-07 13:17` | First in-game baseline — solo, Silvermoon City, two ~25 s combat arms. `cooldown` at **1.78 ms/s** (0.027 ms/frame, 0.18% of combat wall time); `recompute` never fired. Frame-time delta **unresolved** (−0.11 ms/frame, sign inverted — the player zoned between the arms). |
+
+**Only `cooldown` has an in-game number.** The `recompute` bucket has not fired in any committed
+capture, so no doc may cite an in-game figure for it until one does
+([20260807-132029/ANALYSIS.md](20260807-132029/ANALYSIS.md), Actions).
