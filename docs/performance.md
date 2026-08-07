@@ -2,7 +2,9 @@
 
 How ConsumableMaster is measured, what it brackets, and what the numbers mean. Two sources feed one
 schema: an **in-game A/B capture** (`/cm perf`) and an **offline scenario run**
-(`lua tests/perf.lua`). Captures are filed under [`perf-runs/`](./perf-runs/README.md).
+(`lua tests/perf.lua`). In-game captures are filed as frozen dated bundles under
+[`perf-analysis/`](./perf-analysis/README.md); offline runs live in the automated-test bundle that
+produced them (`automated-tests-§7`).
 
 ## The model
 
@@ -69,6 +71,10 @@ the AceDB tree: `LibKa0s-Perf` writes `_G[sv]` directly, so folding it into `Con
 would stamp `schema` and `runs` onto AceDB's root and trip AceDB's own discard branch on the next
 load.
 
+The ring is a bounded diagnostics buffer, not the archive. A capture worth keeping is committed as a
+frozen dated bundle under [`perf-analysis/`](./perf-analysis/README.md) — `report.md`, `dump.json`
+and `ANALYSIS.md`, the directory stamped in local time from the record's own `timestamp`.
+
 ## In game
 
 ```
@@ -78,6 +84,11 @@ load.
 opens the library's step panel. It walks the A/B protocol, writes a record into the ring and can
 print or export it. With `LibKa0s-Perf-1.0` absent the verb still dispatches and answers
 `perf capture unavailable.` — it never silently does nothing (`settings/Slash.lua`).
+
+At the end of a run, `/cm perf report` prints the summary a human reads and `/cm perf dump` prints
+the record as one line of JSON; the debug window's **Copy** button carries both, plus the run's
+lifecycle lines, out of the client in one paste. That paste is what `/wow-addon:perf-analysis` turns
+into a bundle under [`perf-analysis/`](./perf-analysis/README.md).
 
 ## Offline
 

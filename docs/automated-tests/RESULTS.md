@@ -95,13 +95,13 @@ perfect zero-overhead result.
 Standing gaps, both real and neither one filled by the other — an offline scenario and a live
 capture are different measurements:
 
-- The in-game half has no committed capture yet. `docs/perf-runs/` exists with its README and the
-  naming convention (`performance-§8`), but no `<date>-ingame-<label>.json` has been filed.
+- The in-game half has no committed capture yet. `docs/perf-analysis/` exists with its README and the
+  bundle convention (`performance-§8`), but no `<YYYYMMDD-HHMMSS>/` bundle has been filed.
 - Offline timings are orientation only. The machine-independent figures are the per-iteration byte
   counts and the call counts; the millisecond columns say nothing across machines.
 
 Background, the bucket list and the gate idiom: [../performance.md](../performance.md). Record shape
-and naming: [../perf-runs/README.md](../perf-runs/README.md).
+and bundle layout: [../perf-analysis/README.md](../perf-analysis/README.md).
 
 ## Complexity watch list
 

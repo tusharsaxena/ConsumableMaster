@@ -21,7 +21,7 @@ This applies to both new work and anything you discover in passing.
 
 The canonical `docs/` set is the **trio** — **`ARCHITECTURE.md`** (what this addon is),
 **`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks) — plus the five
-verification-and-record docs `test-cases.md`, `performance.md`, `perf-runs/README.md`,
+verification-and-record docs `test-cases.md`, `performance.md`, `perf-analysis/README.md`,
 `automated-tests/README.md` and `automated-tests/RESULTS.md`, plus the topic-detail docs in three
 tiers: Tier 1's six (`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`,
 `data-flow.md`, `common-tasks.md`) always present, whichever Tier 2 triggers have fired, and any

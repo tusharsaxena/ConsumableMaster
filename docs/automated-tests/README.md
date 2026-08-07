@@ -48,6 +48,7 @@ run that measured nothing cannot be mistaken for a green run that measured every
 
 Offline perf records live in the bundle with the run that produced them. **In-game** captures cannot
 be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
-they keep their own standing store at `docs/perf-runs/`. That directory **does not exist in this
-repo yet**; creating it and its `README.md` is tracked as deviation `CM-43`
+they keep their own standing store at `docs/perf-analysis/`, one frozen dated bundle per capture.
+That directory exists with its `README.md`, but **no in-game capture has been committed there yet** —
+the remaining half of deviation `CM-43`
 ([`docs/audits/2026-08-04/02_DEVIATIONS.md`](../audits/2026-08-04/02_DEVIATIONS.md)).

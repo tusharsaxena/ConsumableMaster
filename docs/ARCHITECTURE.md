@@ -253,7 +253,7 @@ Things that are true today, understood, and not bugs. Each is either a ratified 
 ## Documentation map
 
 Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
-generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`, `docs/perf-runs/`.
+generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`, `docs/perf-analysis/`.
 
 ### Required (documentation-§3, Tier 1)
 
@@ -277,7 +277,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message Bus` |
 | `compat-layer.md` | Not applicable | `core/Compat.lua` normalizes spell and item APIs with no addon-specific shim to document separately |
 | `profiles.md` | Not applicable | No profile control ships in the options UI; the addon uses a single AceDB profile |
-| `perf-runs/README.md` | Present | The performance harness is wired (`core/PerfSetup.lua`) |
+| `perf-analysis/README.md` | Present | The performance harness is wired (`core/PerfSetup.lua`) |
 
 ### Verification and record
 
