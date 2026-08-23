@@ -77,15 +77,17 @@ local P = lib:New({
     -- `addonName` is the addon FOLDER LibKa0s-Core builds a texture path from.
     -- Same string here, two different questions everywhere.
     --
-    -- IT DOES NOTHING YET, AND THAT IS NOT THIS FILE'S BUG TO FIX. The vendored
-    -- PerfPanel (panel minor 3, LibKa0s v1.10.1) builds its close with
-    -- `core.MakeCloseButton(frame, P.HidePanel)` — two arguments onto a
-    -- three-argument function — so `/cm perf` still wears a multiplication sign
-    -- while the debug console wears the mark. That is anti-pattern #64 inside
-    -- the library, the same dropped argument DebugLog was fixed for at minor 10,
-    -- and the fix belongs upstream; patching libs/ locally (#63) would be
-    -- overwritten by the next re-vendor and would hide the report. The field is
-    -- here so the day that minor lands this window is already correct.
+    -- THIS FIELD IS WHAT DRAWS THE PANEL'S CLOSE MARK. The vendored PerfPanel
+    -- (panel minor 4, LibKa0s v1.10.2) builds its close with
+    -- `core.MakeCloseButton(frame, P.HidePanel, d.addonName or d.name)`, so the
+    -- folder name reaches the factory and `/cm perf` closes with the same mark
+    -- the debug console closes with.
+    --
+    -- Panel minor 3 dropped that third argument and shipped a multiplication
+    -- sign beside a console wearing the mark — anti-pattern #64 inside the
+    -- library, the same one DebugLog was fixed for at minor 10. The cure was a
+    -- library minor and a re-vendor, never a patch under libs/ (#63): this repo
+    -- carried minor 3 for exactly one commit and now carries 4.
     addonName = addonName,
 
     title = "Consumable Master",   -- the library appends its own " — Perf Run"

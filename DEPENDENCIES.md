@@ -22,7 +22,7 @@ verify**. Neither repeats the other.
 | WoW Retail client, Interface 120007 | Yes | `ConsumableMaster.toc:1` (`## Interface: 120007`) |
 | Any other addon | **No** | The TOC has **no `## Dependencies:` line at all** — there is no hard addon dependency. |
 | Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0 | No — **vendored** | Listed as `## OptionalDeps` (`ConsumableMaster.toc:12`) and shipped inside the package under `libs/` (`libs/AceAddon-3.0/`, `libs/AceConsole-3.0/`, `libs/AceDB-3.0/`, `libs/AceEvent-3.0/`, `libs/AceGUI-3.0/`, `libs/AceGUI-3.0-SharedMediaWidgets/`, `libs/CallbackHandler-1.0/`, `libs/LibSharedMedia-3.0/`, `libs/LibStub/`). If the player also runs a standalone copy, LibStub picks the newer one. |
-| `LibKa0s` v1.10.1 | No — **vendored** | `libs/LibKa0s/`; provenance claimed by the `Bundles [LibKa0s](…) vX.Y.Z (MIT).` line in **`CLAUDE.md`** (it moved out of `README.md` at test-kit revision 9) and byte-verified against that LibKa0s tag by `tests/test_vendor_sync.lua`. |
+| `LibKa0s` v1.10.2 | No — **vendored** | `libs/LibKa0s/`; provenance claimed by the `Bundles [LibKa0s](…) vX.Y.Z (MIT).` line in **`CLAUDE.md`** (it moved out of `README.md` at test-kit revision 9) and byte-verified against that LibKa0s tag by `tests/test_vendor_sync.lua`. |
 
 Nothing is fetched at package time: `.pkgmeta` has **no `externals:` block** and sets
 `enable-nolib-creation: no`. The player installs one folder (`library-stack`, `packaging`).

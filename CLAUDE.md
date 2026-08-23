@@ -55,7 +55,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.10.1 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.10.2 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored

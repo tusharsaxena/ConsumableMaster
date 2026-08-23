@@ -50,9 +50,10 @@
 --
 -- No LibKa0s means no art and no face — they are inside the payload that is
 -- missing. `KCM.Icon` answers nil, which is a value a caller can branch on, and
--- `KCM.MediaFont` answers nil, which core/DebugLogSetup.lua turns into the
--- client's own STANDARD_TEXT_FONT. Neither is an error: the console loses its
--- fixed-width columns and keeps every line on screen.
+-- `KCM.MediaFont` answers nil, which core/DebugLogSetup.lua turns into its own
+-- FONT_FALLBACK — the client's `Fonts\ARIALN.TTF`, a face that is always there.
+-- Neither is an error: the console loses its fixed-width columns and keeps
+-- every line on screen.
 
 local addonName, NS = ...
 local KCM = NS

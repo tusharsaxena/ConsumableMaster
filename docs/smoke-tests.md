@@ -317,7 +317,7 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
    **No marks in the settings panel, and that is deliberate.** `/cm config` still shows word buttons and Blizzard arrows on the priority rows. Those widgets belong to `LibKa0s-Options-1.0`; iconifying them is a library change with a collection-wide blast radius and is recorded as an open evolution upstream, not a gap here.
 
-   **`/cm perf` is the known exception.** The perf panel's close still draws a `×` while the console's draws the mark. That is not this addon: the vendored `libs/LibKa0s/PerfPanel.lua` (panel minor 3, v1.10.1) builds it with two arguments onto a three-argument function. The fix is a library minor, and a local patch under `libs/` would be overwritten by the next re-vendor — so the inconsistency is expected until then, and `core/PerfSetup.lua` already passes the `addonName` the fixed panel will read.
+   **`/cm perf` wears the mark too — check it against the console.** Open the perf panel beside the console and compare the two close controls: they must be the **same mark**, not a mark on one window and a `×` on the other. The panel's control is the library's own — `libs/LibKa0s/PerfPanel.lua` (panel minor 4, v1.10.2) builds it from `d.addonName or d.name`, and `core/PerfSetup.lua` passes the folder name in both fields. A `×` here beside a mark on the console means the vendored payload slid back to panel minor 3, which built that button with two arguments onto a three-argument function; that is a re-vendor problem, not a bug in this repo, and `tests/test_vendor_sync.lua` is what catches it out of game.
 
 ### Perf harness (`/cm perf`)
 
