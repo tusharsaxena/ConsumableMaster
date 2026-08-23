@@ -55,6 +55,13 @@ core\Namespace.lua
 # suspend/resume pair and the macro bar are all reached through thunks at call
 # time, so loading before them costs nothing.
 core\PerfSetup.lua
+# MediaSetup publishes the LibKa0s-Media-1.0 seam (KCM.Icon / KCM.MediaFont) and
+# makes the one LibSharedMedia registration for the shipped face. THE POSITION IS
+# LOAD-BEARING: core\DebugLogSetup.lua resolves the console's font path EAGERLY at
+# load (lib:New type-checks the field and raises), so a MediaSetup that loaded
+# after it would resolve that path to nil. Before every consumer, therefore, and
+# not merely conventionally early.
+core\MediaSetup.lua
 core\ConsumableMaster.lua
 core\Bus.lua
 core\Constants.lua

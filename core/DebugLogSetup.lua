@@ -24,32 +24,36 @@
 -- styling; this developer-facing console needs a fixed-width font for the aligned
 -- `<HH:MM:SS> | [tag] …` columns and Blizzard ships no monospace font object, so the
 -- standard marks the shipped console font a sanctioned styling exception (audits MUST
--- NOT flag it). Not user-configurable and no LSM picker by design (registration only
--- exposes it to other addons). FONT_FALLBACK below is Blizzard's own font for the
--- fetch-failure path — the library has no fallback of its own, it calls SetFont on
--- whatever path the descriptor hands it.
+-- NOT flag it). Not user-configurable and no LSM picker by design (the LibSharedMedia
+-- registration lives in core/MediaSetup.lua now and exists only to expose the face to
+-- other addons). FONT_FALLBACK below is Blizzard's own font for the no-library path —
+-- the library has no fallback of its own, it calls SetFont on whatever path the
+-- descriptor hands it.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 KCM.DebugLog = KCM.DebugLog or {}
 local DL = KCM.DebugLog
 
-local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-if LSM then
-    LSM:Register(LSM.MediaType.FONT, "JetBrains Mono",
-        [[Interface\AddOns\ConsumableMaster\media\fonts\JetBrainsMono-Regular.ttf]])
-end
-
+-- THE BYTES ARE THE LIBRARY'S NOW. This file used to ship its own copy of the
+-- face under a media folder of its own and register it with LibSharedMedia
+-- against a hardcoded absolute path into this addon. LibKa0s carries the same
+-- face and registers the same key against its own copy, and core/MediaSetup.lua
+-- loads first — so this file's registration was quietly overwriting the
+-- library's on every login with a path only this addon had. One key, one set of
+-- bytes, one owner; the registration moved to the seam and the local copy is
+-- gone.
 local FONT_NAME     = "JetBrains Mono"
+-- A REAL CLIENT FONT, and that is the entire point of this rung. SetFont accepts
+-- a path to a file that is not there, fails to load it, and the text simply does
+-- not draw — no error, no console. Blizzard's narrow Arial is the nearest thing
+-- the client ships to fixed width, so a degraded install loses the column
+-- alignment and keeps every line on screen.
 local FONT_FALLBACK = [[Fonts\ARIALN.TTF]]
 local FONT_SIZE     = 10   -- standard reference size (debug-logging-§2)
 
 local function fontPath()
-    if LSM then
-        local ok, p = pcall(function() return LSM:Fetch(LSM.MediaType.FONT, FONT_NAME) end)
-        if ok and p then return p end
-    end
-    return FONT_FALLBACK
+    return (KCM.MediaFont and KCM.MediaFont(FONT_NAME)) or FONT_FALLBACK
 end
 
 local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
@@ -115,8 +119,19 @@ end
 
 local D = lib:New({
     -- Seeds the frame globals: <name>DebugWindow. Exactly reproduces the old
-    -- WIN_NAME, which is what /framestack and any user layout addon knows.
-    name  = "ConsumableMaster",
+    -- WIN_NAME, which is what /framestack and any user layout addon knows —
+    -- the vararg IS "ConsumableMaster", and taking it from the vararg is what
+    -- keeps a folder rename from silently desyncing the frame names.
+    name  = addonName,
+
+    -- NOT a duplicate of `name`, and deliberately beside it: `name` seeds frame
+    -- globals, `addonName` is the addon FOLDER the library builds its texture
+    -- paths from. Same string here, different questions everywhere, and a
+    -- library that is vendored cannot work the second one out for itself. With
+    -- it the console's title bar draws the shared copy, clear and close marks on
+    -- both windows; without it the library falls back to word buttons and a
+    -- multiplication sign, which is exactly what a degraded install should get.
+    addonName = addonName,
 
     -- The library appends its own " — Debug", composing today's literal title.
     title = "Consumable Master",

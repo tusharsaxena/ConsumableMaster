@@ -41,6 +41,10 @@ local HANDLE_H       = 18     -- unlocked drag-handle strip height
 local HANDLE_GAP     = 2      -- gap between the handle and the bar's top edge
 local HANDLE_PAD     = 24     -- horizontal padding around the handle's label
 local HANDLE_HELP    = 14     -- help-icon edge, inside the handle's right end
+-- The LAST rung of the help mark's ladder, not its first. LibKa0s ships a `help`
+-- icon and KCM.Icon answers it; this Blizzard texture is what draws when the
+-- library is missing or the catalog ever stops carrying that name. A ladder, not
+-- a concatenated path: a wrong texture path draws nothing and raises nothing.
 local HELP_TEXTURE   = [[Interface\FriendsFrame\InformationIcon]]
 
 local bar                     -- container frame, nil until first build
@@ -161,7 +165,7 @@ local function buildBar()
     help:SetPoint("RIGHT", handle, "RIGHT", -4, 0)
     help.icon = help:CreateTexture(nil, "OVERLAY")
     help.icon:SetAllPoints(help)
-    help.icon:SetTexture(HELP_TEXTURE)
+    help.icon:SetTexture(KCM.Icon and KCM.Icon("help") or HELP_TEXTURE)
     help:SetScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT")

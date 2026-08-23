@@ -404,6 +404,7 @@ local SUITES = {
     "test_load",
     "test_macrobar",
     "test_macromanager",
+    "test_mediasetup",
     "test_perfsetup",
     "test_pipeline",
     "test_ranker",

@@ -19,7 +19,7 @@
 -- at core/ConsumableMaster.lua, which loads FIRST, and this addon's printer is
 -- named Say. There is no same-named clobber to reclaim (anti-patterns #36).
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 
 -- The one cause clause, shared by every seam that has to explain the same
@@ -97,3 +97,22 @@ local printer = lib:New({
 -- through :format(). Bound bare rather than wrapped: it is a plain function so
 -- that core/SlashCommands.lua's `local say = KCM.Say` keeps working unchanged.
 KCM.Say = printer.Format
+
+-- WRAPPED, TO SAY WHO IS ASKING. LibKa0s draws its own `close` mark when it is
+-- told which addon FOLDER to build a texture path from, and a vendored library
+-- cannot work that out for itself: every consumer has its own copy at its own
+-- path. `addonName` is that answer and this file has it as its first vararg.
+--
+-- One wrapper rather than a remembered third argument at each call site: every
+-- close control this addon builds for itself comes through here, so a future
+-- modal or copy window draws the shared mark without anyone remembering to ask.
+-- Without the name the library falls back to a multiplication sign, which is
+-- what a degraded install should get.
+--
+-- ANTI-PATTERN #64: a forwarder carries EVERY argument its target takes. The
+-- library's signature is `lib.MakeCloseButton(parent, onClick, addonName)`, and
+-- a two-argument passthrough onto it is green in every suite and wrong on
+-- screen, because a missing texture path draws nothing and raises nothing.
+KCM.MakeCloseButton = function(parent, onClick)
+    return lib.MakeCloseButton(parent, onClick, addonName)
+end

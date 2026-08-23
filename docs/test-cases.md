@@ -96,7 +96,7 @@ badge and any count quoted in the docs must agree with it.
 - Constants: Say renders a nil format arg as 'nil' rather than dropping it
 - Constants: Say guards the single-string form too
 
-### test_coresetup.lua (8)
+### test_coresetup.lua (11)
 
 - CoreSetup: the addon's stringifier IS the library's, not a lookalike
 - CoreSetup: the secret sentinel is the library's, so the docs cannot drift from it
@@ -106,6 +106,9 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: the degraded stringifier answers the same sentinel as the library
 - CoreSetup: LibKa0s-Core-1.0 still has no user-visible strings to trap
 - CoreSetup: the prefix is the only library-rendered fragment, and it is prose
+- CoreSetup: the close-button wrapper hands the library the addon FOLDER name
+- CoreSetup: the folder name the wrapper sends resolves to a mark that exists
+- CoreSetup: with the library absent there is no wrapper to call, and no error
 
 ### test_database.lua (14)
 
@@ -140,7 +143,7 @@ badge and any count quoted in the docs must agree with it.
 - Debug: the chat fallback stringifies a hostile tag safely
 - Debug: the sink publishes no Toggle of its own
 
-### test_debuglog.lua (15)
+### test_debuglog.lua (18)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -157,6 +160,9 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the console's own strings resolve to prose, not to their own keys
 - DebugLog: the flag lives in KCM.State, not in the library
 - DebugLog: with the library absent the console degrades and chat still answers
+- DebugLogSetup: the descriptor passes addonName BESIDE name, not instead of it
+- DebugLogSetup: the folder name the descriptor carries names art that exists
+- DebugLogSetup: the console's font comes out of the payload, with a real client fallback
 
 ### test_defaults.lua (28)
 
@@ -408,6 +414,21 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.SetCompositeMacro coalesces an unchanged rewrite
 - MacroManager.SetCompositeMacro defers in combat and replays as a composite
 - MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
+
+### test_mediasetup.lua (12)
+
+- MediaSetup: KCM.Icon answers the vendored path, extensionless
+- MediaSetup: an icon the library does not ship answers nil
+- MediaSetup: KCM.MediaFont answers the vendored face, and only a face it ships
+- MediaSetup: the seam is told the addon FOLDER name, not the frame prefix
+- MediaSetup: the face the console names is one the library actually carries
+- MediaSetup: the console resolves its font through the seam, not a local copy
+- MediaSetup: this addon no longer ships its own copy of the face
+- MediaSetup: every mark this addon draws is one the library ships
+- MediaSetup: every name the library ships has a file in the vendored copy
+- MediaSetup: the vendored payload carries the face and its licence
+- MediaSetup: it loads before the file that resolves the console font
+- MediaSetup: with no library there is no art and no face, and that is not an error
 
 ### test_perfsetup.lua (11)
 
@@ -787,10 +808,10 @@ badge and any count quoted in the docs must agree with it.
 | test_classifier.lua | 16 |
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
-| test_coresetup.lua | 8 |
+| test_coresetup.lua | 11 |
 | test_database.lua | 14 |
 | test_debug.lua | 13 |
-| test_debuglog.lua | 15 |
+| test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
@@ -798,6 +819,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_macrobar.lua | 119 |
 | test_macromanager.lua | 46 |
+| test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 28 |
 | test_ranker.lua | 23 |
@@ -813,4 +835,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **675** |
+| **Total** | **693** |

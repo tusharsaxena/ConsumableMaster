@@ -22,7 +22,7 @@ verify**. Neither repeats the other.
 | WoW Retail client, Interface 120007 | Yes | `ConsumableMaster.toc:1` (`## Interface: 120007`) |
 | Any other addon | **No** | The TOC has **no `## Dependencies:` line at all** — there is no hard addon dependency. |
 | Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0 | No — **vendored** | Listed as `## OptionalDeps` (`ConsumableMaster.toc:12`) and shipped inside the package under `libs/` (`libs/AceAddon-3.0/`, `libs/AceConsole-3.0/`, `libs/AceDB-3.0/`, `libs/AceEvent-3.0/`, `libs/AceGUI-3.0/`, `libs/AceGUI-3.0-SharedMediaWidgets/`, `libs/CallbackHandler-1.0/`, `libs/LibSharedMedia-3.0/`, `libs/LibStub/`). If the player also runs a standalone copy, LibStub picks the newer one. |
-| `LibKa0s` v1.8.2 | No — **vendored** | `libs/LibKa0s/`; provenance claimed by the `Bundles [LibKa0s](…) vX.Y.Z (MIT).` line in **`CLAUDE.md`** (it moved out of `README.md` at test-kit revision 9) and byte-verified against that LibKa0s tag by `tests/test_vendor_sync.lua`. |
+| `LibKa0s` v1.10.1 | No — **vendored** | `libs/LibKa0s/`; provenance claimed by the `Bundles [LibKa0s](…) vX.Y.Z (MIT).` line in **`CLAUDE.md`** (it moved out of `README.md` at test-kit revision 9) and byte-verified against that LibKa0s tag by `tests/test_vendor_sync.lua`. |
 
 Nothing is fetched at package time: `.pkgmeta` has **no `externals:` block** and sets
 `enable-nolib-creation: no`. The player installs one folder (`library-stack`, `packaging`).
@@ -97,12 +97,18 @@ ship a change with nothing beyond section 2 installed.
 These ship inside the addon. They are **not** software you install and **not** things any build
 step regenerates, so they are recorded here for their licensing rather than as dependencies:
 
-- **JetBrains Mono** — `media/fonts/JetBrainsMono-Regular.ttf`, under the SIL Open Font License
-  (`media/fonts/OFL.txt`). Registered with LibSharedMedia at `core/DebugLogSetup.lua:39-40` and used
-  as the debug console's reference font. Nothing on your machine needs JetBrains Mono installed;
-  the client reads the `.ttf` out of the addon folder.
 - **Logos and screenshots** — `media/logos/`, `media/screenshots/`. Hand-produced and committed.
-  `media/screenshots/` is excluded from the package (`.pkgmeta` ignore list).
+  `media/screenshots/` is excluded from the package (`.pkgmeta` ignore list). These are the only
+  assets this addon ships **of its own**.
+- **JetBrains Mono and the icon catalog** — no longer ours. They arrive inside the vendored LibKa0s
+  payload (`libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf` under the SIL Open Font License,
+  `libs/LibKa0s/media/fonts/JetBrainsMono-OFL.txt`; `libs/LibKa0s/media/icons/*.tga`), and the
+  library owns both the bytes and the LibSharedMedia registration — `core/MediaSetup.lua` simply
+  tells it this addon's folder name so it can build a path. This repo used to carry its own copy of
+  the face under `media/fonts/` and register the same LSM key against its own path, which is one
+  collision whose winner was load order; the duplicate is gone. Their licensing is recorded in the
+  LibKa0s repo beside the art. Nothing on your machine needs JetBrains Mono installed; the client
+  reads the `.ttf` out of the addon folder.
 
 **No image or font tooling is required.** There is no script in this repo that regenerates any
 asset — no `scripts/` directory, no Python, no Pillow, no ImageMagick. If one is added, it belongs

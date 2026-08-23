@@ -32,7 +32,7 @@
 -- moment a window opens. Identity against the library is asserted through the
 -- function objects it mirrors onto every instance instead.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 
 local lib = LibStub and LibStub("LibKa0s-Perf-1.0", true)
@@ -71,7 +71,23 @@ end
 local P = lib:New({
     -- Seeds the sampler and panel frame globals, matching the debug console's
     -- ConsumableMasterDebugWindow so /framestack reads them the same way.
-    name  = "ConsumableMaster",
+    name  = addonName,
+
+    -- Beside `name`, never instead of it. `name` seeds the frame globals;
+    -- `addonName` is the addon FOLDER LibKa0s-Core builds a texture path from.
+    -- Same string here, two different questions everywhere.
+    --
+    -- IT DOES NOTHING YET, AND THAT IS NOT THIS FILE'S BUG TO FIX. The vendored
+    -- PerfPanel (panel minor 3, LibKa0s v1.10.1) builds its close with
+    -- `core.MakeCloseButton(frame, P.HidePanel)` — two arguments onto a
+    -- three-argument function — so `/cm perf` still wears a multiplication sign
+    -- while the debug console wears the mark. That is anti-pattern #64 inside
+    -- the library, the same dropped argument DebugLog was fixed for at minor 10,
+    -- and the fix belongs upstream; patching libs/ locally (#63) would be
+    -- overwritten by the next re-vendor and would hide the report. The field is
+    -- here so the day that minor lands this window is already correct.
+    addonName = addonName,
+
     title = "Consumable Master",   -- the library appends its own " — Perf Run"
 
     -- Mandatory, not optional. The default is "/" .. name:lower() — i.e.

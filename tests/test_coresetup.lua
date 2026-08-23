@@ -148,3 +148,60 @@ test("CoreSetup: the prefix is the only library-rendered fragment, and it is pro
     t.falsy(tag:match("^[A-Z][A-Z0-9_]+$"),
         "the prefix resolved to prose, not to a SCREAMING_SNAKE key: " .. tostring(tag))
 end)
+
+-- ── the close mark, and the argument that decides whether there is one ────────
+--
+-- TEST THE ARGUMENT, NOT THE APPEARANCE. lib.MakeCloseButton draws the catalog's
+-- `close` art when it is told which addon FOLDER to build a texture path from,
+-- and falls back to a multiplication sign when it is not. Both outcomes are a
+-- perfectly good close button that raises nothing, so the only thing worth
+-- pinning headlessly is what crossed the seam.
+
+test("CoreSetup: the close-button wrapper hands the library the addon FOLDER name", function(t)
+    -- red under: anti-pattern #64 — a two-argument passthrough onto a
+    -- three-argument function. That shape is green in every suite and wrong on
+    -- screen, and it cost MultiMeters a release.
+    local KCM  = loader.loadPure()
+    local core = LibStub("LibKa0s-Core-1.0")
+    t.truthy(KCM.MakeCloseButton, "core/CoreSetup.lua publishes no close-button wrapper")
+
+    local seen = {}
+    local original = core.MakeCloseButton
+    core.MakeCloseButton = function(parent, onClick, addonName)
+        seen = { n = select("#", parent, onClick, addonName),
+                 parent = parent, onClick = onClick, addonName = addonName }
+        return "sentinel"
+    end
+    local parent, onClick = {}, function() end
+    local got = KCM.MakeCloseButton(parent, onClick)
+    core.MakeCloseButton = original
+
+    t.eq(seen.n, 3, "the wrapper dropped an argument on its way to the library")
+    t.eq(seen.addonName, "ConsumableMaster",
+        "the third argument must be the addon FOLDER name, not the frame prefix or the title")
+    t.eq(seen.parent, parent, "the parent is forwarded unchanged")
+    t.eq(seen.onClick, onClick, "the click handler is forwarded unchanged")
+    t.eq(got, "sentinel", "and the library's return value reaches the caller")
+end)
+
+test("CoreSetup: the folder name the wrapper sends resolves to a mark that exists", function(t)
+    -- The other half of the same fact, one repo away: a name that is merely a
+    -- string satisfies the case above. This one asks the catalog whether that
+    -- string actually names art in THIS build's vendored payload — because a
+    -- wrong path draws nothing and raises nothing.
+    local KCM   = loader.loadPure()
+    local media = LibStub("LibKa0s-Media-1.0")
+    t.truthy(media, "the vendored Media major registered")
+    t.eq(media.Icon("ConsumableMaster", "close"), KCM.Icon("close"),
+        "the wrapper's folder name and the media seam's disagree")
+    t.truthy(KCM.Icon("close"), "the close mark does not resolve in this build")
+end)
+
+test("CoreSetup: with the library absent there is no wrapper to call, and no error", function(t)
+    -- The degraded branch returns before the wrapper is published. Nothing in
+    -- this addon calls KCM.MakeCloseButton today — it is here so a future modal
+    -- draws the shared mark without remembering to ask — so absence is the
+    -- honest answer rather than a stub that builds nothing.
+    local KCM = loader.loadPureDegraded()
+    t.falsy(KCM.MakeCloseButton, "the degraded branch published a close-button wrapper")
+end)

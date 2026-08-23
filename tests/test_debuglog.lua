@@ -340,3 +340,68 @@ test("DebugLog: with the library absent the console degrades and chat still answ
 
     KCM.State.debug = false
 end)
+
+-- ── the descriptor field the title bar's art hangs on ─────────────────────────
+--
+-- TEST THE ARGUMENT, NOT THE APPEARANCE. LibKa0s-DebugLog draws the catalog's
+-- copy, clear and close marks on both console windows only when the descriptor
+-- tells it which addon FOLDER to build a texture path from; without it the
+-- library falls back to word buttons and a multiplication sign. Every one of
+-- those is a working control that raises nothing, so what is worth pinning
+-- headlessly is the field, not the pixels.
+
+test("DebugLogSetup: the descriptor passes addonName BESIDE name, not instead of it", function(t)
+    -- red under: deleting the addonName line, or "fixing" the pair by folding
+    -- them into one key. `name` seeds the frame globals — /framestack and any
+    -- user layout addon know ConsumableMasterDebugWindow — while `addonName` is
+    -- the folder LibKa0s-Media builds a texture path from. Same string here,
+    -- two different questions everywhere, and a wrong path draws nothing.
+    local root = _G.KCM_TEST_ROOT or "."
+    local f = assert(io.open(root .. "/core/DebugLogSetup.lua", "r"),
+        "cannot open core/DebugLogSetup.lua (tests run from the repo root)")
+    local src = f:read("*a")
+    f:close()
+    t.truthy(src:find("addonName%s*=%s*addonName"),
+        "the lib:New descriptor no longer passes addonName")
+    t.truthy(src:find("name%s*=%s*addonName"),
+        "the descriptor's `name` is no longer the vararg — a folder rename would "
+        .. "silently desync the frame globals")
+    t.truthy(src:find("^local addonName, NS = %.%.%.", 1) or
+             src:find("\nlocal addonName, NS = %.%.%."),
+        "the file discards its first vararg, so both fields above are nil")
+end)
+
+test("DebugLogSetup: the folder name the descriptor carries names art that exists", function(t)
+    -- The string is only half the fact. The catalog lives in another repo, so
+    -- this asks whether the three marks the title bars draw resolve in THIS
+    -- build's vendored payload.
+    local KCM = h.loader.loadConsole()
+    local media = LibStub("LibKa0s-Media-1.0")
+    t.truthy(media, "the vendored Media major registered")
+    for _, name in ipairs({ "copy", "clear", "close" }) do
+        t.eq(media.Icon("ConsumableMaster", name), KCM.Icon(name),
+            "the descriptor's folder name and the media seam's disagree for " .. name)
+        t.truthy(KCM.Icon(name), "the console's " .. name .. " mark does not resolve")
+    end
+end)
+
+test("DebugLogSetup: the console's font comes out of the payload, with a real client fallback",
+    function(t)
+        -- SetFont takes a path to a file that is not there, fails to load it, and
+        -- the text simply does not draw — no error, no chat line, an empty
+        -- console. So the fallback rung has to be a face the client itself ships,
+        -- never the old media/fonts/ path this addon no longer carries.
+        local KCM = h.loader.loadConsole()
+        t.eq(KCM.MediaFont("JetBrains Mono"),
+            "Interface\\AddOns\\ConsumableMaster\\libs\\LibKa0s\\media\\fonts\\JetBrainsMono-Regular.ttf",
+            "the console's face no longer resolves into the vendored payload")
+
+        local root = _G.KCM_TEST_ROOT or "."
+        local f = assert(io.open(root .. "/core/DebugLogSetup.lua", "r"))
+        local src = f:read("*a")
+        f:close()
+        t.truthy(src:find("Fonts\\ARIALN.TTF", 1, true),
+            "the fallback is no longer one of the client's own fonts")
+        t.falsy(src:find("ConsumableMaster\\media\\fonts", 1, true),
+            "the deleted media/fonts/ path is named here again")
+    end)
