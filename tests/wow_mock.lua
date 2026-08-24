@@ -55,6 +55,25 @@ M.equipped = {}   -- slot -> itemID (main-hand 16 / off-hand 17)
 M.playerLevel = 80
 M.playerClass = "SHAMAN"  -- UnitClass("player")'s locale-independent 2nd return
 
+-- The TOC manifest this mock's C_AddOns.GetAddOnMetadata answers from, KEYED BY
+-- ADDON FOLDER NAME. A flat `function() return "" end` was one line shorter and
+-- could not tell the difference between a reader passed this addon's folder name
+-- and one passed a hardcoded literal that no longer matches it -- which is the
+-- exact defect core/EnvSetup.lua exists to remove, so tests/test_envsetup.lua
+-- needs a fixture that answers only for the right name.
+--
+-- `Version` is deliberately ABSENT rather than set: an unreadable version is what
+-- a headless run has always looked like here, so KCM.Version() keeps falling back
+-- to KCM.VERSION and every suite that pins that (tests/test_slash.lua) is
+-- untouched. A case that wants the TOC to win sets M.metadata.ConsumableMaster
+-- .Version for its own duration.
+M.metadata = {
+    ConsumableMaster = {
+        Title = "Consumable Master",
+        Notes = "A fixture.",
+    },
+}
+
 function M.reset()
     M.items, M.bags, M.bagSlots, M.spells = {}, {}, {}, {}
     M.spec     = { classID = 7, specIndex = 1, specID = 263, specName = "Enhancement" }
@@ -63,6 +82,7 @@ function M.reset()
     M.equipped = {}
     M.playerLevel = 80
     M.playerClass = "SHAMAN"
+    M.metadata = { ConsumableMaster = { Title = "Consumable Master", Notes = "A fixture." } }
     M.macros   = {}       -- name -> { icon, body }
     M.busReg   = {}       -- "message" -> { [target] = callback }
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
@@ -590,7 +610,15 @@ function M.install(NS)
 
     -- Namespaced client tables
     _G.C_Timer = { After = function(_, fn) if fn then fn() end end }
-    _G.C_AddOns = { GetAddOnMetadata = function() return "" end }
+    -- Answers "" for a field the fixture does not carry, exactly as the client
+    -- does for a TOC key that is not there -- and for an addon name that is not
+    -- this one, which is what a hardcoded folder-name literal would ask for.
+    _G.C_AddOns = {
+        GetAddOnMetadata = function(name, field)
+            local toc = M.metadata[name]
+            return (toc and field and toc[field]) or ""
+        end,
+    }
     _G.C_Item = {
         GetItemInfoInstant = function(id)
             local it = M.items[id]

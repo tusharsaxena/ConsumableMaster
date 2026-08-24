@@ -66,7 +66,8 @@ because it answers a maintainer's question on a page written for players — the
 `README.md` at revision 9 (LibKa0s v1.8.1), and there is no fallback.
 
 LibKa0s supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the
-settings-panel shell and its row widgets, and the perf-capture harness. It is vendored whole-folder
+settings-panel shell and its row widgets, the shipped art and font, the TOC-manifest reader behind
+`KCM.Meta` / `KCM.Version`, and the perf-capture harness. It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

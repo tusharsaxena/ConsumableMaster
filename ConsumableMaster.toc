@@ -70,6 +70,11 @@ core\Constants.lua
 # takes the printer as a file-scope upvalue.
 core\CoreSetup.lua
 core\Compat.lua
+# EnvSetup reads this addon's own TOC manifest through LibKa0s-Env-1.0 (the
+# `/cm version` banner and the About page's notes). Position is conventional --
+# nothing here resolves at load beyond the LibStub lookup, and both callers live
+# in settings/, which loads later.
+core\EnvSetup.lua
 core\State.lua
 # DebugLogSetup builds the on-screen console from LibKa0s-DebugLog-1.0
 # (debug-logging-§1 names the file and the folder). It sits after

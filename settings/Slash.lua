@@ -33,13 +33,10 @@ local V = KCM.SlashCommands.Verbs
 
 -- Addon version for the `version` verb and the help header. Read from the TOC
 -- metadata (the packaged manifest) with the in-code constant as fallback, so it
--- can't drift from what actually shipped (slash-commands-§3).
-local function addonVersion()
-    local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-    local v = get and get(KCM.name or "ConsumableMaster", "Version")
-    if v and v ~= "" then return v end
-    return KCM.VERSION or "?"
-end
+-- can't drift from what actually shipped (slash-commands-§3). The ladder that
+-- used to sit here is core/EnvSetup.lua's now -- one of two inline copies, and
+-- the library's business rather than this file's.
+local addonVersion = KCM.Version
 
 -- ---------------------------------------------------------------------------
 -- Schema-driven /cm list / get / set

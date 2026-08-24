@@ -195,6 +195,14 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
+### test_envsetup.lua (5)
+
+- EnvSetup: KCM.Meta reads THIS addon's TOC
+- EnvSetup: KCM.Version prefers the TOC over the in-code constant
+- EnvSetup: KCM.Version falls back to this addon's own constant
+- EnvSetup: the seam still answers with LibKa0s absent
+- EnvSetup: Notes comes through the seam, not a hardcoded folder name
+
 ### test_events.lua (20)
 
 - OnEnable registers every client event the addon reacts to
@@ -813,6 +821,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debug.lua | 13 |
 | test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
+| test_envsetup.lua | 5 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
@@ -835,4 +844,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **693** |
+| **Total** | **698** |

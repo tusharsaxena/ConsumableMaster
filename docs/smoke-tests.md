@@ -288,7 +288,7 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 
 ## LibKa0s seam pass
 
-Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `core/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
+Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `core/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
 
 The swap was designed to be pixel-identical, so **the pass is looking for "nothing changed"** — anything that looks different is the finding, with one standing exception. The **window edge** on the debug console and the perf panel is the library's, not this addon's, and the library moved it at LibKa0s v1.3.0: the flat 1px black edge with its 1px gray inner highlight, a gold title and a gray divider, in place of the old 12px `UI-Tooltip-Border`, black divider and untinted title. That one is expected, and step 10a below is where it is checked deliberately; everywhere else, different still means broken.
 
@@ -319,6 +319,8 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
    **`/cm perf` wears the mark too — check it against the console.** Open the perf panel beside the console and compare the two close controls: they must be the **same mark**, not a mark on one window and a `×` on the other. The panel's control is the library's own — `libs/LibKa0s/PerfPanel.lua` (panel minor 4, v1.10.2) builds it from `d.addonName or d.name`, and `core/PerfSetup.lua` passes the folder name in both fields. A `×` here beside a mark on the console means the vendored payload slid back to panel minor 3, which built that button with two arguments onto a three-argument function; that is a re-vendor problem, not a bug in this repo, and `tests/test_vendor_sync.lua` is what catches it out of game.
 
+16. **The TOC seam — the version banner and the About notes.** `/cm version` and `/cm help` must both print the version the TOC's `## Version` line carries, not a stale number and never `?`. Then `/cm config` → **About**: the paragraph under the logo must read the addon's `## Notes` text, not an empty line. Both come from `core/EnvSetup.lua` now — one of them used to ask `C_AddOns` for the folder `"ConsumableMaster"` as a hardcoded string, and the failure this check exists for is silent: a wrong or renamed folder name answers nothing and raises nothing, so the About paragraph simply disappears and the banner quietly falls back to the in-code constant. The headless suite pins both against a mock manifest; only this check sees the real TOC.
+
 ### Perf harness (`/cm perf`)
 
 Only meaningful in game, and the SavedVariables half is only verifiable end to end here.
@@ -338,6 +340,7 @@ Worth doing once, since it changed. Rename `Interface/AddOns/ConsumableMaster/li
 - **Ka0s Consumable Master is absent from the AddOns list** — that is intended, not a bug.
 - `/cm config` prints one line naming the missing library, and says it exactly once no matter how many times you run it.
 - `/cm debug on` still arms logging and routes diagnostics to chat, with its own one-shot notice.
+- **`/cm version` still answers, and the About paragraph is still there.** `core/EnvSetup.lua` keeps its own `C_AddOns` ladder for exactly this install, so the version and the notes come from the TOC as they always did. A `?` version or a blank About paragraph here means the fallback ladder was dropped when the library was adopted.
 - **The chrome loses its art, and that is the intended degradation, not a bug.** The icons and JetBrains Mono live inside the payload you just renamed away, so `KCM.Icon` and `KCM.MediaFont` answer nil: the macro bar's handle help control falls back to Blizzard's `InformationIcon`, and any console the addon could still draw would fall back to word buttons and a `×`. Confirm one thing in particular — the macro bar's handle still shows a help control **at all**. A blank square there means something built a path by concatenation to route around the nil instead of walking the ladder, and a path to a texture that is not there draws nothing and raises nothing.
 
 Rename it back and `/reload`.
@@ -358,7 +361,7 @@ Rename it back and `/reload`.
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
-| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
+| Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |

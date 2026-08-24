@@ -658,14 +658,12 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
 -- About content (parent canvas). Logo + addon notes + slash command list.
 -- ---------------------------------------------------------------------
 
+-- Through core/EnvSetup.lua rather than C_AddOns directly, which also retires
+-- the hardcoded "ConsumableMaster" this used to pass: the seam hands the library
+-- the first vararg, so a folder rename cannot leave this reading somebody else's
+-- manifest -- or none -- and saying nothing about it.
 local function readAddOnNotes()
-    if C_AddOns and C_AddOns.GetAddOnMetadata then
-        return C_AddOns.GetAddOnMetadata("ConsumableMaster", "Notes") or ""
-    end
-    if GetAddOnMetadata then
-        return GetAddOnMetadata("ConsumableMaster", "Notes") or ""
-    end
-    return ""
+    return KCM.Meta("Notes") or ""
 end
 
 function Helpers.BuildAboutContent(ctx)
