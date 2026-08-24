@@ -144,7 +144,7 @@ L.LIB_FILES = Loader.xmlFiles(ROOT .. "/libs/LibKa0s/LibKa0s.xml")
 -- Compiled once and re-executed per build. Every suite rebuilds its whole
 -- environment (mock.install wipes the LibStub registry), so the chunks have to
 -- run again on each build — but they only have to be READ from disk once, and
--- these eight files run several hundred times across the suite. They run in the
+-- these thirteen files run several hundred times across the suite. They run in the
 -- kit loader's environment, exactly as Loader.load would run them, so the two
 -- paths cannot drift; only the disk read is hoisted.
 local libChunks

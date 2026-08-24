@@ -253,7 +253,7 @@ test("DebugLog: the descriptor reproduces the addon's window identity", function
         if n == "ConsumableMasterDebugWindow" then registered = true end
     end
     t.truthy(registered, "the derived frame name is preserved, and Esc closes it")
-    t.eq(lib.MAX_BUFFER, 500, "the buffer cap still matches the old MAX_LINES")
+    t.eq(lib.MAX_BUFFER, 1500, "the buffer cap still matches the library's one number")
 end)
 
 test("DebugLog: the console's own strings resolve to prose, not to their own keys", function(t)
