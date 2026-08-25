@@ -208,7 +208,7 @@ Because WoW won't let addons move or create bar buttons during a fight, changes 
 Each of the thirteen single macros has its own page. Spec-aware pages show the viewed spec at the top.
 
 *   **Draggable macro icon** — the small icon under the title. Drag it onto a bar to place the macro.
-*   **Add item or spell by ID** — choose **Item** or **Spell**, paste the ID, press Enter. A bad ID gives a chat error and keeps your text so you can fix the typo.
+*   **Add item or spell by ID** — choose **Item** or **Spell**, then either type the ID or shift-click the item or spell straight into the box, and press Enter. A bad ID, or a link of the other kind, gives a chat error and keeps your text so you can fix it.
 *   **Priority list** — one row per candidate, in ranked order:
     *   Icons show status: green check (you own it / know the spell), red (you don't), yellow star (currently used by the macro).
     *   **Blue info button** — hover to see why an item scored where it did.
@@ -247,7 +247,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust, and Battle Rez rank the same for every spec, so they share one list. |
 | How does it pick weapon enchants when I'm dual-wielding? | It checks each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit either — so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is simply left out of the macro. Swapping weapons updates it right away, no reload needed. |
 | Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Pin the reusable rune with **↑** if you'd rather never spend charges. |
-| How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, paste the ID, press Enter. |
+| How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then either type the ID or shift-click the item (or spell) into the box, and press Enter. |
 | How do I force a specific item to always win? | Use **↑ / ↓** on its row to move it where you want. A moved (pinned) item overrides the automatic ranking. |
 | How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
 | Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |

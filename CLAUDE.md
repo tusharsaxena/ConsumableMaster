@@ -67,7 +67,8 @@ because it answers a maintainer's question on a page written for players — the
 
 LibKa0s supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the
 settings-panel shell and its row widgets, the shipped art and font, the TOC-manifest reader behind
-`KCM.Meta` / `KCM.Version`, and the perf-capture harness. It is vendored whole-folder
+`KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
+harness. Eight of its majors are consumed; `Pool` and `Widgets` ship in the payload unused. It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

@@ -53,7 +53,7 @@ Augment Rune, then Vantus Rune, Bloodlust and Battle Rez last.
 | **Vantus Rune** · **Bloodlust** · **Battle Rez** | Remaining categories, same surface |
 
 Every category tab renders the same three sections, built by `settings/Category.lua`: **Add item or
-spell by ID** (`:409`), **Priority list** (`:584`), and the per-set sections (`:628`) — added, blocked,
+spell by ID** (`:423`), **Priority list** (`:599`), and the per-set sections (`:643`) — added, blocked,
 pinned, discovered. The Stat Priority page renders **Selection** (`:218`) and **Priority** (`:233`).
 
 ## How a control reaches the value
@@ -62,8 +62,8 @@ Two different paths, and the difference is what a row shape can express.
 
 **Schema-backed controls** are rows in `KCM.Settings.Schema` — an ordered array published by
 `settings/Panel.lua` and appended to by the tab files. One row is simultaneously three things: the
-widget on its tab, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:286` hands the
-whole array to LibKa0s-Slash-1.0), and the validator applied on write by the `Resolve` →
+widget on its tab, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:283` hands the
+whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` →
 `SetAndRefresh` seam. `grep -c '^\s*path\s*=' settings/*.lua` reports **55**: 54 `macroBar.*` rows in
 `settings/MacroBar.lua`, plus the master `enabled` row in `settings/Panel.lua`. Adding a row gains all
 three surfaces at once — never write a parallel mutator for a path that already has one.
@@ -74,6 +74,14 @@ not gaps:
 - The **per-category priority lists** and the **per-spec stat priorities** are collections, not
   scalars. No row shape describes them, which is also why `/cm resetall` stays host-owned rather than
   adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
+- The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua:397`)
+  tries digits first — a bare number is unambiguous and must never reach a link matcher — then the
+  selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is accepted as
+  readily as a typed ID. ITEM goes through the `KCM.Item` seam onto `LibKa0s-Item-1.0`'s
+  `ItemIDFromLink`; SPELL parses the spell link it alone can receive. A link of the *wrong* kind is
+  refused rather than cross-filed, because an item link parsed as a spell would store an itemID
+  behind the opaque spell sentinel and collide with a real spell ID. Every rejection says why and
+  keeps the typed text.
 - The **debug-console checkbox** shows and hides the console *window* only — it never touches the
   session debug flag `KCM.State.debug`, exactly like a bare `/cm debug` (`debug-logging-§5`). Logging
   is armed separately, via the in-window `Debug: ON/OFF` toggle or `/cm debug on|off`. Its spec comes
