@@ -109,7 +109,20 @@ local L = { mock = mock }
 -- Resolved lazily so a path tolerates either the flat (pre-move) or
 -- core/modules (post-move) layout: each entry is tried at its listed path and,
 -- failing that, at the alternate location.
+--
+-- MEMOISED, and that is not a tidy-up — it is where this repo's green gate went.
+-- Every build re-resolved every file in its list, and the probe costs up to five
+-- `io.open` calls per file, so several hundred builds drove 28,768 of them: the
+-- gate spent roughly 22 of its 25.6 seconds waiting on the filesystem rather than
+-- working, at 15% CPU. A source file cannot move while the runner is running, so
+-- the answer is a constant for the life of the process. Caching the PATH changes
+-- no isolation — `Loader.load` still reads, compiles and runs the chunk on every
+-- build exactly as before; only the search for where the file lives is hoisted,
+-- the same shape of fix as the kit's own chunk cache (testing-§14).
+local resolveCache = {}
 local function resolve(rel)
+    local hit = resolveCache[rel]
+    if hit then return hit end
     local candidates = {
         ROOT .. "/" .. rel,
         ROOT .. "/core/" .. rel,
@@ -121,9 +134,11 @@ local function resolve(rel)
     candidates[#candidates + 1] = ROOT .. "/modules/" .. base
     for _, p in ipairs(candidates) do
         local f = io.open(p, "r")
-        if f then f:close(); return p end
+        if f then f:close(); resolveCache[rel] = p; return p end
     end
-    return ROOT .. "/" .. rel
+    local fallback = ROOT .. "/" .. rel
+    resolveCache[rel] = fallback
+    return fallback
 end
 
 -- The vendored library files, DERIVED from libs/LibKa0s/LibKa0s.xml in the order

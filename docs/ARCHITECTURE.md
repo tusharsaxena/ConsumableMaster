@@ -99,11 +99,11 @@ Cross-module control flow that crosses feature boundaries travels over the close
 
 ## Slash Commands
 
-`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:87-195`, published as `KCM.COMMANDS` at `:199` so the About panel and the dispatcher read one source of truth (`slash-commands-§4`).
+`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:84-192`, published as `KCM.COMMANDS` at `:196` so the About panel and the dispatcher read one source of truth (`slash-commands-§4`).
 
 Seventeen verbs are declared, in this order: `help`, `config`, `version`, `perf`, `debug`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `bar`, `priority`, `stat`, `aio`, `dump`. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; this file holds only the table and the dispatcher wiring. The user-facing description of each verb is the table in [README.md](../README.md).
 
-Six of the seventeen are library-backed, listed as `LIB_BACKED_VERBS` at `settings/Slash.lua:83-85`: `help`, `list`, `get`, `set` and `reset` bind to `Sl:PrintHelp` / `Sl:CliList` / `Sl:CliGet` / `Sl:CliSet` / `Sl:CliReset` at `:308-316`, and `perf` resolves `KCM.Perf` at call time. On a degraded install those are what stop working — the five schema-CLI verbs are rebound to the "unavailable" responder at `:339-340`, which names the eleven that still answer. `resetall` deliberately stays host-owned rather than binding `Sl:CliResetAll` ([`LIBKA0S-12`](https://github.com/tusharsaxena/ConsumableMaster/issues/27), and the comment at `:312-315`).
+Six of the seventeen are library-backed, listed as `LIB_BACKED_VERBS` at `settings/Slash.lua:80-82`: `help`, `list`, `get`, `set` and `reset` bind to `Sl:PrintHelp` / `Sl:CliList` / `Sl:CliGet` / `Sl:CliSet` / `Sl:CliReset` at `:305-313`, and `perf` resolves `KCM.Perf` at call time. On a degraded install those are what stop working — the five schema-CLI verbs are rebound to the "unavailable" responder at `:336-337`, which names the eleven that still answer. `resetall` deliberately stays host-owned rather than binding `Sl:CliResetAll` ([`LIBKA0S-12`](https://github.com/tusharsaxena/ConsumableMaster/issues/27), and the comment at `:309-312`).
 
 ## Event Subscriptions
 
