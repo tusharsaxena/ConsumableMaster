@@ -75,6 +75,9 @@ core\Compat.lua
 # nothing here resolves at load beyond the LibStub lookup, and both callers live
 # in settings/, which loads later.
 core\EnvSetup.lua
+# The LibKa0s-Item-1.0 seam. Anywhere after the libs block and before
+# settings\Category.lua, which is its only caller.
+core\ItemSetup.lua
 core\State.lua
 # DebugLogSetup builds the on-screen console from LibKa0s-DebugLog-1.0
 # (debug-logging-§1 names the file and the folder). It sits after

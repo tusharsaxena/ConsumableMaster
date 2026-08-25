@@ -368,6 +368,12 @@ local ID_KINDS = {
         -- Spell IDs go in through the opaque sentinel, never raw, or they
         -- collide with itemIDs.
         store   = function(id) return KCM.ID.AsSpell(id) end,
+        -- Shift-clicking a spell out of a spellbook pastes a spell link. Parsed
+        -- here rather than in a shared helper because the two kinds' links are
+        -- different strings, and this table is where a kind's differences live.
+        fromLink = function(text)
+            return tonumber(tostring(text):match("|?H?spell:(%d+)"))
+        end,
     },
     ITEM = {
         -- Classic/Midnight safety: reject only when the API is PRESENT and says
@@ -378,18 +384,27 @@ local ID_KINDS = {
         end,
         unknown = "unknown itemID: ",
         store   = function(id) return id end,
+        -- The library's primitive, through the KCM.Item seam so a degraded install
+        -- behaves the same. It matches the link's own `item:<id>` segment, so it is
+        -- locale-independent and takes a bare itemString as happily as a full link.
+        fromLink = function(text) return KCM.Item.ItemIDFromLink(text) end,
     },
 }
 
 -- Validate one typed ID and seed it into the category. Every rejection path says why and
 -- stops; only a fully-resolved ID reaches Selector.AddItem.
 local function submitAddByID(cat, specKey, text)
-    local id = tonumber(text)
+    local kind = ID_KINDS[O._addKind[cat.key] or "ITEM"] or ID_KINDS.ITEM
+    -- Digits first, then the kind's own link parser. Shift-clicking an item out of
+    -- the bags is the natural gesture for "add this one" and it pastes a full link,
+    -- which this box used to reject with "expected a positive numeric ID" — an
+    -- answer that is true and useless. The order matters: a bare number is
+    -- unambiguous and must never be run through a link matcher.
+    local id = tonumber(text) or (kind.fromLink and kind.fromLink(text))
     if not id or id <= 0 then
-        KCM.Say("expected a positive numeric ID; got: " .. tostring(text))
+        KCM.Say("expected a positive numeric ID or a pasted link; got: " .. tostring(text))
         return
     end
-    local kind = ID_KINDS[O._addKind[cat.key] or "ITEM"] or ID_KINDS.ITEM
     if not kind.exists(id) then
         KCM.Say(kind.unknown .. id)
         return

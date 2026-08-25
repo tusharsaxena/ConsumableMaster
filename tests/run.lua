@@ -414,6 +414,7 @@ local SUITES = {
     "test_debuglog",
     "test_defaults",
     "test_envsetup",
+    "test_itemsetup",
     "test_events",
     "test_id",
     "test_libka0s",

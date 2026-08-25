@@ -613,10 +613,10 @@ test("Settings: add-by-ID rejects bad input by kind and says why", function(t)
     end
 
     submit("abc")
-    t.truthy(lastSaid():find("expected a positive numeric ID; got: abc", 1, true),
+    t.truthy(lastSaid():find("expected a positive numeric ID or a pasted link; got: abc", 1, true),
         "non-numeric input is named back to the user")
     submit("0")
-    t.truthy(lastSaid():find("expected a positive numeric ID; got: 0", 1, true),
+    t.truthy(lastSaid():find("expected a positive numeric ID or a pasted link; got: 0", 1, true),
         "zero is rejected, not silently added")
     submit("999999")
     t.truthy(lastSaid():find("unknown itemID: 999999", 1, true),
@@ -635,6 +635,24 @@ test("Settings: add-by-ID rejects bad input by kind and says why", function(t)
     KCM.Options._addKind.HP_POT = "ITEM"
     submit("960010")
     t.eq(added[2], 960010, "an item ID is stored raw")
+
+    -- A SHIFT-CLICKED LINK, which is the natural gesture for "add this one" and used to be told
+    -- "expected a positive numeric ID" — an answer that is true and useless. Parsed through
+    -- KCM.Item.ItemIDFromLink, so it behaves identically on a degraded install.
+    submit("|cffa335ee|Hitem:960010::::::::80:253::::::|h[Test Potion]|h|r")
+    t.eq(added[3], 960010, "the link resolved to the same id the digits did")
+
+    -- And the same on the spell side, through that kind's own parser.
+    KCM.Options._addKind.HP_POT = "SPELL"
+    submit("|cff71d5ff|Hspell:7744|h[Will of the Forsaken]|h|r")
+    t.eq(added[4], KCM.ID.AsSpell(7744), "a pasted spell link stores through the sentinel too")
+
+    -- A link of the WRONG kind is refused rather than cross-filed: an item link parsed as a spell
+    -- would file an itemID under the opaque sentinel, where it collides with a real spell.
+    submit("|cffa335ee|Hitem:960010::::::::80:253::::::|h[Test Potion]|h|r")
+    t.truthy(lastSaid():find("expected a positive numeric ID or a pasted link", 1, true),
+        "an item link is not accepted while the kind selector says SPELL")
+    t.eq(added[5], nil, "and nothing was added")
 end)
 
 test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec", function(t)
