@@ -8,7 +8,9 @@
 --   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
 --   3. Section "Add item or spell by ID" — Type dropdown | ID input (paired).
 --   4. Section "Priority list" — legend label + one row per item:
---        KCMItemRow | KCMScoreButton | up | down | X
+--        KCMItemRow | KCMScoreButton | drag handle | X
+--      The handle drags the row to a new priority. The gesture is
+--      LibKa0s-Widgets-1.0's ReorderList, shared with MultiMeters' Columns page.
 --   5. Inline "Reset category" button (StaticPopup-confirmed).
 --
 -- Composite layout (HP_AIO / MP_AIO):
@@ -19,7 +21,7 @@
 --   5. Inline "Reset category" button (StaticPopup-confirmed).
 --
 -- Reads from Selector / Categories / Ranker / BagScanner / SpecHelper; writes
--- via Selector mutators (AddItem / Block / MoveUp / MoveDown). Every mutation
+-- via Selector mutators (AddItem / Block / MoveTo / MoveUp / MoveDown). Every mutation
 -- calls afterMutation so the macro pipeline and panels stay in sync.
 
 local _, NS = ...
@@ -43,7 +45,21 @@ O._addKind = O._addKind or {}
 local ITEM_ROW_RW_SINGLE    = 0.76
 local ITEM_ROW_RW_COMPOSITE = 0.72
 local ROW_BTN_W             = 32
+-- One priority row's height, named because the drag needs it twice: as the stride its arithmetic
+-- runs on, and as the height of the copy it carries under the cursor.
+local ROW_H                 = 28
 local CHECK_W               = 78
+
+-- The drag handle's art, and the library that owns the gesture behind it.
+-- LibKa0s-Widgets-1.0 minor 8 shares this drag with MultiMeters' Columns page:
+-- the handle, the copy carried under the cursor, the insertion line and the
+-- index arithmetic are all its, and every row above is still entirely ours.
+local HANDLE_ICON = "segment"
+
+local function reorderWidgets()
+    local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+    return (W and W.ReorderList) and W or nil
+end
 
 local OWNED_ICON     = "|TInterface\\RaidFrame\\ReadyCheck-Ready:20|t"
 local NOT_OWNED_ICON = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:20|t"
@@ -482,29 +498,40 @@ local function perHandFlags(cat, rowID, p)
            (aff == "any" or aff == p.mhAff or aff == p.ohAff)
 end
 
--- Move up / move down / remove. Each guards the Selector call and only reports a mutation when
--- the Selector says something actually changed.
-local function renderRowButtons(row, cat, specKey, rowID, isFirst, isLast)
+-- The drag handle and Remove. Each guards the Selector call and only reports a mutation when the
+-- Selector says something actually changed.
+--
+-- THE UP AND DOWN ARROWS ARE GONE, and what replaced them is one handle. Two buttons that each
+-- moved a row one place meant reordering a ten-item list was nine clicks and nine macro rebuilds,
+-- and the arrows could not express what a player actually wanted -- "put this one third" -- without
+-- being clicked until it was. `Selector.MoveTo` says it in one call, and the drag is how a player
+-- says it.
+--
+-- The handle is parented into a fixed-width Flow slot rather than anchored onto the row directly:
+-- AceGUI's Flow layout places its own children left to right and knows nothing about a raw frame
+-- dropped on top of one, so a handle anchored to the row would sit over the item cell. A slot is a
+-- child Flow understands, and it lands exactly where the up arrow used to.
+local function renderRowButtons(row, cat, specKey, rowID, list, ghostText)
     local function selectorAction(verb, reason)
         return function()
             local fn = KCM.Selector and KCM.Selector[verb]
             if fn and fn(cat.key, rowID, specKey) then afterMutation(reason) end
         end
     end
-    makeIconBtn(row, {
-        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-        label    = L["Move up"],
-        tooltip  = L["Move higher in priority"],
-        disabled = isFirst,
-        onClick  = selectorAction("MoveUp", "options_move_up"),
-    })
-    makeIconBtn(row, {
-        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-        label    = L["Move down"],
-        tooltip  = L["Move lower in priority"],
-        disabled = isLast,
-        onClick  = selectorAction("MoveDown", "options_move_down"),
-    })
+
+    if list then
+        local slot = AceGUI:Create("SimpleGroup")
+        slot:SetLayout(nil)
+        slot:SetWidth(ROW_BTN_W)
+        slot:SetHeight(ROW_H)
+        row:AddChild(slot)
+        list:AddRow(row.frame, {
+            parent    = slot.frame or slot.content,
+            ghostText = ghostText,
+            height    = ROW_H,
+        })
+    end
+
     makeIconBtn(row, {
         image    = "atlas:transmog-icon-remove",
         size     = 22,
@@ -516,7 +543,7 @@ end
 
 -- One priority row: the item cell, its score tooltip, and the move/remove buttons.
 -- `p` carries the list-wide facts the row reads: rankerCtx, pick, mh, oh, mhAff, ohAff.
-local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p)
+local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
     local explain = KCM.Ranker and KCM.Ranker.Explain
         and KCM.Ranker.Explain(cat.key, rowID, p.rankerCtx) or nil
     local scoreTitle = explain
@@ -525,8 +552,8 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p
 
     local rowPickMH, rowPickOH, applicableArg = perHandFlags(cat, rowID, p)
 
-    local row = newRow(scroll, 28)
-    makeItemRow(row, {
+    local row = newRow(scroll, ROW_H)
+    local itemRow = makeItemRow(row, {
         itemID     = rowID,
         owned      = isOwned(rowID),
         isPick     = (p.pick and rowID == p.pick) and true or false,
@@ -539,7 +566,11 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p
         label   = scoreTitle,
         tooltip = formatScoreTooltipDesc(explain),
     })
-    renderRowButtons(row, cat, specKey, rowID, isFirst, isLast)
+    -- The name the carried copy reads, taken off the row that just resolved it rather than looked
+    -- up a second time: a ghost naming a different string than the row it came from is worse than
+    -- one naming nothing.
+    local ghostText = itemRow and itemRow.label and itemRow.label:GetText() or nil
+    renderRowButtons(row, cat, specKey, rowID, list, ghostText)
 end
 
 -- Ranker context shared across rows so every score tooltip uses the same numbers as the
@@ -580,9 +611,41 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
         mh = mh, oh = oh, mhAff = mhAff, ohAff = ohAff,
     }
 
-    for i, id in ipairs(priority) do
-        renderPriorityRow(scroll, cat, specKey, id, i == 1, i == #priority, p)
+    -- ONE CONTROLLER PER RENDER, and the one before it is told to stop. A drag must not outlive
+    -- the list it was describing: the copy it leaves under the cursor names a row that may not be
+    -- in the list any more, and every mutation here repaints.
+    local W = reorderWidgets()
+    if ctx.kcmReorder then ctx.kcmReorder:Cancel() end
+
+    local list = W and W.ReorderList({
+        stride     = ROW_H,
+        -- No boundary. This list is flat -- every row is a priority and they are all one group --
+        -- which is the common case the library defaults to. MultiMeters' Columns page is the one
+        -- that divides, because a shown column may not be dragged among the hidden ones.
+        handleIcon = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
+        handleSize = ROW_BTN_W,
+        onMove     = function(from, to)
+            local id = priority[from]
+            if not id then return end
+            -- MoveTo, not repeated MoveUp: a drag past several rows is one move, and saying it as
+            -- a run of swaps would leave the rows it passed in an order nobody asked for -- and
+            -- rebuild the macro once per step on the way.
+            if KCM.Selector and KCM.Selector.MoveTo
+                and KCM.Selector.MoveTo(cat.key, id, to, specKey) then
+                afterMutation("options_move_drag")
+            end
+        end,
+        debug      = (KCM.State and KCM.State.debug and KCM.Debug)
+            and function(fmt, ...) KCM.Debug("Prio", fmt, ...) end or nil,
+    })
+    ctx.kcmReorder = list
+
+    for _, id in ipairs(priority) do
+        renderPriorityRow(scroll, cat, specKey, id, list, p)
     end
+
+    -- The insertion line lives on what every row shares as an ancestor.
+    if list then list:Finish(scroll.content or scroll.frame) end
 end
 
 local function renderSingle(ctx, cat)

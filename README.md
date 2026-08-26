@@ -212,7 +212,7 @@ Each of the thirteen single macros has its own page. Spec-aware pages show the v
 *   **Priority list** — one row per candidate, in ranked order:
     *   Icons show status: green check (you own it / know the spell), red (you don't), yellow star (currently used by the macro).
     *   **Blue info button** — hover to see why an item scored where it did.
-    *   **↑ / ↓** — reorder. Moving an item pins it above the automatic ranking.
+    *   **Drag handle** — grab it and drag the row where you want it. A copy follows your cursor and a gold line shows where it will land. Dropping it there pins the item above the automatic ranking.
     *   **×** — remove and block it, so it won't get auto-added again.
 *   **Reset category** — clear this category's added, blocked, and pinned items (for spec-aware pages, just the viewed spec). Auto-found items stay.
 

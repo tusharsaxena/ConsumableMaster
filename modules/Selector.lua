@@ -570,10 +570,11 @@ function S.SweepStaleDiscovered(nowUnix)
     return totalSwept, touchedCats
 end
 
--- Internal helper: given the current effective priority and a direction (-1
--- for up, +1 for down), swap `itemID` with its neighbor by emitting pins at
--- the new positions. If the item isn't in the priority list, no-op.
-local function movePinned(catKey, itemID, delta, specKey)
+-- Internal helper. Moves `itemID` within the effective priority list and emits
+-- pins at the new positions. Two ways to say where: `delta` (-1 for up, +1 for
+-- down) for the arrows, or `absolute` for a drag, which knows its target index
+-- outright. If the item isn't in the priority list, no-op.
+local function moveBy(catKey, itemID, delta, absolute, specKey)
     local bucket = S.GetBucket(catKey, specKey)
     if not bucket or not itemID then return false end
 
@@ -584,29 +585,51 @@ local function movePinned(catKey, itemID, delta, specKey)
     end
     if not curIdx then return false end
 
-    local newIdx = curIdx + delta
+    local newIdx = absolute or (curIdx + (delta or 0))
     if newIdx < 1 or newIdx > #priority then return false end
+    if newIdx == curIdx then return false end
 
-    -- Strategy: rebuild the pins array as the full re-ordered priority list
-    -- with the two affected slots swapped. This is O(N) but N <= ~30 per
-    -- category and only runs on explicit user reorder clicks. It guarantees
-    -- deterministic behavior regardless of how ranker scores break ties.
-    priority[curIdx], priority[newIdx] = priority[newIdx], priority[curIdx]
+    -- REMOVE AND RE-INSERT, NOT SWAP, and the difference only shows up beyond one
+    -- step. Swapping two slots is the same as moving when they are adjacent, and
+    -- is NOT the same when they are not: dragging row 1 to row 5 by swapping
+    -- leaves the three rows it passed in an order nobody asked for, where moving
+    -- it slides each of them up by one and touches nothing else. The arrows only
+    -- ever moved one step, so the two were indistinguishable until a drag could
+    -- ask for more.
+    --
+    -- Rebuilding the whole pins array is O(N), which is free at N <= ~30 per
+    -- category and only on an explicit user reorder. It also guarantees the same
+    -- result regardless of how ranker scores break ties.
+    table.insert(priority, newIdx, table.remove(priority, curIdx))
     local newPins = {}
     for i, id in ipairs(priority) do
         table.insert(newPins, { itemID = id, position = i })
     end
     bucket.pins = newPins
     if KCM.State and KCM.State.debug then
-        KCM.Debug("Prio", "%s %s id=%s", delta < 0 and "move-up" or "move-down", catKey, itemID)
+        KCM.Debug("Prio", "move %s id=%s %d -> %d", catKey, itemID, curIdx, newIdx)
     end
     return true
 end
 
+--- Move one pinned item to an absolute position in the priority list.
+---
+--- THE ONE DEFINITION OF "WHERE DOES THIS LAND". MoveUp and MoveDown are thin
+--- wrappers over it, so a drag and an arrow cannot disagree about what a move is.
+---
+--- @param catKey string
+--- @param itemID number|string
+--- @param newIdx number    1-based position in the effective priority list
+--- @param specKey string|nil
+--- @return boolean changed
+function S.MoveTo(catKey, itemID, newIdx, specKey)
+    return moveBy(catKey, itemID, nil, newIdx, specKey)
+end
+
 function S.MoveUp(catKey, itemID, specKey)
-    return movePinned(catKey, itemID, -1, specKey)
+    return moveBy(catKey, itemID, -1, nil, specKey)
 end
 
 function S.MoveDown(catKey, itemID, specKey)
-    return movePinned(catKey, itemID, 1, specKey)
+    return moveBy(catKey, itemID, 1, nil, specKey)
 end
