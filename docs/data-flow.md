@@ -70,7 +70,7 @@ function P.RequestRecompute(reason)
 end
 ```
 
-`C_Timer.After(0, ...)` defers to end-of-frame, which collapses a flurry of events (e.g. multiple `BAG_UPDATE_DELAYED` during loot) into a single pipeline run. Event handlers publish `KCM.MSG.RECOMPUTE` (which lands in `RequestRecompute`), never `Recompute` directly — except the rare direct paths (`KCM.ResetAllToDefaults`, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
+`C_Timer.After(0, ...)` defers to end-of-frame, which collapses a flurry of events (e.g. multiple `BAG_UPDATE_DELAYED` during loot) into a single pipeline run. Event handlers publish `KCM.MSG.RECOMPUTE` (which lands in `RequestRecompute`), never `Recompute` directly — except the rare direct paths (the profile-callback resync that follows a switch, copy or reset, `/cm resync`, `/cm rewritemacros`) where the write should land this tick.
 
 ## Per-category isolation — `pcall`
 

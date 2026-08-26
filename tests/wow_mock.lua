@@ -381,6 +381,48 @@ local function makeAceDB()
         db.profile = deepcopy(defaults.profile or {})
         db.global  = deepcopy(defaults.global or {})
         db.char    = deepcopy(defaults.char or {})
+
+        -- THE CALLBACK SURFACE AND ResetProfile, modeled rather than stubbed.
+        --
+        -- Neither existed here, which was harmless while nothing called them and
+        -- stopped being the moment options-ui-§12 made the global reset
+        -- `db:ResetProfile()`. A fake missing the call does not fail a case, it
+        -- passes one: the suite measures a reset that never ran.
+        --
+        -- Two fidelities are the real library's. The profile table keeps its
+        -- IDENTITY across a reset -- it is wiped IN PLACE, so anything holding
+        -- db.profile from load keeps pointing at the live table, and a suite that
+        -- re-reads db.profile on every access cannot see that bug. And the
+        -- callbacks fire in BOTH of CallbackHandler's registration forms: the
+        -- function form, and the string-METHOD form dispatched as
+        -- `obj:method(event, ...)`, which a fake that stores the handler and calls
+        -- it raises on.
+        local callbacks = {}
+        db.RegisterCallback = function(target, event, handler)
+            callbacks[event] = callbacks[event] or {}
+            callbacks[event][#callbacks[event] + 1] = { target = target, handler = handler }
+        end
+
+        local function fire(event)
+            for _, entry in ipairs(callbacks[event] or {}) do
+                local target, handler = entry.target, entry.handler
+                if type(handler) == "function" then
+                    handler(event, db, "Default")
+                elseif type(handler) == "string" and type(target) == "table"
+                    and type(target[handler]) == "function"
+                then
+                    target[handler](target, event, db, "Default")
+                end
+            end
+        end
+
+        db.ResetProfile = function()
+            local p = db.profile
+            for k in pairs(p) do p[k] = nil end
+            for k, v in pairs(deepcopy(defaults.profile or {})) do p[k] = v end
+            fire("OnProfileReset")
+        end
+
         return db
     end
     return AceDB

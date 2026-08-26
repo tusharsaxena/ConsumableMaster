@@ -299,11 +299,25 @@ test("ResetAllToDefaults reports whether it mutated anything", function(t)
 end)
 
 test("ResetAllToDefaults keeps the addon on when the defaults have no enabled key", function(t)
+    -- The fail-safe is the READER's, not the reset's: `macrosEnabled` is
+    -- `not (... enabled == false)`, so nil means ON. That is the shape
+    -- savedvariables asks for -- `== nil` rather than `or`, because the falsy
+    -- state is a user choice -- and it is why the reset no longer has to write a
+    -- `true` of its own. Since options-ui-§12 the reset is `db:ResetProfile()`,
+    -- and what it stores is whatever the defaults table holds: nothing, here.
+    --
+    -- Asserted on the BEHAVIOR rather than on the stored byte, because the stored
+    -- byte is what changed and the behavior is what the case was always about.
+    -- red under: a reader that treats nil as off.
     local KCM = h.loader.loadPure()
     KCM.dbDefaults.profile.enabled = nil
     KCM.db.profile.enabled = false
+
     KCM.ResetAllToDefaults("test")
-    t.eq(KCM.db.profile.enabled, true,
+
+    t.eq(KCM.db.profile.enabled, nil, "the profile mirrors the defaults table exactly")
+    -- Reached the way the macro write loop reaches it.
+    t.eq(not (KCM.db.profile.enabled == false), true,
         "a missing defaults key is fail-safe (addon on), not fail-off")
 end)
 

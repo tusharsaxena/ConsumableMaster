@@ -39,7 +39,10 @@ local say = KCM.Say
 StaticPopupDialogs["KCM_CONFIRM_RESET"] = {
     -- Same wording as the Options panel's KCM_RESET_ALL so both global-reset
     -- entry points describe identical scope (they share KCM.ResetAllToDefaults).
-    text = L["Reset ALL ConsumableMaster customization to defaults? This wipes every category's added/blocked/pinned items and all stat-priority overrides, and re-enables the addon. Your macros stay in place, and items currently in your bags are re-discovered automatically. This cannot be undone."],
+    -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim, and the same string
+    -- settings/General.lua's popup carries -- one act, one wording, whichever door
+    -- the player came through.
+    text = L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded — your other profiles are not affected."],
     button1 = YES,
     button2 = NO,
     OnAccept = function()

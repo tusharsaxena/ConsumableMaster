@@ -40,6 +40,11 @@ function KCM:OnInitialize()
     if KCM.Database and KCM.Database.RunMigrations then
         KCM.Database.RunMigrations()
     end
+
+    -- PROFILE CALLBACKS (options-ui-§12). Defined below, beside `afterReset` --
+    -- the resync they run -- and reached as a FIELD so the call resolves at run
+    -- time rather than needing the local in lexical scope up here.
+    if KCM.RegisterProfileCallbacks then KCM.RegisterProfileCallbacks(self) end
     self:RegisterChatCommand("cm", "OnSlashCommand")
     self:RegisterChatCommand("consumablemaster", "OnSlashCommand")
     -- Panel registration is driven by the PLAYER_LOGIN / ADDON_LOADED
@@ -348,14 +353,16 @@ end
 -- The DB half of the reset: every persisted customization back to its shipped
 -- value. CopyTable, never an alias — aliasing dbDefaults would let a later user
 -- edit corrupt the defaults for the rest of the session.
-local function restoreProfileDefaults(profile, defaults)
-    profile.categories   = CopyTable(defaults.categories or {})
-    profile.statPriority = CopyTable(defaults.statPriority or {})
-    -- The master enable is a persisted customization too, so a full reset
-    -- restores it. `~= false` keeps the addon enabled even if the defaults
-    -- table is somehow missing its `enabled` key (fail-safe, not fail-off).
-    profile.enabled      = defaults.enabled ~= false
-end
+-- `restoreProfileDefaults` USED TO LIVE HERE, naming three profile keys by hand:
+-- categories, statPriority and the master enable. That was the whole profile as
+-- this addon knew it when the function was written, and it is the shape that
+-- quietly stops being true -- anything a later version stores beside them
+-- survived a reset that took everything around it.
+--
+-- The reset is `db:ResetProfile()` now (options-ui-§12). AceDB empties the profile
+-- IN PLACE, so anything holding KCM.db.profile keeps the live table, and merges
+-- KCM.dbDefaults.profile back over it -- which restores those three and everything
+-- else, without a list here to keep current.
 
 -- The resync half. Order matters: invalidate → discover → recompute, so
 -- discovery sees a cleared cache and recompute sees the refreshed discovered
@@ -373,12 +380,51 @@ local function afterReset(reason)
     end
 end
 
+--- Register the profile callbacks. This addon had none.
+---
+--- Every macro this addon writes is computed from db.profile. Switching, copying
+--- or resetting a profile replaces every stored value at once and nothing here
+--- reacted: the macros on the player's bars stayed the OUTGOING profile's until
+--- something else happened to trigger a recompute, and the migrations never ran on
+--- an incoming profile a copy could have authored at an older schema version. It
+--- went unnoticed because nothing in this addon switched profiles -- until
+--- options-ui-§12 made the GLOBAL RESET a profile reset, which fires the same event
+--- and needs the same reaction.
+---
+--- `afterReset` above is the resync, and it is the whole reaction an incoming
+--- profile needs -- which is why KCM.ResetAllToDefaults no longer calls it
+--- directly. One path, not two.
+function KCM.RegisterProfileCallbacks(target)
+    local db = target and target.db
+    if not (db and db.RegisterCallback) then return end
+
+    local function reload(reason)
+        return function()
+            if KCM.Database and KCM.Database.RunMigrations then
+                KCM.Database.RunMigrations()
+            end
+            afterReset(reason)
+        end
+    end
+
+    db.RegisterCallback(target, "OnProfileChanged", reload("profile_changed"))
+    db.RegisterCallback(target, "OnProfileCopied",  reload("profile_copied"))
+    db.RegisterCallback(target, "OnProfileReset",   reload("profile_reset"))
+end
+
+--- Reset the ACTIVE PROFILE to the shipped defaults, and the same act as
+--- AceDBOptions' own Reset Profile (options-ui-§12).
+---
+--- The resync is NOT called from here any more. `db:ResetProfile()` fires
+--- OnProfileReset, and the handler KCM:OnInitialize registers runs `afterReset` --
+--- so the invalidate → discover → recompute pass happens on exactly one path,
+--- which is the path a profile SWITCH takes too. Calling it here as well would run
+--- the pipeline twice for one action.
 function KCM.ResetAllToDefaults(reason)
-    if not (KCM.db and KCM.db.profile) then return false end
-    restoreProfileDefaults(KCM.db.profile, KCM.dbDefaults and KCM.dbDefaults.profile or {})
+    if not (KCM.db and KCM.db.ResetProfile) then return false end
     reason = reason or "reset_all"
     if isDebugOn() then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
-    afterReset(reason)
+    KCM.db:ResetProfile()
     return true
 end
 

@@ -87,7 +87,12 @@ local function doResetGeneralPage()
 end
 
 StaticPopupDialogs["KCM_RESET_ALL"] = {
-    text         = L["Reset ALL ConsumableMaster customization to defaults? This wipes every category's added/blocked/pinned items and all stat-priority overrides, and re-enables the addon. Your macros stay in place, and items currently in your bags are re-discovered automatically. This cannot be undone."],
+    -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on
+    -- purpose: the old text enumerated this addon's own nouns, which is exactly
+    -- what eight addons each did differently. What it used to promise about
+    -- macros surviving is still true and is now the tooltip's job, not the
+    -- confirmation's -- a popup that lists reassurances buries the warning.
+    text         = L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded — your other profiles are not affected."],
     button1      = L["Yes"],
     button2      = L["No"],
     timeout      = 0,
