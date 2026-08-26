@@ -95,7 +95,7 @@ end
 -- site is reachable on a build without the library — nothing registers a panel
 -- there — so there is no nil arm to guard.
 
-local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumemaster.logo.tga]]
+local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumablemaster.logo.tga]]
 local LOGO_PIXELS  = 300
 
 -- ---------------------------------------------------------------------
