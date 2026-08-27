@@ -170,6 +170,65 @@ test("Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
     t.falsy(KCM.Selector.MoveDown("HP_POT", B), "MoveDown at bottom is no-op")
 end)
 
+test("Selector: MoveTo MOVES rather than swaps, which only shows up beyond one step", function(t)
+    -- The arrows only ever moved one step, where a swap and a move are the same
+    -- thing. A drag can ask for more, and then they are not: swapping row 1 with
+    -- row 5 leaves the three rows it passed in an order nobody asked for, where
+    -- moving it slides each of them up by one and touches nothing else.
+    -- red under: moveBy swapping two slots instead of removing and re-inserting.
+    local KCM = h.loader.loadPure()
+    local ids = { 900201, 900202, 900203, 900204, 900205 }
+    for _, id in ipairs(ids) do KCM.Selector.AddItem("HP_POT", id) end
+    KCM.SEED.HP_POT = {}
+
+    local A, B, C, D, E = ids[1], ids[2], ids[3], ids[4], ids[5]
+    t.eqList(KCM.Selector.GetEffectivePriority("HP_POT"), { A, B, C, D, E },
+        "baseline effective order is ascending")
+
+    t.truthy(KCM.Selector.MoveTo("HP_POT", A, 5), "MoveTo returns true")
+    t.eqList(KCM.Selector.GetEffectivePriority("HP_POT"), { B, C, D, E, A },
+        "everything A passed moved up exactly one; a swap would have left { E, B, C, D, A }")
+
+    -- And back, so the operation is its own inverse over a clean list.
+    t.truthy(KCM.Selector.MoveTo("HP_POT", A, 1))
+    t.eqList(KCM.Selector.GetEffectivePriority("HP_POT"), { A, B, C, D, E })
+end)
+
+test("Selector: MoveTo refuses an index off the ends, or the one it already holds", function(t)
+    -- A drag clamps before it ever gets here, but the CLI and a future caller do
+    -- not, and "moved" must mean the list actually changed -- the panel only
+    -- rebuilds the macro when the Selector says something did.
+    local KCM = h.loader.loadPure()
+    local A, B = 900201, 900202
+    KCM.Selector.AddItem("HP_POT", A)
+    KCM.Selector.AddItem("HP_POT", B)
+    KCM.SEED.HP_POT = {}
+
+    t.falsy(KCM.Selector.MoveTo("HP_POT", A, 0), "index 0 is off the top")
+    t.falsy(KCM.Selector.MoveTo("HP_POT", A, 3), "index 3 is off the bottom of a two-item list")
+    t.falsy(KCM.Selector.MoveTo("HP_POT", A, 1), "moving to where it already is is not a change")
+    t.eqList(KCM.Selector.GetEffectivePriority("HP_POT"), { A, B }, "and none of them touched it")
+end)
+
+test("Selector: MoveUp and MoveDown are MoveTo, so a drag and an arrow agree", function(t)
+    -- One definition of where a move lands. Two would drift the first time one
+    -- was fixed and the other was not.
+    local KCM = h.loader.loadPure()
+    local ids = { 900201, 900202, 900203 }
+    for _, id in ipairs(ids) do KCM.Selector.AddItem("HP_POT", id) end
+    KCM.SEED.HP_POT = {}
+    local A, B, C = ids[1], ids[2], ids[3]
+
+    KCM.Selector.MoveDown("HP_POT", A)
+    local viaArrow = KCM.Selector.GetEffectivePriority("HP_POT")
+    t.eqList(viaArrow, { B, A, C }, "the arrow moved A one place down")
+
+    KCM.Selector.MoveTo("HP_POT", A, 1)
+    KCM.Selector.MoveTo("HP_POT", A, 2)
+    t.eqList(KCM.Selector.GetEffectivePriority("HP_POT"), viaArrow,
+        "the same move asked for absolutely lands in the same place")
+end)
+
 -- ---------------------------------------------------------------
 -- Spec-aware category (FLASK): GetBucket lands in bySpec sub-table
 -- ---------------------------------------------------------------

@@ -203,6 +203,14 @@ badge and any count quoted in the docs must agree with it.
 - EnvSetup: the seam still answers with LibKa0s absent
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
+### test_itemsetup.lua (5)
+
+- ItemSetup: KCM.Item.ItemIDFromLink reads the id out of a full item link
+- ItemSetup: it reads a bare itemString too
+- ItemSetup: a non-link string and a non-string both answer nil
+- ItemSetup: a SPELL link is not mistaken for an item
+- ItemSetup: the degraded stub answers exactly what the library does
+
 ### test_events.lua (20)
 
 - OnEnable registers every client event the addon reacts to
@@ -554,7 +562,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
 - schema: the tab order lists each panel once and covers every category page
 
-### test_selector.lua (44)
+### test_selector.lua (47)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -565,6 +573,9 @@ badge and any count quoted in the docs must agree with it.
 - Selector: a class-gated spell resolves for its class when IsPlayerSpell says no
 - Selector: the class gate does not override a genuinely known spell
 - Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
+- Selector: MoveTo MOVES rather than swaps, which only shows up beyond one step
+- Selector: MoveTo refuses an index off the ends, or the one it already holds
+- Selector: MoveUp and MoveDown are MoveTo, so a drag and an arrow agree
 - Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
 - Selector: PickBestForSlot filters by weapon affinity + ownership
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
@@ -822,6 +833,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
 | test_envsetup.lua | 5 |
+| test_itemsetup.lua | 5 |
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
@@ -834,7 +846,7 @@ badge and any count quoted in the docs must agree with it.
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 35 |
-| test_selector.lua | 44 |
+| test_selector.lua | 47 |
 | test_settingsui.lua | 21 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 15 |
@@ -844,4 +856,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **698** |
+| **Total** | **706** |

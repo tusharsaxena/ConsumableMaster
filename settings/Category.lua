@@ -8,7 +8,9 @@
 --   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
 --   3. Section "Add item or spell by ID" — Type dropdown | ID input (paired).
 --   4. Section "Priority list" — legend label + one row per item:
---        KCMItemRow | KCMScoreButton | up | down | X
+--        drag handle | KCMItemRow | KCMScoreButton | X
+--      The handle drags the row to a new priority. The gesture is
+--      LibKa0s-Widgets-1.0's ReorderList, shared with MultiMeters' Columns page.
 --   5. Inline "Reset category" button (StaticPopup-confirmed).
 --
 -- Composite layout (HP_AIO / MP_AIO):
@@ -19,7 +21,7 @@
 --   5. Inline "Reset category" button (StaticPopup-confirmed).
 --
 -- Reads from Selector / Categories / Ranker / BagScanner / SpecHelper; writes
--- via Selector mutators (AddItem / Block / MoveUp / MoveDown). Every mutation
+-- via Selector mutators (AddItem / Block / MoveTo / MoveUp / MoveDown). Every mutation
 -- calls afterMutation so the macro pipeline and panels stay in sync.
 
 local _, NS = ...
@@ -43,7 +45,21 @@ O._addKind = O._addKind or {}
 local ITEM_ROW_RW_SINGLE    = 0.76
 local ITEM_ROW_RW_COMPOSITE = 0.72
 local ROW_BTN_W             = 32
+-- One priority row's height, named because the drag needs it twice: as the stride its arithmetic
+-- runs on, and as the height of the copy it carries under the cursor.
+local ROW_H                 = 28
 local CHECK_W               = 78
+
+-- The drag handle's art, and the library that owns the gesture behind it.
+-- LibKa0s-Widgets-1.0 minor 8 shares this drag with MultiMeters' Columns page:
+-- the handle, the copy carried under the cursor, the insertion line and the
+-- index arithmetic are all its, and every row above is still entirely ours.
+local HANDLE_ICON = "segment"
+
+local function reorderWidgets()
+    local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+    return (W and W.ReorderList) and W or nil
+end
 
 local OWNED_ICON     = "|TInterface\\RaidFrame\\ReadyCheck-Ready:20|t"
 local NOT_OWNED_ICON = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:20|t"
@@ -482,29 +498,56 @@ local function perHandFlags(cat, rowID, p)
            (aff == "any" or aff == p.mhAff or aff == p.ohAff)
 end
 
--- Move up / move down / remove. Each guards the Selector call and only reports a mutation when
--- the Selector says something actually changed.
-local function renderRowButtons(row, cat, specKey, rowID, isFirst, isLast)
+-- The drag handle and Remove. Each guards the Selector call and only reports a mutation when the
+-- Selector says something actually changed.
+--
+-- THE UP AND DOWN ARROWS ARE GONE, and what replaced them is one handle. Two buttons that each
+-- moved a row one place meant reordering a ten-item list was nine clicks and nine macro rebuilds,
+-- and the arrows could not express what a player actually wanted -- "put this one third" -- without
+-- being clicked until it was. `Selector.MoveTo` says it in one call, and the drag is how a player
+-- says it.
+--
+-- The handle is parented into a fixed-width Flow slot rather than anchored onto the row directly:
+-- AceGUI's Flow layout places its own children left to right and knows nothing about a raw frame
+-- dropped on top of one, so a handle anchored to the row would sit over the item cell. A slot is a
+-- child Flow understands, and it lands exactly where the up arrow used to.
+--- The handle's slot, added FIRST so Flow puts it at the left edge of the row.
+---
+--- Returned rather than registered here, because the carried copy reads the item's NAME and the
+--- widget that resolves that name does not exist yet -- it is the next child Flow places. So the
+--- slot is claimed now, in the position the layout needs, and the row is handed to the library
+--- once there is something to call it.
+--- Stop the previous render's drag and give its handles back.
+---
+--- CALLED BEFORE H.ResetScroll, ON EVERY DISPATCH, and that order is the whole of it. Releasing a
+--- handle is what takes it off the AceGUI container it was parented to, and ResetScroll hands every
+--- container on this page back to AceGUI's process-wide pool -- where the next thing to ask for a
+--- SimpleGroup gets one with a live handle still sitting on it. Cancelling afterwards is how drag
+--- handles turned up on the "Drag to action bar" row, on the ID entry row, and on a dropdown.
+local function cancelReorder(ctx)
+    if ctx and ctx.kcmReorder then
+        ctx.kcmReorder:Cancel()
+        ctx.kcmReorder = nil
+    end
+end
+
+local function renderRowHandle(row)
+    local slot = AceGUI:Create("SimpleGroup")
+    slot:SetLayout(nil)
+    slot:SetWidth(ROW_BTN_W)
+    slot:SetHeight(ROW_H)
+    row:AddChild(slot)
+    return slot
+end
+
+local function renderRowButtons(row, cat, specKey, rowID)
     local function selectorAction(verb, reason)
         return function()
             local fn = KCM.Selector and KCM.Selector[verb]
             if fn and fn(cat.key, rowID, specKey) then afterMutation(reason) end
         end
     end
-    makeIconBtn(row, {
-        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-        label    = L["Move up"],
-        tooltip  = L["Move higher in priority"],
-        disabled = isFirst,
-        onClick  = selectorAction("MoveUp", "options_move_up"),
-    })
-    makeIconBtn(row, {
-        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-        label    = L["Move down"],
-        tooltip  = L["Move lower in priority"],
-        disabled = isLast,
-        onClick  = selectorAction("MoveDown", "options_move_down"),
-    })
+
     makeIconBtn(row, {
         image    = "atlas:transmog-icon-remove",
         size     = 22,
@@ -516,7 +559,7 @@ end
 
 -- One priority row: the item cell, its score tooltip, and the move/remove buttons.
 -- `p` carries the list-wide facts the row reads: rankerCtx, pick, mh, oh, mhAff, ohAff.
-local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p)
+local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
     local explain = KCM.Ranker and KCM.Ranker.Explain
         and KCM.Ranker.Explain(cat.key, rowID, p.rankerCtx) or nil
     local scoreTitle = explain
@@ -525,8 +568,11 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p
 
     local rowPickMH, rowPickOH, applicableArg = perHandFlags(cat, rowID, p)
 
-    local row = newRow(scroll, 28)
-    makeItemRow(row, {
+    local row = newRow(scroll, ROW_H)
+    -- HANDLE FIRST, at the left edge, then the item, then the actions on the right. Flow places
+    -- its children in the order they are added, so this order IS the layout.
+    local slot = list and renderRowHandle(row) or nil
+    local itemRow = makeItemRow(row, {
         itemID     = rowID,
         owned      = isOwned(rowID),
         isPick     = (p.pick and rowID == p.pick) and true or false,
@@ -539,7 +585,19 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, isFirst, isLast, p
         label   = scoreTitle,
         tooltip = formatScoreTooltipDesc(explain),
     })
-    renderRowButtons(row, cat, specKey, rowID, isFirst, isLast)
+    renderRowButtons(row, cat, specKey, rowID)
+
+    -- Registered LAST, once the item row has resolved the name the carried copy reads: a ghost
+    -- naming a different string than the row it came from is worse than one naming nothing. The
+    -- slot it goes into was claimed before any of this, so the layout is unaffected by the order
+    -- these two things happen in.
+    if slot then
+        list:AddRow(row.frame, {
+            parent    = slot.frame or slot.content,
+            ghostText = itemRow and itemRow.label and itemRow.label:GetText() or nil,
+            height    = ROW_H,
+        })
+    end
 end
 
 -- Ranker context shared across rows so every score tooltip uses the same numbers as the
@@ -580,12 +638,76 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
         mh = mh, oh = oh, mhAff = mhAff, ohAff = ohAff,
     }
 
-    for i, id in ipairs(priority) do
-        renderPriorityRow(scroll, cat, specKey, id, i == 1, i == #priority, p)
+    -- ONE CONTROLLER PER RENDER. The one before it was cancelled at the top of the dispatch, before
+    -- ResetScroll -- see cancelReorder for why it cannot be done here instead.
+    local W = reorderWidgets()
+
+    local list = W and W.ReorderList({
+        stride     = ROW_H,
+        -- No boundary. This list is flat -- every row is a priority and they are all one group --
+        -- which is the common case the library defaults to. MultiMeters' Columns page is the one
+        -- that divides, because a shown column may not be dragged among the hidden ones.
+        handleIcon = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
+        handleSize = ROW_BTN_W,
+        handleTooltip = L["Drag to reorder"],
+        onMove     = function(from, to)
+            local id = priority[from]
+            if not id then return end
+            -- MoveTo, not repeated MoveUp: a drag past several rows is one move, and saying it as
+            -- a run of swaps would leave the rows it passed in an order nobody asked for -- and
+            -- rebuild the macro once per step on the way.
+            if KCM.Selector and KCM.Selector.MoveTo
+                and KCM.Selector.MoveTo(cat.key, id, to, specKey) then
+                afterMutation("options_move_drag")
+            end
+        end,
+        debug      = (KCM.State and KCM.State.debug and KCM.Debug)
+            and function(fmt, ...) KCM.Debug("Prio", fmt, ...) end or nil,
+    })
+    ctx.kcmReorder = list
+
+    if KCM.State and KCM.State.debug and KCM.Debug then
+        KCM.Debug("Prio", "paint %s rows=%d spec=%s", cat.key, #priority, tostring(specKey))
     end
+
+    for _, id in ipairs(priority) do
+        renderPriorityRow(scroll, cat, specKey, id, list, p)
+    end
+
+    -- The insertion line lives on what every row shares as an ancestor.
+    if list then list:Finish(scroll.content or scroll.frame) end
+end
+
+-- ── keeping your place across a repaint ───────────────────────────────────────────────────────
+--
+-- Every mutation on this page repaints it, and a repaint rebuilds the scroll's children from
+-- nothing -- which drops the scroll offset and throws the list back to the top. That is merely
+-- untidy when the list is short and genuinely hostile when it is not: drag the eleventh item, and
+-- the row you were working on is off screen before you can look at it. The macro pipeline repaints
+-- a second time about a second later, so it happens twice.
+--
+-- The offset is read off AceGUI's own status table -- the same one its scrollbar drives -- and put
+-- back once the new children are in and laid out. Restoring it BEFORE the render would be
+-- restoring it onto content that is not there yet, and AceGUI would clamp it straight back to zero.
+local function scrollOffset(ctx)
+    local sc = ctx and ctx.scroll
+    local st = sc and (sc.status or sc.localstatus)
+    return st and st.scrollvalue or nil
+end
+
+local function restoreScroll(ctx, value)
+    if not value or value <= 0 then return end
+    local sc = ctx and ctx.scroll
+    if not (sc and sc.SetScroll) then return end
+    sc:SetScroll(value)
+    -- The bar carries its own value and does not follow SetScroll, so a restore that skipped it
+    -- would move the content and leave the thumb at the top saying otherwise.
+    if sc.scrollbar and sc.scrollbar.SetValue then sc.scrollbar:SetValue(value) end
 end
 
 local function renderSingle(ctx, cat)
+    local keepScroll = scrollOffset(ctx)
+    cancelReorder(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
 
@@ -612,6 +734,9 @@ local function renderSingle(ctx, cat)
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
+    -- AFTER the layout, or it is restored onto content that is not there yet and clamped back to
+    -- zero for its trouble.
+    restoreScroll(ctx, keepScroll)
 end
 
 -- ---------------------------------------------------------------------
@@ -619,6 +744,8 @@ end
 -- ---------------------------------------------------------------------
 
 local function renderComposite(ctx, cat)
+    local keepScroll = scrollOffset(ctx)
+    cancelReorder(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
 
@@ -711,6 +838,9 @@ local function renderComposite(ctx, cat)
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
+    -- AFTER the layout, or it is restored onto content that is not there yet and clamped back to
+    -- zero for its trouble.
+    restoreScroll(ctx, keepScroll)
 end
 
 -- ---------------------------------------------------------------------

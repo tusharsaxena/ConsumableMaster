@@ -55,7 +55,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.18.1 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.19.0 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
@@ -66,9 +66,10 @@ because it answers a maintainer's question on a page written for players — the
 `README.md` at revision 9 (LibKa0s v1.8.1), and there is no fallback.
 
 LibKa0s supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the
-settings-panel shell and its row widgets, the shipped art and font, the TOC-manifest reader behind
+settings-panel shell and its row widgets, the reorder drag behind the priority rows, the shipped art and font, the TOC-manifest reader behind
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
-harness. Eight of its majors are consumed; `Pool` and `Widgets` ship in the payload unused. It is vendored whole-folder
+harness. Nine of its majors are consumed — `Widgets` joined them when the priority rows took the
+library's drag handle (`settings/Category.lua`); `Pool` alone ships in the payload unused. It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

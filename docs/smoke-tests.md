@@ -197,7 +197,7 @@ Tests: spec selector drives the spec-aware editor and the spec-aware category pa
 
 ### 9. Settings panel — per-category (single)
 
-Tests: drag icon, Add by ID (item + spell), priority list (up / down / X), score tooltip.
+Tests: drag icon, Add by ID (item + spell), priority list (drag to reorder, X), score tooltip.
 
 1. Open any single-category page (e.g. **Healing Potion**).
 2. Drag the macro icon at the top onto an action bar. Confirm placement worked (Blizzard `PlaceAction` drop — taint-free).
@@ -205,11 +205,29 @@ Tests: drag icon, Add by ID (item + spell), priority list (up / down / X), score
 3. Add by ID — Type=Item, paste an item ID you don't own (e.g. an old-tier potion). Press Enter. The row appears in the priority list with the red-X "not owned" glyph.
 4. Add by ID — Type=Spell, paste a spell ID (e.g. `1231411` for Recuperate, only valid on Rogues). Press Enter. The row appears with the spell name and icon. On a non-Rogue: validation rejects with `[CM] unknown spellID`.
 5. Submit an invalid ID (e.g. `99999999`). Validation rejects; the typed text persists in the EditBox so you can correct without re-typing.
-6. Move a row up / down — pinning takes effect immediately; the macro body updates if the move changes the owned-item walk.
+6. **Drag a row by its handle** — the icon where the up/down arrows used to be. Throughout the drag a **copy of the row follows the cursor**, the row it came from **fades**, and a **gold insertion line** sits where it will land. Drop it: pinning takes effect immediately, and the macro body updates if the move changes the owned-item walk.
+   - **Drag it several rows, not one.** The rows it passes must each shift by exactly one and keep their own order. A list that comes back scrambled means the move is being applied as a run of swaps rather than as one `Selector.MoveTo` — which is what the arrows did, and is indistinguishable from a real move until you drag past more than one row.
+   - Drop it back where it started: nothing is written, and the macro is not rebuilt.
+   - **On a list long enough to scroll, scroll down first and then drag.** The list must stay where you left it — both immediately and about a second later, when the macro pipeline repaints a second time. A jump back to the top means the scroll offset is not being carried across the rebuild.
+   - The handle is the only part of the row that drags. Pressing the item name, the info button or the X must not start one.
+   - **After every drag, and after clicking Defaults, scan the WHOLE page for stray handles.** A handle may only ever appear at the left edge of a priority row — never beside *Drag to action bar*, never on the *Add item or spell by ID* row, never on a dropdown, never below *Reset category*. One that turns up there is a handle that outlived its render and rode a pooled container into an unrelated widget. `/cm debug` prints `[Prio] paint <cat> rows=N` per repaint and `[Prio] released N handles`; the two counts should track.
 7. Click the blue info button — tooltip shows the per-item score breakdown from `Ranker.Explain`. Numbers should match `/cm dump pick <cat>` exactly.
 8. Click X on a row — item removed from priority list AND added to the blocked set (auto-discovery won't re-add).
 9. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved. The top-right **Defaults** button opens the same confirmation.
 10. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
+
+### 9a. Cross-addon — the drag feels the same in both addons
+
+`LibKa0s-Widgets-1.0`'s `ReorderList` (minor 8) is shared with MultiMeters' Columns page. The
+adoption is only correct if a drag feels identical in both, and neither addon can check that alone.
+
+1. In **one** client session, drag a row in ConsumableMaster's priority list and a block on
+   MultiMeters' Columns page. The handle art, the carried copy's alpha and its offset from the
+   cursor, the gold insertion line and the fade on the picked-up row must match. Any one differing
+   means a host is overriding something it should not.
+2. MultiMeters' list has a divide and this one does not. Drag a shown column below the rule there:
+   the line must **stop** at it. Drag the bottom row here: it simply stays put, with no divide to
+   stop at.
 
 ### 10. Settings panel — composite (HP_AIO / MP_AIO)
 
@@ -315,7 +333,7 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
    **What a regression looks like, precisely.** A **multiplication sign** (`×`) where a close mark belongs, or the literal words **`Copy`** and **`Clear`** back on the console's title bar, means `addonName` stopped reaching the library — the `lib:New` descriptor in `core/DebugLogSetup.lua` passes it beside `name`, and a vendored library has no other way to work out which addon folder to build a texture path from. It is the same failure for a future modal built through `KCM.MakeCloseButton`: that wrapper exists solely to carry the folder name as the **third** argument, and a two-argument passthrough is green in every suite and wrong on screen. Blizzard's information icon back on the macro bar handle means `KCM.Icon("help")` answered nil, which is either a missing payload or a catalog rename.
 
-   **No marks in the settings panel, and that is deliberate.** `/cm config` still shows word buttons and Blizzard arrows on the priority rows. Those widgets belong to `LibKa0s-Options-1.0`; iconifying them is a library change with a collection-wide blast radius and is recorded as an open evolution upstream, not a gap here.
+   **No marks in the settings panel, and that is deliberate.** `/cm config` still shows word buttons on the priority rows (the Blizzard arrows are gone — a LibKa0s drag handle replaced them at Widgets minor 8). Those widgets belong to `LibKa0s-Options-1.0`; iconifying them is a library change with a collection-wide blast radius and is recorded as an open evolution upstream, not a gap here.
 
    **`/cm perf` wears the mark too — check it against the console.** Open the perf panel beside the console and compare the two close controls: they must be the **same mark**, not a mark on one window and a `×` on the other. The panel's control is the library's own — `libs/LibKa0s/PerfPanel.lua` (panel minor 4, v1.10.2) builds it from `d.addonName or d.name`, and `core/PerfSetup.lua` passes the folder name in both fields. A `×` here beside a mark on the console means the vendored payload slid back to panel minor 3, which built that button with two arguments onto a three-argument function; that is a re-vendor problem, not a bug in this repo, and `tests/test_vendor_sync.lua` is what catches it out of game.
 
