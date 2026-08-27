@@ -517,6 +517,20 @@ end
 --- widget that resolves that name does not exist yet -- it is the next child Flow places. So the
 --- slot is claimed now, in the position the layout needs, and the row is handed to the library
 --- once there is something to call it.
+--- Stop the previous render's drag and give its handles back.
+---
+--- CALLED BEFORE H.ResetScroll, ON EVERY DISPATCH, and that order is the whole of it. Releasing a
+--- handle is what takes it off the AceGUI container it was parented to, and ResetScroll hands every
+--- container on this page back to AceGUI's process-wide pool -- where the next thing to ask for a
+--- SimpleGroup gets one with a live handle still sitting on it. Cancelling afterwards is how drag
+--- handles turned up on the "Drag to action bar" row, on the ID entry row, and on a dropdown.
+local function cancelReorder(ctx)
+    if ctx and ctx.kcmReorder then
+        ctx.kcmReorder:Cancel()
+        ctx.kcmReorder = nil
+    end
+end
+
 local function renderRowHandle(row)
     local slot = AceGUI:Create("SimpleGroup")
     slot:SetLayout(nil)
@@ -624,11 +638,9 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
         mh = mh, oh = oh, mhAff = mhAff, ohAff = ohAff,
     }
 
-    -- ONE CONTROLLER PER RENDER, and the one before it is told to stop. A drag must not outlive
-    -- the list it was describing: the copy it leaves under the cursor names a row that may not be
-    -- in the list any more, and every mutation here repaints.
+    -- ONE CONTROLLER PER RENDER. The one before it was cancelled at the top of the dispatch, before
+    -- ResetScroll -- see cancelReorder for why it cannot be done here instead.
     local W = reorderWidgets()
-    if ctx.kcmReorder then ctx.kcmReorder:Cancel() end
 
     local list = W and W.ReorderList({
         stride     = ROW_H,
@@ -654,6 +666,10 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
     })
     ctx.kcmReorder = list
 
+    if KCM.State and KCM.State.debug and KCM.Debug then
+        KCM.Debug("Prio", "paint %s rows=%d spec=%s", cat.key, #priority, tostring(specKey))
+    end
+
     for _, id in ipairs(priority) do
         renderPriorityRow(scroll, cat, specKey, id, list, p)
     end
@@ -663,6 +679,7 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
 end
 
 local function renderSingle(ctx, cat)
+    cancelReorder(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
 
@@ -696,6 +713,7 @@ end
 -- ---------------------------------------------------------------------
 
 local function renderComposite(ctx, cat)
+    cancelReorder(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
 
