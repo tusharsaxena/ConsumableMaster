@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-698%2F698_passing-green)
+![Tests](https://img.shields.io/badge/Tests-706%2F706_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -233,7 +233,7 @@ Each macro is built in four steps:
     *   **Augment Rune** — picks the augment rune granting the most primary stat. "Permanent" runes like Ethereal and Dreambound aren't a longer buff — they're just not used up — so they only win when they tie the best consumable on stat, never when a newer consumable rune grants more. Auto-discovers new runes from their tooltip, so future runes work without an update.
     *   **Healthstone** — a small preference for modern auto-leveling stones over old ones.
     *   **Spell entries** — class abilities (like Recuperate as a Food entry) score above every item, so they sit at the top by default. You can pin items above them if you prefer.
-3.  **Apply your pins** — any rows you reordered with ↑ / ↓ override the score.
+3.  **Apply your pins** — any rows you dragged into place override the score.
 4.  **Pick the first one you have** — the first item you own or spell you know. If you have none, clicking the macro prints a friendly `[CM] no category` note.
 
 Hover the **blue info button** on any row to see exactly why it landed where it did.
@@ -246,9 +246,9 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Do the macros work across all my characters? | Yes. They're **account-wide**, so one set is shared by every character. Your priority lists and stat choices are shared account-wide too. |
 | Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust, and Battle Rez rank the same for every spec, so they share one list. |
 | How does it pick weapon enchants when I'm dual-wielding? | It checks each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit either — so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is simply left out of the macro. Swapping weapons updates it right away, no reload needed. |
-| Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Pin the reusable rune with **↑** if you'd rather never spend charges. |
+| Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Drag the reusable rune to the top of its list if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then either type the ID or shift-click the item (or spell) into the box, and press Enter. |
-| How do I force a specific item to always win? | Use **↑ / ↓** on its row to move it where you want. A moved (pinned) item overrides the automatic ranking. |
+| How do I force a specific item to always win? | Grab its row by the **drag handle** and drop it where you want. A moved (pinned) item overrides the automatic ranking. |
 | How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
 | Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |
 | Can I use this in a non-English client? | Not fully yet — **English only for now**. Item and weapon *type* detection works on any client, but it still reads tooltip **text** in English to get heal/mana/stat amounts, so other languages aren't fully supported. Full localization is planned for a later release. |
