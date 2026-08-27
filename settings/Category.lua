@@ -8,7 +8,7 @@
 --   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
 --   3. Section "Add item or spell by ID" — Type dropdown | ID input (paired).
 --   4. Section "Priority list" — legend label + one row per item:
---        KCMItemRow | KCMScoreButton | drag handle | X
+--        drag handle | KCMItemRow | KCMScoreButton | X
 --      The handle drags the row to a new priority. The gesture is
 --      LibKa0s-Widgets-1.0's ReorderList, shared with MultiMeters' Columns page.
 --   5. Inline "Reset category" button (StaticPopup-confirmed).
@@ -511,25 +511,27 @@ end
 -- AceGUI's Flow layout places its own children left to right and knows nothing about a raw frame
 -- dropped on top of one, so a handle anchored to the row would sit over the item cell. A slot is a
 -- child Flow understands, and it lands exactly where the up arrow used to.
-local function renderRowButtons(row, cat, specKey, rowID, list, ghostText)
+--- The handle's slot, added FIRST so Flow puts it at the left edge of the row.
+---
+--- Returned rather than registered here, because the carried copy reads the item's NAME and the
+--- widget that resolves that name does not exist yet -- it is the next child Flow places. So the
+--- slot is claimed now, in the position the layout needs, and the row is handed to the library
+--- once there is something to call it.
+local function renderRowHandle(row)
+    local slot = AceGUI:Create("SimpleGroup")
+    slot:SetLayout(nil)
+    slot:SetWidth(ROW_BTN_W)
+    slot:SetHeight(ROW_H)
+    row:AddChild(slot)
+    return slot
+end
+
+local function renderRowButtons(row, cat, specKey, rowID)
     local function selectorAction(verb, reason)
         return function()
             local fn = KCM.Selector and KCM.Selector[verb]
             if fn and fn(cat.key, rowID, specKey) then afterMutation(reason) end
         end
-    end
-
-    if list then
-        local slot = AceGUI:Create("SimpleGroup")
-        slot:SetLayout(nil)
-        slot:SetWidth(ROW_BTN_W)
-        slot:SetHeight(ROW_H)
-        row:AddChild(slot)
-        list:AddRow(row.frame, {
-            parent    = slot.frame or slot.content,
-            ghostText = ghostText,
-            height    = ROW_H,
-        })
     end
 
     makeIconBtn(row, {
@@ -553,6 +555,9 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
     local rowPickMH, rowPickOH, applicableArg = perHandFlags(cat, rowID, p)
 
     local row = newRow(scroll, ROW_H)
+    -- HANDLE FIRST, at the left edge, then the item, then the actions on the right. Flow places
+    -- its children in the order they are added, so this order IS the layout.
+    local slot = list and renderRowHandle(row) or nil
     local itemRow = makeItemRow(row, {
         itemID     = rowID,
         owned      = isOwned(rowID),
@@ -566,11 +571,19 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
         label   = scoreTitle,
         tooltip = formatScoreTooltipDesc(explain),
     })
-    -- The name the carried copy reads, taken off the row that just resolved it rather than looked
-    -- up a second time: a ghost naming a different string than the row it came from is worse than
-    -- one naming nothing.
-    local ghostText = itemRow and itemRow.label and itemRow.label:GetText() or nil
-    renderRowButtons(row, cat, specKey, rowID, list, ghostText)
+    renderRowButtons(row, cat, specKey, rowID)
+
+    -- Registered LAST, once the item row has resolved the name the carried copy reads: a ghost
+    -- naming a different string than the row it came from is worse than one naming nothing. The
+    -- slot it goes into was claimed before any of this, so the layout is unaffected by the order
+    -- these two things happen in.
+    if slot then
+        list:AddRow(row.frame, {
+            parent    = slot.frame or slot.content,
+            ghostText = itemRow and itemRow.label and itemRow.label:GetText() or nil,
+            height    = ROW_H,
+        })
+    end
 end
 
 -- Ranker context shared across rows so every score tooltip uses the same numbers as the
@@ -624,6 +637,7 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
         -- that divides, because a shown column may not be dragged among the hidden ones.
         handleIcon = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleSize = ROW_BTN_W,
+        handleTooltip = L["Drag to reorder"],
         onMove     = function(from, to)
             local id = priority[from]
             if not id then return end
