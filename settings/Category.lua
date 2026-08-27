@@ -678,7 +678,35 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
     if list then list:Finish(scroll.content or scroll.frame) end
 end
 
+-- ── keeping your place across a repaint ───────────────────────────────────────────────────────
+--
+-- Every mutation on this page repaints it, and a repaint rebuilds the scroll's children from
+-- nothing -- which drops the scroll offset and throws the list back to the top. That is merely
+-- untidy when the list is short and genuinely hostile when it is not: drag the eleventh item, and
+-- the row you were working on is off screen before you can look at it. The macro pipeline repaints
+-- a second time about a second later, so it happens twice.
+--
+-- The offset is read off AceGUI's own status table -- the same one its scrollbar drives -- and put
+-- back once the new children are in and laid out. Restoring it BEFORE the render would be
+-- restoring it onto content that is not there yet, and AceGUI would clamp it straight back to zero.
+local function scrollOffset(ctx)
+    local sc = ctx and ctx.scroll
+    local st = sc and (sc.status or sc.localstatus)
+    return st and st.scrollvalue or nil
+end
+
+local function restoreScroll(ctx, value)
+    if not value or value <= 0 then return end
+    local sc = ctx and ctx.scroll
+    if not (sc and sc.SetScroll) then return end
+    sc:SetScroll(value)
+    -- The bar carries its own value and does not follow SetScroll, so a restore that skipped it
+    -- would move the content and leave the thumb at the top saying otherwise.
+    if sc.scrollbar and sc.scrollbar.SetValue then sc.scrollbar:SetValue(value) end
+end
+
 local function renderSingle(ctx, cat)
+    local keepScroll = scrollOffset(ctx)
     cancelReorder(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
@@ -706,6 +734,9 @@ local function renderSingle(ctx, cat)
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
+    -- AFTER the layout, or it is restored onto content that is not there yet and clamped back to
+    -- zero for its trouble.
+    restoreScroll(ctx, keepScroll)
 end
 
 -- ---------------------------------------------------------------------
@@ -713,6 +744,7 @@ end
 -- ---------------------------------------------------------------------
 
 local function renderComposite(ctx, cat)
+    local keepScroll = scrollOffset(ctx)
     cancelReorder(ctx)
     H.ResetScroll(ctx)
     local scroll = H.EnsureScroll(ctx)
@@ -806,6 +838,9 @@ local function renderComposite(ctx, cat)
     })
 
     if scroll.DoLayout then scroll:DoLayout() end
+    -- AFTER the layout, or it is restored onto content that is not there yet and clamped back to
+    -- zero for its trouble.
+    restoreScroll(ctx, keepScroll)
 end
 
 -- ---------------------------------------------------------------------
