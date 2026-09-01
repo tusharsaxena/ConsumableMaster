@@ -1,7 +1,9 @@
--- settings/Category.lua — Per-category panels (single + composite).
+-- settings/Category.lua — the Macros page (single + composite categories).
 --
--- One tab per row in KCM.Categories.LIST, in CLAUDE.md order. The render
--- function dispatches to single or composite layout based on cat.composite.
+-- ONE settings page, with one TAB per row in KCM.Categories.LIST, generated in
+-- KCM.Settings.macroOrder (options-ui-§13). It was one sub-page per category
+-- until the strip replaced them; the bodies below are unchanged, and the render
+-- function still dispatches to the single or composite layout on cat.composite.
 --
 -- Single category layout:
 --   1. KCMMacroDragIcon row.
@@ -128,7 +130,7 @@ end
 
 -- ---------------------------------------------------------------------
 -- StaticPopup for per-category reset. One popup, shared across all
--- category panels — the active catKey is parked in popup.data on show.
+-- category tabs — the active catKey is parked in popup.data on show.
 -- ---------------------------------------------------------------------
 
 -- The session debug gate for this file's reset diagnostics, in one place
@@ -690,6 +692,14 @@ end
 -- back once the new children are in and laid out. Restoring it BEFORE the render would be
 -- restoring it onto content that is not there yet, and AceGUI would clamp it straight back to zero.
 local function scrollOffset(ctx)
+    -- A tab switch is not a repaint of the same list, so the offset is dropped
+    -- rather than carried: row 11 of Food is nothing in particular in Drink.
+    -- Consumed here, on the first render after the switch, so a later repaint of
+    -- the NEW tab keeps its place normally.
+    if ctx and ctx.__tabSwitched then
+        ctx.__tabSwitched = nil
+        return nil
+    end
     local sc = ctx and ctx.scroll
     local st = sc and (sc.status or sc.localstatus)
     return st and st.scrollvalue or nil
@@ -743,6 +753,85 @@ end
 -- Composite render (HP_AIO / MP_AIO)
 -- ---------------------------------------------------------------------
 
+-- One sub-category row of a composite section: the pick, the Enabled checkbox,
+-- and the two arrows that move it within its own section.
+--
+-- Extracted out of renderComposite rather than left inlined: the loop body was
+-- four widget declarations with three closures over the same six locals, and the
+-- whole function sat at CCN 18 with it. `index` and `size` are passed by value
+-- because each closure has to capture the position the row was DRAWN at -- the
+-- array is mutated underneath them and the loop variable is not stable.
+local function renderCompositeRow(scroll, cfg, orderField, ref, index, size)
+    local refCat   = KCM.Categories.Get(ref)
+    local refLabel = refCat and refCat.displayName or ref
+    local pick     = (KCM.Selector and KCM.Selector.PickBestForCategory)
+        and KCM.Selector.PickBestForCategory(ref) or nil
+
+    -- The two arrows differ by one step and one end-stop, so they are one
+    -- descriptor apiece rather than two near-identical blocks.
+    local function swapWith(step, reason)
+        return function()
+            local arr = cfg[orderField]
+            local to  = index + step
+            if not arr or to < 1 or to > #arr then return end
+            arr[index], arr[to] = arr[to], arr[index]
+            afterMutation(reason)
+        end
+    end
+
+    local row = newRow(scroll, ROW_H)
+    makeItemRow(row, {
+        itemID       = pick,
+        owned        = isOwned(pick),
+        isPick       = false,
+        fallbackName = refLabel,
+    }, ITEM_ROW_RW_COMPOSITE)
+    makeCheckbox(row, {
+        label    = L["Enabled"],
+        tooltip  = (L["Include %s in the macro body."]):format(refLabel),
+        value    = (cfg.enabled == nil) or (cfg.enabled[ref] ~= false),
+        width    = CHECK_W,
+        onChange = function(v)
+            cfg.enabled = cfg.enabled or {}
+            cfg.enabled[ref] = v
+            afterMutation("options_aio_toggle")
+        end,
+    })
+    makeIconBtn(row, {
+        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
+        label    = L["Move up"],
+        tooltip  = L["Move higher in section order"],
+        disabled = (index == 1) or (size <= 1),
+        onClick  = swapWith(-1, "options_aio_move_up"),
+    })
+    makeIconBtn(row, {
+        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
+        label    = L["Move down"],
+        tooltip  = L["Move lower in section order"],
+        disabled = (index == size) or (size <= 1),
+        onClick  = swapWith(1, "options_aio_move_down"),
+    })
+end
+
+-- The two combat-state sections a composite is made of. Sub-categories are
+-- LOCKED to their section, so this is a fixed pair, not user data.
+local AIO_SECTIONS = {
+    { orderField = "orderInCombat",    label = L["In Combat"]     },
+    { orderField = "orderOutOfCombat", label = L["Out of Combat"] },
+}
+
+local function renderCompositeSection(ctx, scroll, cfg, section)
+    H.Section(ctx, section.label)
+    local orderArr = cfg[section.orderField] or {}
+    if #orderArr == 0 then
+        H.Label(ctx, L["|cffff8800(no sub-categories)|r"], "medium")
+        return
+    end
+    for i, ref in ipairs(orderArr) do
+        renderCompositeRow(scroll, cfg, section.orderField, ref, i, #orderArr)
+    end
+end
+
 local function renderComposite(ctx, cat)
     local keepScroll = scrollOffset(ctx)
     cancelReorder(ctx)
@@ -758,75 +847,11 @@ local function renderComposite(ctx, cat)
     H.AddSpacer(scroll, 6)
 
     H.Label(ctx,
-        L["Composite macro. Toggle and order the contributing categories below — each category's own ranking and pick logic is edited on its individual panel."],
+        L["Composite macro. Toggle and order the contributing categories below — each category's own ranking and pick logic is edited on its own tab."],
         "medium")
 
-    local sections = {
-        { key = "inCombat",    orderField = "orderInCombat",    label = L["In Combat"]     },
-        { key = "outOfCombat", orderField = "orderOutOfCombat", label = L["Out of Combat"] },
-    }
-
-    for _, section in ipairs(sections) do
-        H.Section(ctx, section.label)
-        local orderArr = cfg[section.orderField] or {}
-
-        if #orderArr == 0 then
-            H.Label(ctx, L["|cffff8800(no sub-categories)|r"], "medium")
-        else
-            for i, ref in ipairs(orderArr) do
-                local refCat = KCM.Categories.Get(ref)
-                local pick   = (KCM.Selector and KCM.Selector.PickBestForCategory)
-                    and KCM.Selector.PickBestForCategory(ref) or nil
-                local rowIndex = i
-                local rowSize  = #orderArr
-                local rowRef   = ref
-                local sectionOrderField = section.orderField
-                local refLabel = refCat and refCat.displayName or rowRef
-
-                local row = newRow(scroll, 28)
-                makeItemRow(row, {
-                    itemID       = pick,
-                    owned        = isOwned(pick),
-                    isPick       = false,
-                    fallbackName = refLabel,
-                }, ITEM_ROW_RW_COMPOSITE)
-                makeCheckbox(row, {
-                    label    = L["Enabled"],
-                    tooltip  = (L["Include %s in the macro body."]):format(refLabel),
-                    value    = (cfg.enabled == nil) or (cfg.enabled[rowRef] ~= false),
-                    width    = CHECK_W,
-                    onChange = function(v)
-                        cfg.enabled = cfg.enabled or {}
-                        cfg.enabled[rowRef] = v
-                        afterMutation("options_aio_toggle")
-                    end,
-                })
-                makeIconBtn(row, {
-                    image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-                    label    = L["Move up"],
-                    tooltip  = L["Move higher in section order"],
-                    disabled = (rowIndex == 1) or (rowSize <= 1),
-                    onClick  = function()
-                        local arr = cfg[sectionOrderField]
-                        if not arr or rowIndex <= 1 then return end
-                        arr[rowIndex], arr[rowIndex - 1] = arr[rowIndex - 1], arr[rowIndex]
-                        afterMutation("options_aio_move_up")
-                    end,
-                })
-                makeIconBtn(row, {
-                    image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-                    label    = L["Move down"],
-                    tooltip  = L["Move lower in section order"],
-                    disabled = (rowIndex == rowSize) or (rowSize <= 1),
-                    onClick  = function()
-                        local arr = cfg[sectionOrderField]
-                        if not arr or rowIndex >= #arr then return end
-                        arr[rowIndex], arr[rowIndex + 1] = arr[rowIndex + 1], arr[rowIndex]
-                        afterMutation("options_aio_move_down")
-                    end,
-                })
-            end
-        end
+    for _, section in ipairs(AIO_SECTIONS) do
+        renderCompositeSection(ctx, scroll, cfg, section)
     end
 
     -- Inline reset
@@ -844,31 +869,119 @@ local function renderComposite(ctx, cat)
 end
 
 -- ---------------------------------------------------------------------
--- Tab registration — one builder per category, in CLAUDE.md order.
+-- The Macros page — one page, one tab per category (options-ui-§13)
 -- ---------------------------------------------------------------------
+--
+-- Every macro category used to be its own Blizzard sub-page: fifteen entries in
+-- the AddOns sidebar for fifteen variations on ONE surface. They are one page
+-- now, and the category is chosen from a pinned tab strip instead of from the
+-- sidebar. Nothing about a category's body changed — renderSingle and
+-- renderComposite above are the same two renderers the fifteen pages used, and
+-- the sub-page keys they were registered under survive as the strip's tab keys.
+--
+-- The strip is GENERATED from KCM.Categories.LIST in KCM.Settings.macroOrder,
+-- exactly as the fifteen builders were, and there is no hand-written tab list:
+-- a list of tabs declared apart from the data is a list that goes stale the
+-- first time a category is added or renamed, and nothing would say so
+-- (options-ui-§13). A sixteenth category is still a row in Categories.LIST plus
+-- a key in macroOrder, and it gets a tab for free.
+--
+-- Tab labels are `displayName`, not `shortName`. shortName exists for the macro
+-- bar's 32px buttons, where "Brez" and "Lust" are the only thing that fits; a
+-- settings tab has room for the words, and "Rune" would sit two tabs from
+-- "Vantus Rune" saying nothing about which rune it meant.
 
-local function buildCategory(cat)
-    return function(mainCategory)
-        if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then
-            return nil
+local function macroTabs()
+    local tabs = {}
+    for _, key in ipairs((KCM.Settings and KCM.Settings.macroOrder) or {}) do
+        local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(key:upper())
+        if cat then
+            tabs[#tabs + 1] = {
+                key     = cat.key,
+                label   = cat.displayName,
+                tooltip = (L["Priority list and add-by-ID for the %s macro."])
+                    :format(cat.macroName),
+            }
         end
-        local panelName = "KCMCatPanel_" .. cat.key
-        local ctx = H.CreatePanel(panelName, cat.displayName, {
-            panelKey = cat.key:lower(),
-            -- Top-right Defaults button (options-ui-§5) → same per-category
-            -- reset as this page's inline button.
-            defaultsAction = function() promptResetCategory(cat) end,
-        })
-        H.SetRenderer(ctx, function(c)
-            if cat.composite then renderComposite(c, cat)
-            else                  renderSingle(c, cat) end
-        end)
-        return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, cat.displayName)
     end
+    return tabs
+end
+-- Published for the suite, which has no way to read a strip back off a mocked
+-- AceGUI button, and for anything that wants to know what the page offers
+-- without rendering it.
+O.MacroTabs = macroTabs
+
+-- The category the page is currently showing. `ctx.activeTab` is the library's
+-- own field name for this (see O.RenderTabbedSchema), so the strip's healing of
+-- a stale pointer works the same way here.
+local function activeCategory(ctx)
+    local tabs = macroTabs()
+    if not (ctx.activeTab and KCM.Categories.Get(ctx.activeTab)) then
+        ctx.activeTab = tabs[1] and tabs[1].key
+    end
+    return KCM.Categories.Get(ctx.activeTab), tabs
 end
 
-if KCM.Settings and KCM.Settings.RegisterTab and KCM.Categories and KCM.Categories.LIST then
-    for _, cat in ipairs(KCM.Categories.LIST) do
-        KCM.Settings.RegisterTab(cat.key:lower(), buildCategory(cat))
+local function renderMacros(ctx)
+    local cat, tabs = activeCategory(ctx)
+    if not (cat and #tabs > 0) then return end
+
+    H.TabStrip(ctx, {
+        tabs     = tabs,
+        value    = ctx.activeTab,
+        onSelect = function(key)
+            if key == ctx.activeTab then return end
+            ctx.activeTab = key
+            -- A different category is a different list, so the scroll offset
+            -- kept across a REPAINT (see scrollOffset above) must not be kept
+            -- across a tab switch: row 11 of Food is nothing in particular in
+            -- Drink. The flag is consumed by scrollOffset on the very next
+            -- render, which is this one.
+            ctx.__tabSwitched = true
+            renderMacros(ctx)
+        end,
+    })
+
+    if cat.composite then renderComposite(ctx, cat)
+    else                  renderSingle(ctx, cat) end
+end
+
+-- Select a tab from outside the strip. Answers false for an unknown category
+-- and for a page that has not been built, so a caller can tell "no such
+-- category" from "done".
+function O.SetMacroTab(catKey)
+    local ctx = O._macrosCtx
+    if not (ctx and catKey and KCM.Categories.Get(catKey)) then return false end
+    if ctx.activeTab ~= catKey then
+        ctx.activeTab     = catKey
+        ctx.__tabSwitched = true
     end
+    return true
+end
+
+local function Build(mainCategory)
+    if not (Settings and Settings.RegisterCanvasLayoutSubcategory) then
+        return nil
+    end
+    -- Forward-declared, because the Defaults action below has to close over the
+    -- ctx that the very call building it returns.
+    local ctx
+    ctx = H.CreatePanel("KCMMacrosPanel", L["Macros"], {
+        panelKey = "macros",
+        -- Top-right Defaults button (options-ui-§5) → the same per-category
+        -- reset the inline button runs, scoped to the tab on screen. It was
+        -- per-PAGE before the collapse and it is still per-category: the tab
+        -- strip is what says which one, so the button's scope did not widen.
+        defaultsAction = function()
+            local cat = activeCategory(ctx)
+            if cat then promptResetCategory(cat) end
+        end,
+    })
+    O._macrosCtx = ctx
+    H.SetRenderer(ctx, renderMacros)
+    return Settings.RegisterCanvasLayoutSubcategory(mainCategory, ctx.panel, L["Macros"])
+end
+
+if KCM.Settings and KCM.Settings.RegisterTab then
+    KCM.Settings.RegisterTab("macros", Build)
 end

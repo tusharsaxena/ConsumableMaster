@@ -399,15 +399,179 @@ test("schema: RefreshScalars flags a hidden page dirty rather than syncing it", 
     t.truthy(ctx._dirty, "the page rebuilds when the user next visits it")
 end)
 
-test("schema: the tab order lists each panel once and covers every category page", function(t)
+-- ---------------------------------------------------------------------------
+-- The page -> tab -> row partition
+--
+-- The settings panel is four pages now, two of them carrying a tab strip. These
+-- three cases are what catch a row drifting into the wrong tab, a tab losing its
+-- rows, and a category losing its tab -- none of which any other case would see,
+-- because every one of them still renders something.
+-- ---------------------------------------------------------------------------
+
+test("schema: the page order lists four pages, each once", function(t)
     local KCM = h.loader.loadWithSchema()
+    t.eqList(KCM.Settings.order, { "general", "macros", "statpriority", "macrobar" },
+        "the sidebar reads General, Macros, Stat Priority, Macro Bar")
     local seen = {}
     for _, name in ipairs(KCM.Settings.order) do
-        t.falsy(seen[name], "'" .. name .. "' appears once in the tab order")
+        t.falsy(seen[name], "'" .. name .. "' appears once in the page order")
         seen[name] = true
     end
-    for _, cat in ipairs(KCM.Categories.LIST) do
-        t.truthy(seen[cat.key:lower()], cat.key .. " has a settings tab")
+end)
+
+test("schema: the Macros page carries one tab per category, in macroOrder", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local seen = {}
+    for _, key in ipairs(KCM.Settings.macroOrder) do
+        t.falsy(seen[key], "'" .. key .. "' appears once in the tab order")
+        seen[key] = true
+        t.truthy(KCM.Categories.Get(key:upper()),
+            "'" .. key .. "' names a real category")
     end
-    t.truthy(seen.general and seen.statpriority, "the two non-category pages lead the order")
+    for _, cat in ipairs(KCM.Categories.LIST) do
+        t.truthy(seen[cat.key:lower()], cat.key .. " has a tab on the Macros page")
+    end
+    t.eq(#KCM.Settings.macroOrder, #KCM.Categories.LIST,
+        "and the strip holds no tab that is not a category")
+end)
+
+-- The Macros strip, written out longhand: the designed tab order and the label
+-- each tab shows. Derived from Categories.LIST it would agree with Categories.LIST
+-- whatever that said, and the whole point of the case is that the strip a player
+-- sees was DESIGNED -- basic consumables first, the two composites after the
+-- categories they aggregate, the spec-aware set next, and the once-per-tier ones
+-- last.
+--
+-- Row counts are not in the table because a category tab has no schema rows: its
+-- body is a priority list, which is a collection and not a scalar. What is
+-- countable is the strip, and "one tab per category, no more" is asserted by
+-- "the Macros page carries one tab per category" above.
+test("schema: the Macros strip is the designed run of tabs, in order", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local want = {
+        { "FOOD",       "Food"           },
+        { "DRINK",      "Drink"          },
+        { "HP_POT",     "Healing Potion" },
+        { "MP_POT",     "Mana Potion"    },
+        { "HS",         "Healthstone"    },
+        { "HP_AIO",     "AIO Health"     },
+        { "MP_AIO",     "AIO Mana"       },
+        { "FLASK",      "Flask"          },
+        { "CMBT_POT",   "Combat Potion"  },
+        { "STAT_FOOD",  "Stat Food"      },
+        { "WPN_ENCH",   "Weapon Enchant" },
+        { "AUG_RUNE",   "Augment Rune"   },
+        { "VANTUS",     "Vantus Rune"    },
+        { "BLOODLUST",  "Bloodlust"      },
+        { "BATTLE_REZ", "Battle Rez"     },
+    }
+    local tabs = KCM.Options.MacroTabs()
+    t.eq(#tabs, #want, "the strip holds exactly the designed tabs")
+    for i, entry in ipairs(want) do
+        t.eq(tabs[i] and tabs[i].key, entry[1], "tab #" .. i .. " is " .. entry[1])
+        t.eq(tabs[i] and tabs[i].label, entry[2],
+            entry[1] .. " reads as '" .. entry[2] .. "'")
+        t.truthy(tabs[i] and tabs[i].tooltip and tabs[i].tooltip ~= "",
+            entry[1] .. " says what its tab is for")
+    end
+end)
+
+-- The strip's labels are the categories' own displayName, never shortName --
+-- shortName exists for the bar's 32px buttons, where "Rune" and "Brez" are all
+-- that fit, and two tabs reading "Rune" and "Vantus" would say nothing about
+-- which rune each meant.
+test("schema: a Macros tab is labelled with the category's display name", function(t)
+    local KCM = h.loader.loadFullAddon()
+    for _, tab in ipairs(KCM.Options.MacroTabs()) do
+        local cat = KCM.Categories.Get(tab.key)
+        t.eq(tab.label, cat.displayName, tab.key .. " uses displayName")
+    end
+end)
+
+-- The designed strip, tab by tab, with the row count each tab is supposed to
+-- carry. The counts are the DESIGN's, written out longhand: derived from the
+-- schema they would agree with the schema no matter what it said.
+--
+-- Contents is exempted BY NAME rather than by relaxing the rule, because its
+-- controls are one checkbox per managed macro -- a length no schema knows -- and
+-- it is the only tab on the page with no `path` behind it.
+test("schema: the Macro Bar page partitions into its designed tabs", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local want = {
+        { "General",           2  },
+        { "Layout",            8  },
+        { "Bar appearance",    7  },
+        { "Button appearance", 11 },
+        { "Labels",            9  },
+        { "Flyout",            14 },
+        { "Visibility",        3  },
+        { "Contents",          0  },
+    }
+
+    -- Partition by `group` in DECLARATION order, exactly as a tab strip does.
+    local order, counts = {}, {}
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel == "macrobar" then
+            if counts[row.group] == nil then
+                counts[row.group] = 0
+                order[#order + 1] = row.group
+            end
+            counts[row.group] = counts[row.group] + 1
+        end
+    end
+
+    local total = 0
+    for i, entry in ipairs(want) do
+        local group, n = entry[1], entry[2]
+        total = total + n
+        if n > 0 then
+            t.eq(order[i], group, "tab #" .. i .. " is '" .. group .. "'")
+            t.eq(counts[group], n, "'" .. group .. "' carries " .. n .. " rows")
+        else
+            t.eq(counts[group], nil,
+                "'" .. group .. "' is bespoke and declares no schema row")
+        end
+    end
+    t.eq(#order, 7, "seven of the eight tabs are schema-backed, and none repeats")
+
+    local rows = 0
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel == "macrobar" then rows = rows + 1 end
+    end
+    t.eq(rows, total, "every Macro Bar row lands in exactly one tab")
+end)
+
+-- A group is a TAB, so its rows have to be contiguous: a row filed under a group
+-- the page has already left draws that tab a second time, further down.
+test("schema: no page's rows leave a group and come back to it", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local closed, current, page = {}, nil, nil
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel ~= page then
+            closed, current, page = {}, nil, row.panel
+        end
+        if row.group ~= current then
+            t.falsy(closed[row.group],
+                "row '" .. row.path .. "' reopens the '" .. tostring(row.group)
+                .. "' tab, which would draw it twice")
+            if current then closed[current] = true end
+            current = row.group
+        end
+    end
+end)
+
+test("schema: the tab strips name only groups their rows declare", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local declared = {}
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel == "macrobar" then declared[row.group] = true end
+    end
+    for _, tab in ipairs(KCM.Settings.MACROBAR_TABS) do
+        if tab.group ~= "Contents" then
+            t.truthy(declared[tab.group],
+                "the '" .. tab.group .. "' tab has rows to draw")
+        end
+        t.truthy(tab.label and tab.label ~= "", tab.group .. " has a visible label")
+        t.eq(type(tab.draw), "function", tab.group .. " knows how to draw itself")
+    end
 end)

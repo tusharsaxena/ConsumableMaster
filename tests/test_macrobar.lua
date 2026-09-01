@@ -1126,19 +1126,24 @@ test("macrobar schema: number rows clamp to their declared range", function(t)
     t.eq(H.ValidateSchemaValue(def, -5), def.min, "clamped to min")
 end)
 
-test("macrobar schema: the default slot order matches the settings tab order", function(t)
+test("macrobar schema: the default slot order matches the Macros tab order", function(t)
     local KCM = h.loader.loadFullAddon()
-    -- The bar's default order is the cosmetic panel order. dbDefaults can't
-    -- reference KCM.Settings.order (Panel.lua loads much later), so this case is
-    -- the drift guard for the duplicated literal.
+    -- The bar's default order is the cosmetic tab order of the Macros page.
+    -- dbDefaults can't reference KCM.Settings.macroOrder (Panel.lua loads much
+    -- later), so this case is the drift guard for the duplicated literal.
+    --
+    -- It reads macroOrder DIRECTLY now. It used to walk KCM.Settings.order and
+    -- subtract the three non-category pages by name, which was a filter that
+    -- would have silently widened every time a page was added -- and did not
+    -- notice at all that the two lists were the same length only by accident.
     local want = {}
-    for _, key in ipairs(KCM.Settings.order) do
-        if key ~= "general" and key ~= "statpriority" and key ~= "macrobar" then
-            want[#want + 1] = key:upper()
-        end
+    for _, key in ipairs(KCM.Settings.macroOrder) do
+        want[#want + 1] = key:upper()
     end
+    t.eq(#want, #KCM.Categories.LIST,
+        "every category has a tab, so the order covers all of them")
     t.eqList(KCM.dbDefaults.profile.macroBar.order, want,
-        "macroBar.order mirrors KCM.Settings.order")
+        "macroBar.order mirrors KCM.Settings.macroOrder")
 end)
 
 test("macrobar schema: border rows are populated from LibSharedMedia", function(t)

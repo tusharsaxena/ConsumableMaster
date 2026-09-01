@@ -1,6 +1,7 @@
 -- KCMMacroDragIcon.lua — Custom AceGUI widget rendering a draggable macro
 -- button with an inline "Drag to action bar →" label. Used at the top of each
--- category panel so users can place the auto-managed KCM_* macro on an action
+-- category tab on the Macros page so users can place the auto-managed KCM_*
+-- macro on an action
 -- bar without opening the macro UI.
 --
 -- Drag / click behavior is the standard Blizzard macro-pickup pattern:

@@ -405,7 +405,7 @@ Two non-scalar fields are edited outside the schema:
 * `order` — the slot order, changed by dragging one slot onto another
   (`MacroBar.SwapSlots` → `MacroBarModel.Swap`). `MacroBarModel.Order()` repairs
   a saved order on read: unknown keys dropped, newly-shipped categories
-  appended. The default is the cosmetic panel order in `KCM.Settings.order`,
+  appended. The default is the cosmetic tab order of the Macros page, `KCM.Settings.macroOrder`,
   duplicated as a literal in `dbDefaults` because `Panel.lua` loads much later —
   `tests/test_macrobar.lua` guards the two against drift.
 * `shown` — `[catKey] = false` hides a slot. **Unset means visible**, so a

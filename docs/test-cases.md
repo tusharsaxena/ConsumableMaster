@@ -350,7 +350,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar schema: a flag written from /cm re-syncs the open Macro Bar page in place
 - macrobar schema: enum rows reject a value outside their list
 - macrobar schema: number rows clamp to their declared range
-- macrobar schema: the default slot order matches the settings tab order
+- macrobar schema: the default slot order matches the Macros tab order
 - macrobar schema: border rows are populated from LibSharedMedia
 - macrobar schema: LSMValues never hands back an empty list
 - macrobar flyout: candidates come back in rank order, best first
@@ -524,7 +524,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (35)
+### test_schema.lua (41)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -560,7 +560,13 @@ badge and any count quoted in the docs must agree with it.
 - schema: a render failure is reported instead of breaking the refresh loop
 - schema: RefreshScalars re-syncs widgets in place without a rebuild
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
-- schema: the tab order lists each panel once and covers every category page
+- schema: the page order lists four pages, each once
+- schema: the Macros page carries one tab per category, in macroOrder
+- schema: the Macros strip is the designed run of tabs, in order
+- schema: a Macros tab is labelled with the category's display name
+- schema: the Macro Bar page partitions into its designed tabs
+- schema: no page's rows leave a group and come back to it
+- schema: the tab strips name only groups their rows declare
 
 ### test_selector.lua (47)
 
@@ -629,7 +635,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: with the library absent Helpers still reaches both refresh tiers
 - Settings UI: with the library absent a schema WRITE completes and reports success
 - Settings UI: Helpers reads the library's members off the instance, not off a copy
-- Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover
+- Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
 - Settings: the category reset popup is inert with no payload and on an unknown category
@@ -845,7 +851,7 @@ badge and any count quoted in the docs must agree with it.
 | test_pipeline.lua | 28 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 35 |
+| test_schema.lua | 41 |
 | test_selector.lua | 47 |
 | test_settingsui.lua | 21 |
 | test_slash.lua | 82 |
@@ -856,4 +862,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **706** |
+| **Total** | **712** |

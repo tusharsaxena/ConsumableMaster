@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-706%2F706_passing-green)
+![Tests](https://img.shields.io/badge/Tests-712%2F712_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -74,7 +74,7 @@ If a better pick comes up while you're in combat, the macro updates the moment y
 
 ## Usage
 
-Install it with your addon manager (or drop the folder into `Interface/AddOns`) and log in. On login, Consumable Master scans your bags, finds your consumables, and writes all its macros. Drag any macro onto your action bars from the macro window, or from the draggable icon at the top of each category page in the settings.
+Install it with your addon manager (or drop the folder into `Interface/AddOns`) and log in. On login, Consumable Master scans your bags, finds your consumables, and writes all its macros. Drag any macro onto your action bars from the macro window, or from the draggable icon at the top of each category tab in the settings.
 
 You also get a **macro bar** — a bar holding only Consumable Master's macros, so you don't have to spend action-bar space on them. Each button has a shaded strip across its top with a small arrow: hover it and a flyout opens with every item or spell in that category you can use right now, so you can reach past the macro's top pick without opening your bags. The bar starts unlocked so you can drag it where you want it; lock it from the Macro Bar settings page (or `/cm bar lock`) when you're happy, or switch it off entirely with `/cm bar off`.
 
@@ -106,6 +106,9 @@ You also get a **macro bar** — a bar holding only Consumable Master's macros, 
 
 Settings live at **Escape → Options → AddOns → Consumable Master** (or type `/cm config`).
 
+Four pages, in sidebar order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. Every macro
+category used to be its own sidebar entry; they are tabs on the one **Macros** page now.
+
 **General**
 
 *General*
@@ -123,7 +126,7 @@ Settings live at **Escape → Options → AddOns → Consumable Master** (or typ
 
 One page that controls the four spec-aware categories (Stat Food, Combat Potion, Flask, Weapon Enchant).
 
-*   **Viewing spec** — pick which spec you're editing. This also sets which spec is shown on the four spec-aware category pages. Specs show their class icon and name (e.g. "Shaman — Enhancement").
+*   **Viewing spec** — pinned in the banner at the top of the page, so it stays visible while you scroll. Pick which spec you're editing; this also sets which spec is shown on the four spec-aware category tabs on the **Macros** page. Specs show their class icon and name (e.g. "Shaman — Enhancement").
 *   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
 *   **Secondary stat #1 … #4** — your preferred secondary stats in order (Crit, Haste, Mastery, Versatility). #1 counts the most. Leave a slot as `(none)` to stop there; anything not listed counts as zero.
 *   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
@@ -132,7 +135,7 @@ One page that controls the four spec-aware categories (Stat Food, Combat Potion,
 
 A bar that holds only Consumable Master's macros — nothing else can be dropped on it. It's **on and unlocked the first time you log in**, so you can drag it straight to where you want it and then lock it; turn it off entirely with **Enable macro bar** or `/cm bar off`. Drag a button off it onto a normal action bar to place the macro there as well, or drag one button onto another to swap their places.
 
-*Bar*
+*General*
 
 *   **Enable macro bar** — show the bar. On by default; turning it off hides the bar and stops all its work, and nothing is rebuilt until you turn it back on.
 *   **Lock position** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). The help icon on the handle lists what you can drag where. Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
@@ -197,15 +200,17 @@ Two notes on how flyouts behave in a fight. Opening one, using it, and closing i
 *   **Combat visibility** — *Always visible*, *Hide in combat*, or *Only in combat*. This one takes effect the instant combat starts or ends, mid-fight included.
 *   **Fade unless hovered** + **Faded opacity** — keep the bar faded until your mouse is over it. Faded buttons still work; only the opacity changes. Set the faded opacity to 0 to make it invisible until you hover it.
 
-*Macros on the bar*
+*Contents*
 
 A checkbox per macro. Uncheck the ones you don't want a slot for — the rest close up the gap.
 
 Because WoW won't let addons move or create bar buttons during a fight, changes you make in combat (enabling the bar, resizing it, rearranging it) apply the moment combat ends. The buttons themselves keep working throughout.
 
-**Per-category pages**
+**Macros**
 
-Each of the thirteen single macros has its own page. Spec-aware pages show the viewed spec at the top.
+One tab per category, picked from the strip across the top of the page. The thirteen single
+macros each get a tab; spec-aware tabs show the viewed spec (set in the **Stat Priority** banner)
+at the top of the body.
 
 *   **Draggable macro icon** — the small icon under the title. Drag it onto a bar to place the macro.
 *   **Add item or spell by ID** — choose **Item** or **Spell**, then either type the ID or shift-click the item or spell straight into the box, and press Enter. A bad ID, or a link of the other kind, gives a chat error and keeps your text so you can fix it.
@@ -214,11 +219,11 @@ Each of the thirteen single macros has its own page. Spec-aware pages show the v
     *   **Blue info button** — hover to see why an item scored where it did.
     *   **Drag handle** — grab it and drag the row where you want it. A copy follows your cursor and a gold line shows where it will land. Dropping it there pins the item above the automatic ranking.
     *   **×** — remove and block it, so it won't get auto-added again.
-*   **Reset category** — clear this category's added, blocked, and pinned items (for spec-aware pages, just the viewed spec). Auto-found items stay.
+*   **Reset category** — clear this category's added, blocked, and pinned items (for spec-aware tabs, just the viewed spec). Auto-found items stay.
 
 **AIO Health / AIO Mana**
 
-Two combo pages (right after Healthstone). `KCM_HP_AIO` uses your Healthstone then Healing Potion in combat, and your Food pick out of combat. `KCM_MP_AIO` uses your Mana Potion in combat and your Drink out of combat. Each page has an *In Combat* and an *Out of Combat* section; you can turn each sub-category on or off and reorder it within its section. Each row shows the current pick on the left and its controls on the right. The actual ranking is set on each category's own page.
+Two combo tabs (right after Healthstone). `KCM_HP_AIO` uses your Healthstone then Healing Potion in combat, and your Food pick out of combat. `KCM_MP_AIO` uses your Mana Potion in combat and your Drink out of combat. Each tab has an *In Combat* and an *Out of Combat* section; you can turn each sub-category on or off and reorder it within its section. Each row shows the current pick on the left and its controls on the right. The actual ranking is set on each category's own tab.
 
 ## How picking & ranking works
 

@@ -20,7 +20,7 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 | `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the LSM widget fixup (LSMPatch), the `/cm dump` targets (SlashDump) and the slash **verb bodies** (SlashCommands) — the dispatcher itself is `settings/Slash.lua` |
 | `modules/` | Ranker, Selector, MacroManager, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
-| `settings/` | Options panel + per-tab pages |
+| `settings/` | Options panel + its four pages (General, Macros, Stat Priority, Macro Bar) |
 | `locales/` | `enUS.lua` (`KCM.L`) — English only |
 
 `ConsumableMaster.toc` is the load-order source of truth (dependency order, not alphabetical).
@@ -75,15 +75,15 @@ Two layers, and it is worth keeping them apart.
 
 **Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 2`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
 
-**Declared scalars** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua:25` and appended to by the tab files. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings tab, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:283` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` → `SetAndRefresh` seam.
+**Declared scalars** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua:30` and appended to by the page files — **55** rows, 54 of them `macroBar.*` and one the master `enabled` toggle. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings page (its `group` is also the tab it lands on, so the array's order is the strip's order), the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:283` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` → `SetAndRefresh` seam.
 
 ```
 grep -c '^\s*path\s*=' settings/*.lua
 ```
 
-reports **55 rows**: 54 `macroBar.*` rows in `settings/MacroBar.lua`, plus the master `enabled` row at `settings/Panel.lua:631-638`.
+reports **55 rows**: 54 `macroBar.*` rows in `settings/MacroBar.lua`, plus the master `enabled` row at `settings/Panel.lua:658-677`.
 
-Two things are deliberately *not* schema rows. `KCM.State.debug` is session-only and never persisted, so it has no path to declare (`settings/Panel.lua:652-653`). The per-category priority lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
+Two things are deliberately *not* schema rows. `KCM.State.debug` is session-only and never persisted, so it has no path to declare (`settings/Panel.lua:679-682`). The per-category priority lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
 
 ## Message Bus
 
@@ -100,7 +100,7 @@ Cross-module control flow that crosses feature boundaries travels over the close
 
 ## Slash Commands
 
-`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:84-192`, published as `KCM.COMMANDS` at `:196` so the About panel and the dispatcher read one source of truth (`slash-commands-§4`).
+`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:84-192`, published as `KCM.COMMANDS` at `:196` so there is one source of truth for the verb set (`slash-commands-§4`). Nothing in the addon reads that table directly — the About page renders its rows through `KCM.SlashCommands.GetLandingRows()` (`settings/Slash.lua:368-371`), which delegates to the library instance built from the same table — so `KCM.COMMANDS` is the identity handle the harness asserts against.
 
 Seventeen verbs are declared, in this order: `help`, `config`, `version`, `perf`, `debug`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `bar`, `priority`, `stat`, `aio`, `dump`. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; this file holds only the table and the dispatcher wiring. The user-facing description of each verb is the table in [README.md](../README.md).
 
@@ -131,7 +131,7 @@ The addon's protected surface is small and deliberately fenced.
 - **`modules/MacroManager.lua` is the only caller of the protected macro writers.** `CreateMacro` (`:309`) and `EditMacro` (`:320`) appear nowhere else in the tree, and `DeleteMacro` is never called at all. Every engine module the pipeline calls — Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper — is pure, so a recompute can run mid-combat without touching a protected API.
 - **The macro bar owns the only protected frames.** Slots and flyout entries are secure buttons: creating, anchoring, showing or hiding them is combat-forbidden. Everything funnels through `MacroBar.Update()`, which defers to `PLAYER_REGEN_ENABLED`. Combat-conditional visibility goes to `RegisterStateDriver`, flyout hover to `_onenter` / `_onleave` snippets, and combat state reaches those snippets via `RegisterAttributeDriver` — the decisions happen inside the secure environment rather than in tainted Lua. A slot's `macro` attribute is stamped once at creation and never rewritten.
 - **Restricted (secret) values are tested before they are touched.** Midnight wraps combat-restricted data — cooldown start/duration among it — in opaque values that raise on comparison or arithmetic. Any gate over client data asks `KCM.Compat.IsSecret` first, and `core/MacroDisplay.lua` hands the opaque `C_DurationUtil` object straight back to the client rather than unpacking it ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
-- **Options registration is not combat-gated; only opening is.** Registering a Blizzard settings category never taints, so registration runs eagerly at load. What is gated is the *open* path — `settings/Panel.lua:871` turns a mid-fight `/cm config` into a chat notice instead of a silent failure — and the panel's Defaults action, `settings/Panel.lua:278`, for the same reason.
+- **Options registration is not combat-gated; only opening is.** Registering a Blizzard settings category never taints, so registration runs eagerly at load. What is gated is the *open* path — `settings/Panel.lua:896` turns a mid-fight `/cm config` into a chat notice instead of a silent failure — and the panel's Defaults action, `settings/Panel.lua:305`, for the same reason.
 
 ## Invariants worth not breaking
 
@@ -188,12 +188,12 @@ dot-callable** names as thin forwarders onto that instance, publishes the instan
 | `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on |
 | `DebugLog-1.0` | `core/DebugLogSetup.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
 | `Slash-1.0` | `settings/Slash.lua` | the `COMMANDS` table and the `STRINGS` overrides that keep this addon's shipped wording (both passed in, never owned). The verb bodies and their `*_COMMANDS` namespaces stay in `core/SlashCommands.lua`, the `/cm dump` targets in `core/SlashDump.lua`, and the `KCM_CONFIRM_RESET` popup with the verbs (CM-47). |
-| `Options-1.0` | `settings/OptionsSetup.lua` (the seam) + `settings/Panel.lua` (the addon's half) | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order and the `KCM.Options` shim |
+| `Options-1.0` | `settings/OptionsSetup.lua` (the seam) + `settings/Panel.lua` (the addon's half) | the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` / `LSMValues`, the page order (`KCM.Settings.order`, four pages) and the Macros strip's tab order (`KCM.Settings.macroOrder`, fifteen categories), and the `KCM.Options` shim. The tab strip (`options-ui-§13`) and the page banner (`§14`) are the library's, called by the page files |
 | `Perf-1.0` | `core/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, the three sinks and the `suspend`/`resume` pair |
 | `Media-1.0` | `core/MediaSetup.lua` | this addon's folder name (a vendored library cannot work out which folder it was copied into) and the one `Media.RegisterLSM` call, made at file load. Publishes `KCM.Icon` / `KCM.MediaFont`; its TOC position is load-bearing, because `core/DebugLogSetup.lua` resolves the console font eagerly |
 | `Env-1.0` | `core/EnvSetup.lua` | `addonName` again, and the degradation path — an install without LibKa0s repeats the two `C_AddOns` ladders this seam replaced. Publishes `KCM.Meta(field)` and `KCM.Version()` (`/cm version`, the About page's notes) |
-| `Widgets-1.0` | none — `settings/Category.lua` resolves the major at the call site (`:59-62`) | exactly one member, `ReorderList`, which builds the priority rows' drag handle and the gesture behind it. There is no setup file and no instance: the widget is a plain constructor with no addon-wide state to teach it, so the page asks `LibStub` in silent mode on each render. With the major absent no handle is drawn and the rows lose their in-panel reordering entirely — `/cm priority <cat> up|down` is what still moves a row |
-| `Item-1.0` | `core/ItemSetup.lua` | exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID box's pasted-link path (`settings/Category.lua:390`). `QualityFromLink` / `QualityLabel` / `LoadItem` are pointedly not taken, and `core/TooltipCache.lua` stays this addon's own policy. The degradation stub is the same primitive in three lines, so a pasted link never works on one install and not another |
+| `Widgets-1.0` | none — `settings/Category.lua` resolves the major at the call site (`:61-64`) | exactly one member, `ReorderList`, which builds the priority rows' drag handle and the gesture behind it. There is no setup file and no instance: the widget is a plain constructor with no addon-wide state to teach it, so the page asks `LibStub` in silent mode on each render. With the major absent no handle is drawn and the rows lose their in-panel reordering entirely — `/cm priority <cat> up|down` is what still moves a row |
+| `Item-1.0` | `core/ItemSetup.lua` | exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID box's pasted-link path (`settings/Category.lua:408`). `QualityFromLink` / `QualityLabel` / `LoadItem` are pointedly not taken, and `core/TooltipCache.lua` stays this addon's own policy. The degradation stub is the same primitive in three lines, so a pasted link never works on one install and not another |
 
 Three rules here are load-bearing rather than stylistic:
 

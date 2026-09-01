@@ -165,7 +165,7 @@ modules/MacroManager.lua  The ONLY module that calls CreateMacro / EditMacro.
                    bounded flush retry, action-bar icon convention.
                    Detail in macro-manager.md.
 
-settings/         Settings UI framework + per-tab modules.
+settings/         Settings UI framework + one module per page.
 ├── Panel.lua            The addon's half of LibKa0s-Options-1.0. The chrome
 │                        is the library's — panel factory + header/breadcrumb,
 │                        the lazy Defaults button, the scroll container and the
@@ -186,11 +186,19 @@ settings/         Settings UI framework + per-tab modules.
 │                        back already formatted by the Slash major
 │                        (LIBKA0S-13). With LibKa0s absent no panel is
 │                        registered at all.
-├── General.lua          Enable checkbox + Debug-console button + Maintenance section.
-├── StatPriority.lua     Spec selector + paired Primary / Secondary 1-4.
-└── Category.lua         One tab per Categories.LIST entry; dispatches to
-                          single (Add-by-ID + Priority list) or composite
-                          (In Combat / Out of Combat) rendering.
+├── General.lua          Enable checkbox + Debug-console button + Maintenance
+│                        section. Two short sections, no tab strip.
+├── MacroBar.lua         The Macro Bar page: an 8-tab strip over the 54
+│                        macroBar.* schema rows, plus the bespoke Contents tab.
+├── StatPriority.lua     The viewed-spec picker as the page BANNER
+│                        (options-ui-§14), then paired Primary / Secondary 1-4.
+│                        One subject left after the picker moved up, so no strip.
+└── Category.lua         The Macros page: a 15-tab strip GENERATED from
+                          Categories.LIST in KCM.Settings.macroOrder, one tab per
+                          category. Dispatches to single (Add-by-ID + Priority
+                          list) or composite (In Combat / Out of Combat)
+                          rendering. It was one sub-page per category until the
+                          strip replaced them.
 
 core/SlashDump.lua  The /cm dump <target> diagnostics namespace: DUMP_TARGETS,
                    DUMP_ORDER and the dump dispatcher. A leaf — it reads only
@@ -362,7 +370,7 @@ KCM.SpecHelper.GetStatPriority(specKey) -> { primary, secondary = { ... } }
 
 `GetStatPriority` merges in this order: user override (`db.profile.statPriority[specKey]`) → seed default (`KCM.SEED.STAT_PRIORITY[specKey]`) → class-primary fallback. There is no setter — user-override writes go directly through `db.profile.statPriority[specKey] = { primary, secondary }` (Options panel via the local `writeStatPriority` helper, slash CLI via `/cm stat primary` / `/cm stat secondary`). Spec + spell lookups route through `KCM.Compat`.
 
-### Settings panel (`settings/Panel.lua` + per-tab modules)
+### Settings panel (`settings/Panel.lua` + per-page modules)
 
 ```lua
 -- Lifecycle (preserved API; called by Core / Debug / SlashCommands / Pipeline)
@@ -370,6 +378,8 @@ KCM.Settings.Register()      -- = the file-local registerPanel; the PLAYER_LOGIN
                              --   ADDON_LOADED bootstrap calls registerPanel directly,
                              --   so this is the named alias, not the live call path
 KCM.Options.Open()           -- opens the parent About canvas, sub-pages force-expanded
+KCM.Options.MacroTabs()      -- the Macros strip: { { key, label, tooltip }, ... }
+KCM.Options.SetMacroTab(key) -> bool  -- select a category tab from outside the strip
 
 -- Refresh
 KCM.Options.Refresh()        -- immediate: re-render every shown panel
@@ -377,8 +387,10 @@ KCM.Options.RequestRefresh() -- trailing-edge debounced (1.0s quiet, 3.0s max wa
 
 -- Schema layer
 KCM.Settings.Schema          -- ordered list of {panel, section, group, path, type, label, default, onChange?}
-KCM.Settings.RegisterTab(key, builder)            -- per-tab module entry point
-KCM.Settings.order           -- { "general", "statpriority", "food", ..., "mp_aio" }
+KCM.Settings.RegisterTab(key, builder)            -- per-page module entry point
+KCM.Settings.order           -- { "general", "macros", "statpriority", "macrobar" }
+KCM.Settings.macroOrder      -- the Macros strip's tab order: { "food", ..., "battle_rez" }
+KCM.Settings.MACROBAR_TABS   -- the Macro Bar strip: { { group, label, draw }, ... }
 KCM.Schema:Set(path, value) -> bool               -- unified validate → write → onChange → refresh seam
 KCM.Settings.Helpers.Resolve(path) -> parent, key
 KCM.Settings.Helpers.Get(path) -> value
@@ -390,7 +402,7 @@ KCM.Settings.Helpers.SetAndRefresh(path, value) -> bool  -- the mutation seam KC
 KCM.Settings.Helpers.RefreshAllPanels()   -- structural: re-render the shown page, flag the rest dirty
 KCM.Settings.Helpers.RefreshScalars()     -- scalar: re-sync widgets in place, no rebuild (options-ui-§11)
 
--- Panel-build helpers (called by per-tab modules). AttachTooltip / AddSpacer /
+-- Panel-build helpers (called by per-page modules). AttachTooltip / AddSpacer /
 -- CustomCheckbox / EnsureScroll / PatchAlwaysShowScrollbar / ResetScroll /
 -- RenderField / SetRenderer / RefreshAllPanels / RefreshScalars are
 -- forwarders onto Helpers.instance, the LibKa0s-Options-1.0 instance; Section
@@ -529,7 +541,7 @@ local F = KCM.Foo
 5. **Modules** — `Ranker` → `Selector` → `MacroManager` → `MacroBarFlyout` → `MacroBarButton` → `MacroBar`, then the AceGUI widgets `KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`.
 6. **Settings** — `settings/OptionsSetup.lua` → `settings/Panel.lua` → `settings/General.lua` → `settings/MacroBar.lua` → `settings/StatPriority.lua` → `settings/Category.lua` → `settings/Slash.lua` (last: it consumes `core/SlashCommands.lua`'s verb table and nothing in `settings/` reads it).
 
-`settings/OptionsSetup.lua` must come first within `settings/` because it is the `LibKa0s-Options-1.0` seam: it creates `KCM.Settings.Helpers` and publishes the instance as `KCM.Settings.optionsUI`, which `settings/Panel.lua` takes as a file-scope local. `settings/Panel.lua` comes next because it publishes `KCM.Settings.RegisterTab`, which the per-tab modules call at file-bottom. Widgets load before `settings/` so `AceGUI:Create("KCM…")` works at panel-render time. Event handlers and `Pipeline` functions are *defined* in `core/ConsumableMaster.lua` but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
+`settings/OptionsSetup.lua` must come first within `settings/` because it is the `LibKa0s-Options-1.0` seam: it creates `KCM.Settings.Helpers` and publishes the instance as `KCM.Settings.optionsUI`, which `settings/Panel.lua` takes as a file-scope local. `settings/Panel.lua` comes next because it publishes `KCM.Settings.RegisterTab`, which the per-page modules call at file-bottom. Widgets load before `settings/` so `AceGUI:Create("KCM…")` works at panel-render time. Event handlers and `Pipeline` functions are *defined* in `core/ConsumableMaster.lua` but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
 
 If you add a new runtime file, put it in the right section of `ConsumableMaster.toc`.
 </content>
@@ -556,7 +568,7 @@ Where each responsibility lives in the source tree. Match this map to the actual
 | `core/Debug.lua` | `KCM.Debug.IsOn()` plus the callable sink `KCM.Debug(tag, fmt, ...)`. Read side only — it reads the session-only `KCM.State.debug` (via `DebugLog.IsEnabled` once the console has loaded) and deliberately publishes **no** toggle of its own, because `DebugLog.SetEnabled` is the flag's single write path (debug-logging-§5). Diagnostics go to the on-screen console (`LibKa0s-DebugLog-1.0`'s, via `core/DebugLogSetup.lua`); chat is a fallback only when the console is absent — including a whole install where LibKa0s is missing. |
 | `core/MediaSetup.lua` | The addon's half of `LibKa0s-Media-1.0`, and the only place the library is told this addon's FOLDER name — a vendored library cannot work out which folder it was copied into, and a texture path is absolute from `Interface\AddOns\`. Publishes `KCM.Icon(name)` and `KCM.MediaFont(name)` over the payload's icon catalog and JetBrains Mono, both answering **nil** when the library is absent or the name is not one it ships, and makes the one `Media.RegisterLSM` call **at file load** rather than at `PLAYER_LOGIN`. Its TOC position is load-bearing rather than conventional: `core/DebugLogSetup.lua` resolves the console's font eagerly at load, so a `MediaSetup` loading after it would hand the library nil. |
 | `core/EnvSetup.lua` | The addon's half of `LibKa0s-Env-1.0`, and the second place the library is told this addon's FOLDER name (`core/MediaSetup.lua` is the first) — `addonName`, the first vararg, because a vendored library cannot work out which folder it was copied into. Publishes `KCM.Meta(field)` — one TOC key, **nil** when the library is absent *and* the client exposes no reader, or when the manifest has no such key — and `KCM.Version()`, which prefers the TOC over `KCM.VERSION` and is never nil. It replaced two inline `C_AddOns` ladders that lived at their call sites rather than in `core/Compat.lua`: `settings/Slash.lua`'s version read (behind `/cm version` and the help header) and `settings/Panel.lua`'s About-page notes read, which asked for the folder as the hardcoded string `"ConsumableMaster"`. Its TOC position is conventional, not load-bearing: nothing resolves at load beyond the `LibStub` lookup and both callers are in `settings/`. Degrades by repeating each deleted ladder in full, so an install without LibKa0s reads its own TOC exactly as before. |
-| `core/ItemSetup.lua` | The addon's half of `LibKa0s-Item-1.0`, and the whole of it: this addon consumes exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID box's pasted-link path (`settings/Category.lua:390`). The other three are pointedly declined rather than forgotten — `QualityFromLink` / `QualityLabel` because this addon has no rarity concept (its "quality" is the crafting-tier atlas out of `C_TradeSkillUI`), and `LoadItem` because hydration already runs through `GetItemInfo` plus a `GET_ITEM_INFO_RECEIVED` handler tuned for the ~150-item burst on first panel open. `core/TooltipCache.lua` deliberately did **not** move: the major carries no resolver and no cache by written design. Degrades to the same `item:<id>` match in three lines, so a pasted link never works on one install and not another. |
+| `core/ItemSetup.lua` | The addon's half of `LibKa0s-Item-1.0`, and the whole of it: this addon consumes exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID box's pasted-link path (`settings/Category.lua:408`). The other three are pointedly declined rather than forgotten — `QualityFromLink` / `QualityLabel` because this addon has no rarity concept (its "quality" is the crafting-tier atlas out of `C_TradeSkillUI`), and `LoadItem` because hydration already runs through `GetItemInfo` plus a `GET_ITEM_INFO_RECEIVED` handler tuned for the ~150-item burst on first panel open. `core/TooltipCache.lua` deliberately did **not** move: the major carries no resolver and no cache by written design. Degrades to the same `item:<id>` match in three lines, so a pasted link never works on one install and not another. |
 | `core/DebugLogSetup.lua` | The addon's half of `LibKa0s-DebugLog-1.0`. Resolves the console's font through `KCM.MediaFont` (Blizzard `Fonts\ARIALN.TTF` fallback — a real client font, because `SetFont` on a missing file draws nothing and raises nothing; the library has no fallback of its own), and builds ONE console instance via `lib:New` — supplying the frame name (`ConsumableMasterDebugWindow`), `addonName` beside it so both console windows draw the shared copy / clear / close marks instead of two words and a `×`, the title, the `KCM.State.debug` read/write pair, the `KCM.Say` printer, the `[Init]` summary content and the `KCM.Options.Refresh` repaint on show/hide. Publishes the flat dot-callable surface the addon calls: `SetEnabled / IsEnabled / Toggle / AddLine / Clear / Show / Hide / Toggle_Window / IsWindowShown / ShowCopy / RefreshHeader / UpdateScrollBar / UpdateStatus` + `FormatPlain / FormatColored` (the library's function objects) + `instance`. `Toggle` flips the FLAG and is deliberately not the library's `Toggle`, which flips the window. Degrades to a windowless stub — publishing no `AddLine`, which is what re-arms `core/Debug.lua`'s chat fallback — when the library is absent. |
 | `core/SpecHelper.lua` | Class/spec identity. `GetCurrent()` returns `(classID, specID, specKey, specName)`. `GetStatPriority(specKey)` merges user override → seed default → class fallback. `MakeKey(classID, specID)` produces the canonical `<classID>_<specID>` string. Spec/spell lookups route through `KCM.Compat`. |
 | `core/TooltipCache.lua` | `C_TooltipInfo.GetItemByID(id)` parser + per-session cache. Captures heal/mana values (incl. HOT amounts), stat buffs, conjured/feast flags, durations. `Get(id) / Invalidate(id) / InvalidateAll() / IsUsableByPlayer(id)`. Handles NBSP and `\|4singular:plural;` escapes. |
@@ -592,20 +604,20 @@ Also under `modules/`. Loaded between `MacroManager` / `DebugLog` and `settings/
 | `modules/KCMItemRow.lua` | Priority-list row: status glyphs (green check / red / yellow star) + item icon + name + quality tier. Hover renders the real in-game item or spell tooltip (forks on `KCM.ID.IsSpell`). Spell name via `KCM.Compat`. |
 | `modules/KCMIconButton.lua` | Gold-hover icon button used for ↑ / ↓ / ×. |
 | `modules/KCMScoreButton.lua` | The blue "i" info button. Hover renders the per-item `Ranker.Explain` breakdown. No-op `SetLabel` so the caller can pass an arbitrary tooltip-title string without rendering a text label under the icon. |
-| `modules/KCMMacroDragIcon.lua` | Pickable macro icon at the top of each category page. Icon + tooltip come from `core/MacroDisplay.lua` — pick-first, because the stored `?` sentinel is meaningless on a static UI widget. |
+| `modules/KCMMacroDragIcon.lua` | Pickable macro icon at the top of each category tab on the Macros page. Icon + tooltip come from `core/MacroDisplay.lua` — pick-first, because the stored `?` sentinel is meaningless on a static UI widget. |
 
 ### settings/
 
-Each tab module registers a builder via `KCM.Settings.RegisterTab(key, builder)`; `settings/Panel.lua`'s bootstrap iterates `KCM.Settings.order` and calls each builder once Blizzard_Settings is ready. Bodies are hand-built AceGUI widget trees inside a `Helpers.CreatePanel` canvas — no AceConfigDialog.
+Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)`; `settings/Panel.lua`'s bootstrap iterates `KCM.Settings.order` and calls each builder once Blizzard_Settings is ready. There are four: **General**, **Macros**, **Stat Priority**, **Macro Bar**. Two of them carry a pinned tab strip (`options-ui-§13`) — Macros with 15 tabs and Macro Bar with 8 — and Stat Priority carries a page banner (`options-ui-§14`) rather than a strip. Bodies are hand-built AceGUI widget trees inside a `Helpers.CreatePanel` canvas — no AceConfigDialog.
 
 | File | Responsibility |
 |------|----------------|
 | `settings/OptionsSetup.lua` | The `LibKa0s-Options-1.0` seam, and the only place the library is constructed (`options-ui-§1`). Resolves the major in silent mode, builds the instance with this addon's conventions taught to it (positional `{r,g,b,a}` colour codec, `sliderCommit = "change"` for the Macro Bar's live drag preview, a call-time LibSharedMedia thunk, a `print` thunk onto `KCM.Say`, and `get`/`set` thunks onto `Helpers.Get` / `Helpers.SetAndRefresh`), installs it as `KCM.Settings.Helpers`' `__index` and publishes it as `Helpers.instance` + `KCM.Settings.optionsUI`. Creates `KCM.Settings.Helpers` and publishes `KCM.Settings.PANEL_TITLE`. With the major (or AceGUI) absent it builds nothing and installs the two unconditional refresh tiers, `RefreshAllPanels` / `RefreshScalars`, as real no-ops — both are called on paths a degraded install still reaches. |
 | `settings/Panel.lua` | Framework, and the addon's half of `LibKa0s-Options-1.0`. The seam itself lives in `settings/OptionsSetup.lua`, which loads immediately before this file; what is read back here is `KCM.Settings.optionsUI`, `ensureScroll` and `libAbsent`. The chrome is the library's — the lazy AceGUI ScrollFrame and the always-visible scrollbar gutter (`Helpers.EnsureScroll` / `PatchAlwaysShowScrollbar` are forwarders onto `Helpers.instance`) — while the schema half stays here. `Helpers.CreatePanel` (gold title + atlas divider + body), `Section` / `Button` / `ButtonPair` / `Label` builders. The row widget makers, `RenderField`, `SetRenderer` and both refresh tiers are the library's too, once [LIBKA0S-04](https://github.com/tusharsaxena/ConsumableMaster/issues/22)/-05 were fixed upstream; what stays here is the schema itself, the `Resolve` → `SetAndRefresh` write seam, `Grid`, the buttons, `EnumValues` / `LSMValues`, the page registry order and the `KCM.Options` shim. `CreatePanel` also carries the Blizzard canvas contract the library stamps as of Options minor 5 — `OnCommit` / `OnRefresh` / `OnDefault`, which is what makes the Settings window's own **footer** Defaults control work (a different widget from this addon's header Defaults button, and not per-page). With LibKa0s absent no panel is registered at all and `KCM.Options.Open()` answers `false`; the schema half above the seam survives, but the CLI that reads it is the library's too, so `/cm list|get|set` is unavailable in that state as well. Owns the `KCM.Settings.Schema` array, `Helpers.SetAndRefresh` (the validate → write → onChange → refresh seam, published as `KCM.Schema:Set`), `Helpers.Resolve / Get / Set / FindSchema / ValidateSchema / ValidateSchemaValue`, and the two refresh paths — `RefreshAllPanels` (structural rebuild) and `RefreshScalars` (in-place widget re-sync, options-ui-§11). Hosts the parent (About) canvas via `BuildAboutContent`, whose command rows come back already rendered from `KCM.SlashCommands.GetLandingRows()` rather than being formatted here (LIBKA0S-13). Publishes the `KCM.Options.{Register,Refresh,RequestRefresh,Open}` shim that Core / Debug / `settings/Slash.lua` / Pipeline call. |
-| `settings/General.lua` | General tab. Section "General" — the `[Enable]` schema-driven checkbox + a `[Debug console]` checkbox that shows/hides the on-screen console window only (never the session debug flag), mirroring a bare `/cm debug`. Section "Maintenance" — row 1 paired `[Force resync \| Force rewrite]` buttons, row 2 full-width `[Reset all priorities]` (StaticPopup-confirmed via `KCM_RESET_ALL`). |
-| `settings/MacroBar.lua` | Macro Bar tab. Registers every `macroBar.*` schema row (defaults sourced from `KCM.dbDefaults`, so each is simultaneously a widget here and a `/cm set macroBar.<field>` path) across eight sections — Bar, Layout, Bar appearance, Button appearance, Labels, Flyout, Visibility, and a per-macro checkbox grid over `macroBar.shown`. The two border-style rows carry `lsm = "border"` so they render as `LSM30_Border` pickers. Buttons: Reset position, Reset slot order, and a page Defaults action that restores the whole `macroBar` table. |
-| `settings/StatPriority.lua` | Stat Priority tab: full-width spec dropdown (class+spec icon markup), Primary alone in a half-row, Secondary 1\|2 + 3\|4 paired half-rows, inline Reset. Owns `KCM.Options._viewedSpec` + `O.ResolveViewedSpec` + `O.FormatSpec`. |
-| `settings/Category.lua` | Per-category tabs (single + composite). One builder per row in `KCM.Categories.LIST`. Single dispatch: drag icon → Add-by-ID (Type \| ID input) → Priority list rows (KCMItemRow + KCMScoreButton + LibKa0s drag handle + ×) → inline Reset. Composite dispatch: drag icon → In Combat / Out of Combat sections (each row: KCMItemRow + Enabled checkbox + ↑/↓) → inline Reset. Shared `KCM_RESET_CATEGORY` StaticPopup. |
+| `settings/General.lua` | General page. Section "General" — the `[Enable]` schema-driven checkbox + a `[Debug console]` checkbox that shows/hides the on-screen console window only (never the session debug flag), mirroring a bare `/cm debug`. Section "Maintenance" — row 1 paired `[Force resync \| Force rewrite]` buttons, row 2 full-width `[Reset all priorities]` (StaticPopup-confirmed via `KCM_RESET_ALL`). |
+| `settings/MacroBar.lua` | Macro Bar page. Registers every `macroBar.*` schema row (defaults sourced from `KCM.dbDefaults`, so each is simultaneously a widget here and a `/cm set macroBar.<field>` path) across eight TABS on a pinned strip — General (2), Layout (8), Bar appearance (7), Button appearance (11), Labels (9), Flyout (14), Visibility (3) and Contents (0 schema rows: a per-macro checkbox grid over `macroBar.shown`). A tab IS a row `group`, so the strip cannot drift from the rows it partitions; `KCM.Settings.MACROBAR_TABS` publishes it. The two border-style rows carry `lsm = "border"` so they render as `LSM30_Border` pickers. Buttons: Reset position, Reset slot order, and a page Defaults action that restores the whole `macroBar` table. |
+| `settings/StatPriority.lua` | Stat Priority page: the spec picker as the page BANNER (`options-ui-§14`, class+spec icon markup, pinned above the scroll), then Primary alone in a half-row, Secondary 1\|2 + 3\|4 paired half-rows, inline Reset. One subject after the picker moved into the banner, so the page draws no strip. Owns `KCM.Options._viewedSpec` + `O.ResolveViewedSpec` + `O.FormatSpec`. |
+| `settings/Category.lua` | The **Macros** page (single + composite categories): ONE page, with one tab per row in `KCM.Categories.LIST`, generated in `KCM.Settings.macroOrder` — 15 tabs, each labelled with its category's `displayName`. It was one sub-page per category until the strip replaced them; the bodies are unchanged. Single dispatch: drag icon → Add-by-ID (Type \| ID input) → Priority list rows (KCMItemRow + KCMScoreButton + LibKa0s drag handle + ×) → inline Reset. Composite dispatch: drag icon → In Combat / Out of Combat sections (each row: KCMItemRow + Enabled checkbox + ↑/↓) → inline Reset. Shared `KCM_RESET_CATEGORY` StaticPopup. |
 
 ### defaults/
 

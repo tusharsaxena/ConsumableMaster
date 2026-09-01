@@ -587,7 +587,7 @@ end
 -- /cm aio <key> <subverb> ...
 -- ---------------------------------------------------------------------------
 --
--- CLI parity for the composite-category panel (HP_AIO, MP_AIO). State lives
+-- CLI parity for the composite-category tabs (HP_AIO, MP_AIO). State lives
 -- in db.profile.categories[<key>].{ enabled, orderInCombat, orderOutOfCombat }.
 -- Sub-categories are locked to their section, so the up/down handlers infer
 -- the section from where the ref appears and reject refs not present in the

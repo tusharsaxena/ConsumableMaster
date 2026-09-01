@@ -11,7 +11,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 - **Settings panel** integrated into Blizzard's AddOns settings + matching `/cm` slash CLI for every panel-shaped operation.
 - **Auto-discovery** from bag scans, bounded by a 30-day stale-discovered sweep.
 - **Combat-deferred writes** with bounded retry on flush.
-- **Drag-and-drop reordering of priority list rows**, on the single-category pages. The gesture is `LibKa0s-Widgets-1.0`'s `ReorderList` — handle, carried copy and insertion line — and it replaced the ↑ / ↓ buttons those rows used to carry; the composite AIO sections still reorder with the arrows. `/cm priority <cat> up|down` does the same thing from chat.
+- **Drag-and-drop reordering of priority list rows**, on the single-category tabs of the Macros page. The gesture is `LibKa0s-Widgets-1.0`'s `ReorderList` — handle, carried copy and insertion line — and it replaced the ↑ / ↓ buttons those rows used to carry; the composite AIO sections still reorder with the arrows. `/cm priority <cat> up|down` does the same thing from chat.
 - **A CM-only macro bar** (on and unlocked by default, switchable off) holding the managed macros as secure buttons, with configurable layout / geometry / chrome / labels / visibility, drag-to-swap reordering, and a per-slot hover flyout listing every currently-usable candidate in that category. Deliberately narrow: it hosts *only* `KCM_*` macros — it is not a general-purpose action-bar replacement, and it will not accept arbitrary items, spells or foreign macros. See [macro-bar.md](./macro-bar.md).
 
 ## Out of scope

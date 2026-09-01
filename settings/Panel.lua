@@ -1,10 +1,15 @@
 -- settings/Panel.lua — Settings UI framework.
 --
--- Mirrors the KickCD pattern: every page (parent + sub-tabs) is registered as
+-- Mirrors the KickCD pattern: every page (parent + sub-pages) is registered as
 -- a canvas-layout subcategory and shares one header (title + atlas divider)
--- built by Helpers.CreatePanel. Each tab module (settings/General.lua,
--- StatPriority.lua, Category.lua) hands a builder to RegisterTab; this file
--- iterates the builders once Blizzard_Settings is ready.
+-- built by Helpers.CreatePanel. Each page module (settings/General.lua,
+-- MacroBar.lua, StatPriority.lua, Category.lua) hands a builder to RegisterTab;
+-- this file iterates the builders once Blizzard_Settings is ready.
+--
+-- FOUR pages, not eighteen. Every macro category used to be its own sub-page;
+-- they are tabs on the one Macros page now (options-ui-§13), which is why the
+-- order table below split into KCM.Settings.order (the pages) and
+-- KCM.Settings.macroOrder (that page's strip).
 --
 -- Public surface preserved for the rest of the addon:
 --   KCM.Options.Refresh / RequestRefresh / Open  (Core, Debug, SlashCommands,
@@ -28,13 +33,35 @@ KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
 KCM.Settings.main    = nil
 
--- Canonical tab order (the explicit display order for the settings sub-pages;
--- independent of Categories.LIST and functionally cosmetic). General + Stat
--- Priority lead, then the basic consumables, the two AIO composites, the
--- spec-aware categories + Augment Rune, then Vantus Rune, Bloodlust, and
--- Battle Rez last. This table is the source of truth for that order.
+-- Canonical PAGE order — the four sub-pages in the AddOns sidebar, in the order
+-- a player meets them: the master switch and the maintenance actions, the macro
+-- categories themselves (the addon's whole subject), the stat ranking the
+-- spec-aware categories sort by, and last the optional on-screen bar that
+-- displays the finished macros.
+--
+-- It used to carry eighteen entries because every macro category was its own
+-- sub-page. The categories are one page with a tab strip now (options-ui-§13),
+-- so the category run moved to KCM.Settings.macroOrder below and this table is
+-- back to being what its name says.
 KCM.Settings.order = KCM.Settings.order or {
-    "general", "statpriority", "macrobar",
+    "general", "macros", "statpriority", "macrobar",
+}
+
+-- Canonical TAB order for the Macros page: the strip settings/Category.lua
+-- generates, one tab per category. Deliberately independent of Categories.LIST
+-- and functionally cosmetic — the basic consumables first because they are what
+-- a player opens the page for, then the two AIO composites (which aggregate the
+-- categories above them, so they read after them), then the spec-aware set plus
+-- Augment Rune, then Vantus Rune, Bloodlust and Battle Rez, which are set once
+-- per tier and left.
+--
+-- This is the same run, in the same order, that the eighteen-entry
+-- KCM.Settings.order carried before the pages were collapsed: the ordering
+-- argument was about the categories and survived the reorganization intact.
+-- Keys are the lower-cased category keys, matching the sub-page keys the strip
+-- replaced, so defaults/Profile.lua's macroBar.order — which mirrors this list
+-- upper-cased — did not have to move either.
+KCM.Settings.macroOrder = KCM.Settings.macroOrder or {
     "food", "drink", "hp_pot", "mp_pot", "hs",
     "hp_aio", "mp_aio",
     "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune", "vantus",
@@ -140,12 +167,12 @@ function Helpers.FindSchema(path)
     return nil
 end
 
+-- The four pages a schema row may target. It used to list the fifteen category
+-- keys as well, from when each was its own sub-page; no row ever declared one —
+-- a category's priority list is a collection, not a scalar, so it has no `path`
+-- to declare — and the Macros page they collapsed into is one entry.
 local _validPanels = {
-    general = true, statpriority = true, macrobar = true,
-    food = true, drink = true, hp_pot = true, mp_pot = true, hs = true, vantus = true,
-    flask = true, cmbt_pot = true, stat_food = true, wpn_ench = true, aug_rune = true,
-    hp_aio = true, mp_aio = true,
-    bloodlust = true, battle_rez = true,
+    general = true, macros = true, statpriority = true, macrobar = true,
 }
 local _validSections = { general = true, macrobar = true }
 local _validTypes    = { bool = true, number = true, string = true, color = true }

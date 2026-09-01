@@ -1,8 +1,10 @@
 -- settings/MacroBar.lua — Macro Bar page.
 --
--- Eight sections: Bar (enable / lock / reset), Layout (grid + geometry), Bar
--- appearance and Button appearance (chrome + colors), Labels, Flyout, Visibility
--- (combat driver + hover fade), and Macros (which macros occupy a slot).
+-- Eight TABS on a pinned strip (options-ui-§13), not eight scrolling sections:
+-- General (enable / lock / reset), Layout (grid + geometry), Bar appearance and
+-- Button appearance (chrome + colors), Labels, Flyout, Visibility (combat driver
+-- + hover fade), and Contents (which macros occupy a slot). A tab IS a schema
+-- row `group`, so the strip cannot drift from the rows it partitions.
 --
 -- Every scalar is a KCM.Settings.Schema row, so each one is simultaneously a
 -- widget here and a `/cm get|set macroBar.<field>` path — one definition, both
@@ -56,7 +58,7 @@ local function enum(...)
 end
 
 row{
-    path = "macroBar.enabled", type = "bool", group = "Bar",
+    path = "macroBar.enabled", type = "bool", group = "General",
     label = L["Enable macro bar"],
     tooltip = L["Show a dedicated bar holding your ConsumableMaster macros. Only CM macros can occupy it. On by default; turning it off hides the bar and stops all its work until you turn it back on."],
     -- Apply-only, and deliberately so (CM-R-05): the write has already landed
@@ -71,7 +73,7 @@ row{
     end,
 }
 row{
-    path = "macroBar.locked", type = "bool", group = "Bar",
+    path = "macroBar.locked", type = "bool", group = "General",
     label = L["Lock position"],
     tooltip = L["When unlocked the bar is tinted gold and can be dragged anywhere on screen; its position is saved automatically. Lock it again to click through the empty space around the buttons."],
     -- The row had NO onChange, which meant `/cm set macroBar.locked true`
@@ -164,6 +166,16 @@ row{
     label = L["Bar border color"],
     tooltip = L["Color and opacity of the bar's border."],
 }
+-- Declared HERE, with the rest of its group, rather than four rows down among the
+-- button rows where it used to sit. A tab strip partitions the page by `group` in
+-- DECLARATION order, so a row filed under a group the page has already left is a
+-- second, later copy of that tab. Nothing moves on screen: the renderer has always
+-- drawn it at the end of the Bar appearance grid.
+row{
+    path = "macroBar.alpha", type = "number", min = 0.1, max = 1.0, step = 0.05, group = "Bar appearance",
+    label = L["Bar opacity"],
+    tooltip = L["Opacity of the whole bar when it is not faded out."],
+}
 row{
     path = "macroBar.buttonBackdrop", type = "bool", group = "Button appearance",
     label = L["Button background"],
@@ -219,11 +231,6 @@ row{
     path = "macroBar.showGCD", type = "bool", group = "Button appearance",
     label = L["Show GCD swipe"],
     tooltip = L["Off by default: hides the roughly 1.5-second global-cooldown swipe and completion sparkle that would otherwise flash across every button whenever you cast anything. A real cooldown's swipe still shows, but it vanishes for its own final second or so instead of visibly counting down to zero, and its completion sparkle is hidden along with the GCD's — the button can't tell a lone GCD from the last moment of a long cooldown."],
-}
-row{
-    path = "macroBar.alpha", type = "number", min = 0.1, max = 1.0, step = 0.05, group = "Bar appearance",
-    label = L["Bar opacity"],
-    tooltip = L["Opacity of the whole bar when it is not faded out."],
 }
 row{
     path = "macroBar.buttonLabel", type = "bool", group = "Labels",
@@ -439,11 +446,34 @@ local function macroToggles(ctx)
     H.Grid(ctx, items)
 end
 
-local function render(ctx)
-    H.ResetScroll(ctx)
-    local scroll = H.EnsureScroll(ctx)
+-- ---------------------------------------------------------------------------
+-- The tab strip (options-ui-§13)
+-- ---------------------------------------------------------------------------
+--
+-- Eight sections, fifty-four rows, one scroll: the page was a wall a player had
+-- to read past to reach the one setting they came for. Each section is a tab
+-- now, and only the active one draws.
+--
+-- One entry per tab, and the `group` string IS the partition key its rows carry
+-- — there is no second field naming the tab, for the reason options-ui-§13 gives
+-- against one: a tab list declared apart from the rows goes stale the first time
+-- a section is renamed and nothing says so. tests/test_schema.lua pins the two
+-- against each other.
+--
+-- Order: General first (the master toggle and the two reset buttons — what a
+-- player reaches for on opening), then the three geometry-and-paint tabs in the
+-- order a bar is built (Layout, Bar appearance, Button appearance), then Labels
+-- (which is about the buttons, so it sits with them), Flyout (its own surface),
+-- Visibility, and Contents last: what is ON the bar is set once and left.
+--
+-- Two renames. "Bar" became "General" because on a page called Macro Bar the
+-- word carried nothing and it collided with "Bar appearance" two tabs along.
+-- "Macros on the bar" became "Contents" for the same reason — every tab here is
+-- about the bar. "Bar appearance" and "Button appearance" KEEP their qualifiers:
+-- two surfaces coexist on this page, each with its own backdrop and border, so
+-- there the word is doing real work.
 
-    H.Section(ctx, L["Bar"])
+local function drawGeneral(ctx)
     H.Grid(ctx, { defs.enabled, defs.locked })
     H.ButtonPair(ctx,
         {
@@ -456,24 +486,31 @@ local function render(ctx)
             tooltip = L["Restore the default left-to-right slot order, undoing any drag-and-drop rearranging."],
             onClick = doResetOrder,
         })
+end
 
-    H.Section(ctx, L["Layout"])
+local function drawLayout(ctx)
     H.Grid(ctx, {
         defs.perRow, defs.buttonSize,
         defs.spacing, defs.padding,
         defs.scale, defs.orientation,
         defs.growthH, defs.growthV,
     })
+end
 
-    H.Section(ctx, L["Bar appearance"])
+local function drawBarAppearance(ctx)
     H.Grid(ctx, {
         defs.barBackdrop, defs.barBackdropColor,
         defs.barBorder, defs.barBorderColor,
         defs.barBorderStyle, defs.barBorderSize,
         defs.alpha,
     })
+end
 
-    H.Section(ctx, L["Button appearance"])
+local function drawButtonAppearance(ctx)
+    -- Deliberately the same shape as drawBarAppearance above, line for line:
+    -- [fill toggle] [fill color] / [border toggle] [border color] /
+    -- [border style] [border size]. Two tabs describing the same three things
+    -- about two surfaces should not be read in two different orders.
     H.Grid(ctx, {
         defs.buttonBackdrop, defs.buttonBackdropColor,
         defs.buttonBorder, defs.buttonBorderColor,
@@ -482,17 +519,25 @@ local function render(ctx)
         defs.showCount, defs.tooltips,
         defs.showGCD,
     })
+end
 
-    H.Section(ctx, L["Labels"])
+local function drawLabels(ctx)
+    -- Reordered so each line is one question. The master toggle leads the thing
+    -- it governs ([show labels] [what they say]); the two anchors pair; the two
+    -- offsets pair, which is the comparison someone nudging a label actually
+    -- makes; then how it is drawn. It used to open [show labels] [outline],
+    -- which put the least-used control on the same line as the master switch and
+    -- split labelText from the toggle that turns it on.
     H.Grid(ctx, {
-        defs.buttonLabel, defs.labelOutline,
-        defs.labelText, defs.labelColor,
+        defs.buttonLabel, defs.labelText,
         defs.labelPoint, defs.labelPlacement,
-        defs.labelScale,
         defs.labelOffsetX, defs.labelOffsetY,
+        defs.labelScale, defs.labelColor,
+        defs.labelOutline,
     })
+end
 
-    H.Section(ctx, L["Flyout"])
+local function drawFlyout(ctx)
     H.Grid(ctx, {
         defs.flyout, defs.flyoutInvert,
         defs.flyoutPoint, defs.flyoutAutoClose,
@@ -503,13 +548,61 @@ local function render(ctx)
         defs.flyoutPadding, defs.flyoutGap,
         defs.flyoutMax,
     })
+end
 
-    H.Section(ctx, L["Visibility"])
+local function drawVisibility(ctx)
     H.Grid(ctx, { defs.combatMode, defs.fadeUnlessHover, defs.fadeAlpha })
+end
 
-    H.Section(ctx, L["Macros on the bar"])
+local function drawContents(ctx)
     H.Label(ctx, L["Drag a button on the bar itself onto another to swap their places."])
     macroToggles(ctx)
+end
+
+-- `group` is the schema partition key AND the tab key; `label` is what the strip
+-- shows. Contents is the one tab with no schema rows behind it — its controls
+-- are one checkbox per managed macro, a length no schema knows — and
+-- tests/test_schema.lua exempts it BY NAME rather than by relaxing the rule.
+local TABS = {
+    { group = "General",           label = L["General"],           draw = drawGeneral },
+    { group = "Layout",            label = L["Layout"],            draw = drawLayout },
+    { group = "Bar appearance",    label = L["Bar appearance"],    draw = drawBarAppearance },
+    { group = "Button appearance", label = L["Button appearance"], draw = drawButtonAppearance },
+    { group = "Labels",            label = L["Labels"],            draw = drawLabels },
+    { group = "Flyout",            label = L["Flyout"],            draw = drawFlyout },
+    { group = "Visibility",        label = L["Visibility"],        draw = drawVisibility },
+    { group = "Contents",          label = L["Contents"],          draw = drawContents },
+}
+KCM.Settings.MACROBAR_TABS = TABS
+
+local function activeTab(ctx)
+    for _, tab in ipairs(TABS) do
+        if tab.group == ctx.activeTab then return tab end
+    end
+    ctx.activeTab = TABS[1].group
+    return TABS[1]
+end
+
+local function render(ctx)
+    H.ResetScroll(ctx)
+    local scroll = H.EnsureScroll(ctx)
+
+    local tab = activeTab(ctx)
+    local strip = {}
+    for i, entry in ipairs(TABS) do
+        strip[i] = { key = entry.group, label = entry.label }
+    end
+    H.TabStrip(ctx, {
+        tabs     = strip,
+        value    = ctx.activeTab,
+        onSelect = function(key)
+            if key == ctx.activeTab then return end
+            ctx.activeTab = key
+            render(ctx)
+        end,
+    })
+
+    tab.draw(ctx)
 
     if scroll.DoLayout then scroll:DoLayout() end
 end

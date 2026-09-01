@@ -388,16 +388,22 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
 -- returning nil (wow_mock.lua), so KCM.Settings.Register()'s registerPanel()
 -- cannot run headlessly here — `Settings.RegisterCanvasLayoutCategory(...)`
 -- would hand back nil and the next line's `main:GetID()` would raise. This
--- suite already has the workaround: skip straight to the per-tab builder
+-- suite already has the workaround: skip straight to the per-page builder
 -- KCM.Settings.RegisterTab parked in KCM.Settings.builders, and pull the ctx
 -- it built back out of the library's own registry via UI.__panelFor (the same
 -- accessor "a panel comes from the library's registry" above relies on).
+--
+-- There is ONE category builder now, not fifteen: the categories are tabs on the
+-- Macros page (options-ui-§13). So the page is built once and the tab is chosen
+-- with KCM.Options.SetMacroTab before the render — which is a stricter test than
+-- the old one, because it also proves the strip actually swaps the body rather
+-- than drawing whichever category it was built with.
 --
 -- settings/Category.lua resolves `local AceGUI = LibStub("AceGUI-3.0")` ONCE
 -- at module load, so a spy installed after loadWithSchema() would miss every
 -- AceGUI:Create call the file makes — the swap has to bracket the file's own
 -- load, mirroring tests/test_widgets.lua's loadWidgets().
-test("Settings: a targeted category page offers the mouseover toggle, bound to bucket.mouseover",
+test("Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover",
     function(t)
         local mock = loader.mock
 
@@ -440,11 +446,13 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
 
         local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
 
-        local battleRezBuilder = KCM.Settings.builders["battle_rez"]
-        t.truthy(battleRezBuilder, "Battle Rez tab registered a builder")
-        battleRezBuilder({})
-        local ctx = UI.__panelFor("battle_rez")
-        t.truthy(ctx, "the Battle Rez ctx landed in the library's registry")
+        local macrosBuilder = KCM.Settings.builders["macros"]
+        t.truthy(macrosBuilder, "the Macros page registered a builder")
+        macrosBuilder({})
+        local ctx = UI.__panelFor("macros")
+        t.truthy(ctx, "the Macros ctx landed in the library's registry")
+        t.truthy(KCM.Options.SetMacroTab("BATTLE_REZ"), "the Battle Rez tab is selectable")
+        t.eq(ctx.activeTab, "BATTLE_REZ", "and the page is showing it")
         ctx.panel.IsShown = function() return true end
 
         local recomputeCalls = {}
@@ -466,19 +474,17 @@ test("Settings: a targeted category page offers the mouseover toggle, bound to b
         t.truthy(#recomputeCalls >= 1,
             "unchecking fires a recompute rather than waiting for the next bag event")
 
-        -- Stop the Battle Rez page from re-rendering into the reset list below.
-        ctx.panel.IsShown = function() return false end
-
+        -- Same page, different tab: switching to an untargeted category has to
+        -- take the checkbox away with it.
         checkboxes = {}
-        local bloodlustBuilder = KCM.Settings.builders["bloodlust"]
-        t.truthy(bloodlustBuilder, "Bloodlust tab registered a builder")
-        bloodlustBuilder({})
-        local blCtx = UI.__panelFor("bloodlust")
-        t.truthy(blCtx, "the Bloodlust ctx landed in the library's registry")
-        blCtx.panel.IsShown = function() return true end
+        t.truthy(KCM.Options.SetMacroTab("BLOODLUST"), "the Bloodlust tab is selectable")
 
         H.RefreshAllPanels()
-        t.eq(#checkboxes, 0, "an untargeted category page renders no mouseover checkbox")
+        t.eq(#checkboxes, 0, "an untargeted category tab renders no mouseover checkbox")
+
+        t.falsy(KCM.Options.SetMacroTab("NO_SUCH_CATEGORY"),
+            "a tab that names no category is refused")
+        t.eq(ctx.activeTab, "BLOODLUST", "and the page is left on the tab it was on")
     end)
 
 -- ---------------------------------------------------------------------
@@ -501,7 +507,7 @@ local function loadCategorySettings()
     return loader.loadFiles(files)
 end
 
--- Render one category page and hand back every EditBox the renderer built.
+-- Select one category tab and hand back every EditBox the renderer built.
 --
 -- Create is patched on the mock's own AceGUI table rather than behind a LibStub
 -- swap: settings/Panel.lua and settings/Category.lua both captured that table at
@@ -509,7 +515,7 @@ end
 -- and the category renderer on the same stub. `label`/`editbox` are set to a
 -- real `false` because the widget helpers probe those sub-frames before using
 -- them, and the permissive stub would otherwise hand back a function to index.
-local function renderCategoryEditBoxes(KCM, pageKey)
+local function renderCategoryEditBoxes(KCM, catKey)
     local mock = loader.mock
     local boxes = {}
     local AceGUI = LibStub("AceGUI-3.0")
@@ -526,8 +532,11 @@ local function renderCategoryEditBoxes(KCM, pageKey)
     end
 
     local UI = KCM.Settings.Helpers.instance
-    KCM.Settings.builders[pageKey]({})
-    local ctx = UI.__panelFor(pageKey)
+    KCM.Settings.builders["macros"]({})
+    local ctx = UI.__panelFor("macros")
+    -- The category is a TAB on the one Macros page now, so it is selected rather
+    -- than built: fifteen builders became one.
+    KCM.Options.SetMacroTab(catKey)
     ctx.panel.IsShown = function() return true end
     KCM.Settings.Helpers.RefreshAllPanels()
     return boxes
@@ -604,7 +613,7 @@ test("Settings: add-by-ID rejects bad input by kind and says why", function(t)
     mock.setItem(960010, { name = "Test Potion", subType = "Potions" })
     mock.setSpell(7744, { name = "Will of the Forsaken" })
 
-    local eb = renderCategoryEditBoxes(KCM, "hp_pot")[1]
+    local eb = renderCategoryEditBoxes(KCM, "HP_POT")[1]
     t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field is wired to Enter")
     local submit = function(text) eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", text) end
 
@@ -665,7 +674,7 @@ test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec"
     -- sub-level-10 character sees.
     t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
 
-    local eb = renderCategoryEditBoxes(KCM, "flask")[1]
+    local eb = renderCategoryEditBoxes(KCM, "FLASK")[1]
     t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field rendered anyway")
     eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", "960011")
 

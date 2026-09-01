@@ -27,8 +27,9 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
    NEW = { added = {}, blocked = {}, pins = {}, discovered = {} },   -- non-spec
    NEW = { bySpec = {} },                                              -- spec-aware
    ```
-8. Options panel picks the category up automatically from `Categories.LIST`.
-9. Add the tab key to `KCM.Settings.order` (`settings/Panel.lua`) and to `_validPanels`, then append the uppercased key to `dbDefaults.profile.macroBar.order` in the same position — the macro bar's default slot order mirrors the tab order, and `tests/test_macrobar.lua` fails if the two drift. (An existing profile self-heals: `MacroBarModel.NormalizeOrder` appends any category its saved order has never seen.)
+8. Options panel picks the category up automatically from `Categories.LIST` — its tab on the **Macros** page is generated, not written.
+9. Add the lower-cased key to `KCM.Settings.macroOrder` (`settings/Panel.lua`) at the position you want its tab, then append the UPPER-cased key to `dbDefaults.profile.macroBar.order` in the same position — the macro bar's default slot order mirrors the tab order, and `tests/test_macrobar.lua` fails if the two drift. (An existing profile self-heals: `MacroBarModel.NormalizeOrder` appends any category its saved order has never seen.) `KCM.Settings.order` and `_validPanels` are the four PAGES and do not change: a category is a tab now, not a page.
+10. Add the tab to the expected run in `tests/test_schema.lua` → "the Macros strip is the designed run of tabs, in order". It is written out longhand on purpose — derived from `Categories.LIST` it would agree with `Categories.LIST` whatever that said.
 
 ## Add a new composite category
 

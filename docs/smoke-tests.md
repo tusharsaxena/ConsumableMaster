@@ -48,7 +48,7 @@ Tests: bag scan classifies new items, GIIR retry hydrates uncached ones, discove
 
 1. Loot or vendor-buy an item the seed doesn't list (e.g. a new-tier flask not yet in `Defaults_Flask.lua`).
 2. Within ~1 frame of `BAG_UPDATE_DELAYED`, expect: `/cm dump pick flask` lists the new item with its score.
-3. Open the Flask category page; the new item appears in the priority list with the green-check "owned" glyph.
+3. Open the Macros page and its **Flask** tab; the new item appears in the priority list with the green-check "owned" glyph.
 4. Move the item into the bank, log out, log back in. With the item not in bags but discovered within 30 days: it appears in the priority list with the red-X "not owned" glyph.
 5. Wait 30+ days (or hand-edit `discovered[id]` to a stale timestamp): on the next PEW, `Selector.SweepStaleDiscovered` removes it. Confirm via `/cm dump pick flask` — entry gone.
 
@@ -66,10 +66,10 @@ Tests: body builders produce correct `/use item:<id>` or `/cast <Spell>`; action
 
 Tests: `KCM_WPN_ENCH` picks and applies independently per hand, filtered by the equipped weapon's bladed/blunt/any affinity; recomputes on weapon swap without a reload.
 
-1. Equip a bladed weapon (e.g. a sword) in the main hand. Confirm `/cm dump pick wpn_ench` shows a whetstone (bladed) as the main-hand pick; a weightstone (blunt) candidate is present in the dump but excluded from the pick. On the **Weapon Enchant** settings page, the whetstone row shows the yellow star + an "MH" affinity marker, and weightstone rows are dimmed as not-applicable to the current main hand.
-2. Swap to a blunt weapon (e.g. a mace) in the same slot. Within ~1 frame of `PLAYER_EQUIPMENT_CHANGED`, expect: no `/reload` needed — the macro body switches to the weightstone, the action-bar icon updates, and the settings page's star/dim markers flip to match.
-3. Dual-wield two weapons of different types (e.g. sword main hand, mace off hand). Confirm the macro body applies a whetstone to slot 16 and a weightstone to slot 17 (a `/use item:<id>` + `/use 16` line pair, then a `/use item:<id>` + `/use 17` pair), i.e. each hand gets its own independently-scored pick. The settings page marks the whetstone row "MH" and the weightstone row "OH" (not both on one row).
-4. Equip a two-handed weapon (main hand only, no off-hand item). Confirm the macro body only references slot 16 — no `/use 17` line — and the settings page shows only an "MH" marker on the picked row, with no off-hand affinity shown.
+1. Equip a bladed weapon (e.g. a sword) in the main hand. Confirm `/cm dump pick wpn_ench` shows a whetstone (bladed) as the main-hand pick; a weightstone (blunt) candidate is present in the dump but excluded from the pick. On the Macros page's **Weapon Enchant** tab, the whetstone row shows the yellow star + an "MH" affinity marker, and weightstone rows are dimmed as not-applicable to the current main hand.
+2. Swap to a blunt weapon (e.g. a mace) in the same slot. Within ~1 frame of `PLAYER_EQUIPMENT_CHANGED`, expect: no `/reload` needed — the macro body switches to the weightstone, the action-bar icon updates, and the tab's star/dim markers flip to match.
+3. Dual-wield two weapons of different types (e.g. sword main hand, mace off hand). Confirm the macro body applies a whetstone to slot 16 and a weightstone to slot 17 (a `/use item:<id>` + `/use 16` line pair, then a `/use item:<id>` + `/use 17` pair), i.e. each hand gets its own independently-scored pick. The tab marks the whetstone row "MH" and the weightstone row "OH" (not both on one row).
+4. Equip a two-handed weapon (main hand only, no off-hand item). Confirm the macro body only references slot 16 — no `/use 17` line — and the tab shows only an "MH" marker on the picked row, with no off-hand affinity shown.
 
 ### 3b. Macro writes — Augment Rune
 
@@ -77,9 +77,9 @@ Tests: `KCM_AUG_RUNE` body is a plain single-pick `/use`; reusable "permanent" r
 
 1. Put a single augment rune in bags (any of the seeded IDs). Open the macro UI — body should be `#showtooltip` + `/use item:<id>`, matching the single-pick pattern of section 3.
 2. `/cm dump pick aug_rune` — the priority order must be by primary-stat amount, highest first (e.g. Void-Touched 25 above Ethereal 6 above Dreambound 5). A reusable rune outranks a consumable one only when their amounts are equal.
-3. Block the top rune via the priority-list × button on the **Augment Rune** settings page. Within ~1 frame, the pick falls back to the next-highest.
+3. Block the top rune via the priority-list × button on the Macros page's **Augment Rune** tab. Within ~1 frame, the pick falls back to the next-highest.
 4. **Auto-discovery:** `/cm dump item 259085` — `classified:` must list `AUG_RUNE` (the marker is parsed from the inline "…Augment Rune." sentence on the Use line). A rune NOT in the seed, once in bags, should likewise self-add via discovery.
-5. **Login freshness (regression — the partial-tooltip race):** log in with augment runes in bags and open the Augment Rune page *immediately*, before tooltips fully hydrate. The order must self-correct to amount-first within a moment, with **no** `/cm resync` needed. `/cm dump item <id>` should show `statBuffs` populated once loaded, never a stale empty parse.
+5. **Login freshness (regression — the partial-tooltip race):** log in with augment runes in bags and open the Macros page on its Augment Rune tab *immediately*, before tooltips fully hydrate. The order must self-correct to amount-first within a moment, with **no** `/cm resync` needed. `/cm dump item <id>` should show `statBuffs` populated once loaded, never a stale empty parse.
 
 ### 3c. Classification by numeric item class (localization-§4 / #37)
 
@@ -91,7 +91,7 @@ Tests: the Classifier (`core/Classifier.lua`) and weapon-affinity (`core/WeaponS
    - stat food → `classID=0 subClassID=5` → `STAT_FOOD`; plain food → `subClassID=5` → `FOOD`/`DRINK`
    - flask/phial → `classID=0 subClassID=3` → `FLASK`
 2. **No English regression.** With food + a potion + a flask in bags, `/cm resync`, then `/cm dump pick hp_pot` / `flask` / `stat_food` — each picks the expected item and the `KCM_*` bodies target them, identical to before the change.
-3. **Weapon affinity by subclass.** Swap main-hand weapons and check the Weapon Enchant page (or `/cm dump pick wpn_ench`): sword/dagger/axe/polearm/fist/warglaive → bladed (whetstone); mace/staff → blunt (weightstone); bow/gun/wand → no pick.
+3. **Weapon affinity by subclass.** Swap main-hand weapons and check the Weapon Enchant tab (or `/cm dump pick wpn_ench`): sword/dagger/axe/polearm/fist/warglaive → bladed (whetstone); mace/staff → blunt (weightstone); bow/gun/wand → no pick.
 4. **classID-gate guard — a Shield must not read as a Polearm.** Equip a **shield** in the off-hand: the off-hand shows **no** weapon enchant, and `/cm dump item <shieldID>` shows `classID=4 subClassID=6` with `classified: (none)`. (Shield = Armor subclass 6; Polearm = Weapon subclass 6 — same number, different class; the class gate keeps them apart.)
 5. **Definitive locale test (needs a non-English client).** On a deDE/frFR/etc. client (language pack on PTR/beta, or a non-English account), reload with the same consumables in bags. `/cm dump item <id>` shows a **localized** `subType` (e.g. `"Tränke"`) but `classified:` must still be correct and the `KCM_*` macros must populate. *Before* this change every consumable classified as `(none)` and the macros sat empty on that client. If a non-English client isn't available, the headless suite already proves it (`classifier: keys on numeric subclass, not the localized subType` + the WeaponSlots equivalent), so steps 1–4 on English are sufficient sign-off.
 
@@ -104,14 +104,14 @@ Tests: `KCM_BLOODLUST` / `KCM_BATTLE_REZ` resolve the right spell or item per cl
 3. On a class with no lust ability, put a drum in bags — confirm it resolves. At max level with **only** a superseded (capped) drum in bags, confirm the slot shows the empty state, not the dead drum — this is the level-cap filter from Task 1 (`TooltipCache.IsUsableByPlayer`).
 4. On Druid / DK / Paladin / Warlock, confirm `KCM_BATTLE_REZ` resolves to that class's rez spell (Rebirth / Raise Ally / Intercession / Soulstone) over Emergency Soul Link. On a class with **no** rez spell and Emergency Soul Link in bags, confirm the item resolves.
 5. `/cm dump pick BLOODLUST` and `/cm dump pick BATTLE_REZ` — open the macro and read the body against the dump's pick.
-6. On the Battle Rez category page, confirm the **Cast on mouseover** checkbox (`settings/Category.lua:343`) is checked by default and the macro body carries `[@mouseover,help][@target,help]`. Uncheck it — confirm the body drops the `[@mouseover,help]` clause and leaves `[@target,help]` alone, and the macro then acts on your current target instead of a moused-over frame.
+6. On the Macros page's **Battle Rez** tab, confirm the **Cast on mouseover** checkbox (`settings/Category.lua:366`) is checked by default and the macro body carries `[@mouseover,help][@target,help]`. Uncheck it — confirm the body drops the `[@mouseover,help]` clause and leaves `[@target,help]` alone, and the macro then acts on your current target instead of a moused-over frame.
 7. Confirm neither category auto-discovers: put an un-seeded, un-added item that would otherwise match (e.g. a different drum tier) in bags — it must **not** appear in `/cm dump pick` or the category's priority list, since neither category has a `Classifier.lua` matcher.
 
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
 
 Tests: `/castsequence [combat]` for in-combat, `/use [nocombat]` chain for out-of-combat, asymmetric-empty fallback.
 
-1. Open the **AIO Health** page. Confirm In Combat lists `HS` and `HP_POT` (in that order by default), Out of Combat lists `FOOD`.
+1. Open the Macros page's **AIO Health** tab. Confirm In Combat lists `HS` and `HP_POT` (in that order by default), Out of Combat lists `FOOD`.
 2. Drag `KCM_HP_AIO` onto a bar. Out of combat, hovering the bar slot should show the FOOD pick's tooltip.
 3. `/cm dump pick hp_aio` — confirms the resolved per-section picks and the assembled body.
 4. Macro body should look like:
@@ -120,7 +120,7 @@ Tests: `/castsequence [combat]` for in-combat, `/use [nocombat]` chain for out-o
    /castsequence [combat] reset=combat item:<HS>, item:<HP_POT>
    /use [nocombat] item:<FOOD>
    ```
-5. Toggle off `HS` in the AIO panel. Body re-issues with only `HP_POT` in the in-combat castsequence.
+5. Toggle off `HS` on the AIO Health tab. Body re-issues with only `HP_POT` in the in-combat castsequence.
 6. Toggle off everything in Out of Combat. Body emits a `/run if not InCombatLockdown() then print(...) end` fallback line for the empty side. (`/run` doesn't accept `[nocombat]` — confirms the addon uses the Lua-conditional gate.)
 7. Toggle off everything everywhere — body falls through to the empty-state stub with cooking-pot icon.
 
@@ -131,7 +131,7 @@ Tests: spec-aware macros update on `PLAYER_SPECIALIZATION_CHANGED`, score cache 
 1. Open `KCM_FLASK` body, note the picked flask.
 2. Switch specs via the talents UI (loadout selector or the spec dropdown).
 3. Within ~1 frame, expect: `KCM_FLASK` / `KCM_CMBT_POT` / `KCM_STAT_FOOD` / `KCM_WPN_ENCH` bodies update against the new spec's stat priority. Non-spec-aware macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`) stay unchanged.
-4. Open the **Stat Priority** panel; viewing-spec dropdown shows the new spec's icon + name. Primary + secondary fields populate from the override / seed / class fallback in that order.
+4. Open the **Stat Priority** page; the banner's viewing-spec dropdown shows the new spec's icon + name. Primary + secondary fields populate from the override / seed / class fallback in that order.
 5. `/cm dump pick flask` — score breakdown should weight stats per the new spec's priority.
 
 ### 6. Combat deferral
@@ -150,7 +150,7 @@ Tests: macro writes that hit combat queue, flush on regen, retry counter respect
 Tests: `/cm config` lands on About with sub-pages expanded; General-page checkboxes write through schema; resets fire StaticPopup.
 
 1. Close the Settings panel. Run `/cm config`.
-2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with all 17 sub-pages visible (General, Stat Priority, 13 categories, 2 AIO).
+2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **four** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
 4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width. A top-right **Defaults** button sits in the page header.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -166,11 +166,11 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 
 Tests: a mutation refreshes without stalling; off-screen pages update lazily on next show; the Defaults button uses the standard AceGUI look. Guards options-ui-§5 / §11 and anti-pattern #39.
 
-Setup: `/cm config`, then visit **General → two category pages → Stat Priority** so several sub-pages are rendered (the freeze only showed once multiple pages had been built).
+Setup: `/cm config`, then visit **General → two tabs on Macros → Stat Priority → two tabs on Macro Bar** so several pages and tabs are rendered (the freeze only showed once multiple pages had been built).
 
-1. **No freeze (options-ui-§11 / anti-pattern #39).** On General, toggle **Enable**, toggle **Debug console**, click **Force resync** — each responds **instantly**, no ~0.5s stall. Repeat on a category page and Stat Priority. Regression check: the old bug rebuilt *every* rendered sub-page's full renderer on each mutation; the fix rebuilds only the on-screen panel (`ctx.panel:IsShown()`) and defers the rest. (**Force rewrite macros** / **Reset all priorities** may still have a brief hitch — that's the synchronous macro rewrite, not the panel-refresh freeze.)
-2. **Lazy off-screen refresh stays correct.** While viewing General, run `/cm priority flask add 212283` (any valid flask ID). Navigate to the **Flask** category page — the new entry is present (the hidden page was flagged dirty and rebuilt on show), with no stale state and no Lua error.
-3. **Defaults button styling (options-ui-§5).** On every page that has one (General, Stat Priority, each category, AIO), the top-right **Defaults** button renders **dark with gold text** like the Absorb Tracker / KickCD panels — **not** red. It is an AceGUI `Button` (not a raw canvas-parented `UIPanelButtonTemplate`, which inherits the canvas red skin). Click it and confirm the page reset still fires (functionality preserved through the widget swap).
+1. **No freeze (options-ui-§11 / anti-pattern #39).** On General, toggle **Enable**, toggle **Debug console**, click **Force resync** — each responds **instantly**, no ~0.5s stall. Repeat on a Macros tab and on Stat Priority. Regression check: the old bug rebuilt *every* rendered sub-page's full renderer on each mutation; the fix rebuilds only the on-screen panel (`ctx.panel:IsShown()`) and defers the rest. (**Force rewrite macros** / **Reset all priorities** may still have a brief hitch — that's the synchronous macro rewrite, not the panel-refresh freeze.)
+2. **Lazy off-screen refresh stays correct.** While viewing General, run `/cm priority flask add 212283` (any valid flask ID). Navigate to the Macros page's **Flask** tab — the new entry is present (the hidden page was flagged dirty and rebuilt on show), with no stale state and no Lua error.
+3. **Defaults button styling (options-ui-§5).** On every page that has one (General, Macros, Stat Priority, Macro Bar), the top-right **Defaults** button renders **dark with gold text** like the Absorb Tracker / KickCD panels — **not** red. It is an AceGUI `Button` (not a raw canvas-parented `UIPanelButtonTemplate`, which inherits the canvas red skin). Click it and confirm the page reset still fires (functionality preserved through the widget swap).
 
 ### 7b. Debug console — scrollbar + line counter
 
@@ -184,22 +184,100 @@ Setup: `/reload`, then `/cm debug on` (arms capture) and `/cm debug` (opens the 
 4. **Two-way sync.** Mouse-wheel up/down over the log — the **thumb tracks** the scroll. Drag the **thumb** — the **log scrolls** to match. No flicker or runaway loop (the `_syncing` guard).
 5. **Thumb direction (the one thing to eyeball).** Thumb at **top = oldest** lines, thumb at **bottom = newest**. If it reads inverted, the `sliderValue ↔ offset` sign is flipped.
 
+### 7b. Settings panel — the tab strips and the page banner
+
+Tests: `options-ui-§13` (the pinned strip on Macros and Macro Bar) and `§14` (the Stat Priority
+banner). This is the redesign that collapsed fifteen category sub-pages into one page; everything
+below is new behaviour and none of it is covered by an automated case that can see pixels.
+
+**The Macros strip**
+
+1. Open **Macros**. A strip of tabs is pinned at the top of the page, ABOVE the scroll, and it does
+   not move when you scroll the body. Fifteen tabs, reading left to right and wrapping onto as many
+   rows as the window needs: **Food, Drink, Healing Potion, Mana Potion, Healthstone, AIO Health,
+   AIO Mana, Flask, Combat Potion, Stat Food, Weapon Enchant, Augment Rune, Vantus Rune, Bloodlust,
+   Battle Rez**. Full names, not the bar's abbreviations — no tab reads "Brez", "Lust" or "Rune".
+2. Food is selected on open. Its body is exactly what the old **Food** sub-page drew: drag icon, Add
+   item or spell by ID, Priority list, Reset category.
+3. Click **Battle Rez**. The body swaps; the **Cast on mouseover** checkbox appears (it is the only
+   targeted category). Click **Bloodlust** — the checkbox is gone. A checkbox that survives the
+   switch is a body that was not torn down.
+4. **Scroll position does not carry across a switch.** On a tab with a long priority list, scroll to
+   the bottom, then click another tab: the new tab opens at the TOP. Switch back: also at the top.
+   Then drag a row within one tab — there the scroll position *is* kept (section 9 covers that).
+5. **The window is narrow.** Drag the Settings window narrower and wider. The strip re-wraps onto
+   more or fewer rows and the page body follows it down or up; no tab is clipped and none overlaps.
+   Open the panel for the FIRST time at a narrow width — the strip must be correctly wrapped on that
+   first draw, not a vertical stack that heals when you click something.
+6. **Defaults is per-tab.** With **Flask** showing, click the top-right **Defaults** button: the
+   confirmation names Flask (and says "viewed spec"). Switch to **Food** and click it again: the
+   confirmation names Food. It must never offer to reset the whole page.
+7. **In combat.** Enter combat with the panel already open and click a different tab. It switches
+   normally — a tab click redraws widgets inside an open panel and was never a protected action.
+   (Opening the panel from scratch is still refused; that is section 7.)
+
+**The Macro Bar strip**
+
+8. Open **Macro Bar**. Eight tabs, in this order: **General, Layout, Bar appearance, Button
+   appearance, Labels, Flyout, Visibility, Contents**. There is no tab called "Bar" and none called
+   "Macros on the bar".
+9. Only the active tab's controls are on screen — the page is no longer one long scroll of eight
+   headings. There is no section HEADING repeating the tab's own name above the controls.
+10. Row counts, tab by tab: General **2** (Enable macro bar, Lock position) plus the Reset position /
+    Reset slot order button pair; Layout **8**; Bar appearance **7**, ending with **Bar opacity**;
+    Button appearance **11**; Labels **9**; Flyout **14**; Visibility **3**; Contents is the
+    per-macro checkbox grid (fifteen checkboxes) under the drag-to-swap hint.
+11. **Bar opacity is on Bar appearance, once.** It used to be declared among the button rows; if the
+    strip ever draws "Bar appearance" twice, or Bar opacity turns up on Button appearance, the
+    group's rows have stopped being contiguous.
+12. **Labels reads across.** The first line is `[Show button labels] [Label text]` — the master
+    toggle beside the thing it turns on. Then `[anchor] [placement]`, then `[offset X] [offset Y]`
+    side by side, then `[scale] [color]`, then `[outline]` on its own.
+13. Change a slider on Layout, switch to Flyout and back: the value you set is still there, and the
+    bar on screen still shows it. A value that reverts means the tab switch is rebuilding from
+    somewhere other than the profile.
+
+**The Stat Priority banner**
+
+14. Open **Stat Priority**. The spec dropdown sits in the page's own band ABOVE the scroll, with a
+    hairline rule beneath it, and it stays put while you scroll to the Secondary dropdowns. It is
+    labelled **Viewing spec**.
+15. There is **no** "Selection" section inside the scroll, and no second spec picker anywhere in the
+    panel — including on the Macros page's spec-aware tabs, which state the spec as a sentence
+    ("Spec-aware. Viewing: <spec>.") and offer no control.
+16. Pick a different spec in the banner. The Primary/Secondary dropdowns below repopulate, AND the
+    Macros page's Flask / Combat Potion / Stat Food / Weapon Enchant tabs follow — check by
+    switching to Macros and opening Flask.
+17. The banner's dropdown is not clipped: it has a label above the control, so its band is taller
+    than the bare 44px floor. A clipped label means the band is being forced rather than measured.
+18. Stat Priority draws **no** tab strip. One subject is left on the page after the picker moved up,
+    and a single tab would be chrome for its own sake.
+
+**Nothing else grew a strip**
+
+19. **General** draws no tab strip: two short sections (General, Maintenance) on one scroll, exactly
+    as before. Two controls and three buttons are not two subjects, and a strip over them would push
+    the page down for nothing.
+20. This addon registers no AceDBOptions **Profiles** page (`/cm resetall` is the profile reset, see
+    section 7). If one is ever added it stays untabbed — it is library-drawn, it is the same in every
+    Ka0s addon, and tabbing it is out of scope.
+
 ### 8. Settings panel — Stat Priority
 
-Tests: spec selector drives the spec-aware editor and the spec-aware category pages; reset drops the override.
+Tests: the banner's spec picker drives the spec-aware editor and the spec-aware tabs on Macros; reset drops the override.
 
-1. Open Stat Priority. Selection section shows a full-width spec dropdown with class+spec icon markup. Sorted alphabetically by class name with markup stripped.
+1. Open Stat Priority. The **banner** above the scroll — not a section inside it — shows a full-width spec dropdown with class+spec icon markup, with a hairline rule under it. Sorted alphabetically by class name with markup stripped. There is no second spec picker anywhere in the panel.
 2. Pick a different spec from the one you're playing. The Primary + Secondary 1–4 fields refresh against that spec's priority.
-3. Open the **Flask** page (spec-aware) — the subheader reads "Spec-aware. Viewing: <picked spec>." The priority list reflects the picked spec.
+3. Open the Macros page's **Flask** tab (spec-aware) — the subheader reads "Spec-aware. Viewing: <picked spec>." The priority list reflects the picked spec.
 4. Back on Stat Priority — change Primary stat. The field commits immediately; `/cm stat list` confirms the new value.
 5. Change Secondary #2 to `(none)` — the persisted secondary list compacts (the empty slot is dropped, not stored as `""`).
 6. Click **Reset stat priority** — drops the override for the viewed spec. Subsequent reads fall back to seed default → class-primary fallback. The top-right **Defaults** button does the same for the viewed spec.
 
-### 9. Settings panel — per-category (single)
+### 9. Settings panel — Macros, a single category
 
 Tests: drag icon, Add by ID (item + spell), priority list (drag to reorder, X), score tooltip.
 
-1. Open any single-category page (e.g. **Healing Potion**).
+1. Open the Macros page and pick any single-category tab (e.g. **Healing Potion**).
 2. Drag the macro icon at the top onto an action bar. Confirm placement worked (Blizzard `PlaceAction` drop — taint-free).
    - **In combat:** the drag is refused with `[CM] in combat — drag a macro to an action bar once combat ends.` and no Lua error. `PickupMacro` is protected; the same guard covers the macro-bar slots.
 3. Add by ID — Type=Item, paste an item ID you don't own (e.g. an old-tier potion). Press Enter. The row appears in the priority list with the red-X "not owned" glyph.
@@ -229,11 +307,11 @@ adoption is only correct if a drag feels identical in both, and neither addon ca
    the line must **stop** at it. Drag the bottom row here: it simply stays put, with no divide to
    stop at.
 
-### 10. Settings panel — composite (HP_AIO / MP_AIO)
+### 10. Settings panel — Macros, a composite (HP_AIO / MP_AIO)
 
 Tests: section-locked sub-cats, enabled toggle, reorder within section.
 
-1. Open **AIO Health**.
+1. Open the Macros page's **AIO Health** tab.
 2. Confirm In Combat shows HS + HP_POT (in that order by default), Out of Combat shows FOOD. Each row is `KCMItemRow + Enabled checkbox + ↑ + ↓` — no remove button (sub-cats are locked).
 3. Toggle Enabled off on a row — recompute fires, body excludes that sub-cat.
 4. Move HP_POT above HS in In Combat — castsequence rewrites in the new order.
@@ -316,7 +394,7 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 4. **Defaults button.** Every page except About shows it top-right. It must be the **AceGUI** button, not Blizzard's red stone one — that's the AceGUI skinning race the lazy build exists to dodge, and it's the single most likely regression here. Confirm with a skinning addon loaded if you have one.
 5. **Defaults works, and refuses in combat.** Click it on the General page → settings reset. Pull a dummy and click it → the gray in-combat refusal, no reset.
 6. **Section spacing.** On the Macro Bar page (the most section-dense), the gap above each heading after the first should look the same as before. A missing 10px gap between sections is the specific regression the `Section` wrapper prevents.
-7. **Scrollbar always visible.** On a short page the gutter is still there with the thumb parked and inert; on a long one (a Category page with a full priority list) it scrolls, and the wheel works.
+7. **Scrollbar always visible.** On a short page the gutter is still there with the thumb parked and inert; on a long one (a Macros tab with a full priority list) it scrolls, and the wheel works.
 8. **Live slider preview.** Macro Bar → drag the button-size or spacing slider. The bar must update **as you drag**, not on release. The library's slider commits on release by default; `sliderCommit = "change"` in the descriptor is what buys this back, so it is the first thing to check after a re-vendor.
 9. **Two-tier refresh.** Change a setting on one page, switch to another that shows the same value, and confirm it's current — then come back and confirm the first page didn't rebuild under you.
 10. **Debug console.** `/cm debug on` → console opens, header toggle reads green `Debug: ON`, and the `[Debug] logging enabled` + `[Init]` lines land in that order. Copy opens the copy box and `Ctrl+C` works; Clear empties it; the `N / 1500 lines` counter tracks.

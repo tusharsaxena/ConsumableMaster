@@ -1,10 +1,15 @@
 -- settings/StatPriority.lua — Stat Priority page.
 --
--- Selection: full-width spec dropdown (class+spec icon markup, sorted by
---   stripped class name so the texture markup doesn't pollute the order).
---   The selector is the single source of truth for KCM.Options._viewedSpec —
---   spec-aware category panels (Stat Food, Combat Potion, Flask, Weapon Enchant)
---   read it on each render.
+-- Banner: the spec picker, pinned above the scroll in the page's chrome band
+--   (options-ui-§14) -- class+spec icon markup, sorted by stripped class name so
+--   the texture markup doesn't pollute the order. It was a "Selection" SECTION
+--   inside the scroll until the redesign; §14 wants the thing a page is editing
+--   named at the top of it, where it stays visible while you scroll the six
+--   dropdowns it governs. It is still the SINGLE source of truth for
+--   KCM.Options._viewedSpec -- the spec-aware category tabs (Stat Food, Combat
+--   Potion, Flask, Weapon Enchant) read it on each render, and §14's rule that
+--   the banner REPLACES a picker rather than mirroring one is why they show the
+--   viewed spec as a sentence and offer no second picker of their own.
 --
 -- Priority: paired 50/50 layout —
 --    Primary stat   | (empty)
@@ -215,24 +220,31 @@ local function render(ctx)
     local scroll  = H.EnsureScroll(ctx)
     local specKey = resolveViewedSpec()
 
-    H.Section(ctx, L["Selection"])
+    -- The page banner (options-ui-§14), NOT a row in the scroll: the picker for
+    -- what this page is editing belongs above the page, pinned, where it stays
+    -- readable while you scroll the priorities it governs. Drawn before anything
+    -- reaches the scroll, because it reserves its own share of the chrome band
+    -- and the scroll anchors under whatever the band ends up being.
     local values, sorting = specSelectorValues()
-    makeDropdown(scroll, {
+    H.PageBanner(ctx, {
         label   = L["Viewing spec"],
-        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Stat Food, Combat Potion, Flask, and Weapon Enchant tabs."],
-        values  = values,
-        sorting = sorting,
+        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Macros page's Stat Food, Combat Potion, Flask and Weapon Enchant tabs."],
+        list    = values,
+        order   = sorting,
         value   = O._viewedSpec,
-        onChange = function(v)
+        onSelect = function(v)
             O._viewedSpec = v
             O._viewedSpecAuto = (v == currentSpecKey())
             H.RefreshAllPanels()
         end,
     })
 
-    H.Section(ctx, L["Priority"])
+    -- No section heading and no tab strip. What is left on this page after the
+    -- picker moved into the banner is ONE subject -- the six stat dropdowns and
+    -- the reset that drops them -- and a strip over a single group is chrome for
+    -- its own sake that would push the page down for nothing (options-ui-§13).
     if not specKey then
-        H.Label(ctx, L["|cffff8800No spec selected.|r Pick one above to edit its stat priority."], "medium")
+        H.Label(ctx, L["|cffff8800No spec selected.|r Pick one in the banner above to edit its stat priority."], "medium")
         return
     end
 
