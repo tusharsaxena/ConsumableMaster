@@ -53,6 +53,44 @@ function BM.NormalizeOrder(order, allKeys)
     return out, changed
 end
 
+-- ---------------------------------------------------------------------------
+-- Visibility: the addon-wide master setting INTERSECTED with the bar's own
+-- ---------------------------------------------------------------------------
+--
+-- Two combat-conditional settings govern whether the bar is on screen, and they
+-- are different settings: `db.profile.visibility` is options-ui-§15's addon-wide
+-- General visibility, `macroBar.combatMode` is this one instance's Combat
+-- visibility. Applying one and ignoring the other is what makes a control look
+-- broken, so they are INTERSECTED -- the bar shows only where both say show.
+--
+-- Answers what to hand Blizzard's secure visibility driver, or the literal
+-- "show" / "hide" where the answer does not depend on combat at all. A driver
+-- string rather than a Show()/Hide() decision wherever combat is involved,
+-- because only the secure manager can flip it mid-fight.
+--
+-- Pure, and here rather than in modules/MacroBar.lua, because the intersection
+-- is a truth table and a truth table is exactly what a headless suite can pin.
+local MASTER_IN_COMBAT  = { inCombat = true }
+local MASTER_OUT_COMBAT = { outOfCombat = true }
+
+function BM.ResolveVisibility(master, combatMode)
+    if master == "never" then return "hide" end
+
+    local masterIn  = MASTER_IN_COMBAT[master or "always"] or false
+    local masterOut = MASTER_OUT_COMBAT[master or "always"] or false
+    -- What the bar's own mode says about each half of the fight.
+    local barIn  = combatMode ~= "HIDE_IN_COMBAT"
+    local barOut = combatMode ~= "ONLY_IN_COMBAT"
+
+    local showIn  = barIn  and not masterOut
+    local showOut = barOut and not masterIn
+
+    if showIn and showOut then return "show" end
+    if showIn then return "[combat] show; hide" end
+    if showOut then return "[combat] hide; show" end
+    return "hide"
+end
+
 -- Index of `key` in `order`, or nil.
 function BM.IndexOf(order, key)
     for i, k in ipairs(order or {}) do

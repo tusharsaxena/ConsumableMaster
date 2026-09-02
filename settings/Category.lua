@@ -18,8 +18,8 @@
 -- Composite layout (HP_AIO / MP_AIO):
 --   1. KCMMacroDragIcon row.
 --   2. Subheader description.
---   3. Section "In Combat"     — sub-cat rows (KCMItemRow | Enabled | up | down).
---   4. Section "Out of Combat" — same shape.
+--   3. Section "In Combat"     — sub-cat rows (drag handle | KCMItemRow | Enabled).
+--   4. Section "Out of Combat" — same shape, its OWN controller.
 --   5. Inline "Reset category" button (StaticPopup-confirmed).
 --
 -- Reads from Selector / Categories / Ranker / BagScanner / SpecHelper; writes
@@ -57,6 +57,16 @@ local CHECK_W               = 78
 -- the handle, the copy carried under the cursor, the insertion line and the
 -- index arithmetic are all its, and every row above is still entirely ours.
 local HANDLE_ICON = "segment"
+
+-- The handle's GUTTER IS THE LIBRARY'S, not ours (options-ui-§18): lib.ROW_BOX.HANDLE_W is the
+-- fixed width every draggable list in the collection reads at, and it moved 24 -> 30 for this pass.
+-- Read, never restated -- and never confused with ROW_BTN_W above, which is the width of the
+-- row's square ACTION buttons and was only ever the same number by coincidence.
+--
+-- The slot is sized from it rather than from a literal so the cell Flow reserves and the handle the
+-- library draws into it are the same width; `handleSize` is deliberately NOT passed to ReorderList,
+-- so the widget's own default is the one thing that decides.
+local HANDLE_W_FALLBACK = 30
 
 local function reorderWidgets()
     local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
@@ -519,24 +529,45 @@ end
 --- widget that resolves that name does not exist yet -- it is the next child Flow places. So the
 --- slot is claimed now, in the position the layout needs, and the row is handed to the library
 --- once there is something to call it.
---- Stop the previous render's drag and give its handles back.
+--- Stop every drag the previous render started and give its handles and row boxes back.
 ---
 --- CALLED BEFORE H.ResetScroll, ON EVERY DISPATCH, and that order is the whole of it. Releasing a
 --- handle is what takes it off the AceGUI container it was parented to, and ResetScroll hands every
 --- container on this page back to AceGUI's process-wide pool -- where the next thing to ask for a
 --- SimpleGroup gets one with a live handle still sitting on it. Cancelling afterwards is how drag
 --- handles turned up on the "Drag to action bar" row, on the ID entry row, and on a dropdown.
+---
+--- A LIST, NOT A CONTROLLER. A composite page builds TWO -- one per combat-state section, because
+--- the two are separate stored arrays -- and a seam that held a single controller would have kept
+--- only the second, leaking the first section's handles and boxes onto the recycled widgets of
+--- whatever the page drew next. A single-list page simply has one entry.
 local function cancelReorder(ctx)
-    if ctx and ctx.kcmReorder then
-        ctx.kcmReorder:Cancel()
-        ctx.kcmReorder = nil
-    end
+    local lists = ctx and ctx.kcmReorder
+    if not lists then return end
+    for _, list in ipairs(lists) do list:Cancel() end
+    ctx.kcmReorder = nil
+end
+
+--- Remember one controller for the cancel above. Returns it, so a caller can keep using it as an
+--- expression. Nil-tolerant: with LibKa0s-Widgets absent there is no controller to track and the
+--- page degrades to an undraggable list (options-ui-§18).
+local function trackReorder(ctx, list)
+    if not list then return nil end
+    ctx.kcmReorder = ctx.kcmReorder or {}
+    ctx.kcmReorder[#ctx.kcmReorder + 1] = list
+    return list
+end
+
+local function handleGutter()
+    local W = reorderWidgets()
+    local box = W and W.ROW_BOX
+    return (box and box.HANDLE_W) or HANDLE_W_FALLBACK
 end
 
 local function renderRowHandle(row)
     local slot = AceGUI:Create("SimpleGroup")
     slot:SetLayout(nil)
-    slot:SetWidth(ROW_BTN_W)
+    slot:SetWidth(handleGutter())
     slot:SetHeight(ROW_H)
     row:AddChild(slot)
     return slot
@@ -559,15 +590,29 @@ local function renderRowButtons(row, cat, specKey, rowID)
     })
 end
 
+-- The score button's descriptor for one row: its title and its tooltip body.
+--
+-- Its own function because the Ranker ladder is four short-circuits and lizard
+-- counts every one as a decision, which is what put renderPriorityRow over the
+-- CCN cap with no branching a reader would see (performance-§10).
+local function scoreDescriptor(cat, rowID, rankerCtx)
+    local explain = KCM.Ranker and KCM.Ranker.Explain
+        and KCM.Ranker.Explain(cat.key, rowID, rankerCtx) or nil
+    local title = explain
+        and (L["Rank score: %s"]):format(formatNumber(explain.score))
+        or L["Rank score"]
+    return title, formatScoreTooltipDesc(explain)
+end
+
+-- The name the carried copy reads, off the item cell that has just resolved it.
+local function ghostTextOf(itemRow)
+    return itemRow and itemRow.label and itemRow.label:GetText() or nil
+end
+
 -- One priority row: the item cell, its score tooltip, and the move/remove buttons.
 -- `p` carries the list-wide facts the row reads: rankerCtx, pick, mh, oh, mhAff, ohAff.
 local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
-    local explain = KCM.Ranker and KCM.Ranker.Explain
-        and KCM.Ranker.Explain(cat.key, rowID, p.rankerCtx) or nil
-    local scoreTitle = explain
-        and (L["Rank score: %s"]):format(formatNumber(explain.score))
-        or L["Rank score"]
-
+    local scoreTitle, scoreDesc = scoreDescriptor(cat, rowID, p.rankerCtx)
     local rowPickMH, rowPickOH, applicableArg = perHandFlags(cat, rowID, p)
 
     local row = newRow(scroll, ROW_H)
@@ -585,7 +630,7 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
     makeScoreBtn(row, {
         image   = "Interface\\FriendsFrame\\InformationIcon",
         label   = scoreTitle,
-        tooltip = formatScoreTooltipDesc(explain),
+        tooltip = scoreDesc,
     })
     renderRowButtons(row, cat, specKey, rowID)
 
@@ -596,7 +641,7 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
     if slot then
         list:AddRow(row.frame, {
             parent    = slot.frame or slot.content,
-            ghostText = itemRow and itemRow.label and itemRow.label:GetText() or nil,
+            ghostText = ghostTextOf(itemRow),
             height    = ROW_H,
         })
     end
@@ -615,42 +660,43 @@ local function buildRankerCtx(cat, specKey, priority)
     return rankerCtx
 end
 
--- The priority list proper: the no-spec and empty states, or one row per candidate.
-local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAff)
+-- The two states that have no rows to draw. Returns the message, or nil when
+-- there IS a list -- so the caller reads as "empty state, else draw", and the
+-- guard ladder is not counted against the drawing function's complexity.
+local function priorityEmptyState(cat, specKey, priority)
     if cat.specAware and not specKey then
-        H.Label(ctx,
-            L["|cffff8800No active spec.|r Spec-aware categories need a resolvable spec to display a priority list."],
-            "medium")
-        return
+        return L["|cffff8800No active spec.|r Spec-aware categories need a resolvable spec to display a priority list."]
     end
-
-    local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
-        and KCM.Selector.GetEffectivePriority(cat.key, specKey)) or {}
     if #priority == 0 then
-        H.Label(ctx,
-            L["|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery."],
-            "medium")
-        return
+        return L["|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery."]
     end
+    return nil
+end
 
-    local p = {
+-- The list-wide facts every row reads, gathered once so fifteen rows do not each
+-- re-ask the Selector who the pick is.
+local function priorityRowContext(cat, specKey, priority, mh, oh, mhAff, ohAff)
+    return {
         rankerCtx = buildRankerCtx(cat, specKey, priority),
         pick = (not cat.perHand) and KCM.Selector and KCM.Selector.PickBestForCategory
             and KCM.Selector.PickBestForCategory(cat.key, specKey) or nil,
         mh = mh, oh = oh, mhAff = mhAff, ohAff = ohAff,
     }
+end
 
-    -- ONE CONTROLLER PER RENDER. The one before it was cancelled at the top of the dispatch, before
-    -- ResetScroll -- see cancelReorder for why it cannot be done here instead.
+-- ONE CONTROLLER PER RENDER, built here so the drawing function below reads as the
+-- draw. The one before it was cancelled at the top of the dispatch, before
+-- ResetScroll -- see cancelReorder for why it cannot be done here instead.
+local function makePriorityList(ctx, cat, specKey, priority)
     local W = reorderWidgets()
+    if not W then return nil end
 
-    local list = W and W.ReorderList({
+    return trackReorder(ctx, W.ReorderList({
         stride     = ROW_H,
         -- No boundary. This list is flat -- every row is a priority and they are all one group --
         -- which is the common case the library defaults to. MultiMeters' Columns page is the one
         -- that divides, because a shown column may not be dragged among the hidden ones.
         handleIcon = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
-        handleSize = ROW_BTN_W,
         handleTooltip = L["Drag to reorder"],
         onMove     = function(from, to)
             local id = priority[from]
@@ -665,10 +711,24 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
         end,
         debug      = (KCM.State and KCM.State.debug and KCM.Debug)
             and function(fmt, ...) KCM.Debug("Prio", fmt, ...) end or nil,
-    })
-    ctx.kcmReorder = list
+    }))
+end
 
-    if KCM.State and KCM.State.debug and KCM.Debug then
+-- The priority list proper: the no-spec and empty states, or one row per candidate.
+local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAff)
+    local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
+        and KCM.Selector.GetEffectivePriority(cat.key, specKey)) or {}
+
+    local empty = priorityEmptyState(cat, specKey, priority)
+    if empty then
+        H.Label(ctx, empty, "medium")
+        return
+    end
+
+    local p = priorityRowContext(cat, specKey, priority, mh, oh, mhAff, ohAff)
+    local list = makePriorityList(ctx, cat, specKey, priority)
+
+    if isDebugOn() and KCM.Debug then
         KCM.Debug("Prio", "paint %s rows=%d spec=%s", cat.key, #priority, tostring(specKey))
     end
 
@@ -753,33 +813,28 @@ end
 -- Composite render (HP_AIO / MP_AIO)
 -- ---------------------------------------------------------------------
 
--- One sub-category row of a composite section: the pick, the Enabled checkbox,
--- and the two arrows that move it within its own section.
+-- One sub-category row of a composite section: the drag handle's slot, the pick,
+-- and the Enabled checkbox.
+--
+-- THE UP AND DOWN ARROWS ARE GONE, for the same reason they went from the
+-- priority rows: two buttons that each moved a row one place could not express
+-- "put this one third" without being clicked until it was, and every click was a
+-- macro rebuild. `Selector.MoveCompositeRef` says it in one call and the drag is
+-- how a player says it (options-ui-§18, anti-patterns #75).
 --
 -- Extracted out of renderComposite rather than left inlined: the loop body was
--- four widget declarations with three closures over the same six locals, and the
--- whole function sat at CCN 18 with it. `index` and `size` are passed by value
--- because each closure has to capture the position the row was DRAWN at -- the
--- array is mutated underneath them and the loop variable is not stable.
-local function renderCompositeRow(scroll, cfg, orderField, ref, index, size)
+-- four widget declarations with closures over the same locals, and the whole
+-- function sat at CCN 18 with it.
+local function renderCompositeRow(scroll, cfg, ref, list)
     local refCat   = KCM.Categories.Get(ref)
     local refLabel = refCat and refCat.displayName or ref
     local pick     = (KCM.Selector and KCM.Selector.PickBestForCategory)
         and KCM.Selector.PickBestForCategory(ref) or nil
 
-    -- The two arrows differ by one step and one end-stop, so they are one
-    -- descriptor apiece rather than two near-identical blocks.
-    local function swapWith(step, reason)
-        return function()
-            local arr = cfg[orderField]
-            local to  = index + step
-            if not arr or to < 1 or to > #arr then return end
-            arr[index], arr[to] = arr[to], arr[index]
-            afterMutation(reason)
-        end
-    end
-
     local row = newRow(scroll, ROW_H)
+    -- HANDLE FIRST, at the left edge, then the item, then the checkbox. Flow places its children in
+    -- the order they are added, so this order IS the layout.
+    local slot = list and renderRowHandle(row) or nil
     makeItemRow(row, {
         itemID       = pick,
         owned        = isOwned(pick),
@@ -797,20 +852,17 @@ local function renderCompositeRow(scroll, cfg, orderField, ref, index, size)
             afterMutation("options_aio_toggle")
         end,
     })
-    makeIconBtn(row, {
-        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollUp-Up",
-        label    = L["Move up"],
-        tooltip  = L["Move higher in section order"],
-        disabled = (index == 1) or (size <= 1),
-        onClick  = swapWith(-1, "options_aio_move_up"),
-    })
-    makeIconBtn(row, {
-        image    = "Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up",
-        label    = L["Move down"],
-        tooltip  = L["Move lower in section order"],
-        disabled = (index == size) or (size <= 1),
-        onClick  = swapWith(1, "options_aio_move_down"),
-    })
+
+    -- Registered LAST, once the item cell has resolved the name the carried copy reads. The slot it
+    -- goes into was claimed before any of this, so the layout is unaffected by the order these two
+    -- things happen in.
+    if slot then
+        list:AddRow(row.frame, {
+            parent    = slot.frame or slot.content,
+            ghostText = refLabel,
+            height    = ROW_H,
+        })
+    end
 end
 
 -- The two combat-state sections a composite is made of. Sub-categories are
@@ -820,16 +872,42 @@ local AIO_SECTIONS = {
     { orderField = "orderOutOfCombat", label = L["Out of Combat"] },
 }
 
-local function renderCompositeSection(ctx, scroll, cfg, section)
+-- ONE CONTROLLER PER SECTION, and that is the shape the DATA has: the two sections are two
+-- SEPARATE stored arrays, so they are two flat lists rather than one list with a boundary. A drag
+-- therefore cannot cross between In Combat and Out of Combat, which is exactly right -- a
+-- sub-category is locked to its section and a gesture that appeared to move one across would be a
+-- gesture with nothing to save.
+local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
     H.Section(ctx, section.label)
     local orderArr = cfg[section.orderField] or {}
     if #orderArr == 0 then
         H.Label(ctx, L["|cffff8800(no sub-categories)|r"], "medium")
         return
     end
-    for i, ref in ipairs(orderArr) do
-        renderCompositeRow(scroll, cfg, section.orderField, ref, i, #orderArr)
+
+    local W = reorderWidgets()
+    local list = trackReorder(ctx, W and W.ReorderList({
+        stride        = ROW_H,
+        handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
+        handleTooltip = L["Drag to reorder"],
+        onMove        = function(from, to)
+            -- A splice to index, one write and one re-render -- never a run of adjacent swaps.
+            if KCM.Selector and KCM.Selector.MoveCompositeRef
+                and KCM.Selector.MoveCompositeRef(catKey, section.orderField, from, to) then
+                afterMutation("options_aio_move_drag")
+            end
+        end,
+        debug         = (KCM.State and KCM.State.debug and KCM.Debug)
+            and function(fmt, ...) KCM.Debug("Prio", fmt, ...) end or nil,
+    }) or nil)
+
+    for _, ref in ipairs(orderArr) do
+        renderCompositeRow(scroll, cfg, ref, list)
     end
+
+    -- The insertion line lives on what every row in THIS section shares as an ancestor. Each
+    -- controller gets its own call, so neither section inherits the other's.
+    if list then list:Finish(scroll.content or scroll.frame) end
 end
 
 local function renderComposite(ctx, cat)
@@ -851,7 +929,7 @@ local function renderComposite(ctx, cat)
         "medium")
 
     for _, section in ipairs(AIO_SECTIONS) do
-        renderCompositeSection(ctx, scroll, cfg, section)
+        renderCompositeSection(ctx, cat.key, scroll, cfg, section)
     end
 
     -- Inline reset
@@ -922,10 +1000,28 @@ local function activeCategory(ctx)
     return KCM.Categories.Get(ctx.activeTab), tabs
 end
 
+--- The empty state, drawn as CONTENT INSIDE the page rather than as a branch that
+--- skips the strip (options-ui-§13, contract step 2.5). Unreachable in the shipped
+--- configuration -- KCM.Categories.LIST is a constant of fifteen and macroTabs maps
+--- every entry -- but "unreachable today" is not the same as "cannot render
+--- strip-less", and the guard it replaces was the second kind.
+local function renderNoCategories(ctx)
+    cancelReorder(ctx)
+    H.ResetScroll(ctx)
+    H.EnsureScroll(ctx)
+    H.Label(ctx, L["|cffff8800(no categories)|r — nothing to configure. This is a broken install; /reload, and reinstall the addon if it persists."], "medium")
+end
+
 local function renderMacros(ctx)
     local cat, tabs = activeCategory(ctx)
-    if not (cat and #tabs > 0) then return end
 
+    -- THE STRIP IS DRAWN FIRST AND UNCONDITIONALLY. It is chrome, not data: a page
+    -- that skips it for some state teaches the player that the strip is optional,
+    -- and this one used to skip it whenever the category list was empty. With no
+    -- tabs the library's own guard (O.TabStrip's `#spec.tabs > 0`) draws nothing,
+    -- because a zero-tab strip is not a strip -- but the decision is the library's
+    -- now, taken on the same terms for all nine addons, rather than a host branch
+    -- that also skipped the page's whole body.
     H.TabStrip(ctx, {
         tabs     = tabs,
         value    = ctx.activeTab,
@@ -942,6 +1038,7 @@ local function renderMacros(ctx)
         end,
     })
 
+    if not cat then return renderNoCategories(ctx) end
     if cat.composite then renderComposite(ctx, cat)
     else                  renderSingle(ctx, cat) end
 end

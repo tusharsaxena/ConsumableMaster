@@ -1,12 +1,23 @@
 -- settings/General.lua — General page.
 --
--- Two sections:
---   * General      — paired [Enable] | [Debug console] checkboxes. [Enable] is
---                    the schema-backed master toggle; [Debug console] shows/hides
---                    the console window only (never the debug flag), matching a
---                    bare /cm debug.
---   * Maintenance  — Row 1: Force resync | Force rewrite macros (paired 50/50).
---                    Row 2: Reset all priorities (full-width, StaticPopup-confirmed).
+-- TWO TABS on a pinned strip (options-ui-§13), where there used to be two
+-- H.Section headings drawn straight into the scroll:
+--
+--   * Master controls — the canonical eight (options-ui-§15), COMPOSED by the
+--     library's MasterControls rather than typed out here, and closed by the
+--     [Reset position] | [Reset all settings] button pair. It is the FIRST tab
+--     on the page, which is the whole rule: the one thing every player looks for
+--     first is in the same place, under the same words, in every Ka0s addon.
+--   * Maintenance — the three targeted verbs this addon has and no other Ka0s
+--     addon does: force a resync, force a macro rewrite, and drop every priority
+--     override. None of them is a setting, so none of them is a row.
+--
+-- THE TWO RESETS ARE DIFFERENT ACTS and are deliberately on different tabs.
+-- [Reset all settings] is options-ui-§12's global reset — a profile reset, the
+-- same act as Profiles → Reset Profile, behind the collection's one wording.
+-- [Reset all priorities] is targeted: it clears the added / blocked / pinned
+-- items and the stat-priority overrides and leaves every other setting standing.
+-- The button that used to sit here said the second and did the first.
 --
 -- Every execute path is shared with the slash commands so behavior stays
 -- identical regardless of entry point.
@@ -16,24 +27,39 @@ local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
 
+-- Defaults come from KCM.dbDefaults, never a second literal (architecture-§5),
+-- and they are handed to the composer so it emits THIS addon's shipped values
+-- rather than its own generic ones.
+local PROFILE_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile) or {}
+local BAR_DEFAULTS     = PROFILE_DEFAULTS.macroBar or {}
+
 local function inCombatNotice(label)
     KCM.Say("in combat — %s deferred until regen.", label)
+end
+
+-- Invalidate what is cached, re-read the bags, recompute every pick, repaint.
+-- Shared by the Force resync button and by the priority reset below, which needs
+-- the same tail for the same reason -- and having it once is also what keeps
+-- either of them under the complexity cap, since each guard in the ladder counts
+-- as a decision (performance-§10).
+local function resyncPipeline(reason)
+    if KCM.TooltipCache and KCM.TooltipCache.InvalidateAll then
+        KCM.TooltipCache.InvalidateAll()
+    end
+    if KCM.Pipeline and KCM.Pipeline.RunAutoDiscovery then
+        KCM.Pipeline.RunAutoDiscovery(reason)
+    end
+    if KCM.Pipeline and KCM.Pipeline.Recompute then
+        KCM.Pipeline.Recompute(reason)
+    end
+    H.RefreshAllPanels()
 end
 
 local function doForceResync()
     if InCombatLockdown and InCombatLockdown() then
         return inCombatNotice("resync")
     end
-    if KCM.TooltipCache and KCM.TooltipCache.InvalidateAll then
-        KCM.TooltipCache.InvalidateAll()
-    end
-    if KCM.Pipeline and KCM.Pipeline.RunAutoDiscovery then
-        KCM.Pipeline.RunAutoDiscovery("options_resync")
-    end
-    if KCM.Pipeline and KCM.Pipeline.Recompute then
-        KCM.Pipeline.Recompute("options_resync")
-    end
-    H.RefreshAllPanels()
+    resyncPipeline("options_resync")
 end
 
 local function doForceRewriteMacros()
@@ -50,10 +76,16 @@ local function doForceRewriteMacros()
     H.RefreshAllPanels()
 end
 
+-- The GLOBAL reset (options-ui-§12): the session-only rows restored by hand, then
+-- a profile reset — the same act AceDBOptions' own Reset Profile performs. BOTH
+-- halves are KCM.ResetAllToDefaults', not this button's, because `/cm resetall`
+-- is the same act through another door and the two must not drift. The resync is
+-- in neither half: it happens on the OnProfileReset callback, which is the one
+-- path a profile SWITCH takes too.
 local function doResetAll()
-    -- Combat-guarded to match the Maintenance section's sibling buttons; the
+    -- Combat-guarded to match the Maintenance tab's sibling buttons; the
     -- DB wipe itself is combat-safe (MacroManager defers macro writes to
-    -- regen), but blocking here keeps the section's behavior uniform.
+    -- regen), but blocking here keeps the page's behavior uniform.
     if InCombatLockdown and InCombatLockdown() then
         return inCombatNotice("reset")
     end
@@ -63,28 +95,45 @@ local function doResetAll()
     H.RefreshAllPanels()
 end
 
--- Top-right Defaults button (options-ui-§5) resets THIS page only: the
--- persisted master enable back to its default, and the debug console back to
--- its login state — logging off AND the window hidden (the [Debug console]
--- checkbox mirrors window visibility, so hiding it unchecks the box). The
--- account-wide "reset everything" is the separate inline button in
--- Maintenance, behind its own confirmation popup.
-local function doResetGeneralPage()
-    local defaults = KCM.dbDefaults and KCM.dbDefaults.profile or {}
-    if KCM.db and KCM.db.profile then
-        KCM.db.profile.enabled = defaults.enabled ~= false
+-- The bucket fields a priority reset clears. `discovered` is deliberately not
+-- among them: auto-discovery findings are what the bags say, not what the player
+-- chose, and they survive exactly as they survive a per-category reset.
+local PRIORITY_FIELDS = { "added", "blocked", "pins" }
+
+local function clearBucket(bucket)
+    if type(bucket) ~= "table" then return end
+    for _, field in ipairs(PRIORITY_FIELDS) do
+        if type(bucket[field]) == "table" then bucket[field] = {} end
     end
-    if KCM.DebugLog and KCM.DebugLog.SetEnabled then
-        KCM.DebugLog.SetEnabled(false)
-        if KCM.DebugLog.Hide then KCM.DebugLog.Hide() end
-    elseif KCM.State then
-        KCM.State.debug = false
-    end
-    if KCM.Pipeline and KCM.Pipeline.Recompute then
-        KCM.Pipeline.Recompute("options_general_defaults")
-    end
-    H.RefreshAllPanels()
 end
+
+-- The TARGETED reset the old "Reset all priorities" button claimed and did not
+-- do: every category's added / blocked / pinned items and every spec's stat
+-- priority override, and nothing else — the macro bar's appearance, the master
+-- controls and the composite section orders are all left standing.
+--
+-- Driven off the SHAPE of what is stored rather than off a list of category
+-- keys: a spec-aware category keeps its buckets under `bySpec`, and a list of
+-- keys written here is a list that goes stale the first time a category is
+-- added.
+local function doResetAllPriorities()
+    if InCombatLockdown and InCombatLockdown() then
+        return inCombatNotice("reset")
+    end
+    local profile = KCM.db and KCM.db.profile
+    if not profile then return end
+
+    for _, bucket in pairs(profile.categories or {}) do
+        clearBucket(bucket)
+        if type(bucket) == "table" and type(bucket.bySpec) == "table" then
+            for _, specBucket in pairs(bucket.bySpec) do clearBucket(specBucket) end
+        end
+    end
+    profile.statPriority = {}
+
+    resyncPipeline("options_reset_priorities")
+end
+KCM.ResetAllPriorities = doResetAllPriorities
 
 StaticPopupDialogs["KCM_RESET_ALL"] = {
     -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on
@@ -101,39 +150,151 @@ StaticPopupDialogs["KCM_RESET_ALL"] = {
     OnAccept     = function() doResetAll() end,
 }
 
-local function render(ctx)
-    H.ResetScroll(ctx)
-    local scroll = H.EnsureScroll(ctx)
+-- A SECOND popup, because it warns about a genuinely narrower act. Sharing the
+-- global reset's text would be the same lie the shared BUTTON was: a player told
+-- "everything you have configured is discarded" and then finding their macro bar
+-- untouched learns not to trust the warning.
+StaticPopupDialogs["KCM_RESET_PRIORITIES"] = {
+    text         = L["Wipe every category's added, blocked and pinned items and every spec's stat priority? Nothing else is changed, and discovered items are kept."],
+    button1      = L["Yes"],
+    button2      = L["No"],
+    timeout      = 0,
+    whileDead    = true,
+    hideOnEscape = true,
+    OnAccept     = function() doResetAllPriorities() end,
+}
 
-    -- General: two-column paired grid (options-ui-§6). [Enable] is the
-    -- schema-backed master toggle; [Debug console] shows/hides the console
-    -- WINDOW only — it never touches the session debug flag (KCM.State.debug),
-    -- exactly like a bare `/cm debug` (debug-logging-§5). Logging is armed
-    -- separately via the in-window Debug: ON/OFF toggle or `/cm debug on|off`.
-    H.Section(ctx, L["General"])
-    local enabledDef = H.FindSchema("enabled")
-    -- The spec is the library's: D:ConsoleCheckbox() returns the
-    -- { label, tooltip, get, set } shape CustomCheckbox already consumes, and
-    -- it is the console's own description of how it is shown and hidden — so
-    -- the wording and the visibility semantics cannot drift from the window
-    -- they describe. The `make` hatch stays because Grid needs an item, and
-    -- this cell is a bespoke widget rather than a schema row.
-    --
-    -- Its tooltip differs from the one this page used to carry: it names
-    -- `/cm debug` in the same sentence rather than in a trailing one. Adopted
-    -- deliberately (LIBKA0S-06) — one description of the console, owned by the
-    -- console.
-    local debugConsole = {
-        make = function(c, parent, relW)
-            local DL = KCM.DebugLog
-            local spec = DL and DL.instance and DL.instance:ConsoleCheckbox()
-            if not spec then return end
-            H.CustomCheckbox(c, parent, relW, spec)
+-- ---------------------------------------------------------------------
+-- The Master controls tab — COMPOSED, never typed out (options-ui-§15)
+-- ---------------------------------------------------------------------
+--
+-- Eight rows, two per line, in the canonical order, closed by the two resets as
+-- a button pair. Nine addons emit them from this one declaration, which is what
+-- makes the order, the labels and the ranges identical without nine people
+-- agreeing to be careful.
+--
+-- NOT frameless: modules/MacroBar.lua's buildBar calls SetMovable(true) on the
+-- bar's container, so all four frame-only rows apply and none is omitted.
+--
+-- `keys` and `defaults` are what keep the STORED side unchanged. `Lock frame`
+-- has always been `macroBar.locked` and stays there — the setting moved tabs, not
+-- storage — and every default is read out of KCM.dbDefaults rather than restated.
+--
+-- MASTER SCALE, MASTER ALPHA and GENERAL VISIBILITY ARE NEW, and they are the
+-- ADDON-WIDE ones. The macro bar's own `Bar scale`, `Bar opacity` and
+-- `Combat visibility` stay on its page and are a different setting; the two
+-- compose (modules/MacroBar.lua's masterScale / masterAlpha, and
+-- MacroBarModel.ResolveVisibility for the intersection of the two visibilities).
+
+local function applyBar()
+    if KCM.MacroBar and KCM.MacroBar.Update then KCM.MacroBar.Update() end
+end
+
+local masterRows, masterTail = H.MasterControls{
+    prefix    = "",
+    page      = "general",
+    addonName = "Consumable Master",
+    -- Verbatim and unprefixed, because the console's visibility is SESSION state
+    -- and lives outside the profile. settings/Panel.lua's SESSION_PATHS is what
+    -- resolves it.
+    debugConsolePath = "state.debugConsole",
+    keys      = { locked = "macroBar.locked" },
+    defaults  = {
+        enabled    = PROFILE_DEFAULTS.enabled,
+        visibility = PROFILE_DEFAULTS.visibility,
+        scale      = PROFILE_DEFAULTS.scale,
+        alpha      = PROFILE_DEFAULTS.alpha,
+        locked     = BAR_DEFAULTS.locked,
+        -- NOT read out of KCM.dbDefaults, and it is the one default here that is a
+        -- literal: the console's visibility is session state and has no home in the
+        -- profile to read it from. Declared all the same, because it is what makes the
+        -- row RESETTABLE -- the global reset's session sweep
+        -- (core/ConsumableMaster.lua's restoreSessionRows), this page's Defaults
+        -- button and `/cm reset general` all key on `default ~= nil`, and the composer
+        -- emits the row without one. Closed at login is the state a fresh session has.
+        debugConsole = false,
+    },
+    onResetPosition = function()
+        if KCM.MacroBar and KCM.MacroBar.ResetPosition then
+            KCM.MacroBar.ResetPosition()
+            KCM.Say("macro bar position reset.")
+        end
+    end,
+    onResetAll = function() StaticPopup_Show("KCM_RESET_ALL") end,
+}
+
+H.RegisterRows(masterRows, "general", "general", {
+    enabled = {
+        onChange = function(v)
+            local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
+            KCM.Say("Master enable " .. state)
+            -- Off→on: kick a recompute so macros refresh against the current
+            -- bag / spec state immediately rather than waiting for the next
+            -- event. Off→off is harmless (RequestRecompute schedules a run
+            -- which the gate in Pipeline.Recompute then skips).
+            if v and KCM.Pipeline and KCM.Pipeline.RequestRecompute then
+                KCM.Pipeline.RequestRecompute("master_enable")
+            end
         end,
-    }
-    H.Grid(ctx, { enabledDef, debugConsole })
+    },
+    -- The three addon-wide display rows all reach the same apply pass: the macro
+    -- bar is the only thing this addon draws, and Update is idempotent and
+    -- self-defers in combat.
+    visibility = { onChange = applyBar },
+    scale      = { onChange = applyBar },
+    alpha      = { onChange = applyBar },
+    -- Apply-only, exactly as it was on the Macro Bar page: the write has already
+    -- landed by the time an onChange runs, and Schema:Set is still the single
+    -- write path both `/cm bar lock` and this checkbox take (CM-R-05).
+    ["macroBar.locked"] = {
+        onChange = function()
+            if KCM.MacroBar and KCM.MacroBar.ApplyLock then
+                KCM.MacroBar.ApplyLock()
+            end
+        end,
+    },
+})
 
-    H.Section(ctx, L["Maintenance"])
+-- Top-right Defaults button (options-ui-§5) resets THIS PAGE, and its blast
+-- radius does not narrow to the visible tab (options-ui-§13). Derived from the
+-- rows rather than from a hand-written list, so a row added to the block is
+-- covered without anyone remembering to add it here.
+local function doResetGeneralPage()
+    for _, row in ipairs(masterRows) do
+        if row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+    end
+    -- The console back to its LOGIN state, which is more than the row's default:
+    -- logging off AND the window hidden. The row only owns the window.
+    if KCM.DebugLog and KCM.DebugLog.SetEnabled then
+        KCM.DebugLog.SetEnabled(false)
+        if KCM.DebugLog.Hide then KCM.DebugLog.Hide() end
+    elseif KCM.State then
+        KCM.State.debug = false
+    end
+    if KCM.Pipeline and KCM.Pipeline.Recompute then
+        KCM.Pipeline.Recompute("options_general_defaults")
+    end
+    H.RefreshAllPanels()
+end
+
+-- ---------------------------------------------------------------------
+-- The tab strip (options-ui-§13)
+-- ---------------------------------------------------------------------
+--
+-- Hand-drawn rather than handed to RenderTabbedSchema, for one reason: the
+-- Maintenance tab has no schema rows behind it — its three controls are acts, not
+-- settings — and a strip derived from `group` alone cannot name a tab nothing
+-- declares. The Master controls tab IS rendered by the library's row engine
+-- (RenderRows, with the group heading suppressed because the tab already carries
+-- the name), so the rows, their order, their pairing and the closing button pair
+-- are all the library's.
+
+local function drawMaster(ctx)
+    H.RenderRows(ctx, masterRows, { ["Master controls"] = masterTail }, nil,
+        { noHeadings = true })
+end
+
+local function drawMaintenance(ctx)
     H.ButtonPair(ctx,
         {
             text    = L["Force resync"],
@@ -147,9 +308,45 @@ local function render(ctx)
         })
     H.Button(ctx, {
         text    = L["Reset all priorities"],
-        tooltip = L["Wipe all added/blocked/pinned items and stat-priority overrides. Seed defaults are restored. This cannot be undone."],
-        onClick = function() StaticPopup_Show("KCM_RESET_ALL") end,
+        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings on the Master controls tab."],
+        onClick = function() StaticPopup_Show("KCM_RESET_PRIORITIES") end,
     })
+end
+
+local TABS = {
+    { group = "Master controls", label = L["Master controls"], draw = drawMaster },
+    { group = "Maintenance",     label = L["Maintenance"],     draw = drawMaintenance },
+}
+KCM.Settings.GENERAL_TABS = TABS
+
+local function activeTab(ctx)
+    for _, tab in ipairs(TABS) do
+        if tab.group == ctx.activeTab then return tab end
+    end
+    ctx.activeTab = TABS[1].group
+    return TABS[1]
+end
+
+local function render(ctx)
+    H.ResetScroll(ctx)
+    local scroll = H.EnsureScroll(ctx)
+
+    local tab = activeTab(ctx)
+    local strip = {}
+    for i, entry in ipairs(TABS) do
+        strip[i] = { key = entry.group, label = entry.label }
+    end
+    H.TabStrip(ctx, {
+        tabs     = strip,
+        value    = ctx.activeTab,
+        onSelect = function(key)
+            if key == ctx.activeTab then return end
+            ctx.activeTab = key
+            render(ctx)
+        end,
+    })
+
+    tab.draw(ctx)
 
     if scroll.DoLayout then scroll:DoLayout() end
 end
@@ -161,8 +358,8 @@ local function Build(mainCategory)
 
     local ctx = H.CreatePanel("KCMGeneralPanel", L["General"], {
         panelKey = "general",
-        -- Top-right Defaults button (options-ui-§5) → resets this page only
-        -- (master enable + session debug console), NOT the whole DB.
+        -- Top-right Defaults button (options-ui-§5) → resets this page only,
+        -- every tab of it, NOT the whole DB.
         defaultsAction = doResetGeneralPage,
     })
     H.SetRenderer(ctx, render)

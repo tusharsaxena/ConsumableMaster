@@ -33,6 +33,17 @@ KCM.dbDefaults = {
     profile = {
         enabled = true,    -- master enable; when false the recompute pipeline early-returns
         -- NB: the debug flag is session-only (KCM.State.debug), never persisted.
+        --
+        -- The three ADDON-WIDE master controls (options-ui-§15). They are not the
+        -- macro bar's own `macroBar.scale` / `macroBar.alpha` / `macroBar.combatMode`
+        -- and MUST NOT be conflated with them: those describe one instance, these
+        -- describe the whole addon's display, and modules/MacroBar.lua composes the
+        -- two (master × bar) rather than letting either win. `visibility` is a
+        -- four-value dropdown and never a boolean -- a boolean can only ever answer
+        -- two of the four.
+        visibility = "always",   -- always | inCombat | outOfCombat | never
+        scale      = 1.0,
+        alpha      = 1.0,
         categories = {
             FOOD      = { added = {}, blocked = {}, pins = {}, discovered = {} },
             DRINK     = { added = {}, blocked = {}, pins = {}, discovered = {} },
@@ -110,19 +121,27 @@ KCM.dbDefaults = {
             -- the edgeFile of a BackdropTemplate; `buttonBorderOffset` pushes
             -- the button's edge slices outward so they don't bleed over the
             -- icon (the old fixed action-button slot art always did).
+            -- Every `useClassColor*` below is the companion options-ui-§17 requires
+            -- beside its swatch, default OFF. All of them are PLAYER-scoped: this
+            -- addon paints one bar that belongs to the player and tracks no unit, so
+            -- there is no other class for any of them to mean.
             barBackdrop         = true,
             barBackdropColor    = { 0, 0, 0, 0.5 },
+            useClassColorBarBackdrop = false,
             barBorder           = true,
             barBorderStyle      = "Blizzard Tooltip",
             barBorderSize       = 4,
             barBorderColor      = { 0.25, 0.25, 0.25, 1 },
+            useClassColorBarBorder = false,
             buttonBackdrop      = true,
             buttonBackdropColor = { 0, 0, 0, 0.6 },
+            useClassColorButtonBackdrop = false,
             buttonBorder        = true,
             buttonBorderStyle   = "Blizzard Tooltip",
             buttonBorderSize    = 4,
             buttonBorderOffset  = 2,
             buttonBorderColor   = { 1, 1, 1, 1 },
+            useClassColorButtonBorder = false,
             iconZoom            = 8,     -- % crop per side; trims the icon's own dark edge
             showCount           = true,
             tooltips            = true,
@@ -142,8 +161,16 @@ KCM.dbDefaults = {
             labelScale     = 25,                -- % of button size, clamped to 6-24pt
             labelOffsetX   = 0,
             labelOffsetY   = 3,                 -- positive nudges it back up over the edge
-            labelOutline   = true,
+            -- The canonical FONT block (options-ui-§16). `labelFlags` is a STRING and
+            -- replaces the `labelOutline` boolean a profile written before schema v3
+            -- carries; core/Database.lua's v3 step is what converts one to the other.
+            -- `labelScale` is this addon's font SIZE, expressed as a percentage of the
+            -- button so the labels stay proportional when the bar is resized.
+            labelFont      = "Friz Quadrata TT",
+            labelFlags     = "OUTLINE",
+            labelShadow    = false,
             labelColor     = { 1, 0.82, 0, 1 },
+            useClassColorLabel = false,
             -- Hover flyout (modules/MacroBarFlyout.lua). On by default.
             -- `flyoutPoint` sets BOTH the indicator's edge and the direction the
             -- flyout grows; entry 1 (the top-ranked candidate) always sits
@@ -158,6 +185,7 @@ KCM.dbDefaults = {
             flyoutPadding       = 3,       -- inset around the strip, inside its backdrop
             flyoutBackdrop      = true,
             flyoutBackdropColor = { 0, 0, 0, 0.85 },
+            useClassColorFlyoutBackdrop = false,
             -- Gap between the button and the first entry, so a thick or offset
             -- button border can't overlap it. Lives inside the flyout's own
             -- (mouse-enabled) frame, so it is not dead space for the hover.
@@ -170,6 +198,7 @@ KCM.dbDefaults = {
             -- proportions when the bar is resized (capped at half the icon).
             flyoutIndicatorScale = 33,
             flyoutShadeColor    = { 0, 0, 0, 0.8 },
+            useClassColorFlyoutShade = false,
             flyoutArrowScale    = 100,     -- arrow size as % of band thickness
             -- Seconds of no interaction before an open flyout closes itself.
             -- 0 = never (hover-out and clicking still close it).

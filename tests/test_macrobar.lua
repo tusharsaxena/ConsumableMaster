@@ -1083,18 +1083,27 @@ test("macrobar schema: a flag written from /cm re-syncs the open Macro Bar page 
 
         KCM.MacroBar.SetLocked(false)
 
-        local builder = KCM.Settings.builders and KCM.Settings.builders.macrobar
-        t.truthy(builder, "the Macro Bar tab registered a builder")
-        builder({})
-        local ctx = UI.__panelFor("macrobar")
-        t.truthy(ctx, "…and its ctx landed in the library's registry")
-        ctx.panel.IsShown = function() return true end
+        -- BOTH PAGES, because the two flags now live on different ones: `Lock
+        -- frame` MOVED to the General page's Master controls tab (options-ui-§15)
+        -- while `Enable macro bar` stayed with the bar it enables. The in-place
+        -- re-sync has to reach whichever page is on screen, so both are built and
+        -- both are marked shown.
+        local ctxs = {}
+        for _, key in ipairs({ "general", "macrobar" }) do
+            local builder = KCM.Settings.builders and KCM.Settings.builders[key]
+            t.truthy(builder, "the " .. key .. " tab registered a builder")
+            builder({})
+            local ctx = UI.__panelFor(key)
+            t.truthy(ctx, "…and its ctx landed in the library's registry")
+            ctx.panel.IsShown = function() return true end
+            ctxs[key] = ctx
+        end
         H.RefreshAllPanels()
 
-        local lockBox   = boxes[KCM.L["Lock position"]]
+        local lockBox   = boxes[KCM.L["Lock frame"]]
         local enableBox = boxes[KCM.L["Enable macro bar"]]
-        t.truthy(lockBox, "the Bar section drew the lock checkbox")
-        t.truthy(enableBox, "the Bar section drew the enable checkbox")
+        t.truthy(lockBox, "the Master controls tab drew the lock checkbox")
+        t.truthy(enableBox, "the Macro Bar page's General tab drew the enable checkbox")
         t.eq(lockBox.__value, false, "it opens showing the stored value")
 
         KCM.MacroBar.SetLocked(true)
@@ -1690,4 +1699,196 @@ test("macrobar flyout: Apply declines in combat", function(t)
     h.loader.mock.setCombat(true)
     t.eq(KCM.MacroBarFlyout.Apply(button, fcfg{ flyout = true }), false,
         "false is the signal callers defer on")
+end)
+
+-- ---------------------------------------------------------------------------
+-- options-ui-§15 / §16 / §17 — the settings that were ADDED, and the code that
+-- honours them
+-- ---------------------------------------------------------------------------
+--
+-- A setting that is declared and not honoured is worse than one that is absent,
+-- so every row this adoption added is pinned against the drawing code that reads
+-- it rather than against the schema that declares it.
+
+test("macrobar label: the font FACE, FLAGS and SHADOW reach the FontString", function(t)
+    -- The canonical font block (options-ui-§16) mandates a face, a flags string
+    -- and a shadow; this addon had none of the three and a hard-wired
+    -- `labelOutline ~= false and "OUTLINE" or ""`.
+    --
+    -- red under: reverting applyLabel to the boolean, dropping the fontFile
+    -- resolver so the stored face is ignored, or clearing the shadow branch (the
+    -- "off" half is what stops a shadow set once from being sticky).
+    local KCM = h.loader.loadFullAddon()
+
+    local btn = styleButton()
+    KCM.MacroBarButton.ApplyStyle(btn, {
+        buttonSize = 36, buttonLabel = true, labelScale = 25,
+        labelFlags = "THICKOUTLINE", labelShadow = true,
+    })
+    local font = firstCall(btn.label, "SetFont")
+    t.truthy(font, "the label's font is set")
+    t.eq(font[4], "THICKOUTLINE", "the stored flags string is what is applied, verbatim")
+    local offset = firstCall(btn.label, "SetShadowOffset")
+    t.truthy(offset, "a shadow offset is written")
+    t.ne(offset[2], 0, "and it is a real offset while the shadow is on")
+
+    -- "" is a REAL stored value — the one the "None" label names — and must not
+    -- fall through to the default the way nil does.
+    local plain = styleButton()
+    KCM.MacroBarButton.ApplyStyle(plain, {
+        buttonSize = 36, buttonLabel = true, labelScale = 25,
+        labelFlags = "", labelShadow = false,
+    })
+    t.eq(firstCall(plain.label, "SetFont")[4], "",
+        "an empty flags string means no flags, not 'fall back to OUTLINE'")
+    t.eq(firstCall(plain.label, "SetShadowOffset")[2], 0,
+        "and the shadow is CLEARED rather than left from a previous pass")
+
+    -- A profile written before schema v3 has no labelFlags at all; the outline is
+    -- what it always had.
+    local legacy = styleButton()
+    KCM.MacroBarButton.ApplyStyle(legacy, { buttonSize = 36, buttonLabel = true, labelScale = 25 })
+    t.eq(firstCall(legacy.label, "SetFont")[4], "OUTLINE",
+        "an absent flags string keeps the shipped outline")
+end)
+
+test("macrobar label: the class-color companion repaints the label, alpha and all", function(t)
+    -- options-ui-§17: the stored ALPHA survives the mode, because no class-color
+    -- source carries one — which is also why the swatch is never disabled.
+    --
+    -- red under: resolving the label color with the raw stored table again, or
+    -- letting the class color carry its own alpha through.
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    _G.RAID_CLASS_COLORS = { MAGE = { r = 0.25, g = 0.78, b = 0.92 } }
+    mock.setPlayerClass("MAGE")
+    local Core = LibStub("LibKa0s-Core-1.0")
+    Core.__ResetClassColor()
+
+    local off = styleButton()
+    KCM.MacroBarButton.ApplyStyle(off, {
+        buttonSize = 36, buttonLabel = true, labelScale = 25,
+        labelColor = { 1, 0.82, 0, 0.4 }, useClassColorLabel = false,
+    })
+    local c = firstCall(off.label, "SetTextColor")
+    t.near(c[2], 1, 0.001, "the swatch paints while the companion is off")
+    t.near(c[5], 0.4, 0.001, "with its stored alpha")
+
+    Core.__ResetClassColor()
+    local on = styleButton()
+    KCM.MacroBarButton.ApplyStyle(on, {
+        buttonSize = 36, buttonLabel = true, labelScale = 25,
+        labelColor = { 1, 0.82, 0, 0.4 }, useClassColorLabel = true,
+    })
+    local cc = firstCall(on.label, "SetTextColor")
+    t.near(cc[2], 0.25, 0.001, "the class color replaces the stored rgb")
+    t.near(cc[5], 0.4, 0.001, "and the stored alpha is still what is applied")
+
+    Core.__ResetClassColor()
+    _G.RAID_CLASS_COLORS = nil
+end)
+
+test("macrobar button: an unresolvable class falls through to the stored swatch", function(t)
+    -- Not to white, not to gray, and not to a tenth color invented for the
+    -- occasion (options-ui-§17).
+    --
+    -- red under: making KCM.SwatchColor answer a substitute hue when
+    -- LibKa0s-Core cannot resolve a class.
+    local KCM = h.loader.loadFullAddon()
+    _G.RAID_CLASS_COLORS = nil
+    LibStub("LibKa0s-Core-1.0").__ResetClassColor()
+
+    local btn = styleButton()
+    KCM.MacroBarButton.ApplyStyle(btn, {
+        buttonSize = 36, buttonBackdrop = true,
+        buttonBackdropColor = { 0.1, 0.2, 0.3, 0.7 }, useClassColorButtonBackdrop = true,
+    })
+    local fill = firstCall(btn.backdropTex, "SetColorTexture")
+    t.near(fill[2], 0.1, 0.001, "the stored red survives an unresolvable class")
+    t.near(fill[3], 0.2, 0.001, "…and the green")
+    t.near(fill[5], 0.7, 0.001, "…and the alpha, which always applies")
+    LibStub("LibKa0s-Core-1.0").__ResetClassColor()
+end)
+
+-- ---------------------------------------------------------------------------
+-- The addon-wide master controls, honoured by the one thing this addon draws
+-- ---------------------------------------------------------------------------
+
+test("macrobar master: Master scale and Master alpha MULTIPLY the bar's own", function(t)
+    -- options-ui-§15: the master rows are the ADDON-WIDE ones and the bar's own
+    -- `Bar scale` / `Bar opacity` are a different setting. Composing them is what
+    -- stops either slider doing nothing at one end of the other's range.
+    --
+    -- red under: reading only one of the two anywhere in applyLayout / applyAlpha,
+    -- or defaulting a missing master value to something other than 1.
+    local KCM = h.loader.loadFullAddon()
+    local _, bar = buildMacroBar(KCM)
+
+    local scales, alphas = {}, {}
+    bar.SetScale = function(_, v) scales[#scales + 1] = v end
+    bar.SetAlpha = function(_, v) alphas[#alphas + 1] = v end
+
+    KCM.db.profile.macroBar.scale = 1.5
+    KCM.db.profile.macroBar.alpha = 0.8
+    KCM.db.profile.macroBar.fadeUnlessHover = false
+    KCM.db.profile.scale = 2.0
+    KCM.db.profile.alpha = 0.5
+    KCM.MacroBar.Update()
+
+    t.near(scales[#scales], 3.0, 0.001, "1.5 bar scale under a 2.0 master reads 3.0")
+    t.near(alphas[#alphas], 0.4, 0.001, "0.8 bar opacity under a 0.5 master reads 0.4")
+
+    KCM.db.profile.scale = 1.0
+    KCM.db.profile.alpha = 1.0
+    KCM.MacroBar.Update()
+    t.near(scales[#scales], 1.5, 0.001, "a neutral master leaves the bar's own value alone")
+    t.near(alphas[#alphas], 0.8, 0.001, "…on both axes")
+end)
+
+-- The truth table, pinned directly on the pure resolver rather than through the
+-- frame: what is under test is the INTERSECTION of two combat-conditional
+-- settings, and a truth table is exactly what a headless suite can prove.
+--
+-- red under: returning the master's driver and ignoring the bar's (or the other
+-- way round), or answering "show" for a pair that can never both be true.
+test("macrobar master: General visibility is INTERSECTED with the bar's combat mode", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local R = KCM.MacroBarModel.ResolveVisibility
+
+    t.eq(R("always", "ALWAYS"), "show", "both permissive: always on screen")
+    t.eq(R(nil, nil), "show", "an unset pair is the shipped 'always / always'")
+    t.eq(R("never", "ALWAYS"), "hide", "never wins over anything")
+    t.eq(R("never", "ONLY_IN_COMBAT"), "hide", "…including the bar's own combat mode")
+
+    t.eq(R("inCombat", "ALWAYS"), "[combat] show; hide", "the master alone can drive it")
+    t.eq(R("outOfCombat", "ALWAYS"), "[combat] hide; show", "…in either direction")
+    t.eq(R("always", "HIDE_IN_COMBAT"), "[combat] hide; show", "so can the bar alone")
+    t.eq(R("always", "ONLY_IN_COMBAT"), "[combat] show; hide", "…in either direction")
+
+    t.eq(R("inCombat", "ONLY_IN_COMBAT"), "[combat] show; hide", "agreeing halves agree")
+    t.eq(R("outOfCombat", "HIDE_IN_COMBAT"), "[combat] hide; show", "…on the other side too")
+
+    -- The pairs that cancel. "Only in combat" over "hide in combat" leaves no
+    -- moment at which both say show, and saying so out loud beats drawing a bar
+    -- that flickers.
+    t.eq(R("inCombat", "HIDE_IN_COMBAT"), "hide", "opposed halves leave nothing on screen")
+    t.eq(R("outOfCombat", "ONLY_IN_COMBAT"), "hide", "…the other way round as well")
+end)
+
+test("macrobar master: General visibility = never takes the bar off screen", function(t)
+    -- The resolver's answer reaching the FRAME, which is the half the truth table
+    -- above cannot see.
+    --
+    -- red under: applyVisibility ignoring db.profile.visibility, or handing "hide"
+    -- to RegisterStateDriver as if it were a driver string.
+    local KCM = h.loader.loadFullAddon()
+    local seen = buildMacroBar(KCM)
+
+    KCM.db.profile.visibility = "never"
+    KCM.MacroBar.Update()
+    t.eq(seen.barVisible, false, "the addon-wide 'never' hides the bar")
+
+    KCM.db.profile.visibility = "always"
+    KCM.MacroBar.Update()
+    t.eq(seen.barVisible, true, "and 'always' brings it back")
 end)

@@ -156,6 +156,28 @@ else
     -- screen there is nothing to refresh, so doing nothing is the correct body.
     Helpers.RefreshAllPanels = function() end
     Helpers.RefreshScalars   = function() end
+
+    -- THE LOAD-COMPLETING HALF (options-ui-§1). settings/General.lua and
+    -- settings/MacroBar.lua call the OptionsCompose composers inside schema-row
+    -- literals, AT FILE LOAD -- the same position `LSMValues` sits in. With the
+    -- member nil the page file raises, its rows never register, and a third of the
+    -- schema goes missing silently; with these here the file finishes.
+    --
+    -- They answer an EMPTY row list, and that is the whole of the fallback. A
+    -- composer is a pure function that emits a fixed row block, so a host copy of
+    -- one is precisely the duplicate the library was extracted to end
+    -- (options-ui-§1's "MUST NOT carry a copy of a widget maker ... into the
+    -- stub", anti-patterns #47) -- and the difference from LSMValues, whose empty
+    -- table still leaves the row standing, is real: the composed rows are ABSENT
+    -- on a degraded load. That costs nothing reachable. With the library gone the
+    -- panel is never registered (settings/Panel.lua's registerPanel) and
+    -- `/cm list|get|set` answer "unavailable" (they are LibKa0s-Slash-1.0's), so
+    -- there is no surface left that could have read them. tests/test_settingsui.lua
+    -- pins the row count on BOTH arms so the gap is measured rather than assumed.
+    Helpers.MasterControls = function() return {}, function() end end
+    Helpers.ColorPair      = function() return {} end
+    Helpers.FontGroup      = function() return {} end
+    Helpers.BorderGroup    = function() return {} end
 end
 
 -- nil on a degraded load, which is exactly what settings/Panel.lua derives its

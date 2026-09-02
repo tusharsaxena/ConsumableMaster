@@ -412,6 +412,30 @@ function KCM.RegisterProfileCallbacks(target)
     db.RegisterCallback(target, "OnProfileReset",   reload("profile_reset"))
 end
 
+--- Restore every SESSION-ONLY schema row to its default.
+---
+--- options-ui-§12 makes this half of the global reset a MUST, and it is the half a
+--- profile reset by construction cannot do: a session-only row's storage is its own
+--- `set()` (settings/Panel.lua's SESSION_PATHS), not the db, so `db:ResetProfile()`
+--- cannot reach it and the row outlives a reset that took everything around it. The
+--- debug console's visibility is the addon's only such row today, and the sweep is
+--- written off the `sessionOnly` FLAG rather than off that one path so a second one
+--- is covered the day it is declared.
+---
+--- Reached through KCM.Settings at CALL time and silent when it is not there: this
+--- file loads long before settings/, and on a degraded load (no LibKa0s / AceGUI)
+--- there is no schema to walk and nothing session-only to restore.
+local function restoreSessionRows()
+    local S = KCM.Settings
+    local H = S and S.Helpers
+    if not (H and H.Set and S.Schema) then return end
+    for _, row in ipairs(S.Schema) do
+        if row.sessionOnly and row.default ~= nil then
+            H.Set(row.path, row.default)
+        end
+    end
+end
+
 --- Reset the ACTIVE PROFILE to the shipped defaults, and the same act as
 --- AceDBOptions' own Reset Profile (options-ui-§12).
 ---
@@ -420,10 +444,20 @@ end
 --- so the invalidate → discover → recompute pass happens on exactly one path,
 --- which is the path a profile SWITCH takes too. Calling it here as well would run
 --- the pipeline twice for one action.
+---
+--- THE SESSION SWEEP RUNS FIRST, and it lives HERE rather than at either door so the
+--- two doors cannot diverge: the Master controls tab's [Reset all settings] and
+--- `/cm resetall` are one act, and the addon's own note in settings/General.lua that
+--- "every execute path is shared with the slash commands" is only true while the
+--- whole act is behind this one function. First, not last, for the reason the
+--- library's own RestoreAllDefaults orders it that way (libs/LibKa0s/Options.lua:620-636):
+--- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
+--- would be writing into a panel that had already been drawn from the old value.
 function KCM.ResetAllToDefaults(reason)
     if not (KCM.db and KCM.db.ResetProfile) then return false end
     reason = reason or "reset_all"
     if isDebugOn() then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
+    restoreSessionRows()
     KCM.db:ResetProfile()
     return true
 end

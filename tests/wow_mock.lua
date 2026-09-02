@@ -282,6 +282,16 @@ local function makeStub(template, name)
         if STRING_GETTERS[key] then
             return function(self) return (self and self._name) or t._name or "MockFrame" end
         end
+        -- A DATA field the client never set answers nil, exactly as a real frame does; only a
+        -- METHOD name -- capitalized, which every Blizzard frame method is -- gets the chaining
+        -- no-op. The blanket `return function() return t end` answered a callable for a plain
+        -- field too, so a library caching a texture on its own probe frame
+        -- (`f.__ka0sTabProbe`, LibKa0s-Options-1.0's tab-art measurement) read a function back
+        -- on the FIRST look, skipped the CreateTexture branch, and raised on the next index --
+        -- swallowed by renderCtx's pcall into "failed to render", which is how three settings
+        -- pages silently drew nothing while their cases reported a missing widget. Same rule as
+        -- the kit's own stubFrame (tests/_kit/mock_base.lua).
+        if not (type(key) == "string" and key:match("^%u")) then return nil end
         return function(...) return t end
     end
     setmetatable(t, mt)

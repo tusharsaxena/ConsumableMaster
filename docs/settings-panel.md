@@ -10,26 +10,35 @@ One `Settings.RegisterCanvasLayoutCategory` **parent** — the landing page — 
 `RegisterCanvasLayoutSubcategory` **body per page**, of which there are four. There is no
 AceConfigDialog anywhere in the addon:
 pages are built from raw AceGUI widgets on a Blizzard canvas (`options-ui-§2`). The canvas shell, the
-page registry, the widget makers and the two-column flow engine are **LibKa0s-Options-1.0's**, wired
-in `settings/OptionsSetup.lua`; `settings/Panel.lua` owns registration and the shared header (title +
-atlas divider) built by `Helpers.CreatePanel`.
+page registry, the widget makers, the two-column flow engine, the tab strip and the schema
+**composers** are all **LibKa0s-Options-1.0's**, wired in `settings/OptionsSetup.lua`;
+`settings/Panel.lua` owns registration and the shared header (title + atlas divider) built by
+`Helpers.CreatePanel`.
 
 Each page module hands a **builder** to `RegisterTab`; `settings/Panel.lua` iterates the builders once
 `Blizzard_Settings` is ready, driven by its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap.
 
-### Tabs, not sub-pages
+### Every page draws a strip
 
-Two of the four pages carry a **pinned tab strip** in the page's chrome band (`options-ui-§13`):
-only the active tab's body draws, and the strip wraps onto as many rows as the canvas width needs.
+**All four pages** carry a **pinned tab strip** in the page's chrome band (`options-ui-§13`): only the
+active tab's body draws, and the strip wraps onto as many rows as the canvas width needs. That is not
+a size threshold and not a choice — a Ka0s page has a strip, so a player who has learned one page has
+learned all of them. A page with exactly **one** section draws a **one-tab** strip; the tab that
+cannot be clicked is that page's section label.
 
-The **Macros** page is why. Every macro category used to be its own `RegisterCanvasLayoutSubcategory`
-entry — fifteen rows in the AddOns sidebar for fifteen variations on one surface, and eighteen
-sub-pages in all. They are one page with fifteen tabs now, and the sidebar is down to four entries.
-The strip is **generated** from `KCM.Categories.LIST` in `KCM.Settings.macroOrder`, exactly as the
-fifteen builders were: a sixteenth category is a row in `Categories.LIST` plus a key in `macroOrder`,
-and it gets a tab for free. There is no hand-written tab list, for the reason `options-ui-§13` gives
-against one — a list declared apart from the data goes stale the first time a category is renamed and
-nothing says so.
+The only exemptions are pages the host does not render through the flow engine at all: the
+AceConfig-drawn **Profiles** sub-page (which this addon does not ship — `AceDBOptions` is not
+vendored, and the addon runs on a single AceDB profile) and the **landing page**, whose body is
+`Helpers.BuildAboutContent`.
+
+The **Macros** page is why the strip exists here at all. Every macro category used to be its own
+`RegisterCanvasLayoutSubcategory` entry — fifteen rows in the AddOns sidebar for fifteen variations on
+one surface, and eighteen sub-pages in all. They are one page with fifteen tabs now, and the sidebar
+is down to four entries. The strip is **generated** from `KCM.Categories.LIST` in
+`KCM.Settings.macroOrder`, exactly as the fifteen builders were: a sixteenth category is a row in
+`Categories.LIST` plus a key in `macroOrder`, and it gets a tab for free. There is no hand-written tab
+list, for the reason `options-ui-§13` gives against one — a list declared apart from the data goes
+stale the first time a category is renamed and nothing says so.
 
 The **Macro Bar** page's eight tabs are its schema rows' `group` values, partitioned in **declaration
 order**. That is the same rule, one level down: the tab is the row's own field, so the strip cannot
@@ -37,27 +46,36 @@ name a section the rows do not have. It also means a group's rows must be **cont
 under a group the page has already left draws that tab a second time — which `tests/test_schema.lua`
 pins.
 
-**General** draws no strip either, for the same reason Stat Priority does not: the master switch and
-the maintenance buttons are one subject. And there is no Ace3 **Profiles** page here to leave alone —
-this addon ships no profile control at all (`AceDBOptions` is not vendored; `libs/` holds AceAddon,
-AceConsole, AceDB, AceEvent, AceGUI and the SharedMedia widgets), and it runs on a single AceDB
-profile.
+**The strip's geometry does not depend on which tab is selected** (`options-ui-§13`,
+anti-patterns #70). Both hand-drawn strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
+and the reserved chrome band and every wrapped row's offset are the same numbers for every value of
+the selection. The pitch is measured once, from the **unselected** tab art, which no click can
+change. That is the library's to get right; `tests/test_settingsui.lua` pins it on both pages under a
+mock that answers a *different* height for the selected-state atlas, because a harness that answers
+one height for every atlas cannot fail the case.
+
+**A page never loses its strip for some state.** The Stat Priority page used to return before drawing
+anything when no spec could be resolved; the strip is drawn first now and the empty state is content
+inside the page. The Macros page had the same shape one step further in — it returned before the strip
+whenever the category list came back empty — and it is gone for the same reason: the guard was
+unreachable in the shipped configuration (`Categories.LIST` is a constant of fifteen), but
+*unreachable today* is not *cannot render strip-less*, and the second is the rule. With no tabs the
+library's own `#spec.tabs > 0` guard declines to draw one, because a zero-tab strip is not a strip;
+the decision is the library's on the same terms for all nine addons rather than a host branch that
+also skipped the page's whole body.
 
 ### The page banner
 
-**Stat Priority** carries a page **banner** instead of a strip (`options-ui-§14`): the viewed-spec
-picker, pinned above the scroll, naming what the page is editing. It was a `Selection` section inside
-the scroll before, which put the control that governs the six dropdowns below it out of sight the
-moment you scrolled to them.
+**Stat Priority** carries a page **banner** *and* a strip: the viewed-spec picker, pinned above the
+scroll, naming what the page is editing (`options-ui-§14`). It was a `Selection` section inside the
+scroll before, which put the control that governs the dropdowns below it out of sight the moment you
+scrolled to them.
 
 It is the **only** picker for that state, which is `§14`'s rule — a banner replaces a picker, it never
 mirrors one. The spec-aware tabs on the Macros page (Flask, Combat Potion, Stat Food, Weapon Enchant)
 therefore **state** the viewed spec as a sentence and offer no second picker of their own; two
 controls over one piece of session state is a synchronisation problem the design would have invented
 and then owned forever.
-
-With the picker in the banner the page has one subject left, so it draws no strip: a single tab is
-chrome for its own sake and its band would push the page down for nothing.
 
 ### `Helpers` is a live view, not a snapshot
 
@@ -71,25 +89,85 @@ member the library never had (`options-ui-§1`). The addon's own wrappers stay a
 shadow the library's same-named function, which is what lets `Section` / `CreatePanel` / `LSMValues`
 call the instance's version without recursing into themselves.
 
+With the library **absent** the panel is not registered at all, and the degradation stub publishes
+exactly the members a page file touches *at file load*: `LSMValues`, plus the four composers
+(`MasterControls`, `ColorPair`, `FontGroup`, `BorderGroup`) answering an empty row list. The composed
+rows are therefore missing on that arm, deliberately — a host copy of a composer is precisely the
+duplicate the library was extracted to end (`options-ui-§1`, anti-patterns #47) — and it costs nothing
+reachable, because with no panel and no `/cm list|get|set` there is no surface left that could read
+them. `tests/test_settingsui.lua` **measures** that gap on both arms rather than assuming it.
+
 ### Combat gate
 
 Opening is refused in combat, not deferred (`options-ui-§2`). Both the `O.Open` slash path and the
 Blizzard AddOns-sidebar `OnShow` guard funnel through one helper so the refusal emits a single
 canonical gray notice through the shared secret-safe printer — never a protected category switch and
-never a silent no-op.
+never a silent no-op. A **tab click** is not gated: redrawing widgets inside an already-open panel was
+never a protected action (`options-ui-§13`).
 
 ## Page | Covers
 
 Display order is `KCM.Settings.order` (`settings/Panel.lua`) — four pages, in the order a player meets
-them: the master switch, the macros themselves, the ranking the spec-aware categories sort by, and
-last the optional bar that displays the finished macros.
+them: the addon-wide controls, the macros themselves, the ranking the spec-aware categories sort by,
+and last the optional bar that displays the finished macros.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | none | Master `enabled` toggle and the debug-console checkbox; the Maintenance actions — Force resync, Force rewrite macros, Reset all priorities. Two short sections on one scroll: a strip over two controls and three buttons would be chrome for its own sake |
+| **General** | 2 tabs | **Master controls** (the canonical eight, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities) |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
-| **Stat Priority** | banner | Per-spec stat ordering: the spec picker in the page banner, then Primary and Secondary #1-#4 |
-| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 54 of the addon's 55 schema rows live here |
+| **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
+| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 62 of the addon's 68 schema rows live here |
+
+### The General page's Master controls tab
+
+The **first** tab on the page, named exactly `Master controls`, and its rows are **composed** by
+`H.MasterControls` rather than typed out — nine addons emit the same eight from one declaration, so
+they cannot drift into nine orders (`options-ui-§15`).
+
+| | |
+|---|---|
+| Enable Consumable Master | General visibility |
+| Master scale | Master alpha |
+| Lock frame | Debug console |
+| *Reset position* | *Reset all settings* |
+
+The last row is the tab's closing **button pair**, not two schema rows: they are acts rather than
+settings.
+
+Three of the rows are **new addon-wide settings** and three moved:
+
+| Row | Stored path | Where it came from |
+|---|---|---|
+| Enable Consumable Master | `enabled` | moved from `settings/Panel.lua`'s hand-written row |
+| General visibility | `visibility` | **new** — `always` / `inCombat` / `outOfCombat` / `never` |
+| Master scale | `scale` | **new**, addon-wide |
+| Master alpha | `alpha` | **new**, addon-wide |
+| Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
+| Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
+| *Reset position* | — | moved from Macro Bar → General |
+| *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording |
+
+**The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
+govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and
+the two **compose** — the scales and the opacities multiply, and the two visibilities are
+**intersected** by `MacroBarModel.ResolveVisibility` so the bar shows only where both say show.
+Conflating them would make one of the two sliders do nothing at one end of the other's range.
+
+**The two resets are different acts.** *Reset all settings* is the profile reset — the same act
+`Profiles → Reset Profile` performs, behind the collection's one wording. *Reset all priorities*, on
+the **Maintenance** tab, clears every category's added / blocked / pinned items and every spec's
+stat-priority override and leaves everything else standing, behind its own, narrower confirmation.
+The button that used to sit on this page said the second and did the first.
+
+**The global reset is two halves, not one.** `KCM.ResetAllToDefaults` restores every **session-only**
+schema row by hand *first*, then calls `db:ResetProfile()`. The sweep is a `§12` MUST and it is the
+half a profile reset by construction cannot do: a session-only row's storage is its own `set()`
+(`SESSION_PATHS`), not the db, so `Debug console` survived a reset that took everything around it.
+It is written off the `sessionOnly` **flag** rather than off that one path, so a second such row is
+covered the day it is declared — which is also why the composed row is given an explicit
+`debugConsole = false` default in `settings/General.lua`: three separate resets key on
+`default ~= nil` before they will touch a row, and `OptionsCompose` emits that row without one.
+Both halves live behind the one function so the button and `/cm resetall` cannot drift.
 
 ### The Macros strip, in tab order
 
@@ -108,42 +186,144 @@ Tabs are labelled with each category's `displayName`, never its `shortName`: `sh
 the macro bar's 32px buttons, where "Brez" and "Rune" are the only thing that fits, and a tab reading
 "Rune" two places from one reading "Vantus" would say nothing about which rune it meant.
 
-Every category tab renders the same sections, built by `settings/Category.lua`: **Add item or spell by
-ID**, **Priority list**, and the per-set sections — added, blocked, pinned, discovered. The two
-composite tabs render **In Combat** / **Out of Combat** instead.
+Every single-category tab renders **Add item or spell by ID** then the **Priority list**, which is a
+draggable list. The two composite tabs render **In Combat** / **Out of Combat**, each of which is its
+**own** draggable list — see *Reorder lists* below.
 
 ### The Macro Bar strip, in tab order
 
-`KCM.Settings.MACROBAR_TABS`, and each tab's name is the `group` its rows declare.
+`KCM.Settings.MACROBAR_TABS`, and each tab's name is the `group` its rows declare. Four of the eight
+mix control types and therefore carry **subsection headings** (`options-ui-§7`), listed here as
+*italics*.
 
-| # | Tab | Rows |
+| # | Tab | Rows | Subsections |
+|---|---|---|---|
+| 1 | **General** | 1 | — enable; plus the Reset slot order button |
+| 2 | **Layout** | 8 | — per row, button size, spacing, padding, bar scale, orientation, both growth directions |
+| 3 | **Bar appearance** | 9 | *Opacity* · *Background* (toggle + swatch + companion) · *Border* (the composed four, led by its Show border toggle) |
+| 4 | **Button appearance** | 13 | *Background* · *Border* (composed four + border offset) · *Icon* (zoom, stack count, tooltips, GCD swipe) |
+| 5 | **Labels** | 12 | *Text* (show, label text) · *Layout* (anchor, placement, both offsets) · *Font* (the composed six) |
+| 6 | **Flyout** | 16 | *Layout* (nine) · *Background* (toggle + swatch + companion) · *Icon* (band, arrow, shade swatch + companion) |
+| 7 | **Visibility** | 3 | — combat mode, fade unless hover, faded opacity |
+| 8 | **Contents** | 0 | one checkbox per managed macro, a length no schema knows |
+
+`Lock position` and `Reset position` are **not** on this page any more — they moved to Master controls
+and were deleted here. Two controls over one setting is exactly what `options-ui-§15` removes.
+
+Two tabs were renamed in the earlier redesign. *Bar* became **General**: on a page called Macro Bar
+the word carried nothing, and it collided with *Bar appearance* two tabs along. *Macros on the bar*
+became **Contents**, for the same reason — every tab on the page is about the bar. *Bar appearance*
+and *Button appearance* **keep** their qualifiers, because two surfaces coexist on this page and each
+has a backdrop and a border of its own; there the word is doing real work.
+
+A `subgroup` names the **kind of control** under it and never a word of the tab it sits on. The first
+heading on *Bar appearance* was `Bar`, which named the tab back at the reader; it is **Opacity**, over
+the one row it covers. `tests/test_schema.lua` compares the two word by word now — the whole-string
+comparison it used to make is what let `Bar` through.
+
+### The Stat Priority page
+
+One tab, **Priority**, under the spec banner.
+
+- **Primary stat** — one dropdown spanning **both** columns. It used to be a half-cell paired with an
+  invisible one, which is `wide` written out by hand.
+- **The four secondary stats** — **one draggable list**, replacing the four `Secondary stat #N`
+  dropdowns. Order is the setting, so dragging is how it is said (`options-ui-§18`).
+
+  The semantics are **order-only**: dragging changes the order and nothing else, because
+  `writeStatPriority` already compacts blanks and duplicates on every write. Whether a stat counts at
+  all is the per-row **Include** checkbox — the affordance the old `(none)` dropdown value carried —
+  and an excluded stat drops to a **dimmed, undraggable tail** below the boundary, because its
+  position among the others is not stored and offering a gesture that cannot be saved is worse than
+  offering none.
+
+## Control groups and the class-colour companion
+
+**Every colour swatch has a `Use class color` companion immediately to its right** (`options-ui-§17`),
+default off. There are seven swatches and seven companions:
+
+| Swatch | Companion | Scope |
 |---|---|---|
-| 1 | **General** | 2 — enable, lock; plus Reset position / Reset slot order |
-| 2 | **Layout** | 8 — per row, button size, spacing, padding, scale, orientation, both growth directions |
-| 3 | **Bar appearance** | 7 — backdrop, border, border style/size, both colors, bar opacity |
-| 4 | **Button appearance** | 11 — the same three questions as Bar appearance, in the same order, plus border offset, icon zoom, stack count, tooltips, GCD swipe |
-| 5 | **Labels** | 9 — show, text, anchor, placement, both offsets, scale, color, outline |
-| 6 | **Flyout** | 14 |
-| 7 | **Visibility** | 3 — combat mode, fade unless hover, faded opacity |
-| 8 | **Contents** | 0 schema rows — one checkbox per managed macro, a length no schema knows |
+| `macroBar.barBackdropColor` | `macroBar.useClassColorBarBackdrop` | player |
+| `macroBar.barBorderColor` | `macroBar.useClassColorBarBorder` | player |
+| `macroBar.buttonBackdropColor` | `macroBar.useClassColorButtonBackdrop` | player |
+| `macroBar.buttonBorderColor` | `macroBar.useClassColorButtonBorder` | player |
+| `macroBar.labelColor` | `macroBar.useClassColorLabel` | player |
+| `macroBar.flyoutBackdropColor` | `macroBar.useClassColorFlyoutBackdrop` | player |
+| `macroBar.flyoutShadeColor` | `macroBar.useClassColorFlyoutShade` | player |
 
-Two tabs were renamed in the redesign. *Bar* became **General**: on a page called Macro Bar the word
-carried nothing, and it collided with *Bar appearance* two tabs along. *Macros on the bar* became
-**Contents**, for the same reason — every tab on the page is about the bar. *Bar appearance* and
-*Button appearance* **keep** their qualifiers, because two surfaces coexist on this page and each has
-a backdrop and a border of its own; there the word is doing real work.
+Every one is `classColorSource = "player"`: this addon paints one bar that belongs to the player and
+tracks no unit, so there is no other class any of them could mean. The declaration is what an audit
+reads — the path prefix decides nothing.
+
+- **The swatch is never disabled.** Its **alpha** is still read under class colour, so graying it
+  would tell the player something untrue. `disabledIf` on a colour row is forbidden
+  (anti-patterns #74); the swatch's tooltip says it in words instead.
+- **One resolver.** `KCM.SwatchColor` (`core/CoreSetup.lua`) decodes the stored positional
+  `{ r, g, b, a }` with that surface's own four-channel fallback and hands it to
+  `LibKa0s-Core-1.0`'s `ResolveColor` with a `nil` unit. An unresolvable class falls through to the
+  stored swatch — never to white, never to a substitute hue.
+
+**The bar's chrome is a BACKGROUND group, not a bar group** (`options-ui-§16`). The macro bar is a
+button container with a backdrop and no fill texture, so it takes a swatch and its companion and
+nothing else; a texture picker there would be a control wired to nothing, which is why `H.BarGroup` is
+not called anywhere in this addon.
+
+The **border** blocks (bar and button) and the label **font** block are composed by `H.BorderGroup`
+and `H.FontGroup`; `keys` and `defaults` keep the stored paths and values exactly what they were. The
+font block is what gave the labels a **font face**, a real **font flags** string and a **font shadow**
+— all three new, all three honoured in `modules/MacroBarButton.lua`'s `applyLabel`. `labelOutline`
+(a boolean) became `labelFlags` (a string) in the same change, as schema **v3** in
+`core/Database.lua`, because a stored value changing shape is a migration and not an edit to a
+defaults table.
+
+## Reorder lists
+
+Three draggable lists, all through `LibKa0s-Widgets-1.0`'s `ReorderList` (`options-ui-§18`). The
+handle, the gutter it sits in, the bounded row box, the carried copy, the insertion line and the
+index arithmetic are all the widget's; the row **contents** are ours. The gutter's width is
+`lib.ROW_BOX.HANDLE_W` (30 for this pass, up from 24), **read** at each call site and never restated:
+no list here passes `handleSize`, so nothing but the library decides how wide a Ka0s drag handle is.
+The three `slot:SetWidth(handleGutter())` calls take the same constant, so the cell Flow reserves and
+the handle drawn into it cannot disagree.
+
+| List | Controllers | Boundary | Move |
+|---|---|---|---|
+| Macros → a single category's **Priority list** | 1, flat | none | `Selector.MoveTo` |
+| Macros → a composite's **In Combat** / **Out of Combat** | **2**, one per section | none on either | `Selector.MoveCompositeRef` |
+| Stat Priority → the **secondary stats** | 1 | `#included` | splice + `writeStatPriority` |
+
+The composite sections are **two separate stored arrays** and a sub-category is locked to its section,
+so they are two flat controllers rather than one with a boundary — a drag cannot cross between them
+because there is no array for it to cross into. The secondary-stat list is the other shape: one array
+with a divide, so one controller with a `boundary`.
+
+**Every controller is cancelled at the TOP of the render, before the first widget is created** —
+`settings/Category.lua`'s `cancelReorder` and `settings/StatPriority.lua`'s. Handles and boxes are
+pooled, and a controller released late leaves them attached to recycled widgets belonging to something
+else. The Category seam holds a **list** of controllers for exactly this reason: a composite page
+builds two, and a seam that held one would have leaked the first section's chrome.
+
+**Paired up/down arrows are gone** from both the priority rows and the composite sections
+(anti-patterns #75). Without the library there is no handle and no box and the list is not
+reorderable; that is an accepted cosmetic degradation and no arrows come back as a fallback.
 
 ## How a control reaches the value
 
 Two different paths, and the difference is what a row shape can express.
 
 **Schema-backed controls** are rows in `KCM.Settings.Schema` — an ordered array published by
-`settings/Panel.lua` and appended to by the tab files. One row is simultaneously three things: the
-widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:283` hands the
+`settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
+widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` →
-`SetAndRefresh` seam. `grep -c '^\s*path\s*=' settings/*.lua` reports **55**: 54 `macroBar.*` rows in
-`settings/MacroBar.lua`, plus the master `enabled` row in `settings/Panel.lua`. Adding a row gains all
-three surfaces at once — never write a parallel mutator for a path that already has one.
+`SetAndRefresh` seam. There are **68**: 62 `macroBar.*` rows on the Macro Bar page and 6 in the
+General page's Master controls block. That count is no longer greppable — a composed block declares
+its rows from one call — so read it off `#KCM.Settings.Schema`, which is what the suite does. Adding a
+row gains all three surfaces at once — never write a parallel mutator for a path that already has one.
+
+Composed rows are spliced in by `Helpers.RegisterRows`, which stamps the fields the composers cannot
+know: `panel`, `section`, this addon's `onChange`, and the ordered `{ value =, text = }` media lists
+it declares where the library declares a hash.
 
 **Bespoke controls** are everything a `{ path, type }` row cannot describe, and they are deliberate,
 not gaps:
@@ -151,7 +331,7 @@ not gaps:
 - The **per-category priority lists** and the **per-spec stat priorities** are collections, not
   scalars. No row shape describes them, which is also why `/cm resetall` stays host-owned rather than
   adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
-- The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua:414`)
+- The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua`)
   tries digits first — a bare number is unambiguous and must never reach a link matcher — then the
   selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is accepted as
   readily as a typed ID. ITEM goes through the `KCM.Item` seam onto `LibKa0s-Item-1.0`'s
@@ -159,25 +339,30 @@ not gaps:
   refused rather than cross-filed, because an item link parsed as a spell would store an itemID
   behind the opaque spell sentinel and collide with a real spell ID. Every rejection says why and
   keeps the typed text.
-- The **debug-console checkbox** shows and hides the console *window* only — it never touches the
-  session debug flag `KCM.State.debug`, exactly like a bare `/cm debug` (`debug-logging-§5`). Logging
-  is armed separately, via the in-window `Debug: ON/OFF` toggle or `/cm debug on|off`. Its spec comes
-  from the **library** — `DL.instance:ConsoleCheckbox()` returns the `{ label, tooltip, get, set }`
-  shape `CustomCheckbox` already consumes — so the wording and the visibility semantics cannot drift
-  from the window they describe (`LIBKA0S-06`: one description of the console, owned by the console).
-  `KCM.State.debug` is session-only and never persisted, so it has no path to declare.
+- The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and
+  `settings/Panel.lua`'s `SESSION_PATHS` resolves its `state.debugConsole` path to the console
+  window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare
+  `/cm debug` (`debug-logging-§5`); logging is armed separately, via the in-window `Debug: ON/OFF`
+  toggle or `/cm debug on|off`. `KCM.State.debug` is session-only and never persisted, so it still has
+  no path to declare.
 
 ## Layout rules
 
-- **Two-column paired grid** (`options-ui-§6`). Consecutive rows pair into left/right cells;
-  `H.Grid(ctx, { … })` takes the item list, and a row marked wide takes the full width.
+- **Two-column paired grid** (`options-ui-§6`). Consecutive rows pair into left/right cells.
+  `H.RenderRows(ctx, rows, afterGroup, pairWith, opts)` draws a block of schema rows and reads the
+  pairing off the rows themselves: `startsLine` flushes the pending line before a row (which is what
+  keeps a colour pair together), `wide` renders a row alone at full width, and `solo` renders it alone
+  in the left half. `H.Grid(ctx, { … })` remains for lists whose length no schema knows.
 - **Sections** are introduced by `H.Section(ctx, label)`, never a bare bold line. On a tabbed page the
-  tab strip replaces the headings it used to draw — a heading under a tab of the same name says the
-  same thing twice.
+  tab strip replaces the group heading it used to draw — a heading under a tab of the same name says
+  the same thing twice — but a **`subgroup`** heading inside a mixed tab is *not* suppressed, because
+  there is no tab left to name each block with (`options-ui-§7`).
 - **Tab strips** come from `H.TabStrip(ctx, { tabs, value, onSelect })` (`options-ui-§13`) and the page
   banner from `H.PageBanner(ctx, { label, list, order, value, onSelect })` (`§14`). Both are the
   library's, both live in the page's chrome band above the scroll, and the banner is drawn first
   because it reserves the share of the band the strip then places itself under.
 - **Action buttons** use `H.ButtonPair` / `H.Button`, and a destructive one is confirm-gated through a
-  `StaticPopup` — *Reset all priorities* raises `KCM_RESET_ALL` rather than acting on click.
-- Every user-visible string routes through `L[…]` (`localization-§1`).
+  `StaticPopup` — *Reset all settings* raises `KCM_RESET_ALL` and *Reset all priorities* raises
+  `KCM_RESET_PRIORITIES`, rather than either acting on click.
+- Every user-visible string routes through `L[…]` (`localization-§1`). The composers' labels are the
+  library's own English literals, which is what makes them identical across the collection.

@@ -160,7 +160,7 @@ No protected API is called during combat. Selector, Ranker, Classifier, BagScann
 `OnInitialize` (`core/ConsumableMaster.lua`):
 
 1. `self.db = LibStub("AceDB-3.0"):New("ConsumableMasterDB", KCM.dbDefaults, true)`, then `core/Database.lua`'s `RunMigrations()`.
-2. `db.global.schemaVersion` is set to `1` on fresh install.
+2. `db.global.schemaVersion` is seeded at `1` from `dbDefaults` on a fresh install and then walked forward by `RunMigrations` to `Database.CURRENT_SCHEMA` (`3`); every step is idempotent, so a genuinely fresh account passes through them as a no-op that just stamps the version.
 3. Defaults files are Lua constants (`KCM.SEED.<CAT> = { ... }`), **not** copied into SavedVariables. The candidate set is computed at recompute time as `(seed ∪ added ∪ discovered) − blocked`.
 4. Stat-priority defaults follow the same model: `KCM.SEED.STAT_PRIORITY[<spec>]`. Only user overrides go into SavedVariables.
 5. The first recompute happens after `PLAYER_ENTERING_WORLD`, post-discovery and post-sweep.

@@ -626,6 +626,37 @@ function S.MoveTo(catKey, itemID, newIdx, specKey)
     return moveBy(catKey, itemID, nil, newIdx, specKey)
 end
 
+--- Move one sub-category reference to an absolute position inside a COMPOSITE's
+--- section order (`orderInCombat` / `orderOutOfCombat`).
+---
+--- The composite sections are two SEPARATE stored arrays and a sub-category is
+--- locked to its section, so this never moves a ref between them: `orderField`
+--- names the one array the move happens in, and a drag in the panel is confined
+--- to that section by having its own controller (options-ui-§18).
+---
+--- A SPLICE TO INDEX, and the one definition of it. Saying a four-place move as
+--- a run of adjacent swaps leaves the rows it passed in an order nobody asked
+--- for and rebuilds the macro once per step on the way.
+---
+--- @param catKey string      a composite category key
+--- @param orderField string  "orderInCombat" or "orderOutOfCombat"
+--- @param from number        1-based current position
+--- @param to number          1-based target position
+--- @return boolean changed
+function S.MoveCompositeRef(catKey, orderField, from, to)
+    local _, root = categoryRoot(catKey)
+    local arr = root and root[orderField]
+    if type(arr) ~= "table" then return false end
+    local size = #arr
+    if type(from) ~= "number" or type(to) ~= "number" then return false end
+    if from < 1 or from > size or to < 1 or to > size or from == to then return false end
+    table.insert(arr, to, table.remove(arr, from))
+    if KCM.State and KCM.State.debug then
+        KCM.Debug("Prio", "move %s.%s %d -> %d", catKey, orderField, from, to)
+    end
+    return true
+end
+
 function S.MoveUp(catKey, itemID, specKey)
     return moveBy(catKey, itemID, -1, nil, specKey)
 end

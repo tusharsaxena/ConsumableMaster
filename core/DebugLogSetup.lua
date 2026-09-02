@@ -90,14 +90,16 @@ if not lib then
 
     -- Show and Toggle_Window are the two entry points a user reaches for on
     -- purpose, so they are the two that explain themselves. Hide and
-    -- IsWindowShown stay SILENT: `settings/General.lua:79` calls Hide from the
-    -- Defaults action, and IsWindowShown is a bare status query with no
-    -- production caller at all (only the suites read it), so a notice on
-    -- either would announce a window the user never asked to see. The
-    -- [Debug console] checkbox does not route through this seam either:
-    -- `settings/General.lua:121-127` builds it from
-    -- `DL.instance:ConsoleCheckbox()`, and this path publishes no instance, so
-    -- the checkbox is simply not built.
+    -- IsWindowShown stay SILENT: `settings/General.lua:268` calls Hide from the
+    -- Defaults action and the global reset's session sweep
+    -- (`core/ConsumableMaster.lua`'s restoreSessionRows) writes the row's default
+    -- through the same door, while IsWindowShown is a bare status query the
+    -- [Debug console] row reads on every refresh -- so a notice on either would
+    -- announce a window the user never asked to see, repeatedly. The row itself
+    -- does not route through this seam: it is a schema row now
+    -- (`state.debugConsole`, composed by MasterControls) resolved by
+    -- `settings/Panel.lua:166-183`'s SESSION_PATHS, which reaches for KCM.DebugLog
+    -- at call time and answers false when this degraded path is the one loaded.
     function DL.Show() notice() end
     function DL.Toggle_Window() notice() end
     function DL.Hide() end

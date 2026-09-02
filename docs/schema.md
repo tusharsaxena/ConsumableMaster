@@ -8,10 +8,16 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ```
 db.global
-└── schemaVersion        1          -- migration marker; see core/Database.lua
+└── schemaVersion        3          -- migration marker; see core/Database.lua
 
 db.profile
 ├── enabled              boolean    -- master enable; gates Pipeline.Recompute
+│                                   -- the three ADDON-WIDE master controls
+│                                   -- (options-ui-§15). NOT the macro bar's own
+│                                   -- scale/alpha/combatMode -- the two compose.
+├── visibility           "always" │ "inCombat" │ "outOfCombat" │ "never"
+├── scale                number     -- multiplies macroBar.scale
+├── alpha                number     -- multiplies macroBar.alpha
 ├── categories
 │   ├── FOOD │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS │ AUG_RUNE │ BLOODLUST │ BATTLE_REZ ← single-pick, non-spec-aware
 │   │   ├── added       { [id] = true }                  -- user-added items + spells
@@ -45,6 +51,9 @@ db.profile
     ├── barBorderSize │ buttonBorderSize │ buttonBorderOffset      number (px)
     ├── barBackdropColor │ barBorderColor │ buttonBackdropColor
     │   │ buttonBorderColor         { r, g, b, a }
+    ├── useClassColorBarBackdrop │ useClassColorBarBorder
+    │   │ useClassColorButtonBackdrop │ useClassColorButtonBorder   boolean
+    │                                        -- the options-ui-§17 companions
     ├── iconZoom                    number   -- % cropped off each icon edge
     ├── showCount │ tooltips        boolean
     ├── flyout                      boolean  -- per-slot hover flyout (default on)
@@ -62,14 +71,20 @@ db.profile
     │                                        -- (clamped to half of it)
     ├── flyoutArrowScale            number   -- arrow size, % of band thickness
     ├── flyoutShadeColor            { r, g, b, a }
+    ├── useClassColorFlyoutBackdrop │ useClassColorFlyoutShade   boolean
     ├── flyoutAutoClose             number   -- idle seconds; 0 = never
-    ├── buttonLabel │ labelOutline  boolean
+    ├── buttonLabel                 boolean
     ├── labelText                   "AUTO" │ "FULL" │ "SHORT"
     ├── labelPoint                  9-way grid, e.g. "TOP_CENTER"
     ├── labelPlacement              "INSIDE" │ "OUTSIDE"
+    ├── labelFont                   LibSharedMedia font name
     ├── labelScale                  number   -- % of button size (6-24pt clamp)
+    ├── labelFlags                  "" │ "OUTLINE" │ "THICKOUTLINE"
+    │                               │ "MONOCHROME" │ "OUTLINE, MONOCHROME"
+    ├── labelShadow                 boolean
     ├── labelOffsetX │ labelOffsetY number (px)
     ├── labelColor                  { r, g, b, a }
+    ├── useClassColorLabel          boolean
     ├── combatMode                  "ALWAYS" │ "HIDE_IN_COMBAT" │ "ONLY_IN_COMBAT"
     ├── fadeUnlessHover │ fadeAlpha boolean │ number
     ├── order                       { catKey, ... }   -- slot order, drag-to-swap
@@ -87,9 +102,12 @@ db.profile
 - **`BLOODLUST` / `BATTLE_REZ` have no Classifier matcher.** Every other category in this tree gains candidates from the bag scan; these two are seed-plus-user-added only — `discovered` never populates on its own.
 - **`KCM.SEED.CLASS_GATE`** — a general mechanism, not specific to any one category: `Selector.spellAvailable` (`modules/Selector.lua`) consults it for every spell-form candidate in every category, falling back to it when `IsPlayerSpell` says no (e.g. a pet-granted ability like Primal Rage, which lives in the hunter pet's spellbook, not the player's). Maps a spell id to the class file name allowed to use it. Declared and explained in `defaults/Defaults_Bloodlust.lua`, the only seed file that currently populates it.
 - **`WPN_ENCH` is per-hand, not a single pick.** It still has one `bySpec` bucket like the other spec-aware categories, but the pipeline resolves it as two independent picks: `Selector.PickBestForSlot(catKey, slot, scoreCache)` filters the effective candidate set to entries whose tooltip-derived `tt.weaponAffinity` (`"bladed"` | `"blunt"` | `"any"`, from `TooltipCache`) matches `KCM.WeaponSlots.SlotAffinity(slot)` for the equipped main-hand (16) / off-hand (17) weapon, then ranks and picks within that filtered set. `AP` and `SP` are scored as spec-role stats — `AP` scores as the spec's primary throughput stat for STR/AGI specs, `SP` for INT specs (`Ranker.lua`'s primary-stat weight), so an Attack Power oil doesn't rank below a secondary-stat oil for a physical-damage spec. `MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick)` builds the macro from the two picks, dropping a hand with no weapon or no matching enhancement.
+- **`visibility` / `scale` / `alpha`** — the addon-wide master controls (`options-ui-§15`), and **not** the macro bar's `macroBar.scale` / `macroBar.alpha` / `macroBar.combatMode`. The two are different settings and they **compose**: `modules/MacroBar.lua` multiplies the master scale and alpha into the bar's own, and `MacroBarModel.ResolveVisibility(master, combatMode)` **intersects** the two combat-conditional visibilities so the bar shows only where both say show. `visibility` is a four-value dropdown and never a boolean, because a boolean can only ever answer two of the four.
+- **`useClassColor*`** — one per colour swatch, the companion `options-ui-§17` requires beside every picker, default `false`. All seven are player-scoped: the bar is chrome the player owns and tracks no unit. `KCM.SwatchColor` (`core/CoreSetup.lua`) resolves a stored swatch through its companion, and the stored **alpha** always applies — which is why the swatch is never disabled.
+- **`labelFlags`** — the canonical font-flags string (`options-ui-§16`). It replaced the `labelOutline` boolean in schema **v3**; `""` is a real stored value and means no flags at all.
 - **`macroState`** — fingerprint cache for `MacroManager`'s "unchanged" early-out. `lastIcon` was added in v1.2.0 to support the `DYNAMIC_ICON` migration; `lastCat` lets `MacroManager` reason about which category owns a slot.
 
-- **`macroBar`** — the optional macro bar's entire state. Every scalar has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel widget and a `/cm set macroBar.<field>` path. Two fields are not scalars: **`order`** is the slot order, mutated only by dragging one slot onto another, and repaired on every read by `MacroBarModel.Order()` (unknown keys dropped, newly-shipped categories appended); **`shown[catKey] = false`** hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot: the `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login. Detail in [macro-bar.md](./macro-bar.md).
+- **`macroBar`** — the optional macro bar's entire state. Every scalar has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel widget and a `/cm set macroBar.<field>` path. Two fields are not scalars: **`order`** is the slot order, mutated only by dragging one slot onto another, and repaired on every read by `MacroBarModel.Order()` (unknown keys dropped, newly-shipped categories appended); **`shown[catKey] = false`** hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot: the `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login. Schema **v3** converts `labelOutline` (boolean) to `labelFlags` (string) and removes the old key, because a stored value changing shape is a migration and never an edit to a defaults table. `locked` is still stored here and is still `macroBar.locked`; only the tab it is edited on moved (General → Master controls). Detail in [macro-bar.md](./macro-bar.md).
 
 ### Effective candidate set
 
@@ -103,12 +121,13 @@ Seeds live in `KCM.SEED.<CATKEY>` Lua constants, **not** in SavedVariables — t
 
 ### Migrations
 
-`db.global.schemaVersion` is at `2`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` and is the one place version-gated migrations land; every step is guarded on the stored version so it runs at most once.
+`db.global.schemaVersion` is at `3`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` and is the one place version-gated migrations land; every step is guarded on the stored version so it runs at most once.
 
 | Version | Step |
 |---------|------|
 | 1 | Original shape. |
 | 2 | Macro bar introduced. `Database.MigrateMacroBarV2` sets `profile.macroBar.enabled = true` and `locked = false` so an upgrading profile gets the bar on and placeable, like a fresh install. One-shot by design — a later opt-out survives. |
+| 3 | The label outline became a font-flags string (`options-ui-§16`). `Database.MigrateLabelFlagsV3` writes `macroBar.labelFlags` from the old `macroBar.labelOutline` — `true` → `"OUTLINE"`, `false` → `""` — and removes the boolean, so there is never a second copy for a later reader to guess between. A profile that already carries `labelFlags` is left alone: the step is a conversion, not a reset. |
 
 The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below), so it needs no explicit migration step.
 
@@ -211,7 +230,7 @@ There isn't one. `/cm resync` does a full rescan but **does not** include a GC s
 
 ## Reset path
 
-`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that wipes `categories` + `statPriority` back to `dbDefaults`. Both the Options "Reset all priorities" button and `/cm resetall`'s StaticPopup delegate to it so semantics stay identical regardless of entry point. (`/cm reset <path>` is unrelated: it is `Sl:CliReset`, which applies one schema row's `default` and leaves both tables alone.)
+`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that resets the whole active profile back to `dbDefaults`. Both the General page's **Reset all settings** button (Master controls' closing pair, `options-ui-§15`) and `/cm resetall`'s StaticPopup delegate to it so semantics stay identical regardless of entry point. The General page's **Reset all priorities** button is a narrower, separately-confirmed act (`KCM.ResetAllPriorities`, `settings/General.lua`): every category's `added` / `blocked` / `pins` — `bySpec` buckets included — plus `statPriority`, and nothing else. `discovered` survives it, exactly as it survives a per-category reset. (`/cm reset <path>` is unrelated: it is `Sl:CliReset`, which applies one schema row's `default` and leaves both tables alone.)
 
 After the DB wipe, the function drives a full resync: `TooltipCache.InvalidateAll` → `RunAutoDiscovery` → `Pipeline.Recompute`. Macro writes that land in combat defer via the pending queue, so this is safe to run without a combat guard.
 

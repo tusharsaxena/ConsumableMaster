@@ -742,3 +742,59 @@ test("Selector.PickBestForCategory keeps an item whose tooltip is still pending"
     S.AddItem("FOOD", 940004)
     t.eq(S.PickBestForCategory("FOOD"), 940004, "a pending item is still eligible")
 end)
+
+-- ---------------------------------------------------------------
+-- MoveCompositeRef — the composite sections' move-to mutator
+-- ---------------------------------------------------------------
+--
+-- The two AIO sections used to be reordered by paired up/down arrows, so the
+-- only mutation the model had was an adjacent swap written inline in the panel.
+-- The drag needs "put this one third" in ONE call (options-ui-§18), so the
+-- mutator is here, where it can be driven without a widget.
+
+test("Selector.MoveCompositeRef splices to an index rather than swapping neighbours", function(t)
+    local KCM = h.loader.loadPure()
+    local cfg = KCM.db.profile.categories.HP_AIO
+    cfg.orderInCombat = { "A", "B", "C", "D" }
+
+    -- red under: expressing the move as a swap — a swap of 1 and 4 yields
+    -- D,B,C,A, which is an order nobody asked for.
+    t.eq(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 4), true, "reports the change")
+    t.eqList(cfg.orderInCombat, { "B", "C", "D", "A" },
+        "a four-place move leaves the rows it passed in the order they were in")
+
+    t.eq(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 4, 2), true, "and back again")
+    t.eqList(cfg.orderInCombat, { "B", "A", "C", "D" }, "dragging upward splices the same way")
+end)
+
+test("Selector.MoveCompositeRef refuses a move it cannot make", function(t)
+    local KCM = h.loader.loadPure()
+    local cfg = KCM.db.profile.categories.HP_AIO
+    cfg.orderInCombat = { "A", "B" }
+
+    -- red under: dropping any of the bounds checks — an out-of-range index would
+    -- otherwise table.remove a nil and insert it, silently shortening the array.
+    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 1), "a no-op move")
+    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 0, 1), "index below the array")
+    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 9), "target past the end")
+    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "noSuchField", 1, 2), "an unknown order field")
+    t.falsy(KCM.Selector.MoveCompositeRef("NO_SUCH_CAT", "orderInCombat", 1, 2), "an unknown category")
+    t.eqList(cfg.orderInCombat, { "A", "B" }, "and none of them touched the array")
+end)
+
+test("Selector.MoveCompositeRef never moves a ref between the two sections", function(t)
+    -- A sub-category is LOCKED to its combat state, and the two sections are two
+    -- separate stored arrays — which is why the panel draws two flat controllers
+    -- rather than one with a boundary (options-ui-§18).
+    --
+    -- red under: resolving the array from the category root rather than from the
+    -- named order field.
+    local KCM = h.loader.loadPure()
+    local cfg = KCM.db.profile.categories.HP_AIO
+    cfg.orderInCombat    = { "HS", "HP_POT" }
+    cfg.orderOutOfCombat = { "FOOD" }
+
+    KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2)
+    t.eqList(cfg.orderInCombat, { "HP_POT", "HS" }, "the named section reordered")
+    t.eqList(cfg.orderOutOfCombat, { "FOOD" }, "and the other one is untouched")
+end)

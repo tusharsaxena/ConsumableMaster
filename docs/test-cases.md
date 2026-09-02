@@ -110,7 +110,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: the folder name the wrapper sends resolves to a mark that exists
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 
-### test_database.lua (14)
+### test_database.lua (18)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -126,6 +126,10 @@ badge and any count quoted in the docs must agree with it.
 - Database v2: the step is one-shot — a later opt-out survives the next login
 - Database v2: the migration leaves every other bar setting alone
 - Database v2: MigrateMacroBarV2 tolerates a nil profile
+- Database v3: an outlined label from an older profile reads back as OUTLINE
+- Database v3: an un-outlined label from an older profile reads back as no flags
+- Database v3: a profile that already carries labelFlags is left alone
+- Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less one
 
 ### test_debug.lua (13)
 
@@ -260,7 +264,7 @@ badge and any count quoted in the docs must agree with it.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_macrobar.lua (119)
+### test_macrobar.lua (125)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -381,6 +385,12 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: Apply binds a known spell entry by name
 - macrobar flyout: Apply hides everything when nothing is available
 - macrobar flyout: Apply declines in combat
+- macrobar label: the font FACE, FLAGS and SHADOW reach the FontString
+- macrobar label: the class-color companion repaints the label, alpha and all
+- macrobar button: an unresolvable class falls through to the stored swatch
+- macrobar master: Master scale and Master alpha MULTIPLY the bar's own
+- macrobar master: General visibility is INTERSECTED with the bar's combat mode
+- macrobar master: General visibility = never takes the bar off screen
 
 ### test_macromanager.lua (46)
 
@@ -524,7 +534,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (41)
+### test_schema.lua (46)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -567,8 +577,13 @@ badge and any count quoted in the docs must agree with it.
 - schema: the Macro Bar page partitions into its designed tabs
 - schema: no page's rows leave a group and come back to it
 - schema: the tab strips name only groups their rows declare
+- schema: the General page opens on Master controls, carrying the canonical rows
+- schema: every moved Master controls setting is declared exactly once
+- schema: every row on every page carries a group
+- schema: every color row is followed by its class-color companion
+- schema: every mixed tab breaks its blocks up with subsection headings
 
-### test_selector.lua (47)
+### test_selector.lua (50)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -617,8 +632,11 @@ badge and any count quoted in the docs must agree with it.
 - Selector.PickBestForCategory skips an item the player is over the cap for
 - Selector.ListAvailable omits an item the player is over the cap for
 - Selector.PickBestForCategory keeps an item whose tooltip is still pending
+- Selector.MoveCompositeRef splices to an index rather than swapping neighbours
+- Selector.MoveCompositeRef refuses a move it cannot make
+- Selector.MoveCompositeRef never moves a ref between the two sections
 
-### test_settingsui.lua (21)
+### test_settingsui.lua (30)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -634,6 +652,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: with the library absent no panel is registered, and it says why once
 - Settings UI: with the library absent Helpers still reaches both refresh tiers
 - Settings UI: with the library absent a schema WRITE completes and reports success
+- Settings UI: the degraded stub completes every page-file load, composed rows aside
 - Settings UI: Helpers reads the library's members off the instance, not off a copy
 - Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
 - Settings: the category reset popup restores a composite's AIO fields from defaults
@@ -641,6 +660,14 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the category reset popup is inert with no payload and on an unknown category
 - Settings: add-by-ID rejects bad input by kind and says why
 - Settings: add-by-ID refuses a spec-aware category with no resolvable spec
+- Settings: every page draws a tab strip, and General opens on Master controls
+- Settings: the Stat Priority page draws its strip with no spec resolvable
+- Settings: a composite tab builds one reorder controller per combat section
+- Settings: re-rendering a composite tab cancels EVERY controller it built
+- Settings: the Stat Priority secondaries are one bounded reorder list
+- Settings: the secondary split is stored order first, then the rest
+- Settings: a wrapped strip reserves the same band whichever tab is selected
+- Settings: the Master controls tab closes with the two reset buttons
 
 ### test_slash.lua (82)
 
@@ -834,7 +861,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 11 |
-| test_database.lua | 14 |
+| test_database.lua | 18 |
 | test_debug.lua | 13 |
 | test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
@@ -844,16 +871,16 @@ badge and any count quoted in the docs must agree with it.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_load.lua | 1 |
-| test_macrobar.lua | 119 |
+| test_macrobar.lua | 125 |
 | test_macromanager.lua | 46 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 28 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 41 |
-| test_selector.lua | 47 |
-| test_settingsui.lua | 21 |
+| test_schema.lua | 46 |
+| test_selector.lua | 50 |
+| test_settingsui.lua | 30 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
@@ -862,4 +889,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **712** |
+| **Total** | **739** |

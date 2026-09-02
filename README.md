@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-712%2F712_passing-green)
+![Tests](https://img.shields.io/badge/Tests-739%2F739_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -111,16 +111,23 @@ category used to be its own sidebar entry; they are tabs on the one **Macros** p
 
 **General**
 
-*General*
+*Master controls*
 
-*   **Enable** — the master on/off switch. When it's off, your macros stop updating and keep whatever they last had. Turn it back on and they refresh right away. Remembered between sessions.
+The same eight controls, under the same names, in every Ka0s addon.
+
+*   **Enable Consumable Master** — the master on/off switch. When it's off, your macros stop updating and keep whatever they last had. Turn it back on and they refresh right away. Remembered between sessions.
+*   **General visibility** — when the addon's display is shown at all: *Always*, *Only in combat*, *Only out of combat*, or *Never*. This is addon-wide; the Macro Bar page has its own **Combat visibility** for that one bar, and the bar shows only where both of them say show.
+*   **Master scale** / **Master alpha** — size and opacity for the whole addon's display. Also addon-wide: they multiply the bar's own **Bar scale** and **Bar opacity** rather than replacing them.
+*   **Lock frame** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). The help icon on the handle lists what you can drag where. Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
 *   **Debug console** — show or hide the on-screen debug window (same as a bare `/cm debug`). This does *not* turn logging on or off — use the window's **Debug: ON/OFF** toggle or `/cm debug on/off` for that. The window is hidden again each login.
+*   **Reset position** — move the bar back to the center of the screen.
+*   **Reset all settings** — put this profile back the way it shipped. Everything you have configured or added in it is discarded; your other profiles are not affected. Asks first.
 
 *Maintenance*
 
 *   **Force resync** — rescan your bags and recheck every category's best pick. Macros only change if the pick actually changed. Same as `/cm resync`. Not available in combat.
 *   **Force rewrite macros** — rewrite every macro and its icon, even ones that didn't change. Use this when an action-bar icon looks stale (some bar addons hold the old icon across an upgrade). Same as `/cm rewritemacros`. Not available in combat. A `/reload` afterwards makes sure your bars redraw.
-*   **Reset all priorities** — wipe every added, blocked, and pinned item and every stat choice, restoring the defaults. Asks first.
+*   **Reset all priorities** — wipe every added, blocked, and pinned item and every stat choice, and nothing else: your bar's appearance and the master controls are left alone. Asks first. (For the whole lot, use **Reset all settings** above.)
 
 **Stat Priority**
 
@@ -128,7 +135,7 @@ One page that controls the four spec-aware categories (Stat Food, Combat Potion,
 
 *   **Viewing spec** — pinned in the banner at the top of the page, so it stays visible while you scroll. Pick which spec you're editing; this also sets which spec is shown on the four spec-aware category tabs on the **Macros** page. Specs show their class icon and name (e.g. "Shaman — Enhancement").
 *   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
-*   **Secondary stat #1 … #4** — your preferred secondary stats in order (Crit, Haste, Mastery, Versatility). #1 counts the most. Leave a slot as `(none)` to stop there; anything not listed counts as zero.
+*   **Secondary stats** — Crit, Haste, Mastery and Versatility as one list you **drag** into the order you want. The one at the top counts the most. Untick **Include** on a stat and it drops to the greyed block at the bottom and counts as zero; tick it again to bring it back.
 *   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
 
 **Macro Bar**
@@ -138,8 +145,9 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 *General*
 
 *   **Enable macro bar** — show the bar. On by default; turning it off hides the bar and stops all its work, and nothing is rebuilt until you turn it back on.
-*   **Lock position** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). The help icon on the handle lists what you can drag where. Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
-*   **Reset position** / **Reset slot order** — move the bar back to the center of the screen, or undo any drag-and-drop rearranging.
+*   **Reset slot order** — undo any drag-and-drop rearranging of the buttons.
+
+Locking the bar and putting it back in the middle of the screen are **General → Master controls** now, with the rest of the addon-wide controls.
 
 *Layout*
 
@@ -150,15 +158,17 @@ A bar that holds only Consumable Master's macros — nothing else can be dropped
 
 *Bar appearance*
 
+*   **Bar opacity** — how opaque the bar is when it isn't faded out. Multiplied by **Master alpha** on the General page.
 *   **Bar background** and its color — the backdrop drawn behind the buttons.
-*   **Bar border**, **Bar border style**, **Bar border thickness** and its color — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
-*   **Bar opacity** — how opaque the bar is when it isn't faded out.
+*   **Show border**, **Border style**, **Border thickness** and **Border color** — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
+
+Every colour here has a **Use class color** checkbox beside it: tick it and that surface takes your class's colour instead of the swatch. The swatch's **opacity** still applies either way, which is why it never greys out.
 
 *Button appearance*
 
 *   **Button background** and its color — the fill behind each icon, mostly visible while an icon is still loading.
-*   **Button border**, **Button border style**, **Button border thickness** and its color — same LibSharedMedia list as the bar, so the two can match. Turn the border off for a flat, borderless grid of icons.
-*   **Button border offset** — pushes the border outward, away from the icon. Raise this if a thick border is covering the artwork.
+*   **Show border**, **Border style**, **Border thickness** and **Border color** — same LibSharedMedia list as the bar, so the two can match. Turn the border off for a flat, borderless grid of icons.
+*   **Border offset** — pushes the border outward, away from the icon. Raise this if a thick border is covering the artwork.
 *   **Icon zoom** — crops a percentage off each side of the icon. A little zoom trims the dark edge baked into most item icons so it stops reading as a second border.
 *   **Show stack count** — how many of the picked item you're carrying, in the corner of each button.
 *   **Show tooltips** — show the picked item's or spell's tooltip on hover.
@@ -171,8 +181,8 @@ Cooldowns use your normal game settings (the standard sweep, plus countdown numb
 *   **Show button labels** — write each button's category name on it. On by default.
 *   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 15-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
 *   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is just outside the bottom edge, which keeps the label clear of both the icon and the flyout band on top. Outside labels can overlap a neighbor when spacing is tight.
-*   **Label size** — a percentage of the button size, so labels stay proportional when you resize the bar.
-*   **Label offset X / Y**, **Outline label text**, **Label color** — the rest of the fine-tuning.
+*   **Label offset X / Y** — nudge the label from its anchor.
+*   **Font**, **Font size (% of button)**, **Font color**, **Use class color**, **Font flags** and **Font shadow** — the label's typeface. The size is a percentage of the button, so labels stay proportional when you resize the bar. **Font flags** is the outline (*None*, *Outline*, *Thick outline*, *Monochrome*, *Monochrome outline*) — it replaced the old *Outline label text* checkbox, and an existing setting is carried over automatically.
 
 *Flyout*
 
@@ -254,7 +264,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Drag the reusable rune to the top of its list if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then either type the ID or shift-click the item (or spell) into the box, and press Enter. |
 | How do I force a specific item to always win? | Grab its row by the **drag handle** and drop it where you want. A moved (pinned) item overrides the automatic ranking. |
-| How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
+| How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** (General → Maintenance) clears the block. |
 | Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |
 | Can I use this in a non-English client? | Not fully yet — **English only for now**. Item and weapon *type* detection works on any client, but it still reads tooltip **text** in English to get heal/mana/stat amounts, so other languages aren't fully supported. Full localization is planned for a later release. |
 | Will new patch flasks / potions work automatically? | Usually yes. It scans your bags and recognizes anything that matches by type and tooltip, so a freshly-looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
@@ -274,8 +284,8 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
-| `/cm resetall` or "Reset all priorities" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
-| I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General) clears everything. |
+| `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
+| I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General → Maintenance) clears every category and every stat choice; **Reset all settings** (General → Master controls) puts the whole profile back. |
 
 ## Issues and feature requests
 

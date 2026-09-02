@@ -498,12 +498,16 @@ end)
 test("schema: the Macro Bar page partitions into its designed tabs", function(t)
     local KCM = h.loader.loadFullAddon()
     local want = {
-        { "General",           2  },
+        -- General lost `Lock position` to the General page's Master controls tab
+        -- (options-ui-§15); the appearance tabs gained the class-color companion
+        -- beside every swatch (§17) and Labels gained the font face, the font
+        -- flags string and the font shadow the canonical font block mandates (§16).
+        { "General",           1  },
         { "Layout",            8  },
-        { "Bar appearance",    7  },
-        { "Button appearance", 11 },
-        { "Labels",            9  },
-        { "Flyout",            14 },
+        { "Bar appearance",    9  },
+        { "Button appearance", 13 },
+        { "Labels",            12 },
+        { "Flyout",            16 },
         { "Visibility",        3  },
         { "Contents",          0  },
     }
@@ -573,5 +577,212 @@ test("schema: the tab strips name only groups their rows declare", function(t)
         end
         t.truthy(tab.label and tab.label ~= "", tab.group .. " has a visible label")
         t.eq(type(tab.draw), "function", tab.group .. " knows how to draw itself")
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- options-ui-§15 — the Master controls tab
+-- ---------------------------------------------------------------------------
+--
+-- The one thing every player looks for first is in the same place, under the
+-- same words, in every Ka0s addon: the General page's FIRST tab. Asserted over
+-- the schema, because the schema IS the tab list — `group` is the partition key
+-- and the tab label at once.
+
+-- The canonical set (options-ui-§15) minus the two resets, which are the tab's
+-- closing BUTTON PAIR rather than rows. Written out longhand and in order:
+-- derived from the schema it would agree with the schema whatever that said.
+--
+-- `macroBar.locked` is `Lock frame`. The setting MOVED tabs and did not move
+-- storage, which is the whole of "move, do not duplicate" — the Macro Bar page
+-- must not also declare it, and the next case proves it does not.
+local MASTER_ROWS = {
+    { "enabled",            "bool"   },
+    { "visibility",         "string" },
+    { "scale",              "number" },
+    { "alpha",              "number" },
+    { "macroBar.locked",    "bool"   },
+    { "state.debugConsole", "bool"   },
+}
+
+-- red under: renaming the group, declaring any other general-page group ahead of
+-- it, or hand-writing a row into the block out of canonical order.
+test("schema: the General page opens on Master controls, carrying the canonical rows", function(t)
+    local KCM = h.loader.loadFullAddon()
+
+    local groups, seen = {}, {}
+    local rows = {}
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel == "general" then
+            if not seen[row.group] then
+                seen[row.group] = true
+                groups[#groups + 1] = row.group
+            end
+            if row.group == "Master controls" then rows[#rows + 1] = row end
+        end
+    end
+
+    t.eq(groups[1], "Master controls",
+        "the FIRST group the General page declares is the canonical tab")
+    t.eq(#rows, #MASTER_ROWS, "it holds exactly the rows this addon is entitled to")
+    for i, want in ipairs(MASTER_ROWS) do
+        t.eq(rows[i] and rows[i].path, want[1], "row #" .. i .. " is " .. want[1])
+        t.eq(rows[i] and rows[i].type, want[2], want[1] .. " is a " .. want[2])
+    end
+    -- General visibility is a DROPDOWN, never a boolean: a boolean can only ever
+    -- answer two of the four.
+    local vis = KCM.Settings.Helpers.FindSchema("visibility")
+    local values = KCM.Settings.Helpers.EnumValues(vis)
+    t.truthy(type(values) == "table", "the visibility row offers a value list")
+end)
+
+-- A SESSION-ONLY ROW STILL NEEDS A DEFAULT. Three separate resets key on
+-- `default ~= nil` before they will touch a row -- the global reset's session sweep
+-- (core/ConsumableMaster.lua's restoreSessionRows), this page's Defaults button
+-- (settings/General.lua's doResetGeneralPage) and `/cm reset` (settings/Slash.lua's
+-- applyDefault) -- and OptionsCompose emits the debug-console row with no default of
+-- its own, because it cannot know what a host's fresh session looks like. Declaring
+-- it is the host's job and this is the case that says so.
+--
+-- red under: dropping `debugConsole = false` from the MasterControls spec's
+-- `defaults`, or declaring a second session-only row without one.
+test("schema: every session-only row declares a default, so a reset can reach it", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local n = 0
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.sessionOnly then
+            n = n + 1
+            t.truthy(row.default ~= nil,
+                "'" .. tostring(row.path) .. "' declares a default")
+        end
+    end
+    t.eq(n, 1, "the debug console is this addon's one session-only row")
+end)
+
+-- red under: leaving the old declaration in place anywhere it used to live.
+test("schema: every moved Master controls setting is declared exactly once", function(t)
+    local KCM = h.loader.loadFullAddon()
+    for _, want in ipairs(MASTER_ROWS) do
+        local n = 0
+        for _, row in ipairs(KCM.Settings.Schema) do
+            if row.path == want[1] then n = n + 1 end
+        end
+        t.eq(n, 1, "'" .. want[1] .. "' is declared once, on one page")
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- options-ui-§13 — every row carries a group
+-- ---------------------------------------------------------------------------
+--
+-- A page whose rows declare none cannot draw a strip: the library reports it and
+-- renders the page untabbed, which is the defect rather than the shape
+-- (anti-patterns #69). Three lines, and the one that catches a row added without
+-- a tab to live on.
+--
+-- red under: dropping `group` from any row literal, or from a composer spec.
+test("schema: every row on every page carries a group", function(t)
+    local KCM = h.loader.loadFullAddon()
+    for _, row in ipairs(KCM.Settings.Schema) do
+        t.truthy(row.group and row.group ~= "",
+            "row '" .. tostring(row.path) .. "' declares the tab it belongs to")
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- options-ui-§17 — the class-color companion
+-- ---------------------------------------------------------------------------
+--
+-- Every color row is followed IMMEDIATELY by its companion, which is what puts
+-- the two on one line; the swatch carries `startsLine`, which is what stops an
+-- odd number of widgets above them splitting the pair across two; and no color
+-- row is ever disabled, because its ALPHA is still read under class color.
+--
+-- red under: adding a color row without its companion, adding `disabledIf` to
+-- one, dropping `startsLine` from a swatch, or declaring any of this addon's
+-- swatches `classColor = { source = "unit" }` — every one of them is chrome on a
+-- bar the player owns, and the row's declaration is what an audit reads.
+test("schema: every color row is followed by its class-color companion", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local schema = KCM.Settings.Schema
+    local colors = 0
+    for i, row in ipairs(schema) do
+        if row.type == "color" then
+            colors = colors + 1
+            local companion = schema[i + 1]
+            t.truthy(companion and companion.type == "bool",
+                "'" .. row.path .. "' is followed by a bool")
+            t.truthy(companion and tostring(companion.path):find("useClassColor", 1, true),
+                "…and that bool is its useClassColor companion")
+            t.eq(companion and companion.label, "Use class color",
+                "…labelled with the collection's one wording")
+            t.eq(companion and companion.group, row.group, "…in the same tab")
+            t.eq(companion and companion.subgroup, row.subgroup, "…under the same heading")
+            t.eq(row.startsLine, true,
+                "'" .. row.path .. "' opens its line so the pair cannot be split")
+            -- This addon paints one bar that belongs to the player and tracks no
+            -- unit, so every swatch on it is player-scoped. The declaration is
+            -- what an audit reads; the path prefix decides nothing.
+            t.eq(row.classColorSource, "player",
+                "'" .. row.path .. "' declares whose class it means")
+            t.eq(companion and companion.classColorSource, "player",
+                "…and its companion agrees")
+        end
+        t.eq(row.disabledIf, nil,
+            "row '" .. tostring(row.path) .. "' carries no disabledIf (anti-patterns #74)")
+    end
+    t.truthy(colors >= 7, "the addon still declares its seven swatches (" .. colors .. ")")
+end)
+
+-- ---------------------------------------------------------------------------
+-- options-ui-§7 — a tab that mixes control types carries subsection headings
+-- ---------------------------------------------------------------------------
+--
+-- The four Macro Bar tabs that merge a background block, a border block, a font
+-- block and an icon block are the ones this catches. A `subgroup` MUST NOT
+-- repeat its tab's name, and every row of a subgrouped tab must carry one --
+-- a single unlabelled row among labelled ones is a block with no heading.
+--
+-- "Repeat" is checked WORD BY WORD, not on the whole string. `Bar` under
+-- `Bar appearance` is a repeat -- it names the tab back at the reader instead of
+-- naming the kind of control under the heading -- and a whole-string comparison
+-- waved it through, which is how it shipped.
+--
+-- red under: dropping `subgroup` from any row of a mixed tab, or naming a
+-- subgroup after any word of the tab it sits in.
+test("schema: every mixed tab breaks its blocks up with subsection headings", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local MIXED = {
+        ["Bar appearance"]    = { "Opacity", "Background", "Border" },
+        ["Button appearance"] = { "Background", "Border", "Icon" },
+        ["Labels"]            = { "Text", "Layout", "Font" },
+        ["Flyout"]            = { "Layout", "Background", "Icon" },
+    }
+    local function repeatsTabName(subgroup, group)
+        local sub = tostring(subgroup):lower()
+        for word in tostring(group):gmatch("%a+") do
+            if word:lower() == sub then return true end
+        end
+        return false
+    end
+    local seenOrder, seenSet = {}, {}
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel == "macrobar" and MIXED[row.group] then
+            t.truthy(row.subgroup and row.subgroup ~= "",
+                "row '" .. row.path .. "' sits under a heading")
+            t.falsy(repeatsTabName(row.subgroup, row.group),
+                "'" .. tostring(row.subgroup) .. "' does not repeat a word of its tab's name")
+            local key = row.group .. "/" .. tostring(row.subgroup)
+            if not seenSet[key] then
+                seenSet[key] = true
+                seenOrder[row.group] = seenOrder[row.group] or {}
+                local list = seenOrder[row.group]
+                list[#list + 1] = row.subgroup
+            end
+        end
+    end
+    for group, want in pairs(MIXED) do
+        t.eqList(seenOrder[group] or {}, want,
+            "'" .. group .. "' declares its headings once each, in order")
     end
 end)

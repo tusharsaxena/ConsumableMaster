@@ -144,16 +144,65 @@ function Helpers.Resolve(path)
     return parent, segments[#segments]
 end
 
+-- ---------------------------------------------------------------------
+-- Session-only paths — settings whose store is NOT db.profile
+-- ---------------------------------------------------------------------
+--
+-- One entry today: the debug console's visibility. options-ui-§15 puts a
+-- `Debug console` row on the Master controls tab and debug-logging keeps it
+-- SESSION-only -- a console left open is not a setting the next character
+-- inherits -- so it has a schema `path` like every other row and no home in the
+-- profile. The library's MasterControls composer names that path
+-- `state.debugConsole` verbatim, which is why the key below is a literal rather
+-- than something derived.
+--
+-- Resolved HERE rather than in Resolve() because Resolve's contract is "a
+-- db.profile parent and a key", and answering a synthetic parent for a value
+-- that lives in neither would make `/cm get` report a table nobody stores.
+--
+-- The console itself is untouched: this is the same show/hide a bare `/cm debug`
+-- performs and it never arms LOGGING (KCM.State.debug), which stays the separate
+-- flag it has always been (debug-logging-§5).
+local SESSION_PATHS = {
+    ["state.debugConsole"] = {
+        get = function()
+            local DL = KCM.DebugLog
+            return (DL and DL.IsWindowShown and DL.IsWindowShown()) and true or false
+        end,
+        set = function(v)
+            local DL = KCM.DebugLog
+            if not DL then return false end
+            if v then
+                if DL.Show then DL.Show() end
+            elseif DL.Hide then
+                DL.Hide()
+            end
+            return true
+        end,
+    },
+}
+Helpers.SESSION_PATHS = SESSION_PATHS
+
 function Helpers.Get(path)
+    local session = SESSION_PATHS[path]
+    if session then return session.get() end
     local parent, key = Helpers.Resolve(path)
     if not parent then return nil end
     return parent[key]
 end
 
 function Helpers.Set(path, value)
-    local parent, key = Helpers.Resolve(path)
-    if not parent then return false end
-    parent[key] = value
+    local session = SESSION_PATHS[path]
+    local ok
+    if session then
+        ok = session.set(value) and true or false
+    else
+        local parent, key = Helpers.Resolve(path)
+        if not parent then return false end
+        parent[key] = value
+        ok = true
+    end
+    if not ok then return false end
     if KCM.State and KCM.State.debug then
         KCM.Debug("Set", "%s = %s", tostring(path), tostring(value))
     end
@@ -654,32 +703,50 @@ end
 -- renders as a widget AND that /cm list / get / set sees on the CLI.
 -- Adding a new scalar = one row.
 -- ---------------------------------------------------------------------
+--
+-- NO ROWS ARE DECLARED IN THIS FILE ANY MORE. The `enabled` master toggle used
+-- to be here, hand-written; it is one of the eight rows the library's
+-- MasterControls composer emits now, and it lives with the rest of its block in
+-- settings/General.lua (options-ui-§15). Two declarations of one setting is the
+-- failure that whole rule exists to remove, so the old one is gone rather than
+-- kept "for the CLI".
+--
+-- The session DEBUG FLAG (KCM.State.debug) is still not a row: it is armed by
+-- `/cm debug on|off` and by the console's own toggle, never persisted, and never
+-- what the Master controls tab's `Debug console` row writes -- that row shows and
+-- hides the WINDOW, which is what a bare `/cm debug` does (debug-logging-§5).
 
-KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
-    panel    = "general", section = "general", group = "General",
-    path     = "enabled", type    = "bool",
-    label    = L["Enable"],
-    tooltip  = L["Master enable for the addon. When off, the recompute pipeline is a no-op — macros keep their last-written body and stop updating with bag / spec / combat events."],
-    -- Default sourced from the AceDB defaults constant, not a duplicated
-    -- literal, so the schema and the seeded profile can never drift (architecture-§5).
-    default  = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.enabled,
-    onChange = function(v)
-        local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-        KCM.Say("Master enable " .. state)
-        -- Off→on: kick a recompute so macros refresh against the current
-        -- bag / spec state immediately rather than waiting for the next
-        -- event. Off→off is harmless (RequestRecompute schedules a run
-        -- which the gate in Pipeline.Recompute then skips).
-        if v and KCM.Pipeline and KCM.Pipeline.RequestRecompute then
-            KCM.Pipeline.RequestRecompute("master_enable")
+--- Append a COMPOSED block to the schema, stamping the fields the composers do
+--- not know about.
+---
+--- The composers (OptionsCompose) emit `path`, `page`, `group`, `subgroup`,
+--- `order`, `type`, `label`, `tooltip` and `default` -- everything options-ui-§16
+--- and §17 pin. What they cannot know is this addon's own row vocabulary:
+--- `panel` and `section` (which ValidateSchema checks), the `onChange` that
+--- applies the write, and the ordered `{ value =, text = }` media lists this
+--- addon declares where the library declares a hash.
+---
+--- `decorate` is keyed by the row's stored PATH rather than by its position, so
+--- a composer that gains a row cannot silently re-target somebody else's
+--- onChange.
+function Helpers.RegisterRows(rows, panel, section, decorate)
+    for _, row in ipairs(rows) do
+        row.panel   = panel
+        row.section = section
+        -- Provenance, and the one thing a test cannot derive: a composed row and
+        -- a hand-written one are deliberately indistinguishable to every reader
+        -- EXCEPT the degraded-parity case, which has to know which rows are
+        -- expected to be absent when the composers are stubbed out
+        -- (tests/test_settingsui.lua's measurement).
+        row.__composed = true
+        local extra = decorate and decorate[row.path]
+        if extra then
+            for k, v in pairs(extra) do row[k] = v end
         end
-    end,
-}
-
--- The debug flag is deliberately NOT a schema row: it is session-only state
--- (KCM.State.debug, default off, never persisted) driven by DebugLog. The
--- General page renders it as a custom State-backed checkbox instead (CM-14 /
--- debug-logging-§5).
+        KCM.Settings.Schema[#KCM.Settings.Schema + 1] = row
+    end
+    return rows
+end
 
 -- ---------------------------------------------------------------------
 -- About content (parent canvas). Logo + addon notes + slash command list.

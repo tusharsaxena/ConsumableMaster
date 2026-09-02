@@ -341,7 +341,14 @@ end
 -- The two load in the TOC's order and BOTH are needed: Panel.lua reads
 -- KCM.Settings.optionsUI as a file-scope local, so loading it alone would pin a
 -- degraded panel on an arm that has the library.
-L.SETTINGS_SEAM = { "settings/OptionsSetup.lua", "settings/Panel.lua" }
+--- The SCHEMA ROWS are no longer Panel.lua's: the Master controls block is
+--- COMPOSED in settings/General.lua (options-ui-§15) and the Macro Bar page has
+--- always declared its own fifty-odd rows, so a "settings schema" that stopped at
+--- Panel.lua is now an empty schema.
+L.SETTINGS_SEAM = {
+    "settings/OptionsSetup.lua", "settings/Panel.lua",
+    "settings/General.lua", "settings/MacroBar.lua",
+}
 
 function L.loadWithSchema(omitLibs)
     local files = {}
