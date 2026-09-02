@@ -201,7 +201,7 @@ mix control types and therefore carry **subsection headings** (`options-ui-§7`)
 | 1 | **General** | 1 | — enable; plus the Reset slot order button |
 | 2 | **Layout** | 8 | — per row, button size, spacing, padding, bar scale, orientation, both growth directions |
 | 3 | **Bar appearance** | 9 | *Opacity* · *Background* (toggle + swatch + companion) · *Border* (the composed four, led by its Show border toggle) |
-| 4 | **Button appearance** | 13 | *Background* · *Border* (composed four + border offset) · *Icon* (zoom, stack count, tooltips, GCD swipe) |
+| 4 | **Button appearance** | 13 | *Background* · *Border* (the Show border toggle, the composed four, and border offset) · *Icon* (zoom, stack count, tooltips, GCD swipe) |
 | 5 | **Labels** | 12 | *Text* (show, label text) · *Layout* (anchor, placement, both offsets) · *Font* (the composed six) |
 | 6 | **Flyout** | 16 | *Layout* (nine) · *Background* (toggle + swatch + companion) · *Icon* (band, arrow, shade swatch + companion) |
 | 7 | **Visibility** | 3 | — combat mode, fade unless hover, faded opacity |

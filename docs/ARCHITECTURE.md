@@ -112,15 +112,15 @@ Every client event this addon listens to is registered in one place — `KCM:OnE
 
 | Event | Handler | Purpose |
 |---|---|---|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:385`) | Login and `/reload`: auto-discovery, then the discovered-set sweep, then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
-| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:411`) | Bag contents moved; re-run discovery and request a coalesced recompute |
-| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:416`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:426`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle |
-| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:440`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
-| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:461`) | A spell-backed candidate became known after the spell book hydrated; recompute |
-| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:469`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
-| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:405`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
-| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:405`) | The same repaint, from the item-cooldown side |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:465`) | Login and `/reload`: auto-discovery, then the discovered-set sweep, then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
+| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:491`) | Bag contents moved; re-run discovery and request a coalesced recompute |
+| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:496`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:506`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle |
+| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:520`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
+| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:541`) | A spell-backed candidate became known after the spell book hydrated; recompute |
+| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:549`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
+| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:485`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
+| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:485`) | The same repaint, from the item-cooldown side |
 
 Internal control flow that crosses a feature boundary does **not** ride a client event — it rides the closed bus above.
 
@@ -131,7 +131,7 @@ The addon's protected surface is small and deliberately fenced.
 - **`modules/MacroManager.lua` is the only caller of the protected macro writers.** `CreateMacro` (`:309`) and `EditMacro` (`:320`) appear nowhere else in the tree, and `DeleteMacro` is never called at all. Every engine module the pipeline calls — Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper — is pure, so a recompute can run mid-combat without touching a protected API.
 - **The macro bar owns the only protected frames.** Slots and flyout entries are secure buttons: creating, anchoring, showing or hiding them is combat-forbidden. Everything funnels through `MacroBar.Update()`, which defers to `PLAYER_REGEN_ENABLED`. Combat-conditional visibility goes to `RegisterStateDriver`, flyout hover to `_onenter` / `_onleave` snippets, and combat state reaches those snippets via `RegisterAttributeDriver` — the decisions happen inside the secure environment rather than in tainted Lua. A slot's `macro` attribute is stamped once at creation and never rewritten.
 - **Restricted (secret) values are tested before they are touched.** Midnight wraps combat-restricted data — cooldown start/duration among it — in opaque values that raise on comparison or arithmetic. Any gate over client data asks `KCM.Compat.IsSecret` first, and `core/MacroDisplay.lua` hands the opaque `C_DurationUtil` object straight back to the client rather than unpacking it ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
-- **Options registration is not combat-gated; only opening is.** Registering a Blizzard settings category never taints, so registration runs eagerly at load. What is gated is the *open* path — `settings/Panel.lua:896` turns a mid-fight `/cm config` into a chat notice instead of a silent failure — and the panel's Defaults action, `settings/Panel.lua:305`, for the same reason.
+- **Options registration is not combat-gated; only opening is.** Registering a Blizzard settings category never taints, so registration runs eagerly at load. What is gated is the *open* path — `settings/Panel.lua:963-965` turns a mid-fight `/cm config` into a chat notice instead of a silent failure — and the panel's Defaults action, `settings/Panel.lua:354-356`, for the same reason.
 
 ## Invariants worth not breaking
 
@@ -193,7 +193,7 @@ dot-callable** names as thin forwarders onto that instance, publishes the instan
 | `Media-1.0` | `core/MediaSetup.lua` | this addon's folder name (a vendored library cannot work out which folder it was copied into) and the one `Media.RegisterLSM` call, made at file load. Publishes `KCM.Icon` / `KCM.MediaFont`; its TOC position is load-bearing, because `core/DebugLogSetup.lua` resolves the console font eagerly |
 | `Env-1.0` | `core/EnvSetup.lua` | `addonName` again, and the degradation path — an install without LibKa0s repeats the two `C_AddOns` ladders this seam replaced. Publishes `KCM.Meta(field)` and `KCM.Version()` (`/cm version`, the About page's notes) |
 | `Widgets-1.0` | none — `settings/Category.lua` and `settings/StatPriority.lua` each resolve the major at the call site | exactly one member, `ReorderList`, behind **three** lists: a single category's priority rows, each of a composite's two combat-state sections, and the Stat Priority page's secondary stats. There is no setup file and no instance: the widget is a plain constructor with no addon-wide state to teach it, so a page asks `LibStub` in silent mode on each render. With the major absent no handle and no row box are drawn and the lists lose their in-panel reordering entirely — `/cm priority <cat> up\|down` is what still moves a priority row. Each page cancels every controller it built at the TOP of its render, before the first widget exists (`options-ui-§18`); the Category seam holds a LIST because a composite page builds two |
-| `Item-1.0` | `core/ItemSetup.lua` | exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID box's pasted-link path (`settings/Category.lua:408`). `QualityFromLink` / `QualityLabel` / `LoadItem` are pointedly not taken, and `core/TooltipCache.lua` stays this addon's own policy. The degradation stub is the same primitive in three lines, so a pasted link never works on one install and not another |
+| `Item-1.0` | `core/ItemSetup.lua` | exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID box's pasted-link path (`settings/Category.lua:418`). `QualityFromLink` / `QualityLabel` / `LoadItem` are pointedly not taken, and `core/TooltipCache.lua` stays this addon's own policy. The degradation stub is the same primitive in three lines, so a pasted link never works on one install and not another |
 
 Three rules here are load-bearing rather than stylistic:
 
