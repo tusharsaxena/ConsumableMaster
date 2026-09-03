@@ -24,10 +24,24 @@
 --      `Secondary stat #N` dropdowns. ORDER-ONLY semantics: dragging changes the
 --      order and nothing else, because writeStatPriority already compacts blanks
 --      and duplicates on every write. Whether a stat counts at all is the per-row
---      `Include` checkbox -- the affordance the old `(none)` dropdown value
---      carried -- and an excluded stat drops to a dimmed, undraggable tail below
---      the boundary, because its position among the others is not stored and a
---      gesture that cannot be saved is worse than no gesture.
+--      tick/cross GLYPH you click -- the affordance the old `(none)` dropdown
+--      value carried -- and an excluded stat drops to a dimmed, undraggable tail
+--      below the boundary, because its position among the others is not stored
+--      and a gesture that cannot be saved is worse than no gesture.
+--
+-- THE ROW IS MULTIMETERS-SHAPED, and that is the point of it. Every draggable
+-- list in the collection is meant to read the same (options-ui-§8, §18): the
+-- library draws a bounded box behind the whole row and a player learns one row
+-- once. This page drew its rows as AceGUI widgets in a Flow group and named the
+-- handle's 30px SLOT as the box's parent, so the library boxed the gutter and the
+-- row itself had no background -- next to MultiMeters' column list it did not
+-- look like the same control. The row is a raw frame now, like that one's blocks:
+--
+--    [handle gutter] [tick/cross] .......................... [Stat name]
+--
+-- with the stat's name RIGHT-aligned, the stride wider than the box so rows do
+-- not touch, and the two glyph textures MultiMeters already wears, so a player
+-- who runs both reads one vocabulary rather than two.
 --
 -- Reset: inline full-width "Reset stat priority" button at the bottom that
 --   drops the user override for the viewed spec; Ranker falls back to the
@@ -74,8 +88,28 @@ local SECONDARY_SORTING = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" }
 -- stride its arithmetic runs on, and as the height of the copy it carries under
 -- the cursor. Uniform across the list, which options-ui-§18 requires -- the drop
 -- is arithmetic on the stride, not a hit test.
+-- ROW_H is the BOX's height; ROW_STRIDE is top-of-row to top-of-row, and the
+-- difference between them is the gap between two rows. The library does its drop
+-- arithmetic on the stride, so the two must be declared together or a drop lands
+-- a row short. Same pair, same reason, as MultiMeters' BLOCK_HEIGHT / BLOCK_STRIDE.
 local ROW_H       = 28
+local ROW_STRIDE  = ROW_H + 4
 local HANDLE_ICON = "segment"
+
+-- The gap between the handle's gutter and the first thing after it. The gutter
+-- itself is the library's (see handleGutter below); this is the breathing room,
+-- and without it the glyph sat flush against the handle.
+local GLYPH_GAP  = 12
+local GLYPH_SIZE = 18
+
+-- The same two textures MultiMeters' column blocks wear, and the same two the
+-- Macros page's priority rows use for "in bags" / "not in bags". One glyph
+-- vocabulary across the collection.
+local INCLUDED_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready"
+local EXCLUDED_TEX = "Interface\\RaidFrame\\ReadyCheck-NotReady"
+
+-- How far the stat's name is held off the row's right edge.
+local LABEL_INSET = 12
 
 -- The handle's GUTTER IS THE LIBRARY'S (options-ui-§18): lib.ROW_BOX.HANDLE_W is the fixed width
 -- every draggable list in the collection reads at, and it moved 24 -> 30 for this pass. Read, never
@@ -284,42 +318,125 @@ local function newRow(scroll, height)
     return row
 end
 
--- The handle's slot, added FIRST so Flow puts it at the left edge of the row.
--- Parented into a fixed-width Flow child rather than anchored onto the row
--- directly: AceGUI's Flow layout places its own children left to right and knows
--- nothing about a raw frame dropped on top of one, so a handle anchored to the
--- row would sit over the stat's name. Same shape as settings/Category.lua's.
-local function renderRowHandle(row)
-    local slot = AceGUI:Create("SimpleGroup")
-    slot:SetLayout(nil)
-    slot:SetWidth(handleGutter())
-    slot:SetHeight(ROW_H)
-    row:AddChild(slot)
-    return slot
+-- ---------------------------------------------------------------------
+-- The stat row's frame, and why this file pools it
+-- ---------------------------------------------------------------------
+--
+-- A row is a raw frame, not AceGUI widgets in a Flow group, because what it draws
+-- is a glyph the library boxes and a name held against the row's right edge --
+-- neither of which Flow can express, and both of which MultiMeters' column blocks
+-- already draw exactly this way.
+--
+-- THE ROWS ARE POOLED HERE, and the reason is a bug MultiMeters paid for first
+-- (settings/ColumnBlocks.lua): H.ResetScroll hands every AceGUI container on the
+-- page back to AceGUI's PROCESS-WIDE pool, keyed only by widget type. A raw frame
+-- parented to one of those containers is not an AceGUI widget, so AceGUI neither
+-- hides it nor knows it exists -- it rides the released container into whatever
+-- asks for a SimpleGroup next, which on an options page is a spacer, a heading or
+-- a grid row. So a row is taken from a free list here and RELEASED on the next
+-- render: hidden, unanchored and reparented off the AceGUI frame in one step.
+--
+-- Every script reads the stat off the FRAME at fire time (`row.kcmStat`) rather
+-- than off an upvalue captured when it was wired -- a closure over the stat made
+-- a recycled row toggle whatever it used to be.
+
+local rowPool, rowAttic = {}, nil
+
+local function attic()
+    if not rowAttic then
+        rowAttic = CreateFrame("Frame", nil, UIParent)
+        rowAttic:Hide()
+    end
+    return rowAttic
 end
 
-local function makeLabel(parent, text, relativeWidth)
-    local lbl = AceGUI:Create("Label")
-    lbl:SetText(text or "")
-    lbl:SetRelativeWidth(relativeWidth)
-    if lbl.label and lbl.label.SetFontObject and _G.GameFontHighlight then
-        lbl.label:SetFontObject(_G.GameFontHighlight)
+--- Give every row from the previous render back to the free list.
+local function releaseRows(ctx)
+    local live = ctx and ctx.kcmStatRows
+    if not live then return 0 end
+    local n = #live
+    for i = n, 1, -1 do
+        local row = live[i]
+        live[i] = nil
+        row.kcmStat   = nil
+        row.kcmToggle = nil
+        row:Hide()
+        row:ClearAllPoints()
+        row:SetParent(attic())
+        rowPool[#rowPool + 1] = row
     end
-    parent:AddChild(lbl)
-    return lbl
+    return n
 end
 
-local function makeCheckbox(parent, opts)
-    local cb = AceGUI:Create("CheckBox")
-    cb:SetLabel(opts.label or "")
-    cb:SetRelativeWidth(opts.relativeWidth or 0.3)
-    cb:SetValue(opts.value and true or false)
-    if opts.onChange then
-        cb:SetCallback("OnValueChanged", function(_, _, v) opts.onChange(v and true or false) end)
+--- One row frame, from the free list or newly built, filling `parent` horizontally.
+local function acquireRow(parent)
+    local row = table.remove(rowPool)
+    if row then
+        row:SetParent(parent)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT",  parent, "TOPLEFT",  0, 0)
+        row:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
+        return row
     end
-    if opts.tooltip then H.AttachTooltip(cb, opts.label, opts.tooltip) end
-    parent:AddChild(cb)
-    return cb
+
+    row = CreateFrame("Frame", nil, parent)
+    row:SetPoint("TOPLEFT",  parent, "TOPLEFT",  0, 0)
+    row:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
+    row:SetHeight(ROW_H)
+
+    -- The include toggle. A BUTTON with two textures rather than a checkbox with
+    -- the word "Include" beside it: the tick already says it, and the word was
+    -- spending a third of the row repeating the glyph.
+    local glyph = CreateFrame("Button", nil, row)
+    glyph:SetSize(GLYPH_SIZE, GLYPH_SIZE)
+    glyph:SetPoint("LEFT", row, "LEFT", handleGutter() + GLYPH_GAP, 0)
+    glyph:EnableMouse(true)
+    glyph:SetScript("OnClick", function()
+        if row.kcmToggle then row.kcmToggle(row.kcmStat) end
+    end)
+    -- WHAT THE CLICK WILL DO, not what the glyph currently means -- the question a
+    -- player has over a control is what happens if they press it. Read off the row
+    -- at HOVER time, so a recycled row never offers the last render's promise.
+    glyph:SetScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(row.kcmIncluded and L["Click to stop ranking this stat"]
+            or L["Click to rank this stat"], 1, 1, 1)
+        GameTooltip:AddLine(L["An excluded stat is not weighed at all; its place in the order is only stored while it is included."],
+            1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    glyph:SetScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    row.kcmGlyph = glyph
+
+    row.kcmLabel = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.kcmLabel:SetPoint("RIGHT", row, "RIGHT", -LABEL_INSET, 0)
+    row.kcmLabel:SetJustifyH("RIGHT")
+
+    return row
+end
+
+--- Re-point one row at the stat it is serving THIS render.
+local function applyRow(row, stat, included, onToggle)
+    row.kcmStat     = stat
+    row.kcmIncluded = included and true or false
+    row.kcmToggle   = onToggle
+    row.kcmGlyphTexture = included and INCLUDED_TEX or EXCLUDED_TEX
+    row.kcmGlyph:SetNormalTexture(row.kcmGlyphTexture)
+
+    row.kcmLabel:SetText(SECONDARY_OPTIONS[stat] or stat)
+    -- Greyed rather than hidden: a name you cannot read is a row you cannot aim
+    -- at, and aiming at it is how you rank the stat again.
+    if included then
+        row.kcmLabel:SetTextColor(1, 0.82, 0)
+    else
+        row.kcmLabel:SetTextColor(0.5, 0.5, 0.5)
+    end
+
+    row:SetHeight(ROW_H)
+    row:Show()
 end
 
 -- Stop the previous render's drag and give its handles and row boxes back.
@@ -332,7 +449,12 @@ end
 --
 -- ONE controller, not a list: this page draws a single reorder list, where
 -- settings/Category.lua's composite page draws two and its seam holds both.
+--
+-- The ROW FRAMES go back on the same seam and for the same reason -- they are raw
+-- frames parented to AceGUI containers ResetScroll is about to pool, so a row not
+-- released here reappears on whatever asks for a SimpleGroup next.
 local function cancelReorder(ctx)
+    releaseRows(ctx)
     local list = ctx and ctx.kcmReorder
     if not list then return end
     list:Cancel()
@@ -343,50 +465,67 @@ end
 -- The secondary-stat list
 -- ---------------------------------------------------------------------
 
---- One stat's row: the handle's gutter, the stat's name, and the Include toggle.
+--- Flip one stat in or out of the ranking. Taken at file scope rather than
+--- closed over per row, because the row frames are POOLED: a handler that
+--- captured its stat would keep toggling the stat the row used to serve. The
+--- stat comes in as an argument, read off the frame at click time.
+local function toggleSecondary(specKey, stat)
+    local cur   = readStatPriority(specKey)
+    local order = splitSecondaries(cur.secondary)
+    local wasIncluded = false
+    local next_ = {}
+    for _, s in ipairs(order) do
+        if s == stat then wasIncluded = true else next_[#next_ + 1] = s end
+    end
+    -- Included joins the END of the order rather than a remembered slot: an
+    -- excluded stat's position is not stored, so there is no slot to go back to
+    -- and pretending otherwise would invent data.
+    if not wasIncluded then next_[#next_ + 1] = stat end
+    if writeSecondaryOrder(specKey, next_) then
+        afterMutation("options_stat_include")
+    end
+end
+
+--- One stat's row: the handle's gutter, the include glyph, and the stat's name
+--- against the right edge.
 ---
---- `included` is the checkbox's value and `draggable` is whether the drag applies;
+--- `included` is the glyph's state and `draggable` is whether the drag applies;
 --- they agree today and are passed separately because they answer different
 --- questions -- one is the stored fact, the other is what this row offers.
+---
+--- The SLOT is an AceGUI SimpleGroup a stride tall; the row frame inside it is
+--- ROW_H tall and anchored to its top, and the difference is the gap between two
+--- rows. Going through AceGUI for the LAYOUT and no further is what keeps the rows
+--- flowing with the rest of the page without asking AceGUI for a widget it does
+--- not have.
 local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, draggable)
-    local row  = newRow(scroll, ROW_H)
-    local slot = list and renderRowHandle(row) or nil
+    local slot = AceGUI:Create("SimpleGroup")
+    slot:SetLayout(nil)
+    slot:SetFullWidth(true)
+    slot:SetHeight(ROW_STRIDE)
+    scroll:AddChild(slot)
 
-    makeLabel(row, SECONDARY_OPTIONS[stat] or stat, 0.5)
-    makeCheckbox(row, {
-        label   = L["Include"],
-        tooltip = L["Rank this stat for the viewed spec. An excluded stat is not weighed at all; its place in the order is only stored while it is included."],
-        value   = included,
-        relativeWidth = 0.35,
-        onChange = function(on)
-            local cur = readStatPriority(specKey)
-            local order = splitSecondaries(cur.secondary)
-            local next_ = {}
-            for _, s in ipairs(order) do
-                if s ~= stat then next_[#next_ + 1] = s end
-            end
-            -- Included joins the END of the order rather than a remembered slot:
-            -- an excluded stat's position is not stored, so there is no slot to
-            -- go back to and pretending otherwise would invent data.
-            if on then next_[#next_ + 1] = stat end
-            if writeSecondaryOrder(specKey, next_) then
-                afterMutation("options_stat_include")
-            end
-        end,
-    })
+    local row = acquireRow(slot.frame or slot.content)
+    applyRow(row, stat, included, function(which)
+        toggleSecondary(specKey, which)
+    end)
+    ctx.kcmStatRows[#ctx.kcmStatRows + 1] = row
 
-    -- Registered LAST, once the row's contents exist. The slot it goes into was
-    -- claimed before any of this, so the layout is unaffected by the order these
-    -- two things happen in.
     if list then
-        list:AddRow(row.frame, {
-            parent    = slot and (slot.frame or slot.content) or nil,
-            ghostText = SECONDARY_OPTIONS[stat] or stat,
-            height    = ROW_H,
-            draggable = draggable,
+        -- NO `parent`: the box and the handle both default to the frame registered
+        -- here, which is the whole row. Naming the handle's slot -- which this used
+        -- to do -- drew the library's fill and 1px edge around the 30px gutter and
+        -- left the row itself bare, so this list looked unlike every other
+        -- draggable list in the collection.
+        list:AddRow(row, {
+            ghostText      = SECONDARY_OPTIONS[stat] or stat,
+            ghostIcon      = row.kcmGlyphTexture,
+            ghostTextColor = included and { 1, 0.82, 0 } or { 0.5, 0.5, 0.5 },
+            height         = ROW_H,
+            draggable      = draggable,
             -- An excluded stat is present but inert, so its box takes the muted
             -- variant -- the library's, never a second one drawn here.
-            dimmed    = not draggable,
+            dimmed         = not draggable,
         })
     end
 end
@@ -399,9 +538,16 @@ end
 local function renderSecondaries(ctx, scroll, specKey, cur)
     local included, excluded = splitSecondaries(cur.secondary)
 
+    -- Parked on the ctx so the NEXT render can hand them back, and so a case can
+    -- reach a row on a page whose ctx the toolkit otherwise keeps private.
+    ctx.kcmStatRows = {}
+
     local W = reorderWidgets()
     local list = W and W.ReorderList({
-        stride   = ROW_H,
+        -- The STRIDE, not the row height: the library's drop arithmetic is
+        -- top-of-row to top-of-row, so a stride equal to the box would put every
+        -- drop one gap short by the bottom of the list.
+        stride   = ROW_STRIDE,
         boundary = #included,
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
@@ -459,7 +605,9 @@ local function renderPriority(ctx, scroll, specKey)
 
     H.Section(ctx, L["Secondary stats"])
     H.Label(ctx, L["Drag to rank. Position 1 weighs the most; an excluded stat is not weighed at all."], "medium")
-    H.AddSpacer(scroll, 4)
+    -- Room between the sentence and the first row. It was 4, which read as the
+    -- text sitting on top of the list.
+    H.AddSpacer(scroll, 8)
     renderSecondaries(ctx, scroll, specKey, cur)
 
     H.AddSpacer(scroll, 12)

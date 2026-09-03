@@ -492,7 +492,7 @@ end)
 -- carry. The counts are the DESIGN's, written out longhand: derived from the
 -- schema they would agree with the schema no matter what it said.
 --
--- Contents is exempted BY NAME rather than by relaxing the rule, because its
+-- Buttons is exempted BY NAME rather than by relaxing the rule, because its
 -- controls are one checkbox per managed macro -- a length no schema knows -- and
 -- it is the only tab on the page with no `path` behind it.
 test("schema: the Macro Bar page partitions into its designed tabs", function(t)
@@ -509,7 +509,7 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
         { "Labels",            12 },
         { "Flyout",            16 },
         { "Visibility",        3  },
-        { "Contents",          0  },
+        { "Buttons",           0  },
     }
 
     -- Partition by `group` in DECLARATION order, exactly as a tab strip does.
@@ -571,7 +571,7 @@ test("schema: the tab strips name only groups their rows declare", function(t)
         if row.panel == "macrobar" then declared[row.group] = true end
     end
     for _, tab in ipairs(KCM.Settings.MACROBAR_TABS) do
-        if tab.group ~= "Contents" then
+        if tab.group ~= "Buttons" then
             t.truthy(declared[tab.group],
                 "the '" .. tab.group .. "' tab has rows to draw")
         end

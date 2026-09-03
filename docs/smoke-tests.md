@@ -50,6 +50,12 @@ Tests: bag scan classifies new items, GIIR retry hydrates uncached ones, discove
 2. Within ~1 frame of `BAG_UPDATE_DELAYED`, expect: `/cm dump pick flask` lists the new item with its score.
 3. Open the Macros page and its **Flask** tab; the new item appears in the priority list with the green-check "owned" glyph.
 4. Move the item into the bank, log out, log back in. With the item not in bags but discovered within 30 days: it appears in the priority list with the red-X "not owned" glyph.
+4b. **Every draggable row is boxed and spaced.** On this tab and on **AIO Health**, each row carries
+   the library's bounded box across its **whole width** — not a box around the drag handle with a bare
+   row beside it — and consecutive rows do **not** touch. Open the **Stat Priority** page and
+   MultiMeters' *Columns* tab beside them: all three must read as the same control (`options-ui-§8`).
+   Drag a row to the bottom of a long list and drop it: it must land where the insertion line said,
+   with no drift as you go down — drift means the stride and the drawn pitch disagree.
 5. Wait 30+ days (or hand-edit `discovered[id]` to a stale timestamp): on the next PEW, `Selector.SweepStaleDiscovered` removes it. Confirm via `/cm dump pick flask` — entry gone.
 
 ### 3. Macro writes — single-pick
@@ -112,6 +118,13 @@ Tests: `KCM_BLOODLUST` / `KCM_BATTLE_REZ` resolve the right spell or item per cl
 Tests: `/castsequence [combat]` for in-combat, `/use [nocombat]` chain for out-of-combat, asymmetric-empty fallback.
 
 1. Open the Macros page's **AIO Health** tab. Confirm In Combat lists `HS` and `HP_POT` (in that order by default), Out of Combat lists `FOOD`.
+1b. **The glyph key is on this tab too**, spaced clear of the "Composite macro…" sentence above it
+   and of *In Combat* below — butted against the paragraph it reads as a fourth line of it:
+   a green tick reading *in bags* and a red cross reading *not in bags*. It is the same key the
+   single-category tabs carry, minus the star — a composite row never draws the pick star, and a key
+   naming a glyph that cannot appear would teach the wrong thing. Check **AIO Mana** as well: both
+   composite tabs carried no key at all until this pass, so a player who had not opened Food first met
+   a red cross beside Healthstone with nothing on the page saying what it meant.
 2. Drag `KCM_HP_AIO` onto a bar. Out of combat, hovering the bar slot should show the FOOD pick's tooltip.
 3. `/cm dump pick hp_aio` — confirms the resolved per-section picks and the assembled body.
 4. Macro body should look like:
@@ -152,7 +165,7 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 1. Close the Settings panel. Run `/cm config`.
 2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **four** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
-4. Open General. A **tab strip** with **two** tabs, and the first is named exactly **Master controls** (`options-ui-§15`). It carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair. The **Maintenance** tab holds `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`. A top-right **Defaults** button sits in the page header.
+4. Open General. A **tab strip** with exactly **one** tab, named exactly **Master controls** (`options-ui-§15`) — a one-section page still draws a strip. It carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair. Below that pair, a **Maintenance** heading over `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]` — the same three buttons that were a second tab until this pass, appended after the canonical block rather than interleaved into it. There is **no Maintenance tab**; a strip showing two tabs here is the fold half-done. A top-right **Defaults** button sits in the page header.
 4a. **Nothing is declared twice.** The Macro Bar page's General tab has **no** Lock and **no** Reset position — both moved here. `/cm set macroBar.locked true` still works and still ticks the **Lock frame** box on this page, because the setting moved tabs and not storage.
 4b. **The master rows are addon-wide, and they compose.** Set **Master scale** to 2.0 with the bar's own **Bar scale** at 1.0 → the bar doubles. Now set Bar scale to 0.5 → it lands halfway back, at an effective 1.0. Same for **Master alpha** against **Bar opacity**. Set **General visibility** to *Only in combat* with the bar's **Combat visibility** at *Always* → the bar appears on pull and goes on combat drop. Set the bar's Combat visibility to *Hide in combat* as well → the two can never agree, and the bar stays hidden.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -162,9 +175,9 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 9. Click **Force rewrite macros** — every `KCM_*` body + icon re-issued unconditionally. Useful when an action-bar framework is showing a stale texture.
 10. Click **Reset all settings** (Master controls, the right half of the closing pair) — StaticPopup confirms with the collection's one wording; on Yes, the whole active profile resets. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
 10a. **The reset reaches the session row too** (`options-ui-§12`). Tick **Debug console** so the window is open, change something profile-backed (drag the bar, or drop Button size), then **Reset all settings** → Yes. The console window is **closed** and the checkbox is unticked, alongside everything the profile reset took. A profile reset alone cannot do this — the row's storage is its own `set()`, not the db — so a console still sitting open afterwards means the session sweep is gone. `/cm resetall` is the same act through the other door and must behave identically.
-10b. Click **Reset all priorities** (Maintenance) — a **different** StaticPopup, naming a narrower act. On Yes, every category's added / blocked / pinned items and every spec's stat-priority override are cleared and **nothing else is**: set a non-default `Button size` on the Macro Bar page first and confirm it survives. Blocked in combat with a chat notice.
+10b. Click **Reset all priorities** (the Maintenance subsection) — a **different** StaticPopup, naming a narrower act. On Yes, every category's added / blocked / pinned items and every spec's stat-priority override are cleared and **nothing else is**: set a non-default `Button size` on the Macro Bar page first and confirm it survives. Blocked in combat with a chat notice.
 10a. **The slash path raises the same popup.** ⚠ `/cm reset` used to *be* this wipe; it now resets one row, and the destructive verb is `/cm resetall`. That move is only safe if the confirmation moved with it. Run `/cm resetall` → **the same StaticPopup appears**. **Cancel** → nothing is wiped (spot-check that a custom added item survives). Run it again and confirm → identical effect to step 10, because both reach the popup through the same file-scope `StaticPopup_Show("KCM_CONFIRM_RESET")`. Then bare `/cm reset` → the usage line naming `/cm resetall`, and **no popup**; `/cm reset macroBar.orientation` → that one row echoes and nothing else moves. (What this pins: the guard on the destructive path. A `/cm resetall` that wipes without asking, or a bare `/cm reset` that wipes at all, is the regression this convergence risked — see `../LibKa0s/docs/adoption-prompt.md`, "The two user-visible convergences".)
-11. Disable the addon (Enable off) and move **Master scale** off 1.0, then click the top-right **Defaults** button — from the **Maintenance** tab, to prove the button's blast radius does not narrow to the visible tab (`options-ui-§13`). It resets **this page only**: master enable flips back on (`[CM] Master enable ON`), scale / alpha / visibility come back to their shipped values, and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
+11. Disable the addon (Enable off) and move **Master scale** off 1.0, then click the top-right **Defaults** button — scrolled down to the **Maintenance** subsection, so the whole tab is not on screen. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`), scale / alpha / visibility come back to their shipped values, and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
 
@@ -223,13 +236,13 @@ below is new behaviour and none of it is covered by an automated case that can s
 **The Macro Bar strip**
 
 8. Open **Macro Bar**. Eight tabs, in this order: **General, Layout, Bar appearance, Button
-   appearance, Labels, Flyout, Visibility, Contents**. There is no tab called "Bar" and none called
+   appearance, Labels, Flyout, Visibility, Buttons**. There is no tab called "Bar", none called "Contents" and none called
    "Macros on the bar".
 9. Only the active tab's controls are on screen — the page is no longer one long scroll of eight
    headings. There is no section HEADING repeating the tab's own name above the controls.
 10. Row counts, tab by tab: General **1** (Enable macro bar) plus the Reset slot order button;
     Layout **8**; Bar appearance **9**; Button appearance **13**; Labels **12**; Flyout **16**;
-    Visibility **3**; Contents is the per-macro checkbox grid (fifteen checkboxes) under the
+    Visibility **3**; Buttons is the per-macro checkbox grid (fifteen checkboxes) under the
     drag-to-swap hint. **Lock position and Reset position are gone** — they are the General page's
     now (`options-ui-§15`).
 11. **Bar opacity is on Bar appearance, once,** under an **Opacity** heading. If the strip ever draws
@@ -280,7 +293,7 @@ below is new behaviour and none of it is covered by an automated case that can s
 **Every page has one**
 
 19. **General** draws a **two-tab** strip — **Master controls** first (`options-ui-§15`), then
-    **Maintenance**. There is no page left in this addon without a strip.
+    **Master controls** alone, since Maintenance is a subsection of it now. There is no page left in this addon without a strip.
 20. This addon registers no AceDBOptions **Profiles** page (`/cm resetall` is the profile reset, see
     section 7). If one is ever added it stays untabbed — it is library-drawn, it is the same in every
     Ka0s addon, and it is one of the two pages `options-ui-§13` exempts (the other being the landing
@@ -301,7 +314,19 @@ Tests: the banner's spec picker drives the spec-aware editor and the spec-aware 
 2. Pick a different spec from the one you're playing. The Primary stat and the secondary list refresh against that spec's priority.
 3. Open the Macros page's **Flask** tab (spec-aware) — the subheader reads "Spec-aware. Viewing: <picked spec>." The priority list reflects the picked spec.
 4. Back on Stat Priority — **Primary stat** spans the FULL width, not a half-cell beside an invisible one. Change it; the field commits immediately and `/cm stat list` confirms the new value.
-5. **The four secondaries are one draggable list**, not four dropdowns. The included ones are boxed and carry a handle, in rank order; the excluded ones sit below in a **dimmed** block with no handle. Drag Haste to the top → `/cm stat list` shows it first, in ONE write. Try to drag an included stat down into the dimmed block → the insertion line refuses to go there. Untick **Include** on a stat → it drops to the dimmed tail and the persisted list compacts (no `""` is ever stored). Tick it again → it joins the end of the ranked run.
+5. **The four secondaries are one draggable list**, not four dropdowns, and each row reads
+   `[handle] [tick] ......... [Stat name]` with the name against the **right** edge. Every row carries
+   a **bounded box the full width of the row** — not just around the handle — and consecutive rows do
+   **not** touch: open MultiMeters' *Columns* tab beside it and the two lists must look like the same
+   control. The included ones carry a handle, in rank order; the excluded ones sit below in a
+   **dimmed** block with no handle. Drag Haste to the top → `/cm stat list` shows it first, in ONE
+   write. Try to drag an included stat down into the dimmed block → the insertion line refuses to go
+   there. **Click the green tick** on a stat → it becomes a red cross, the row drops to the dimmed
+   tail and the persisted list compacts (no `""` is ever stored). Hover the glyph first: the tooltip
+   says what the CLICK will do, not what the row currently is. Click the cross → it joins the end of
+   the ranked run. Switch to another page and back twice, then click a tick: it must toggle the stat
+   named on **its own row** (the rows are pooled, and a handler holding a stale stat is what that
+   pooling can get wrong).
 5a. **Re-render leaves nothing behind.** Change spec twice in a row, then scroll the page: no stray drag handle and no stray row box on the Primary dropdown, the banner, or the reset button.
 6. Click **Reset stat priority** — drops the override for the viewed spec. Subsequent reads fall back to seed default → class-primary fallback. The top-right **Defaults** button does the same for the viewed spec.
 

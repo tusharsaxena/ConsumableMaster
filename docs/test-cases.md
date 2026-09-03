@@ -470,7 +470,7 @@ badge and any count quoted in the docs must agree with it.
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
-### test_pipeline.lua (28)
+### test_pipeline.lua (30)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
@@ -500,6 +500,8 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults runs invalidate then discover then recompute, in that order
 - ResetAllToDefaults copies the defaults rather than aliasing them
 - ResetAllToDefaults leaves the category buckets structurally valid
+- ResetAllToDefaults restores the session-only rows a profile reset cannot reach
+- ResetAllToDefaults sweeps the session rows before it resets the profile
 
 ### test_ranker.lua (23)
 
@@ -534,7 +536,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (46)
+### test_schema.lua (47)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -578,6 +580,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: no page's rows leave a group and come back to it
 - schema: the tab strips name only groups their rows declare
 - schema: the General page opens on Master controls, carrying the canonical rows
+- schema: every session-only row declares a default, so a reset can reach it
 - schema: every moved Master controls setting is declared exactly once
 - schema: every row on every page carries a group
 - schema: every color row is followed by its class-color companion
@@ -636,7 +639,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.MoveCompositeRef refuses a move it cannot make
 - Selector.MoveCompositeRef never moves a ref between the two sections
 
-### test_settingsui.lua (30)
+### test_settingsui.lua (37)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -662,12 +665,19 @@ badge and any count quoted in the docs must agree with it.
 - Settings: add-by-ID refuses a spec-aware category with no resolvable spec
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
+- Settings: the Macros page reaches its strip with no categories to tab
+- Settings: an AIO tab explains its own in-bags / not-in-bags glyphs
 - Settings: a composite tab builds one reorder controller per combat section
 - Settings: re-rendering a composite tab cancels EVERY controller it built
+- Settings: every reorder list takes the library's handle gutter
 - Settings: the Stat Priority secondaries are one bounded reorder list
+- Settings: a secondary stat row is boxed full-width and spaced from the next
+- Settings: every draggable row on the Macros page is boxed full-width and spaced
+- Settings: clicking a secondary stat's glyph toggles whether it is ranked
 - Settings: the secondary split is stored order first, then the rest
 - Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
+- Settings: the three maintenance verbs draw on the Master controls tab
 
 ### test_slash.lua (82)
 
@@ -875,12 +885,12 @@ badge and any count quoted in the docs must agree with it.
 | test_macromanager.lua | 46 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
-| test_pipeline.lua | 28 |
+| test_pipeline.lua | 30 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 46 |
+| test_schema.lua | 47 |
 | test_selector.lua | 50 |
-| test_settingsui.lua | 30 |
+| test_settingsui.lua | 37 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
@@ -889,4 +899,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **739** |
+| **Total** | **749** |

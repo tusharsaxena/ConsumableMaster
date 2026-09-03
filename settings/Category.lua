@@ -47,9 +47,15 @@ O._addKind = O._addKind or {}
 local ITEM_ROW_RW_SINGLE    = 0.76
 local ITEM_ROW_RW_COMPOSITE = 0.72
 local ROW_BTN_W             = 32
--- One priority row's height, named because the drag needs it twice: as the stride its arithmetic
--- runs on, and as the height of the copy it carries under the cursor.
+-- ROW_H is the BOX's height -- also the height of the copy the drag carries under the cursor.
+-- ROW_GAP is the space between one row's box and the next's, drawn as a spacer child after each
+-- row, and ROW_STRIDE is what the library's drop arithmetic runs on: top of one row to top of the
+-- next. The three are declared together because they are one measurement in three parts -- a stride
+-- that disagrees with the pitch the page actually draws lands every drop short by the bottom of the
+-- list. Same trio, same reason, as settings/StatPriority.lua's and MultiMeters' BLOCK_* pair.
 local ROW_H                 = 28
+local ROW_GAP               = 4
+local ROW_STRIDE            = ROW_H + ROW_GAP
 local CHECK_W               = 78
 
 -- The drag handle's art, and the library that owns the gesture behind it.
@@ -483,6 +489,23 @@ local function computePerHand(cat)
            (WS and WS.SlotAffinity and WS.SlotAffinity(17)) or nil
 end
 
+-- The glyph legend, in the flavor a COMPOSITE page needs: the owned swatch and
+-- nothing else. A composite row draws no pick star -- makeItemRow is passed
+-- `isPick = false` and neither hand flag, because every row on the tab is a
+-- category whose pick goes into the macro, so a star on all of them would say
+-- nothing -- and a key naming a glyph that cannot appear on the page it heads is
+-- a key that teaches the wrong thing.
+--
+-- IT IS HERE AT ALL because the swatches are the same two the single-category
+-- tabs explain and the composite tabs explained neither: a player who had not
+-- opened Food first met a red cross beside Healthstone with nothing on the page
+-- saying what it meant.
+local function renderCompositeLegend(ctx)
+    H.Label(ctx,
+        (L["%s in bags    %s not in bags"]):format(OWNED_ICON, NOT_OWNED_ICON),
+        "medium")
+end
+
 -- The icon legend above the list, plus the main/off-hand affinity line when per-hand.
 local function renderPriorityLegend(ctx, cat, mhAff, ohAff)
     if cat.perHand then
@@ -639,12 +662,21 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
     -- slot it goes into was claimed before any of this, so the layout is unaffected by the order
     -- these two things happen in.
     if slot then
+        -- NO `parent`: the box and the handle both default to the frame registered here, which is
+        -- the whole row. Naming the handle's SLOT -- which this used to do -- drew the library's
+        -- fill and 1px edge around the 30px gutter and left the row itself with no background at
+        -- all, so this list looked nothing like the same control on the Stat Priority page or on
+        -- MultiMeters' Columns tab (options-ui-§8, §18: one row, learned once).
         list:AddRow(row.frame, {
-            parent    = slot.frame or slot.content,
             ghostText = ghostTextOf(itemRow),
             height    = ROW_H,
         })
     end
+
+    -- The gap. Drawn as a spacer AFTER the row rather than by making the row itself taller,
+    -- because the box fills the frame it is parented to -- a taller row is a taller box, not a
+    -- space between two of them. This is what makes the drawn pitch equal ROW_STRIDE.
+    H.AddSpacer(scroll, ROW_GAP)
 end
 
 -- Ranker context shared across rows so every score tooltip uses the same numbers as the
@@ -692,7 +724,7 @@ local function makePriorityList(ctx, cat, specKey, priority)
     if not W then return nil end
 
     return trackReorder(ctx, W.ReorderList({
-        stride     = ROW_H,
+        stride     = ROW_STRIDE,
         -- No boundary. This list is flat -- every row is a priority and they are all one group --
         -- which is the common case the library defaults to. MultiMeters' Columns page is the one
         -- that divides, because a shown column may not be dragged among the hidden ones.
@@ -857,12 +889,17 @@ local function renderCompositeRow(scroll, cfg, ref, list)
     -- goes into was claimed before any of this, so the layout is unaffected by the order these two
     -- things happen in.
     if slot then
+        -- NO `parent`, for the reason renderPriorityRow gives: the box belongs behind the whole
+        -- row, and naming the handle's slot boxed the gutter alone.
         list:AddRow(row.frame, {
-            parent    = slot.frame or slot.content,
             ghostText = refLabel,
             height    = ROW_H,
         })
     end
+
+    -- The gap, for the reason renderPriorityRow's states: a taller row is a taller box, not a
+    -- space between two boxes.
+    H.AddSpacer(scroll, ROW_GAP)
 end
 
 -- The two combat-state sections a composite is made of. Sub-categories are
@@ -887,7 +924,7 @@ local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
 
     local W = reorderWidgets()
     local list = trackReorder(ctx, W and W.ReorderList({
-        stride        = ROW_H,
+        stride        = ROW_STRIDE,
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
         onMove        = function(from, to)
@@ -927,6 +964,12 @@ local function renderComposite(ctx, cat)
     H.Label(ctx,
         L["Composite macro. Toggle and order the contributing categories below — each category's own ranking and pick logic is edited on its own tab."],
         "medium")
+    -- Above the first section, not inside one: it keys the glyphs on BOTH of them. Spaced off the
+    -- sentence above it as well as off the section below -- a key butted straight against the
+    -- paragraph reads as a fourth line of it.
+    H.AddSpacer(scroll, 6)
+    renderCompositeLegend(ctx)
+    H.AddSpacer(scroll, 4)
 
     for _, section in ipairs(AIO_SECTIONS) do
         renderCompositeSection(ctx, cat.key, scroll, cfg, section)

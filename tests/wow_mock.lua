@@ -272,6 +272,24 @@ local function makeStub(template, name)
     t._attrs = {}
     t.SetAttribute = function(self, k, v) (self._attrs or t._attrs)[k] = v end
     t.GetAttribute = function(self, k) return (self._attrs or t._attrs)[k] end
+
+    -- Scripts are STORED, and `_run` drives them -- the same shape MultiMeters'
+    -- harness has carried for its column blocks. A no-op SetScript makes a
+    -- click-driven control unreachable from a test: the wiring is exactly what
+    -- there is to get wrong about a toggle drawn as a raw Button, and a case that
+    -- can only assert the texture would pass against a glyph that does nothing.
+    t.__scripts = {}
+    t.SetScript = function(self, which, fn)
+        (rawget(self, "__scripts") or t.__scripts)[which] = fn
+        return self
+    end
+    t.GetScript = function(self, which)
+        return (rawget(self, "__scripts") or t.__scripts)[which]
+    end
+    t._run = function(self, which, ...)
+        local fn = (rawget(self, "__scripts") or t.__scripts)[which]
+        if fn then return fn(self, ...) end
+    end
     mt.__index = function(_, key)
         local need = TEMPLATE_METHODS[key]
         if need and not template:find(need, 1, true) then
@@ -317,6 +335,12 @@ local function makeAceWidget()
     end
     rawset(w, "label", fontString())
     rawset(w, "text", fontString())
+    -- `text` above is the FontString OBJECT a real AceGUI widget carries, so the
+    -- STRING a caller sets is recorded beside it rather than over it. Harness-side
+    -- only: it is how a case reads back the label of a button the page drew,
+    -- which is otherwise swallowed by the permissive stub.
+    rawset(w, "SetText", function(self, v) rawset(self, "__text", v); return self end)
+    rawset(w, "SetLabel", function(self, v) rawset(self, "__label", v); return self end)
     return w
 end
 M.makeAceWidget = makeAceWidget
@@ -463,8 +487,20 @@ function M.install(NS)
         -- AceGUI: Create returns a permissive widget stub; GetWidgetVersion
         -- returns 0 (a number, so widget files' `>= Version` guard compares
         -- cleanly and proceeds to register). Everything else is a no-op.
+        --
+        -- `__created` is a HARNESS-SIDE creation log, in creation order. No
+        -- production code knows it exists; it is how a case reaches a widget on a
+        -- page that draws through settings/Panel.lua's own Button / ButtonPair,
+        -- which hold AceGUI as a file-local captured at load and so cannot be
+        -- intercepted by swapping the instance's AceGUI out.
         ["AceGUI-3.0"]     = setmetatable({
-                                Create = function() return makeAceWidget() end,
+                                __created = {},
+                                Create = function(self)
+                                    local w = makeAceWidget()
+                                    local log = type(self) == "table" and rawget(self, "__created")
+                                    if log then log[#log + 1] = w end
+                                    return w
+                                end,
                                 RegisterWidgetType = function() end,
                                 RegisterLayout = function() end,
                                 GetWidgetVersion = function() return 0 end,

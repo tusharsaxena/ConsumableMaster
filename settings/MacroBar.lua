@@ -3,7 +3,7 @@
 -- Eight TABS on a pinned strip (options-ui-§13), not eight scrolling sections:
 -- General (enable + reset slot order), Layout (grid + geometry), Bar appearance
 -- and Button appearance (chrome + colors), Labels, Flyout, Visibility (combat
--- driver + hover fade), and Contents (which macros occupy a slot). A tab IS a
+-- driver + hover fade), and Buttons (which macros occupy a slot). A tab IS a
 -- schema row `group`, so the strip cannot drift from the rows it partitions.
 --
 -- FOUR OF THE TABS MIX CONTROL TYPES, so each block inside them carries a
@@ -675,13 +675,16 @@ end
 -- Order: General first (the master toggle for this bar and the slot-order reset),
 -- then the three geometry-and-paint tabs in the order a bar is built (Layout, Bar
 -- appearance, Button appearance), then Labels (which is about the buttons, so it
--- sits with them), Flyout (its own surface), Visibility, and Contents last: what
+-- sits with them), Flyout (its own surface), Visibility, and Buttons last: what
 -- is ON the bar is set once and left.
 --
 -- Two renames. "Bar" became "General" because on a page called Macro Bar the
 -- word carried nothing and it collided with "Bar appearance" two tabs along.
--- "Macros on the bar" became "Contents" for the same reason — every tab here is
--- about the bar. "Bar appearance" and "Button appearance" KEEP their qualifiers:
+-- "Macros on the bar" became "Buttons" for the same reason — every tab here is
+-- about the bar, and what the tab actually lists is one entry per BUTTON the bar
+-- can carry. It read "Contents" for one release; "Buttons" names the things on
+-- screen rather than the abstraction, and it is the word the rest of the page
+-- already uses (Button appearance). "Bar appearance" and "Button appearance" KEEP their qualifiers:
 -- two surfaces coexist on this page, each with its own backdrop and border, so
 -- there the word is doing real work.
 --
@@ -705,13 +708,13 @@ local function drawGeneral(ctx)
     })
 end
 
-local function drawContents(ctx)
+local function drawButtons(ctx)
     H.Label(ctx, L["Drag a button on the bar itself onto another to swap their places."])
     macroToggles(ctx)
 end
 
 -- `group` is the schema partition key AND the tab key; `label` is what the strip
--- shows. Contents is the one tab with no schema rows behind it — its controls
+-- shows. Buttons is the one tab with no schema rows behind it — its controls
 -- are one checkbox per managed macro, a length no schema knows — and
 -- tests/test_schema.lua exempts it BY NAME rather than by relaxing the rule.
 local TABS = {
@@ -722,7 +725,7 @@ local TABS = {
     { group = "Labels",            label = L["Labels"],            draw = drawGroup("Labels") },
     { group = "Flyout",            label = L["Flyout"],            draw = drawGroup("Flyout") },
     { group = "Visibility",        label = L["Visibility"],        draw = drawGroup("Visibility") },
-    { group = "Contents",          label = L["Contents"],          draw = drawContents },
+    { group = "Buttons",           label = L["Buttons"],           draw = drawButtons },
 }
 KCM.Settings.MACROBAR_TABS = TABS
 -- Published for the suite, which has no other way to read back the order a tab's

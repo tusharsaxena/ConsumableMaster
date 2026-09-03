@@ -1,16 +1,29 @@
 -- settings/General.lua — General page.
 --
--- TWO TABS on a pinned strip (options-ui-§13), where there used to be two
--- H.Section headings drawn straight into the scroll:
+-- ONE TAB on a pinned strip (options-ui-§13), where there used to be two:
 --
 --   * Master controls — the canonical eight (options-ui-§15), COMPOSED by the
 --     library's MasterControls rather than typed out here, and closed by the
 --     [Reset position] | [Reset all settings] button pair. It is the FIRST tab
 --     on the page, which is the whole rule: the one thing every player looks for
 --     first is in the same place, under the same words, in every Ka0s addon.
---   * Maintenance — the three targeted verbs this addon has and no other Ka0s
---     addon does: force a resync, force a macro rewrite, and drop every priority
---     override. None of them is a setting, so none of them is a row.
+--     Under the canonical block, a `Maintenance` SUBSECTION carries the three
+--     targeted verbs this addon has and no other Ka0s addon does: force a
+--     resync, force a macro rewrite, and drop every priority override. None of
+--     them is a setting, so none of them is a row.
+--
+-- THE MAINTENANCE TAB IS GONE and its three buttons are that subsection. It was
+-- a whole tab over three buttons a player presses about once a month, sitting
+-- beside the one tab everybody actually opens. They are appended AFTER the
+-- canonical block rather than interleaved into it (options-ui-§16: anything
+-- extra goes after the block), under a heading, because the tab now mixes
+-- settings rows with acts and §7 wants each kind named. Nothing here is a
+-- setting, so nothing moved in storage, and the page's Defaults button — which
+-- walks `masterRows` — is unaffected by the fold.
+--
+-- A ONE-SECTION PAGE STILL DRAWS A STRIP (options-ui-§13). The rule is not a size
+-- threshold: a player who has learned one Ka0s page has learned all of them, and
+-- a page that drops its chrome for being small teaches the opposite.
 --
 -- THE TWO RESETS ARE DIFFERENT ACTS and are deliberately on different tabs.
 -- [Reset all settings] is options-ui-§12's global reset — a profile reset, the
@@ -83,7 +96,7 @@ end
 -- in neither half: it happens on the OnProfileReset callback, which is the one
 -- path a profile SWITCH takes too.
 local function doResetAll()
-    -- Combat-guarded to match the Maintenance tab's sibling buttons; the
+    -- Combat-guarded to match the Maintenance subsection's siblings; the
     -- DB wipe itself is combat-safe (MacroManager defers macro writes to
     -- regen), but blocking here keeps the page's behavior uniform.
     if InCombatLockdown and InCombatLockdown() then
@@ -281,20 +294,18 @@ end
 -- The tab strip (options-ui-§13)
 -- ---------------------------------------------------------------------
 --
--- Hand-drawn rather than handed to RenderTabbedSchema, for one reason: the
--- Maintenance tab has no schema rows behind it — its three controls are acts, not
--- settings — and a strip derived from `group` alone cannot name a tab nothing
--- declares. The Master controls tab IS rendered by the library's row engine
--- (RenderRows, with the group heading suppressed because the tab already carries
--- the name), so the rows, their order, their pairing and the closing button pair
--- are all the library's.
+-- Hand-drawn rather than handed to RenderTabbedSchema. The tab's ROWS are
+-- rendered by the library's row engine (RenderRows, with the group heading
+-- suppressed because the tab already carries the name), so the rows, their order,
+-- their pairing and the closing button pair are all the library's; what the
+-- library cannot derive is the Maintenance subsection under them, which declares
+-- no rows at all -- its three controls are acts, not settings.
 
-local function drawMaster(ctx)
-    H.RenderRows(ctx, masterRows, { ["Master controls"] = masterTail }, nil,
-        { noHeadings = true })
-end
-
+-- The three targeted verbs, under their own heading beneath the canonical block.
+-- Its own function rather than inlined into drawMaster: the two halves answer
+-- different questions -- what this addon stores, and what it can be told to do.
 local function drawMaintenance(ctx)
+    H.Section(ctx, L["Maintenance"])
     H.ButtonPair(ctx,
         {
             text    = L["Force resync"],
@@ -308,14 +319,19 @@ local function drawMaintenance(ctx)
         })
     H.Button(ctx, {
         text    = L["Reset all priorities"],
-        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings on the Master controls tab."],
+        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings above."],
         onClick = function() StaticPopup_Show("KCM_RESET_PRIORITIES") end,
     })
 end
 
+local function drawMaster(ctx)
+    H.RenderRows(ctx, masterRows, { ["Master controls"] = masterTail }, nil,
+        { noHeadings = true })
+    drawMaintenance(ctx)
+end
+
 local TABS = {
     { group = "Master controls", label = L["Master controls"], draw = drawMaster },
-    { group = "Maintenance",     label = L["Maintenance"],     draw = drawMaintenance },
 }
 KCM.Settings.GENERAL_TABS = TABS
 

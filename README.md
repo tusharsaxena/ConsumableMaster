@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-739%2F739_passing-green)
+![Tests](https://img.shields.io/badge/Tests-749%2F749_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
@@ -123,7 +123,7 @@ The same eight controls, under the same names, in every Ka0s addon.
 *   **Reset position** — move the bar back to the center of the screen.
 *   **Reset all settings** — put this profile back the way it shipped. Everything you have configured or added in it is discarded; your other profiles are not affected. Asks first.
 
-*Maintenance*
+*Maintenance* — the three buttons under the controls above, on the same tab
 
 *   **Force resync** — rescan your bags and recheck every category's best pick. Macros only change if the pick actually changed. Same as `/cm resync`. Not available in combat.
 *   **Force rewrite macros** — rewrite every macro and its icon, even ones that didn't change. Use this when an action-bar icon looks stale (some bar addons hold the old icon across an upgrade). Same as `/cm rewritemacros`. Not available in combat. A `/reload` afterwards makes sure your bars redraw.
@@ -135,7 +135,7 @@ One page that controls the four spec-aware categories (Stat Food, Combat Potion,
 
 *   **Viewing spec** — pinned in the banner at the top of the page, so it stays visible while you scroll. Pick which spec you're editing; this also sets which spec is shown on the four spec-aware category tabs on the **Macros** page. Specs show their class icon and name (e.g. "Shaman — Enhancement").
 *   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
-*   **Secondary stats** — Crit, Haste, Mastery and Versatility as one list you **drag** into the order you want. The one at the top counts the most. Untick **Include** on a stat and it drops to the greyed block at the bottom and counts as zero; tick it again to bring it back.
+*   **Secondary stats** — Crit, Haste, Mastery and Versatility as one list you **drag** into the order you want. The one at the top counts the most. Each row carries a green tick: **click it** and the stat drops to the greyed block at the bottom and counts as zero, leaving a red cross behind. Click that to bring it back — it rejoins at the end of the order, since a stat that isn't ranked has no place to remember.
 *   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
 
 **Macro Bar**
@@ -210,7 +210,7 @@ Two notes on how flyouts behave in a fight. Opening one, using it, and closing i
 *   **Combat visibility** — *Always visible*, *Hide in combat*, or *Only in combat*. This one takes effect the instant combat starts or ends, mid-fight included.
 *   **Fade unless hovered** + **Faded opacity** — keep the bar faded until your mouse is over it. Faded buttons still work; only the opacity changes. Set the faded opacity to 0 to make it invisible until you hover it.
 
-*Contents*
+*Buttons*
 
 A checkbox per macro. Uncheck the ones you don't want a slot for — the rest close up the gap.
 
@@ -264,7 +264,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Drag the reusable rune to the top of its list if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then either type the ID or shift-click the item (or spell) into the box, and press Enter. |
 | How do I force a specific item to always win? | Grab its row by the **drag handle** and drop it where you want. A moved (pinned) item overrides the automatic ranking. |
-| How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** (General → Maintenance) clears the block. |
+| How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** (General → Master controls) clears the block. |
 | Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |
 | Can I use this in a non-English client? | Not fully yet — **English only for now**. Item and weapon *type* detection works on any client, but it still reads tooltip **text** in English to get heal/mana/stat amounts, so other languages aren't fully supported. Full localization is planned for a later release. |
 | Will new patch flasks / potions work automatically? | Usually yes. It scans your bags and recognizes anything that matches by type and tooltip, so a freshly-looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
@@ -285,7 +285,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
 | `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
-| I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General → Maintenance) clears every category and every stat choice; **Reset all settings** (General → Master controls) puts the whole profile back. |
+| I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General → Master controls) clears every category and every stat choice; **Reset all settings** (General → Master controls) puts the whole profile back. |
 
 ## Issues and feature requests
 

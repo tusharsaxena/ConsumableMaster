@@ -113,7 +113,7 @@ and last the optional bar that displays the finished macros.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs | **Master controls** (the canonical eight, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities) |
+| **General** | 1 tab | **Master controls** (the canonical eight, `options-ui-§15`), with a **Maintenance** subsection under it (Force resync, Force rewrite macros, Reset all priorities) |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
 | **Macro Bar** | 8 tabs | The optional on-screen macro bar — 62 of the addon's 68 schema rows live here |
@@ -154,8 +154,8 @@ the two **compose** — the scales and the opacities multiply, and the two visib
 Conflating them would make one of the two sliders do nothing at one end of the other's range.
 
 **The two resets are different acts.** *Reset all settings* is the profile reset — the same act
-`Profiles → Reset Profile` performs, behind the collection's one wording. *Reset all priorities*, on
-the **Maintenance** tab, clears every category's added / blocked / pinned items and every spec's
+`Profiles → Reset Profile` performs, behind the collection's one wording. *Reset all priorities*, in
+the **Maintenance** subsection below the canonical block, clears every category's added / blocked / pinned items and every spec's
 stat-priority override and leaves everything else standing, behind its own, narrower confirmation.
 The button that used to sit on this page said the second and did the first.
 
@@ -186,9 +186,18 @@ Tabs are labelled with each category's `displayName`, never its `shortName`: `sh
 the macro bar's 32px buttons, where "Brez" and "Rune" are the only thing that fits, and a tab reading
 "Rune" two places from one reading "Vantus" would say nothing about which rune it meant.
 
-Every single-category tab renders **Add item or spell by ID** then the **Priority list**, which is a
-draggable list. The two composite tabs render **In Combat** / **Out of Combat**, each of which is its
-**own** draggable list — see *Reorder lists* below.
+Every single-category tab renders **Add item or spell by ID**, the **glyph legend**, then the
+**Priority list**, which is a draggable list. The two composite tabs render the description, the
+legend, then **In Combat** / **Out of Combat**, each of which is its **own** draggable list — see
+*Reorder lists* below.
+
+**The legend is on every tab, in the flavor that tab can draw.** A single-category tab keys three
+glyphs — *in bags*, *not in bags*, *picked in macro* (and the per-hand tabs a fourth line naming the
+MH/OH affinity). A composite tab keys **two**: its rows pass `isPick = false`, because every row on
+it is a category whose pick goes into the macro and a star on all of them would say nothing, so a
+key naming the star would name a glyph that cannot appear on the page it heads. The composite tabs
+carried no key at all until this pass, which left a player who had not opened *Food* first looking
+at a red cross beside *Healthstone* with nothing on the page explaining it.
 
 ### The Macro Bar strip, in tab order
 
@@ -205,14 +214,16 @@ mix control types and therefore carry **subsection headings** (`options-ui-§7`)
 | 5 | **Labels** | 12 | *Text* (show, label text) · *Layout* (anchor, placement, both offsets) · *Font* (the composed six) |
 | 6 | **Flyout** | 16 | *Layout* (nine) · *Background* (toggle + swatch + companion) · *Icon* (band, arrow, shade swatch + companion) |
 | 7 | **Visibility** | 3 | — combat mode, fade unless hover, faded opacity |
-| 8 | **Contents** | 0 | one checkbox per managed macro, a length no schema knows |
+| 8 | **Buttons** | 0 | one checkbox per managed macro, a length no schema knows |
 
 `Lock position` and `Reset position` are **not** on this page any more — they moved to Master controls
 and were deleted here. Two controls over one setting is exactly what `options-ui-§15` removes.
 
 Two tabs were renamed in the earlier redesign. *Bar* became **General**: on a page called Macro Bar
 the word carried nothing, and it collided with *Bar appearance* two tabs along. *Macros on the bar*
-became **Contents**, for the same reason — every tab on the page is about the bar. *Bar appearance*
+became **Contents**, for the same reason — every tab on the page is about the bar — and **Contents**
+is now **Buttons**, which names the things on screen rather than the abstraction and is the word the
+page already uses two tabs along (*Button appearance*). *Bar appearance*
 and *Button appearance* **keep** their qualifiers, because two surfaces coexist on this page and each
 has a backdrop and a border of its own; there the word is doing real work.
 
@@ -232,10 +243,36 @@ One tab, **Priority**, under the spec banner.
 
   The semantics are **order-only**: dragging changes the order and nothing else, because
   `writeStatPriority` already compacts blanks and duplicates on every write. Whether a stat counts at
-  all is the per-row **Include** checkbox — the affordance the old `(none)` dropdown value carried —
-  and an excluded stat drops to a **dimmed, undraggable tail** below the boundary, because its
-  position among the others is not stored and offering a gesture that cannot be saved is worse than
-  offering none.
+  all is the per-row **tick/cross glyph** — the affordance the old `(none)` dropdown value carried,
+  and an `Include` checkbox before that — and an excluded stat drops to a **dimmed, undraggable tail**
+  below the boundary, because its position among the others is not stored and offering a gesture that
+  cannot be saved is worse than offering none.
+
+  **The row is MultiMeters-shaped**, and that is the point of it (`options-ui-§8`, `§18`): every
+  draggable list in the collection is meant to read the same, so a player learns one row once. The
+  row is
+
+  ```
+  [handle gutter] [tick/cross] ............................... [Stat name]
+  ```
+
+  a **pooled raw frame**, not AceGUI widgets in a Flow group — the name is held against the row's
+  right edge and the glyph is a `Button` with two textures, neither of which Flow can express. Three
+  things this fixed, all of them visible side by side with MultiMeters' column list:
+
+  1. **The box went round the gutter, not the row.** `spec.parent` was the handle's 30px slot, so the
+     library painted its fill and 1px edge there and the row itself had no background at all. The
+     spec's `parent` defaults to the registered frame; the fix was to stop overriding it.
+  2. **Rows touched.** `stride` was the row height. It is `ROW_H + 4` now, and the 4 is the gap.
+  3. **The glyph sat flush against the handle.** The gutter is the library's `ROW_BOX.HANDLE_W`; the
+     12px after it is this page's, and it is what the contents start beyond.
+
+  The two textures are the ones MultiMeters' blocks and the Macros page's *in bags* / *not in bags*
+  swatches already wear — one glyph vocabulary across the collection. The rows are pooled and
+  released on `cancelReorder` for the reason `settings/ColumnBlocks.lua` documents at length: a raw
+  frame parented to an AceGUI container rides that container into the process-wide pool when
+  `ResetScroll` releases it, and turns up on the next thing to ask for a `SimpleGroup`. Every script
+  reads the stat off the frame at fire time, never off an upvalue captured when the row was built.
 
 ## Control groups and the class-colour companion
 
@@ -292,6 +329,15 @@ the handle drawn into it cannot disagree.
 | Macros → a single category's **Priority list** | 1, flat | none | `Selector.MoveTo` |
 | Macros → a composite's **In Combat** / **Out of Combat** | **2**, one per section | none on either | `Selector.MoveCompositeRef` |
 | Stat Priority → the **secondary stats** | 1 | `#included` | splice + `writeStatPriority` |
+
+**All three draw the same row**, which is the point of the shared widget (`options-ui-§8`): the
+library's fill and 1px edge behind the WHOLE row, and a stride wider than the box so consecutive rows
+do not touch. All three got that wrong the same way — `spec.parent` named the handle's 30px SLOT, so
+the box was painted around the gutter and the row itself had no background at all, which is exactly
+what made these lists look unlike MultiMeters' column list next to them. `parent` defaults to the
+frame the row was registered with; the fix in each case was to stop overriding it. The gap is a
+spacer drawn after each row rather than extra height on the row, because the box fills the frame it
+is parented to — a taller row is a taller box, not a space between two of them.
 
 The composite sections are **two separate stored arrays** and a sub-category is locked to its section,
 so they are two flat controllers rather than one with a boundary — a drag cannot cross between them

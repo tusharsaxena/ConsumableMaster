@@ -811,7 +811,8 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
                 "…whose first tab is " .. FIRST[key])
         end
 
-        t.eq(#drawn.general.tabs, 2, "General is Master controls + Maintenance")
+        t.eq(#drawn.general.tabs, 1,
+            "General is Master controls alone -- Maintenance folded into it as a subsection")
         t.eq(#drawn.macrobar.tabs, 8, "the Macro Bar page keeps its eight")
         t.eq(#drawn.macros.tabs, #KCM.Categories.LIST,
             "the Macros page carries one tab per category")
@@ -908,6 +909,16 @@ local function recordControllers(fn)
             self.__cancels = self.__cancels + 1
             return realCancel(self, ...)
         end
+        -- The SPECS the host hands the library, kept verbatim. The row objects
+        -- the controller builds do not carry `parent` back, and where the box is
+        -- parented is a host decision -- so this is the only place a case can see
+        -- it without reading the library's internals.
+        local realAddRow = list.AddRow
+        list.__specs = {}
+        list.AddRow = function(self, frame, spec)
+            self.__specs[#self.__specs + 1] = spec or {}
+            return realAddRow(self, frame, spec)
+        end
         made[#made + 1] = list
         return list
     end
@@ -927,6 +938,36 @@ local function showMacroTab(KCM, catKey)
     KCM.Settings.Helpers.RefreshAllPanels()
     return ctx
 end
+
+-- Every Macros tab explains its own glyphs. The single-category tabs always
+-- carried the key; the composite ones carried none, so a player who had not
+-- opened Food first met a red cross beside Healthstone with nothing on the page
+-- saying what it meant.
+--
+-- The composite key is the TWO swatches and not three: a composite row draws no
+-- pick star (renderCompositeRow passes isPick = false), and a key naming a glyph
+-- that cannot appear on the page it heads teaches the wrong thing.
+--
+-- red under: dropping the renderCompositeLegend call, or widening it to the
+-- three-glyph single-category line.
+test("Settings: an AIO tab explains its own in-bags / not-in-bags glyphs", function(t)
+    local KCM = loader.loadFullAddon()
+    local AceGUI = LibStub("AceGUI-3.0")
+    local before = #AceGUI.__created
+    showMacroTab(KCM, "HP_AIO")
+
+    local body = {}
+    for i = before + 1, #AceGUI.__created do
+        local w = AceGUI.__created[i]
+        if type(w.__text) == "string" then body[#body + 1] = w.__text end
+    end
+    body = table.concat(body, "\n")
+
+    t.truthy(body:find("in bags", 1, true), "the composite tab draws the glyph key")
+    t.truthy(body:find("not in bags", 1, true), "both swatches are named")
+    t.falsy(body:find("picked", 1, true),
+        "and the star is NOT named -- a composite row never draws one")
+end)
 
 -- The AIO tabs route to the composite renderer, which drew PAIRED ARROWS and
 -- constructed no controller at all (anti-patterns #75). Each of its two sections
@@ -1039,6 +1080,119 @@ test("Settings: the Stat Priority secondaries are one bounded reorder list", fun
         "the boundary is the number INCLUDED, so a drag cannot reach the excluded tail")
     t.eq(#made[1].rows, 4, "all four stats are rows; two of them are inert")
 end)
+
+-- The secondary rows are MultiMeters-shaped (options-ui-§8, §18): a bounded box
+-- behind the WHOLE row, and a stride wider than the box so consecutive rows do
+-- not touch.
+--
+-- The box's parent was the 30px handle SLOT, so the library drew its fill and its
+-- 1px edge around the handle alone and the row itself had no background at all --
+-- which is what made this list look unlike every other draggable list in the
+-- collection. `spec.parent` defaults to the frame the row was registered with, so
+-- the fix is to stop overriding it.
+--
+-- red under: passing the handle slot as the box's parent again, or setting the
+-- stride equal to the row height (which closes the gap between rows).
+test("Settings: a secondary stat row is boxed full-width and spaced from the next",
+    function(t)
+        local KCM = loader.loadFullAddon()
+        local UI  = KCM.Settings.Helpers.instance
+        local specKey = "8_262"
+        KCM.Options._viewedSpec     = specKey
+        KCM.Options._viewedSpecAuto = false
+        KCM.db.profile.statPriority = { [specKey] = { primary = "AGI", secondary = { "HASTE" } } }
+
+        local made = recordControllers(function()
+            KCM.Settings.builders.statpriority({})
+            local ctx = UI.__panelFor("statpriority")
+            ctx.panel.IsShown = function() return true end
+            KCM.Settings.Helpers.RefreshAllPanels()
+        end)
+
+        local list = made[1]
+        t.truthy(list, "the page built its controller")
+        t.eq(#list.__specs, 4, "one registered row per secondary stat")
+        for i, spec in ipairs(list.__specs) do
+            t.eq(spec.parent, nil,
+                "row " .. i .. " must let the box default to the ROW frame; naming the " ..
+                "handle's slot draws the box around the gutter and leaves the row bare")
+            t.truthy(spec.height and list.stride > spec.height,
+                "row " .. i .. ": the stride must exceed the row height, or rows touch (" ..
+                tostring(list.stride) .. " vs " .. tostring(spec.height) .. ")")
+        end
+    end)
+
+-- The SAME row shape on the Macros page, both flavors of it: the per-category
+-- priority list and the two composite sections. They had the identical defect the
+-- Stat Priority list had -- the box parented to the handle's 30px slot, so the
+-- library drew its fill and 1px edge around the gutter and the row itself was
+-- bare -- and they are the same control, so they must read the same.
+--
+-- red under: restoring `parent = slot.frame` on either renderer, or setting
+-- either stride back to the row height (which closes the gap between rows).
+test("Settings: every draggable row on the Macros page is boxed full-width and spaced",
+    function(t)
+        local KCM = loader.loadFullAddon()
+
+        for _, catKey in ipairs({ "FOOD", "HP_AIO" }) do
+            local made = recordControllers(function() showMacroTab(KCM, catKey) end)
+            local registered = 0
+            for _, list in ipairs(made) do
+                for i, spec in ipairs(list.__specs) do
+                    registered = registered + 1
+                    t.eq(spec.parent, nil, catKey .. " row " .. i ..
+                        ": the box must default to the ROW frame, not the handle's gutter")
+                    t.truthy(spec.height and list.stride > spec.height,
+                        catKey .. " row " .. i .. ": the stride must exceed the row height (" ..
+                        tostring(list.stride) .. " vs " .. tostring(spec.height) .. ")")
+                end
+            end
+            t.truthy(registered > 0, catKey .. " registered no rows at all")
+        end
+    end)
+
+-- The Include CHECKBOX became a tick/cross glyph you click, the same two textures
+-- MultiMeters wears on its column blocks -- one glyph vocabulary for a player who
+-- runs both. A checkbox labelled "Include" spent a third of the row saying what
+-- the tick already says.
+--
+-- red under: wiring the glyph's OnClick to nothing (a control that looks like a
+-- toggle and toggles nothing is the failure a texture assertion cannot see), or
+-- reading the stat off an upvalue captured when the row was built rather than off
+-- the row at fire time.
+test("Settings: clicking a secondary stat's glyph toggles whether it is ranked",
+    function(t)
+        local KCM = loader.loadFullAddon()
+        local UI  = KCM.Settings.Helpers.instance
+        local specKey = "8_262"
+        KCM.Options._viewedSpec     = specKey
+        KCM.Options._viewedSpecAuto = false
+        KCM.db.profile.statPriority = { [specKey] = { primary = "AGI", secondary = { "HASTE", "CRIT" } } }
+
+        KCM.Settings.builders.statpriority({})
+        local ctx = UI.__panelFor("statpriority")
+        ctx.panel.IsShown = function() return true end
+        KCM.Settings.Helpers.RefreshAllPanels()
+
+        local rows = ctx.kcmStatRows
+        t.truthy(rows and #rows == 4, "one row per secondary stat")
+        t.eq(rows[1].kcmStat, "HASTE", "the included stats come first, in stored order")
+
+        rows[1].kcmGlyph:_run("OnClick")
+        t.eqList(KCM.db.profile.statPriority[specKey].secondary, { "CRIT" },
+            "clicking a ranked stat's tick drops it out of the ranking")
+
+        -- And back on. An excluded stat joins the END of the order, because its
+        -- position while excluded is not stored and inventing one would be data
+        -- nobody entered.
+        rows = ctx.kcmStatRows
+        local haste
+        for _, row in ipairs(rows) do if row.kcmStat == "HASTE" then haste = row end end
+        t.truthy(haste, "HASTE is still a row, in the excluded tail")
+        haste.kcmGlyph:_run("OnClick")
+        t.eqList(KCM.db.profile.statPriority[specKey].secondary, { "CRIT", "HASTE" },
+            "and it comes back at the end of the order")
+    end)
 
 -- The split the list is built from, driven directly: it is what decides which
 -- rows are draggable and what the boundary is.
@@ -1201,7 +1355,40 @@ test("Settings: the Master controls tab closes with the two reset buttons", func
     for _, text in ipairs(texts) do seen[text] = true end
     t.truthy(seen["Reset position"], "the pair's left half is Reset position")
     t.truthy(seen["Reset all settings"], "and its right half is the global reset")
-    -- The Maintenance tab's buttons are NOT drawn while Master controls is the
-    -- active tab: only the active tab's body draws (options-ui-§13).
-    t.falsy(seen[KCM.L["Force resync"]], "the other tab's buttons stay off screen")
+    -- The Maintenance subsection's three buttons are NOT visible from here, and
+    -- that is a property of this harness rather than of the page: they are drawn
+    -- by settings/Panel.lua's own Button / ButtonPair, which hold AceGUI as a
+    -- file-local captured at load, so swapping UI.AceGUI cannot see them. The
+    -- case below reads them off the mock factory instead.
+end)
+
+-- The Maintenance TAB is gone and its three verbs are a subsection of Master
+-- controls (options-ui-§16: anything extra goes after the canonical block). A
+-- whole tab over three buttons pressed about once a month was a click to reach
+-- three acts, beside the one tab everybody opens.
+--
+-- Read off the mock AceGUI's creation log rather than a stub, because these
+-- three are HOST-drawn — see the note above.
+--
+-- red under: putting the subsection back on a second tab, dropping the
+-- drawMaintenance call out of drawMaster, or renaming a button.
+test("Settings: the three maintenance verbs draw on the Master controls tab", function(t)
+    local KCM = loader.loadFullAddon()
+    local AceGUI = LibStub("AceGUI-3.0")
+    local before = #AceGUI.__created
+
+    KCM.Settings.builders.general({})
+    local ctx = KCM.Settings.Helpers.instance.__panelFor("general")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Master controls"
+    KCM.Settings.Helpers.RefreshAllPanels()
+
+    local seen = {}
+    for i = before + 1, #AceGUI.__created do
+        local w = AceGUI.__created[i]
+        if w.__text then seen[w.__text] = true end
+    end
+    t.truthy(seen[KCM.L["Force resync"]], "Force resync is on Master controls")
+    t.truthy(seen[KCM.L["Force rewrite macros"]], "so is Force rewrite macros")
+    t.truthy(seen[KCM.L["Reset all priorities"]], "and so is Reset all priorities")
 end)
