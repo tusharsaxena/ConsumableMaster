@@ -5,7 +5,7 @@ local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.Database.CURRENT_SCHEMA, 2, "current schema is v2")
+    t.eq(KCM.Database.CURRENT_SCHEMA, 3, "current schema is v3")
 end)
 
 test("Database.RunMigrations stamps a fresh account at the current schema", function(t)
@@ -84,7 +84,8 @@ test("Database v2: a profile that predates the macro bar gets it on and unlocked
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.enabled, true, "bar enabled")
     t.eq(KCM.db.profile.macroBar.locked, false, "bar unlocked so the drag handle shows")
-    t.eq(KCM.db.global.schemaVersion, 2, "stamped past the v2 step")
+    t.eq(KCM.db.global.schemaVersion, KCM.Database.CURRENT_SCHEMA,
+        "stamped past the v2 step and on to the current version")
 end)
 
 test("Database v2: an off/locked bar from an earlier build of the feature is turned on", function(t)
@@ -121,4 +122,54 @@ end)
 test("Database v2: MigrateMacroBarV2 tolerates a nil profile", function(t)
     local KCM = h.loader.loadPure()
     t.falsy(KCM.Database.MigrateMacroBarV2(nil), "returns false rather than erroring")
+end)
+
+-- ---------------------------------------------------------------------------
+-- v3 — the label outline boolean becomes a font-flags string
+-- ---------------------------------------------------------------------------
+--
+-- A STORED VALUE CHANGED SHAPE (options-ui-§16's font block), so it takes a
+-- migration rather than an edit to defaults/Profile.lua. Without the step the
+-- panel meets a boolean where it expects one of five strings and the player
+-- silently loses a setting they had already made.
+--
+-- red under: dropping the `if g.schemaVersion < 3` arm from RunMigrations, or
+-- mapping `false` to "OUTLINE" (which is the shape the whole conversion exists
+-- to get right).
+
+test("Database v3: an outlined label from an older profile reads back as OUTLINE", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profile.macroBar.labelFlags = nil
+    KCM.db.profile.macroBar.labelOutline = true
+    KCM.db.global = { schemaVersion = 2 }
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE", "true becomes the OUTLINE flag")
+    t.eq(KCM.db.profile.macroBar.labelOutline, nil,
+        "and the boolean is removed rather than left as a second copy")
+end)
+
+test("Database v3: an un-outlined label from an older profile reads back as no flags", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profile.macroBar.labelFlags = nil
+    KCM.db.profile.macroBar.labelOutline = false
+    KCM.db.global = { schemaVersion = 2 }
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.profile.macroBar.labelFlags, "",
+        "false becomes the empty string, which is the stored value 'None' names")
+end)
+
+test("Database v3: a profile that already carries labelFlags is left alone", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profile.macroBar.labelFlags   = "THICKOUTLINE"
+    KCM.db.profile.macroBar.labelOutline = true
+    KCM.db.global = { schemaVersion = 2 }
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.profile.macroBar.labelFlags, "THICKOUTLINE",
+        "the deliberate choice survives; the step is a conversion, not a reset")
+end)
+
+test("Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less one", function(t)
+    local KCM = h.loader.loadPure()
+    t.falsy(KCM.Database.MigrateLabelFlagsV3(nil), "nil profile returns false")
+    t.falsy(KCM.Database.MigrateLabelFlagsV3({}), "a profile with no macroBar returns false")
 end)

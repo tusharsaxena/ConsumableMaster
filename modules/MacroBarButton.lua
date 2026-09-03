@@ -54,6 +54,21 @@ local function borderTexture(name)
 end
 BB.BorderTexture = borderTexture   -- shared with modules/MacroBar.lua's backdrop
 
+-- Resolve a LibSharedMedia font name to its file, falling back to whatever face
+-- the FontString already carries. Same ladder and the same reason as
+-- borderTexture above: a profile can name a face a since-uninstalled addon
+-- supplied, and a nil path handed to SetFont makes the text vanish rather than
+-- raise.
+local function fontFile(name, current)
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if LSM and LSM.Fetch then
+        local path = LSM:Fetch("font", name or "Friz Quadrata TT", true)
+        if path then return path end
+    end
+    return current
+end
+BB.FontFile = fontFile
+
 -- Resolve whatever the cursor is holding to a KCM category key, or nil.
 -- GetCursorInfo returns ("macro", macroIndex) for a picked-up macro.
 local function cursorCatKey()
@@ -236,16 +251,33 @@ local function applyLabel(btn, cfg)
     -- Flags are set explicitly, never carried over from GetFont(): re-using the
     -- current flags would make the outline sticky, since the previous pass had
     -- already written "OUTLINE" into them.
-    local fontPath = btn.label:GetFont()
+    local fontPath = fontFile(cfg.labelFont, btn.label:GetFont())
     if fontPath then
-        btn.label:SetFont(fontPath, pts, cfg.labelOutline ~= false and "OUTLINE" or "")
+        -- `labelFlags` is the canonical font-flags STRING (options-ui-§16); "" is
+        -- a real stored value and means no flags at all, so the `or` ladder stops
+        -- at nil rather than treating the empty string as absent.
+        local flags = cfg.labelFlags
+        if flags == nil then flags = "OUTLINE" end
+        btn.label:SetFont(fontPath, pts, flags)
+    end
+    -- Font shadow. Cleared explicitly when off, never left to whatever the last
+    -- pass wrote: a shadow set once and not cleared is as sticky as the outline
+    -- flags above were.
+    if btn.label.SetShadowOffset and btn.label.SetShadowColor then
+        if cfg.labelShadow then
+            btn.label:SetShadowColor(0, 0, 0, 1)
+            btn.label:SetShadowOffset(1, -1)
+        else
+            btn.label:SetShadowColor(0, 0, 0, 0)
+            btn.label:SetShadowOffset(0, 0)
+        end
     end
     local point, relPoint, dx, dy, justify = BL.LabelAnchor(cfg)
     btn.label:ClearAllPoints()
     btn.label:SetPoint(point, btn, relPoint, dx, dy)
     btn.label:SetJustifyH(justify)
-    local c = cfg.labelColor or {}
-    btn.label:SetTextColor(c[1] or 1, c[2] or 0.82, c[3] or 0, c[4] or 1)
+    btn.label:SetTextColor(
+        KCM.SwatchColor(cfg.labelColor, cfg.useClassColorLabel, 1, 0.82, 0, 1))
     applyLabelText(btn, cfg, pts)
     btn.label:Show()
 end
@@ -268,10 +300,14 @@ local BACKDROP_FILL_DEFAULT = { 0, 0, 0, 0.6 }
 -- color may be absent entirely or short a component, and each missing slot
 -- falls back on its own. Returns four values and allocates nothing — this runs
 -- on every layout pass.
-local function rgba(stored, default)
-    stored = stored or EMPTY_COLOR
-    return stored[1] or default[1], stored[2] or default[2],
-           stored[3] or default[3], stored[4] or default[4]
+-- A stored swatch resolved through its "use class color" companion
+-- (options-ui-§17), with this surface's own four-channel fallback. The resolver
+-- is the addon's one (core/CoreSetup.lua); what stays here is the per-surface
+-- default, which is not the library's to know.
+local function swatch(stored, useClass, default)
+    default = default or EMPTY_COLOR
+    return KCM.SwatchColor(stored, useClass,
+        default[1], default[2], default[3], default[4])
 end
 
 -- Border is its own BackdropTemplate child rather than a texture on the
@@ -291,7 +327,8 @@ function BB.ApplyBorder(frame, anchorTo, cfg)
         edgeFile = borderTexture(cfg.buttonBorderStyle),
         edgeSize = math.max(1, tonumber(cfg.buttonBorderSize) or 4),
     })
-    frame:SetBackdropBorderColor(rgba(cfg.buttonBorderColor, BORDER_COLOR_DEFAULT))
+    frame:SetBackdropBorderColor(swatch(cfg.buttonBorderColor,
+        cfg.useClassColorButtonBorder, BORDER_COLOR_DEFAULT))
     frame:Show()
 end
 
@@ -307,7 +344,8 @@ function BB.ApplyIconZoom(icon, cfg)
 end
 
 function BB.ApplyBackdropTex(tex, cfg)
-    tex:SetColorTexture(rgba(cfg.buttonBackdropColor, BACKDROP_FILL_DEFAULT))
+    tex:SetColorTexture(swatch(cfg.buttonBackdropColor,
+        cfg.useClassColorButtonBackdrop, BACKDROP_FILL_DEFAULT))
     if cfg.buttonBackdrop then tex:Show() else tex:Hide() end
 end
 

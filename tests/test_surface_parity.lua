@@ -45,12 +45,19 @@ end
 -- which is the seam's live surface: LIBKA0S_MISSING (:30), IsConcatSafe (:73),
 -- SafeToString (:74), Say (:99). The degraded branch re-declares the last three
 -- as real fallbacks and shares the first.
-local CORE_SEAM = { "LIBKA0S_MISSING", "IsConcatSafe", "SafeToString", "Say" }
+local CORE_SEAM = {
+    "LIBKA0S_MISSING", "IsConcatSafe", "SafeToString", "Say", "SwatchColor",
+}
 
 test("Parity: the LibKa0s-Core stub carries the whole live seam", function(t)
     local live     = h.loader.loadPure()
     local degraded = h.loader.loadPureDegraded()
     h.assertSurfaceParity(project(live, CORE_SEAM), degraded, "KCM Core seam")
+    -- SwatchColor is called on every repaint of every button (three files reach
+    -- it), so a nil one would take the macro bar's whole appearance pass down.
+    -- The class color needs the library; the swatch does not, which is why the
+    -- degraded arm answers the stored color rather than nothing.
+    t.eq(type(degraded.SwatchColor), "function", "KCM.SwatchColor survives a degraded load")
     -- 177 call sites reach KCM.Say, and core/SlashCommands.lua captures it at
     -- FILE SCOPE, so a nil Say takes the whole of /cm down with it rather than
     -- one line. Worth stating separately from the set assertion.
@@ -143,12 +150,20 @@ end)
 -- publishes most of them by settings/OptionsSetup.lua's
 -- `setmetatable(Helpers, { __index = UI })` and an assignment grep would miss
 -- exactly the delegated members.
+-- The grep is over BOTH spellings, because the page files alias the table:
+--     grep -rhno 'Helpers\.[A-Za-z_]*' core/ modules/ settings/ | sort -u
+--     grep -rhno '\bH\.[A-Za-z_]*'    settings/                | sort -u
+-- The second is the one that grew with this adoption -- the composers, the row
+-- engine and the strip are all reached as `H.` from a page file.
 local OPTIONS_SEAM = {
-    "BuildAboutContent", "Button", "ButtonPair", "CreatePanel", "CustomCheckbox",
-    "EnumValues", "FindSchema", "Get", "Grid", "LSMValues", "Label",
-    "RefreshAllPanels", "RefreshScalars", "RenderField", "ResetScroll", "Resolve",
-    "Section", "Set", "SetAndRefresh", "SetRenderer", "ValidateSchema",
-    "ValidateSchemaValue", "instance",
+    "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BorderGroup",
+    "BuildAboutContent", "Button", "ButtonPair", "CLASS_COLOR_NOTE", "ColorPair",
+    "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
+    "FontGroup", "Get", "Grid", "LSMValues", "Label", "MasterControls",
+    "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
+    "RenderField", "RenderRows", "ResetScroll", "Resolve", "SECTION_HEADING_H",
+    "SESSION_PATHS", "Section", "Set", "SetAndRefresh", "SetRenderer", "TabStrip",
+    "ValidateSchema", "ValidateSchemaValue", "instance",
 }
 
 -- Live-only ON PURPOSE. With the library absent the panel is not registered AT
@@ -164,8 +179,20 @@ local OPTIONS_SEAM = {
 -- (SetAndRefresh after every schema write, O.Refresh off the PANEL_REFRESH bus
 -- message), so they must be real no-ops on both arms — which is the finding this
 -- seam actually had.
+-- Live-only ON PURPOSE. With the library absent the panel is not registered AT
+-- ALL — settings/Panel.lua's registerPanel returns before a single page renders —
+-- so every member below is unreachable degraded by construction, and supplying it
+-- would mean keeping a verbatim copy of the chrome the adoption removed.
+--
+-- The FOUR COMPOSERS are deliberately NOT on this list. They are called inside
+-- schema-row literals at FILE LOAD, which is the one position options-ui-§1 says
+-- a stub must cover, so settings/OptionsSetup.lua's degraded arm publishes them
+-- answering an empty row list. What that costs is measured, not assumed —
+-- tests/test_settingsui.lua compares the schema row count on both arms.
 local OPTIONS_LIVE_ONLY = {
-    "CustomCheckbox", "Grid", "RenderField", "ResetScroll", "SetRenderer",
+    "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "CLASS_COLOR_NOTE",
+    "CustomCheckbox", "EnsureScroll", "Grid", "PageBanner", "RenderField",
+    "RenderRows", "ResetScroll", "SECTION_HEADING_H", "SetRenderer", "TabStrip",
     "instance",
 }
 

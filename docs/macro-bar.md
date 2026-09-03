@@ -337,7 +337,7 @@ handle wider than the bar it labels, while a 14px icon costs the same at every
 width. The handle's own tooltip stays a single line, so hovering it to drag
 doesn't dump a wall of text.
 
-## Defaults & the v2 migration
+## Defaults & the v2 / v3 migrations
 
 The bar ships **enabled and unlocked**. The reasoning: a bar nobody sees is a bar
 nobody configures, and unlocked means the drag handle is right there to place it
@@ -351,6 +351,18 @@ carrying a partial `macroBar` table from an earlier build of this feature does.
 The step is **one-shot**: `RunMigrations` bumps `schemaVersion` past it, so a
 later deliberate "off" or "locked" is never stomped on the next login.
 
+Schema **v3** (`Database.MigrateLabelFlagsV3`) converts the label's `labelOutline`
+boolean into the canonical `labelFlags` string the font group declares
+(`options-ui-§16`) — `true` → `"OUTLINE"`, `false` → `""` — and removes the old
+key. A stored value changing shape is a migration and not an edit to a defaults
+table: without it the panel would meet a boolean where it expects one of five
+strings and the player would lose a setting they had already made, silently.
+
+`macroBar.locked` is still stored here, but the control that writes it is the
+General page's **Lock frame** row now, on the Master controls tab
+(`options-ui-§15`). Only the tab moved; the path did not, so `/cm bar lock` and
+`/cm set macroBar.locked` are unchanged.
+
 ## Combat contract
 
 Everything here follows from one rule: **buttons are protected frames.**
@@ -358,8 +370,8 @@ Everything here follows from one rule: **buttons are protected frames.**
 | Operation | How it's handled |
 |-----------|------------------|
 | create slots, anchor them, `Show`/`Hide` them, `SetSize`/`SetPoint` the bar | `MacroBar.Update()` early-outs when `InCombatLockdown()`, sets `pendingUpdate`, and `KCM:OnRegenEnabled` calls `MacroBar.FlushPending()` |
-| combat-conditional visibility | `RegisterStateDriver(bar, "visibility", "[combat] hide; show")` — Blizzard's secure environment performs the toggle, so it works mid-fight, taint-free |
-| hover fade | `SetAlpha`, unprotected and safe in combat. Faded buttons stay clickable by design |
+| combat-conditional visibility | `RegisterStateDriver(bar, "visibility", <driver>)` — Blizzard's secure environment performs the toggle, so it works mid-fight, taint-free. The driver string comes from `MacroBarModel.ResolveVisibility(db.profile.visibility, macroBar.combatMode)`, which INTERSECTS the addon-wide General visibility with this bar's own Combat visibility: the bar shows only where both say show, and a pair that can never agree answers `"hide"` outright rather than registering a driver that flickers |
+| hover fade | `SetAlpha`, unprotected and safe in combat. Faded buttons stay clickable by design. Both the hovered and the faded value are multiplied by the addon-wide `db.profile.alpha`, exactly as `SetScale` is multiplied by `db.profile.scale` (`options-ui-§15`) |
 | lock / unlock | `EnableMouse` + a texture toggle on the unprotected container — safe in combat |
 | drag out to a Blizzard bar | `MacroDisplay.Pickup`, shared with the settings-panel drag icon. `PickupMacro` is **protected**, so it is blocked in combat with a chat notice rather than an `ADDON_ACTION_BLOCKED` error; the drop itself is Blizzard's own taint-free `PlaceAction` flow |
 | drag-to-swap | blocked in combat with a chat notice (the relayout that follows anchors protected frames) |

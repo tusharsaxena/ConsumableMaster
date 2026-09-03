@@ -52,7 +52,7 @@ single-diff form and it accused **this repo** of drift while clearing the other 
 was backwards, because ConsumableMaster's checkout was the correct one and the library's own ship
 folder had the LF files. Content was byte-identical throughout.
 
-Re-vendoring is **whole-folder**, never file by file: four of the five majors resolve
+Re-vendoring is **whole-folder**, never file by file: nine of the payload's ten majors resolve
 `LibKa0s-Core-1.0` before registering, and `Options` and `Perf` are each split across files with
 paired attach guards, so a per-file copy is how cross-major skew gets manufactured.
 

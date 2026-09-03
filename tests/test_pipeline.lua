@@ -347,3 +347,85 @@ test("ResetAllToDefaults leaves the category buckets structurally valid", functi
             cat.key .. " still has its bucket after the wipe")
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- options-ui-§12 — the global reset sweeps the SESSION-ONLY rows
+-- ---------------------------------------------------------------------------
+--
+-- A profile reset by construction cannot reach a row whose storage is its own
+-- `set()`. `state.debugConsole` is that row: settings/Panel.lua's SESSION_PATHS
+-- answers it out of the console's own visibility, not out of db.profile, so
+-- `db:ResetProfile()` leaves it exactly as it found it and a console the player
+-- opened outlives a reset that took everything around it. §12 makes restoring
+-- those rows by hand a MUST, and restoreSessionRows is where it happens.
+--
+-- Pinned on ResetAllToDefaults rather than on either door, because that is the
+-- point of putting the sweep there: the Master controls tab's [Reset all
+-- settings] and `/cm resetall` are the same act and cannot drift apart.
+--
+-- red under: deleting the restoreSessionRows() call from KCM.ResetAllToDefaults,
+-- dropping `debugConsole = false` from settings/General.lua's composer spec (the
+-- composer emits the row with no default of its own), or moving the sweep after
+-- db:ResetProfile() -- the last one still passes here but is caught by the
+-- ordering case below.
+test("ResetAllToDefaults restores the session-only rows a profile reset cannot reach",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local H = KCM.Settings.Helpers
+
+        -- A console DOUBLE, because the row's visibility is the one thing the
+        -- headless frame stub cannot answer: its IsShown is a chaining no-op that
+        -- reports truthy forever once a frame exists, so reading the row back
+        -- through the real console would pass whatever the sweep did. The double
+        -- is resolved by settings/Panel.lua's SESSION_PATHS at CALL time, so it is
+        -- the same seam a live client takes. Unknown members answer a no-op, so a
+        -- debug line emitted during the reset cannot raise through it.
+        local shown = false
+        local realDL = KCM.DebugLog
+        KCM.DebugLog = setmetatable({
+            Show          = function() shown = true end,
+            Hide          = function() shown = false end,
+            IsWindowShown = function() return shown end,
+        }, { __index = function() return function() end end })
+
+        H.Set("state.debugConsole", true)
+        KCM.db.profile.macroBar.buttonSize = 99
+        t.eq(shown, true, "the console is open going in")
+
+        KCM.ResetAllToDefaults("test")
+        KCM.DebugLog = realDL
+
+        t.eq(shown, false,
+            "the session-only row is restored row by row, not left standing")
+        t.eq(KCM.db.profile.macroBar.buttonSize, 36,
+            "and the profile half is still the AceDB reset it always was")
+    end)
+
+-- The sweep runs BEFORE db:ResetProfile, for the reason the library orders its own
+-- RestoreAllDefaults the same way (libs/LibKa0s/Options.lua): ResetProfile fires
+-- OnProfileReset, whose handler repaints every panel, and a sweep afterwards would
+-- be writing into a panel already drawn from the pre-reset value.
+--
+-- red under: moving restoreSessionRows() below KCM.db:ResetProfile().
+test("ResetAllToDefaults sweeps the session rows before it resets the profile", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local order = {}
+
+    local realSet = KCM.Settings.Helpers.Set
+    KCM.Settings.Helpers.Set = function(path, value)
+        if path == "state.debugConsole" then order[#order + 1] = "sweep" end
+        return realSet(path, value)
+    end
+    local realReset = KCM.db.ResetProfile
+    KCM.db.ResetProfile = function(...)
+        order[#order + 1] = "resetProfile"
+        return realReset(...)
+    end
+
+    KCM.ResetAllToDefaults("test")
+
+    KCM.Settings.Helpers.Set = realSet
+    KCM.db.ResetProfile      = realReset
+    t.eqList(order, { "sweep", "resetProfile" },
+        "the session rows are restored first, then the profile is wiped")
+end)

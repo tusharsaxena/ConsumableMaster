@@ -123,16 +123,16 @@ Scalar settings live as rows in `KCM.Settings.Schema` (the array is created in `
 
 ```lua
 Schema[#Schema + 1] = {
-    panel    = "general", section = "general", group = "General",
+    panel    = "general", section = "general", group = "Master controls",
     path     = "enabled", type    = "bool",
-    label    = "Enable",
+    label    = "Enable Consumable Master",
     tooltip  = "Master toggle. When off, the recompute pipeline is a no-op.",
     default  = KCM.dbDefaults.profile.enabled,   -- default sourced from dbDefaults
     onChange = function(v) ... end,    -- optional
 }
 ```
 
-`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. Fifty-four rows are wired today: the fifty-three `macroBar.*` rows registered by `settings/MacroBar.lua`, and `general.enabled` (master toggle; `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately). Debug is **not** a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug`.
+`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **68** rows are wired today: the 62 `macroBar.*` rows registered by `settings/MacroBar.lua`, and the 6 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`). `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, resolved by `settings/Panel.lua`'s `SESSION_PATHS` rather than by the profile.
 
 ## List-shaped state — verb namespaces
 

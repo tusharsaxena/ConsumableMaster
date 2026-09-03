@@ -50,6 +50,12 @@ Tests: bag scan classifies new items, GIIR retry hydrates uncached ones, discove
 2. Within ~1 frame of `BAG_UPDATE_DELAYED`, expect: `/cm dump pick flask` lists the new item with its score.
 3. Open the Macros page and its **Flask** tab; the new item appears in the priority list with the green-check "owned" glyph.
 4. Move the item into the bank, log out, log back in. With the item not in bags but discovered within 30 days: it appears in the priority list with the red-X "not owned" glyph.
+4b. **Every draggable row is boxed and spaced.** On this tab and on **AIO Health**, each row carries
+   the library's bounded box across its **whole width** — not a box around the drag handle with a bare
+   row beside it — and consecutive rows do **not** touch. Open the **Stat Priority** page and
+   MultiMeters' *Columns* tab beside them: all three must read as the same control (`options-ui-§8`).
+   Drag a row to the bottom of a long list and drop it: it must land where the insertion line said,
+   with no drift as you go down — drift means the stride and the drawn pitch disagree.
 5. Wait 30+ days (or hand-edit `discovered[id]` to a stale timestamp): on the next PEW, `Selector.SweepStaleDiscovered` removes it. Confirm via `/cm dump pick flask` — entry gone.
 
 ### 3. Macro writes — single-pick
@@ -104,7 +110,7 @@ Tests: `KCM_BLOODLUST` / `KCM_BATTLE_REZ` resolve the right spell or item per cl
 3. On a class with no lust ability, put a drum in bags — confirm it resolves. At max level with **only** a superseded (capped) drum in bags, confirm the slot shows the empty state, not the dead drum — this is the level-cap filter from Task 1 (`TooltipCache.IsUsableByPlayer`).
 4. On Druid / DK / Paladin / Warlock, confirm `KCM_BATTLE_REZ` resolves to that class's rez spell (Rebirth / Raise Ally / Intercession / Soulstone) over Emergency Soul Link. On a class with **no** rez spell and Emergency Soul Link in bags, confirm the item resolves.
 5. `/cm dump pick BLOODLUST` and `/cm dump pick BATTLE_REZ` — open the macro and read the body against the dump's pick.
-6. On the Macros page's **Battle Rez** tab, confirm the **Cast on mouseover** checkbox (`settings/Category.lua:366`) is checked by default and the macro body carries `[@mouseover,help][@target,help]`. Uncheck it — confirm the body drops the `[@mouseover,help]` clause and leaves `[@target,help]` alone, and the macro then acts on your current target instead of a moused-over frame.
+6. On the Macros page's **Battle Rez** tab, confirm the **Cast on mouseover** checkbox (`settings/Category.lua:376`) is checked by default and the macro body carries `[@mouseover,help][@target,help]`. Uncheck it — confirm the body drops the `[@mouseover,help]` clause and leaves `[@target,help]` alone, and the macro then acts on your current target instead of a moused-over frame.
 7. Confirm neither category auto-discovers: put an un-seeded, un-added item that would otherwise match (e.g. a different drum tier) in bags — it must **not** appear in `/cm dump pick` or the category's priority list, since neither category has a `Classifier.lua` matcher.
 
 ### 4. Macro writes — composite (HP_AIO / MP_AIO)
@@ -112,6 +118,13 @@ Tests: `KCM_BLOODLUST` / `KCM_BATTLE_REZ` resolve the right spell or item per cl
 Tests: `/castsequence [combat]` for in-combat, `/use [nocombat]` chain for out-of-combat, asymmetric-empty fallback.
 
 1. Open the Macros page's **AIO Health** tab. Confirm In Combat lists `HS` and `HP_POT` (in that order by default), Out of Combat lists `FOOD`.
+1b. **The glyph key is on this tab too**, spaced clear of the "Composite macro…" sentence above it
+   and of *In Combat* below — butted against the paragraph it reads as a fourth line of it:
+   a green tick reading *in bags* and a red cross reading *not in bags*. It is the same key the
+   single-category tabs carry, minus the star — a composite row never draws the pick star, and a key
+   naming a glyph that cannot appear would teach the wrong thing. Check **AIO Mana** as well: both
+   composite tabs carried no key at all until this pass, so a player who had not opened Food first met
+   a red cross beside Healthstone with nothing on the page saying what it meant.
 2. Drag `KCM_HP_AIO` onto a bar. Out of combat, hovering the bar slot should show the FOOD pick's tooltip.
 3. `/cm dump pick hp_aio` — confirms the resolved per-section picks and the assembled body.
 4. Macro body should look like:
@@ -152,15 +165,19 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 1. Close the Settings panel. Run `/cm config`.
 2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **four** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
-4. Open General. Layout: section "General" with paired `[Enable] | [Debug]`; section "Maintenance" with row 1 `[Force resync | Force rewrite]`, row 2 `[Reset all priorities]` full-width. A top-right **Defaults** button sits in the page header.
+4. Open General. A **tab strip** with exactly **one** tab, named exactly **Master controls** (`options-ui-§15`) — a one-section page still draws a strip. It carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair. Below that pair, a **Maintenance** heading over `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]` — the same three buttons that were a second tab until this pass, appended after the canonical block rather than interleaved into it. There is **no Maintenance tab**; a strip showing two tabs here is the fold half-done. A top-right **Defaults** button sits in the page header.
+4a. **Nothing is declared twice.** The Macro Bar page's General tab has **no** Lock and **no** Reset position — both moved here. `/cm set macroBar.locked true` still works and still ticks the **Lock frame** box on this page, because the setting moved tabs and not storage.
+4b. **The master rows are addon-wide, and they compose.** Set **Master scale** to 2.0 with the bar's own **Bar scale** at 1.0 → the bar doubles. Now set Bar scale to 0.5 → it lands halfway back, at an effective 1.0. Same for **Master alpha** against **Bar opacity**. Set **General visibility** to *Only in combat* with the bar's **Combat visibility** at *Always* → the bar appears on pull and goes on combat drop. Set the bar's Combat visibility to *Hide in combat* as well → the two can never agree, and the bar stays hidden.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
 6. Toggle Enable on — `[CM] Master enable ON` prints. A recompute kicks immediately; macros refresh against current state.
 7. Toggle Debug — color-coded ack `[CM] debug logging ON` (green) / `OFF` (red), plus a `[Debug] logging enabled/disabled` line in the console; on enable, an `[Init]` session summary line (addon + version, schema, profile) follows the bracket. Tagged debug console lines start / stop appearing.
 8. Click **Force resync** — TooltipCache invalidates, auto-discovery re-runs, pipeline recomputes. Blocked in combat with a chat notice.
 9. Click **Force rewrite macros** — every `KCM_*` body + icon re-issued unconditionally. Useful when an action-bar framework is showing a stale texture.
-10. Click **Reset all priorities** — StaticPopup confirms; on Yes, the entire `categories` + `statPriority` tree wipes back to seed defaults and the master enable flips back on. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
+10. Click **Reset all settings** (Master controls, the right half of the closing pair) — StaticPopup confirms with the collection's one wording; on Yes, the whole active profile resets. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
+10a. **The reset reaches the session row too** (`options-ui-§12`). Tick **Debug console** so the window is open, change something profile-backed (drag the bar, or drop Button size), then **Reset all settings** → Yes. The console window is **closed** and the checkbox is unticked, alongside everything the profile reset took. A profile reset alone cannot do this — the row's storage is its own `set()`, not the db — so a console still sitting open afterwards means the session sweep is gone. `/cm resetall` is the same act through the other door and must behave identically.
+10b. Click **Reset all priorities** (the Maintenance subsection) — a **different** StaticPopup, naming a narrower act. On Yes, every category's added / blocked / pinned items and every spec's stat-priority override are cleared and **nothing else is**: set a non-default `Button size` on the Macro Bar page first and confirm it survives. Blocked in combat with a chat notice.
 10a. **The slash path raises the same popup.** ⚠ `/cm reset` used to *be* this wipe; it now resets one row, and the destructive verb is `/cm resetall`. That move is only safe if the confirmation moved with it. Run `/cm resetall` → **the same StaticPopup appears**. **Cancel** → nothing is wiped (spot-check that a custom added item survives). Run it again and confirm → identical effect to step 10, because both reach the popup through the same file-scope `StaticPopup_Show("KCM_CONFIRM_RESET")`. Then bare `/cm reset` → the usage line naming `/cm resetall`, and **no popup**; `/cm reset macroBar.orientation` → that one row echoes and nothing else moves. (What this pins: the guard on the destructive path. A `/cm resetall` that wipes without asking, or a bare `/cm reset` that wipes at all, is the regression this convergence risked — see `../LibKa0s/docs/adoption-prompt.md`, "The two user-visible convergences".)
-11. Disable the addon (Enable off), then click the top-right **Defaults** button. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`) and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
+11. Disable the addon (Enable off) and move **Master scale** off 1.0, then click the top-right **Defaults** button — scrolled down to the **Maintenance** subsection, so the whole tab is not on screen. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`), scale / alpha / visibility come back to their shipped values, and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
 
@@ -219,20 +236,38 @@ below is new behaviour and none of it is covered by an automated case that can s
 **The Macro Bar strip**
 
 8. Open **Macro Bar**. Eight tabs, in this order: **General, Layout, Bar appearance, Button
-   appearance, Labels, Flyout, Visibility, Contents**. There is no tab called "Bar" and none called
+   appearance, Labels, Flyout, Visibility, Buttons**. There is no tab called "Bar", none called "Contents" and none called
    "Macros on the bar".
 9. Only the active tab's controls are on screen — the page is no longer one long scroll of eight
    headings. There is no section HEADING repeating the tab's own name above the controls.
-10. Row counts, tab by tab: General **2** (Enable macro bar, Lock position) plus the Reset position /
-    Reset slot order button pair; Layout **8**; Bar appearance **7**, ending with **Bar opacity**;
-    Button appearance **11**; Labels **9**; Flyout **14**; Visibility **3**; Contents is the
-    per-macro checkbox grid (fifteen checkboxes) under the drag-to-swap hint.
-11. **Bar opacity is on Bar appearance, once.** It used to be declared among the button rows; if the
-    strip ever draws "Bar appearance" twice, or Bar opacity turns up on Button appearance, the
-    group's rows have stopped being contiguous.
-12. **Labels reads across.** The first line is `[Show button labels] [Label text]` — the master
-    toggle beside the thing it turns on. Then `[anchor] [placement]`, then `[offset X] [offset Y]`
-    side by side, then `[scale] [color]`, then `[outline]` on its own.
+10. Row counts, tab by tab: General **1** (Enable macro bar) plus the Reset slot order button;
+    Layout **8**; Bar appearance **9**; Button appearance **13**; Labels **12**; Flyout **16**;
+    Visibility **3**; Buttons is the per-macro checkbox grid (fifteen checkboxes) under the
+    drag-to-swap hint. **Lock position and Reset position are gone** — they are the General page's
+    now (`options-ui-§15`).
+11. **Bar opacity is on Bar appearance, once,** under an **Opacity** heading. If the strip ever draws
+    "Bar appearance" twice, or Bar opacity turns up on Button appearance, the group's rows have
+    stopped being contiguous.
+11a. **Subsection headings on the four mixed tabs** (`options-ui-§7`), drawn as the same centered
+    `Heading` every other header uses — never a coloured label: Bar appearance reads
+    *Opacity* → *Background* → *Border*; Button appearance *Background* → *Border* → *Icon*; Labels
+    *Text* → *Layout* → *Font*; Flyout *Layout* → *Background* → *Icon*. No heading repeats its own
+    tab's name, or any **word** of it — the first was `Bar`, on a tab called *Bar appearance*.
+11b. **Every colour swatch has `Use class color` immediately to its right, on the same line**
+    (`options-ui-§17`), and there are seven of them. Tick one and the surface repaints in your
+    class colour while the swatch's **opacity** still applies — the swatch is never greyed out, and
+    its tooltip says so. On a class the client cannot resolve the stored colour is what paints.
+11c. **The border blocks read in the mandated order** (`options-ui-§16`):
+    `[Show border] …` then `[Border style] [Border thickness (px)]` then
+    `[Border color] [Use class color]`, with `Border offset (px)` appended AFTER the four on Button
+    appearance rather than interleaved.
+12. **Labels reads across, in three headed blocks.** *Text*: `[Show button labels] [Label text]`.
+    *Layout*: `[anchor] [placement]`, `[offset X] [offset Y]`. *Font*, the canonical six:
+    `[Font] [Font size (% of button)]`, `[Font color] [Use class color]`,
+    `[Font flags] [Font shadow]`. Pick a **Font** from the LibSharedMedia list and the labels
+    redraw in it; set **Font flags** to *None* and the outline goes; tick **Font shadow** and a soft
+    drop shadow appears behind the text. An upgrading profile that had *Outline label text* ticked
+    comes up on `OUTLINE`, and one that had it unticked comes up on `None` (schema v3).
 13. Change a slider on Layout, switch to Flyout and back: the value you set is still there, and the
     bar on screen still shows it. A value that reverts means the tab switch is rebuilding from
     somewhere other than the profile.
@@ -240,37 +275,59 @@ below is new behaviour and none of it is covered by an automated case that can s
 **The Stat Priority banner**
 
 14. Open **Stat Priority**. The spec dropdown sits in the page's own band ABOVE the scroll, with a
-    hairline rule beneath it, and it stays put while you scroll to the Secondary dropdowns. It is
+    hairline rule beneath it, and it stays put while you scroll to the secondary list. It is
     labelled **Viewing spec**.
 15. There is **no** "Selection" section inside the scroll, and no second spec picker anywhere in the
     panel — including on the Macros page's spec-aware tabs, which state the spec as a sentence
     ("Spec-aware. Viewing: <spec>.") and offer no control.
-16. Pick a different spec in the banner. The Primary/Secondary dropdowns below repopulate, AND the
-    Macros page's Flask / Combat Potion / Stat Food / Weapon Enchant tabs follow — check by
+16. Pick a different spec in the banner. The Primary stat and the secondary list below repopulate,
+    AND the Macros page's Flask / Combat Potion / Stat Food / Weapon Enchant tabs follow — check by
     switching to Macros and opening Flask.
 17. The banner's dropdown is not clipped: it has a label above the control, so its band is taller
     than the bare 44px floor. A clipped label means the band is being forced rather than measured.
-18. Stat Priority draws **no** tab strip. One subject is left on the page after the picker moved up,
-    and a single tab would be chrome for its own sake.
+18. Stat Priority draws a **one-tab** strip, under the banner, reading **Priority**
+    (`options-ui-§13`). A page with one section still draws one: the tab that cannot be clicked is
+    the page's section label, and a page that has no strip when every other one does is the page
+    that looks broken.
 
-**Nothing else grew a strip**
+**Every page has one**
 
-19. **General** draws no tab strip: two short sections (General, Maintenance) on one scroll, exactly
-    as before. Two controls and three buttons are not two subjects, and a strip over them would push
-    the page down for nothing.
+19. **General** draws a **two-tab** strip — **Master controls** first (`options-ui-§15`), then
+    **Master controls** alone, since Maintenance is a subsection of it now. There is no page left in this addon without a strip.
 20. This addon registers no AceDBOptions **Profiles** page (`/cm resetall` is the profile reset, see
     section 7). If one is ever added it stays untabbed — it is library-drawn, it is the same in every
-    Ka0s addon, and tabbing it is out of scope.
+    Ka0s addon, and it is one of the two pages `options-ui-§13` exempts (the other being the landing
+    page, whose body is `buildMain` and which declares no sections at all).
+21. **A wrapped strip does not move when you click it** (`options-ui-§13`, anti-patterns #70). On the
+    **Macros** page, narrow the Settings window until the fifteen tabs wrap onto three rows. Select
+    the FIRST tab, note where the content panel's top edge sits, then select the second — the rows
+    and the panel must not move by a pixel. Repeat on **Macro Bar**, whose eight tabs wrap onto two.
+    The pitch is measured from the UNSELECTED tab art, which no click can change; a strip that
+    measured the selected tab moved the whole page under the player and that was the reported bug.
 
 ### 8. Settings panel — Stat Priority
 
 Tests: the banner's spec picker drives the spec-aware editor and the spec-aware tabs on Macros; reset drops the override.
 
-1. Open Stat Priority. The **banner** above the scroll — not a section inside it — shows a full-width spec dropdown with class+spec icon markup, with a hairline rule under it. Sorted alphabetically by class name with markup stripped. There is no second spec picker anywhere in the panel.
-2. Pick a different spec from the one you're playing. The Primary + Secondary 1–4 fields refresh against that spec's priority.
+1. Open Stat Priority. The **banner** above the scroll — not a section inside it — shows a full-width spec dropdown with class+spec icon markup, with a hairline rule under it. Sorted alphabetically by class name with markup stripped. There is no second spec picker anywhere in the panel. Under the banner, a **one-tab strip** reading **Priority** (`options-ui-§13`).
+1a. **The strip is drawn whatever the data says.** On a character with no resolvable spec (or with the picker on "(no active spec)") the strip is still there and the "No spec selected" line sits *inside* the page under it — never a page that silently loses its chrome.
+2. Pick a different spec from the one you're playing. The Primary stat and the secondary list refresh against that spec's priority.
 3. Open the Macros page's **Flask** tab (spec-aware) — the subheader reads "Spec-aware. Viewing: <picked spec>." The priority list reflects the picked spec.
-4. Back on Stat Priority — change Primary stat. The field commits immediately; `/cm stat list` confirms the new value.
-5. Change Secondary #2 to `(none)` — the persisted secondary list compacts (the empty slot is dropped, not stored as `""`).
+4. Back on Stat Priority — **Primary stat** spans the FULL width, not a half-cell beside an invisible one. Change it; the field commits immediately and `/cm stat list` confirms the new value.
+5. **The four secondaries are one draggable list**, not four dropdowns, and each row reads
+   `[handle] [tick] ......... [Stat name]` with the name against the **right** edge. Every row carries
+   a **bounded box the full width of the row** — not just around the handle — and consecutive rows do
+   **not** touch: open MultiMeters' *Columns* tab beside it and the two lists must look like the same
+   control. The included ones carry a handle, in rank order; the excluded ones sit below in a
+   **dimmed** block with no handle. Drag Haste to the top → `/cm stat list` shows it first, in ONE
+   write. Try to drag an included stat down into the dimmed block → the insertion line refuses to go
+   there. **Click the green tick** on a stat → it becomes a red cross, the row drops to the dimmed
+   tail and the persisted list compacts (no `""` is ever stored). Hover the glyph first: the tooltip
+   says what the CLICK will do, not what the row currently is. Click the cross → it joins the end of
+   the ranked run. Switch to another page and back twice, then click a tick: it must toggle the stat
+   named on **its own row** (the rows are pooled, and a handler holding a stale stat is what that
+   pooling can get wrong).
+5a. **Re-render leaves nothing behind.** Change spec twice in a row, then scroll the page: no stray drag handle and no stray row box on the Primary dropdown, the banner, or the reset button.
 6. Click **Reset stat priority** — drops the override for the viewed spec. Subsequent reads fall back to seed default → class-primary fallback. The top-right **Defaults** button does the same for the viewed spec.
 
 ### 9. Settings panel — Macros, a single category
@@ -312,10 +369,11 @@ adoption is only correct if a drag feels identical in both, and neither addon ca
 Tests: section-locked sub-cats, enabled toggle, reorder within section.
 
 1. Open the Macros page's **AIO Health** tab.
-2. Confirm In Combat shows HS + HP_POT (in that order by default), Out of Combat shows FOOD. Each row is `KCMItemRow + Enabled checkbox + ↑ + ↓` — no remove button (sub-cats are locked).
+2. Confirm In Combat shows HS + HP_POT (in that order by default), Out of Combat shows FOOD. Each row is `drag handle + KCMItemRow + Enabled checkbox` — **no up/down arrows** (they are gone, anti-patterns #75) and no remove button (sub-cats are locked). Every row sits in the library's bounded box, and the addon draws no box or handle of its own.
 3. Toggle Enabled off on a row — recompute fires, body excludes that sub-cat.
-4. Move HP_POT above HS in In Combat — castsequence rewrites in the new order.
-5. Try to drag a Food sub-cat into In Combat — there's no UI for it; sections are locked. Confirm by inspecting `db.profile.categories.HP_AIO.orderInCombat` after manipulation.
+4. **Drag** HP_POT above HS in In Combat — a copy follows the cursor, a gold insertion line shows where it lands, castsequence rewrites in the new order, and it is ONE write (one macro rebuild, not one per step).
+5. **A drag cannot cross the two sections.** Grab the FOOD row in Out of Combat and pull it up over In Combat — the insertion line never enters the other section, because they are two separate controllers over two separate stored arrays. Confirm by inspecting `db.profile.categories.HP_AIO.orderInCombat` and `.orderOutOfCombat` afterwards.
+5a. **Re-render leaves nothing behind, on either section.** Toggle an Enabled checkbox (which repaints the page), then switch to another Macros tab and back twice. No stray handle and no stray row box turns up on the drag-to-action-bar row, on the reset button, or on a row of the *other* section — the cancel seam holds a LIST of controllers and releases both.
 6. Click **Reset category** — restores enabled flags + section orders to dbDefaults. The top-right **Defaults** button opens the same confirmation.
 
 ### 11. Slash CLI
@@ -346,14 +404,14 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 
 Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBar.lua`. The bar's pure layer is covered headlessly ([test-cases.md](./test-cases.md)); this section is the part only a live client can prove.
 
-1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) dead center of the screen, one row of 15 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked and **Lock position** unchecked.
-1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1` and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and `global.schemaVersion` reads 2. Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot and must not re-enable it every login.
+1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) dead center of the screen, one row of 15 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked, and Options → General → Master controls shows **Lock frame** unchecked.
+1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1` and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and `global.schemaVersion` reads 3 (the v2 step ran, then the v3 label-flags conversion). Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot and must not re-enable it every login.
 2. **Disable / re-enable.** Uncheck **Enable macro bar** (or `/cm bar off`) → the bar disappears. Re-check it → it comes back with its layout and position intact.
 3. **Click.** Click a slot out of combat → the consumable is used, exactly as clicking the macro on a normal bar. No taint error, no "Interface action failed because of an AddOn" message. Repeat in combat.
-4. **Move.** Uncheck **Lock position** → the bar tints gold *and* a **Consumable Master** handle strip appears centered above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows a one-line tooltip; hovering the **help mark** at its right end — the collection's shared art now, a plain light glyph rather than Blizzard's blue `InformationIcon` — shows the full drag-gesture list. On a narrow bar (set **Buttons per row** to 1) the icon must not crowd the label. Re-check **Lock position** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
+4. **Move.** Uncheck **Lock frame** (General → Master controls) → the bar tints gold *and* a **Consumable Master** handle strip appears centered above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows a one-line tooltip; hovering the **help mark** at its right end — the collection's shared art now, a plain light glyph rather than Blizzard's blue `InformationIcon` — shows the full drag-gesture list. On a narrow bar (set **Buttons per row** to 1) the icon must not crowd the label. Re-check **Lock frame** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
 5. **Layout.** Set **Buttons per row** to 7 → two rows. Flip **Orientation** to Vertical → two columns. Flip **Horizontal growth** to Left and **Vertical growth** to Up → the first slot moves to the opposite corner and the bar grows the other way. Drag **Button size**, **Button spacing**, **Bar padding** and **Bar scale** → geometry tracks live with no visual tearing.
 6. **Bar + button appearance.** Toggle each background/border checkbox and change each color → the bar backdrop, the bar frame and the button borders all respond. Pick a different **Bar border style** / **Button border style** from the LibSharedMedia dropdown → the edge texture changes and the closed dropdown shows the new name (no 42px gap next to it — that's the `LSMPatch` fixup). Raise **border thickness** to 16 → thick edges; then raise **Button border offset** → the border moves off the icon instead of covering it. Turn **Button border** off → a flat, borderless icon grid. Drag **Icon zoom** to 40% → icons crop symmetrically. Turn **Show stack count** off → counts vanish, and they are not sliced by a thick border when on. Turn **Show tooltips** off → hovering shows nothing.
-6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, **Outline label text**, and **Label color**.
+6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, and the *Font* block: pick a different **Font** from the LibSharedMedia list, walk **Font flags** through all five values (*None* really removes the outline), tick **Font shadow** and confirm a soft drop shadow appears — then untick it and confirm the shadow is CLEARED rather than left behind. **Font color** plus **Use class color**: with the box ticked the labels take your class colour and the swatch's opacity still applies.
 7. **Cooldown.** Use a potion → the swipe animates on that slot and on any other slot sharing the same item. With Interface → ActionBars → "Show numbers for cooldowns" on, the countdown numbers appear too.
 7a. **Cooldown in combat (restricted).** The one that matters for the Midnight secret-value rules, and it needs a category whose pick is a **spell** (Healthstone, a class heal) — item cooldowns are never restricted, spell ones are. **Turn error display on first** — `/console scriptErrors 1`, or have BugSack loaded — because the failure mode here is a Lua error, and with the default UI it passes silently and this test reads as a false pass. Pull a mob, and while in combat use that spell and watch its slot *and* its flyout entry: the swipe must animate normally with **no** Lua error. Repeat inside a dungeon or raid, where the restriction stays on for the whole instance. A slot with nothing running must stay unshaded — no stuck or flickering swipe. Leave combat → the swipe keeps counting down and finishes cleanly.
 8. **Reorder by drag.** Drag one slot onto another → the two swap and the swap survives `/reload`. **Reset slot order** puts them back.

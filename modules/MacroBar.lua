@@ -59,9 +59,32 @@ local function inCombat()
     return InCombatLockdown and InCombatLockdown() and true or false
 end
 
-local function color(t, dr, dg, db, da)
-    t = t or {}
-    return t[1] or dr, t[2] or dg, t[3] or db, t[4] or da
+-- A stored swatch resolved through its "use class color" companion
+-- (options-ui-§17). One resolver for the whole addon, in core/CoreSetup.lua, so
+-- the bar's backdrop and its border cannot disagree about whether the stored
+-- alpha survives the mode. It always does.
+local function color(t, useClass, dr, dg, db, da)
+    return KCM.SwatchColor(t, useClass, dr, dg, db, da)
+end
+
+-- The addon-wide master controls (options-ui-§15), read off db.profile rather
+-- than off the bar's own config: they are a different setting from
+-- `macroBar.scale` / `macroBar.alpha`, and the two COMPOSE. A player who has
+-- scaled the whole addon down and then sized this bar within it gets the product
+-- of the two, which is what "master" means; letting either win would make one of
+-- the two sliders do nothing at one end of the other's range.
+local function master()
+    return (KCM.db and KCM.db.profile) or nil
+end
+
+local function masterScale()
+    local p = master()
+    return tonumber(p and p.scale) or 1
+end
+
+local function masterAlpha()
+    local p = master()
+    return tonumber(p and p.alpha) or 1
 end
 
 -- ---------------------------------------------------------------------------
@@ -94,8 +117,8 @@ local function fadeTick(self, elapsed)
     self._fadeAccum = 0
     local c = cfg()
     if not c then return end
-    local target = self:IsMouseOver() and (tonumber(c.alpha) or 1)
-        or (tonumber(c.fadeAlpha) or 0.15)
+    local target = (self:IsMouseOver() and (tonumber(c.alpha) or 1)
+        or (tonumber(c.fadeAlpha) or 0.15)) * masterAlpha()
     if self:GetAlpha() ~= target then self:SetAlpha(target) end
 end
 
@@ -211,23 +234,26 @@ local function applyBackdrop()
         edgeSize = math.max(1, tonumber(c.barBorderSize) or 4),
     })
     if c.barBackdrop ~= false then
-        bar:SetBackdropColor(color(c.barBackdropColor, 0, 0, 0, 0.5))
+        bar:SetBackdropColor(color(c.barBackdropColor, c.useClassColorBarBackdrop,
+            0, 0, 0, 0.5))
     end
     if c.barBorder ~= false then
-        bar:SetBackdropBorderColor(color(c.barBorderColor, 0.25, 0.25, 0.25, 1))
+        bar:SetBackdropBorderColor(color(c.barBorderColor, c.useClassColorBarBorder,
+            0.25, 0.25, 0.25, 1))
     end
 end
 
 local function applyAlpha()
     if not bar then return end
     local c = cfg() or {}
+    local m = masterAlpha()
     if c.fadeUnlessHover then
         bar:SetScript("OnUpdate", fadeTick)
-        bar:SetAlpha(bar:IsMouseOver() and (tonumber(c.alpha) or 1)
-            or (tonumber(c.fadeAlpha) or 0.15))
+        bar:SetAlpha((bar:IsMouseOver() and (tonumber(c.alpha) or 1)
+            or (tonumber(c.fadeAlpha) or 0.15)) * m)
     else
         bar:SetScript("OnUpdate", nil)
-        bar:SetAlpha(tonumber(c.alpha) or 1)
+        bar:SetAlpha((tonumber(c.alpha) or 1) * m)
     end
 end
 
@@ -260,11 +286,17 @@ local function applyVisibility()
         bar:Hide()
         return
     end
-    local mode = c.combatMode
-    if mode == "HIDE_IN_COMBAT" and RegisterStateDriver then
-        RegisterStateDriver(bar, "visibility", "[combat] hide; show")
-    elseif mode == "ONLY_IN_COMBAT" and RegisterStateDriver then
-        RegisterStateDriver(bar, "visibility", "[combat] show; hide")
+    -- The addon-wide General visibility and this bar's own Combat visibility are
+    -- INTERSECTED, in one pure function, rather than one of them being applied and
+    -- the other quietly ignored -- see MacroBarModel.ResolveVisibility.
+    local p = master() or {}
+    local driver = KCM.MacroBarModel.ResolveVisibility(p.visibility, c.combatMode)
+    if driver == "hide" then
+        bar:Hide()
+    elseif driver == "show" then
+        bar:Show()
+    elseif RegisterStateDriver then
+        RegisterStateDriver(bar, "visibility", driver)
     else
         bar:Show()
     end
@@ -276,7 +308,7 @@ local function applyLayout()
     local visible = KCM.MacroBarModel.Visible()
     local grid = KCM.MacroBarLayout.Grid(#visible, c)
 
-    bar:SetScale(tonumber(c.scale) or 1)
+    bar:SetScale((tonumber(c.scale) or 1) * masterScale())
     bar:SetSize(grid.width, grid.height)
 
     for _, btn in pairs(buttons) do btn:Hide() end

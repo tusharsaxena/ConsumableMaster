@@ -49,6 +49,20 @@ if not lib then
         return "<secret>"
     end
 
+    -- The class color needs the library; the SWATCH does not. Degraded, the
+    -- companion is simply not honored and the stored color is what paints -- which
+    -- is the same answer options-ui-§17 gives for an unresolvable class, so the
+    -- drawing code has one shape rather than a nil arm.
+    function KCM.SwatchColor(stored, _, dr, dg, db, da)
+        if type(stored) ~= "table" then return dr, dg, db, da end
+        local r, g, b, a = stored[1], stored[2], stored[3], stored[4]
+        if r == nil then r = dr end
+        if g == nil then g = dg end
+        if b == nil then b = db end
+        if a == nil then a = da end
+        return r, g, b, a
+    end
+
     local announced = false
     function KCM.Say(fmt, ...)
         local n = select("#", ...)
@@ -72,6 +86,31 @@ end
 
 KCM.IsConcatSafe = lib.IsConcatSafe
 KCM.SafeToString = lib.SafeToString
+
+-- ONE class-color resolver for the whole addon (options-ui-§17). Every color this
+-- addon paints is chrome on a bar the PLAYER owns -- it tracks no unit and reads
+-- no other unit's class -- so the unit token handed to the library is always nil,
+-- and there is deliberately no per-call-site choice to get wrong.
+--
+-- Wrapped rather than bound bare for one reason: the stored shape here is the
+-- POSITIONAL array `{ r, g, b, a }` (defaults/Profile.lua, and the codec at
+-- settings/OptionsSetup.lua), and each swatch carries its OWN four-channel
+-- fallback rather than white -- a bar backdrop that lost its stored value has
+-- always fallen back to black at 50%, not to white. lib.RGBA takes those four
+-- defaults; lib.ResolveColor does not, so the decode happens here and the
+-- resolved swatch is handed on through a scratch table.
+--
+-- The scratch table is reused because this runs once per button per repaint and
+-- the library never retains what it is handed (performance-§12).
+local swatch = { 1, 1, 1, 1 }
+
+--- @param stored table|nil   the profile's { r, g, b, a }
+--- @param useClass boolean   the row's `useClassColor*` companion
+--- @return number, number, number, number
+function KCM.SwatchColor(stored, useClass, dr, dg, db, da)
+    swatch[1], swatch[2], swatch[3], swatch[4] = lib.RGBA(stored, dr, dg, db, da)
+    return lib.ResolveColor(swatch, useClass, nil)
+end
 
 local printer = lib:New({
     -- The tag as a FUNCTION, not as the value of KCM.PREFIX. It reads the same

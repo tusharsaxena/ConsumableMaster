@@ -392,10 +392,15 @@ local EMPTY_COLOR             = {}
 
 -- Unpack a saved {r,g,b,a} over its default, component by component. A stored color may be
 -- absent entirely or short a component, and each missing slot falls back on its own.
-local function rgba(stored, default)
-    stored = stored or EMPTY_COLOR
-    return stored[1] or default[1], stored[2] or default[2],
-           stored[3] or default[3], stored[4] or default[4]
+-- A stored swatch resolved through its "use class color" companion
+-- (options-ui-§17), with this surface's own four-channel fallback. The resolver
+-- is the addon's one (core/CoreSetup.lua); the flyout's border deliberately
+-- reads the BAR's swatch and the bar's companion, because it is drawn in the
+-- bar's border style and always has been.
+local function swatch(stored, useClass, default)
+    default = default or EMPTY_COLOR
+    return KCM.SwatchColor(stored, useClass,
+        default[1], default[2], default[3], default[4])
 end
 
 function FO.ApplyBackdrop(flyout, cfg)
@@ -414,8 +419,10 @@ function FO.ApplyBackdrop(flyout, cfg)
         edgeFile = edge,
         edgeSize = math.max(1, tonumber(cfg.barBorderSize) or 4),
     })
-    bg:SetBackdropColor(rgba(cfg.flyoutBackdropColor, FLYOUT_FILL_DEFAULT))
-    bg:SetBackdropBorderColor(rgba(cfg.barBorderColor, BAR_BORDER_DEFAULT))
+    bg:SetBackdropColor(swatch(cfg.flyoutBackdropColor,
+        cfg.useClassColorFlyoutBackdrop, FLYOUT_FILL_DEFAULT))
+    bg:SetBackdropBorderColor(swatch(cfg.barBorderColor,
+        cfg.useClassColorBarBorder, BAR_BORDER_DEFAULT))
 end
 
 function FO.RefreshCooldown(btn)
@@ -452,7 +459,8 @@ local function applyIndicator(button, cfg)
     ind:SetPoint(point, button, relPoint, dx, dy)
     ind:SetSize(w, h)
     ind:SetFrameLevel(button:GetFrameLevel() + 1)
-    ind.shade:SetColorTexture(rgba(cfg.flyoutShadeColor, INDICATOR_SHADE_DEFAULT))
+    ind.shade:SetColorTexture(swatch(cfg.flyoutShadeColor,
+        cfg.useClassColorFlyoutShade, INDICATOR_SHADE_DEFAULT))
     ind.arrow:SetSize(glyph, glyph)
     ind.arrow:SetRotation(rotation)
     ind:Show()

@@ -43,11 +43,12 @@ local MAJORS = {
     { major = "LibKa0s-Slash-1.0",    files = { "Slash" } },
     {
         major = "LibKa0s-Options-1.0",
-        files = { "Options", "OptionsWidgets", "OptionsScroll" },
+        files = { "Options", "OptionsWidgets", "OptionsScroll", "OptionsCompose" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
             { file = "OptionsScroll",  minor = "__scrollMinor",  shell = "__scrollShellMinor" },
+            { file = "OptionsCompose", minor = "__composeMinor", shell = "__composeShellMinor" },
         },
     },
     {
