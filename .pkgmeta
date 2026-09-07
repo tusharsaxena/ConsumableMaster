@@ -8,13 +8,25 @@ enable-nolib-creation: no
 ignore:
   - docs        # includes docs/audits/ and docs/reviews/ bundles
   - tests
+  - _dev        # the scratch dir packaging reserves; ignored whether or not it exists today
   - .luacheckrc
   - .pkgmeta
   - .gitignore
   - .gitattributes
-  - .claude        # agent tooling config — dev-only, never loaded by the client
-  - .superpowers   # same
+  # Agent tooling, and both untracked -- `git ls-files` returns nothing for
+  # either -- so no packager clone has ever carried them and neither line changes
+  # a downloaded byte. They are listed because packaging.md:28 MUSTs every root
+  # dot-entry present in the repo be named or justified, tracked or not: the
+  # check is about an enumeration going stale, not about a package growing.
+  - .claude        # untracked; listed under packaging.md:28
+  - .superpowers   # untracked; listed under packaging.md:28
   - "*.bak"
+  # Developer documentation. README.md and LICENSE stay in the package, because
+  # players do read those.
+  - CLAUDE.md
+  - DEPENDENCIES.md
+  # Tracked -- seven files, 4.2M -- but project-page art the CurseForge CDN
+  # already serves, so it has never been in the download.
   - media/screenshots
   # Only the .tga logo is loadable at runtime; WoW cannot read .png or .jpg at all. The master .png
   # and the .jpg render exist for the project page and for regenerating the .tga, so shipping them
