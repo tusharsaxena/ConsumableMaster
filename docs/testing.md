@@ -93,6 +93,15 @@ the same change. Confirm they match with:
 diff <(lua5.1 tests/run.lua --list) docs/test-cases.md   # no output = in sync
 ```
 
+`<PASS>` and `<TOTAL>` are allowed to differ, and the gap is always a **declared skip**
+— a case registered with a third argument giving its reason, which the runner never
+executes, never folds into the pass count, and never lets change the exit code. The
+inventory discloses each one inline as `(skipped: <reason>)`, so the two numbers together
+say "N cases exist, N-k of them are being evaluated" rather than hiding the difference.
+A skip is for a case that has been written and watched failing against a defect the fix
+for which is a separate change; it is never a way to park a case whose assertion is
+merely inconvenient, and softening the assertion instead is worse than either.
+
 ## What the mock will and won't catch
 
 `tests/wow_mock.lua`'s `CreateFrame` **models template capability**: methods a real

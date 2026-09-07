@@ -416,6 +416,36 @@ local function makeAceDB()
         db.global  = deepcopy(defaults.global or {})
         db.char    = deepcopy(defaults.char or {})
 
+        -- THE PROFILE STORE, so a case can model a SECOND profile.
+        --
+        -- `db.profiles` is real AceDB's raw SavedVariables profile table, and the
+        -- fidelity that earns its place here is that a profile is merged with the
+        -- defaults only when it is ACTIVATED. A profile written by an older build
+        -- and not opened this session therefore sits in the store exactly as the
+        -- SavedVariables file left it -- un-stamped and un-merged -- which is the
+        -- one shape a per-profile migration has to handle, and the shape a fake
+        -- that pre-merges every profile hides.
+        --
+        -- Modeled on the kit's own AceDB (tests/_kit/mock_base.lua). This file
+        -- overrides that lib with a narrower one, so the profile surface has to be
+        -- restated here rather than inherited.
+        local current = "Default"
+        db.profiles = { [current] = db.profile }
+
+        -- AceDB's copyDefaults: recurse into every table-valued default, creating
+        -- the destination sub-table when it is missing, but fill a SCALAR leaf only
+        -- where the destination has none. A stored user value always wins.
+        local function copyDefaults(dest, src)
+            for k, v in pairs(src or {}) do
+                if type(v) == "table" then
+                    if type(dest[k]) ~= "table" then dest[k] = {} end
+                    copyDefaults(dest[k], v)
+                elseif dest[k] == nil then
+                    dest[k] = v
+                end
+            end
+        end
+
         -- THE CALLBACK SURFACE AND ResetProfile, modeled rather than stubbed.
         --
         -- Neither existed here, which was harmless while nothing called them and
@@ -437,15 +467,19 @@ local function makeAceDB()
             callbacks[event][#callbacks[event] + 1] = { target = target, handler = handler }
         end
 
-        local function fire(event)
+        -- The third argument is the profile key CallbackHandler passes through.
+        -- It was the literal "Default" while one profile was all this fake had;
+        -- now a switch names the profile it switched to, and everything else
+        -- reports whichever profile is live.
+        local function fire(event, key)
             for _, entry in ipairs(callbacks[event] or {}) do
                 local target, handler = entry.target, entry.handler
                 if type(handler) == "function" then
-                    handler(event, db, "Default")
+                    handler(event, db, key or current)
                 elseif type(handler) == "string" and type(target) == "table"
                     and type(target[handler]) == "function"
                 then
-                    target[handler](target, event, db, "Default")
+                    target[handler](target, event, db, key or current)
                 end
             end
         end
@@ -456,6 +490,27 @@ local function makeAceDB()
             for k, v in pairs(deepcopy(defaults.profile or {})) do p[k] = v end
             fire("OnProfileReset")
         end
+
+        -- db:SetProfile(name) -- colon-called, like the real DBObjectLib method.
+        --
+        -- Note the difference from ResetProfile above, which is the whole reason
+        -- both are modeled: a reset wipes the profile table IN PLACE and keeps its
+        -- identity, while a switch drops `self.profile` and lets AceDB regenerate
+        -- it from `sv.profiles[name]`, so the table a caller is holding after a
+        -- switch is a DIFFERENT table. Anything that cached db.profile across a
+        -- switch is looking at the outgoing profile, and a fake that reused one
+        -- table for both would never show it.
+        db.SetProfile = function(_, name)
+            if type(name) ~= "string" or name == current then return end
+            local p = db.profiles[name] or {}
+            db.profiles[name] = p
+            copyDefaults(p, defaults.profile)
+            current    = name
+            db.profile = p
+            fire("OnProfileChanged", name)
+        end
+
+        db.GetCurrentProfile = function() return current end
 
         return db
     end

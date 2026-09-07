@@ -53,13 +53,35 @@ test("Database.RunMigrations leaves unrelated global keys untouched", function(t
     t.eq(KCM.db.global.somethingElse, "keep me", "migration only owns schemaVersion")
 end)
 
-test("Database.RunMigrations never writes into the profile scope", function(t)
+-- WAS NAMED "never writes into the profile scope", which is not true and never
+-- was: RunMigrations calls MigrateMacroBarV2(db.profile) and
+-- MigrateLabelFlagsV3(db.profile), so the profile scope is precisely where a
+-- migration writes. What the case measures is narrower and still worth pinning --
+-- an unrelated stored setting survives a pass -- so it is named that, and the
+-- assertion about the STAMP, which was a second subject wearing the same name,
+-- is its own case below.
+test("Database.RunMigrations leaves unrelated profile settings untouched", function(t)
     local KCM = h.loader.loadPure()
     KCM.db.profile.enabled = false
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.enabled, false, "profile settings are not reset by a migration pass")
-    t.eq(KCM.db.profile.schemaVersion, nil,
-        "the version lives account-wide in global, never per profile (savedvariables-§1)")
+end)
+
+-- The stamp on its own, asserting what the runner measurably does rather than a
+-- rule that does not follow from the standard. savedvariables-§1 requires the
+-- account-wide `schemaVersion` and says nothing forbidding a profile carrying a
+-- version of its own, so the old wording -- "never per profile
+-- (savedvariables-§1)" -- read a prohibition into the standard, and in doing so
+-- pinned the defect the second-profile case below measures. Expect this case to
+-- be revisited by whatever gates the profile-writing steps on a profile-scoped
+-- stamp; a profile version appearing here is that change arriving, not a
+-- regression.
+test("Database.RunMigrations stamps the schema account-wide", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.Database.RunMigrations()
+    t.eq(KCM.db.global.schemaVersion, KCM.Database.CURRENT_SCHEMA,
+        "the stamp the standard asks for lives in the global scope")
+    t.eq(KCM.db.profile.schemaVersion, nil, "and today the profile carries none")
 end)
 
 test("Database.RunMigrations is a safe no-op before the DB exists", function(t)
@@ -173,3 +195,58 @@ test("Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less on
     t.falsy(KCM.Database.MigrateLabelFlagsV3(nil), "nil profile returns false")
     t.falsy(KCM.Database.MigrateLabelFlagsV3({}), "a profile with no macroBar returns false")
 end)
+
+-- ---------------------------------------------------------------------------
+-- A second profile
+-- ---------------------------------------------------------------------------
+--
+-- Every case above runs against the profile that was live at login, and the gate
+-- in front of all of them is db.global.schemaVersion -- account-wide. Once ANY
+-- profile has been migrated the account reads as current, so every other profile
+-- in the SavedVariables file is skipped from then on, whatever build wrote it.
+--
+-- core/ConsumableMaster.lua's OnProfileChanged hook re-runs the pass on a switch
+-- for exactly this reason, and says so in its own docstring: "the migrations
+-- never ran on an incoming profile a copy could have authored at an older schema
+-- version". The pass it re-runs is gated on a stamp that has not moved, so it
+-- runs and does nothing.
+--
+-- Two cases, deliberately split. The first pins the wiring, so that what the
+-- second measures is a gate defect and not a callback that never fired.
+
+test("Database: switching profile re-runs the migration pass", function(t)
+    local KCM = h.loader.loadPure()
+    local runs, real = 0, KCM.Database.RunMigrations
+    KCM.Database.RunMigrations = function() runs = runs + 1; return real() end
+    KCM.db:SetProfile("Alt")
+    KCM.Database.RunMigrations = real
+    t.eq(runs, 1, "OnProfileChanged re-runs RunMigrations against the incoming profile")
+    t.eq(KCM.db:GetCurrentProfile(), "Alt", "and the switch itself took effect")
+end)
+
+-- red under: today's core/Database.lua, whose two steps are both gated on the
+-- account-wide db.global.schemaVersion. Seed a profile from a build that predates
+-- v3 and switch to it after the account has already been stamped, and neither
+-- step runs -- the retired `labelOutline` boolean survives on a profile the panel
+-- will read as if it had been converted.
+--
+-- DECLARED SKIP, and the reason it is one rather than a red case or a softened
+-- one. It was written, run and WATCHED FAILING against this tree --
+-- "expected nil, got false", exit 1 -- and it passes against a RunMigrations
+-- whose profile-writing steps gate on a profile-scoped stamp. That fix is a
+-- separate change with an in-client check of its own, and the repository does not
+-- commit red. A declared skip is the honest third state for that gap: the case
+-- exists, its reason is disclosed in docs/test-cases.md, it is never counted as a
+-- pass, and the alternative -- weakening the assertion until today's behavior
+-- satisfies it -- is the exact shape this whole cluster exists to remove. Delete
+-- the reason string to arm it.
+test("Database: a second profile written before v3 is migrated when it is switched to", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.Database.RunMigrations()          -- first login stamps the account at v3
+    -- Sitting in SavedVariables, never opened this session, so AceDB has not
+    -- merged the defaults into it. This is the raw shape the file holds.
+    KCM.db.profiles.Alt = { macroBar = { labelOutline = false } }
+    KCM.db:SetProfile("Alt")
+    t.eq(KCM.db.profile.macroBar.labelOutline, nil,
+        "the v3 step ran against the incoming profile and retired the boolean")
+end, "fails against the account-wide migration gate; unblocked by the profile-scoped gate")
