@@ -2,15 +2,18 @@
 
 AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and the discovered-set garbage collector.
 
-## AceDB profile (one profile, account-wide)
+## The AceDB tree (account-wide global, plus one tree per profile)
 
-`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). `schemaVersion` lives in the account-wide **global** tree; everything else is in the profile:
+`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). There are **two** `schemaVersion` stamps, one per scope, because a migration step belongs to whichever scope it writes: the account-wide **global** stamp is the marker `savedvariables-§1` asks for, and each profile carries its own, which is what gates the steps that write that profile. Only the global one is a shipped default — a profile's is written by `RunMigrations` the first time it walks that profile. Everything else is in the profile:
 
 ```
 db.global
 └── schemaVersion        3          -- migration marker; see core/Database.lua
 
 db.profile
+├── schemaVersion        3          -- THIS profile's migration marker; gates every
+│                                   -- step that writes the profile scope. Not a
+│                                   -- default: RunMigrations writes it on arrival.
 ├── enabled              boolean    -- master enable; gates Pipeline.Recompute
 │                                   -- the three ADDON-WIDE master controls
 │                                   -- (options-ui-§15). NOT the macro bar's own
@@ -107,7 +110,7 @@ db.profile
 - **`labelFlags`** — the canonical font-flags string (`options-ui-§16`). It replaced the `labelOutline` boolean in schema **v3**; `""` is a real stored value and means no flags at all.
 - **`macroState`** — fingerprint cache for `MacroManager`'s "unchanged" early-out. `lastIcon` was added in v1.2.0 to support the `DYNAMIC_ICON` migration; `lastCat` lets `MacroManager` reason about which category owns a slot.
 
-- **`macroBar`** — the optional macro bar's entire state. Every scalar has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel widget and a `/cm set macroBar.<field>` path. Two fields are not scalars: **`order`** is the slot order, mutated only by dragging one slot onto another, and repaired on every read by `MacroBarModel.Order()` (unknown keys dropped, newly-shipped categories appended); **`shown[catKey] = false`** hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot: the `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login. Schema **v3** converts `labelOutline` (boolean) to `labelFlags` (string) and removes the old key, because a stored value changing shape is a migration and never an edit to a defaults table. `locked` is still stored here and is still `macroBar.locked`; only the tab it is edited on moved (General → Master controls). Detail in [macro-bar.md](./macro-bar.md).
+- **`macroBar`** — the optional macro bar's entire state. Every scalar has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel widget and a `/cm set macroBar.<field>` path. Two fields are not scalars: **`order`** is the slot order, mutated only by dragging one slot onto another, and repaired on every read by `MacroBarModel.Order()` (unknown keys dropped, newly-shipped categories appended); **`shown[catKey] = false`** hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot **per profile**: the profile's own `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login or the next switch back. Schema **v3** converts `labelOutline` (boolean) to `labelFlags` (string) and removes the old key, because a stored value changing shape is a migration and never an edit to a defaults table. `locked` is still stored here and is still `macroBar.locked`; only the tab it is edited on moved (General → Master controls). Detail in [macro-bar.md](./macro-bar.md).
 
 ### Effective candidate set
 
@@ -121,7 +124,9 @@ Seeds live in `KCM.SEED.<CATKEY>` Lua constants, **not** in SavedVariables — t
 
 ### Migrations
 
-`db.global.schemaVersion` is at `3`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` and is the one place version-gated migrations land; every step is guarded on the stored version so it runs at most once.
+Both stamps are at `3`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` **and again on every profile switch, copy and reset** (the hooks in `core/ConsumableMaster.lua`), and is the one place version-gated migrations land; every step is guarded on the stored version for the scope it writes, so it runs at most once per store.
+
+Both steps below write `db.profile`, so both are gated on `db.profile.schemaVersion`. Gating them on the account-wide stamp — which is what this addon did until the profile stamp existed — meant that once *any* profile had been walked to the current version, every other profile in the file was skipped from then on, whatever build had written it; the `OnProfileChanged` hook that exists to catch exactly that re-ran a pass gated on a stamp that had already moved. The cost of the repair is paid once: no profile in an existing file carries a stamp, so each one meets the v2 step once on its first arrival under this build, and a deliberate opt-out has to be set again. The information needed to avoid that — which profile the old runner migrated — was never written down.
 
 | Version | Step |
 |---------|------|

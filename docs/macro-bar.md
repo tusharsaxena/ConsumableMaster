@@ -348,8 +348,12 @@ Upgrading profiles are brought to the same starting point by schema **v2**
 (`Database.MigrateMacroBarV2`): it forces `enabled = true` + `locked = false`
 once. New installs don't need it — AceDB injects the defaults — but a profile
 carrying a partial `macroBar` table from an earlier build of this feature does.
-The step is **one-shot**: `RunMigrations` bumps `schemaVersion` past it, so a
-later deliberate "off" or "locked" is never stomped on the next login.
+The step is **one-shot per profile**: `RunMigrations` bumps that profile's own
+`schemaVersion` past it, so a later deliberate "off" or "locked" is never stomped
+on the next login or the next switch back. It is per profile rather than per
+account because the step writes the profile, and a profile that has never been
+switched to has never been walked — so each existing profile meets this step once,
+on its first arrival under the build that introduced the profile-scoped stamp.
 
 Schema **v3** (`Database.MigrateLabelFlagsV3`) converts the label's `labelOutline`
 boolean into the canonical `labelFlags` string the font group declares

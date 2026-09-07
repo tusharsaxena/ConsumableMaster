@@ -110,7 +110,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: the folder name the wrapper sends resolves to a mark that exists
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 
-### test_database.lua (21)
+### test_database.lua (22)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -120,7 +120,7 @@ badge and any count quoted in the docs must agree with it.
 - Database.RunMigrations upgrades an older stored version to current
 - Database.RunMigrations leaves unrelated global keys untouched
 - Database.RunMigrations leaves unrelated profile settings untouched
-- Database.RunMigrations stamps the schema account-wide
+- Database.RunMigrations stamps the schema in both scopes
 - Database.RunMigrations is a safe no-op before the DB exists
 - Database v2: a profile that predates the macro bar gets it on and unlocked
 - Database v2: an off/locked bar from an earlier build of the feature is turned on
@@ -132,7 +132,8 @@ badge and any count quoted in the docs must agree with it.
 - Database v3: a profile that already carries labelFlags is left alone
 - Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less one
 - Database: switching profile re-runs the migration pass
-- Database: a second profile written before v3 is migrated when it is switched to (skipped: fails against the account-wide migration gate; unblocked by the profile-scoped gate)
+- Database: a second profile written before v3 is migrated when it is switched to
+- Database v2: a second profile pays the one-shot cost once, not on every switch
 
 ### test_debug.lua (13)
 
@@ -874,7 +875,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 11 |
-| test_database.lua | 21 |
+| test_database.lua | 22 |
 | test_debug.lua | 13 |
 | test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
@@ -902,4 +903,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **752** |
+| **Total** | **753** |

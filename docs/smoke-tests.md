@@ -405,7 +405,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBar.lua`. The bar's pure layer is covered headlessly ([test-cases.md](./test-cases.md)); this section is the part only a live client can prove.
 
 1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) dead center of the screen, one row of 15 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked, and Options → General → Master controls shows **Lock frame** unchecked.
-1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1` and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and `global.schemaVersion` reads 3 (the v2 step ran, then the v3 label-flags conversion). Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot and must not re-enable it every login.
+1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1`, **delete the active profile's own `schemaVersion`** — that is the stamp the v2 step is gated on — and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and both stamps read 3 (the v2 step ran, then the v3 label-flags conversion). Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot per profile and must not re-enable it every login. See §13 for the same guarantee across a profile switch.
 2. **Disable / re-enable.** Uncheck **Enable macro bar** (or `/cm bar off`) → the bar disappears. Re-check it → it comes back with its layout and position intact.
 3. **Click.** Click a slot out of combat → the consumable is used, exactly as clicking the macro on a normal bar. No taint error, no "Interface action failed because of an AddOn" message. Repeat in combat.
 4. **Move.** Uncheck **Lock frame** (General → Master controls) → the bar tints gold *and* a **Consumable Master** handle strip appears centered above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows a one-line tooltip; hovering the **help mark** at its right end — the collection's shared art now, a plain light glyph rather than Blizzard's blue `InformationIcon` — shows the full drag-gesture list. On a narrow bar (set **Buttons per row** to 1) the icon must not crowd the label. Re-check **Lock frame** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
@@ -439,6 +439,19 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 5. **Master enable round-trip:** toggle Enable off → close client → log back in. State persists (`db.profile.enabled = false`). Pipeline.Recompute remains a no-op until toggled on.
 6. **Macro bar + a full macro pool:** with the bar on and the account macro pool full (see step 4 above), confirm slots whose macro doesn't exist yet render the fallback icon and don't error on click.
 7. **`/reload` mid-pending:** queue a combat-deferred macro write, then `/reload` before regen. The pending entry is lost (no SavedVariables for `pendingUpdates`); next event triggers a fresh recompute that re-queues if still in combat.
+
+### 13. Profiles — a second profile is migrated when it is switched to
+
+Tests: the profile-scoped migration gate in `core/Database.lua` and the `OnProfileChanged` hook in `core/ConsumableMaster.lua`. The headless suite pins the gate against a fake; what only a live client proves is that the real AceDB fires the hook on a profile the SavedVariables file has been holding un-opened, which is the shape the whole gate exists for.
+
+**Work on a COPY of `WTF/Account/<ACCOUNT>/SavedVariables/ConsumableMaster.lua`, never the live file.** Back it up before you start.
+
+1. `/cm debug on`, so the migration lines are visible.
+2. On a character whose settings you already have, open Options → Profiles, create a **new** profile and switch to it.
+3. Expected: a `[DB] migrated profile '<name>' schema v1 -> v3` line. **Silence is the defect this section exists for** — before the profile-scoped stamp the pass was re-run on every switch and did nothing, because the only gate on it was the account-wide stamp, which had already moved the first time any profile was walked.
+4. Switch back to the original profile. It reports nothing the second time, and nothing is lost: settings, macro-bar position and geometry are exactly as you left them.
+5. Log out. Reopen the copy. Every profile you visited carries its own `schemaVersion = 3`, and `global.schemaVersion` still reads 3.
+6. **The one-time cost, so nobody files it as a bug.** No profile in a file written before this build carries a stamp, so each one meets the v2 step once on its first arrival: a profile with a deliberate `macroBar.enabled = false` comes back on. Set it off again, switch away and switch back, and confirm it now **stays** off. A bar that re-enables itself on *every* switch is a real defect — that is the profile stamp not being written.
 
 ## LibKa0s seam pass
 
@@ -514,6 +527,7 @@ Rename it back and `/reload`.
 | Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
+| `core/Database.lua` migrations / the profile hooks in `core/ConsumableMaster.lua` | §11a step 1a + §13 |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
 | Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |

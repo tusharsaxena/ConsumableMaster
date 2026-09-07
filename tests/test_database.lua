@@ -67,21 +67,24 @@ test("Database.RunMigrations leaves unrelated profile settings untouched", funct
     t.eq(KCM.db.profile.enabled, false, "profile settings are not reset by a migration pass")
 end)
 
--- The stamp on its own, asserting what the runner measurably does rather than a
--- rule that does not follow from the standard. savedvariables-§1 requires the
+-- The stamps on their own. There are two, one per scope, and the second is the
+-- change this case was written expecting: savedvariables-§1 requires the
 -- account-wide `schemaVersion` and says nothing forbidding a profile carrying a
--- version of its own, so the old wording -- "never per profile
--- (savedvariables-§1)" -- read a prohibition into the standard, and in doing so
--- pinned the defect the second-profile case below measures. Expect this case to
--- be revisited by whatever gates the profile-writing steps on a profile-scoped
--- stamp; a profile version appearing here is that change arriving, not a
--- regression.
-test("Database.RunMigrations stamps the schema account-wide", function(t)
+-- version of its own, so the wording this case used to carry -- "never per
+-- profile (savedvariables-§1)" -- read a prohibition into the standard and in
+-- doing so pinned the defect the second-profile cases below measure. A profile
+-- version appearing here is the profile-scoped gate arriving, not a regression.
+--
+-- red under: dropping either `... = D.CURRENT_SCHEMA` line at the foot of
+-- RunMigrations. The two are independent; one stamp standing in for the other is
+-- the shape the whole cluster exists to remove.
+test("Database.RunMigrations stamps the schema in both scopes", function(t)
     local KCM = h.loader.loadPure()
     KCM.Database.RunMigrations()
     t.eq(KCM.db.global.schemaVersion, KCM.Database.CURRENT_SCHEMA,
-        "the stamp the standard asks for lives in the global scope")
-    t.eq(KCM.db.profile.schemaVersion, nil, "and today the profile carries none")
+        "the account-wide stamp the standard asks for lives in the global scope")
+    t.eq(KCM.db.profile.schemaVersion, KCM.Database.CURRENT_SCHEMA,
+        "and the profile carries its own, which is what gates the steps that write it")
 end)
 
 test("Database.RunMigrations is a safe no-op before the DB exists", function(t)
@@ -102,7 +105,11 @@ test("Database v2: a profile that predates the macro bar gets it on and unlocked
     -- Model the real upgrade shape: SavedVariables from a build with no macro
     -- bar at all, so the profile has no macroBar table.
     KCM.db.profile.macroBar = nil
+    -- Both scopes, because both are old in the shape this models: an account
+    -- that has never been walked, and a profile that predates the stamp
+    -- entirely. The profile-scoped stamp is what gates the step.
     KCM.db.global = { schemaVersion = 1 }
+    KCM.db.profile.schemaVersion = nil
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.enabled, true, "bar enabled")
     t.eq(KCM.db.profile.macroBar.locked, false, "bar unlocked so the drag handle shows")
@@ -115,6 +122,7 @@ test("Database v2: an off/locked bar from an earlier build of the feature is tur
     KCM.db.profile.macroBar.enabled = false
     KCM.db.profile.macroBar.locked  = true
     KCM.db.global = { schemaVersion = 1 }
+    KCM.db.profile.schemaVersion = nil
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.enabled, true, "forced on once")
     t.eq(KCM.db.profile.macroBar.locked, false, "forced unlocked once")
@@ -123,6 +131,7 @@ end)
 test("Database v2: the step is one-shot — a later opt-out survives the next login", function(t)
     local KCM = h.loader.loadPure()
     KCM.db.global = { schemaVersion = 1 }
+    KCM.db.profile.schemaVersion = nil
     KCM.Database.RunMigrations()          -- upgrade happens
     KCM.db.profile.macroBar.enabled = false   -- user then turns it off
     KCM.db.profile.macroBar.locked  = true
@@ -136,6 +145,7 @@ test("Database v2: the migration leaves every other bar setting alone", function
     KCM.db.profile.macroBar.buttonSize = 52
     KCM.db.profile.macroBar.order = { "FOOD" }
     KCM.db.global = { schemaVersion = 1 }
+    KCM.db.profile.schemaVersion = nil
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.buttonSize, 52, "geometry untouched")
     t.eqList(KCM.db.profile.macroBar.order, { "FOOD" }, "saved order untouched")
@@ -164,6 +174,7 @@ test("Database v3: an outlined label from an older profile reads back as OUTLINE
     KCM.db.profile.macroBar.labelFlags = nil
     KCM.db.profile.macroBar.labelOutline = true
     KCM.db.global = { schemaVersion = 2 }
+    KCM.db.profile.schemaVersion = 2
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE", "true becomes the OUTLINE flag")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
@@ -175,6 +186,7 @@ test("Database v3: an un-outlined label from an older profile reads back as no f
     KCM.db.profile.macroBar.labelFlags = nil
     KCM.db.profile.macroBar.labelOutline = false
     KCM.db.global = { schemaVersion = 2 }
+    KCM.db.profile.schemaVersion = 2
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.labelFlags, "",
         "false becomes the empty string, which is the stored value 'None' names")
@@ -185,6 +197,7 @@ test("Database v3: a profile that already carries labelFlags is left alone", fun
     KCM.db.profile.macroBar.labelFlags   = "THICKOUTLINE"
     KCM.db.profile.macroBar.labelOutline = true
     KCM.db.global = { schemaVersion = 2 }
+    KCM.db.profile.schemaVersion = 2
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.labelFlags, "THICKOUTLINE",
         "the deliberate choice survives; the step is a conversion, not a reset")
@@ -249,4 +262,30 @@ test("Database: a second profile written before v3 is migrated when it is switch
     KCM.db:SetProfile("Alt")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
         "the v3 step ran against the incoming profile and retired the boolean")
-end, "fails against the account-wide migration gate; unblocked by the profile-scoped gate")
+end)
+
+-- THE ONE-TIME COST OF THE PROFILE-SCOPED GATE, pinned so that it stays one-time.
+--
+-- No profile in an existing SavedVariables file carries a stamp, because nothing
+-- wrote one until this build; so the first pass over each profile starts at v1 and
+-- meets the v2 step, and a deliberate off comes back on once. That is disclosed in
+-- core/Database.lua and it is the price of the old runner never having recorded
+-- which profile it migrated. What must NOT happen is the cost repeating on every
+-- switch, which is what a gate that reads a profile stamp but never writes one
+-- would do -- the same defect turned inside out, and far louder than the one it
+-- replaced.
+--
+-- red under: removing the `p.schemaVersion` writes from RunMigrations while
+-- keeping the gate that reads them.
+test("Database v2: a second profile pays the one-shot cost once, not on every switch", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.profiles.Alt = { macroBar = { enabled = false, locked = true } }
+    KCM.db:SetProfile("Alt")                     -- first arrival under this build
+    t.eq(KCM.db.profile.macroBar.enabled, true, "the v2 step runs once on arrival")
+    KCM.db.profile.macroBar.enabled = false      -- and the player sets it back
+    KCM.db.profile.macroBar.locked  = true
+    KCM.db:SetProfile("Default")
+    KCM.db:SetProfile("Alt")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "the opt-out survives the next switch")
+    t.eq(KCM.db.profile.macroBar.locked, true, "and so does the lock")
+end)
