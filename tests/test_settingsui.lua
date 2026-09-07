@@ -1392,3 +1392,54 @@ test("Settings: the three maintenance verbs draw on the Master controls tab", fu
     t.truthy(seen[KCM.L["Force rewrite macros"]], "so is Force rewrite macros")
     t.truthy(seen[KCM.L["Reset all priorities"]], "and so is Reset all priorities")
 end)
+
+-- ── the combat gate on category registration (events-frames-taint) ─────────
+--
+-- `Settings.RegisterAddOnCategory` is protected. The bootstrap frame at the
+-- foot of settings/Panel.lua fires registerPanel from PLAYER_LOGIN and from
+-- ADDON_LOADED("Blizzard_Settings"), and neither normally lands mid-fight —
+-- but another addon calling C_AddOns.LoadAddOn("Blizzard_Settings") during a
+-- pull does, and so does an in-combat /reload. One tainted category poisons
+-- the Settings window for the rest of the session, so the gate is cheap
+-- insurance rather than a reaction to a reproduction.
+--
+-- These two cases are the headless half. The taint itself is invisible here —
+-- no mock raises "Interface action failed because of an AddOn" — so what is
+-- pinned is the observable half: nothing is registered under lockdown, the
+-- attempt survives as a parked flag, and the addon's ONE regen handler is what
+-- replays it. docs/smoke-tests.md § 6a owns the in-client half.
+--
+-- red under: dropping the InCombatLockdown early-out in registerPanel, or
+-- moving the replay onto a second PLAYER_REGEN_ENABLED registration of its own.
+test("Settings: registering the category in combat is refused and parked", function(t)
+    local KCM = loader.loadWithSchema()
+    loader.mock.setCombat(true)
+    KCM.Settings.Register()
+    loader.mock.setCombat(false)
+    t.eq(KCM.Settings.main, nil, "no Blizzard category is registered under lockdown")
+    t.truthy(KCM.Settings.registerPending, "the refused attempt is parked for regen to replay")
+end)
+
+test("Settings: leaving combat replays the parked registration, and only then", function(t)
+    local KCM = loader.loadWithSchema()
+    loader.mock.setCombat(true)
+    KCM.Settings.Register()
+    loader.mock.setCombat(false)
+
+    -- Count the replay rather than letting it run: the mock's Blizzard
+    -- `Settings` global answers every call with a no-op returning nil, so a
+    -- real registerPanel() body cannot complete headlessly (see the Battle Rez
+    -- note above). The seam under test is the wiring, not the body.
+    local real = KCM.Settings.Register
+    local calls = 0
+    KCM.Settings.Register = function() calls = calls + 1 end
+
+    KCM:OnRegenEnabled()
+    t.eq(calls, 1, "the addon's existing regen handler replays it — no second event frame")
+
+    KCM.Settings.registerPending = nil
+    KCM:OnRegenEnabled()
+    t.eq(calls, 1, "and a regen with nothing parked does not re-enter registration")
+
+    KCM.Settings.Register = real
+end)

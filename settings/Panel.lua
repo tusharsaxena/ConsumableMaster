@@ -858,6 +858,26 @@ local function registerPanel()
         return
     end
 
+    -- Settings.RegisterAddOnCategory is protected. This function runs off the
+    -- PLAYER_LOGIN / ADDON_LOADED bootstrap at the foot of the file, which
+    -- normally lands out of combat — but an in-combat /reload reaches it, and
+    -- so does another addon calling C_AddOns.LoadAddOn("Blizzard_Settings")
+    -- mid-pull. Registering under lockdown taints the Settings window for the
+    -- rest of the session, and nothing is lost by waiting: the panel cannot be
+    -- opened in combat anyway (O.Open refuses below), so a category that
+    -- appears on regen is a category the user could not have reached sooner.
+    --
+    -- The replay is the addon's EXISTING PLAYER_REGEN_ENABLED handler
+    -- (core/ConsumableMaster.lua's OnRegenEnabled), not a second event
+    -- registration of this file's own: one deferred call does not justify a
+    -- parallel copy of a handler that already runs at exactly this moment, and
+    -- two frames listening for the same event is how the two halves drift.
+    if InCombatLockdown and InCombatLockdown() then
+        KCM.Settings.registerPending = true
+        return
+    end
+    KCM.Settings.registerPending = nil
+
     Helpers.ValidateSchema()
 
     local mainCtx = Helpers.CreatePanel("KCMMainPanel", PANEL_TITLE, { isMain = true })

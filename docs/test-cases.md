@@ -643,7 +643,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.MoveCompositeRef refuses a move it cannot make
 - Selector.MoveCompositeRef never moves a ref between the two sections
 
-### test_settingsui.lua (37)
+### test_settingsui.lua (39)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the published instance carries all three of the major's files
@@ -682,6 +682,8 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
 - Settings: the three maintenance verbs draw on the Master controls tab
+- Settings: registering the category in combat is refused and parked
+- Settings: leaving combat replays the parked registration, and only then
 
 ### test_slash.lua (82)
 
@@ -894,7 +896,7 @@ badge and any count quoted in the docs must agree with it.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
 | test_selector.lua | 50 |
-| test_settingsui.lua | 37 |
+| test_settingsui.lua | 39 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
@@ -903,4 +905,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **753** |
+| **Total** | **755** |

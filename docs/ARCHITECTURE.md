@@ -115,7 +115,7 @@ Every client event this addon listens to is registered in one place — `KCM:OnE
 | `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:465`) | Login and `/reload`: auto-discovery, then the discovered-set sweep, then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:491`) | Bag contents moved; re-run discovery and request a coalesced recompute |
 | `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:496`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:506`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:506`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle, then replay a settings-category registration that `settings/Panel.lua` refused under lockdown |
 | `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:520`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:541`) | A spell-backed candidate became known after the spell book hydrated; recompute |
 | `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:549`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
