@@ -440,6 +440,7 @@ local SUITES = {
     "test_mediasetup",
     "test_perfsetup",
     "test_pipeline",
+    "test_prose",
     "test_ranker",
     "test_runner_list",
     "test_schema",

@@ -89,7 +89,7 @@ if not lib then
     -- carry a byte-identical copy of it, and a second reader of the stored shape
     -- is exactly what CONSUMABLEMASTER-R-05 was. What stays here is the part
     -- that is this arm's own -- that the caller's four defaults are the answer
-    -- and the class companion is not honoured.
+    -- and the class companion is not honored.
     function KCM.SwatchColor(stored, _, dr, dg, db, da)
         return KCM.ColorDecode(stored, dr, dg, db, da)
     end

@@ -433,7 +433,7 @@ KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content
 
 `RequestRefresh` is the panel-side equivalent of pipeline coalescing — it collapses a burst of `GET_ITEM_INFO_RECEIVED`-driven `Pipeline.Recompute` runs into one panel rebuild. It is driven by the `PANEL_REFRESH` bus message. User-driven mutations (add / remove / move buttons) call `Refresh` directly via `afterMutation` for snappy click response. Detail in [data-flow.md GIIR split](./data-flow.md#giir-bagnon-bag-split).
 
-It arms **one timer per burst**, not one per call: the first request schedules `onRefreshDue`, every request after it only stamps the clock, and the one live timer re-arms itself for whatever quiet is still owed. `REFRESH_MAX_WAIT_SEC` is a hard bound on the whole wait rather than on any single timer's delay, so a storm that never goes quiet still rebuilds at three seconds. `tests/perf.lua`'s `refreshBurst` scenario measures the 150-call burst — one timer, zero bytes — and `tests/test_settingsui.lua` pins the behaviour.
+It arms **one timer per burst**, not one per call: the first request schedules `onRefreshDue`, every request after it only stamps the clock, and the one live timer re-arms itself for whatever quiet is still owed. `REFRESH_MAX_WAIT_SEC` is a hard bound on the whole wait rather than on any single timer's delay, so a storm that never goes quiet still rebuilds at three seconds. `tests/perf.lua`'s `refreshBurst` scenario measures the 150-call burst — one timer, zero bytes — and `tests/test_settingsui.lua` pins the behavior.
 
 `RefreshAllPanels` iterates every previously-shown panel ctx and re-runs its `_renderFn`. Renderers call `ResetScroll(ctx)` before re-adding children so a re-render after a mutation starts on a clean slate.
 

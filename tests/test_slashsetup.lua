@@ -339,12 +339,12 @@ test("Slash: the panel's degraded advice agrees with what /cm actually answers",
     end
 end)
 
-test("Slash: `/cm get` and the settings panel decode one stored colour the same way",
+test("Slash: `/cm get` and the settings panel decode one stored color the same way",
 function(t)
     -- M4-18 / CONSUMABLEMASTER-R-05. The two settings surfaces each carried a
     -- hand-written codec and they disagreed about a channel the stored table
     -- does not carry: settings/OptionsSetup.lua answered `c[1] or 1`,
-    -- settings/Slash.lua answered `c[1] or 0`. A colour missing its blue read
+    -- settings/Slash.lua answered `c[1] or 0`. A color missing its blue read
     -- WHITE in the panel and BLACK from `/cm get`, from one stored value, and
     -- nothing was red because neither codec was reachable by name.
     --
@@ -355,7 +355,7 @@ function(t)
     local KCM, mock = load()
     local path = "macroBar.barBackdropColor"
 
-    -- A stored colour with its blue and its alpha missing. It is not a state
+    -- A stored color with its blue and its alpha missing. It is not a state
     -- the picker or `/cm set` can produce — both write four channels — which is
     -- the point: it is a hand-edited SavedVariables, and the two surfaces have
     -- to answer it identically rather than each guessing.
@@ -383,5 +383,5 @@ function(t)
     -- which is why the two surfaces agree rather than merely both being green.
     local nr, ng, nb, na = H.ColorDecode(nil)
     t.eq(type(nr) .. type(ng) .. type(nb) .. type(na), "numbernumbernumbernumber",
-        "the panel's decode must never hand the colour picker a nil channel")
+        "the panel's decode must never hand the color picker a nil channel")
 end)

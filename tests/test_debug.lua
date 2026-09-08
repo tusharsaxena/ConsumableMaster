@@ -177,7 +177,7 @@ end)
 -- The scan is over the call sites rather than over three known lines: nothing
 -- enforced the rule and three sites had already drifted off it, so a pin on
 -- those three would be shaped around the defect instead of around the rule.
--- Source text, not behaviour, because the bad slot only bites when a secret
+-- Source text, not behavior, because the bad slot only bites when a secret
 -- arrives -- there is no input a case could pass that makes an integer index
 -- fail, which is exactly why this survived every run of the suite.
 test("Debug: no call site formats through a numeric placeholder", function(t)

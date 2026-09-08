@@ -184,9 +184,9 @@ end
 --                   WHAT. The stem is outside the scanned surface; keying a tail
 --                   alone keys half a sentence, and keying the stem at each site
 --                   would end the sharing that is the point of it.
---   SPLIT COLOUR    The sentence's spans carry different colours mid-line, so one
+--   SPLIT COLOR     The sentence's spans carry different colors mid-line, so one
 --                   key would have to carry `|c…|r` inside translatable text and
---                   would depend on the colour stack restoring the outer span — a
+--                   would depend on the color stack restoring the outer span — a
 --                   rendering question no headless case can settle. Keying the
 --                   spans separately re-creates exactly the word-order-pinning
 --                   fragments this collection has spent the cycle removing.
@@ -251,7 +251,7 @@ local RESIDUE = {
      "NOT YET ROUTED"},
     {"settings/General.lua", "Consumable Master", "LIB DESCRIPTOR"},
     {"settings/General.lua", "macro bar position reset.", "NOT YET ROUTED"},
-    {"settings/General.lua", "Master enable ", "SPLIT COLOUR"},
+    {"settings/General.lua", "Master enable ", "SPLIT COLOR"},
 
     -- settings/MacroBar.lua
     {"settings/MacroBar.lua", "macro bar slot order reset.", "NOT YET ROUTED"},
@@ -310,7 +310,7 @@ local RESIDUE = {
 
 local CLASSES = {
     ["DIAGNOSTIC"] = true, ["VALIDATOR"] = true, ["DEGRADED STEM"] = true,
-    ["SPLIT COLOUR"] = true, ["FRAGMENT"] = true, ["LIB DESCRIPTOR"] = true,
+    ["SPLIT COLOR"] = true, ["FRAGMENT"] = true, ["LIB DESCRIPTOR"] = true,
     ["DEAD"] = true, ["CLI SURFACE"] = true, ["NOT YET ROUTED"] = true,
 }
 
@@ -434,7 +434,7 @@ end)
 test("Locale: every recorded residue literal is still unrouted in the file that names it", function(t)
     -- The direction that keeps the register from becoming a mute button: an entry
     -- whose literal was wrapped, reworded or deleted goes red here rather than
-    -- sitting on as a licence for a string that no longer exists.
+    -- sitting on as a license for a string that no longer exists.
     for _, entry in ipairs(RESIDUE) do
         local rel, text = entry[1], entry[2]
         local found = unrouted[rel] and unrouted[rel][text]
@@ -498,14 +498,14 @@ test("Locale: the two custom widgets route their labels through L", function(t)
     end
 end)
 
-test("Locale: the colour escapes on the drag-icon labels stay outside the key", function(t)
+test("Locale: the color escapes on the drag-icon labels stay outside the key", function(t)
     -- The half of CONSUMABLEMASTER-R-02 a routing check alone would miss. A
     -- translator must never have to carry `|c…|r` through a translation, so the
     -- key is the sentence and the escapes are concatenated around it.
     local body = assert(readFile("modules/KCMMacroDragIcon.lua"))
     for _, key in ipairs({ "Macro not created yet", "Drag to action bar" }) do
         t.falsy(body:find('L%["|c[^"]*' .. key),
-            ("%q is keyed without its colour escape"):format(key))
+            ("%q is keyed without its color escape"):format(key))
     end
     t.truthy(body:find('"|cff999999" .. L["Macro not created yet"] .. "|r"', 1, true),
         "the disabled label concatenates gray around its key")

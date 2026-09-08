@@ -1537,14 +1537,14 @@ end)
 -- That is how a debounce that armed one timer PER CALL — 150 of them for the
 -- one rebuild the first-open GET_ITEM_INFO_RECEIVED storm is supposed to
 -- produce — stayed green for as long as it did. tests/perf.lua's `refreshBurst`
--- scenario carries the byte figure; these carry the behaviour.
+-- scenario carries the byte figure; these carry the behavior.
 --
 -- WHY THE CLOCK AND THE QUEUE ARE REPLACED. tests/wow_mock.lua's C_Timer.After
 -- runs its callback inline and its GetTime is os.clock(), so the shipped pair
 -- can say "the timer fired" but cannot say "a second passed and no call came".
 -- The debounce is entirely about the second sentence. The stubs below are the
 -- shape tests/test_pipeline.lua's coalescing case already uses, plus a clock;
--- `advance` honours the delays and fires each callback AT its due instant, so a
+-- `advance` honors the delays and fires each callback AT its due instant, so a
 -- callback that re-arms is woken again inside the same advance exactly as the
 -- client would wake it.
 local function fakeSchedule(KCM)

@@ -152,6 +152,31 @@ which is the point of having one.
 The line figures in the census are dated measurements and nothing asserts them, so an ordinary
 edit to a large file does not redden this gate. Membership is the invariant, not the numbers.
 
+## The US-English prose gate
+
+`tests/test_prose.lua` reads every authored file git tracks — `.lua`, `.md`, `.toc` and
+`.luacheckrc` — and reddens on a British spelling from the `BRITISH` list `localization-§5`
+publishes, after the `ALLOWED` US words that contain one of those substrings have been taken
+out as whole words.
+
+**Both lists are copied from the standard whole, and nothing is added locally.** A gate that
+carries a private subset reads as coverage and provides none: LibKa0s shipped six substrings
+for months and stayed green while a doubled-L `CANCELED` went out in chat text a player reads. If
+a sweep here turns up a British form the published list misses, it is amended in `localization-§5`
+first and arrives on the next standards sync.
+
+Four exclusions, each named directory by directory or file by file inside the gate so the list
+cannot grow by widening a pattern: vendored code (`libs/`, `tests/_kit/`); the frozen dated
+bundles under `docs/audits/`, `docs/automated-tests/`, `docs/perf-analysis/`, `docs/reviews/`
+and `docs/revendor/`; `locales/enGB.lua`, which is what a British locale file is for and which
+this addon does not ship; and the gate's own copy of the lists. `docs/superpowers/` is dated but
+is authored prose people still read, so it stays in scope.
+
+The gate exists because the sweep alone did not hold. `M4-13` corrected 51 lines across 22 files
+and left nothing watching; four commits later `M4-18`, `M4-21` and `M4-22` had put 26 back, in
+files each had every reason to touch. A sweep is a measurement of one afternoon. Only a gate
+makes it a property of the repository.
+
 ## What the mock will and won't catch
 
 `tests/wow_mock.lua`'s `CreateFrame` **models template capability**: methods a real

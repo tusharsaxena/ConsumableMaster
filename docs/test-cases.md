@@ -109,7 +109,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: the close-button wrapper hands the library the addon FOLDER name
 - CoreSetup: the folder name the wrapper sends resolves to a mark that exists
 - CoreSetup: with the library absent there is no wrapper to call, and no error
-- CoreSetup: the shared colour decoder answers nil for a channel that is not stored
+- CoreSetup: the shared color decoder answers nil for a channel that is not stored
 
 ### test_database.lua (23)
 
@@ -288,7 +288,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: every residue entry carries one of the declared classes
 - Locale: the join-key exemption only ever covers a string the same file routes
 - Locale: the two custom widgets route their labels through L
-- Locale: the colour escapes on the drag-icon labels stay outside the key
+- Locale: the color escapes on the drag-icon labels stay outside the key
 
 ### test_macrobar.lua (125)
 
@@ -528,6 +528,11 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults leaves the category buckets structurally valid
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
+
+### test_prose.lua (2)
+
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 
 ### test_ranker.lua (23)
 
@@ -814,7 +819,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /cm degrades without latching, and an unknown verb still reports
 - Slash: the degraded path keeps the library's parse — verb only is lowercased
 - Slash: the panel's degraded advice agrees with what /cm actually answers
-- Slash: `/cm get` and the settings panel decode one stored colour the same way
+- Slash: `/cm get` and the settings panel decode one stored color the same way
 
 ### test_spechelper.lua (16)
 
@@ -926,6 +931,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
+| test_prose.lua | 2 |
 | test_ranker.lua | 23 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
@@ -940,4 +946,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **778** |
+| **Total** | **780** |

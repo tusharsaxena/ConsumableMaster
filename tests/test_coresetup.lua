@@ -206,9 +206,9 @@ test("CoreSetup: with the library absent there is no wrapper to call, and no err
     t.falsy(KCM.MakeCloseButton, "the degraded branch published a close-button wrapper")
 end)
 
-test("CoreSetup: the shared colour decoder answers nil for a channel that is not stored",
+test("CoreSetup: the shared color decoder answers nil for a channel that is not stored",
 function(t)
-    -- M4-18. Colours are stored POSITIONALLY here — { r, g, b, a } — and three
+    -- M4-18. Colors are stored POSITIONALLY here — { r, g, b, a } — and three
     -- places unpacked that shape by hand. Two of them disagreed about a channel
     -- the stored table does not carry: settings/OptionsSetup.lua answered
     -- `c[1] or 1` and settings/Slash.lua answered `c[1] or 0`, so ONE stored
@@ -243,6 +243,6 @@ function(t)
     local nr, ng, nb, na = KCM.ColorDecode(nil, 0, 0, 0, 1)
     t.eq(nr .. "," .. ng .. "," .. nb .. "," .. na, "0,0,0,1",
         "a value that is not a table is four absent channels, not an error")
-    t.eq(KCM.ColorDecode("not a colour"), nil,
+    t.eq(KCM.ColorDecode("not a color"), nil,
         "and with no fallback offered it stays absent")
 end)

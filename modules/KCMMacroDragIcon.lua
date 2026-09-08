@@ -31,7 +31,7 @@ local GameTooltip = GameTooltip
 -- `# Locales` block loads locales/enUS.lua ahead of the whole `# Modules` block,
 -- so KCM.L is the real table by the time this upvalue is bound. It answers an
 -- unset key with the key itself, so the two labels below render byte-for-byte
--- what they rendered before; the colour escapes stay OUTSIDE the key, because a
+-- what they rendered before; the color escapes stay OUTSIDE the key, because a
 -- translator must never have to carry `|c…|r` through a translation.
 local L = KCM.L
 
