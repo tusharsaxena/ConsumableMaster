@@ -86,12 +86,19 @@ off a snapshot taken at file load. That is the whole point of the indirection. T
 replaced re-exported eleven members by hand, and any member the list forgot — or any member bound
 while `UI` was still `nil` — read back `nil` at the call site with no way to tell it apart from a
 member the library never had (`options-ui-§1`). The addon's own wrappers stay as **own** keys and
-shadow the library's same-named function, which is what lets `Section` / `CreatePanel` / `LSMValues`
-call the instance's version without recursing into themselves.
+shadow the library's same-named function, which is what lets `Section` and `CreatePanel` call the
+instance's version without recursing into themselves. `LSMValues` was a third wrapper until `M4-C1`
+retired it: it flattened the library's deferred hash into an ordered array for one caller, and that
+caller was the LibKa0s issue #15 workaround `M3-04` deleted. `Helpers.LSMValues` still resolves, but
+straight through `__index` to the library's, so it hands back the **deferred closure over a hash**
+the library documents; anything wanting an array puts it through `Helpers.EnumValues`.
 
 With the library **absent** the panel is not registered at all, and the degradation stub publishes
-exactly the members a page file touches *at file load*: `LSMValues`, plus the four composers
-(`MasterControls`, `ColorPair`, `FontGroup`, `BorderGroup`) answering an empty row list. The composed
+exactly the members a page file touches *at file load*: the four composers (`MasterControls`,
+`ColorPair`, `FontGroup`, `BorderGroup`), answering an empty row list. `LSMValues` was named here as
+a fifth, and the stub never published it even then — `settings/Panel.lua` defined it
+unconditionally, on both arms. `M4-C1` removed it outright, and no page file evaluates it at file
+load any more, so the list above is complete as it stands. The composed
 rows are therefore missing on that arm, deliberately — a host copy of a composer is precisely the
 duplicate the library was extracted to end (`options-ui-§1`, anti-patterns #47) — and it costs nothing
 reachable, because with no panel and no `/cm list|get|set` there is no surface left that could read
