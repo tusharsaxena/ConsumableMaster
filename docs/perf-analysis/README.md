@@ -66,7 +66,7 @@ What follows is the orientation summary a reader needs before opening a file.
 | `addon` | `"ConsumableMaster"`; records are self-identifying so they can be pooled |
 | `source` | `"ingame"` here, always; `"offline"` records belong to `../automated-tests/` |
 | `version` | the addon version the run measured (`KCM.VERSION`) |
-| `interface` | the client interface number — reads `0`, see the field notes |
+| `interface` | the **client**'s interface number (`GetBuildInfo`), not the addon's TOC line — see the field notes |
 | `timestamp` | epoch seconds; the bundle's directory name is stamped from this |
 | `label` | the run label — what was measured, not what was concluded |
 | `context` | character, realm, level, class, spec, zone, subZone, group, stamped once at the start of the run |
@@ -90,12 +90,14 @@ Object keys are emitted in sorted order so two records diff cleanly.
 - **`fps.deltaMsPerFrame`** reads `0` unless **both** arms were sampled; with one arm empty a
   subtraction would report the whole frame time as the addon's cost.
 - **`buckets[*].totalMs`** is Lua execution time only.
-- **`interface`** stamps the addon's `## Interface` TOC field, and in the first committed capture it
-  reads `120007` — matching the TOC. An earlier note here claimed it reads `0` in every record
-  because `GetAddOnMetadata` does not expose the field; the record below disproves that, so treat a
-  `0` as the exceptional case (an older client build, or a record from before the lookup worked)
-  rather than the rule. It is still not the *client* version — it is what the addon declared it
-  builds against.
+- **`interface`** is the **client's** interface version — `GetBuildInfo`'s fourth return, not the
+  addon's `## Interface` TOC line (`libs/LibKa0s/Perf.lua:163-179`). Earlier notes here said both of
+  the wrong things about it in turn: first that it always reads `0` (true only of records emitted
+  before the library stopped asking `GetAddOnMetadata`, which never served the field), then that it
+  stamps the TOC. The 20260909-015018 record settles it — the record reads `120100` while the TOC
+  declares `120007`, so the two are different questions and this field answers the client's. A `0`
+  means a client with no `GetBuildInfo`.
+
 - **Encoder wart:** Lua has a single table type, so an **empty** list and an empty map are
   indistinguishable to the encoder and both come out as `{}`. An empty `failures` therefore emits as
   `{}`, not `[]`. Non-empty lists encode as proper arrays.
@@ -132,12 +134,13 @@ against the repo and the TOC, stamps the bundle and writes `ANALYSIS.md`.
 
 ## Capture index
 
-One capture committed. Newest last.
+Two captures committed. Newest last.
 
 | Stamp | Version | Label | What it measured |
 |---|---|---|---|
-| [`20260807-132029`](20260807-132029/) | 1.5.0 | `2026-08-07 13:17` | First in-game baseline — solo, Silvermoon City, two ~25 s combat arms. `cooldown` at **1.78 ms/s** (0.027 ms/frame, 0.18% of combat wall time); `recompute` never fired. Frame-time delta **unresolved** (−0.11 ms/frame, sign inverted — the player zoned between the arms). |
+| [`20260807-132029`](20260807-132029/) | 1.5.0 | `2026-08-07 13:17` | First in-game baseline — solo, Silvermoon City, two ~25 s combat arms, Destruction Warlock. `cooldown` at **1.78 ms/s** (0.027 ms/frame, 0.18% of combat wall time); `recompute` never fired. Frame-time delta **unresolved** (−0.11 ms/frame, sign inverted — the player zoned between the arms). |
+| [`20260909-015018`](20260909-015018/) | 1.5.0 | `2026-09-09 01:46` | Same bracketed path, different driver — solo, Silvermoon City, two ~56 s combat arms, Protection Paladin. `cooldown` at **2.87 ms/s** (0.041 ms/frame, 0.29% of combat wall time): +61% on the baseline because the event rate doubled (30.3 calls/s vs 14.7) while cost per pass fell 22%. `recompute` never fired again. Frame-time delta **unresolved** (+0.22 ms/frame, and both arms are shorter than the 60–80 s band the ±0.3 floor is quoted for). |
 
-**Only `cooldown` has an in-game number.** The `recompute` bucket has not fired in any committed
+**Only `cooldown` has an in-game number.** The `recompute` bucket has not fired in either committed
 capture, so no doc may cite an in-game figure for it until one does
-([20260807-132029/ANALYSIS.md](20260807-132029/ANALYSIS.md), Actions).
+([20260909-015018/ANALYSIS.md](20260909-015018/ANALYSIS.md), Actions).
