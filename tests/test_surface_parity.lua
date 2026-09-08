@@ -25,6 +25,49 @@
 -- file and line that argues for it; an intentional omission and a bug are
 -- otherwise indistinguishable, and the usual resolution for that is to delete the
 -- case.
+--
+-- WHY ALL FOUR CASES KEEP THE FOUR-ARGUMENT FORM, and not the by-name factory the
+-- kit grew at revision 15. `assertSurfaceParity(stub, majorName, ignore)` looks the
+-- LIVE half up through Kit.setSurfaceSource and compares Kit.publicMembers of it.
+-- That is the right shape for a stub that mirrors a LIBRARY SURFACE member for
+-- member — AbsorbTracker's three do, and they moved — and none of this addon's
+-- four does. The difference is structural, not a matter of taste, so it is written
+-- down here rather than re-litigated by the next reader:
+--
+--   * Core is not a major's surface at all. Its two halves are two blocks of
+--     core/CoreSetup.lua and what they have in common is a set of names hung on
+--     KCM. There is no name for the kit to look up.
+--   * KCM.DebugLog is a host WRAPPER over the instance, not the instance.
+--     core/DebugLogSetup.lua renames three members ON PURPOSE and says so where it
+--     does it: AddLine over the library's Add, Toggle_Window over its Toggle,
+--     IsWindowShown over its IsShown — and this addon's `Toggle` means the FLAG,
+--     deliberately not bound to the library's. Named to the kit,
+--     "LibKa0s-DebugLog-1.0" resolves the instance, and this case would go red on
+--     Add, Toggle, IsShown, FindLine, BufferSize, CopyText and Text — seven
+--     members the wrapper was never meant to carry.
+--   * KCM.SlashCommands is the host's own table (core/SlashCommands.lua:19),
+--     holding Verbs, GetLandingRows and the library object under `instance`. The
+--     degraded arm of settings/Slash.lua publishes NOTHING onto it — it rebinds
+--     file-scope locals and installs degradedDispatch — so what this case pins is
+--     slash-commands-§1's rule that the host-owned half keeps answering. That is a
+--     host fact about a host table, and no major's surface states it.
+--   * KCM.Settings.Helpers is the near miss, and it is the one worth measuring.
+--     It is a host table DELEGATING to the instance through
+--     `setmetatable(Helpers, { __index = UI })` (settings/OptionsSetup.lua:178),
+--     where AbsorbTracker's NS.Helpers IS the instance, decorated in place. pairs()
+--     does not walk __index, so Kit.publicMembers sees one half or the other and
+--     never the union this case needs. Measured on today's tree:
+--     publicMembers(Settings.optionsUI) is 51 members, of which the degraded stub
+--     carries 8 — so the by-name form would pin 8 behind a 43-entry ignore list,
+--     32 of those entries new, and every one of them saying "this addon never
+--     calls it" rather than recording a degradation decision. OPTIONS_SEAM below
+--     pins 22 and grows only when the ADDON starts calling something; a by-name
+--     ignore list here would grow on every re-vendor that adds a library member.
+--     That is the maintenance burden the factory exists to remove, inverted.
+--
+-- What the by-name form does buy is that it resolves the live half FOR REAL, so a
+-- stale seam name cannot be silently dropped. That half is taken, in `project`
+-- below — it is the part of the factory these four seams can actually use.
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -32,9 +75,27 @@ local test = h.test
 -- Read a named member list off a real namespace. Reads THROUGH the metatable, so
 -- the live Settings.Helpers yields the library members it delegates to rather
 -- than only its own keys.
-local function project(tbl, keys)
-    local out = {}
-    for _, k in ipairs(keys) do out[k] = tbl and tbl[k] end
+--
+-- A name that does not resolve on the LIVE arm is a FAILURE, not an omission.
+-- This was `out[k] = tbl and tbl[k]`, and a nil simply left the key off the
+-- projection: assertSurfaceParity walks `pairs(live)`, so a seam entry the
+-- library had renamed — or one typed wrong — quietly stopped being checked, and
+-- the case stayed green over a list that got shorter with every re-vendor.
+-- Nothing said so and nothing could: the failure mode of a hand-written member
+-- list is that it degrades in silence, which is the same shape of bug this whole
+-- file exists to catch one level down. Measured against today's tree all four
+-- lists resolve whole, so this reddens nothing now — it is what keeps the lists
+-- above from quietly meaning less than they say later.
+local function project(tbl, keys, label)
+    local out, absent = {}, {}
+    for _, k in ipairs(keys) do
+        local v = tbl and tbl[k]
+        if v == nil then absent[#absent + 1] = k else out[k] = v end
+    end
+    if #absent > 0 then
+        h.fail(("%s: %d name(s) do not resolve on the LIVE arm, so they are not being "
+            .. "checked at all — %s"):format(label, #absent, table.concat(absent, ", ")), 2)
+    end
     return out
 end
 
@@ -52,7 +113,7 @@ local CORE_SEAM = {
 test("Parity: the LibKa0s-Core stub carries the whole live seam", function(t)
     local live     = h.loader.loadPure()
     local degraded = h.loader.loadPureDegraded()
-    h.assertSurfaceParity(project(live, CORE_SEAM), degraded, "KCM Core seam")
+    h.assertSurfaceParity(project(live, CORE_SEAM, "CORE_SEAM"), degraded, "KCM Core seam")
     -- SwatchColor is called on every repaint of every button (three files reach
     -- it), so a nil one would take the macro bar's whole appearance pass down.
     -- The class color needs the library; the swatch does not, which is why the
@@ -99,7 +160,7 @@ local DEBUGLOG_LIVE_ONLY = {
 test("Parity: the LibKa0s-DebugLog stub carries the whole live seam", function(t)
     local live     = h.loader.loadConsole()
     local degraded = h.loader.loadConsole(true)
-    h.assertSurfaceParity(project(live.DebugLog, DEBUGLOG_SEAM), degraded.DebugLog,
+    h.assertSurfaceParity(project(live.DebugLog, DEBUGLOG_SEAM, "DEBUGLOG_SEAM"), degraded.DebugLog,
         "KCM.DebugLog seam", DEBUGLOG_LIVE_ONLY)
     -- The two withheld members, asserted as withheld rather than left to the
     -- ignore list to imply it: core/Debug.lua's chat fallback is re-armed by the
@@ -130,7 +191,7 @@ local SLASH_LIVE_ONLY = { "instance" }
 test("Parity: the LibKa0s-Slash stub carries the whole live seam", function(t)
     local live     = h.loader.loadFullAddon()
     local degraded = h.loader.loadFullAddon(true)
-    h.assertSurfaceParity(project(live.SlashCommands, SLASH_SEAM), degraded.SlashCommands,
+    h.assertSurfaceParity(project(live.SlashCommands, SLASH_SEAM, "SLASH_SEAM"), degraded.SlashCommands,
         "KCM.SlashCommands seam", SLASH_LIVE_ONLY)
     t.eq(type(degraded.OnSlashCommand), "function",
         "KCM:OnSlashCommand survives a degraded load")
@@ -209,7 +270,7 @@ local OPTIONS_LIVE_ONLY = {
 test("Parity: the LibKa0s-Options stub carries the whole live seam", function(t)
     local live     = h.loader.loadWithSchema()
     local degraded = h.loader.loadWithSchemaDegraded()
-    h.assertSurfaceParity(project(live.Settings.Helpers, OPTIONS_SEAM),
+    h.assertSurfaceParity(project(live.Settings.Helpers, OPTIONS_SEAM, "OPTIONS_SEAM"),
         degraded.Settings.Helpers, "KCM.Settings.Helpers seam", OPTIONS_LIVE_ONLY)
     -- The two refresh tiers, called unconditionally after a degraded write. Bound
     -- as `UI and UI.X` they read back nil and the bare call raised AFTER the
