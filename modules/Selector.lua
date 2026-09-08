@@ -607,7 +607,7 @@ local function moveBy(catKey, itemID, delta, absolute, specKey)
     end
     bucket.pins = newPins
     if KCM.State and KCM.State.debug then
-        KCM.Debug("Prio", "move %s id=%s %d -> %d", catKey, itemID, curIdx, newIdx)
+        KCM.Debug("Prio", "move %s id=%s %s -> %s", catKey, itemID, curIdx, newIdx)
     end
     return true
 end
@@ -652,7 +652,7 @@ function S.MoveCompositeRef(catKey, orderField, from, to)
     if from < 1 or from > size or to < 1 or to > size or from == to then return false end
     table.insert(arr, to, table.remove(arr, from))
     if KCM.State and KCM.State.debug then
-        KCM.Debug("Prio", "move %s.%s %d -> %d", catKey, orderField, from, to)
+        KCM.Debug("Prio", "move %s.%s %s -> %s", catKey, orderField, from, to)
     end
     return true
 end

@@ -158,3 +158,48 @@ test("Debug: the sink publishes no Toggle of its own", function(t)
     t.eq(KCM.Debug.Toggle, nil, "no Debug.Toggle wrapper beside the DebugLog seam")
     t.eq(type(KCM.Debug.IsOn), "function", "the read-side gate is still published")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The rule the secret guard rests on, checked against the source
+-- ---------------------------------------------------------------------------
+
+-- docs/debug.md:30 states it normatively: a KCM.Debug placeholder is always
+-- `%s`, never `%d`/`%f`. That is a correctness rule, not a house style.
+-- KCM.SafeToString runs over every vararg BEFORE the format pass, so what
+-- reaches a slot is already a STRING -- and a combat-protected value reaches it
+-- as the "<secret>" sentinel, which string.format rejects for a numeric slot.
+-- The library sink pcalls the format and degrades to a joined line
+-- (libs/LibKa0s/DebugLog.lua:640-655, which names this exact mistake); the
+-- chat fallback three functions above in core/Debug.lua does not pcall, so on
+-- early boot and on a degraded install the raise lands on the path the sink
+-- exists to protect.
+--
+-- The scan is over the call sites rather than over three known lines: nothing
+-- enforced the rule and three sites had already drifted off it, so a pin on
+-- those three would be shaped around the defect instead of around the rule.
+-- Source text, not behaviour, because the bad slot only bites when a secret
+-- arrives -- there is no input a case could pass that makes an integer index
+-- fail, which is exactly why this survived every run of the suite.
+test("Debug: no call site formats through a numeric placeholder", function(t)
+    local root = (_G.KCM_TEST_ROOT or ".") .. "/"
+    local offenders = {}
+    for _, rel in ipairs(h.loader.tocFiles()) do
+        local fh = io.open(root .. rel, "r")
+        if fh then
+            local n = 0
+            for raw in fh:lines() do
+                n = n + 1
+                local line = raw:gsub("\r$", "")
+                -- A whole-line comment is prose about the sink, not a call into
+                -- it: core/Debug.lua's own header spells out the signature.
+                if not line:match("^%s*%-%-") and line:find("KCM.Debug(", 1, true)
+                    and line:gsub("%%%%", ""):find("%%[-+ #0-9%.]*[diufeEgG]") then
+                    offenders[#offenders + 1] = rel .. ":" .. n
+                end
+            end
+            fh:close()
+        end
+    end
+    t.eq(table.concat(offenders, ", "), "",
+        "every KCM.Debug placeholder must be %s (docs/debug.md)")
+end)

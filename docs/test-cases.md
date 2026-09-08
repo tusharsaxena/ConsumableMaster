@@ -136,7 +136,7 @@ badge and any count quoted in the docs must agree with it.
 - Database: a second profile written before v3 is migrated when it is switched to
 - Database v2: a second profile pays the one-shot cost once, not on every switch
 
-### test_debug.lua (13)
+### test_debug.lua (14)
 
 - Debug: the sink is published and callable
 - Debug: IsOn is false by default (State.debug is never persisted on)
@@ -151,6 +151,7 @@ badge and any count quoted in the docs must agree with it.
 - Debug: a nil format arg renders as 'nil' rather than shifting later args
 - Debug: the chat fallback stringifies a hostile tag safely
 - Debug: the sink publishes no Toggle of its own
+- Debug: no call site formats through a numeric placeholder
 
 ### test_debuglog.lua (18)
 
@@ -890,7 +891,7 @@ badge and any count quoted in the docs must agree with it.
 | test_constants.lua | 12 |
 | test_coresetup.lua | 11 |
 | test_database.lua | 23 |
-| test_debug.lua | 13 |
+| test_debug.lua | 14 |
 | test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
 | test_envsetup.lua | 5 |
@@ -919,4 +920,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **761** |
+| **Total** | **762** |

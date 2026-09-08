@@ -761,7 +761,7 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
     local list = makePriorityList(ctx, cat, specKey, priority)
 
     if isDebugOn() and KCM.Debug then
-        KCM.Debug("Prio", "paint %s rows=%d spec=%s", cat.key, #priority, tostring(specKey))
+        KCM.Debug("Prio", "paint %s rows=%s spec=%s", cat.key, #priority, tostring(specKey))
     end
 
     for _, id in ipairs(priority) do
