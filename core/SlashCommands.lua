@@ -237,8 +237,15 @@ end
 function KCM.FormatSchemaValue(def, v)
     if v == nil then return "nil" end
     if def.type == "color" and type(v) == "table" then
+        -- The third hand-unpack of the stored { r, g, b, a } shape, and the one
+        -- that agreed with settings/Slash.lua by luck rather than by sharing
+        -- (CONSUMABLEMASTER-R-05). KCM.ColorDecode is the shape reader now; the
+        -- four numbers stay HERE because they are this renderer's answer to an
+        -- absent channel, and they are the same four LibKa0s-Slash-1.0 renders
+        -- for one (libs/LibKa0s/Slash.lua:89). Byte-identical output — the
+        -- rendering cases in tests/test_schema.lua are the pin.
         return ("{%.2f, %.2f, %.2f, %.2f}")
-            :format(v[1] or 0, v[2] or 0, v[3] or 0, v[4] or 1)
+            :format(KCM.ColorDecode(v, 0, 0, 0, 1))
     end
     if def.type == "number" and def.fmt then
         return def.fmt:format(v)

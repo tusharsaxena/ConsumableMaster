@@ -103,11 +103,14 @@ end
 --
 -- Member list produced by:
 --     grep -n '^KCM\.[A-Za-z0-9_]* =\|^function KCM\.' core/CoreSetup.lua
--- which is the seam's live surface: LIBKA0S_MISSING (:30), IsConcatSafe (:73),
--- SafeToString (:74), Say (:99). The degraded branch re-declares the last three
--- as real fallbacks and shares the first.
+-- which is the seam's live surface: LIBKA0S_MISSING (:30), ColorDecode (:54),
+-- IsConcatSafe (:118), SafeToString (:119), Say (:169). The degraded branch
+-- re-declares IsConcatSafe, SafeToString and Say as real fallbacks and shares
+-- the first two — ColorDecode sits above the branch because it reads this
+-- addon's stored color shape rather than anything the library owns.
 local CORE_SEAM = {
-    "LIBKA0S_MISSING", "IsConcatSafe", "SafeToString", "Say", "SwatchColor",
+    "LIBKA0S_MISSING", "ColorDecode", "IsConcatSafe", "SafeToString", "Say",
+    "SwatchColor",
 }
 
 test("Parity: the LibKa0s-Core stub carries the whole live seam", function(t)
@@ -228,7 +231,8 @@ end)
 -- demand a stub for a member no page reads.
 local OPTIONS_SEAM = {
     "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BorderGroup",
-    "BuildAboutContent", "Button", "ButtonPair", "CLASS_COLOR_NOTE", "ColorPair",
+    "BuildAboutContent", "Button", "ButtonPair", "CLASS_COLOR_NOTE",
+    "ColorDecode", "ColorPair",
     "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
     "FontGroup", "Get", "Grid", "Label", "MasterControls",
     "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",

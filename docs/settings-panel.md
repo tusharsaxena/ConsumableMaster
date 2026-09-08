@@ -307,6 +307,16 @@ reads — the path prefix decides nothing.
   `{ r, g, b, a }` with that surface's own four-channel fallback and hands it to
   `LibKa0s-Core-1.0`'s `ResolveColor` with a `nil` unit. An unresolvable class falls through to the
   stored swatch — never to white, never to a substitute hue.
+- **One decoder, and it invents nothing.** `KCM.ColorDecode` (`core/CoreSetup.lua`) is the only
+  reader of the stored `{ r, g, b, a }` shape. It answers `nil` for a channel the stored table does
+  not carry and takes the fallback from its **caller**, which is why a per-surface default belongs
+  in `KCM.SwatchColor` rather than in the codec. The panel (`settings/OptionsSetup.lua`'s
+  `Helpers.ColorDecode`), the CLI (`settings/Slash.lua`'s `colorDecode`) and `KCM.FormatSchemaValue`
+  all read through it. The panel is the one surface that supplies numbers — AceGUI's color picker
+  hands `SetColor`'s arguments straight to `SetVertexColor`, which raises on a `nil` — and the four
+  it supplies are `LibKa0s-Slash-1.0`'s own `COLOR_KEYS` values, so the swatch and `/cm get` cannot
+  disagree about a color they both read. Before this the panel answered `or 1` and the CLI `or 0`:
+  one stored value, white on one surface and black on the other.
 
 **The bar's chrome is a BACKGROUND group, not a bar group** (`options-ui-§16`). The macro bar is a
 button container with a backdrop and no fill texture, so it takes a swatch and its companion and

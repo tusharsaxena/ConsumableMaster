@@ -96,7 +96,7 @@ badge and any count quoted in the docs must agree with it.
 - Constants: Say renders a nil format arg as 'nil' rather than dropping it
 - Constants: Say guards the single-string form too
 
-### test_coresetup.lua (11)
+### test_coresetup.lua (12)
 
 - CoreSetup: the addon's stringifier IS the library's, not a lookalike
 - CoreSetup: the secret sentinel is the library's, so the docs cannot drift from it
@@ -109,6 +109,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: the close-button wrapper hands the library the addon FOLDER name
 - CoreSetup: the folder name the wrapper sends resolves to a mark that exists
 - CoreSetup: with the library absent there is no wrapper to call, and no error
+- CoreSetup: the shared colour decoder answers nil for a channel that is not stored
 
 ### test_database.lua (23)
 
@@ -779,7 +780,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slashsetup.lua (15)
+### test_slashsetup.lua (16)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -796,6 +797,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /cm degrades without latching, and an unknown verb still reports
 - Slash: the degraded path keeps the library's parse — verb only is lowercased
 - Slash: the panel's degraded advice agrees with what /cm actually answers
+- Slash: `/cm get` and the settings panel decode one stored colour the same way
 
 ### test_spechelper.lua (16)
 
@@ -889,7 +891,7 @@ badge and any count quoted in the docs must agree with it.
 | test_classifier.lua | 16 |
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
-| test_coresetup.lua | 11 |
+| test_coresetup.lua | 12 |
 | test_database.lua | 23 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 18 |
@@ -912,7 +914,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 50 |
 | test_settingsui.lua | 40 |
 | test_slash.lua | 82 |
-| test_slashsetup.lua | 15 |
+| test_slashsetup.lua | 16 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
@@ -920,4 +922,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **762** |
+| **Total** | **764** |

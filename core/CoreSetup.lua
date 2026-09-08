@@ -30,6 +30,37 @@ local KCM = NS
 KCM.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of " ..
     "Consumable Master (expected in libs/LibKa0s)"
 
+-- ONE reader of the stored color shape (CONSUMABLEMASTER-R-05).
+--
+-- Colors are stored POSITIONALLY in this addon — { r, g, b, a } — because
+-- that is what the Ka0s options color widget writes; defaults/Profile.lua
+-- declares every one of them in that shape. Three places unpacked it by hand
+-- and two of them disagreed about a channel the stored table does not carry:
+-- settings/OptionsSetup.lua answered `c[1] or 1` and settings/Slash.lua
+-- answered `c[1] or 0`, so ONE stored value read white in the panel and black
+-- from `/cm get`. Neither number was wrong on its own; having two of them was.
+--
+-- So this answers NIL for an absent channel and takes the fallback from its
+-- CALLER, which is the arrangement KCM.SwatchColor has always had and the
+-- reason a per-surface default belongs there rather than here: a bar backdrop
+-- that lost its stored value falls back to black at 50%, a label to gold, and
+-- neither is a number a decoder could know.
+--
+-- Set OUTSIDE the branch below, for the same reason KCM.LIBKA0S_MISSING above
+-- it is: this is the addon's own storage contract rather than anything the
+-- library owns, and both arms read the shape.
+--- @param stored table|nil          the profile's { r, g, b, a }
+--- @return number|nil, number|nil, number|nil, number|nil
+function KCM.ColorDecode(stored, dr, dg, db, da)
+    if type(stored) ~= "table" then return dr, dg, db, da end
+    local r, g, b, a = stored[1], stored[2], stored[3], stored[4]
+    if r == nil then r = dr end
+    if g == nil then g = dg end
+    if b == nil then b = db end
+    if a == nil then a = da end
+    return r, g, b, a
+end
+
 local lib = LibStub and LibStub("LibKa0s-Core-1.0", true)
 
 if not lib then
@@ -53,14 +84,14 @@ if not lib then
     -- companion is simply not honored and the stored color is what paints -- which
     -- is the same answer options-ui-§17 gives for an unresolvable class, so the
     -- drawing code has one shape rather than a nil arm.
+    --
+    -- The unpack itself is KCM.ColorDecode's, above the branch: this arm used to
+    -- carry a byte-identical copy of it, and a second reader of the stored shape
+    -- is exactly what CONSUMABLEMASTER-R-05 was. What stays here is the part
+    -- that is this arm's own -- that the caller's four defaults are the answer
+    -- and the class companion is not honoured.
     function KCM.SwatchColor(stored, _, dr, dg, db, da)
-        if type(stored) ~= "table" then return dr, dg, db, da end
-        local r, g, b, a = stored[1], stored[2], stored[3], stored[4]
-        if r == nil then r = dr end
-        if g == nil then g = dg end
-        if b == nil then b = db end
-        if a == nil then a = da end
-        return r, g, b, a
+        return KCM.ColorDecode(stored, dr, dg, db, da)
     end
 
     local announced = false

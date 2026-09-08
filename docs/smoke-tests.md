@@ -533,6 +533,20 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
    Note what this run cannot tell you on its own. `M4-03` — the same sweep with all five private copies still in place, which is the "before" reading the spec asks for — has not been run either, so this addon's deletion lands ahead of that evidence. KickCD, PanelMaster and ConsumableMaster now have no private copy; MultiMeters and AbsorbTracker still do. A failure confined to the three is the library member; a failure confined to the two is their private copies; a failure in all five is the sweep itself.
 
+20. **Smoke, session 6 — one stored color, and the two surfaces that read it.** Not yet run: no client was available when `M4-18` landed, and nothing below may be reported as passing until someone has actually looked at it.
+
+   `settings/OptionsSetup.lua` and `settings/Slash.lua` each carried a hand-written decoder for the stored positional `{ r, g, b, a }` and they disagreed about a channel the table does not carry — `or 1` in the panel against `or 0` in the CLI, so one stored value read **white** on the swatch and **black** from `/cm get`. Both read `KCM.ColorDecode` now, which answers nil for an absent channel; the panel adds the four numbers `LibKa0s-Slash-1.0` already fills in, because AceGUI's picker hands `SetColor`'s arguments straight to `SetVertexColor` and that raises on a nil.
+
+   **The headless suite pins the decoders against each other and cannot see the picker.** `tests/test_slashsetup.lua` compares what the two surfaces decode, but no mock draws a swatch — the raise this step exists to rule out happens inside Blizzard's texture API.
+
+   1. `/cm config` → **Macro Bar**. Open **Bar backdrop color**, pick a color with an obviously non-default alpha, confirm. The bar repaints as you drag and keeps the color on confirm.
+   2. `/cm get macroBar.barBackdropColor` → four channels that match what the picker shows. Re-open the picker: it still shows them. `/reload` and repeat both — the round trip must survive the write to SavedVariables.
+   3. Repeat 1 and 2 for **Bar border color**, **Button backdrop color**, **Button border color** and the Macro Bar label's **font color**. Five swatches, five round trips; a codec fault is per-surface, not per-addon.
+   4. **The absent channel, which is the whole point.** Log out. In `WTF/Account/<account>/SavedVariables/ConsumableMaster.lua`, find `barBackdropColor` and delete its third and fourth entries, leaving two. Log back in and open `/cm config` → **Macro Bar**.
+
+      **Pass.** The page draws, the swatch draws, and **no Lua error** appears — the panel supplying numbers for the absent channels is exactly what this checks. Then `/cm get macroBar.barBackdropColor`: the four channels it prints must be the four the swatch is showing. Two different answers to one stored value is the finding, and it is the finding this item exists for.
+   5. Restore the file (or re-pick the color in the panel) before running anything else — every later step reads that profile.
+
 ### Perf harness (`/cm perf`)
 
 Only meaningful in game, and the SavedVariables half is only verifiable end to end here.
@@ -580,6 +594,7 @@ Rename it back and `/reload`.
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
+| The stored color codec — `KCM.ColorDecode`, `Helpers.ColorDecode`, either `colorDecode` descriptor field, or `KCM.FormatSchemaValue`'s color arm | [LibKa0s seam pass](#libka0s-seam-pass) step 20 — both surfaces, and the absent-channel case in its step 4 |
 | `reset` / `resetall` semantics, or anything touching the confirm popup | §7 step 10 **and** 10a — the button and the slash verb reach the same popup, and both paths have to keep it |
 | Composite category change | §4 + §10 |
 | Bloodlust / Battle Rez seed, `KCM.SEED.CLASS_GATE`, or the mouseover clause | §3d |

@@ -45,6 +45,33 @@ KCM.Settings.Helpers = Helpers
 local PANEL_TITLE = L["Ka0s Consumable Master"]
 KCM.Settings.PANEL_TITLE = PANEL_TITLE
 
+-- The panel's half of the ONE color decoder (CONSUMABLEMASTER-R-05). The
+-- unpack is core/CoreSetup.lua's KCM.ColorDecode and is shared with
+-- settings/Slash.lua; what is per-surface is the four numbers handed to it, and
+-- this surface has to hand it some.
+--
+-- WHY THIS SURFACE CANNOT TAKE THE NIL the decoder answers for an absent
+-- channel: the library passes what colorDecode returns to the AceGUI picker's
+-- SetColor (libs/LibKa0s/OptionsWidgets.lua:1658-1660), and SetColor passes its
+-- four arguments straight into Texture:SetVertexColor
+-- (libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua:149), which RAISES on a
+-- nil. A swatch cannot draw "absent", so it draws something — but it no longer
+-- CHOOSES what.
+--
+-- The numbers are LibKa0s-Slash-1.0's own COLOR_KEYS fallbacks
+-- (libs/LibKa0s/Slash.lua:89), which is what `/cm get` already renders for the
+-- same absent channel. That is the whole point: the old `or 1` here made the
+-- panel show white where the CLI showed black, from one stored value. Pinned by
+-- a case that drives both surfaces (tests/test_slashsetup.lua).
+--
+-- An OWN key on Helpers, published rather than written inline as a closure, for
+-- the reason Helpers.instance is published: the two halves of a pair that MUST
+-- agree can only be checked against each other if the suite can reach them, and
+-- the CLI half lives on a descriptor the library keeps private.
+function Helpers.ColorDecode(c)
+    return KCM.ColorDecode(c, 0, 0, 0, 1)
+end
+
 -- ---------------------------------------------------------------------
 -- LibKa0s-Options-1.0
 -- ---------------------------------------------------------------------
@@ -137,10 +164,11 @@ if optionsLib and AceGUI then
         -- the Ka0s options color widget has always written. The library's
         -- default codec is the named-key form, so without this every picker
         -- would read white and write a table nothing here can unpack.
-        colorDecode = function(c)
-            c = type(c) == "table" and c or {}
-            return c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1
-        end,
+        --
+        -- The unpack is SHARED with settings/Slash.lua now; see
+        -- Helpers.ColorDecode at the head of this file for what this surface
+        -- adds to it and why it is the only one of the two that adds anything.
+        colorDecode = Helpers.ColorDecode,
         colorEncode = function(r, g, b, a) return { r, g, b, a or 1 } end,
 
         -- Sliders commit on the drag, not just on release. The Macro Bar page's
