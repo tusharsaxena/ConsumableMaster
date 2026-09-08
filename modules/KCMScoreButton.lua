@@ -10,19 +10,21 @@
 -- Acquired directly via `AceGUI:Create("KCMScoreButton")` in
 -- settings/Category.lua.
 
-local Type, Version = "KCMScoreButton", 1
+local Type, Version = "KCMScoreButton", 2
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
 local pairs, select = pairs, select
 local CreateFrame, UIParent = CreateFrame, UIParent
 
+-- NO HOVER FILL. This used to Show a gold BACKGROUND texture at a quarter alpha, and nothing else
+-- in the collection does: the row underneath already highlights, so the glyph appeared to gain a
+-- second selection state that meant nothing, and reported as one. The tooltip AttachTooltip binds
+-- here is the hover affordance, and it is enough.
 local function Control_OnEnter(frame)
-    if frame.hoverBG then frame.hoverBG:Show() end
     frame.obj:Fire("OnEnter")
 end
 local function Control_OnLeave(frame)
-    if frame.hoverBG then frame.hoverBG:Hide() end
     frame.obj:Fire("OnLeave")
 end
 local function Button_OnClick(frame, button)
@@ -87,21 +89,14 @@ local function Constructor()
     frame:SetScript("OnLeave", Control_OnLeave)
     frame:SetScript("OnClick", Button_OnClick)
 
-    local hoverBG = frame:CreateTexture(nil, "BACKGROUND")
-    hoverBG:SetColorTexture(1, 0.82, 0, 0.25)
-    hoverBG:Hide()
-    frame.hoverBG = hoverBG
-
     local image = frame:CreateTexture(nil, "ARTWORK")
     image:SetWidth(24)
     image:SetHeight(24)
     image:SetPoint("CENTER")
 
-    hoverBG:SetAllPoints(image)
 
     local widget = {
         image   = image,
-        hoverBG = hoverBG,
         frame   = frame,
         type    = Type,
     }

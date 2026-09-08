@@ -651,7 +651,12 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
         applicable = applicableArg,
     }, ITEM_ROW_RW_SINGLE)
     makeScoreBtn(row, {
-        image   = "Interface\\FriendsFrame\\InformationIcon",
+        -- The catalog mark first, Blizzard's underneath. LootHistory draws the same glyph for the
+        -- same job through the same catalog, and a player reads both panels in one session -- one
+        -- addon's info mark being the library's and the other's the client's was reported as the
+        -- inconsistency it is. The fallback rung stays, because a catalog lookup that silently
+        -- draws nothing when the library is absent is worse than the hardcoded path it replaced.
+        image   = KCM.Icon("info") or "Interface\\FriendsFrame\\InformationIcon",
         label   = scoreTitle,
         tooltip = scoreDesc,
     })

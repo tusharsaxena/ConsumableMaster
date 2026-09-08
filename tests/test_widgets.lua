@@ -112,3 +112,43 @@ test("Widgets: every widget name used by the settings pages is registered", func
         end
     end
 end)
+
+-- Reported from the game with a screenshot, 2026-09-09. Two complaints about the same glyph: the
+-- score button's info mark did not match the one LootHistory draws for exactly the same purpose,
+-- and hovering it lit a gold panel behind the icon that nothing else in the collection does.
+local function slurp(rel)
+    local f = assert(io.open((_G.KCM_TEST_ROOT or ".") .. "/" .. rel, "r"))
+    local src = f:read("*a")
+    f:close()
+    return src
+end
+
+test("Widgets: the score button lights no panel behind itself on hover", function(t)
+    -- The hover fill was a BACKGROUND texture at SetColorTexture(1, 0.82, 0, 0.25) -- gold at a
+    -- quarter alpha -- shown on OnEnter. No other row control in the collection does this, and the
+    -- row it sits in already highlights, so the glyph appeared to gain a second selection state
+    -- that meant nothing. The tooltip is the hover affordance.
+    -- red under: the hoverBG texture and its two OnEnter/OnLeave calls.
+    local src = slurp("modules/KCMScoreButton.lua")
+    t.truthy(src:find("hoverBG", 1, true) == nil,
+        "the gold hover panel is back on the score button")
+    t.truthy(src:find("SetColorTexture", 1, true) == nil,
+        "the score button paints a fill again; the tooltip is the hover affordance")
+end)
+
+test("Widgets: the info glyph comes from the catalog, as LootHistory's does", function(t)
+    -- LootHistory draws the same mark for the same purpose through the shared catalog, keeping
+    -- Blizzard's InformationIcon underneath as the fallback rung:
+    --     itex:SetTexture((NS.Icon and NS.Icon("info")) or INFO_ICON)
+    -- This page hardcoded the Blizzard path, so one addon's info mark was the library's and the
+    -- other's was the client's, for the same job on two panels a player reads in one session.
+    -- red under: `image = "Interface\\FriendsFrame\\InformationIcon"`.
+    local src = slurp("settings/Category.lua")
+    t.truthy(src:find('KCM%.Icon%("info"%)') ~= nil,
+        "the score button's image no longer resolves through the media catalog")
+    -- The Blizzard path stays, but only as the fallback behind it -- a catalog lookup that
+    -- silently draws nothing when the library is absent is worse than the hardcoded path was.
+    local line = src:match('[^\n]*KCM%.Icon%("info"%)[^\n]*')
+    t.truthy(line and line:find("InformationIcon", 1, true) ~= nil,
+        "the catalog lookup has no Blizzard fallback rung behind it")
+end)
