@@ -401,9 +401,15 @@ Every scalar has a matching `KCM.Settings.Schema` row registered by
 and a `/cm get|set macroBar.<field>` path. `enum`s are `type = "string"` rows
 with a `values` list; `Helpers.ValidateSchemaValue` rejects anything outside it,
 so the dropdown and the CLI can't write a value the renderer can't display. The
-two border-style rows add `lsm = "border"` and pass `values` as a **function**
-(`H.LSMValues("border")`) so the list is re-queried at click time — another addon
-can register a border after our schema is declared.
+two border-style rows and the label-font row declare no `values` of their own at
+all: they are composed rows, and since the v1.26.0 re-vendor the composer's own
+`O.LSMValues(kind)` closure is what they carry. It is a **function** for the same
+reason it always had to be — the list is re-queried at click time, because another
+addon can register a border after our schema is declared — and it answers a
+self-keyed map rather than the ordered array the hand-written rows here declare,
+which is why `Helpers.EnumValues` normalizes both shapes before the validator
+counts them. Until v1.26.0 all three rows overrode `values` locally, because the
+composer's list came back empty (LibKa0s issue #15).
 
 `macroBar.perRow` has THREE hand-maintained copies of "the managed category
 count," and all three went stale (13 → 15) when this branch added two

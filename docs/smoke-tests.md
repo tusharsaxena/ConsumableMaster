@@ -504,6 +504,15 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
 16. **The TOC seam — the version banner and the About notes.** `/cm version` and `/cm help` must both print the version the TOC's `## Version` line carries, not a stale number and never `?`. Then `/cm config` → **About**: the paragraph under the logo must read the addon's `## Notes` text, not an empty line. Both come from `core/EnvSetup.lua` now — one of them used to ask `C_AddOns` for the folder `"ConsumableMaster"` as a hardcoded string, and the failure this check exists for is silent: a wrong or renamed folder name answers nothing and raises nothing, so the About paragraph simply disappears and the banner quietly falls back to the in-code constant. The headless suite pins both against a mock manifest; only this check sees the real TOC.
 
+17. **Smoke, session 4 — the three composed media dropdowns, now that nothing local props them up.** Not yet run: no client was available when this landed, and nothing below may be reported as passing until someone has actually looked at it.
+
+   Until the v1.26.0 re-vendor, the Bar border style, Button border style and Label font rows did not take their lists from the composer at all — `settings/MacroBar.lua` overrode all three with the addon's own reader, because the composer's own list came back empty (LibKa0s issue #15). The override is gone, so these three dropdowns are reading the library's list for the first time in a live client, and a mistake here shows up as an **empty dropdown** rather than as an error.
+
+   1. `/cm config` → **Macro Bar**. Open **Bar border style**, **Button border style** and **Label font** in turn. Each must list real entries — Blizzard's own borders and faces at minimum, plus anything a media addon has registered. One empty dropdown is the whole finding; do not read a populated *other* dropdown as proof.
+   2. Pick a different value in each → the bar edge, the button edges and the label face change, and the closed dropdown shows the new name.
+   3. `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → **3**. A 2 here means the payload on disk is not the one this commit vendored, and step 1 proved nothing.
+   4. `/cm set macroBar.barBorderStyle "Not A Border"` → **rejected**, with the allowed values printed. `/cm set macroBar.barBorderStyle "Blizzard Tooltip"` → accepted, and the panel tracks it. This is the CLI half, and it is the half that fails *open*: the composed row hands the validator a self-keyed map where every other row hands it an ordered array, and a validator that does not normalize the map simply stops rejecting anything.
+
 ### Perf harness (`/cm perf`)
 
 Only meaningful in game, and the SavedVariables half is only verifiable end to end here.
@@ -562,6 +571,7 @@ Rename it back and `/reload`.
 | Macro bar settings page / new `macroBar.*` schema row | §11a steps 5–6a, 15–16 |
 | Button labels (`MacroBarLayout.LabelAnchor` / `LabelFontSize`, `shortName` metadata) | §11a step 6a |
 | LSM border pickers / `core/LSMPatch.lua` / the vendored `AceGUI-3.0-SharedMediaWidgets` | §11a step 6 (dropdown renders flush, selection sticks) |
+| A composed media row's `values`, or `Helpers.EnumValues` / `validateSchemaValue` in `settings/Panel.lua` | [LibKa0s seam pass](#libka0s-seam-pass) step 17 — both halves, the dropdown **and** `/cm set` |
 | A new `shortName` on a category row | §11a step 6a with **Label text** on *Always short* |
 | Anything protected-frame or secure-template shaped | §11a steps 3, 12, 14, and §11d |
 | Macro bar flyout (`modules/MacroBarFlyout.lua`, `MacroBarLayout.Flyout` / `IndicatorAnchor` / `IndicatorClearance`) | §11b, §11c, §11d, §11e |

@@ -463,8 +463,53 @@ end
 -- schema vocabulary, called from settings/MacroBar.lua's rows and pinned by
 -- tests/test_macrobar.lua.
 
+-- BOTH enum shapes a row here can carry, normalized to the ordered
+-- `{ value =, text = }` array every caller of this function reads:
+--
+--   ordered array  { { value = "TOP", text = "Top" }, ... }        settings/MacroBar.lua's `enum`
+--   key map        { ITEM = "Item", SPELL = "Spell" }              settings/Category.lua:86,
+--                                                                  settings/StatPriority.lua:74,
+--                                                                  and every composed row whose
+--                                                                  list is the library's, media
+--                                                                  rows included as of v1.26.0
+--
+-- The array is told apart by its first element being a table carrying `value`,
+-- exactly as `enumList` (libs/LibKa0s/OptionsWidgets.lua:78-79) tells them apart;
+-- nothing else a row declares can look like that.
+--
+-- WHY THIS IS NOT COSMETIC. `validateSchemaValue` below reads this list and
+-- guards on `#allowed > 0`. A key map measures 0, so an un-normalized one does
+-- not raise -- it walks straight past the membership test, and `/cm set` starts
+-- accepting any string at all for a row whose dropdown offers three. It fails
+-- open and silently, which is why the normalization lives here, at the single
+-- reader, rather than at each caller.
+--
+-- `sorting` is honoured for the same reason the library honours it: the CLI's
+-- allowed-values message and the dropdown must list the same things in the same
+-- order, or a player reads one order and types against another.
 local function enumValues(def)
-    return type(def.values) == "function" and def.values() or def.values or {}
+    local v = type(def.values) == "function" and def.values() or def.values
+    if type(v) ~= "table" then return {} end
+    if next(v) == nil then return v end
+    if type(v[1]) == "table" and v[1].value ~= nil then return v end
+
+    local keys = {}
+    if type(def.sorting) == "table" then
+        for i, k in ipairs(def.sorting) do keys[i] = k end
+    else
+        for k in pairs(v) do keys[#keys + 1] = k end
+        table.sort(keys, function(a, b)
+            if type(a) == type(b) then return a < b end
+            return tostring(a) < tostring(b)
+        end)
+    end
+
+    local out = {}
+    for i, k in ipairs(keys) do
+        local text = v[k]
+        out[i] = { value = k, text = type(text) == "string" and text or tostring(k) }
+    end
+    return out
 end
 Helpers.EnumValues = enumValues
 
