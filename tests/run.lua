@@ -426,6 +426,7 @@ local SUITES = {
     "test_database",
     "test_debug",
     "test_debuglog",
+    "test_docmap",
     "test_defaults",
     "test_envsetup",
     "test_itemsetup",

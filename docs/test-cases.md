@@ -175,6 +175,10 @@ badge and any count quoted in the docs must agree with it.
 - DebugLogSetup: the folder name the descriptor carries names art that exists
 - DebugLogSetup: the console's font comes out of the payload, with a real client fallback
 
+### test_docmap.lua (1)
+
+- docmap: every Tier 2 row agrees with what docs/ holds
+
 ### test_defaults.lua (28)
 
 - Categories: every row has a unique key and BY_KEY resolves it
@@ -924,6 +928,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 23 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 18 |
+| test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
@@ -954,4 +959,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **784** |
+| **Total** | **785** |

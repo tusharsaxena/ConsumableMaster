@@ -148,11 +148,11 @@ Cross-module control flow that crosses feature boundaries travels over the close
 
 ## Slash Commands
 
-`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:84-192`, published as `KCM.COMMANDS` at `:196` so there is one source of truth for the verb set (`slash-commands-§4`). Nothing in the addon reads that table directly — the About page renders its rows through `KCM.SlashCommands.GetLandingRows()` (`settings/Slash.lua:368-371`), which delegates to the library instance built from the same table — so `KCM.COMMANDS` is the identity handle the harness asserts against.
+`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:84-193`, published as `KCM.COMMANDS` at `:196` so there is one source of truth for the verb set (`slash-commands-§4`). Nothing in the addon reads that table directly — the About page renders its rows through `KCM.SlashCommands.GetLandingRows()` (`settings/Slash.lua:374-377`), which delegates to the library instance built from the same table — so `KCM.COMMANDS` is the identity handle the harness asserts against.
 
-Seventeen verbs are declared, in this order: `help`, `config`, `version`, `perf`, `debug`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `bar`, `priority`, `stat`, `aio`, `dump`. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; this file holds only the table and the dispatcher wiring. The user-facing description of each verb is the table in [README.md](../README.md).
+Seventeen verbs are declared, in this order: `help`, `config`, `version`, `perf`, `debug`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `bar`, `priority`, `stat`, `aio`, `dump`. Four of them carry a subcommand tree of their own. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; `settings/Slash.lua` holds only the table and the dispatcher wiring. The user-facing description of each verb is the table in [README.md](../README.md).
 
-Six of the seventeen are library-backed, listed as `LIB_BACKED_VERBS` at `settings/Slash.lua:80-82`: `help`, `list`, `get`, `set` and `reset` bind to `Sl:PrintHelp` / `Sl:CliList` / `Sl:CliGet` / `Sl:CliSet` / `Sl:CliReset` at `:305-313`, and `perf` resolves `KCM.Perf` at call time. On a degraded install those are what stop working — the five schema-CLI verbs are rebound to the "unavailable" responder at `:336-337`, which names the eleven that still answer. `resetall` deliberately stays host-owned rather than binding `Sl:CliResetAll` ([`LIBKA0S-12`](https://github.com/tusharsaxena/ConsumableMaster/issues/27), and the comment at `:309-312`).
+The verb table, the five sub-command tables and their three handler arities, the case-preserving parse, the overridden usage strings and the degraded arm are in [slash-dispatch.md](./slash-dispatch.md).
 
 ## Event Subscriptions
 
@@ -328,11 +328,11 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Not applicable | 17 verbs, but they are a flat set with no subcommand tree; the table lives in `ARCHITECTURE.md` → `## Slash Commands` |
+| `slash-dispatch.md` | Present | Seventeen verbs, over the eight-or-more threshold, and four of them carry a subcommand tree (`priority`, `stat`, `aio`, `bar`, plus the `dump` targets) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon’s own |
 | `debug.md` | Present | `/cm dump` targets in `core/SlashDump.lua` are the addon’s own beyond the library console |
 | `message-bus.md` | Not applicable | Four messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message Bus` |
-| `compat-layer.md` | Not applicable | `core/Compat.lua` normalizes spell and item APIs with no addon-specific shim to document separately |
+| `compat-layer.md` | Present | `core/Compat.lua` publishes six addon-specific shims, over the three-or-more threshold |
 | `profiles.md` | Not applicable | No profile control ships in the options UI; the addon uses a single AceDB profile |
 | `perf-analysis/README.md` | Present | The performance harness is wired (`core/PerfSetup.lua`) |
 
