@@ -457,7 +457,7 @@ badge and any count quoted in the docs must agree with it.
 - MediaSetup: this addon no longer ships its own copy of the face
 - MediaSetup: every mark this addon draws is one the library ships
 - MediaSetup: every name the library ships has a file in the vendored copy
-- MediaSetup: the vendored payload carries the face and its licence
+- MediaSetup: the vendored payload carries the face and its license
 - MediaSetup: it loads before the file that resolves the console font
 - MediaSetup: with no library there is no art and no face, and that is not an error
 
@@ -580,7 +580,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: the page order lists four pages, each once
 - schema: the Macros page carries one tab per category, in macroOrder
 - schema: the Macros strip is the designed run of tabs, in order
-- schema: a Macros tab is labelled with the category's display name
+- schema: a Macros tab is labeled with the category's display name
 - schema: the Macro Bar page partitions into its designed tabs
 - schema: no page's rows leave a group and come back to it
 - schema: the tab strips name only groups their rows declare
@@ -640,7 +640,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.PickBestForCategory skips an item the player is over the cap for
 - Selector.ListAvailable omits an item the player is over the cap for
 - Selector.PickBestForCategory keeps an item whose tooltip is still pending
-- Selector.MoveCompositeRef splices to an index rather than swapping neighbours
+- Selector.MoveCompositeRef splices to an index rather than swapping neighbors
 - Selector.MoveCompositeRef refuses a move it cannot make
 - Selector.MoveCompositeRef never moves a ref between the two sections
 

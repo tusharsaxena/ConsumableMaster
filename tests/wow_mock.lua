@@ -556,7 +556,7 @@ function M.install(NS)
         --
         -- `Create` deliberately ignores the registry and always hands back the
         -- permissive stub. The four KCM* widget files register constructors that
-        -- build real frames at call time; honouring them here would change what
+        -- build real frames at call time; honoring them here would change what
         -- every settings case gets back, and the widget bodies have their own
         -- suite (tests/test_widgets.lua).
         --

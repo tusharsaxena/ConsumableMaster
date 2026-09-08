@@ -135,7 +135,7 @@ test("MediaSetup: every name the library ships has a file in the vendored copy",
     t.eq(table.concat(missing, ", "), "", "catalog names with no file in the vendored payload")
 end)
 
-test("MediaSetup: the vendored payload carries the face and its licence", function(t)
+test("MediaSetup: the vendored payload carries the face and its license", function(t)
     local root = (_G.KCM_TEST_ROOT or ".") .. "/libs/LibKa0s/media/fonts/"
     for _, name in ipairs({ "JetBrainsMono-Regular.ttf", "JetBrainsMono-OFL.txt" }) do
         local fh = io.open(root .. name, "rb")

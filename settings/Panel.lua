@@ -492,7 +492,7 @@ end
 -- open and silently, which is why the normalization lives here, at the single
 -- reader, rather than at each caller.
 --
--- `sorting` is honoured for the same reason the library honours it: the CLI's
+-- `sorting` is honored for the same reason the library honors it: the CLI's
 -- allowed-values message and the dropdown must list the same things in the same
 -- order, or a player reads one order and types against another.
 local function enumValues(def)

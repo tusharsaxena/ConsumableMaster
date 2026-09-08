@@ -1714,10 +1714,10 @@ end)
 
 -- ---------------------------------------------------------------------------
 -- options-ui-§15 / §16 / §17 — the settings that were ADDED, and the code that
--- honours them
+-- honors them
 -- ---------------------------------------------------------------------------
 --
--- A setting that is declared and not honoured is worse than one that is absent,
+-- A setting that is declared and not honored is worse than one that is absent,
 -- so every row this adoption added is pinned against the drawing code that reads
 -- it rather than against the schema that declares it.
 
@@ -1823,7 +1823,7 @@ test("macrobar button: an unresolvable class falls through to the stored swatch"
 end)
 
 -- ---------------------------------------------------------------------------
--- The addon-wide master controls, honoured by the one thing this addon draws
+-- The addon-wide master controls, honored by the one thing this addon draws
 -- ---------------------------------------------------------------------------
 
 test("macrobar master: Master scale and Master alpha MULTIPLY the bar's own", function(t)

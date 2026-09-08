@@ -752,7 +752,7 @@ end)
 -- The drag needs "put this one third" in ONE call (options-ui-§18), so the
 -- mutator is here, where it can be driven without a widget.
 
-test("Selector.MoveCompositeRef splices to an index rather than swapping neighbours", function(t)
+test("Selector.MoveCompositeRef splices to an index rather than swapping neighbors", function(t)
     local KCM = h.loader.loadPure()
     local cfg = KCM.db.profile.categories.HP_AIO
     cfg.orderInCombat = { "A", "B", "C", "D" }

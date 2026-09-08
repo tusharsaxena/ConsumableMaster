@@ -66,7 +66,7 @@ because it answers a maintainer's question on a page written for players — the
 `README.md` at revision 9 (LibKa0s v1.8.1), and there is no fallback.
 
 LibKa0s supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the
-settings-panel shell, its row widgets and the schema composers behind the Master controls tab and the font / border / colour blocks, the reorder drag behind the priority rows, a composite's two combat sections and the stat-priority list, the shipped art and font, the TOC-manifest reader behind
+settings-panel shell, its row widgets and the schema composers behind the Master controls tab and the font / border / color blocks, the reorder drag behind the priority rows, a composite's two combat sections and the stat-priority list, the shipped art and font, the TOC-manifest reader behind
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
 harness. Nine of its majors are consumed — `Widgets` joined them when the priority rows took the
 library's drag handle (`settings/Category.lua`, `settings/StatPriority.lua`); `Pool` alone ships in the payload unused. It is vendored whole-folder

@@ -427,7 +427,7 @@ local function applyRow(row, stat, included, onToggle)
     row.kcmGlyph:SetNormalTexture(row.kcmGlyphTexture)
 
     row.kcmLabel:SetText(SECONDARY_OPTIONS[stat] or stat)
-    -- Greyed rather than hidden: a name you cannot read is a row you cannot aim
+    -- Grayed rather than hidden: a name you cannot read is a row you cannot aim
     -- at, and aiming at it is how you rank the stat again.
     if included then
         row.kcmLabel:SetTextColor(1, 0.82, 0)

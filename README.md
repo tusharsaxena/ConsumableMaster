@@ -135,7 +135,7 @@ One page that controls the four spec-aware categories (Stat Food, Combat Potion,
 
 *   **Viewing spec** — pinned in the banner at the top of the page, so it stays visible while you scroll. Pick which spec you're editing; this also sets which spec is shown on the four spec-aware category tabs on the **Macros** page. Specs show their class icon and name (e.g. "Shaman — Enhancement").
 *   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
-*   **Secondary stats** — Crit, Haste, Mastery and Versatility as one list you **drag** into the order you want. The one at the top counts the most. Each row carries a green tick: **click it** and the stat drops to the greyed block at the bottom and counts as zero, leaving a red cross behind. Click that to bring it back — it rejoins at the end of the order, since a stat that isn't ranked has no place to remember.
+*   **Secondary stats** — Crit, Haste, Mastery and Versatility as one list you **drag** into the order you want. The one at the top counts the most. Each row carries a green tick: **click it** and the stat drops to the grayed block at the bottom and counts as zero, leaving a red cross behind. Click that to bring it back — it rejoins at the end of the order, since a stat that isn't ranked has no place to remember.
 *   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
 
 **Macro Bar**
@@ -162,7 +162,7 @@ Locking the bar and putting it back in the middle of the screen are **General �
 *   **Bar background** and its color — the backdrop drawn behind the buttons.
 *   **Show border**, **Border style**, **Border thickness** and **Border color** — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
 
-Every colour here has a **Use class color** checkbox beside it: tick it and that surface takes your class's colour instead of the swatch. The swatch's **opacity** still applies either way, which is why it never greys out.
+Every color here has a **Use class color** checkbox beside it: tick it and that surface takes your class's color instead of the swatch. The swatch's **opacity** still applies either way, which is why it never grays out.
 
 *Button appearance*
 

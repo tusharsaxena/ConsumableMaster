@@ -110,7 +110,7 @@ local L = { mock = mock }
 -- core/modules (post-move) layout: each entry is tried at its listed path and,
 -- failing that, at the alternate location.
 --
--- MEMOISED, and that is not a tidy-up — it is where this repo's green gate went.
+-- MEMOIZED, and that is not a tidy-up — it is where this repo's green gate went.
 -- Every build re-resolved every file in its list, and the probe costs up to five
 -- `io.open` calls per file, so several hundred builds drove 28,768 of them: the
 -- gate spent roughly 22 of its 25.6 seconds waiting on the filesystem rather than

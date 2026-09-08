@@ -5,7 +5,7 @@
 -- settings/Slash.lua as the place the dispatcher is wired, and core/ was also
 -- the repo's largest file at 1408 LOC (advisory CM-54).
 --
--- The division of labour across the two files:
+-- The division of labor across the two files:
 --   * core/SlashCommands.lua owns the VERB BODIES — the priority / stat / aio /
 --     bar namespaces, the dump targets, and their sub-command tables. It
 --     publishes the five entry points on KCM.SlashCommands.Verbs and knows

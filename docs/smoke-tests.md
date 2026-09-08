@@ -219,7 +219,7 @@ Setup: `/reload`, then `/cm debug on` (arms capture) and `/cm debug` (opens the 
 
 Tests: `options-ui-§13` (the pinned strip on Macros and Macro Bar) and `§14` (the Stat Priority
 banner). This is the redesign that collapsed fifteen category sub-pages into one page; everything
-below is new behaviour and none of it is covered by an automated case that can see pixels.
+below is new behavior and none of it is covered by an automated case that can see pixels.
 
 **The Macros strip**
 
@@ -263,14 +263,14 @@ below is new behaviour and none of it is covered by an automated case that can s
     "Bar appearance" twice, or Bar opacity turns up on Button appearance, the group's rows have
     stopped being contiguous.
 11a. **Subsection headings on the four mixed tabs** (`options-ui-§7`), drawn as the same centered
-    `Heading` every other header uses — never a coloured label: Bar appearance reads
+    `Heading` every other header uses — never a colored label: Bar appearance reads
     *Opacity* → *Background* → *Border*; Button appearance *Background* → *Border* → *Icon*; Labels
     *Text* → *Layout* → *Font*; Flyout *Layout* → *Background* → *Icon*. No heading repeats its own
     tab's name, or any **word** of it — the first was `Bar`, on a tab called *Bar appearance*.
-11b. **Every colour swatch has `Use class color` immediately to its right, on the same line**
+11b. **Every color swatch has `Use class color` immediately to its right, on the same line**
     (`options-ui-§17`), and there are seven of them. Tick one and the surface repaints in your
-    class colour while the swatch's **opacity** still applies — the swatch is never greyed out, and
-    its tooltip says so. On a class the client cannot resolve the stored colour is what paints.
+    class color while the swatch's **opacity** still applies — the swatch is never grayed out, and
+    its tooltip says so. On a class the client cannot resolve the stored color is what paints.
 11c. **The border blocks read in the mandated order** (`options-ui-§16`):
     `[Show border] …` then `[Border style] [Border thickness (px)]` then
     `[Border color] [Use class color]`, with `Border offset (px)` appended AFTER the four on Button
@@ -290,7 +290,7 @@ below is new behaviour and none of it is covered by an automated case that can s
 
 14. Open **Stat Priority**. The spec dropdown sits in the page's own band ABOVE the scroll, with a
     hairline rule beneath it, and it stays put while you scroll to the secondary list. It is
-    labelled **Viewing spec**.
+    labeled **Viewing spec**.
 15. There is **no** "Selection" section inside the scroll, and no second spec picker anywhere in the
     panel — including on the Macros page's spec-aware tabs, which state the spec as a sentence
     ("Spec-aware. Viewing: <spec>.") and offer no control.
@@ -427,7 +427,7 @@ Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBa
 4. **Move.** Uncheck **Lock frame** (General → Master controls) → the bar tints gold *and* a **Consumable Master** handle strip appears centered above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows a one-line tooltip; hovering the **help mark** at its right end — the collection's shared art now, a plain light glyph rather than Blizzard's blue `InformationIcon` — shows the full drag-gesture list. On a narrow bar (set **Buttons per row** to 1) the icon must not crowd the label. Re-check **Lock frame** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
 5. **Layout.** Set **Buttons per row** to 7 → two rows. Flip **Orientation** to Vertical → two columns. Flip **Horizontal growth** to Left and **Vertical growth** to Up → the first slot moves to the opposite corner and the bar grows the other way. Drag **Button size**, **Button spacing**, **Bar padding** and **Bar scale** → geometry tracks live with no visual tearing.
 6. **Bar + button appearance.** Toggle each background/border checkbox and change each color → the bar backdrop, the bar frame and the button borders all respond. Pick a different **Bar border style** / **Button border style** from the LibSharedMedia dropdown → the edge texture changes and the closed dropdown shows the new name (no 42px gap next to it — that's the library's Border fixup, `lib.__PatchLSM30Border()`, called from `settings/OptionsSetup.lua`). **This step checks it with ConsumableMaster alone, which is exactly the check that stayed green through the defect [step 19](#libka0s-seam-pass) exists for** — run 19 too whenever this one matters. Raise **border thickness** to 16 → thick edges; then raise **Button border offset** → the border moves off the icon instead of covering it. Turn **Button border** off → a flat, borderless icon grid. Drag **Icon zoom** to 40% → icons crop symmetrically. Turn **Show stack count** off → counts vanish, and they are not sliced by a thick border when on. Turn **Show tooltips** off → hovering shows nothing.
-6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, and the *Font* block: pick a different **Font** from the LibSharedMedia list, walk **Font flags** through all five values (*None* really removes the outline), tick **Font shadow** and confirm a soft drop shadow appears — then untick it and confirm the shadow is CLEARED rather than left behind. **Font color** plus **Use class color**: with the box ticked the labels take your class colour and the swatch's opacity still applies.
+6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, and the *Font* block: pick a different **Font** from the LibSharedMedia list, walk **Font flags** through all five values (*None* really removes the outline), tick **Font shadow** and confirm a soft drop shadow appears — then untick it and confirm the shadow is CLEARED rather than left behind. **Font color** plus **Use class color**: with the box ticked the labels take your class color and the swatch's opacity still applies.
 7. **Cooldown.** Use a potion → the swipe animates on that slot and on any other slot sharing the same item. With Interface → ActionBars → "Show numbers for cooldowns" on, the countdown numbers appear too.
 7a. **Cooldown in combat (restricted).** The one that matters for the Midnight secret-value rules, and it needs a category whose pick is a **spell** (Healthstone, a class heal) — item cooldowns are never restricted, spell ones are. **Turn error display on first** — `/console scriptErrors 1`, or have BugSack loaded — because the failure mode here is a Lua error, and with the default UI it passes silently and this test reads as a false pass. Pull a mob, and while in combat use that spell and watch its slot *and* its flyout entry: the swipe must animate normally with **no** Lua error. Repeat inside a dungeon or raid, where the restriction stays on for the whole instance. A slot with nothing running must stay unshaded — no stuck or flickering swipe. Leave combat → the swipe keeps counting down and finishes cleanly.
 8. **Reorder by drag.** Drag one slot onto another → the two swap and the swap survives `/reload`. **Reset slot order** puts them back.

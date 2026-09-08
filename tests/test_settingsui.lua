@@ -40,7 +40,7 @@ end)
 -- wrapper stayed invisible for as long as they did. What makes it observable is
 -- the `mutate` hook in tests/run.lua: the registry is seeded between the library
 -- files and the addon's own, which is the only window a real client's
--- already-registered widget can be modelled in.
+-- already-registered widget can be modeled in.
 test("Settings UI: the live wiring registers the Border fixup through the library", function(t)
     local seededCtor = function()
         local rec = { hidden = false, labelPoints = 0, capPoints = 0 }
@@ -488,7 +488,7 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
         -- which forbids an addon-side wrapper for any of them, even though the
         -- second loop below shows a wrapper is a legitimate, currently-shipped
         -- pattern. A future author who needs to wrap RefreshScalars would ship
-        -- behaviourally identical code and redden the suite; and the rawget half
+        -- behaviorally identical code and redden the suite; and the rawget half
         -- detected nothing the `H[name] == UI[name]` line beside it did not,
         -- since __index delegation is exactly what makes that line pass.
         --
@@ -979,7 +979,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 --- Record every controller LibKa0s-Widgets hands out while `fn` runs, and how
---- many times each was cancelled.
+--- many times each was canceled.
 local function recordControllers(fn)
     local W = LibStub("LibKa0s-Widgets-1.0")
     local made = {}
@@ -1091,7 +1091,7 @@ test("Settings: re-rendering a composite tab cancels EVERY controller it built",
         recordControllers(function() KCM.Settings.Helpers.RefreshAllPanels() end)
         for i, list in ipairs(first) do
             t.truthy(list.__cancels >= 1,
-                "controller #" .. i .. " from the previous render was cancelled")
+                "controller #" .. i .. " from the previous render was canceled")
         end
     end)
 
@@ -1236,7 +1236,7 @@ test("Settings: every draggable row on the Macros page is boxed full-width and s
 
 -- The Include CHECKBOX became a tick/cross glyph you click, the same two textures
 -- MultiMeters wears on its column blocks -- one glyph vocabulary for a player who
--- runs both. A checkbox labelled "Include" spent a third of the row saying what
+-- runs both. A checkbox labeled "Include" spent a third of the row saying what
 -- the tick already says.
 --
 -- red under: wiring the glyph's OnClick to nothing (a control that looks like a

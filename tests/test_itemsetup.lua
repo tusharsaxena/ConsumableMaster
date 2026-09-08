@@ -13,7 +13,7 @@ test("ItemSetup: KCM.Item.ItemIDFromLink reads the id out of a full item link", 
     t.truthy(KCM.Item, "the seam is published")
     t.eq(KCM.Item.ItemIDFromLink(
         "|cffa335ee|Hitem:211804::::::::80:253::::::|h[Vantus Rune]|h|r"), 211804,
-        "the itemID out of a coloured, fully-qualified link")
+        "the itemID out of a colored, fully-qualified link")
 end)
 
 test("ItemSetup: it reads a bare itemString too", function(t)
