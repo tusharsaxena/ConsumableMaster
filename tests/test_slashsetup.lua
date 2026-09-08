@@ -338,3 +338,50 @@ test("Slash: the panel's degraded advice agrees with what /cm actually answers",
             "the advice names " .. verb .. " as unavailable rather than recommending it")
     end
 end)
+
+test("Slash: `/cm get` and the settings panel decode one stored color the same way",
+function(t)
+    -- M4-18 / CONSUMABLEMASTER-R-05. The two settings surfaces each carried a
+    -- hand-written codec and they disagreed about a channel the stored table
+    -- does not carry: settings/OptionsSetup.lua answered `c[1] or 1`,
+    -- settings/Slash.lua answered `c[1] or 0`. A color missing its blue read
+    -- WHITE in the panel and BLACK from `/cm get`, from one stored value, and
+    -- nothing was red because neither codec was reachable by name.
+    --
+    -- red under: giving either surface a fallback of its own again. The panel's
+    -- decode is published (KCM.Settings.Helpers.ColorDecode) for exactly this
+    -- comparison — the CLI half cannot be reached at all, it lives on a
+    -- descriptor the library keeps private, so it is driven end to end instead.
+    local KCM, mock = load()
+    local path = "macroBar.barBackdropColor"
+
+    -- A stored color with its blue and its alpha missing. It is not a state
+    -- the picker or `/cm set` can produce — both write four channels — which is
+    -- the point: it is a hand-edited SavedVariables, and the two surfaces have
+    -- to answer it identically rather than each guessing.
+    local H = KCM.Settings.Helpers
+    local previous = H.Get(path)
+    H.Set(path, { 1, 0.5 })
+
+    mock.output = {}
+    KCM:OnSlashCommand("get " .. path)
+    local cli = table.concat(mock.output, "\n")
+
+    local r, g, b, a = H.ColorDecode({ 1, 0.5 })
+    H.Set(path, previous)
+
+    t.truthy(cli:find(("{%.2f, %.2f, %.2f, %.2f}"):format(r, g, b, a), 1, true),
+        "the panel's channels are not what `/cm get` printed: " .. cli)
+    t.eq(b, 0, "the panel must not read an absent blue as white")
+
+    -- AceGUI's ColorPicker passes SetColor's four arguments straight into
+    -- Texture:SetVertexColor (libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua:149),
+    -- which raises on a nil. The shared decoder answers nil for an absent
+    -- channel on purpose; this seam is the one that cannot draw that answer, so
+    -- it is the one that supplies numbers — and they are the same numbers
+    -- LibKa0s-Slash-1.0's own COLOR_KEYS fills in (in libs/LibKa0s/Slash.lua),
+    -- which is why the two surfaces agree rather than merely both being green.
+    local nr, ng, nb, na = H.ColorDecode(nil)
+    t.eq(type(nr) .. type(ng) .. type(nb) .. type(na), "numbernumbernumbernumber",
+        "the panel's decode must never hand the color picker a nil channel")
+end)

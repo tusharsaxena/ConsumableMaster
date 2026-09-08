@@ -317,7 +317,7 @@ test("ResetAllToDefaults keeps the addon on when the defaults have no enabled ke
 
     t.eq(KCM.db.profile.enabled, nil, "the profile mirrors the defaults table exactly")
     -- Reached the way the macro write loop reaches it.
-    t.eq(not (KCM.db.profile.enabled == false), true,
+    t.eq(not (KCM.db and KCM.db.profile and KCM.db.profile.enabled == false), true,
         "a missing defaults key is fail-safe (addon on), not fail-off")
 end)
 
@@ -356,7 +356,7 @@ end)
 -- `set()`. `state.debugConsole` is that row: settings/Panel.lua's SESSION_PATHS
 -- answers it out of the console's own visibility, not out of db.profile, so
 -- `db:ResetProfile()` leaves it exactly as it found it and a console the player
--- opened outlives a reset that took everything around it. §12 makes restoring
+-- opened outlives a reset that took everything around it. options-ui-§12 makes restoring
 -- those rows by hand a MUST, and restoreSessionRows is where it happens.
 --
 -- Pinned on ResetAllToDefaults rather than on either door, because that is the

@@ -94,10 +94,6 @@ core\TooltipCache.lua
 core\WeaponSlots.lua
 core\BagScanner.lua
 core\Classifier.lua
-# LSMPatch collapses the LSM30_Border widget's 42px preview tile, which
-# misaligns inside a canvas-layout panel. Addon code, not a lib, so a lib
-# refresh can't blow it away.
-core\LSMPatch.lua
 # MacroDisplay reads what a macro currently resolves to (icon/count/cooldown/
 # tooltip); MacroBarModel + MacroBarLayout are the pure slot-order and grid-math
 # halves of the optional macro bar rendered by modules\MacroBar.lua.

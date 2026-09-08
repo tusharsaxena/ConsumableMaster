@@ -205,3 +205,44 @@ test("CoreSetup: with the library absent there is no wrapper to call, and no err
     local KCM = loader.loadPureDegraded()
     t.falsy(KCM.MakeCloseButton, "the degraded branch published a close-button wrapper")
 end)
+
+test("CoreSetup: the shared color decoder answers nil for a channel that is not stored",
+function(t)
+    -- M4-18. Colors are stored POSITIONALLY here — { r, g, b, a } — and three
+    -- places unpacked that shape by hand. Two of them disagreed about a channel
+    -- the stored table does not carry: settings/OptionsSetup.lua answered
+    -- `c[1] or 1` and settings/Slash.lua answered `c[1] or 0`, so ONE stored
+    -- value read white in the panel and black from `/cm get`.
+    --
+    -- RED BEFORE THE FIX because KCM.ColorDecode did not exist: the shape was
+    -- read in three files and in none of them by name, which is exactly how two
+    -- of the three drifted without a case noticing.
+    --
+    -- The decoder invents nothing. A caller that can only draw a number passes
+    -- its own fallback in, which is the arrangement KCM.SwatchColor has always
+    -- had — a bar backdrop that lost its stored value falls back to black at
+    -- 50%, not to white, and that number belongs to the bar rather than here.
+    local KCM = loader.loadPure()
+
+    local r, g, b, a = KCM.ColorDecode({ 0.2, 0.4, 0.6, 0.8 })
+    t.eq(r, 0.2, "red is the stored red")
+    t.eq(g, 0.4, "green is the stored green")
+    t.eq(b, 0.6, "blue is the stored blue")
+    t.eq(a, 0.8, "alpha is the stored alpha")
+
+    local _, _, pb, pa = KCM.ColorDecode({ 1, 0.5 })
+    t.eq(pb, nil, "an absent blue must read as absent, not as 0 and not as 1")
+    t.eq(pa, nil, "an absent alpha must read as absent")
+
+    local dr, dg, db, da = KCM.ColorDecode({ 1, 0.5 }, 0, 0, 0, 1)
+    t.eq(dr, 1, "a stored channel is never replaced by the caller's fallback")
+    t.eq(dg, 0.5, "a stored channel is never replaced by the caller's fallback")
+    t.eq(db, 0, "an absent channel takes the CALLER's fallback")
+    t.eq(da, 1, "an absent alpha takes the caller's fallback")
+
+    local nr, ng, nb, na = KCM.ColorDecode(nil, 0, 0, 0, 1)
+    t.eq(nr .. "," .. ng .. "," .. nb .. "," .. na, "0,0,0,1",
+        "a value that is not a table is four absent channels, not an error")
+    t.eq(KCM.ColorDecode("not a color"), nil,
+        "and with no fallback offered it stays absent")
+end)

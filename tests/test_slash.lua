@@ -23,7 +23,7 @@ local function effectiveSet(KCM, catKey)
 end
 
 test("/cm set toggles a bool setting through the schema", function(t)
-    local KCM, mock = load()
+    local KCM = load()
     KCM:OnSlashCommand("set enabled false")
     t.eq(KCM.db.profile.enabled, false, "enabled set to false via schema")
     KCM:OnSlashCommand("set enabled true")

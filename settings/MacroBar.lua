@@ -105,23 +105,6 @@ local function block(rows, decorate)
     return rows
 end
 
--- THE MEDIA-LIST WORKAROUND, and it is a LIBRARY DEFECT worked around rather
--- than a preference. OptionsCompose minor 1 emits its media rows as
--- `values = function() return O.LSMValues("border") end` — but `O.LSMValues`
--- already RETURNS the deferred closure, so the row's `values()` answers a
--- function and the flow engine's enumList, which accepts a table or a function
--- returning one, sees neither and renders an EMPTY dropdown. Reported upstream;
--- until it is fixed there, the row's list is replaced here with this addon's own
--- ordered `{ value =, text = }` reader, which is the shape every other media row
--- on this page already declares.
---
--- FILED: LibKa0s issue #15. This function and the three `values = lsmValues(...)`
--- overrides below come out in the same change as the re-vendor that carries the
--- fix -- they are a workaround with an end condition, not a preference.
-local function lsmValues(mediaType)
-    return function() return H.LSMValues(mediaType) end
-end
-
 local function enum(...)
     local out = {}
     for i = 1, select("#", ...), 2 do
@@ -266,7 +249,6 @@ block(H.BorderGroup{
     classColor = { source = "player" },
 }, {
     ["macroBar.barBorderStyle"] = {
-        values  = lsmValues("border"),
         tooltip = L["LibSharedMedia border texture used for the bar's edge. Any border another addon registers shows up here too."],
     },
     ["macroBar.barBorderSize"] = {
@@ -334,7 +316,6 @@ block(H.BorderGroup{
     },
 }, {
     ["macroBar.buttonBorderStyle"] = {
-        values  = lsmValues("border"),
         tooltip = L["LibSharedMedia border texture used for each button's edge. Any border another addon registers shows up here too."],
     },
     ["macroBar.buttonBorderSize"] = {
@@ -451,7 +432,6 @@ block(H.FontGroup{
     classColor = { source = "player" },
 }, {
     ["macroBar.labelFont"] = {
-        values  = lsmValues("font"),
         tooltip = L["LibSharedMedia font face the button labels are drawn in. Any face another addon registers shows up here too."],
     },
     -- The composer's spec carries no range field, and its 6-32 default would

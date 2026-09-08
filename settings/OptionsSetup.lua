@@ -45,6 +45,33 @@ KCM.Settings.Helpers = Helpers
 local PANEL_TITLE = L["Ka0s Consumable Master"]
 KCM.Settings.PANEL_TITLE = PANEL_TITLE
 
+-- The panel's half of the ONE color decoder (CONSUMABLEMASTER-R-05). The
+-- unpack is core/CoreSetup.lua's KCM.ColorDecode and is shared with
+-- settings/Slash.lua; what is per-surface is the four numbers handed to it, and
+-- this surface has to hand it some.
+--
+-- WHY THIS SURFACE CANNOT TAKE THE NIL the decoder answers for an absent
+-- channel: the library passes what colorDecode returns to the AceGUI picker's
+-- SetColor (libs/LibKa0s/OptionsWidgets.lua:1658-1660), and SetColor passes its
+-- four arguments straight into Texture:SetVertexColor
+-- (libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua:149), which RAISES on a
+-- nil. A swatch cannot draw "absent", so it draws something — but it no longer
+-- CHOOSES what.
+--
+-- The numbers are LibKa0s-Slash-1.0's own COLOR_KEYS fallbacks
+-- (`COLOR_KEYS` in libs/LibKa0s/Slash.lua), which is what `/cm get` already renders for the
+-- same absent channel. That is the whole point: the old `or 1` here made the
+-- panel show white where the CLI showed black, from one stored value. Pinned by
+-- a case that drives both surfaces (tests/test_slashsetup.lua).
+--
+-- An OWN key on Helpers, published rather than written inline as a closure, for
+-- the reason Helpers.instance is published: the two halves of a pair that MUST
+-- agree can only be checked against each other if the suite can reach them, and
+-- the CLI half lives on a descriptor the library keeps private.
+function Helpers.ColorDecode(c)
+    return KCM.ColorDecode(c, 0, 0, 0, 1)
+end
+
 -- ---------------------------------------------------------------------
 -- LibKa0s-Options-1.0
 -- ---------------------------------------------------------------------
@@ -73,6 +100,45 @@ local UI
 -- every draw path, so an instance built without one would publish a seam that
 -- raises on first use instead of degrading at load.
 if optionsLib and AceGUI then
+    -- The LSM30_Border fixup, and why it is a call rather than a file.
+    --
+    -- A LIBRARY ACT, NOT AN ADDON ONE. AceGUI's widget registry is process-global:
+    -- one slot named "LSM30_Border" that every addon in the client shares, Ka0s or
+    -- not, and the highest version registered for the name owns it for the rest of
+    -- the session. This addon carried the fixup privately in core/LSMPatch.lua, and
+    -- so did AbsorbTracker, KickCD, MultiMeters and PanelMaster — five copies, five
+    -- distinct md5s, each wrapping whatever it found and registering one version
+    -- above it. Load all five and the wrapper a Border dropdown actually got
+    -- belonged to whichever addon the client reached last. Nothing headless in any
+    -- of the five repos could see it: each suite loads one copy, registers once and
+    -- passes, and docs/smoke-tests.md's §11a step 6 checked the alignment with this addon alone.
+    --
+    -- lib.__PatchLSM30Border (LibKa0s-Options-1.0 minor 15) is that same wrapper
+    -- published once, guarded by lib.__lsmBorderPatched. Five vendored copies of
+    -- the library are still ONE table to LibStub, so five callers produce ONE
+    -- registration and the return value says which call made it. Calling it needs
+    -- no agreement with any sibling addon.
+    --
+    -- ON THE LIBRARY, NOT ON THE INSTANCE, which is why it is called here rather
+    -- than reached through Helpers: a per-instance member would be one
+    -- registration per host again, which is the shape being removed.
+    --
+    -- HERE, AT FILE LOAD, is early enough. ConsumableMaster.toc pulls
+    -- libs\AceGUI-3.0-SharedMediaWidgets\widget.xml in at :30, well before
+    -- settings\OptionsSetup.lua at :155, so the slot already holds AGSMW's own
+    -- constructor when this line runs — and a registration whose version is not
+    -- strictly higher is refused, so another addon's later copy of AGSMW cannot
+    -- take the slot back at its own fixed number. (Worded around the AceGUI entry
+    -- point's name on purpose: C02's acceptance is a grep for that identifier over
+    -- core/, modules/ and settings/ returning nothing, and a prose mention is a hit
+    -- an auditor has to read and dismiss.)
+    --
+    -- core/LSMPatch.lua IS GONE, deleted in the commit that added this line. Its
+    -- own timing was PLAYER_LOGIN; this is earlier and safe for the reason above.
+    -- Keeping it would have been a second registration of a wrapper the library
+    -- has already installed — the exact duplicate the promotion exists to end.
+    optionsLib.__PatchLSM30Border()
+
     UI = optionsLib:New({
         -- The one field lib:New validates, and it raises rather than warns: an
         -- anonymous canvas is one /framestack cannot attribute and two addons
@@ -98,10 +164,11 @@ if optionsLib and AceGUI then
         -- the Ka0s options color widget has always written. The library's
         -- default codec is the named-key form, so without this every picker
         -- would read white and write a table nothing here can unpack.
-        colorDecode = function(c)
-            c = type(c) == "table" and c or {}
-            return c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1
-        end,
+        --
+        -- The unpack is SHARED with settings/Slash.lua now; see
+        -- Helpers.ColorDecode at the head of this file for what this surface
+        -- adds to it and why it is the only one of the two that adds anything.
+        colorDecode = Helpers.ColorDecode,
         colorEncode = function(r, g, b, a) return { r, g, b, a or 1 } end,
 
         -- Sliders commit on the drag, not just on release. The Macro Bar page's
@@ -132,8 +199,10 @@ if optionsLib and AceGUI then
     -- the rest — is now reachable on Helpers without being copied, so the two
     -- tables cannot drift and no member can be silently absent. The addon's own
     -- wrappers stay OWN keys on Helpers and shadow the library's same-named
-    -- function, which is what keeps Section / CreatePanel / LSMValues able to
-    -- call the instance's version without recursing into themselves.
+    -- function, which is what keeps Section and CreatePanel able to call the
+    -- instance's version without recursing into themselves. LSMValues was the
+    -- third until M4-C1 retired it; `Helpers.LSMValues` is the library's own
+    -- deferred reader now, reached straight through this __index.
     setmetatable(Helpers, { __index = UI })
 
     -- The instance, so the suite can assert IDENTITY against the library rather
@@ -159,17 +228,21 @@ else
 
     -- THE LOAD-COMPLETING HALF (options-ui-§1). settings/General.lua and
     -- settings/MacroBar.lua call the OptionsCompose composers inside schema-row
-    -- literals, AT FILE LOAD -- the same position `LSMValues` sits in. With the
-    -- member nil the page file raises, its rows never register, and a third of the
-    -- schema goes missing silently; with these here the file finishes.
+    -- literals, AT FILE LOAD. With the member nil the page file raises, its rows
+    -- never register, and a third of the schema goes missing silently; with these
+    -- here the file finishes. `LSMValues` used to be named as sitting in the same
+    -- position and it no longer does -- no page file evaluates it at file load
+    -- since M3-04, which is what let M4-C1 retire the host copy. Note it was never
+    -- published by THIS arm even then: settings/Panel.lua defined it
+    -- unconditionally, on both.
     --
     -- They answer an EMPTY row list, and that is the whole of the fallback. A
     -- composer is a pure function that emits a fixed row block, so a host copy of
     -- one is precisely the duplicate the library was extracted to end
     -- (options-ui-§1's "MUST NOT carry a copy of a widget maker ... into the
-    -- stub", anti-patterns #47) -- and the difference from LSMValues, whose empty
-    -- table still leaves the row standing, is real: the composed rows are ABSENT
-    -- on a degraded load. That costs nothing reachable. With the library gone the
+    -- stub", anti-patterns #47) -- and the difference from a host stub that hands
+    -- back an empty VALUE list, which still leaves its row standing, is real: the
+    -- composed rows are ABSENT on a degraded load. That costs nothing reachable. With the library gone the
     -- panel is never registered (settings/Panel.lua's registerPanel) and
     -- `/cm list|get|set` answer "unavailable" (they are LibKa0s-Slash-1.0's), so
     -- there is no surface left that could have read them. tests/test_settingsui.lua

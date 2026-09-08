@@ -450,7 +450,7 @@ end
 --- `/cm resetall` are one act, and the addon's own note in settings/General.lua that
 --- "every execute path is shared with the slash commands" is only true while the
 --- whole act is behind this one function. First, not last, for the reason the
---- library's own RestoreAllDefaults orders it that way (libs/LibKa0s/Options.lua:620-636):
+--- library's own `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
 --- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
 --- would be writing into a panel that had already been drawn from the old value.
 function KCM.ResetAllToDefaults(reason)
@@ -514,6 +514,16 @@ function KCM:OnRegenEnabled()
     -- was deferred because it anchors protected frames. Apply it now.
     if KCM.MacroBar and KCM.MacroBar.FlushPending then
         KCM.MacroBar.FlushPending()
+    end
+    -- A settings-category registration refused under lockdown parked itself
+    -- rather than tainting the Settings window (settings/Panel.lua's
+    -- registerPanel). This handler is the addon's only listener that knows
+    -- combat just ended, so the replay belongs here rather than on a second
+    -- PLAYER_REGEN_ENABLED frame owned by the options layer. It is a no-op on
+    -- every ordinary regen: nothing parks the flag unless a login, a /reload
+    -- or a force-load of Blizzard_Settings happened mid-fight.
+    if KCM.Settings and KCM.Settings.registerPending and KCM.Settings.Register then
+        KCM.Settings.Register()
     end
 end
 

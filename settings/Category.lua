@@ -153,7 +153,7 @@ end
 -- instead of once per log site. It stays a PREDICATE rather than a logging
 -- wrapper on purpose: Lua evaluates call arguments before the callee runs, so a
 -- `dbg(fmt, ...)` wrapper would make KCM.Debug's arguments allocate even with
--- debug off — the standard §12 zero-alloc rule these paths are written to.
+-- debug off — the debug-logging-§4 zero-alloc rule these paths are written to.
 -- Today's two call sites pass only a plain string, but the wrapper shape is
 -- what makes the NEXT diagnostic (a tostring, a concat, a table) pay silently.
 -- Same shape as core/ConsumableMaster.lua's and modules/MacroManager.lua's
@@ -557,7 +557,7 @@ end
 --- CALLED BEFORE H.ResetScroll, ON EVERY DISPATCH, and that order is the whole of it. Releasing a
 --- handle is what takes it off the AceGUI container it was parented to, and ResetScroll hands every
 --- container on this page back to AceGUI's process-wide pool -- where the next thing to ask for a
---- SimpleGroup gets one with a live handle still sitting on it. Cancelling afterwards is how drag
+--- SimpleGroup gets one with a live handle still sitting on it. Canceling afterwards is how drag
 --- handles turned up on the "Drag to action bar" row, on the ID entry row, and on a dropdown.
 ---
 --- A LIST, NOT A CONTROLLER. A composite page builds TWO -- one per combat-state section, because
@@ -717,7 +717,7 @@ local function priorityRowContext(cat, specKey, priority, mh, oh, mhAff, ohAff)
 end
 
 -- ONE CONTROLLER PER RENDER, built here so the drawing function below reads as the
--- draw. The one before it was cancelled at the top of the dispatch, before
+-- draw. The one before it was canceled at the top of the dispatch, before
 -- ResetScroll -- see cancelReorder for why it cannot be done here instead.
 local function makePriorityList(ctx, cat, specKey, priority)
     local W = reorderWidgets()
@@ -761,7 +761,7 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
     local list = makePriorityList(ctx, cat, specKey, priority)
 
     if isDebugOn() and KCM.Debug then
-        KCM.Debug("Prio", "paint %s rows=%d spec=%s", cat.key, #priority, tostring(specKey))
+        KCM.Debug("Prio", "paint %s rows=%s spec=%s", cat.key, #priority, tostring(specKey))
     end
 
     for _, id in ipairs(priority) do

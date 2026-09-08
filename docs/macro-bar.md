@@ -16,7 +16,6 @@ about it living in `db.profile.macroBar`. User-facing description is in
 | [`modules/MacroBarFlyout.lua`](../modules/MacroBarFlyout.lua) | yes | per-slot hover flyout: indicator, secure hover snippets, entry pool |
 | [`modules/MacroBar.lua`](../modules/MacroBar.lua) | yes | container, apply passes, combat deferral, bus receiver |
 | [`settings/MacroBar.lua`](../settings/MacroBar.lua) | yes | the Macro Bar page + every `macroBar.*` schema row |
-| [`core/LSMPatch.lua`](../core/LSMPatch.lua) | — | third-party fixup: collapses the `LSM30_Border` widget's 42px preview tile, which misaligns inside a canvas-layout panel |
 
 The split is deliberate: all the logic worth testing is in the three `core/`
 files, which `tests/test_macrobar.lua` exercises headlessly. The `modules/`
@@ -35,8 +34,15 @@ after AceGUI + LibSharedMedia — same as KickCD). Two things to know about thos
 widgets:
 
 * their preview tile is pinned to the widget's TOPLEFT, which leaves a 42px hole
-  next to the closed dropdown in a canvas panel — `core/LSMPatch.lua` re-anchors
-  it at `PLAYER_LOGIN` (a verbatim copy of KickCD's fixup; keep them in step);
+  next to the closed dropdown in a canvas panel. The fixup that collapses it is
+  `lib.__PatchLSM30Border()`, a `LibKa0s-Options-1.0` member (minor 15) called
+  once from `settings/OptionsSetup.lua`'s live arm. It used to be
+  `core/LSMPatch.lua` here, and a near-verbatim copy of the same file in four
+  sibling addons; AceGUI's widget registry is process-global, so five private
+  registrations in one client meant the last addon loaded owned everyone's
+  Border dropdown. One idempotent library member is one registration however
+  many copies of the library are vendored, and there is nothing left to "keep in
+  step" with KickCD;
 * they fire `OnValueChanged` **without** calling `SetValue` first, because they
   assume AceConfigDialog will re-render the widget afterwards. Our panel does
   not, so `makeDropdown` in `settings/Panel.lua` pushes the value back
@@ -348,8 +354,12 @@ Upgrading profiles are brought to the same starting point by schema **v2**
 (`Database.MigrateMacroBarV2`): it forces `enabled = true` + `locked = false`
 once. New installs don't need it — AceDB injects the defaults — but a profile
 carrying a partial `macroBar` table from an earlier build of this feature does.
-The step is **one-shot**: `RunMigrations` bumps `schemaVersion` past it, so a
-later deliberate "off" or "locked" is never stomped on the next login.
+The step is **one-shot per profile**: `RunMigrations` bumps that profile's own
+`schemaVersion` past it, so a later deliberate "off" or "locked" is never stomped
+on the next login or the next switch back. It is per profile rather than per
+account because the step writes the profile, and a profile that has never been
+switched to has never been walked — so each existing profile meets this step once,
+on its first arrival under the build that introduced the profile-scoped stamp.
 
 Schema **v3** (`Database.MigrateLabelFlagsV3`) converts the label's `labelOutline`
 boolean into the canonical `labelFlags` string the font group declares
@@ -357,6 +367,13 @@ boolean into the canonical `labelFlags` string the font group declares
 key. A stored value changing shape is a migration and not an edit to a defaults
 table: without it the panel would meet a boolean where it expects one of five
 strings and the player would lose a setting they had already made, silently.
+
+The step is gated on the **old** key being present, which is the only thing that
+marks an unmigrated profile. `labelFlags` cannot be used for that, however
+natural it reads: AceDB merges the shipped `"OUTLINE"` into the live profile
+before any of this addon's code runs, so it is never absent, and a guard on its
+absence retires the boolean without converting it — handing a player who had
+unticked the outline the default they had turned off.
 
 `macroBar.locked` is still stored here, but the control that writes it is the
 General page's **Lock frame** row now, on the Master controls tab
@@ -390,9 +407,15 @@ Every scalar has a matching `KCM.Settings.Schema` row registered by
 and a `/cm get|set macroBar.<field>` path. `enum`s are `type = "string"` rows
 with a `values` list; `Helpers.ValidateSchemaValue` rejects anything outside it,
 so the dropdown and the CLI can't write a value the renderer can't display. The
-two border-style rows add `lsm = "border"` and pass `values` as a **function**
-(`H.LSMValues("border")`) so the list is re-queried at click time — another addon
-can register a border after our schema is declared.
+two border-style rows and the label-font row declare no `values` of their own at
+all: they are composed rows, and since the v1.26.0 re-vendor the composer's own
+`O.LSMValues(kind)` closure is what they carry. It is a **function** for the same
+reason it always had to be — the list is re-queried at click time, because another
+addon can register a border after our schema is declared — and it answers a
+self-keyed map rather than the ordered array the hand-written rows here declare,
+which is why `Helpers.EnumValues` normalizes both shapes before the validator
+counts them. Until v1.26.0 all three rows overrode `values` locally, because the
+composer's list came back empty (LibKa0s issue #15).
 
 `macroBar.perRow` has THREE hand-maintained copies of "the managed category
 count," and all three went stale (13 → 15) when this branch added two

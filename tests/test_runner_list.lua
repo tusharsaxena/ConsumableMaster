@@ -9,7 +9,7 @@
 local h = _G.KCM_TEST
 local test = h.test
 
--- One subprocess, memoised across the cases below. Safe from recursion: in --list
+-- One subprocess, memoized across the cases below. Safe from recursion: in --list
 -- mode the child registers cases but runs none, so it never re-enters this file's
 -- bodies.
 local listing

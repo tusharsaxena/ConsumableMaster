@@ -416,6 +416,36 @@ local function makeAceDB()
         db.global  = deepcopy(defaults.global or {})
         db.char    = deepcopy(defaults.char or {})
 
+        -- THE PROFILE STORE, so a case can model a SECOND profile.
+        --
+        -- `db.profiles` is real AceDB's raw SavedVariables profile table, and the
+        -- fidelity that earns its place here is that a profile is merged with the
+        -- defaults only when it is ACTIVATED. A profile written by an older build
+        -- and not opened this session therefore sits in the store exactly as the
+        -- SavedVariables file left it -- un-stamped and un-merged -- which is the
+        -- one shape a per-profile migration has to handle, and the shape a fake
+        -- that pre-merges every profile hides.
+        --
+        -- Modeled on the kit's own AceDB (tests/_kit/mock_base.lua). This file
+        -- overrides that lib with a narrower one, so the profile surface has to be
+        -- restated here rather than inherited.
+        local current = "Default"
+        db.profiles = { [current] = db.profile }
+
+        -- AceDB's copyDefaults: recurse into every table-valued default, creating
+        -- the destination sub-table when it is missing, but fill a SCALAR leaf only
+        -- where the destination has none. A stored user value always wins.
+        local function copyDefaults(dest, src)
+            for k, v in pairs(src or {}) do
+                if type(v) == "table" then
+                    if type(dest[k]) ~= "table" then dest[k] = {} end
+                    copyDefaults(dest[k], v)
+                elseif dest[k] == nil then
+                    dest[k] = v
+                end
+            end
+        end
+
         -- THE CALLBACK SURFACE AND ResetProfile, modeled rather than stubbed.
         --
         -- Neither existed here, which was harmless while nothing called them and
@@ -437,15 +467,19 @@ local function makeAceDB()
             callbacks[event][#callbacks[event] + 1] = { target = target, handler = handler }
         end
 
-        local function fire(event)
+        -- The third argument is the profile key CallbackHandler passes through.
+        -- It was the literal "Default" while one profile was all this fake had;
+        -- now a switch names the profile it switched to, and everything else
+        -- reports whichever profile is live.
+        local function fire(event, key)
             for _, entry in ipairs(callbacks[event] or {}) do
                 local target, handler = entry.target, entry.handler
                 if type(handler) == "function" then
-                    handler(event, db, "Default")
+                    handler(event, db, key or current)
                 elseif type(handler) == "string" and type(target) == "table"
                     and type(target[handler]) == "function"
                 then
-                    target[handler](target, event, db, "Default")
+                    target[handler](target, event, db, key or current)
                 end
             end
         end
@@ -456,6 +490,27 @@ local function makeAceDB()
             for k, v in pairs(deepcopy(defaults.profile or {})) do p[k] = v end
             fire("OnProfileReset")
         end
+
+        -- db:SetProfile(name) -- colon-called, like the real DBObjectLib method.
+        --
+        -- Note the difference from ResetProfile above, which is the whole reason
+        -- both are modeled: a reset wipes the profile table IN PLACE and keeps its
+        -- identity, while a switch drops `self.profile` and lets AceDB regenerate
+        -- it from `sv.profiles[name]`, so the table a caller is holding after a
+        -- switch is a DIFFERENT table. Anything that cached db.profile across a
+        -- switch is looking at the outgoing profile, and a fake that reused one
+        -- table for both would never show it.
+        db.SetProfile = function(_, name)
+            if type(name) ~= "string" or name == current then return end
+            local p = db.profiles[name] or {}
+            db.profiles[name] = p
+            copyDefaults(p, defaults.profile)
+            current    = name
+            db.profile = p
+            fire("OnProfileChanged", name)
+        end
+
+        db.GetCurrentProfile = function() return current end
 
         return db
     end
@@ -485,8 +540,25 @@ function M.install(NS)
         ["AceConsole-3.0"] = makeStub(),
         ["AceDB-3.0"]      = makeAceDB(),
         -- AceGUI: Create returns a permissive widget stub; GetWidgetVersion
-        -- returns 0 (a number, so widget files' `>= Version` guard compares
-        -- cleanly and proceeds to register). Everything else is a no-op.
+        -- returns 0 for a type nobody has registered (a number, so widget files'
+        -- `>= Version` guard compares cleanly and proceeds to register).
+        --
+        -- THE REGISTRY IS A REAL TABLE, and that is not decoration. Real AceGUI
+        -- keeps `WidgetRegistry` (type → constructor) and `WidgetVersions`
+        -- (type → version) as plain tables, and the library's own
+        -- `lib.__PatchLSM30Border` reads the first of them directly. With both
+        -- absent the catch-all `__index` below answered `WidgetRegistry` with a
+        -- FUNCTION, and indexing that raised — 245 cases red on a stub whose
+        -- shape had drifted from the thing it stands in for, not on anything the
+        -- addon did. Recording a registration also lets a case SEE one, which is
+        -- what pins the Border fixup now that this addon no longer carries a
+        -- private copy of it.
+        --
+        -- `Create` deliberately ignores the registry and always hands back the
+        -- permissive stub. The four KCM* widget files register constructors that
+        -- build real frames at call time; honoring them here would change what
+        -- every settings case gets back, and the widget bodies have their own
+        -- suite (tests/test_widgets.lua).
         --
         -- `__created` is a HARNESS-SIDE creation log, in creation order. No
         -- production code knows it exists; it is how a case reaches a widget on a
@@ -495,16 +567,22 @@ function M.install(NS)
         -- intercepted by swapping the instance's AceGUI out.
         ["AceGUI-3.0"]     = setmetatable({
                                 __created = {},
+                                WidgetRegistry = {},
+                                WidgetVersions = {},
                                 Create = function(self)
                                     local w = makeAceWidget()
                                     local log = type(self) == "table" and rawget(self, "__created")
                                     if log then log[#log + 1] = w end
                                     return w
                                 end,
-                                RegisterWidgetType = function() end,
+                                RegisterWidgetType = function(self, wtype, ctor, version)
+                                    self.WidgetRegistry[wtype] = ctor
+                                    self.WidgetVersions[wtype] = version
+                                end,
                                 RegisterLayout = function() end,
-                                GetWidgetVersion = function() return 0 end,
-                                WidgetVersions = {},
+                                GetWidgetVersion = function(self, wtype)
+                                    return self.WidgetVersions[wtype] or 0
+                                end,
                              }, { __index = function() return function() return makeStub() end end }),
         -- LibSharedMedia: enough of the real surface for the settings layer's
         -- LSMValues() lists and the macro bar's border fetch. `media` mirrors
@@ -597,7 +675,10 @@ function M.install(NS)
     _G.strsplit = function(sep, s)
         local out = {}
         for part in (s or ""):gmatch("([^" .. sep .. "]+)") do out[#out + 1] = part end
-        return table.unpack and table.unpack(out) or unpack(out)
+        -- 5.1's global `unpack`. DEPENDENCIES.md pins the harness to 5.1 exactly (the kit's
+        -- loader sandboxes with `setfenv`), so the `table.unpack` branch that used to guard
+        -- this line was unreachable in every interpreter this suite can run under.
+        return unpack(out)
     end
     _G.hooksecurefunc = function() end
 

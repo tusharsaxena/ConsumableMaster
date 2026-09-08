@@ -24,6 +24,73 @@ test("Settings UI: the scrollbar patch IS the library's, not a lookalike", funct
         "PatchAlwaysShowScrollbar is the library function object")
 end)
 
+-- The Border fixup, which this addon no longer owns.
+--
+-- core/LSMPatch.lua used to do this — a PLAYER_LOGIN frame that wrapped whatever
+-- AceGUI held for "LSM30_Border" and re-registered it one version higher. Four
+-- sibling addons shipped their own copy of the same file, and AceGUI's widget
+-- registry is process-global, so in a client running all five the wrapper a
+-- Border dropdown actually got belonged to whichever addon loaded last. The file
+-- is gone; settings/OptionsSetup.lua's live arm calls the library member instead.
+--
+-- WHY THIS CASE COULD NOT HAVE BEEN WRITTEN BEFORE. The private copy armed a
+-- PLAYER_LOGIN frame that never fires headlessly, so nothing in this suite ever
+-- observed it — running this case against the old file gives exactly the same
+-- red as running it against no fixup at all, which is how five copies of one
+-- wrapper stayed invisible for as long as they did. What makes it observable is
+-- the `mutate` hook in tests/run.lua: the registry is seeded between the library
+-- files and the addon's own, which is the only window a real client's
+-- already-registered widget can be modeled in.
+test("Settings UI: the live wiring registers the Border fixup through the library", function(t)
+    local seededCtor = function()
+        local rec = { hidden = false, labelPoints = 0, capPoints = 0 }
+        local function region(counter)
+            return {
+                ClearAllPoints = function() end,
+                SetPoint       = function() rec[counter] = rec[counter] + 1 end,
+            }
+        end
+        return {
+            __rec  = rec,
+            frame = {
+                displayButton = { Hide = function() rec.hidden = true end },
+                label = region("labelPoints"),
+                DLeft = region("capPoints"),
+            },
+        }
+    end
+
+    local KCM = loader.loadWithSchema(false, function()
+        LibStub("AceGUI-3.0"):RegisterWidgetType("LSM30_Border", seededCtor, 20)
+    end)
+    t.truthy(KCM.Settings.optionsUI, "the live arm built an instance")
+
+    local AceGUI = LibStub("AceGUI-3.0")
+    local installed = AceGUI.WidgetRegistry["LSM30_Border"]
+    t.truthy(installed, "the slot still holds a constructor")
+    t.ne(installed, seededCtor, "and it is no longer the one seeded before the addon loaded")
+    t.eq(AceGUI:GetWidgetVersion("LSM30_Border"), 21,
+        "registered exactly one version above what it found, which is what wins the slot")
+
+    -- Identity is not enough on its own: any re-registration would pass it. This
+    -- is the wrapper DOING the fixup — hiding upstream's 42x42 preview tile and
+    -- re-anchoring the label and the dropdown bar's left cap — against the
+    -- constructor that was in the slot when it ran.
+    local widget = installed()
+    t.truthy(widget and widget.__rec, "the wrapper returns the wrapped constructor's widget")
+    t.truthy(widget.__rec.hidden, "the preview tile is hidden")
+    t.eq(widget.__rec.labelPoints, 2, "the label is re-anchored to both top corners")
+    t.eq(widget.__rec.capPoints, 1, "the dropdown bar's left cap is put back on the frame's edge")
+
+    -- Idempotent, and this is the half that matters in a client: five vendored
+    -- copies of the library are one table to LibStub, so the second caller must
+    -- register nothing rather than wrap the first caller's wrapper.
+    local lib = LibStub("LibKa0s-Options-1.0")
+    t.falsy(lib.__PatchLSM30Border(), "a second call reports that it registered nothing")
+    t.eq(AceGUI.WidgetRegistry["LSM30_Border"], installed, "and the slot is untouched")
+    t.eq(AceGUI:GetWidgetVersion("LSM30_Border"), 21, "at the same version")
+end)
+
 test("Settings UI: the published instance carries all three of the major's files", function(t)
     local KCM = loader.loadWithSchema()
     local UI = KCM.Settings.Helpers.instance
@@ -193,11 +260,20 @@ test("Settings UI: the library's user-visible strings resolve to prose, not to t
         -- The media placeholder first, and it is the sharper of the two: the
         -- string is both the label shown in the dropdown AND the value stored
         -- in SavedVariables, so a key leaking here is written to disk.
-        local values = H.LSMValues("kcm_no_such_media_type")
-        t.eq(#values, 1, "an unregistered media type still offers exactly one option")
-        t.falsy(values[1].text:match("^[A-Z][A-Z0-9_]+$"),
+        -- Read off the library's deferred hash reader directly. This used to go
+        -- through the addon's own flattening wrapper, which M4-C1 retired once
+        -- its last caller went; going straight at `Helpers.LSMValues` -- the
+        -- library's, through __index -- is what this case wanted anyway, since
+        -- the string under test is lib.STRINGS.LSM_NONE and a host wrapper
+        -- between the assertion and the string could only hide a leak. The hash
+        -- is self-keyed, so the key IS the label shown and stored.
+        local values = H.LSMValues("kcm_no_such_media_type")()
+        local keys = {}
+        for k in pairs(values) do keys[#keys + 1] = k end
+        t.eq(#keys, 1, "an unregistered media type still offers exactly one option")
+        t.falsy(keys[1]:match("^[A-Z][A-Z0-9_]+$"),
             "the empty-media placeholder resolved to prose, not to its own key: "
-            .. values[1].text)
+            .. keys[1])
 
         -- The chat half: the per-page render failure, which reaches the user
         -- through KCM.Say. Read off the emitted line rather than off
@@ -412,7 +488,7 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
         -- which forbids an addon-side wrapper for any of them, even though the
         -- second loop below shows a wrapper is a legitimate, currently-shipped
         -- pattern. A future author who needs to wrap RefreshScalars would ship
-        -- behaviourally identical code and redden the suite; and the rawget half
+        -- behaviorally identical code and redden the suite; and the rawget half
         -- detected nothing the `H[name] == UI[name]` line beside it did not,
         -- since __index delegation is exactly what makes that line pass.
         --
@@ -423,10 +499,17 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
         local UI  = H.instance
         t.truthy(UI, "the instance is published")
 
-        -- The three the addon deliberately wraps. Each stays an OWN key that
+        -- The two the addon deliberately wraps. Each stays an OWN key that
         -- SHADOWS the library's same-named member — which is the only reason
         -- each can call the instance's version without recursing into itself.
-        local WRAPPED = { CreatePanel = true, Section = true, LSMValues = true }
+        -- LSMValues was a third until M4-C1: its wrapper flattened the library's
+        -- deferred hash into an ordered array for one caller, settings/MacroBar
+        -- .lua's issue-#15 workaround, and when M3-04 deleted that the wrapper
+        -- had nothing left to adapt for. Dropping it from this list is not a
+        -- weakened assertion — the loop below now asserts the OPPOSITE for that
+        -- name, that `Helpers.LSMValues` IS the instance's own function rather
+        -- than a lookalike, which is the stronger of the two claims.
+        local WRAPPED = { CreatePanel = true, Section = true }
 
         local walked = 0
         for name, member in pairs(UI) do
@@ -896,7 +979,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 --- Record every controller LibKa0s-Widgets hands out while `fn` runs, and how
---- many times each was cancelled.
+--- many times each was canceled.
 local function recordControllers(fn)
     local W = LibStub("LibKa0s-Widgets-1.0")
     local made = {}
@@ -1008,7 +1091,7 @@ test("Settings: re-rendering a composite tab cancels EVERY controller it built",
         recordControllers(function() KCM.Settings.Helpers.RefreshAllPanels() end)
         for i, list in ipairs(first) do
             t.truthy(list.__cancels >= 1,
-                "controller #" .. i .. " from the previous render was cancelled")
+                "controller #" .. i .. " from the previous render was canceled")
         end
     end)
 
@@ -1153,7 +1236,7 @@ test("Settings: every draggable row on the Macros page is boxed full-width and s
 
 -- The Include CHECKBOX became a tick/cross glyph you click, the same two textures
 -- MultiMeters wears on its column blocks -- one glyph vocabulary for a player who
--- runs both. A checkbox labelled "Include" spent a third of the row saying what
+-- runs both. A checkbox labeled "Include" spent a third of the row saying what
 -- the tick already says.
 --
 -- red under: wiring the glyph's OnClick to nothing (a control that looks like a
@@ -1242,12 +1325,12 @@ local function withAtlasHeights(fn)
         local f = realCreate(kind, name, parent, template)
         f.CreateTexture = function()
             local tex = loader.mock.makeStub()
-            local h = 0
+            local height = 0
             tex.SetAtlas = function(_, atlas)
-                h = tostring(atlas):find("Active", 1, true) and 33 or 28
+                height = tostring(atlas):find("Active", 1, true) and 33 or 28
                 return tex
             end
-            tex.GetHeight = function() return h end
+            tex.GetHeight = function() return height end
             return tex
         end
         return f
@@ -1391,4 +1474,196 @@ test("Settings: the three maintenance verbs draw on the Master controls tab", fu
     t.truthy(seen[KCM.L["Force resync"]], "Force resync is on Master controls")
     t.truthy(seen[KCM.L["Force rewrite macros"]], "so is Force rewrite macros")
     t.truthy(seen[KCM.L["Reset all priorities"]], "and so is Reset all priorities")
+end)
+
+-- ── the combat gate on category registration (events-frames-taint) ─────────
+--
+-- `Settings.RegisterAddOnCategory` is protected. The bootstrap frame at the
+-- foot of settings/Panel.lua fires registerPanel from PLAYER_LOGIN and from
+-- ADDON_LOADED("Blizzard_Settings"), and neither normally lands mid-fight —
+-- but another addon calling C_AddOns.LoadAddOn("Blizzard_Settings") during a
+-- pull does, and so does an in-combat /reload. One tainted category poisons
+-- the Settings window for the rest of the session, so the gate is cheap
+-- insurance rather than a reaction to a reproduction.
+--
+-- These two cases are the headless half. The taint itself is invisible here —
+-- no mock raises "Interface action failed because of an AddOn" — so what is
+-- pinned is the observable half: nothing is registered under lockdown, the
+-- attempt survives as a parked flag, and the addon's ONE regen handler is what
+-- replays it. docs/smoke-tests.md § 6a owns the in-client half.
+--
+-- red under: dropping the InCombatLockdown early-out in registerPanel, or
+-- moving the replay onto a second PLAYER_REGEN_ENABLED registration of its own.
+test("Settings: registering the category in combat is refused and parked", function(t)
+    local KCM = loader.loadWithSchema()
+    loader.mock.setCombat(true)
+    KCM.Settings.Register()
+    loader.mock.setCombat(false)
+    t.eq(KCM.Settings.main, nil, "no Blizzard category is registered under lockdown")
+    t.truthy(KCM.Settings.registerPending, "the refused attempt is parked for regen to replay")
+end)
+
+test("Settings: leaving combat replays the parked registration, and only then", function(t)
+    local KCM = loader.loadWithSchema()
+    loader.mock.setCombat(true)
+    KCM.Settings.Register()
+    loader.mock.setCombat(false)
+
+    -- Count the replay rather than letting it run: the mock's Blizzard
+    -- `Settings` global answers every call with a no-op returning nil, so a
+    -- real registerPanel() body cannot complete headlessly (see the Battle Rez
+    -- note above). The seam under test is the wiring, not the body.
+    local real = KCM.Settings.Register
+    local calls = 0
+    KCM.Settings.Register = function() calls = calls + 1 end
+
+    KCM:OnRegenEnabled()
+    t.eq(calls, 1, "the addon's existing regen handler replays it — no second event frame")
+
+    KCM.Settings.registerPending = nil
+    KCM:OnRegenEnabled()
+    t.eq(calls, 1, "and a regen with nothing parked does not re-enter registration")
+
+    KCM.Settings.Register = real
+end)
+
+-- ---------------------------------------------------------------------------
+-- The panel refresh debounce
+-- ---------------------------------------------------------------------------
+--
+-- O.RequestRefresh is the panel-side twin of Pipeline.RequestRecompute, and
+-- until now it had no case at all: tests/test_pipeline.lua pins the coalescing
+-- of the recompute burst, nothing pinned the coalescing of the rebuild burst.
+-- That is how a debounce that armed one timer PER CALL — 150 of them for the
+-- one rebuild the first-open GET_ITEM_INFO_RECEIVED storm is supposed to
+-- produce — stayed green for as long as it did. tests/perf.lua's `refreshBurst`
+-- scenario carries the byte figure; these carry the behavior.
+--
+-- WHY THE CLOCK AND THE QUEUE ARE REPLACED. tests/wow_mock.lua's C_Timer.After
+-- runs its callback inline and its GetTime is os.clock(), so the shipped pair
+-- can say "the timer fired" but cannot say "a second passed and no call came".
+-- The debounce is entirely about the second sentence. The stubs below are the
+-- shape tests/test_pipeline.lua's coalescing case already uses, plus a clock;
+-- `advance` honors the delays and fires each callback AT its due instant, so a
+-- callback that re-arms is woken again inside the same advance exactly as the
+-- client would wake it.
+local function fakeSchedule(KCM)
+    local s = { now = 0, armed = 0, rebuilds = 0, rebuiltAt = {}, queue = {} }
+    local savedGetTime, savedAfter = _G.GetTime, _G.C_Timer.After
+
+    _G.GetTime = function() return s.now end
+    _G.C_Timer.After = function(delay, fn)
+        s.armed = s.armed + 1
+        s.queue[#s.queue + 1] = { at = s.now + (delay or 0), fn = fn }
+    end
+    -- Counted at the Helpers seam rather than at O.Refresh, so O.Refresh keeps
+    -- running its own bookkeeping — clearing _refreshPending is what makes the
+    -- NEXT burst a burst rather than a continuation of this one.
+    KCM.Settings.Helpers.RefreshAllPanels = function()
+        s.rebuilds = s.rebuilds + 1
+        s.rebuiltAt[#s.rebuiltAt + 1] = s.now
+    end
+
+    function s.advance(seconds)
+        local target = s.now + seconds
+        while true do
+            local idx
+            for i, e in ipairs(s.queue) do
+                if e.at <= target and (idx == nil or e.at < s.queue[idx].at) then idx = i end
+            end
+            if not idx then break end
+            local e = table.remove(s.queue, idx)
+            s.now = e.at
+            e.fn()
+        end
+        s.now = target
+    end
+
+    function s.restore()
+        _G.GetTime, _G.C_Timer.After = savedGetTime, savedAfter
+    end
+
+    return s
+end
+
+-- red under: the token-per-call debounce this replaced, which armed 150.
+test("Settings UI: a first-open refresh burst arms one timer, not one per call", function(t)
+    local KCM = loader.loadWithSchema()
+    local s = fakeSchedule(KCM)
+
+    -- The GIIR storm docs/data-flow.md describes: ~150 non-bag items hydrating
+    -- a millisecond apart, each one publishing PANEL_REFRESH.
+    for _ = 1, 150 do
+        s.now = s.now + 0.001
+        KCM.Options.RequestRefresh()
+    end
+    t.eq(s.armed, 1, "the whole burst is covered by the timer the first call armed")
+    t.eq(s.rebuilds, 0, "and nothing rebuilds while the burst is still arriving")
+
+    s.advance(1.0)
+    t.eq(s.rebuilds, 1, "one rebuild for one burst, which is the point of the debounce")
+    -- Two, not one: the first timer wakes a second after the FIRST call, by
+    -- which time the burst had run on for 0.149s, so it re-arms for the quiet
+    -- still owed rather than rebuilding early. That re-arm is why tests/perf.lua
+    -- puts its ceiling at two timers per burst and not at one.
+    t.eq(s.armed, 2, "one re-arm to serve out the quiet the burst consumed, and no more")
+
+    s.restore()
+end)
+
+-- red under: rebuilding on the leading edge instead of the trailing one.
+test("Settings UI: the rebuild waits out the quiet window before it lands", function(t)
+    local KCM = loader.loadWithSchema()
+    local s = fakeSchedule(KCM)
+
+    KCM.Options.RequestRefresh()
+    s.advance(0.9)
+    t.eq(s.rebuilds, 0, "nine tenths of a second in, the window has not closed")
+
+    s.advance(0.2)
+    t.eq(s.rebuilds, 1, "and the rebuild lands once the full second of quiet is up")
+
+    s.restore()
+end)
+
+-- red under: the token-per-call shape, which never rebuilt here at all. Every
+-- arriving call invalidated the pending timer, so a storm whose calls land
+-- closer together than the 0.05s floor deferred the rebuild for as long as it
+-- ran — the old arithmetic capped the DELAY OF ONE TIMER, never the wait.
+test("Settings UI: a storm that never goes quiet still rebuilds at the max wait", function(t)
+    local KCM = loader.loadWithSchema()
+    local s = fakeSchedule(KCM)
+
+    -- Five seconds of calls ten milliseconds apart. The quiet window never
+    -- opens, so only the cap can end the wait.
+    for _ = 1, 500 do
+        KCM.Options.RequestRefresh()
+        s.advance(0.01)
+    end
+
+    t.eq(s.rebuilds, 1, "the cap fired exactly once across the five seconds")
+    t.near(s.rebuiltAt[1], 3.0, 0.1,
+        "and it fired at REFRESH_MAX_WAIT_SEC after the first call, not later")
+
+    s.restore()
+end)
+
+-- red under: dropping the armedAt/armedFor compare in onRefreshDue. The red is
+-- a stack overflow rather than a failed assertion — every re-arm is answered
+-- inline, so onRefreshDue re-enters itself until the stack goes — and it is not
+-- confined to this case: with the guard removed, 35 cases across this suite
+-- fail on "stack overflow", because anything that reaches a recompute reaches
+-- this function. That blast radius is the reason the guard sits in the addon
+-- rather than in the mock.
+test("Settings UI: a timer that fires early rebuilds instead of re-arming forever", function(t)
+    local KCM = loader.loadWithSchema()
+    local rebuilds = 0
+    KCM.Settings.Helpers.RefreshAllPanels = function() rebuilds = rebuilds + 1 end
+
+    -- The mock's C_Timer.After exactly as shipped: the callback runs inline,
+    -- which is a timer that ignored its delay. No quiet period can be observed
+    -- through it, so waiting for one is unanswerable and rebuilding is the only
+    -- honest answer.
+    KCM.Options.RequestRefresh()
+    t.eq(rebuilds, 1, "the request was served rather than rescheduled against a clock that is not moving")
 end)

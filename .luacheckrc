@@ -1,8 +1,11 @@
 -- Luacheck configuration for Ka0s Consumable Master.
 -- Run:  luacheck .
--- Vendored libs, the frozen audit bundle, the review bundle, and the test
--- harness are excluded (libs are third-party; the audit/review bundles under
--- docs/ are docs; tests run under their own mock and set globals deliberately).
+-- Vendored libs, the frozen audit bundle and the review bundle are excluded, and under tests/
+-- only the vendored kit is: libs/ is third-party, and tests/_kit/ is a byte copy of the LibKa0s
+-- repo's testkit/, which is linted THERE as source — linting the copy as well would report every
+-- finding twice and would let the copy drift green while the original went red, the one state
+-- tests/test_vendor_sync.lua exists to forbid. Everything else under tests/ is this repo's own
+-- code and is linted (lint-§1).
 
 std = "lua51"
 max_line_length = false
@@ -12,14 +15,20 @@ exclude_files = {
     "libs/",
     "docs/audits/",
     "docs/reviews/",
-    "tests/",
+    "tests/_kit/",
 }
 
--- Conventional-in-Ace / intentional patterns. Both are properties of code we
--- mean to keep, not known defects parked behind a suppression:
---   212 — unused arguments (self on widget methods, event/reason on handlers)
---   542 — intentional empty branch (CSV skip in /cm stat secondary)
-ignore = { "212", "542" }
+-- NO TOP-LEVEL `ignore`, and none is coming back (lint-§1, `M4-11`). This file carried
+-- `ignore = { "212", "542" }` until `M4c-03`. Both codes were honest — unused `self` on widget
+-- methods, one deliberately empty CSV branch — but a top-level ignore reaches all 99 files, so it
+-- silenced those two codes in every file that has no business producing them too, and a genuinely
+-- dead argument written into core/BagScanner.lua tomorrow would have landed green under a 0/0
+-- badge. That is the state the rule calls "reads as coverage and provides none".
+--
+-- What replaced it: the `files[...]` stanzas at the foot of this file, each naming the file that
+-- earns the code and the variable name that earns it, plus one `-- luacheck: ignore 542` beside
+-- the single line in core/SlashCommands.lua that needs it. tests/test_lintconfig.lua is what keeps
+-- the blanket from re-entering.
 
 -- The SavedVariables table is written by us. Frame-registry tables receive
 -- field assignments (StaticPopupDialogs[...], tinsert(UISpecialFrames, ...)) so
@@ -97,4 +106,80 @@ read_globals = {
     "C_AddOns", "C_TradeSkillUI", "C_SettingsUtil", "C_CVar",
     -- Ace3 / vendored
     "LibStub",
+}
+
+-- The test tree is linted. The harness publishes its exposed table under a per-repo global,
+-- written at tests/run.lua:401 and read by every suite file. It is declared HERE and not in the
+-- top-level read_globals above: a name granted at the top level is granted to core/, modules/ and
+-- settings/ as much as to a suite, and a shipped file reaching for the test harness is precisely
+-- what lint is here to refuse. `globals` rather than `read_globals` because tests/run.lua is the
+-- writer. Every read in the tree today is _G.-qualified, a spelling luacheck does not check at
+-- all, so this declaration is what keeps the bare spelling legal in tests/ and only in tests/.
+files["tests/"] = {
+    globals = { "KCM_TEST", "KCM_TEST_ROOT" },
+}
+
+-- ---------------------------------------------------------------------------
+-- The narrowed 212s (lint-§1, `M4c-03`)
+-- ---------------------------------------------------------------------------
+--
+-- Every stanza below names ONE file and ONE argument name, in luacheck's `<code>/<variable>`
+-- form. That is the whole difference from the blanket this replaced: a newly-unused argument
+-- under any other name, in any of these files or in any of the other 89, still reports. Each is
+-- an argument a signature is obliged to accept and this body has no use for — not a defect parked
+-- behind a suppression — and the comment says which obligation.
+
+-- AceEvent hands a handler the event name first and calls it as a method, and AceAddon calls
+-- OnEnable / OnPlayerEnteringWorld the same way, so `self` and `event` arrive whether the body
+-- reads them or not. `reason` is the label that threads the whole recompute chain — P.Recompute
+-- logs it at :185 and :188 — and P.RecomputeOne (:87) takes it so the per-category entry point has
+-- the same shape as runMacroPass, which passes it straight through at :135.
+files["core/ConsumableMaster.lua"] = {
+    ignore = { "212/self", "212/event", "212/reason" },
+}
+
+-- AceGUI calls every widget method as `widget:Method(...)`, and each of these three carries no-op
+-- setters that exist precisely so the widget tolerates a consumer calling them: SetText and
+-- SetFontObject on the two row widgets, which build their own labels, and SetLabel on
+-- KCMScoreButton, whose caller passes a tooltip title rather than a caption. A stub that stores
+-- nothing still has to accept the receiver.
+files["modules/KCMItemRow.lua"]       = { ignore = { "212/self" } }
+files["modules/KCMMacroDragIcon.lua"] = { ignore = { "212/self" } }
+files["modules/KCMScoreButton.lua"]   = { ignore = { "212/self" } }
+
+-- doEdit takes `catKey` because every other function in the create/edit/delete trio needs it for
+-- its chat line, and a trio whose signatures disagree is worse than one unused parameter.
+files["modules/MacroManager.lua"] = {
+    ignore = { "212/catKey" },
+}
+
+-- The per-category scorers are a dispatch table: every entry is called as
+-- `scorer(itemID, ctx, scoreCache)`, and the seven that score on item fields alone never look at
+-- the spec context. Dropping `ctx` from those seven would mean seven signatures that cannot be
+-- called through the table.
+files["modules/Ranker.lua"] = {
+    ignore = { "212/ctx" },
+}
+
+-- Three more receivers that arrive because the caller decides the calling convention: the
+-- StaticPopupDialogs OnAccept at settings/Category.lua:209, which reads only the `data` payload
+-- Blizzard hands it; KCM.Schema:Set (settings/Panel.lua:752), published with method sugar per
+-- architecture-§5 and forwarding straight to Helpers.SetAndRefresh; and KCM:OnSlashCommand
+-- (settings/Slash.lua:411), which AceConsole invokes on the addon object.
+files["settings/Category.lua"] = { ignore = { "212/self" } }
+files["settings/Panel.lua"]    = { ignore = { "212/self" } }
+files["settings/Slash.lua"]    = { ignore = { "212/self" } }
+
+-- The mock stands in for client and library APIs, so its stubs copy the real signatures whether
+-- the stub body uses them or not — a mock that quietly narrows a signature is a mock that lets a
+-- caller pass tests it would fail in the client. `212/%.%.%.` is the same rule for the vararg on
+-- those stubs; the escapes are there because luacheck matches an ignore name as a Lua pattern.
+files["tests/wow_mock.lua"] = {
+    ignore = { "212/self", "212/%.%.%." },
+}
+
+-- The Selector.AddItem this suite substitutes at :789 has to take the same two arguments the real
+-- one does; the assertion it is written for only records the second.
+files["tests/test_settingsui.lua"] = {
+    ignore = { "212/catKey" },
 }

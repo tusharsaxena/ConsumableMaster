@@ -31,6 +31,14 @@ If the change touched a spec-aware category, also: switch specs via the talents 
 
 Twelve sections, each numbered so you can call out which one failed when reporting a regression. Run end-to-end before releases.
 
+**A word on the "Smoke, session N" labels below.** They name a session in the collection's 2026-09-07
+review-and-audit remediation bundle (`06_SMOKE_TESTS.md`), which defines **six** sessions and no more —
+each one a scheduled login with a stated cost, so the number is how an operator finds the login a step is
+waiting on. A step labeled **"Smoke, opportunistic"** names no session on purpose: it is worth doing
+while you are already in the client, and it is never on its own a reason to schedule one. Writing a
+session number that the bundle does not define sends an operator looking for a login nobody scheduled, so
+if a step here needs a session that does not exist, the bundle is what changes, not this line.
+
 ### 1. Cold boot
 
 Tests: AceDB defaults populate, all 15 macros create, no errors at login.
@@ -158,6 +166,20 @@ Tests: macro writes that hit combat queue, flush on regen, retry counter respect
 5. Edge case — re-enter combat before flush completes: `pendingUpdates` should preserve the entry as `"deferred"` rather than incrementing `attempts`.
 6. Synthetic failure path: hand-poison `pendingUpdates[macroName].attempts = 2` then trigger a recompute that re-queues. After regen, the third flush attempt prints the one-shot `[CM] gave up on <name>` warning.
 
+### 6a. Combat deferral — the settings category
+
+Tests: the `InCombatLockdown()` gate on `registerPanel` (`settings/Panel.lua`) and its replay from `OnRegenEnabled` (`core/ConsumableMaster.lua`). `Settings.RegisterAddOnCategory` is protected, so registering under lockdown taints Blizzard's Settings window for the rest of the session. The headless suite pins the observable half — nothing registers in combat, regen replays it — but the taint error itself exists only in a live client, and the absence of that error is the entire assertion here.
+
+**No reproduction is needed to justify this section.** The ordinary bootstrap (`PLAYER_LOGIN`, `ADDON_LOADED` for `Blizzard_Settings`) does not normally land mid-fight; an in-combat `/reload` does, and so does another addon force-loading `Blizzard_Settings` during a pull.
+
+1. Log in normally and confirm the category is present under **Settings → AddOns**. That is the baseline — if it is missing here, stop, because the rest of this section cannot tell you anything.
+2. Pull a target dummy and stay on it.
+3. `/reload` while in combat, and keep swinging so you come back mid-fight.
+4. Watch chat and the error frame through the reload and for ten seconds after. Optionally open Blizzard's Settings window directly (`/cm config` will refuse with the gray in-combat notice, which is §7's check, not this one): ConsumableMaster should be **absent** from the AddOns list at this point.
+5. Drop combat. Open **Settings → AddOns**.
+
+**Pass** — no "Interface action failed because of an AddOn" at any point, and the category is in the list once combat ends. **Fail** — the taint error appears, or the category never comes back, which means the parked flag was set and nothing replayed it.
+
 ### 7. Settings panel — landing + General page
 
 Tests: `/cm config` lands on About with sub-pages expanded; General-page checkboxes write through schema; resets fire StaticPopup.
@@ -189,6 +211,14 @@ Setup: `/cm config`, then visit **General → two tabs on Macros → Stat Priori
 2. **Lazy off-screen refresh stays correct.** While viewing General, run `/cm priority flask add 212283` (any valid flask ID). Navigate to the Macros page's **Flask** tab — the new entry is present (the hidden page was flagged dirty and rebuilt on show), with no stale state and no Lua error.
 3. **Defaults button styling (options-ui-§5).** On every page that has one (General, Macros, Stat Priority, Macro Bar), the top-right **Defaults** button renders **dark with gold text** like the Absorb Tracker / KickCD panels — **not** red. It is an AceGUI `Button` (not a raw canvas-parented `UIPanelButtonTemplate`, which inherits the canvas red skin). Click it and confirm the page reset still fires (functionality preserved through the widget swap).
 
+4. **Smoke, opportunistic — the refresh burst is one rebuild, and the cap is real.** Not yet run: no client was available when `M4-22` landed, and nothing below may be reported as passing until someone has actually looked at it. This carried a "session 7" label until the bundle was checked against it; there is no session 7, and `M4-22` is not one of the bundle's eighteen items carrying an in-client-only check — the timer count and the cap are both pinned headless. What is below is the look you take while the panel is already open for something else.
+
+   `O.RequestRefresh` used to arm a `C_Timer` and build a closure on **every** call, with all but the last discarded on a token compare — roughly 150 of each for the one rebuild the first-open item-info storm is supposed to produce. It now arms one timer for the whole burst and re-arms that one timer for whatever quiet is still owed. `tests/perf.lua`'s `refreshBurst` scenario counts the timers and `tests/test_settingsui.lua` pins the behavior, but **neither can see a real `GET_ITEM_INFO_RECEIVED` storm**: the headless clock is driven by hand, the mock's `C_Timer.After` fires inline, and no mock hydrates an item over the wire. What is being ruled out here is the failure mode a debounce rewrite actually has, which is not a slow panel — it is a panel that stops refreshing at all, and that is indistinguishable in game from a setting that did not take.
+
+   1. **The first-open storm.** Log in fresh (not `/reload` — the item cache must be cold) and go straight to `/cm config` → **Macros** → a category with many rows. Rows start as `[Loading]`. Within about a second of the last of them arriving, the list fills in — **once**. A list that flickers row-by-row as each item lands is a debounce that stopped debouncing; a list still reading `[Loading]` ten seconds later with the items known to `/cm get` is a debounce that stopped firing, which is the regression this step exists for.
+   2. **The cap, which the old shape did not honor.** Leave the panel open on that page and keep bag traffic going continuously for more than three seconds — move stacks between bags, or vendor and re-buy, without pausing. The list must update **during** the traffic, not only once it stops. The previous shape could defer indefinitely here because every arriving call invalidated the pending timer; `REFRESH_MAX_WAIT_SEC` now bounds the whole wait, so a rebuild lands about three seconds after the first request whatever the traffic.
+   3. **No stall.** The rebuild in both steps above is a single hitch at most. A visible series of them is the per-call shape having come back.
+
 ### 7b. Debug console — scrollbar + line counter
 
 Tests: the on-screen debug console carries a working right-edge scrollbar and a bottom line counter (debug-logging-§11 / anti-pattern #41). Both are a **MUST**.
@@ -205,7 +235,7 @@ Setup: `/reload`, then `/cm debug on` (arms capture) and `/cm debug` (opens the 
 
 Tests: `options-ui-§13` (the pinned strip on Macros and Macro Bar) and `§14` (the Stat Priority
 banner). This is the redesign that collapsed fifteen category sub-pages into one page; everything
-below is new behaviour and none of it is covered by an automated case that can see pixels.
+below is new behavior and none of it is covered by an automated case that can see pixels.
 
 **The Macros strip**
 
@@ -249,14 +279,14 @@ below is new behaviour and none of it is covered by an automated case that can s
     "Bar appearance" twice, or Bar opacity turns up on Button appearance, the group's rows have
     stopped being contiguous.
 11a. **Subsection headings on the four mixed tabs** (`options-ui-§7`), drawn as the same centered
-    `Heading` every other header uses — never a coloured label: Bar appearance reads
+    `Heading` every other header uses — never a colored label: Bar appearance reads
     *Opacity* → *Background* → *Border*; Button appearance *Background* → *Border* → *Icon*; Labels
     *Text* → *Layout* → *Font*; Flyout *Layout* → *Background* → *Icon*. No heading repeats its own
     tab's name, or any **word** of it — the first was `Bar`, on a tab called *Bar appearance*.
-11b. **Every colour swatch has `Use class color` immediately to its right, on the same line**
+11b. **Every color swatch has `Use class color` immediately to its right, on the same line**
     (`options-ui-§17`), and there are seven of them. Tick one and the surface repaints in your
-    class colour while the swatch's **opacity** still applies — the swatch is never greyed out, and
-    its tooltip says so. On a class the client cannot resolve the stored colour is what paints.
+    class color while the swatch's **opacity** still applies — the swatch is never grayed out, and
+    its tooltip says so. On a class the client cannot resolve the stored color is what paints.
 11c. **The border blocks read in the mandated order** (`options-ui-§16`):
     `[Show border] …` then `[Border style] [Border thickness (px)]` then
     `[Border color] [Use class color]`, with `Border offset (px)` appended AFTER the four on Button
@@ -276,7 +306,7 @@ below is new behaviour and none of it is covered by an automated case that can s
 
 14. Open **Stat Priority**. The spec dropdown sits in the page's own band ABOVE the scroll, with a
     hairline rule beneath it, and it stays put while you scroll to the secondary list. It is
-    labelled **Viewing spec**.
+    labeled **Viewing spec**.
 15. There is **no** "Selection" section inside the scroll, and no second spec picker anywhere in the
     panel — including on the Macros page's spec-aware tabs, which state the spec as a sentence
     ("Spec-aware. Viewing: <spec>.") and offer no control.
@@ -405,13 +435,15 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBar.lua`. The bar's pure layer is covered headlessly ([test-cases.md](./test-cases.md)); this section is the part only a live client can prove.
 
 1. **Fresh install.** Wipe `ConsumableMasterDB` and log in. The bar is **present, unlocked** (gold tint + handle) dead center of the screen, one row of 15 buttons, each with the right icon for its category's current pick and stack counts on the stackables. Hover → the item's or spell's real tooltip. Options → Macro Bar shows **Enable macro bar** checked, and Options → General → Master controls shows **Lock frame** unchecked.
-1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1` and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and `global.schemaVersion` reads 3 (the v2 step ran, then the v3 label-flags conversion). Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot and must not re-enable it every login.
+1a. **Upgrade path.** Start from a `ConsumableMasterDB` written by a build without the macro bar (or hand-edit `global.schemaVersion = 1`, **delete the active profile's own `schemaVersion`** — that is the stamp the v2 step is gated on — and set `profile.macroBar.enabled = false`, `locked = true`), then log in. The bar comes up enabled and unlocked, and both stamps read 3 (the v2 step ran, then the v3 label-flags conversion). Now turn it off, `/reload`, and confirm it **stays** off — the v2 step is one-shot per profile and must not re-enable it every login. See §13 for the same guarantee across a profile switch.
+1b. **The v3 label-flags conversion, on the half that can be lost.** The v2 step above is visible the moment you log in; the v3 one is not, and it was inert on a real client for as long as it existed. Hand-edit a `ConsumableMasterDB` so the active profile has `macroBar.labelOutline = false`, **no** `macroBar.labelFlags` key at all, `macroBar.buttonLabel = true`, and `schemaVersion = 2` on both that profile and `global` — that is what a profile written before the font block looks like on disk. Log in and open Options → Macro Bar → Labels: **Font flags** reads *None* and the labels on the bar carry no outline. Reading *Outline* instead is the defect this step was repaired for — AceDB merges the shipped `labelFlags = "OUTLINE"` in before the migration runs, so a conversion gated on that key being absent silently keeps the default and throws the player's choice away. Repeat with `labelOutline = true` → *Outline*. `/reload` and confirm both stick, and that `labelOutline` is gone from the saved file.
+
 2. **Disable / re-enable.** Uncheck **Enable macro bar** (or `/cm bar off`) → the bar disappears. Re-check it → it comes back with its layout and position intact.
 3. **Click.** Click a slot out of combat → the consumable is used, exactly as clicking the macro on a normal bar. No taint error, no "Interface action failed because of an AddOn" message. Repeat in combat.
 4. **Move.** Uncheck **Lock frame** (General → Master controls) → the bar tints gold *and* a **Consumable Master** handle strip appears centered above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows a one-line tooltip; hovering the **help mark** at its right end — the collection's shared art now, a plain light glyph rather than Blizzard's blue `InformationIcon` — shows the full drag-gesture list. On a narrow bar (set **Buttons per row** to 1) the icon must not crowd the label. Re-check **Lock frame** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
 5. **Layout.** Set **Buttons per row** to 7 → two rows. Flip **Orientation** to Vertical → two columns. Flip **Horizontal growth** to Left and **Vertical growth** to Up → the first slot moves to the opposite corner and the bar grows the other way. Drag **Button size**, **Button spacing**, **Bar padding** and **Bar scale** → geometry tracks live with no visual tearing.
-6. **Bar + button appearance.** Toggle each background/border checkbox and change each color → the bar backdrop, the bar frame and the button borders all respond. Pick a different **Bar border style** / **Button border style** from the LibSharedMedia dropdown → the edge texture changes and the closed dropdown shows the new name (no 42px gap next to it — that's the `LSMPatch` fixup). Raise **border thickness** to 16 → thick edges; then raise **Button border offset** → the border moves off the icon instead of covering it. Turn **Button border** off → a flat, borderless icon grid. Drag **Icon zoom** to 40% → icons crop symmetrically. Turn **Show stack count** off → counts vanish, and they are not sliced by a thick border when on. Turn **Show tooltips** off → hovering shows nothing.
-6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, and the *Font* block: pick a different **Font** from the LibSharedMedia list, walk **Font flags** through all five values (*None* really removes the outline), tick **Font shadow** and confirm a soft drop shadow appears — then untick it and confirm the shadow is CLEARED rather than left behind. **Font color** plus **Use class color**: with the box ticked the labels take your class colour and the swatch's opacity still applies.
+6. **Bar + button appearance.** Toggle each background/border checkbox and change each color → the bar backdrop, the bar frame and the button borders all respond. Pick a different **Bar border style** / **Button border style** from the LibSharedMedia dropdown → the edge texture changes and the closed dropdown shows the new name (no 42px gap next to it — that's the library's Border fixup, `lib.__PatchLSM30Border()`, called from `settings/OptionsSetup.lua`). **This step checks it with ConsumableMaster alone, which is exactly the check that stayed green through the defect [step 19](#libka0s-seam-pass) exists for** — run 19 too whenever this one matters. Raise **border thickness** to 16 → thick edges; then raise **Button border offset** → the border moves off the icon instead of covering it. Turn **Button border** off → a flat, borderless icon grid. Drag **Icon zoom** to 40% → icons crop symmetrically. Turn **Show stack count** off → counts vanish, and they are not sliced by a thick border when on. Turn **Show tooltips** off → hovering shows nothing.
+6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, and the *Font* block: pick a different **Font** from the LibSharedMedia list, walk **Font flags** through all five values (*None* really removes the outline), tick **Font shadow** and confirm a soft drop shadow appears — then untick it and confirm the shadow is CLEARED rather than left behind. **Font color** plus **Use class color**: with the box ticked the labels take your class color and the swatch's opacity still applies.
 7. **Cooldown.** Use a potion → the swipe animates on that slot and on any other slot sharing the same item. With Interface → ActionBars → "Show numbers for cooldowns" on, the countdown numbers appear too.
 7a. **Cooldown in combat (restricted).** The one that matters for the Midnight secret-value rules, and it needs a category whose pick is a **spell** (Healthstone, a class heal) — item cooldowns are never restricted, spell ones are. **Turn error display on first** — `/console scriptErrors 1`, or have BugSack loaded — because the failure mode here is a Lua error, and with the default UI it passes silently and this test reads as a false pass. Pull a mob, and while in combat use that spell and watch its slot *and* its flyout entry: the swipe must animate normally with **no** Lua error. Repeat inside a dungeon or raid, where the restriction stays on for the whole instance. A slot with nothing running must stay unshaded — no stuck or flickering swipe. Leave combat → the swipe keeps counting down and finishes cleanly.
 8. **Reorder by drag.** Drag one slot onto another → the two swap and the swap survives `/reload`. **Reset slot order** puts them back.
@@ -440,9 +472,22 @@ Tests: oversized body fallback, locked-bag-item stability, empty-state coverage,
 6. **Macro bar + a full macro pool:** with the bar on and the account macro pool full (see step 4 above), confirm slots whose macro doesn't exist yet render the fallback icon and don't error on click.
 7. **`/reload` mid-pending:** queue a combat-deferred macro write, then `/reload` before regen. The pending entry is lost (no SavedVariables for `pendingUpdates`); next event triggers a fresh recompute that re-queues if still in combat.
 
+### 13. Profiles — a second profile is migrated when it is switched to
+
+Tests: the profile-scoped migration gate in `core/Database.lua` and the `OnProfileChanged` hook in `core/ConsumableMaster.lua`. The headless suite pins the gate against a fake; what only a live client proves is that the real AceDB fires the hook on a profile the SavedVariables file has been holding un-opened, which is the shape the whole gate exists for.
+
+**Work on a COPY of `WTF/Account/<ACCOUNT>/SavedVariables/ConsumableMaster.lua`, never the live file.** Back it up before you start.
+
+1. `/cm debug on`, so the migration lines are visible.
+2. On a character whose settings you already have, open Options → Profiles, create a **new** profile and switch to it.
+3. Expected: a `[DB] migrated profile '<name>' schema v1 -> v3` line. **Silence is the defect this section exists for** — before the profile-scoped stamp the pass was re-run on every switch and did nothing, because the only gate on it was the account-wide stamp, which had already moved the first time any profile was walked.
+4. Switch back to the original profile. It reports nothing the second time, and nothing is lost: settings, macro-bar position and geometry are exactly as you left them.
+5. Log out. Reopen the copy. Every profile you visited carries its own `schemaVersion = 3`, and `global.schemaVersion` still reads 3.
+6. **The one-time cost, so nobody files it as a bug.** No profile in a file written before this build carries a stamp, so each one meets the v2 step once on its first arrival: a profile with a deliberate `macroBar.enabled = false` comes back on. Set it off again, switch away and switch back, and confirm it now **stays** off. A bar that re-enables itself on *every* switch is a real defect — that is the profile stamp not being written.
+
 ## LibKa0s seam pass
 
-Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `core/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
+Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `core/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
 
 The swap was designed to be pixel-identical, so **the pass is looking for "nothing changed"** — anything that looks different is the finding, with one standing exception. The **window edge** on the debug console and the perf panel is the library's, not this addon's, and the library moved it at LibKa0s v1.3.0: the flat 1px black edge with its 1px gray inner highlight, a gold title and a gray divider, in place of the old 12px `UI-Tooltip-Border`, black divider and untinted title. That one is expected, and step 10a below is where it is checked deliberately; everywhere else, different still means broken.
 
@@ -475,6 +520,49 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
 16. **The TOC seam — the version banner and the About notes.** `/cm version` and `/cm help` must both print the version the TOC's `## Version` line carries, not a stale number and never `?`. Then `/cm config` → **About**: the paragraph under the logo must read the addon's `## Notes` text, not an empty line. Both come from `core/EnvSetup.lua` now — one of them used to ask `C_AddOns` for the folder `"ConsumableMaster"` as a hardcoded string, and the failure this check exists for is silent: a wrong or renamed folder name answers nothing and raises nothing, so the About paragraph simply disappears and the banner quietly falls back to the in-code constant. The headless suite pins both against a mock manifest; only this check sees the real TOC.
 
+17. **Smoke, session 4 — the three composed media dropdowns, now that nothing local props them up.** Not yet run: no client was available when this landed, and nothing below may be reported as passing until someone has actually looked at it.
+
+   Until the v1.26.0 re-vendor, the Bar border style, Button border style and Label font rows did not take their lists from the composer at all — `settings/MacroBar.lua` overrode all three with the addon's own reader, because the composer's own list came back empty (LibKa0s issue #15). The override is gone, so these three dropdowns are reading the library's list for the first time in a live client, and a mistake here shows up as an **empty dropdown** rather than as an error.
+
+   1. `/cm config` → **Macro Bar**. Open **Bar border style**, **Button border style** and **Label font** in turn. Each must list real entries — Blizzard's own borders and faces at minimum, plus anything a media addon has registered. One empty dropdown is the whole finding; do not read a populated *other* dropdown as proof.
+   2. Pick a different value in each → the bar edge, the button edges and the label face change, and the closed dropdown shows the new name.
+   3. `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → **3**. A 2 here means the payload on disk is not the one this commit vendored, and step 1 proved nothing.
+   4. `/cm set macroBar.barBorderStyle "Not A Border"` → **rejected**, with the allowed values printed. `/cm set macroBar.barBorderStyle "Blizzard Tooltip"` → accepted, and the panel tracks it. This is the CLI half, and it is the half that fails *open*: the composed row hands the validator a self-keyed map where every other row hands it an ordered array, and a validator that does not normalize the map simply stops rejecting anything.
+
+18. **Smoke, session 3 — the tab strip survives being pooled and re-dressed.** Not yet run: no client was available when `M4-01` re-vendored LibKa0s v1.27.0, and nothing below may be reported as passing until someone has actually looked at it.
+
+   `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer builds a button and a content panel per click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses them, re-setting `OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a second selection pass, and the case that would pin band geometry as invariant under selection cannot be written yet — the shared mock answers `GetHeight` with 0 for every frame and that flips at kit 16, not here. **So a stale label, a mis-anchored button or a band that changes height on a re-dressed tab is invisible to every automated check in this repo.**
+
+   This addon draws four strips, so walk all four: `/cm config` → **General**, **Macro Bar**, **Stat Priority**, and any **Category** page. On each, cycle every tab three times, ending back on the first. Watch three things on each pass: the **label** is that tab's own, the **selected** tab is the one you pressed, and the strip's **band height** does not move as you go through it. A label carried over from the previously-dressed tab, a highlight on the wrong button, a body drawn under the wrong tab, or a strip whose height moves between passes is the pool handing back a frame it did not finish dressing.
+
+19. **Smoke, session 5 — the Border dropdown when five Ka0s addons share one registry.** Not yet run: no client was available when this landed, and nothing below may be reported as passing until someone has actually looked at it.
+
+   **The thing under test is not ConsumableMaster.** AceGUI's widget registry is process-global — one slot named `LSM30_Border` shared by every addon in the session, and the highest version registered for the name owns it for the rest of it. Five Ka0s addons each carried a private copy of the same wrapper, each registering at whatever version it found plus one, so the wrapper a Border dropdown actually got belonged to whichever addon the client loaded last. Nothing headless in any of the five repos could see it — each suite loads one copy, registers once and passes — and §11a step 6 above, which checks the alignment with this addon alone, passed throughout.
+
+   Run it after **each** of the five deletions, in their order: KickCD, PanelMaster, **ConsumableMaster (this one)**, MultiMeters, then AbsorbTracker last, because AbsorbTracker's copy is the one that diverges (a callable `NS.ApplyLSMBorderPatch()` rather than a `PLAYER_LOGIN` frame). Five deletions, five commits, five bisect points if the promoted surface turns out to be wrong.
+
+   1. Enable KickCD, PanelMaster, AbsorbTracker, ConsumableMaster and MultiMeters together, and log in.
+   2. Open each addon's Border dropdown in turn. This addon's are `/cm config` → **Macro Bar** → **Bar border style** and **Button border style**.
+   3. Change the load order — disable and re-enable addons, or rename folders so a different one is reached last — `/reload`, and walk them all again.
+
+   **Pass.** In all five, the closed control's left edge is **flush** with the sliders and checkboxes stacked with it, with **no ~42px gap**, and opening it still draws the per-row hover previews. Nothing differs between the two passes. **Any dropdown that looks different from the other four, or that changes when the load order changes, is the finding** — the whole point of moving the registration into LibKa0s is that the answer no longer depends on who loaded last. No Lua errors at any point.
+
+   Note what this run cannot tell you on its own. `M4-03` — the same sweep with all five private copies still in place, which is the "before" reading the spec asks for — has not been run either, so this addon's deletion lands ahead of that evidence. KickCD, PanelMaster and ConsumableMaster now have no private copy; MultiMeters and AbsorbTracker still do. A failure confined to the three is the library member; a failure confined to the two is their private copies; a failure in all five is the sweep itself.
+
+20. **Smoke, opportunistic — one stored color, and the two surfaces that read it.** Not yet run: no client was available when `M4-18` landed, and nothing below may be reported as passing until someone has actually looked at it. This carried a "session 6" label, which is the bundle's non-English-client pass and belongs to `M5-08` alone; `M4-18` is one of the M4 items with a visible surface and no session of its own, to be folded into whatever login is convenient. Step 4 below wants a hand-edited SavedVariables file, so run it on a client you are willing to log out of — but do not book a login for it.
+
+   `settings/OptionsSetup.lua` and `settings/Slash.lua` each carried a hand-written decoder for the stored positional `{ r, g, b, a }` and they disagreed about a channel the table does not carry — `or 1` in the panel against `or 0` in the CLI, so one stored value read **white** on the swatch and **black** from `/cm get`. Both read `KCM.ColorDecode` now, which answers nil for an absent channel; the panel adds the four numbers `LibKa0s-Slash-1.0` already fills in, because AceGUI's picker hands `SetColor`'s arguments straight to `SetVertexColor` and that raises on a nil.
+
+   **The headless suite pins the decoders against each other and cannot see the picker.** `tests/test_slashsetup.lua` compares what the two surfaces decode, but no mock draws a swatch — the raise this step exists to rule out happens inside Blizzard's texture API.
+
+   1. `/cm config` → **Macro Bar**. Open **Bar backdrop color**, pick a color with an obviously non-default alpha, confirm. The bar repaints as you drag and keeps the color on confirm.
+   2. `/cm get macroBar.barBackdropColor` → four channels that match what the picker shows. Re-open the picker: it still shows them. `/reload` and repeat both — the round trip must survive the write to SavedVariables.
+   3. Repeat 1 and 2 for **Bar border color**, **Button backdrop color**, **Button border color** and the Macro Bar label's **font color**. Five swatches, five round trips; a codec fault is per-surface, not per-addon.
+   4. **The absent channel, which is the whole point.** Log out. In `WTF/Account/<account>/SavedVariables/ConsumableMaster.lua`, find `barBackdropColor` and delete its third and fourth entries, leaving two. Log back in and open `/cm config` → **Macro Bar**.
+
+      **Pass.** The page draws, the swatch draws, and **no Lua error** appears — the panel supplying numbers for the absent channels is exactly what this checks. Then `/cm get macroBar.barBackdropColor`: the four channels it prints must be the four the swatch is showing. Two different answers to one stored value is the finding, and it is the finding this item exists for.
+   5. Restore the file (or re-pick the color in the panel) before running anything else — every later step reads that profile.
+
 ### Perf harness (`/cm perf`)
 
 Only meaningful in game, and the SavedVariables half is only verifiable end to end here.
@@ -485,6 +573,7 @@ Only meaningful in game, and the SavedVariables half is only verifiable end to e
 4. `finish`. The addon comes back — bar returns, macros resume. Then `report` for the figures and `dump` for one JSON line in the debug console.
 5. `/reload`, then check `ConsumableMasterPerfDB` has one record under `runs` with a non-zero `interface`. **This is the only check that the TOC's `## SavedVariables` line is right** — get it wrong and the harness still announces the capture as saved while the data evaporates.
 6. Recovery path: start a run, `measure b`, then `cancel`. The addon must come back exactly as `finish` does.
+7. **Smoke, session 3 — the perf strings read US.** Not yet run. `LibKa0s-Perf-1.0` minor 8 arrived with `M4-01`'s v1.27.0 re-vendor and changes five player-facing strings: two spellings of `CANCELED` and three of `unlabeled` lose the doubled L they used to carry. No single capture shows all five, so run two. `/cm perf start mylabel` then `finish` — the started line and the report header both name the label. Then `/cm perf start` with no label and `cancel` — the start line, the report header and the cancel line must read **`unlabeled`** and **`perf run CANCELED`**. A double-L in either is a copy of the string that did not come from the vendored payload.
 
 ### Degraded install (optional, ~2 minutes)
 
@@ -514,11 +603,14 @@ Rename it back and `/reload`.
 | Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
+| `core/Database.lua` migrations / the profile hooks in `core/ConsumableMaster.lua` | §11a step 1a + §13 |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
+| `registerPanel`'s combat gate, or `OnRegenEnabled`'s replay of it | §6a |
 | Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
+| The stored color codec — `KCM.ColorDecode`, `Helpers.ColorDecode`, either `colorDecode` descriptor field, or `KCM.FormatSchemaValue`'s color arm | [LibKa0s seam pass](#libka0s-seam-pass) step 20 — both surfaces, and the absent-channel case in its step 4 |
 | `reset` / `resetall` semantics, or anything touching the confirm popup | §7 step 10 **and** 10a — the button and the slash verb reach the same popup, and both paths have to keep it |
 | Composite category change | §4 + §10 |
 | Bloodlust / Battle Rez seed, `KCM.SEED.CLASS_GATE`, or the mouseover clause | §3d |
@@ -526,17 +618,19 @@ Rename it back and `/reload`.
 | Auto-discovery GC | §2 step 4–5 |
 | Action-bar icon convention | §3 step 1, §4 step 2 |
 | Combat-deferral retry / flush | §6 |
-| AceDB schema migration | full §1 (cold boot) on a fresh-install path, plus §11a steps 1 and 1a for the v2 macro-bar step (fresh install AND upgrade-from-v1, including that the one-shot never re-fires) |
+| AceDB schema migration | full §1 (cold boot) on a fresh-install path, plus §11a steps 1 and 1a for the v2 macro-bar step (fresh install AND upgrade-from-v1, including that the one-shot never re-fires) and step 1b for the v3 label-flags conversion |
 | Macro bar (`modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`) | §11a in full |
 | Macro bar settings page / new `macroBar.*` schema row | §11a steps 5–6a, 15–16 |
 | Button labels (`MacroBarLayout.LabelAnchor` / `LabelFontSize`, `shortName` metadata) | §11a step 6a |
-| LSM border pickers / `core/LSMPatch.lua` / the vendored `AceGUI-3.0-SharedMediaWidgets` | §11a step 6 (dropdown renders flush, selection sticks) |
+| LSM border pickers / the vendored `AceGUI-3.0-SharedMediaWidgets` / `lib.__PatchLSM30Border()`'s call site in `settings/OptionsSetup.lua` | §11a step 6 (dropdown renders flush, selection sticks) **and** [LibKa0s seam pass](#libka0s-seam-pass) step 19 — step 6 alone cannot see the defect step 19 is for |
+| A composed media row's `values`, or `Helpers.EnumValues` / `validateSchemaValue` in `settings/Panel.lua` | [LibKa0s seam pass](#libka0s-seam-pass) step 17 — both halves, the dropdown **and** `/cm set` |
 | A new `shortName` on a category row | §11a step 6a with **Label text** on *Always short* |
 | Anything protected-frame or secure-template shaped | §11a steps 3, 12, 14, and §11d |
 | Macro bar flyout (`modules/MacroBarFlyout.lua`, `MacroBarLayout.Flyout` / `IndicatorAnchor` / `IndicatorClearance`) | §11b, §11c, §11d, §11e |
 | Flyout close paths (secure `_onleave`, click wrap, idle timer) | §11e in full, in and out of combat |
 | `Selector.ListAvailable` (the flyout's candidate source) | §11b + §11c |
 | `core/MacroDisplay.lua` (shared by the bar + the panel drag icon) | §11a step 2 + §9 step 1 (drag icon still shows the right icon/tooltip) |
+| Lint configuration (`.luacheckrc`) or a headless-only gate (`tests/test_lintconfig.lua`) | nothing — neither ships to the client, and `luacheck .` at 0/0 plus `lua tests/run.lua` green is the whole verification. `M4c-03` narrowed the suppressions and added the gate and touched no shipped behavior: its one edit under `core/` is a comment and a `-- luacheck: ignore 542` directive on an unchanged line |
 | Doc-only changes | nothing — docs don't ship to the client |
 
 If you change something not on this list, walk the full suite. The targeted lookup is a shortcut, not a substitute for understanding the blast radius of your change.

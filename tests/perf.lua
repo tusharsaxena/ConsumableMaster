@@ -158,10 +158,27 @@ KCM.Perf.on = false
 -- The dormant arm therefore also carries an ABSOLUTE ceiling. Raise it only with a recorded
 -- reason — a rise IS the finding, and the headroom below is deliberately thin.
 --
--- 6000.0 bytes/iter is the measured figure with the brackets dormant, and it is EXACTLY
--- cooldownRefresh's — which is the point: the probe contributes none of it. It repeats to the
--- tenth of a byte across runs because the walk is deterministic under the mock (fifteen slots,
--- one duration object each). 6144 is 6000 plus one 144-byte slot's worth of headroom.
+-- RE-VERIFIED 2026-09-08, three consecutive runs, and left where it stands.
+--
+--   measured   6000.0 bytes/iter with the brackets dormant, identical to the tenth in all three
+--              runs and EXACTLY cooldownRefresh's figure — which is the point: the probe
+--              contributes none of it. The walk is deterministic under the mock (fifteen slots,
+--              one duration object each).
+--   ceiling    6144 = 6000 plus one 144-byte slot's worth of headroom, i.e. 2.4%.
+--   margin     Measured rather than asserted: one empty table added to this scenario's body moves
+--              the figure 6000.0 -> 6064.0, so a table costs 64 bytes/pass under this interpreter
+--              and the 144-byte margin ADMITS TWO of them before it trips. Stated plainly because
+--              it is the limit of what this line catches. It is not tightened to 6032 — the
+--              sibling re-baselining in AbsorbTracker's tests/perf.lua could afford that because
+--              its baseline is 48.0 and its loop never provokes the collector; this loop allocates
+--              1.2 MB, `measure` reports what the collector has NOT reclaimed by the end of it,
+--              and this file's own `recompute` line demonstrably moves with unrelated edits to
+--              this file for exactly that reason. Half a percent of headroom on a figure taken
+--              that way buys a gate that goes red on a good day, which is the failure the header
+--              of this file is about. A regression that adds a table PER SLOT — the realistic
+--              shape — costs fifteen of them and trips this immediately.
+--
+-- Raise it only by filling in those three lines again — a rise IS the finding.
 local PROBE_OFF_BYTES_CEILING = 6144
 
 assert_(probeOff.bytesPerIter <= PROBE_OFF_BYTES_CEILING,
@@ -170,6 +187,97 @@ assert_(probeOff.bytesPerIter <= PROBE_OFF_BYTES_CEILING,
 assert_(probeOff.bytesPerIter <= probeOn.bytesPerIter + 1,
     ("a dormant bracket allocated %.1f bytes/iter against an armed %.1f — the gating idiom is wrong")
         :format(probeOff.bytesPerIter, probeOn.bytesPerIter))
+
+-- 4. THE FIRST-OPEN REFRESH BURST — the panel-side debounce, which is a one-off cost and is here
+--    for exactly that reason.
+--
+--    docs/data-flow.md's GIIR split: opening the settings panel for the first time in a session
+--    hydrates roughly 150 priority-list items that are not in bags, and each arrival publishes
+--    PANEL_REFRESH, which lands on KCM.Options.RequestRefresh. One player action, 150 calls, and
+--    one panel rebuild is meant to come out the far end. Nothing else in this file and nothing in
+--    any in-game capture attributes a byte to that path, so for as long as it went unmeasured
+--    "the debounce is cheap" was an assertion rather than a reading — which is why the plan for
+--    this item gates the fix on the scenario and not the other way round.
+--
+--    THE TWO STUBS BELOW ARE THE INSTRUMENT, not a convenience.
+--
+--    tests/wow_mock.lua's C_Timer.After runs its callback synchronously. Under it a trailing-edge
+--    debounce refreshes on EVERY call, so a scenario driven through the mock as shipped would be
+--    measuring RefreshAllPanels 150 times and would report the same figure whatever the debounce
+--    did. The stub keeps the most recently scheduled callback and runs it once the burst has gone
+--    quiet, which is what the client does; it is also the shape tests/_kit/mock_base.lua uses, and
+--    the shape tests/test_pipeline.lua's coalescing case already borrows. It allocates nothing, so
+--    the figure below is the ADDON's allocation alone — the client's per-timer ticker table sits on
+--    top of it and is not counted here.
+--
+--    GetTime is the mock's os.clock(), which advances by microseconds across a 150-call loop. That
+--    is a storm that never goes quiet, so every iteration would run into the next one and the
+--    burst boundary the scenario is about would not exist. A virtual clock the body steps by hand
+--    gives each iteration one clean burst: 150 calls a millisecond apart, then a second of silence.
+local REFRESH_BURST_CALLS = 150
+local timersScheduled = 0
+local refreshBurst
+do
+    local dueFn
+    local savedAfter   = _G.C_Timer.After
+    local savedGetTime = _G.GetTime
+    local vnow = 0
+    _G.GetTime = function() return vnow end
+    _G.C_Timer.After = function(_, fn) timersScheduled = timersScheduled + 1; dueFn = fn end
+
+    refreshBurst = measure("refreshBurst", BURST, function()
+        for _ = 1, REFRESH_BURST_CALLS do
+            vnow = vnow + 0.001
+            KCM.Options.RequestRefresh()
+        end
+        vnow = vnow + 1.0            -- the events stop; the debounce window closes
+        local fn = dueFn
+        dueFn = nil
+        if fn then fn() end          -- the tail of the burst, where the one rebuild belongs
+    end)
+
+    _G.C_Timer.After = savedAfter
+    _G.GetTime       = savedGetTime
+end
+
+-- The load-bearing assertion of this scenario is a COUNT. The number of timers a burst arms is a
+-- property of the debounce itself: it is an integer, it is the same on every machine, and it is
+-- the defect stated directly. Two per burst rather than one, because a burst that straddles the
+-- REFRESH_MAX_WAIT_SEC cap legitimately re-arms once and pinning it at exactly one would forbid
+-- the cap from working.
+local TIMERS_PER_BURST_CEILING = 2
+assert_(timersScheduled <= BURST * TIMERS_PER_BURST_CEILING,
+    ("a %d-call burst armed %.1f timers, over the %d-per-burst ceiling — the debounce is scheduling "
+     .. "per call rather than per burst"):format(REFRESH_BURST_CALLS,
+        timersScheduled / BURST, TIMERS_PER_BURST_CEILING))
+
+-- And a byte ceiling beside it, because the count alone does not forbid the closure: a shape that
+-- armed one timer and still built a fresh callback per call would pass the line above.
+--
+-- BASELINED 2026-09-08, three consecutive runs.
+--
+--   measured   0.0 bytes/burst, identical in all three. The debounce writes numbers onto O and
+--              nothing else, and numbers are not heap objects in 5.1, so the honest reading of
+--              this path is zero rather than a small figure.
+--   ceiling    1024 bytes/burst.
+--   margin     DERIVED from the defect this line exists to catch, which is the one that was
+--              actually here: the per-call closure measured 2251.2 bytes/burst over three runs
+--              before it was removed, so 1024 trips at under half its return. The floor under the
+--              ceiling is measured too — one empty table added to this scenario's body moves the
+--              figure 0.0 -> 64.0, so 1024 is sixteen tables of room for the ONE tail rebuild a
+--              burst legitimately performs, and that rebuild growing is not what this line is
+--              about.
+--
+-- A byte figure taken this way is also worth reading with its limits in mind. `measure` reports
+-- what the heap has NOT reclaimed by the end of the loop, so a scenario's byte column moves with
+-- the live-heap size at the moment it runs and therefore with the rest of this file: adding this
+-- scenario alone, changing nothing else, moved `recompute` from 4102.0 to 4179.0. That is why the
+-- count above leads and this follows, and why the margin here is wide rather than tight.
+local REFRESH_BURST_BYTES_CEILING = 1024
+assert_(refreshBurst.bytesPerIter <= REFRESH_BURST_BYTES_CEILING,
+    ("a %d-call burst allocated %.1f bytes, over the %d-byte ceiling — something in the debounce is "
+     .. "allocating per call again"):format(REFRESH_BURST_CALLS, refreshBurst.bytesPerIter,
+        REFRESH_BURST_BYTES_CEILING))
 
 -- And the probe has to actually be there. Without this the two arms above could both be measuring
 -- a build where core/PerfSetup.lua returned early, which reads as a perfect zero-overhead result.

@@ -72,7 +72,7 @@ test("LibKa0s: the harness load list matches libs/LibKa0s/LibKa0s.xml exactly", 
     -- The list is no longer hand-maintained: tests/run.lua derives it with
     -- Loader.xmlFiles. What this case still buys is that the DERIVATION is right
     -- — the expected side is re-read from the raw XML text with an independent
-    -- pattern, so a parser that dropped a commented-out entry's neighbour, lost
+    -- pattern, so a parser that dropped a commented-out entry's neighbor, lost
     -- the XML's order, or forgot the directory prefix shows up here rather than
     -- as a library module that quietly never registered.
     t.eqList(loader.LIB_FILES, fromXml, "LIB_FILES is the XML's file list, in the XML's order")

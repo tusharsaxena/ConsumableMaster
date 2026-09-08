@@ -86,12 +86,19 @@ off a snapshot taken at file load. That is the whole point of the indirection. T
 replaced re-exported eleven members by hand, and any member the list forgot — or any member bound
 while `UI` was still `nil` — read back `nil` at the call site with no way to tell it apart from a
 member the library never had (`options-ui-§1`). The addon's own wrappers stay as **own** keys and
-shadow the library's same-named function, which is what lets `Section` / `CreatePanel` / `LSMValues`
-call the instance's version without recursing into themselves.
+shadow the library's same-named function, which is what lets `Section` and `CreatePanel` call the
+instance's version without recursing into themselves. `LSMValues` was a third wrapper until `M4-C1`
+retired it: it flattened the library's deferred hash into an ordered array for one caller, and that
+caller was the LibKa0s issue #15 workaround `M3-04` deleted. `Helpers.LSMValues` still resolves, but
+straight through `__index` to the library's, so it hands back the **deferred closure over a hash**
+the library documents; anything wanting an array puts it through `Helpers.EnumValues`.
 
 With the library **absent** the panel is not registered at all, and the degradation stub publishes
-exactly the members a page file touches *at file load*: `LSMValues`, plus the four composers
-(`MasterControls`, `ColorPair`, `FontGroup`, `BorderGroup`) answering an empty row list. The composed
+exactly the members a page file touches *at file load*: the four composers (`MasterControls`,
+`ColorPair`, `FontGroup`, `BorderGroup`), answering an empty row list. `LSMValues` was named here as
+a fifth, and the stub never published it even then — `settings/Panel.lua` defined it
+unconditionally, on both arms. `M4-C1` removed it outright, and no page file evaluates it at file
+load any more, so the list above is complete as it stands. The composed
 rows are therefore missing on that arm, deliberately — a host copy of a composer is precisely the
 duplicate the library was extracted to end (`options-ui-§1`, anti-patterns #47) — and it costs nothing
 reachable, because with no panel and no `/cm list|get|set` there is no surface left that could read
@@ -182,7 +189,7 @@ Augment Rune; then the three that are set once per tier and left.
 | 8-12 | **Flask** · **Combat Potion** · **Stat Food** · **Weapon Enchant** · **Augment Rune** | Spec-aware categories — the same per-category surface, resolved against the spec named in the Stat Priority banner |
 | 13-15 | **Vantus Rune** · **Bloodlust** · **Battle Rez** | Remaining categories, same surface |
 
-Tabs are labelled with each category's `displayName`, never its `shortName`: `shortName` exists for
+Tabs are labeled with each category's `displayName`, never its `shortName`: `shortName` exists for
 the macro bar's 32px buttons, where "Brez" and "Rune" are the only thing that fits, and a tab reading
 "Rune" two places from one reading "Vantus" would say nothing about which rune it meant.
 
@@ -274,9 +281,9 @@ One tab, **Priority**, under the spec banner.
   `ResetScroll` releases it, and turns up on the next thing to ask for a `SimpleGroup`. Every script
   reads the stat off the frame at fire time, never off an upvalue captured when the row was built.
 
-## Control groups and the class-colour companion
+## Control groups and the class-color companion
 
-**Every colour swatch has a `Use class color` companion immediately to its right** (`options-ui-§17`),
+**Every color swatch has a `Use class color` companion immediately to its right** (`options-ui-§17`),
 default off. There are seven swatches and seven companions:
 
 | Swatch | Companion | Scope |
@@ -293,13 +300,23 @@ Every one is `classColorSource = "player"`: this addon paints one bar that belon
 tracks no unit, so there is no other class any of them could mean. The declaration is what an audit
 reads — the path prefix decides nothing.
 
-- **The swatch is never disabled.** Its **alpha** is still read under class colour, so graying it
-  would tell the player something untrue. `disabledIf` on a colour row is forbidden
+- **The swatch is never disabled.** Its **alpha** is still read under class color, so graying it
+  would tell the player something untrue. `disabledIf` on a color row is forbidden
   (anti-patterns #74); the swatch's tooltip says it in words instead.
 - **One resolver.** `KCM.SwatchColor` (`core/CoreSetup.lua`) decodes the stored positional
   `{ r, g, b, a }` with that surface's own four-channel fallback and hands it to
   `LibKa0s-Core-1.0`'s `ResolveColor` with a `nil` unit. An unresolvable class falls through to the
   stored swatch — never to white, never to a substitute hue.
+- **One decoder, and it invents nothing.** `KCM.ColorDecode` (`core/CoreSetup.lua`) is the only
+  reader of the stored `{ r, g, b, a }` shape. It answers `nil` for a channel the stored table does
+  not carry and takes the fallback from its **caller**, which is why a per-surface default belongs
+  in `KCM.SwatchColor` rather than in the codec. The panel (`settings/OptionsSetup.lua`'s
+  `Helpers.ColorDecode`), the CLI (`settings/Slash.lua`'s `colorDecode`) and `KCM.FormatSchemaValue`
+  all read through it. The panel is the one surface that supplies numbers — AceGUI's color picker
+  hands `SetColor`'s arguments straight to `SetVertexColor`, which raises on a `nil` — and the four
+  it supplies are `LibKa0s-Slash-1.0`'s own `COLOR_KEYS` values, so the swatch and `/cm get` cannot
+  disagree about a color they both read. Before this the panel answered `or 1` and the CLI `or 0`:
+  one stored value, white on one surface and black on the other.
 
 **The bar's chrome is a BACKGROUND group, not a bar group** (`options-ui-§16`). The macro bar is a
 button container with a backdrop and no fill texture, so it takes a swatch and its companion and
@@ -309,7 +326,7 @@ not called anywhere in this addon.
 The **border** blocks (bar and button) and the label **font** block are composed by `H.BorderGroup`
 and `H.FontGroup`; `keys` and `defaults` keep the stored paths and values exactly what they were. The
 font block is what gave the labels a **font face**, a real **font flags** string and a **font shadow**
-— all three new, all three honoured in `modules/MacroBarButton.lua`'s `applyLabel`. `labelOutline`
+— all three new, all three honored in `modules/MacroBarButton.lua`'s `applyLabel`. `labelOutline`
 (a boolean) became `labelFlags` (a string) in the same change, as schema **v3** in
 `core/Database.lua`, because a stored value changing shape is a migration and not an edit to a
 defaults table.
@@ -344,7 +361,7 @@ so they are two flat controllers rather than one with a boundary — a drag cann
 because there is no array for it to cross into. The secondary-stat list is the other shape: one array
 with a divide, so one controller with a `boundary`.
 
-**Every controller is cancelled at the TOP of the render, before the first widget is created** —
+**Every controller is canceled at the TOP of the render, before the first widget is created** —
 `settings/Category.lua`'s `cancelReorder` and `settings/StatPriority.lua`'s. Handles and boxes are
 pooled, and a controller released late leaves them attached to recycled widgets belonging to something
 else. The Category seam holds a **list** of controllers for exactly this reason: a composite page
@@ -397,7 +414,7 @@ not gaps:
 - **Two-column paired grid** (`options-ui-§6`). Consecutive rows pair into left/right cells.
   `H.RenderRows(ctx, rows, afterGroup, pairWith, opts)` draws a block of schema rows and reads the
   pairing off the rows themselves: `startsLine` flushes the pending line before a row (which is what
-  keeps a colour pair together), `wide` renders a row alone at full width, and `solo` renders it alone
+  keeps a color pair together), `wide` renders a row alone at full width, and `solo` renders it alone
   in the left half. `H.Grid(ctx, { … })` remains for lists whose length no schema knows.
 - **Sections** are introduced by `H.Section(ctx, label)`, never a bare bold line. On a tabbed page the
   tab strip replaces the group heading it used to draw — a heading under a tab of the same name says
@@ -410,5 +427,11 @@ not gaps:
 - **Action buttons** use `H.ButtonPair` / `H.Button`, and a destructive one is confirm-gated through a
   `StaticPopup` — *Reset all settings* raises `KCM_RESET_ALL` and *Reset all priorities* raises
   `KCM_RESET_PRIORITIES`, rather than either acting on click.
-- Every user-visible string routes through `L[…]` (`localization-§1`). The composers' labels are the
-  library's own English literals, which is what makes them identical across the collection.
+- User-visible strings route through `L[…]` (`localization-§1`), and `tests/test_locale.lua` is what
+  holds that: it lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any
+  that is neither a subscript of `L` nor recorded, with a class, in its residue register. It is a gate
+  on the surface GROWING a bare literal — the register is a complete inventory of the seventy this page
+  and the settings CLI already carry, most of them chat diagnostics, degraded-install tails and the
+  `/cm` verb list. Read that register before assuming a string here is translatable. The composers'
+  labels are the library's own English literals, which is what makes them identical across the
+  collection.

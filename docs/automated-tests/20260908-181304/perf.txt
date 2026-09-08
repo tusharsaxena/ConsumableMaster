@@ -1,0 +1,11 @@
+Ka0s Consumable Master — offline perf  (v1.5.0, label 'offline')
+
+scenario                  iters      ms/iter     total ms   bytes/iter
+recompute                   200      1.00435      200.869       2945.3
+cooldownRefresh             200      0.01951        3.902       6000.0
+probeOverheadOff            200      0.01867        3.735       6000.0
+probeOverheadOn             200      0.01868        3.736       6001.3
+refreshBurst                200      0.02054        4.108          0.0
+
+timings are for orientation only — compare scenarios within a run, never across machines
+wrote docs/automated-tests/20260908-181304/perf.json

@@ -480,7 +480,7 @@ end)
 -- shortName exists for the bar's 32px buttons, where "Rune" and "Brez" are all
 -- that fit, and two tabs reading "Rune" and "Vantus" would say nothing about
 -- which rune each meant.
-test("schema: a Macros tab is labelled with the category's display name", function(t)
+test("schema: a Macros tab is labeled with the category's display name", function(t)
     local KCM = h.loader.loadFullAddon()
     for _, tab in ipairs(KCM.Options.MacroTabs()) do
         local cat = KCM.Categories.Get(tab.key)
@@ -500,8 +500,8 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
     local want = {
         -- General lost `Lock position` to the General page's Master controls tab
         -- (options-ui-§15); the appearance tabs gained the class-color companion
-        -- beside every swatch (§17) and Labels gained the font face, the font
-        -- flags string and the font shadow the canonical font block mandates (§16).
+        -- beside every swatch (options-ui-§17) and Labels gained the font face, the font
+        -- flags string and the font shadow the canonical font block mandates (options-ui-§16).
         { "General",           1  },
         { "Layout",            8  },
         { "Bar appearance",    9  },
@@ -549,10 +549,10 @@ end)
 -- the page has already left draws that tab a second time, further down.
 test("schema: no page's rows leave a group and come back to it", function(t)
     local KCM = h.loader.loadFullAddon()
-    local closed, current, page = {}, nil, nil
+    local closed, current, panel = {}, nil, nil
     for _, row in ipairs(KCM.Settings.Schema) do
-        if row.panel ~= page then
-            closed, current, page = {}, nil, row.panel
+        if row.panel ~= panel then
+            closed, current, panel = {}, nil, row.panel
         end
         if row.group ~= current then
             t.falsy(closed[row.group],
@@ -715,7 +715,7 @@ test("schema: every color row is followed by its class-color companion", functio
             t.truthy(companion and tostring(companion.path):find("useClassColor", 1, true),
                 "…and that bool is its useClassColor companion")
             t.eq(companion and companion.label, "Use class color",
-                "…labelled with the collection's one wording")
+                "…labeled with the collection's one wording")
             t.eq(companion and companion.group, row.group, "…in the same tab")
             t.eq(companion and companion.subgroup, row.subgroup, "…under the same heading")
             t.eq(row.startsLine, true,
@@ -741,7 +741,7 @@ end)
 -- The four Macro Bar tabs that merge a background block, a border block, a font
 -- block and an icon block are the ones this catches. A `subgroup` MUST NOT
 -- repeat its tab's name, and every row of a subgrouped tab must carry one --
--- a single unlabelled row among labelled ones is a block with no heading.
+-- a single unlabeled row among labeled ones is a block with no heading.
 --
 -- "Repeat" is checked WORD BY WORD, not on the whole string. `Bar` under
 -- `Bar appearance` is a repeat -- it names the tab back at the reader instead of

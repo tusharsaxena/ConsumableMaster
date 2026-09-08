@@ -17,7 +17,7 @@
 -- beside the one tab everybody actually opens. They are appended AFTER the
 -- canonical block rather than interleaved into it (options-ui-§16: anything
 -- extra goes after the block), under a heading, because the tab now mixes
--- settings rows with acts and §7 wants each kind named. Nothing here is a
+-- settings rows with acts and options-ui-§7 wants each kind named. Nothing here is a
 -- setting, so nothing moved in storage, and the page's Defaults button — which
 -- walks `masterRows` — is unaffected by the fold.
 --

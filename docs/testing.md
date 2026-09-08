@@ -11,8 +11,8 @@ with red tests or lint errors is not allowed.
 
 | Gate | Command | What it does |
 |------|---------|--------------|
-| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, the LibKa0s seams (chat printer, debug console, slash dispatcher and schema CLI, settings-panel shell plus the Blizzard canvas callbacks it stamps, perf harness, and the media seam — which folder name crosses it, whether the path that comes back names art actually present in this build's vendored payload, and whether the close-button wrapper still carries that name as its third argument) and their degraded paths, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, and the `/cm` dispatcher — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
-| Lint | `luacheck .` | Static analysis across the addon (`libs/`, `docs/audits/`, `docs/reviews/`, `tests/` excluded). Must report **0 errors**. |
+| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, the LibKa0s seams (chat printer, debug console, slash dispatcher and schema CLI, settings-panel shell plus the Blizzard canvas callbacks it stamps, perf harness, and the media seam — which folder name crosses it, whether the path that comes back names art actually present in this build's vendored payload, and whether the close-button wrapper still carries that name as its third argument) and their degraded paths, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, the locale seam and the routing gate over the settings surface (`tests/test_locale.lua` lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any that is neither wrapped in `L` nor classed in its residue register), and the `/cm` dispatcher — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
+| Lint | `luacheck .` | Static analysis across the addon **including the test tree** (`libs/`, `docs/audits/`, `docs/reviews/` and `tests/_kit/` excluded — the kit is a byte copy linted in the LibKa0s repo as source). Must report **0 errors**. |
 
 Syntax-check a single file with `luac -p path/to/file.lua`.
 
@@ -23,11 +23,43 @@ the library, and this addon's passes against a stale vendored copy that still wo
 re-vendor, and before any release:
 
 ```sh
-diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — MUST be empty
+diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — empty vs the CLAIMED tag
 diff -r ../LibKa0s/LibKa0s libs/LibKa0s                        # bytes  — SHOULD be empty
-diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit       # content — MUST be empty
+diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit       # content — empty vs the CLAIMED tag
 diff -r ../LibKa0s/testkit tests/_kit                           # bytes  — SHOULD be empty
 ```
+
+### When these diffs are supposed to be non-empty
+
+They compare against the sibling checkout's **working tree** — whatever `../LibKa0s` happens to have
+checked out — which is a different question from *"is the vendored payload the release this addon
+claims?"*. The two questions give the same answer only while the library has tagged nothing newer
+than the tag this addon has taken.
+
+Between a library release and the re-vendor that carries it they disagree, and that disagreement is
+the normal state rather than a defect. It is the state as this is written: `../LibKa0s` sits on
+**v1.27.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.26.0**, and the commands above report **306**
+differing lines for the library and **947** for the test kit. Re-vendoring to quiet them would be
+the actual mistake — it would pull an untested library release for the sake of a clean diff.
+
+**The authoritative comparison is against the tag `CLAUDE.md` names**, and that one must be empty at
+every commit:
+
+```sh
+tag=$(grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' CLAUDE.md \
+        | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+rm -rf "/tmp/libka0s-$tag" && mkdir -p "/tmp/libka0s-$tag"
+git -C ../LibKa0s archive "$tag" | tar -x -C "/tmp/libka0s-$tag"
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/testkit" tests/_kit     # MUST be empty
+```
+
+`tests/test_vendor_sync.lua` asks exactly this question inside the suite — it greps the tag out of
+`CLAUDE.md` and reads that blob out of git — so **a green suite has already answered it**, and the
+block above is only the by-eye version for when you want to see the hunks. Which leaves the
+working-tree diffs above answering a real but different question: *how far behind the library is
+this addon?* That is release planning, not a gate.
+
 
 Both halves, because the two answers are different findings.
 
@@ -92,6 +124,82 @@ the same change. Confirm they match with:
 ```sh
 diff <(lua5.1 tests/run.lua --list) docs/test-cases.md   # no output = in sync
 ```
+
+`<PASS>` and `<TOTAL>` are allowed to differ, and the gap is always a **declared skip**
+— a case registered with a third argument giving its reason, which the runner never
+executes, never folds into the pass count, and never lets change the exit code. The
+inventory discloses each one inline as `(skipped: <reason>)`, so the two numbers together
+say "N cases exist, N-k of them are being evaluated" rather than hiding the difference.
+A skip is for a case that has been written and watched failing against a defect the fix
+for which is a separate change; it is never a way to park a case whose assertion is
+merely inconvenient, and softening the assertion instead is worse than either.
+
+## The 1500-line cap gate
+
+`tests/test_layout_cap.lua` compares two things: every authored `.lua` git tracks, and the
+census under *Files over the 1500-line cap* in [ARCHITECTURE.md](./ARCHITECTURE.md). It reads
+them in both directions, so a file that crosses the cap unremarked and a row left behind for a
+file that has stopped breaching are each a red.
+
+`layout-§1` binds **every authored file the repository tracks**, `tests/` included; vendored
+code (`libs/`, `tests/_kit/`) is the only carve-out that reaches this repo. A red is cleared by
+giving the file one of the three terminal states the rule allows — peel it, open an issue naming
+the seam a peel would follow, or ratify a deviation row with a re-check trigger — and then adding
+its row to the census. It is not cleared by raising `CAP`, and it must not be cleared by dropping
+the suite from `SUITES`: `Kit.assertSuiteInventory` aborts the run on an undeclared suite file,
+which is the point of having one.
+
+The line figures in the census are dated measurements and nothing asserts them, so an ordinary
+edit to a large file does not redden this gate. Membership is the invariant, not the numbers.
+
+## The US-English prose gate
+
+`tests/test_prose.lua` reads every authored file git tracks — `.lua`, `.md`, `.toc` and
+`.luacheckrc` — and reddens on a British spelling from the `BRITISH` list `localization-§5`
+publishes, after the `ALLOWED` US words that contain one of those substrings have been taken
+out as whole words.
+
+**Both lists are copied from the standard whole, and nothing is added locally.** A gate that
+carries a private subset reads as coverage and provides none: LibKa0s shipped six substrings
+for months and stayed green while a doubled-L `CANCELED` went out in chat text a player reads. If
+a sweep here turns up a British form the published list misses, it is amended in `localization-§5`
+first and arrives on the next standards sync.
+
+Four exclusions, each named directory by directory or file by file inside the gate so the list
+cannot grow by widening a pattern: vendored code (`libs/`, `tests/_kit/`); the frozen dated
+bundles under `docs/audits/`, `docs/automated-tests/`, `docs/perf-analysis/`, `docs/reviews/`
+and `docs/revendor/`; `locales/enGB.lua`, which is what a British locale file is for and which
+this addon does not ship; and the gate's own copy of the lists. `docs/superpowers/` is dated but
+is authored prose people still read, so it stays in scope.
+
+The gate exists because the sweep alone did not hold. `M4-13` corrected 51 lines across 22 files
+and left nothing watching; four commits later `M4-18`, `M4-21` and `M4-22` had put 26 back, in
+files each had every reason to touch. A sweep is a measurement of one afternoon. Only a gate
+makes it a property of the repository.
+
+## The blanket-suppression gate
+
+`tests/test_lintconfig.lua` reads `.luacheckrc` as Lua — under a sandboxed environment that
+auto-creates a table on first index, exactly as luacheck's own config loader does, so what the
+gate inspects is the table luacheck obeys rather than a text scan a different spelling would slip
+past. It reddens on three things, which are one rule seen from three sides: a top-level `ignore`;
+a warning class switched off wholesale at the top level (`unused_args = false` and its eight
+relatives); and an `ignore` inside a `files[...]` stanza whose key names a directory rather than
+one `.lua` file and whose entry does not narrow to a variable in luacheck's `<code>/<name>` form.
+A fourth case walks every tracked `.lua` file for a bare `-- luacheck: ignore` with no code after
+it, which is the same blanket wearing a different hat.
+
+The gate exists because `.luacheckrc:25` carried `ignore = { "212", "542" }` for the whole of the
+2026-09-07 cycle. Both codes were honest — unused `self` on AceGUI widget methods, one deliberately
+empty CSV branch in `/cm stat secondary` — but the suppression reached all 99 files, so a genuinely
+dead argument written into `core/BagScanner.lua` would have landed green under a 0/0 badge. That is
+what `lint-§1` means by a suppression that reads as coverage and provides none.
+
+What replaced it is at the foot of `.luacheckrc`: eleven `files[...]` stanzas, each naming one file
+and one argument name (`212/self`, `212/ctx`, `212/catKey`, `212/%.%.%.`), plus a single
+`-- luacheck: ignore 542` on the line in `core/SlashCommands.lua` that needs it. The narrowing is
+real and not cosmetic — add a fifth parameter named anything else to a `modules/Ranker.lua` scorer
+and luacheck reports it, which the blanket did not.
 
 ## What the mock will and won't catch
 
@@ -163,9 +271,10 @@ it is a gate that did not pass, never a pass. `automated-tests-§3` sanctions on
 skipped because the addon ships no `tests/perf.lua`, stated out loud in the release notes — and it
 **does not apply here**: this addon ships `tests/perf.lua` and its `perf` column reads `pass`.
 
-`tests/perf.lua` runs the whole addon under the test mock and drives four scenarios: `recompute`,
-`cooldownRefresh`, and the `probeOverheadOff` / `probeOverheadOn` pair that is `performance-§9`'s
-zero-overhead evidence. It asserts only the deterministic half — per-iteration byte counts and the
+`tests/perf.lua` runs the whole addon under the test mock and drives five scenarios: `recompute`,
+`cooldownRefresh`, the `probeOverheadOff` / `probeOverheadOn` pair that is `performance-§9`'s
+zero-overhead evidence, and `refreshBurst`, which drives the settings panel's 150-call first-open
+refresh storm and asserts on the number of timers the debounce arms for it. It asserts only the deterministic half — per-iteration byte counts and the
 bucket-note count — because wall-clock numbers on a developer machine are not stable enough to fail
 anything on. `lua tests/run.lua` does not invoke it. Detail in
 [performance.md](./performance.md).

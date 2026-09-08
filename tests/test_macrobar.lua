@@ -97,7 +97,7 @@ test("macrobar layout: missing config falls back to shipped defaults", function(
     local KCM = h.loader.loadPure()
     local g = KCM.MacroBarLayout.Grid(2, nil)
     -- This exercises MacroBarLayout.lua's OWN `perRow = ... or N` fallback
-    -- (core/MacroBarLayout.lua:36), kept in step with the category count by
+    -- (the `perRow` clamp inside `normalize`), kept in step with the category count by
     -- the "macrobar defaults: perRow tracks the number of managed
     -- categories" case below. 2 slots stay on one row under any fallback
     -- value that has ever shipped, so this assertion doesn't move.
@@ -300,7 +300,7 @@ end)
 
 test("macrobar flyout: the indicator band sits inside the icon's edge", function(t)
     local KCM = h.loader.loadPure()
-    local point, relPoint, dx, dy, rotation, w, h, glyph =
+    local point, relPoint, dx, dy, rotation, bandW, bandH, glyph =
         KCM.MacroBarLayout.IndicatorAnchor(fcfg())
     -- Same point on both sides = flush inside that edge, not hanging off it.
     t.eq(point, "TOP", "band's top...")
@@ -309,8 +309,8 @@ test("macrobar flyout: the indicator band sits inside the icon's edge", function
     t.eq(dy, 0, "no vertical offset")
     -- The source texture points RIGHT at rest, so "up" is a quarter turn.
     t.near(rotation, math.pi / 2, 1e-9, "arrow rotated to point up")
-    t.eq(w, 40, "spans the button's width")
-    t.eq(h, 8, "as thick as configured")
+    t.eq(bandW, 40, "spans the button's width")
+    t.eq(bandH, 8, "as thick as configured")
     t.eq(glyph, 8, "square glyph filling the band at the default 100% — never stretched")
 end)
 
@@ -341,14 +341,14 @@ end)
 
 test("macrobar flyout: a side band swaps its span and thickness", function(t)
     local KCM = h.loader.loadPure()
-    local point, relPoint, dx, dy, _, w, h =
+    local point, relPoint, dx, dy, _, bandW, bandH =
         KCM.MacroBarLayout.IndicatorAnchor(fcfg{ flyoutPoint = "LEFT" })
     t.eq(point, "LEFT", "band's left...")
     t.eq(relPoint, "LEFT", "...on the button's left")
     t.eq(dx, 0, "no horizontal offset")
     t.eq(dy, 0, "no vertical offset")
-    t.eq(w, 8, "thickness on the x axis now")
-    t.eq(h, 40, "spans the button's height")
+    t.eq(bandW, 8, "thickness on the x axis now")
+    t.eq(bandH, 40, "spans the button's height")
 end)
 
 test("macrobar flyout: band thickness is a ratio of the button, capped at half", function(t)
@@ -387,13 +387,13 @@ end)
 
 test("macrobar flyout: clearance follows the band to another edge", function(t)
     local KCM = h.loader.loadPure()
-    local cfg = { flyout = true, buttonSize = 40, flyoutIndicatorScale = 20,
-                  labelPlacement = "INSIDE" }
-    cfg.flyoutPoint, cfg.labelPoint = "BOTTOM", "BOTTOM_CENTER"
-    local _, _, _, down = KCM.MacroBarLayout.LabelAnchor(cfg)
+    local labelCfg = { flyout = true, buttonSize = 40, flyoutIndicatorScale = 20,
+                       labelPlacement = "INSIDE" }
+    labelCfg.flyoutPoint, labelCfg.labelPoint = "BOTTOM", "BOTTOM_CENTER"
+    local _, _, _, down = KCM.MacroBarLayout.LabelAnchor(labelCfg)
     t.eq(down, 9, "a bottom label is pushed up")
-    cfg.flyoutPoint, cfg.labelPoint = "LEFT", "LEFT"
-    local _, _, left = KCM.MacroBarLayout.LabelAnchor(cfg)
+    labelCfg.flyoutPoint, labelCfg.labelPoint = "LEFT", "LEFT"
+    local _, _, left = KCM.MacroBarLayout.LabelAnchor(labelCfg)
     t.eq(left, 9, "a left label is pushed right")
 end)
 
@@ -1088,7 +1088,6 @@ test("macrobar schema: a flag written from /cm re-syncs the open Macro Bar page 
         -- while `Enable macro bar` stayed with the bar it enables. The in-place
         -- re-sync has to reach whichever page is on screen, so both are built and
         -- both are marked shown.
-        local ctxs = {}
         for _, key in ipairs({ "general", "macrobar" }) do
             local builder = KCM.Settings.builders and KCM.Settings.builders[key]
             t.truthy(builder, "the " .. key .. " tab registered a builder")
@@ -1096,7 +1095,6 @@ test("macrobar schema: a flag written from /cm re-syncs the open Macro Bar page 
             local ctx = UI.__panelFor(key)
             t.truthy(ctx, "…and its ctx landed in the library's registry")
             ctx.panel.IsShown = function() return true end
-            ctxs[key] = ctx
         end
         H.RefreshAllPanels()
 
@@ -1178,9 +1176,20 @@ end)
 
 test("macrobar schema: LSMValues never hands back an empty list", function(t)
     local KCM = h.loader.loadFullAddon()
-    local out = KCM.Settings.Helpers.LSMValues("nosuchmediatype")
-    t.eq(#out, 1, "one placeholder row")
-    t.eq(out[1].value, "None", "placeholder is None")
+    -- Same guarantee, different owner. `Helpers.LSMValues` was the addon's own
+    -- flattening wrapper until M4-C1 retired it; it resolves through
+    -- settings/OptionsSetup.lua's __index to the LIBRARY's now, which answers the
+    -- DEFERRED closure over a self-keyed hash rather than an ordered array --
+    -- hence the second call and the key walk. What is asserted is deliberately
+    -- unchanged: a media type with nothing registered must still offer exactly
+    -- one option, because an empty list leaves the dropdown unopenable AND makes
+    -- ValidateSchemaValue reject the value already stored.
+    local read = KCM.Settings.Helpers.LSMValues("nosuchmediatype")
+    t.eq(type(read), "function", "the reader is deferred, not a load-time snapshot")
+    local keys = {}
+    for k in pairs(read()) do keys[#keys + 1] = k end
+    t.eq(#keys, 1, "one placeholder row")
+    t.eq(keys[1], "None", "placeholder is None")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -1336,10 +1345,10 @@ test("macrobar flyout: an entry's border follows buttonBorder through the bar's 
     button.catKey = "HP_POT"
     local flyout = KCM.MacroBarFlyout.Create(button, "HP_POT", 1)
 
-    local cfg = KCM.db.profile.macroBar
-    cfg.flyout = true
-    cfg.buttonBorder = true
-    t.truthy(KCM.MacroBarFlyout.Apply(button, cfg), "flyout applied")
+    local barCfg = KCM.db.profile.macroBar
+    barCfg.flyout = true
+    barCfg.buttonBorder = true
+    t.truthy(KCM.MacroBarFlyout.Apply(button, barCfg), "flyout applied")
     local entry = flyout.entries[1]
     t.truthy(entry, "at least one candidate bound an entry")
 
@@ -1349,12 +1358,12 @@ test("macrobar flyout: an entry's border follows buttonBorder through the bar's 
     entry.border.Show = function() shows = shows + 1 end
     entry.border.Hide = function() hides = hides + 1 end
 
-    KCM.MacroBarFlyout.Apply(button, cfg)
+    KCM.MacroBarFlyout.Apply(button, barCfg)
     t.eq(shows, 1, "buttonBorder on → the entry border is painted and shown")
     t.eq(hides, 0, "and never hidden on that pass")
 
-    cfg.buttonBorder = false
-    KCM.MacroBarFlyout.Apply(button, cfg)
+    barCfg.buttonBorder = false
+    KCM.MacroBarFlyout.Apply(button, barCfg)
     t.eq(hides, 1, "buttonBorder off → the entry border is hidden")
     t.eq(shows, 1, "and not re-shown")
 end)
@@ -1703,10 +1712,10 @@ end)
 
 -- ---------------------------------------------------------------------------
 -- options-ui-§15 / §16 / §17 — the settings that were ADDED, and the code that
--- honours them
+-- honors them
 -- ---------------------------------------------------------------------------
 --
--- A setting that is declared and not honoured is worse than one that is absent,
+-- A setting that is declared and not honored is worse than one that is absent,
 -- so every row this adoption added is pinned against the drawing code that reads
 -- it rather than against the schema that declares it.
 
@@ -1744,8 +1753,9 @@ test("macrobar label: the font FACE, FLAGS and SHADOW reach the FontString", fun
     t.eq(firstCall(plain.label, "SetShadowOffset")[2], 0,
         "and the shadow is CLEARED rather than left from a previous pass")
 
-    -- A profile written before schema v3 has no labelFlags at all; the outline is
-    -- what it always had.
+    -- A cfg with no labelFlags at all -- which AceDB never hands the drawing code,
+    -- since defaults/Profile.lua ships one, but a direct caller can -- keeps the
+    -- outline, because that is what the setting always was before v3.
     local legacy = styleButton()
     KCM.MacroBarButton.ApplyStyle(legacy, { buttonSize = 36, buttonLabel = true, labelScale = 25 })
     t.eq(firstCall(legacy.label, "SetFont")[4], "OUTLINE",
@@ -1811,7 +1821,7 @@ test("macrobar button: an unresolvable class falls through to the stored swatch"
 end)
 
 -- ---------------------------------------------------------------------------
--- The addon-wide master controls, honoured by the one thing this addon draws
+-- The addon-wide master controls, honored by the one thing this addon draws
 -- ---------------------------------------------------------------------------
 
 test("macrobar master: Master scale and Master alpha MULTIPLY the bar's own", function(t)

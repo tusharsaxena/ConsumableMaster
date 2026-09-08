@@ -5,7 +5,7 @@
 -- settings/Slash.lua as the place the dispatcher is wired, and core/ was also
 -- the repo's largest file at 1408 LOC (advisory CM-54).
 --
--- The division of labour across the two files:
+-- The division of labor across the two files:
 --   * core/SlashCommands.lua owns the VERB BODIES — the priority / stat / aio /
 --     bar namespaces, the dump targets, and their sub-command tables. It
 --     publishes the five entry points on KCM.SlashCommands.Verbs and knows
@@ -109,7 +109,7 @@ local COMMANDS = {
             local DL = KCM.DebugLog
             if arg == "on" or arg == "off" then
                 -- DL.SetEnabled is the single seam: it owns the chat ack, the
-                -- console transition line, and the options-panel refresh (§5).
+                -- console transition line, and the options-panel refresh (debug-logging-§5).
                 local want = (arg == "on")
                 if DL and DL.SetEnabled then
                     DL.SetEnabled(want)
@@ -292,10 +292,16 @@ if slashLib then
         -- the Ka0s options color widget writes. The library reads that shape
         -- directly when rendering, but the codec is what makes a `/cm set`
         -- WRITE land in it rather than in the named-key form.
-        colorDecode  = function(c)
-            c = type(c) == "table" and c or {}
-            return c[1] or 0, c[2] or 0, c[3] or 0, c[4] or 1
-        end,
+        --
+        -- KCM.ColorDecode bare, with NO fallback supplied
+        -- (CONSUMABLEMASTER-R-05). This surface used to answer `c[1] or 0`
+        -- while settings/OptionsSetup.lua answered `c[1] or 1`, so one stored
+        -- value read black here and white in the panel. Handing on the
+        -- decoder's nil is not a gap: lib.FormatValue fills an absent channel
+        -- from its own COLOR_KEYS (in libs/LibKa0s/Slash.lua) with exactly
+        -- these numbers, so what the user sees is unchanged and the addon
+        -- carries one fewer copy of them.
+        colorDecode  = KCM.ColorDecode,
         colorEncode  = function(r, g, b, a) return { r, g, b, a or 1 } end,
     })
     -- The instance, so the suite can assert identity rather than lookalike
