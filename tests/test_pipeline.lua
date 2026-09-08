@@ -317,7 +317,7 @@ test("ResetAllToDefaults keeps the addon on when the defaults have no enabled ke
 
     t.eq(KCM.db.profile.enabled, nil, "the profile mirrors the defaults table exactly")
     -- Reached the way the macro write loop reaches it.
-    t.eq(not (KCM.db.profile.enabled == false), true,
+    t.eq(not (KCM.db and KCM.db.profile and KCM.db.profile.enabled == false), true,
         "a missing defaults key is fail-safe (addon on), not fail-off")
 end)
 

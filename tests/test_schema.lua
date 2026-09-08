@@ -549,10 +549,10 @@ end)
 -- the page has already left draws that tab a second time, further down.
 test("schema: no page's rows leave a group and come back to it", function(t)
     local KCM = h.loader.loadFullAddon()
-    local closed, current, page = {}, nil, nil
+    local closed, current, panel = {}, nil, nil
     for _, row in ipairs(KCM.Settings.Schema) do
-        if row.panel ~= page then
-            closed, current, page = {}, nil, row.panel
+        if row.panel ~= panel then
+            closed, current, panel = {}, nil, row.panel
         end
         if row.group ~= current then
             t.falsy(closed[row.group],

@@ -1325,12 +1325,12 @@ local function withAtlasHeights(fn)
         local f = realCreate(kind, name, parent, template)
         f.CreateTexture = function()
             local tex = loader.mock.makeStub()
-            local h = 0
+            local height = 0
             tex.SetAtlas = function(_, atlas)
-                h = tostring(atlas):find("Active", 1, true) and 33 or 28
+                height = tostring(atlas):find("Active", 1, true) and 33 or 28
                 return tex
             end
-            tex.GetHeight = function() return h end
+            tex.GetHeight = function() return height end
             return tex
         end
         return f

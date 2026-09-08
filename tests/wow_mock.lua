@@ -675,7 +675,10 @@ function M.install(NS)
     _G.strsplit = function(sep, s)
         local out = {}
         for part in (s or ""):gmatch("([^" .. sep .. "]+)") do out[#out + 1] = part end
-        return table.unpack and table.unpack(out) or unpack(out)
+        -- 5.1's global `unpack`. DEPENDENCIES.md pins the harness to 5.1 exactly (the kit's
+        -- loader sandboxes with `setfenv`), so the `table.unpack` branch that used to guard
+        -- this line was unreachable in every interpreter this suite can run under.
+        return unpack(out)
     end
     _G.hooksecurefunc = function() end
 

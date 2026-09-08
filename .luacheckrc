@@ -1,8 +1,11 @@
 -- Luacheck configuration for Ka0s Consumable Master.
 -- Run:  luacheck .
--- Vendored libs, the frozen audit bundle, the review bundle, and the test
--- harness are excluded (libs are third-party; the audit/review bundles under
--- docs/ are docs; tests run under their own mock and set globals deliberately).
+-- Vendored libs, the frozen audit bundle and the review bundle are excluded, and under tests/
+-- only the vendored kit is: libs/ is third-party, and tests/_kit/ is a byte copy of the LibKa0s
+-- repo's testkit/, which is linted THERE as source — linting the copy as well would report every
+-- finding twice and would let the copy drift green while the original went red, the one state
+-- tests/test_vendor_sync.lua exists to forbid. Everything else under tests/ is this repo's own
+-- code and is linted (lint-§1).
 
 std = "lua51"
 max_line_length = false
@@ -12,7 +15,7 @@ exclude_files = {
     "libs/",
     "docs/audits/",
     "docs/reviews/",
-    "tests/",
+    "tests/_kit/",
 }
 
 -- Conventional-in-Ace / intentional patterns. Both are properties of code we
@@ -97,4 +100,15 @@ read_globals = {
     "C_AddOns", "C_TradeSkillUI", "C_SettingsUtil", "C_CVar",
     -- Ace3 / vendored
     "LibStub",
+}
+
+-- The test tree is linted. The harness publishes its exposed table under a per-repo global,
+-- written at tests/run.lua:401 and read by every suite file. It is declared HERE and not in the
+-- top-level read_globals above: a name granted at the top level is granted to core/, modules/ and
+-- settings/ as much as to a suite, and a shipped file reaching for the test harness is precisely
+-- what lint is here to refuse. `globals` rather than `read_globals` because tests/run.lua is the
+-- writer. Every read in the tree today is _G.-qualified, a spelling luacheck does not check at
+-- all, so this declaration is what keeps the bare spelling legal in tests/ and only in tests/.
+files["tests/"] = {
+    globals = { "KCM_TEST", "KCM_TEST_ROOT" },
 }
