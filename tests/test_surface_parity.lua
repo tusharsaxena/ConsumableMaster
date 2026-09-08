@@ -103,20 +103,45 @@ end
 --
 -- Member list produced by:
 --     grep -n '^KCM\.[A-Za-z0-9_]* =\|^function KCM\.' core/CoreSetup.lua
--- which is the seam's live surface: LIBKA0S_MISSING (:30), ColorDecode (:54),
--- IsConcatSafe (:118), SafeToString (:119), Say (:169). The degraded branch
--- re-declares IsConcatSafe, SafeToString and Say as real fallbacks and shares
--- the first two — ColorDecode sits above the branch because it reads this
--- addon's stored color shape rather than anything the library owns.
+-- which is the seam's live surface, whole: LIBKA0S_MISSING (:30), ColorDecode
+-- (:54), IsConcatSafe (:118), SafeToString (:119), SwatchColor (:141), Say
+-- (:169), MakeCloseButton (:186). The grep is the list, and the list is every
+-- row it returns — a member the grep finds and this table omits is an
+-- omission encoded by SILENCE, which is the one thing the header above says
+-- this file exists to stop.
+--
+-- Where each comes from, because the branch at core/CoreSetup.lua:66 is not the
+-- whole story: LIBKA0S_MISSING and ColorDecode sit ABOVE the branch, so both
+-- arms share the same object — they are this addon's own message and its own
+-- storage contract, not anything the library owns. IsConcatSafe, SafeToString,
+-- SwatchColor and Say are re-declared inside the degraded arm as real
+-- fallbacks. MakeCloseButton is published PAST the branch's `return`, so the
+-- degraded arm has none, on purpose — see CORE_LIVE_ONLY.
 local CORE_SEAM = {
-    "LIBKA0S_MISSING", "ColorDecode", "IsConcatSafe", "SafeToString", "Say",
-    "SwatchColor",
+    "LIBKA0S_MISSING", "ColorDecode", "IsConcatSafe", "MakeCloseButton",
+    "SafeToString", "Say", "SwatchColor",
 }
+
+-- Live-only ON PURPOSE, argued at core/CoreSetup.lua:171-188 and pinned by
+-- tests/test_coresetup.lua:200-207. KCM.MakeCloseButton has NO caller in this
+-- addon today: it exists so a future modal or copy window draws the shared
+-- close mark without anyone remembering that lib.MakeCloseButton wants the
+-- addon FOLDER name as its third argument (anti-pattern #64). With nothing to
+-- degrade, absence is the honest degraded answer rather than a stub that builds
+-- no button, and the entry here is what makes that a DECISION on the record
+-- instead of a hole — the whole point of `ignore` per the header.
+--
+-- Deliberate deadness is the reason this is on a list rather than deleted
+-- (CONSUMABLEMASTER-R-10, folded into -R-03): a wrapper with the right
+-- signature and no caller is cheaper to keep than a two-argument passthrough
+-- someone writes later, which is green in every suite and wrong on screen.
+local CORE_LIVE_ONLY = { "MakeCloseButton" }
 
 test("Parity: the LibKa0s-Core stub carries the whole live seam", function(t)
     local live     = h.loader.loadPure()
     local degraded = h.loader.loadPureDegraded()
-    h.assertSurfaceParity(project(live, CORE_SEAM, "CORE_SEAM"), degraded, "KCM Core seam")
+    h.assertSurfaceParity(project(live, CORE_SEAM, "CORE_SEAM"), degraded, "KCM Core seam",
+        CORE_LIVE_ONLY)
     -- SwatchColor is called on every repaint of every button (three files reach
     -- it), so a nil one would take the macro bar's whole appearance pass down.
     -- The class color needs the library; the swatch does not, which is why the
@@ -242,22 +267,15 @@ local OPTIONS_SEAM = {
 }
 
 -- Live-only ON PURPOSE. With the library absent the panel is not registered AT
--- ALL — settings/Panel.lua's registerPanel returns before a single page renders
--- — so every member below is unreachable degraded by construction, and supplying
--- it would mean keeping a verbatim copy of the chrome the adoption removed. Each
--- of the five is a library member bound off the instance (ResetScroll, Grid and
--- CustomCheckbox in settings/Panel.lua; RenderField / SetRenderer through
--- __index); `instance` is the library object itself.
+-- ALL — settings/Panel.lua's registerPanel returns before a single page renders —
+-- so every member below is unreachable degraded by construction, and supplying it
+-- would mean keeping a verbatim copy of the chrome the adoption removed.
 --
 -- What is NOT on this list is the point of the case: RefreshAllPanels and
 -- RefreshScalars are called UNCONDITIONALLY on paths a degraded install reaches
 -- (SetAndRefresh after every schema write, O.Refresh off the PANEL_REFRESH bus
 -- message), so they must be real no-ops on both arms — which is the finding this
 -- seam actually had.
--- Live-only ON PURPOSE. With the library absent the panel is not registered AT
--- ALL — settings/Panel.lua's registerPanel returns before a single page renders —
--- so every member below is unreachable degraded by construction, and supplying it
--- would mean keeping a verbatim copy of the chrome the adoption removed.
 --
 -- The FOUR COMPOSERS are deliberately NOT on this list. They are called inside
 -- schema-row literals at FILE LOAD, which is the one position options-ui-§1 says
