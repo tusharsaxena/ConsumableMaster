@@ -1,17 +1,29 @@
 # Automated test results
 
-<!-- The newest run is prepended by tests/_kit/run-automated-tests.sh. -->
+<!-- Regenerated whole by tests/_kit/run-automated-tests.sh on every run. -->
 <!-- This file is OVERWRITTEN IN PLACE — the git history of this one path is the trend line. -->
+<!-- Everything here is generated EXCEPT the watch list's Disposition column. -->
 
 One row per run. The frozen evidence for each is in the dated folder beside this file;
 the analysis of a given run is its `ANALYSIS.md`.
 
-**`lint` and `tests` gate. `perf` and `complexity` are recorded and never fail a run** —
-they are read and compared, not thresholded. A `skip` is a suite that did not run at all,
-which is never the same as a pass.
+**`lint` and `tests` gate the run and gate the commit** (`testing-§4`).
+**`perf` and `complexity` never fail a run and never block a commit** — they are recorded,
+read and compared, not thresholded (`performance-§9`, `performance-§10`).
+
+**The tag is gated on all four suites at `pass`, plus zero functions above CCN 15**
+(`automated-tests-§3`, *The release gate*), evaluated by `/wow-addon:bump-version` from the
+`manifest.json` the release run writes — not by this script, whose exit code is unchanged.
+
+A `skip` is a suite that did not run at all. It is never a pass, and at the release gate it is
+**NOT EVALUATED** rather than passed: install the tool and re-run. A `—` is a suite that was
+not selected, which is a different fact again.
+
+The **Tests** cell reads `passed/skipped/total`.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260908-181304`](20260908-181304/) | 1.5.0 | 0/0 | 102 | 786/0/786 | pass | 18825 | 1957 | 8.1 | 2.7 | 15 | 0 | **green** |
 | [`20260825-103407`](20260825-103407/) | 1.5.0 | 0/0 | 58 | 698/698 | pass | 15870 | 1703 | 8.0 | 2.7 | 15 | 0 | **green** |
 | [`20260807-114612`](20260807-114612/) | 1.5.0 | 0/0 | 56 | 675/675 | pass | 15636 | 1676 | 8.0 | 2.7 | 15 | 0 | **green** |
 | [`20260807-110619`](20260807-110619/) | 1.5.0 | 0/0 | 56 | 675/675 | pass | 15636 | 1676 | 8.0 | 2.7 | 15 | 0 | **green** |
@@ -20,152 +32,58 @@ which is never the same as a pass.
 | [`20260804-215640`](20260804-215640/) | 1.5.0 | 0/0 | 54 | 656/656 | skip | 15257 | 1630 | 8.0 | 2.7 | 0 | 0 | **green** |
 | [`20260804-182045`](20260804-182045/) | 1.5.0 | 0/0 | 54 | 605/605 | skip | 14339 | 1477 | 8.3 | 3.0 | 62 | 20 | **green** |
 
-**The `Max CCN` of 0 on [`20260804-215640`](20260804-215640/) is an instrument fault, not a
-measurement** — see [Complexity watch list](#complexity-watch-list) for what it should read.
-
-The three `20260807-*` rows are the same code measured three times: `022923` before the LibKa0s
-v1.8.2 / testkit revision 10 re-vendor, `110619` mid re-vendor with a dirty tree, and
-[`20260807-114612`](20260807-114612/) against the committed result. Identical figures across all
-three are the intended reading — the re-vendor changed how bundles are **written**, not what is
-measured.
-
 ## Test suite
 
-675 cases, the count [`20260807-114612`](20260807-114612/) records — 675 passed, 0 failed,
-0 skipped. The count has been flat across the three `20260807-*` runs, which is correct rather than
-a gap: no addon code changed between them, and `test-cases.md` is byte-identical in all three. The
-last real growth was 656 → 675 at [`20260807-022923`](20260807-022923/), **19 added and none
-removed** — `test_slashsetup.lua` +5, `test_macrobar.lua` +5, `test_surface_parity.lua` +4,
-`test_settingsui.lua` +3, `test_schema.lua` +1 and `test_perfsetup.lua` +1. `test_surface_parity.lua`
-is a **new suite** rather than growth in an old one; it pins the degraded LibKa0s stub against the
-live seam, the class of defect no other case could see. The generated inventory `test-cases.md` in
-each bundle is the authority on what exists at that point; the README badge tracks the same number.
+**786 cases** — 786 passed, 0 failed, 0 skipped. The generated inventory
+[`20260908-181304/test-cases.md`](20260908-181304/test-cases.md) is the authority on which cases existed at this run;
+`docs/test-cases.md` is that same list at HEAD.
 
-Across the table the count has moved with the addon (605 → 656 → 675), so the "suite stopped growing
-while the addon did" gap does not apply. What the headless suite still cannot reach is the in-client
-half — secure frames, real taint, the actual macro writers — which is covered by
-[`../smoke-tests.md`](../smoke-tests.md) and by no number in the table above.
+Moved **698 → 786** since the previous run.
+
+No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
+that was not exercised.
 
 ## Lint
 
-Clean over **56 files**: 0 warnings, 0 errors. Flat across the three `20260807-*` runs, and
-`lint.txt` is byte-identical in all three, so the same 56 files were in scope each time rather than
-the same count over a shifting set. The scope last changed at
-[`20260807-022923`](20260807-022923/), 54 → 56: `core/DebugLogSetup.lua`, `core/PerfSetup.lua`,
-`defaults/Profile.lua` and `settings/OptionsSetup.lua` came in; `modules/DebugLog.lua` and
-`modules/PerfSetup.lua` left. Four in, two out, net +2.
+**0 warnings / 0 errors over 102 files** (`luacheck .`).
 
-What that scope is matters more than the zeros, so it is spelled out: `.luacheckrc` sets
-`std = "lua51"` and excludes exactly four paths — `libs/` (third-party, not this repo's to fix),
-`docs/audits/` and `docs/reviews/` (frozen bundles, not code), and **`tests/`**, which runs under
-its own mock and sets globals deliberately. The test harness is therefore **not** linted; it is
-covered by being executed instead, 675 cases per run.
-
-**Two** warning codes are suppressed globally, not three: `212` (unused arguments — `self` on widget
-methods, `event`/`reason` on handlers) and `542` (intentional empty branch, the CSV skip in
-`/cm stat secondary`). The `241` suppression that earlier revisions of this section described — the
-`TooltipCache` `pendingIDs` set that was populated and never read — is **gone from `.luacheckrc`**,
-so nothing is parked behind it any more.
+`.luacheckrc` sets a multi-line `exclude_files`; read it there for the scope of the figure above.
+A `0/0` says nothing about what was never looked at.
 
 ## Perf
 
-**Four scenarios, `pass`.** [`20260807-022923`](20260807-022923/) was the first run in which this
-suite executed at all; every `skip` below it predates `tests/perf.lua` and carried the sanctioned
-reason "no `tests/perf.lua` — this addon ships no offline scenarios" (`automated-tests-§3`, the
-first of the two permitted skips — this addon holds **no** `performance-§12` no-combat-path
-exemption). Those rows stand as recorded, because a run record is what that run measured.
+**5 scenarios** from `tests/perf.lua`; the measurements are in
+[`20260908-181304/perf.json`](20260908-181304/perf.json).
 
-The machine-independent figures have not moved since that first reading, at 200 iterations each and
-confirmed again in [`20260807-114612/perf.txt`](20260807-114612/perf.txt): `recompute` 9071.5
-bytes/iter, `cooldownRefresh` 6000.0, `probeOverheadOff` 6000.0 and `probeOverheadOn` 6001.3. The
-millisecond columns do drift run to run and carry no signal — `perf.txt` says so in its own footer.
-The 1.3 bytes/iter between the dormant and armed probe arms is the zero-overhead margin.
-
-The suite drives `recompute` and `cooldownRefresh` — the out-of-combat pass and the
-near-frame-frequency in-combat path — plus the `probeOverheadOff` / `probeOverheadOn` pair that is
-`performance-§9`'s zero-overhead evidence: the same cooldown walk with the brackets dormant and
-armed. The dormant arm carries an **absolute** byte ceiling as well as the relation to the armed
-one, because a relation alone cannot go red when an allocation is added to the measured path itself
-— both arms rise together and the relation still holds. A third assertion counts the bucket notes an
-armed capture records, so a build where `core/PerfSetup.lua` returned early cannot masquerade as a
-perfect zero-overhead result.
-
-**Recorded, never gating** for a run or a commit; `automated-tests-§3` has it gate the tag, where a
-`skip` is not evaluated and a `pass` is.
-
-Standing gaps, both real and neither one filled by the other — an offline scenario and a live
-capture are different measurements:
-
-- The in-game half has no committed capture yet. `docs/perf-analysis/` exists with its README and the
-  bundle convention (`performance-§8`), but no `<YYYYMMDD-HHMMSS>/` bundle has been filed.
-- Offline timings are orientation only. The machine-independent figures are the per-iteration byte
-  counts and the call counts; the millisecond columns say nothing across machines.
-
-Background, the bucket list and the gate idiom: [../performance.md](../performance.md). Record shape
-and bundle layout: [../perf-analysis/README.md](../perf-analysis/README.md).
+`perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
+thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current state as of [`20260807-114612`](20260807-114612/) — not that run's diff.
-Every function `lizard` warned on, and every file at or above `layout-§1`'s 1000-LOC on-notice
-threshold, each with a one-line disposition.
+Current as of [`20260908-181304`](20260908-181304/) — **this run's measurement, not its diff.** Max CCN **15** across 1957
+functions, **0** of them warned on; 2 file(s) in the 1000–1500 band and 2 over the 1500 cap
+(`layout-§1`).
 
-**About the `Max CCN` of 0 in the table.** Runs recorded before the LibKa0s v1.7.0 testkit (rev 6)
-re-vendor derived that field from `lizard`'s `!!!! Warnings` block, which is empty the moment an
-addon reaches zero warnings — so the runner printed 0 for a clean tree. Exactly one row here is
-affected, [`20260804-215640`](20260804-215640/); its true maximum was 15, and the figure is in that
-bundle's own [`complexity.txt`](20260804-215640/complexity.txt), which is byte-identical to the next
-run's. The generated row is left as the tool wrote it: a hand-corrected record reads as measured and
-is worse than a wrong one (`performance-§10`). Read the `62 → 0 → 15` shape that column shows from
-the bottom up as one real drop followed by an instrument change, not two code changes.
+Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
+the one authored cell in this file** (`automated-tests-§4`, *the one boundary*): it is carried
+forward verbatim while its entry is unchanged, and left **blank** when the entry is new — a blank
+cell is this file saying something crossed and nobody has ruled on it yet.
 
 ### Functions `lizard` warned on
 
 None.
 
-`lizard` warned on nothing: `complexity.txt` ends with `No thresholds exceeded` and the footer's
-`Warning cnt` is 0, unchanged across the three `20260807-*` runs. This is the result the
-`feat/fix-ccn` branch exists for — the adoption baseline [`20260804-182045`](20260804-182045/)
-listed twenty functions over CCN 15, topping out at 62, and every one was split into named
-file-locals. Those dispositions are **not** carried forward: an "Accepted" is a decision about a
-function that exists, none of the twenty exists in its warned form any more, and re-listing them as
-resolved would turn an empty list into a changelog.
-
-The same seven functions still sit **at** the cap of 15, which is inside the gate — `lizard` warns
-above 15 and `automated-tests-§3` gates on zero functions over it. Re-read from
-[`20260807-114612/complexity.txt`](20260807-114612/complexity.txt) rather than carried over on
-trust, and named rather than counted so the claim cannot go stale silently: `itemCooldown`
-(`core/MacroDisplay.lua:102-114`), `applyBackdrop` (`modules/MacroBar.lua:190-215`),
-`S.PickBestForSlot` (`modules/Selector.lua:300-314`), `availableForHands`
-(`modules/Selector.lua:344-363`), `S.SweepStaleDiscovered` (`modules/Selector.lua:545-571`),
-`Helpers.BuildAboutContent` (`settings/Panel.lua:671-732`) and `M.setItem`
-(`tests/wow_mock.lua:166-185`). None is a warning and none carries a disposition; they are named
-because the next default-heavy guard added to any of them crosses.
-
-Read the number with `performance-§10` in mind — `lizard` counts every `and`/`or` short-circuit as a
-decision, so in Lua a run of `t.k = rec.k or D.k` defaulting lines scores high with no branching a
-reader would see. Five of the seven are that shape: dense **defaulting and guarding**, not tangled
-control flow. `S.SweepStaleDiscovered` and `availableForHands` are the two with real branching, and
-they are the two to look at first if any of them ever needs splitting.
-
 ### Files by `layout-§1` band
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| > 1500 (over cap) | `tests/test_macrobar.lua` | 1688 | **Owned: issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32), naming the two cuts a peel would follow.** It crossed at [`20260807-022923`](20260807-022923/) and four bundles have now recorded it. 1314 NLOC across 178 functions at avg CCN 1.3, so it is case count and not tangle. The claim above this cell used to be that `layout-§1` treats over-cap as a defect rather than a state a disposition can hold; that reading is no longer right — the section was revised on 2026-09-08 to give a breach three terminal states, an open issue among them. The census that carries every breach in this repo, not just the one this table happens to have measured, is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. |
-| 1000–1500 (on notice) | — | — | None. |
+| 1000–1500 (on notice) | `settings/Category.lua` | 1127 | **Accepted, and it is now the largest source file here.** Newly in the band and the crossing is dated: 729 lines at the previous run's commit, 987 when eighteen sidebar entries became four, over the line at 1084 with the tabbed General page, 1127 today. Still 373 under `layout-§1`'s cap and no function in it is warned on. The seam if it needs one is the drag-reorder block, which is self-contained. Re-check at 1300, or the moment a third tab arrives. |
+| 1000–1500 (on notice) | `settings/Panel.lua` | 1165 | **Accepted.** Newly in the band: 920 at the previous run's commit, over the line at 1014 with the tabbed General page, 1165 after `M4-22`'s refresh-burst fix and `M3-04`'s v1.26.0 adoption. It holds this addon's highest-CCN function, `Helpers.BuildAboutContent` at exactly 15, so both numbers on this file are worth watching together rather than separately. Re-check at 1300. |
+| > 1500 (over cap) | `tests/test_macrobar.lua` | 1904 | **Owned: issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32), naming the two cuts a peel would follow.** It crossed at [`20260807-022923`](20260807-022923/) and four bundles have now recorded it. 1314 NLOC across 178 functions at avg CCN 1.3, so it is case count and not tangle. The claim above this cell used to be that `layout-§1` treats over-cap as a defect rather than a state a disposition can hold; that reading is no longer right — the section was revised on 2026-09-08 to give a breach three terminal states, an open issue among them. The census that carries every breach in this repo, not just the one this table happens to have measured, is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. |
+| > 1500 (over cap) | `tests/test_settingsui.lua` | 1669 | **Owned: issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33), naming the cut** — the three `options-ui` conformance blocks out to `test_settingsui_optionsui.lua`. In breach, and a breach with an open issue naming its seam is one of the three terminal states `layout-§1` allows since its 2026-09-08 revision. It crossed the cap during this cycle: 656 at the previous run's commit, 1528 by `M4-06`, 1669 after `M4-22`. The census that carries every breach in this repo — not just the ones this table measured — is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. No peel lands this cycle; `03_SPEC.md` § C22 rules one out. |
 
-`manifest.json` reads `bandFiles` 0 and `overCapFiles` 1 in each of the three `20260807-*` runs, so
-nothing newly crossed in the latest run and nothing came back under. The crossing itself was
-`bandFiles` 1 → 0 with `overCapFiles` 0 → 1 at [`20260807-022923`](20260807-022923/): not two files
-moving, but the one file leaving the on-notice band by crossing the cap above it. It did not happen
-in that run's changes either — `tests/test_macrobar.lua` was 1497 lines at `97c05b8` (the commit
-[`20260804-233147`](20260804-233147/) recorded) and already 1548 by `e5e3b22`, when `tests/perf.lua`
-shipped. No run happened in between, so that bundle was simply the first in a position to see it.
+`lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
+`t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
+here usually means *this function defaults or guards a lot of fields* rather than *this function
+is tangled*, and the two want different fixes (`performance-§10`).
 
-On the disposition's shelf life (`automated-tests-§4`): **none of the six runs in this table is a
-release run** — every `manifest.json` carries `"release": null` — so the
-three-consecutive-*release*-runs clock has never started and nothing here has aged out by that rule.
-This entry is not being carried as "Accepted" regardless; it was retired from that disposition when
-the file crossed a hard cap, and re-accepting it would be the anti-pattern #53 shape. What it now
-lacks is an owner, and that is the standing action.
