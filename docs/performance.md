@@ -98,7 +98,7 @@ lua5.1 tests/perf.lua --out perf.json       # …and write the record
 lua5.1 tests/perf.lua --label pre-release   # label it
 ```
 
-Four scenarios, run against the whole addon loaded under the test mock:
+Five scenarios, run against the whole addon loaded under the test mock:
 
 | Scenario | What it drives |
 |---|---|
@@ -106,6 +106,7 @@ Four scenarios, run against the whole addon loaded under the test mock:
 | `cooldownRefresh` | `MacroBar.RefreshCooldowns` — the in-combat path |
 | `probeOverheadOff` | the same cooldown walk with the brackets **dormant** |
 | `probeOverheadOn` | the same cooldown walk with the brackets **armed** |
+| `refreshBurst` | `Options.RequestRefresh` × 150 — the first-open item-info storm, one burst |
 
 **`lua tests/run.lua` does not invoke this, and no commit depends on it.** Wall-clock numbers on a
 developer machine are not stable enough to fail a build on, and a perf suite that fails spuriously
@@ -122,7 +123,13 @@ What it *does* assert is the deterministic half, which is machine-independent:
 * the dormant arm allocates no more than the armed one, which is the zero-overhead property itself;
 * an armed capture records exactly **two** bucket notes over the two bracketed paths. Without this
   the two arms above could both be measuring a build where `core/PerfSetup.lua` returned early —
-  which reads as a perfect zero-overhead result.
+  which reads as a perfect zero-overhead result;
+* a 150-call refresh burst arms **at most two timers** and allocates no more than **1024
+  bytes** (measured 0.0, baselined 2026-09-08 over three runs). The count leads and the byte
+  ceiling follows it: the count is an integer property of the debounce and is the same on every
+  machine, while a byte figure taken this way reports what the collector has not reclaimed by the
+  end of the loop and therefore moves with the live heap. Two timers rather than one because a
+  burst that straddles the cap legitimately re-arms once.
 
 Timings are printed for orientation only. Read them as ratios between scenarios in one run, never
 as absolute numbers to compare across machines.

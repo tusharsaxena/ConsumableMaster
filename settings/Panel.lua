@@ -978,28 +978,104 @@ end
 -- rebuilds once at the tail of the burst, with a cap so the user always
 -- sees the latest state within REFRESH_MAX_WAIT_SEC even if events never
 -- fully stop.
+--
+-- ONE TIMER PER BURST, not one per call. The earlier shape scheduled a fresh
+-- C_Timer.After with a fresh closure on every call and had all but the last
+-- return immediately on a token compare, so the ~150-item first-open burst
+-- (docs/data-flow.md's GIIR split) armed 150 timers and 150 closures to
+-- perform one rebuild. tests/perf.lua's `refreshBurst` scenario measures it;
+-- the count is the assertion there, and it went 150 -> 1.
+--
+-- The token is gone because the single armed timer is now what identifies the
+-- live schedule: `_refreshArmed` is the whole of the mutual exclusion, and a
+-- call that finds it set records its timestamp and returns. onRefreshDue then
+-- does the work the discarded timers used to do — it wakes at the earliest
+-- moment the burst COULD be over, finds it is not, and re-arms for the
+-- remaining quiet time rather than being replaced by a successor.
+--
+-- REFRESH_MAX_WAIT_SEC is now a hard cap, which it was not. The old delay
+-- arithmetic shrank the window as the burst aged but every arriving call still
+-- invalidated the pending timer, so a storm whose calls landed closer together
+-- than the 0.05s floor deferred the rebuild indefinitely — the cap bounded the
+-- delay of one timer, never the wait as a whole. onRefreshDue refreshes
+-- outright once REFRESH_MAX_WAIT_SEC has elapsed since the first call,
+-- whatever the traffic, and armRefresh never schedules past that instant.
 local REFRESH_DEBOUNCE_SEC = 1.0
 local REFRESH_MAX_WAIT_SEC = 3.0
+
+-- Forward-declared: onRefreshDue re-arms through it, and it schedules
+-- onRefreshDue. One of the two has to be named before it exists.
+local armRefresh
+
+-- The one scheduled callback, hoisted to file scope so it is constructed once
+-- at load rather than once per call: the old shape built one of these per
+-- request and discarded 149 of every 150. Its state lives on O, where the
+-- previous shape kept it too, so nothing here is per-schedule.
+local function onRefreshDue()
+    local armedAt, armedFor = O._refreshArmedAt, O._refreshArmedFor
+    O._refreshArmed, O._refreshArmedAt, O._refreshArmedFor = nil, nil, nil
+    if not O._refreshPending then
+        O._refreshFirstAt, O._refreshLastAt = nil, nil
+        return
+    end
+
+    local now    = GetTime()
+    local waited = now - (O._refreshFirstAt or now)
+    local quiet  = now - (O._refreshLastAt or now)
+
+    -- A timer that came back EARLY has not scheduled anything, and re-arming
+    -- against one recurses: each level asks for another window, gets it back
+    -- for free, and the only exits are a quiet second or the cap, neither of
+    -- which a clock that is not moving can ever reach. The stack goes first.
+    --
+    -- A live client cannot produce it. C_Timer.After lands on a LATER frame and
+    -- GetTime() is the frame clock, so a wake-up arrives a whole frame past the
+    -- delay even when the delay is zero. tests/wow_mock.lua's C_Timer.After runs
+    -- its callback INLINE, which is exactly a timer that ignored its delay, and
+    -- the guard belongs here rather than in the mock: a re-arm loop whose only
+    -- exit is a clock nobody in this function controls is worth refusing at the
+    -- source, and the condition is a property of the schedule rather than of the
+    -- harness. Refreshing is the honest answer when no quiet period can be
+    -- observed — the caller asked for a rebuild and gets one.
+    --
+    -- HALF the delay, not the whole of it, because the arithmetic does not
+    -- round-trip: a timer armed at 0.001 for 1.0 and woken at exactly 1.001
+    -- computes an elapsed 0.9999999999999999 in doubles, so a `< armedFor`
+    -- compare calls a punctual timer early. That is not hypothetical — it is
+    -- what this line did on its first run, and it turned the burst case red.
+    -- Half is clear of any rounding and still nowhere near a scheduler that ran
+    -- at all: the thing it must catch returns in zero time, not in 0.4 seconds.
+    local stalled = armedAt ~= nil and armedFor ~= nil
+        and (now - armedAt) < armedFor * 0.5
+
+    if not stalled and quiet < REFRESH_DEBOUNCE_SEC and waited < REFRESH_MAX_WAIT_SEC then
+        armRefresh(now, REFRESH_DEBOUNCE_SEC - quiet)
+        return
+    end
+
+    O._refreshFirstAt, O._refreshLastAt = nil, nil
+    O.Refresh()
+end
+
+-- `want` is the quiet the caller would like; what gets scheduled is whatever
+-- fits before the cap, floored at 0.05s so a burst that arrives at the cap
+-- still wakes rather than scheduling a zero-delay timer. What was ASKED for is
+-- recorded alongside the instant, because onRefreshDue can only tell a real
+-- wake-up from a timer that ignored its delay by comparing the two.
+armRefresh = function(now, want)
+    local room = REFRESH_MAX_WAIT_SEC - (now - (O._refreshFirstAt or now))
+    if want > room then want = math.max(0.05, room) end
+    O._refreshArmed, O._refreshArmedAt, O._refreshArmedFor = true, now, want
+    C_Timer.After(want, onRefreshDue)
+end
+
 function O.RequestRefresh()
     local now = GetTime()
     if not O._refreshFirstAt then O._refreshFirstAt = now end
+    O._refreshLastAt  = now
     O._refreshPending = true
-    O._refreshToken = (O._refreshToken or 0) + 1
-    local myToken = O._refreshToken
-
-    local waited = now - O._refreshFirstAt
-    local delay = REFRESH_DEBOUNCE_SEC
-    if waited + delay > REFRESH_MAX_WAIT_SEC then
-        delay = math.max(0.05, REFRESH_MAX_WAIT_SEC - waited)
-    end
-
-    C_Timer.After(delay, function()
-        if O._refreshToken ~= myToken then return end
-        if O._refreshPending then
-            O._refreshFirstAt = nil
-            O.Refresh()
-        end
-    end)
+    if O._refreshArmed then return end
+    armRefresh(now, REFRESH_DEBOUNCE_SEC)
 end
 
 -- Expand the parent in the AddOns left tree so every sub-page is visible.

@@ -665,7 +665,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.MoveCompositeRef refuses a move it cannot make
 - Selector.MoveCompositeRef never moves a ref between the two sections
 
-### test_settingsui.lua (40)
+### test_settingsui.lua (44)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -707,6 +707,10 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the three maintenance verbs draw on the Master controls tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
+- Settings UI: a first-open refresh burst arms one timer, not one per call
+- Settings UI: the rebuild waits out the quiet window before it lands
+- Settings UI: a storm that never goes quiet still rebuilds at the max wait
+- Settings UI: a timer that fires early rebuilds instead of re-arming forever
 
 ### test_slash.lua (82)
 
@@ -926,7 +930,7 @@ badge and any count quoted in the docs must agree with it.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
 | test_selector.lua | 50 |
-| test_settingsui.lua | 40 |
+| test_settingsui.lua | 44 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 16 |
 | test_spechelper.lua | 16 |
@@ -936,4 +940,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **774** |
+| **Total** | **778** |

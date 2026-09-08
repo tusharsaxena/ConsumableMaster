@@ -1526,3 +1526,144 @@ test("Settings: leaving combat replays the parked registration, and only then", 
 
     KCM.Settings.Register = real
 end)
+
+-- ---------------------------------------------------------------------------
+-- The panel refresh debounce
+-- ---------------------------------------------------------------------------
+--
+-- O.RequestRefresh is the panel-side twin of Pipeline.RequestRecompute, and
+-- until now it had no case at all: tests/test_pipeline.lua pins the coalescing
+-- of the recompute burst, nothing pinned the coalescing of the rebuild burst.
+-- That is how a debounce that armed one timer PER CALL — 150 of them for the
+-- one rebuild the first-open GET_ITEM_INFO_RECEIVED storm is supposed to
+-- produce — stayed green for as long as it did. tests/perf.lua's `refreshBurst`
+-- scenario carries the byte figure; these carry the behaviour.
+--
+-- WHY THE CLOCK AND THE QUEUE ARE REPLACED. tests/wow_mock.lua's C_Timer.After
+-- runs its callback inline and its GetTime is os.clock(), so the shipped pair
+-- can say "the timer fired" but cannot say "a second passed and no call came".
+-- The debounce is entirely about the second sentence. The stubs below are the
+-- shape tests/test_pipeline.lua's coalescing case already uses, plus a clock;
+-- `advance` honours the delays and fires each callback AT its due instant, so a
+-- callback that re-arms is woken again inside the same advance exactly as the
+-- client would wake it.
+local function fakeSchedule(KCM)
+    local s = { now = 0, armed = 0, rebuilds = 0, rebuiltAt = {}, queue = {} }
+    local savedGetTime, savedAfter = _G.GetTime, _G.C_Timer.After
+
+    _G.GetTime = function() return s.now end
+    _G.C_Timer.After = function(delay, fn)
+        s.armed = s.armed + 1
+        s.queue[#s.queue + 1] = { at = s.now + (delay or 0), fn = fn }
+    end
+    -- Counted at the Helpers seam rather than at O.Refresh, so O.Refresh keeps
+    -- running its own bookkeeping — clearing _refreshPending is what makes the
+    -- NEXT burst a burst rather than a continuation of this one.
+    KCM.Settings.Helpers.RefreshAllPanels = function()
+        s.rebuilds = s.rebuilds + 1
+        s.rebuiltAt[#s.rebuiltAt + 1] = s.now
+    end
+
+    function s.advance(seconds)
+        local target = s.now + seconds
+        while true do
+            local idx
+            for i, e in ipairs(s.queue) do
+                if e.at <= target and (idx == nil or e.at < s.queue[idx].at) then idx = i end
+            end
+            if not idx then break end
+            local e = table.remove(s.queue, idx)
+            s.now = e.at
+            e.fn()
+        end
+        s.now = target
+    end
+
+    function s.restore()
+        _G.GetTime, _G.C_Timer.After = savedGetTime, savedAfter
+    end
+
+    return s
+end
+
+-- red under: the token-per-call debounce this replaced, which armed 150.
+test("Settings UI: a first-open refresh burst arms one timer, not one per call", function(t)
+    local KCM = loader.loadWithSchema()
+    local s = fakeSchedule(KCM)
+
+    -- The GIIR storm docs/data-flow.md describes: ~150 non-bag items hydrating
+    -- a millisecond apart, each one publishing PANEL_REFRESH.
+    for _ = 1, 150 do
+        s.now = s.now + 0.001
+        KCM.Options.RequestRefresh()
+    end
+    t.eq(s.armed, 1, "the whole burst is covered by the timer the first call armed")
+    t.eq(s.rebuilds, 0, "and nothing rebuilds while the burst is still arriving")
+
+    s.advance(1.0)
+    t.eq(s.rebuilds, 1, "one rebuild for one burst, which is the point of the debounce")
+    -- Two, not one: the first timer wakes a second after the FIRST call, by
+    -- which time the burst had run on for 0.149s, so it re-arms for the quiet
+    -- still owed rather than rebuilding early. That re-arm is why tests/perf.lua
+    -- puts its ceiling at two timers per burst and not at one.
+    t.eq(s.armed, 2, "one re-arm to serve out the quiet the burst consumed, and no more")
+
+    s.restore()
+end)
+
+-- red under: rebuilding on the leading edge instead of the trailing one.
+test("Settings UI: the rebuild waits out the quiet window before it lands", function(t)
+    local KCM = loader.loadWithSchema()
+    local s = fakeSchedule(KCM)
+
+    KCM.Options.RequestRefresh()
+    s.advance(0.9)
+    t.eq(s.rebuilds, 0, "nine tenths of a second in, the window has not closed")
+
+    s.advance(0.2)
+    t.eq(s.rebuilds, 1, "and the rebuild lands once the full second of quiet is up")
+
+    s.restore()
+end)
+
+-- red under: the token-per-call shape, which never rebuilt here at all. Every
+-- arriving call invalidated the pending timer, so a storm whose calls land
+-- closer together than the 0.05s floor deferred the rebuild for as long as it
+-- ran — the old arithmetic capped the DELAY OF ONE TIMER, never the wait.
+test("Settings UI: a storm that never goes quiet still rebuilds at the max wait", function(t)
+    local KCM = loader.loadWithSchema()
+    local s = fakeSchedule(KCM)
+
+    -- Five seconds of calls ten milliseconds apart. The quiet window never
+    -- opens, so only the cap can end the wait.
+    for _ = 1, 500 do
+        KCM.Options.RequestRefresh()
+        s.advance(0.01)
+    end
+
+    t.eq(s.rebuilds, 1, "the cap fired exactly once across the five seconds")
+    t.near(s.rebuiltAt[1], 3.0, 0.1,
+        "and it fired at REFRESH_MAX_WAIT_SEC after the first call, not later")
+
+    s.restore()
+end)
+
+-- red under: dropping the armedAt/armedFor compare in onRefreshDue. The red is
+-- a stack overflow rather than a failed assertion — every re-arm is answered
+-- inline, so onRefreshDue re-enters itself until the stack goes — and it is not
+-- confined to this case: with the guard removed, 35 cases across this suite
+-- fail on "stack overflow", because anything that reaches a recompute reaches
+-- this function. That blast radius is the reason the guard sits in the addon
+-- rather than in the mock.
+test("Settings UI: a timer that fires early rebuilds instead of re-arming forever", function(t)
+    local KCM = loader.loadWithSchema()
+    local rebuilds = 0
+    KCM.Settings.Helpers.RefreshAllPanels = function() rebuilds = rebuilds + 1 end
+
+    -- The mock's C_Timer.After exactly as shipped: the callback runs inline,
+    -- which is a timer that ignored its delay. No quiet period can be observed
+    -- through it, so waiting for one is unanswerable and rebuilding is the only
+    -- honest answer.
+    KCM.Options.RequestRefresh()
+    t.eq(rebuilds, 1, "the request was served rather than rescheduled against a clock that is not moving")
+end)

@@ -222,9 +222,10 @@ it is a gate that did not pass, never a pass. `automated-tests-§3` sanctions on
 skipped because the addon ships no `tests/perf.lua`, stated out loud in the release notes — and it
 **does not apply here**: this addon ships `tests/perf.lua` and its `perf` column reads `pass`.
 
-`tests/perf.lua` runs the whole addon under the test mock and drives four scenarios: `recompute`,
-`cooldownRefresh`, and the `probeOverheadOff` / `probeOverheadOn` pair that is `performance-§9`'s
-zero-overhead evidence. It asserts only the deterministic half — per-iteration byte counts and the
+`tests/perf.lua` runs the whole addon under the test mock and drives five scenarios: `recompute`,
+`cooldownRefresh`, the `probeOverheadOff` / `probeOverheadOn` pair that is `performance-§9`'s
+zero-overhead evidence, and `refreshBurst`, which drives the settings panel's 150-call first-open
+refresh storm and asserts on the number of timers the debounce arms for it. It asserts only the deterministic half — per-iteration byte counts and the
 bucket-note count — because wall-clock numbers on a developer machine are not stable enough to fail
 anything on. `lua tests/run.lua` does not invoke it. Detail in
 [performance.md](./performance.md).
