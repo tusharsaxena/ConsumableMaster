@@ -61,7 +61,10 @@ for _, rel in ipairs(h.loader.tocFiles()) do
 end
 
 -- Lua's own lexer, reduced to the two questions asked here: where does each
--- string literal start, and is it inside an `L[…]` subscript.
+-- string literal start, and is it inside an `L[…]` subscript. Each question gets
+-- its own function below and `scanLiterals` is left as the dispatch between
+-- them, because the one function that answered both was the repository's only
+-- complexity warning (M4c-01).
 --
 -- A `gmatch` for `"…"` cannot be used instead. This repository's comments are
 -- prose and quote strings freely, so `body:gmatch('"(.-)"')` reports a paragraph
@@ -69,13 +72,46 @@ end
 -- (long-bracket literals, of which the scanned surface has none) it loses a
 -- report rather than inventing one, and that failure direction is the deliberate
 -- one.
+
+-- Question one. Given `i` at an opening quote, where does the literal end?
+-- Answers with the index of the closing quote — or of the newline or the end of
+-- file that ran out first, since an unterminated literal is a syntax error the
+-- lint gate catches long before this scan sees the file, and guessing further
+-- would only turn one bad file into a bad report about the next one.
+local function endOfQuoted(src, i, n)
+    local q, j = src:sub(i, i), i + 1
+    while j <= n do
+        local d = src:sub(j, j)
+        if d == "\\" then j = j + 2
+        elseif d == q or d == "\n" then break
+        else j = j + 1 end
+    end
+    return j
+end
+
+-- Question two. Given `i` at a character that is neither a newline, a comment
+-- opener nor a quote, how deep inside an `L[…]` subscript does the scan stand
+-- after it? Answers with that depth and the position to resume from.
 --
--- `wrapped` tracks the SUBSCRIPT, not the character in front of the quote, because
--- a key is allowed to be built by concatenation across lines —
+-- The depth tracks the SUBSCRIPT, not the character in front of the quote,
+-- because a key is allowed to be built by concatenation across lines —
 -- `settings/Category.lua`'s mouseover tooltip is one — and a check on the
 -- preceding eight characters calls the second fragment of such a key unrouted.
 -- The `L` has to be a whole word, so `AIO_SECTION_LABEL[field]` is not a locale
 -- lookup.
+local function subscriptDepth(src, i, c, lDepth)
+    if lDepth > 0 then
+        if c == "[" then return lDepth + 1, i + 1 end
+        if c == "]" then return lDepth - 1, i + 1 end
+        return lDepth, i + 1
+    end
+    if c == "L" and src:sub(i - 1, i - 1):match("[%w_]") == nil then
+        local open = src:match("^L%s*()%[", i)
+        if open then return 1, open + 1 end
+    end
+    return 0, i + 1
+end
+
 local function scanLiterals(src)
     local out, i, n, line, lineStart, lDepth = {}, 1, #src, 1, 1, 0
     while i <= n do
@@ -86,13 +122,7 @@ local function scanLiterals(src)
         elseif c == "-" and src:sub(i + 1, i + 1) == "-" then
             i = src:find("\n", i, true) or (n + 1)
         elseif c == '"' or c == "'" then
-            local q, j = c, i + 1
-            while j <= n do
-                local d = src:sub(j, j)
-                if d == "\\" then j = j + 2
-                elseif d == q or d == "\n" then break
-                else j = j + 1 end
-            end
+            local j = endOfQuoted(src, i, n)
             out[#out + 1] = {
                 text      = src:sub(i + 1, j - 1),
                 line      = line,
@@ -106,20 +136,8 @@ local function scanLiterals(src)
                 statement = src:sub(lineStart, i - 1),
             }
             i = j + 1
-        elseif lDepth > 0 then
-            if c == "[" then lDepth = lDepth + 1
-            elseif c == "]" then lDepth = lDepth - 1 end
-            i = i + 1
-        elseif c == "L" and src:sub(i - 1, i - 1):match("[%w_]") == nil then
-            local open = src:match("^L%s*()%[", i)
-            if open then
-                lDepth = 1
-                i = open + 1
-            else
-                i = i + 1
-            end
         else
-            i = i + 1
+            lDepth, i = subscriptDepth(src, i, c, lDepth)
         end
     end
     return out
