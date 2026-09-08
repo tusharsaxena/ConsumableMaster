@@ -16,7 +16,6 @@ about it living in `db.profile.macroBar`. User-facing description is in
 | [`modules/MacroBarFlyout.lua`](../modules/MacroBarFlyout.lua) | yes | per-slot hover flyout: indicator, secure hover snippets, entry pool |
 | [`modules/MacroBar.lua`](../modules/MacroBar.lua) | yes | container, apply passes, combat deferral, bus receiver |
 | [`settings/MacroBar.lua`](../settings/MacroBar.lua) | yes | the Macro Bar page + every `macroBar.*` schema row |
-| [`core/LSMPatch.lua`](../core/LSMPatch.lua) | — | third-party fixup: collapses the `LSM30_Border` widget's 42px preview tile, which misaligns inside a canvas-layout panel |
 
 The split is deliberate: all the logic worth testing is in the three `core/`
 files, which `tests/test_macrobar.lua` exercises headlessly. The `modules/`
@@ -35,8 +34,15 @@ after AceGUI + LibSharedMedia — same as KickCD). Two things to know about thos
 widgets:
 
 * their preview tile is pinned to the widget's TOPLEFT, which leaves a 42px hole
-  next to the closed dropdown in a canvas panel — `core/LSMPatch.lua` re-anchors
-  it at `PLAYER_LOGIN` (a verbatim copy of KickCD's fixup; keep them in step);
+  next to the closed dropdown in a canvas panel. The fixup that collapses it is
+  `lib.__PatchLSM30Border()`, a `LibKa0s-Options-1.0` member (minor 15) called
+  once from `settings/OptionsSetup.lua`'s live arm. It used to be
+  `core/LSMPatch.lua` here, and a near-verbatim copy of the same file in four
+  sibling addons; AceGUI's widget registry is process-global, so five private
+  registrations in one client meant the last addon loaded owned everyone's
+  Border dropdown. One idempotent library member is one registration however
+  many copies of the library are vendored, and there is nothing left to "keep in
+  step" with KickCD;
 * they fire `OnValueChanged` **without** calling `SetValue` first, because they
   assume AceConfigDialog will re-render the widget afterwards. Our panel does
   not, so `makeDropdown` in `settings/Panel.lua` pushes the value back

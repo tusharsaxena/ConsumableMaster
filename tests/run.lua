@@ -205,8 +205,6 @@ local PURE_LAYER_OMITS = {
     -- file afterwards and swaps ONLY Get(), so IsUsableByPlayer still runs for
     -- real — see the comment at that swap.
     ["core/TooltipCache.lua"]    = true,
-    -- Needs LibSharedMedia's live registry to patch.
-    ["core/LSMPatch.lua"]        = true,
     -- The slash surface and the settings pages: exercised by their own suites
     -- through L.loadWithSchema / L.loadFullAddon, which is where the panel and
     -- dispatcher seams are actually under test.
@@ -251,7 +249,15 @@ end
 -- so a caller can build the same seam twice — once with the library and once
 -- without — and compare the two surfaces (Kit.assertSurfaceParity) without
 -- either arm being hand-written.
-function L.loadFiles(files, omitLibs)
+--
+-- `mutate` runs AFTER the mock and the vendored library and BEFORE the addon's
+-- own files, which is the only window in which the process-global state a real
+-- client would already be carrying can be put there. Everything a case can reach
+-- from outside is either too early (the mock has not been installed) or too late
+-- (the addon has already read it). It exists for exactly one thing today:
+-- seeding an AceGUI widget slot so the Border fixup's registration can be seen
+-- happening, rather than asserted about a function nobody called.
+function L.loadFiles(files, omitLibs, mutate)
     local NS = {}
     mock.install(NS)
     if not omitLibs then loadLibs() end
@@ -260,6 +266,7 @@ function L.loadFiles(files, omitLibs)
     -- and clear any `_G.KCM` a prior suite's mock left behind so nothing stale
     -- leaks in before ConsumableMaster's AceAddon promotion runs.
     _G.KCM = nil
+    if mutate then mutate(NS) end
     for _, rel in ipairs(files) do
         Loader.load(resolve(rel), NS, {})
     end
@@ -350,11 +357,11 @@ L.SETTINGS_SEAM = {
     "settings/General.lua", "settings/MacroBar.lua",
 }
 
-function L.loadWithSchema(omitLibs)
+function L.loadWithSchema(omitLibs, mutate)
     local files = {}
     for _, f in ipairs(L.PURE_LAYER) do files[#files + 1] = f end
     for _, f in ipairs(L.SETTINGS_SEAM) do files[#files + 1] = f end
-    return L.loadFiles(files, omitLibs)
+    return L.loadFiles(files, omitLibs, mutate)
 end
 
 function L.loadWithSchemaDegraded()

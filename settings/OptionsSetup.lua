@@ -73,6 +73,45 @@ local UI
 -- every draw path, so an instance built without one would publish a seam that
 -- raises on first use instead of degrading at load.
 if optionsLib and AceGUI then
+    -- The LSM30_Border fixup, and why it is a call rather than a file.
+    --
+    -- A LIBRARY ACT, NOT AN ADDON ONE. AceGUI's widget registry is process-global:
+    -- one slot named "LSM30_Border" that every addon in the client shares, Ka0s or
+    -- not, and the highest version registered for the name owns it for the rest of
+    -- the session. This addon carried the fixup privately in core/LSMPatch.lua, and
+    -- so did AbsorbTracker, KickCD, MultiMeters and PanelMaster — five copies, five
+    -- distinct md5s, each wrapping whatever it found and registering one version
+    -- above it. Load all five and the wrapper a Border dropdown actually got
+    -- belonged to whichever addon the client reached last. Nothing headless in any
+    -- of the five repos could see it: each suite loads one copy, registers once and
+    -- passes, and §11a step 6 below checked the alignment with this addon alone.
+    --
+    -- lib.__PatchLSM30Border (LibKa0s-Options-1.0 minor 15) is that same wrapper
+    -- published once, guarded by lib.__lsmBorderPatched. Five vendored copies of
+    -- the library are still ONE table to LibStub, so five callers produce ONE
+    -- registration and the return value says which call made it. Calling it needs
+    -- no agreement with any sibling addon.
+    --
+    -- ON THE LIBRARY, NOT ON THE INSTANCE, which is why it is called here rather
+    -- than reached through Helpers: a per-instance member would be one
+    -- registration per host again, which is the shape being removed.
+    --
+    -- HERE, AT FILE LOAD, is early enough. ConsumableMaster.toc pulls
+    -- libs\AceGUI-3.0-SharedMediaWidgets\widget.xml in at :30, well before
+    -- settings\OptionsSetup.lua at :155, so the slot already holds AGSMW's own
+    -- constructor when this line runs — and a registration whose version is not
+    -- strictly higher is refused, so another addon's later copy of AGSMW cannot
+    -- take the slot back at its own fixed number. (Worded around the AceGUI entry
+    -- point's name on purpose: C02's acceptance is a grep for that identifier over
+    -- core/, modules/ and settings/ returning nothing, and a prose mention is a hit
+    -- an auditor has to read and dismiss.)
+    --
+    -- core/LSMPatch.lua IS GONE, deleted in the commit that added this line. Its
+    -- own timing was PLAYER_LOGIN; this is earlier and safe for the reason above.
+    -- Keeping it would have been a second registration of a wrapper the library
+    -- has already installed — the exact duplicate the promotion exists to end.
+    optionsLib.__PatchLSM30Border()
+
     UI = optionsLib:New({
         -- The one field lib:New validates, and it raises rather than warns: an
         -- anonymous canvas is one /framestack cannot attribute and two addons

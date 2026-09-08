@@ -17,7 +17,7 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 
 | Folder | Holds |
 |--------|-------|
-| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the LSM widget fixup (LSMPatch), the `/cm dump` targets (SlashDump) and the slash **verb bodies** (SlashCommands) — the dispatcher itself is `settings/Slash.lua` |
+| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the `/cm dump` targets (SlashDump) and the slash **verb bodies** (SlashCommands) — the dispatcher itself is `settings/Slash.lua` |
 | `modules/` | Ranker, Selector, MacroManager, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + its four pages (General, Macros, Stat Priority, Macro Bar) |
@@ -173,7 +173,7 @@ All vendored under `libs/`:
 - AceConsole-3.0
 - AceGUI-3.0
 - LibSharedMedia-3.0 (debug-console monospace font registration; also the media source behind the macro bar's border pickers)
-- AceGUI-3.0-SharedMediaWidgets (the `LSM30_Border` preview dropdown used by those pickers; `core/LSMPatch.lua` fixes up its misaligned preview tile)
+- AceGUI-3.0-SharedMediaWidgets (the `LSM30_Border` preview dropdown used by those pickers; its misaligned preview tile is fixed up by `lib.__PatchLSM30Border()`, a `LibKa0s-Options-1.0` member called from `settings/OptionsSetup.lua`. That used to be `core/LSMPatch.lua` here and in four sibling addons — AceGUI's widget registry is process-global, so five private registrations in one client meant whichever addon loaded last owned every addon's Border dropdown)
 - LibKa0s — the Ka0s-owned shared modules, vendored whole-folder from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. Nine majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows and schema CLI), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture), `Media-1.0` (the shipped icon catalog and font), `Env-1.0` (the TOC-manifest reader behind `KCM.Meta` / `KCM.Version`), `Item-1.0` (one primitive, `ItemIDFromLink`) and `Widgets-1.0` (one primitive, `ReorderList`, behind the priority rows' drag handle). `Pool` is vendored with the payload but not consumed. Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
 
 ### LibKa0s adoption
@@ -214,8 +214,12 @@ Three rules here are load-bearing rather than stylistic:
    two of them only after the blockers were fixed upstream and re-vendored; what is still declined is
    `Sl:CliResetAll` ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)), because this addon's global reset also wipes `categories` and
    `statPriority`, which the schema does not describe. Never patch the vendored copy: a fix belongs
-   upstream, then re-vendored (the `core/LSMPatch.lua` precedent — third-party fixups live in `core/`,
-   not in `libs/`).
+   upstream, then re-vendored. `core/LSMPatch.lua` used to be cited here as the precedent for
+   third-party fixups living in `core/` rather than in `libs/`; it was the wrong precedent and it is
+   gone. A fixup that writes to a **process-global** registry — AceGUI's widget types — is a LibKa0s
+   concern, because a per-addon copy of it is one registration per addon and only the last one
+   counts. It is `lib.__PatchLSM30Border()` now. A fixup with no reach beyond this addon would still
+   belong in `core/`.
 
 The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, the Ace3 sub-libraries in dependency order, and LibKa0s last) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120007`.
 
@@ -225,7 +229,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceConsole/AceGUI), AceGUI-3.0-SharedMediaWidgets, then LibKa0s last, listed directly in the TOC
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `LSMPatch` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
+3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`
 4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab` and the `KCM.Options` shim) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua`

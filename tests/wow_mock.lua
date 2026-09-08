@@ -540,8 +540,25 @@ function M.install(NS)
         ["AceConsole-3.0"] = makeStub(),
         ["AceDB-3.0"]      = makeAceDB(),
         -- AceGUI: Create returns a permissive widget stub; GetWidgetVersion
-        -- returns 0 (a number, so widget files' `>= Version` guard compares
-        -- cleanly and proceeds to register). Everything else is a no-op.
+        -- returns 0 for a type nobody has registered (a number, so widget files'
+        -- `>= Version` guard compares cleanly and proceeds to register).
+        --
+        -- THE REGISTRY IS A REAL TABLE, and that is not decoration. Real AceGUI
+        -- keeps `WidgetRegistry` (type → constructor) and `WidgetVersions`
+        -- (type → version) as plain tables, and the library's own
+        -- `lib.__PatchLSM30Border` reads the first of them directly. With both
+        -- absent the catch-all `__index` below answered `WidgetRegistry` with a
+        -- FUNCTION, and indexing that raised — 245 cases red on a stub whose
+        -- shape had drifted from the thing it stands in for, not on anything the
+        -- addon did. Recording a registration also lets a case SEE one, which is
+        -- what pins the Border fixup now that this addon no longer carries a
+        -- private copy of it.
+        --
+        -- `Create` deliberately ignores the registry and always hands back the
+        -- permissive stub. The four KCM* widget files register constructors that
+        -- build real frames at call time; honouring them here would change what
+        -- every settings case gets back, and the widget bodies have their own
+        -- suite (tests/test_widgets.lua).
         --
         -- `__created` is a HARNESS-SIDE creation log, in creation order. No
         -- production code knows it exists; it is how a case reaches a widget on a
@@ -550,16 +567,22 @@ function M.install(NS)
         -- intercepted by swapping the instance's AceGUI out.
         ["AceGUI-3.0"]     = setmetatable({
                                 __created = {},
+                                WidgetRegistry = {},
+                                WidgetVersions = {},
                                 Create = function(self)
                                     local w = makeAceWidget()
                                     local log = type(self) == "table" and rawget(self, "__created")
                                     if log then log[#log + 1] = w end
                                     return w
                                 end,
-                                RegisterWidgetType = function() end,
+                                RegisterWidgetType = function(self, wtype, ctor, version)
+                                    self.WidgetRegistry[wtype] = ctor
+                                    self.WidgetVersions[wtype] = version
+                                end,
                                 RegisterLayout = function() end,
-                                GetWidgetVersion = function() return 0 end,
-                                WidgetVersions = {},
+                                GetWidgetVersion = function(self, wtype)
+                                    return self.WidgetVersions[wtype] or 0
+                                end,
                              }, { __index = function() return function() return makeStub() end end }),
         -- LibSharedMedia: enough of the real surface for the settings layer's
         -- LSMValues() lists and the macro bar's border fetch. `media` mirrors

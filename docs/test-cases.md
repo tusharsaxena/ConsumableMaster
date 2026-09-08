@@ -644,9 +644,10 @@ badge and any count quoted in the docs must agree with it.
 - Selector.MoveCompositeRef refuses a move it cannot make
 - Selector.MoveCompositeRef never moves a ref between the two sections
 
-### test_settingsui.lua (39)
+### test_settingsui.lua (40)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
+- Settings UI: the live wiring registers the Border fixup through the library
 - Settings UI: the published instance carries all three of the major's files
 - Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L
 - Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh
@@ -901,7 +902,7 @@ badge and any count quoted in the docs must agree with it.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
 | test_selector.lua | 50 |
-| test_settingsui.lua | 39 |
+| test_settingsui.lua | 40 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 15 |
 | test_spechelper.lua | 16 |
@@ -911,4 +912,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **757** |
+| **Total** | **758** |
