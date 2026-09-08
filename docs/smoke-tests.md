@@ -31,6 +31,14 @@ If the change touched a spec-aware category, also: switch specs via the talents 
 
 Twelve sections, each numbered so you can call out which one failed when reporting a regression. Run end-to-end before releases.
 
+**A word on the "Smoke, session N" labels below.** They name a session in the collection's 2026-09-07
+review-and-audit remediation bundle (`06_SMOKE_TESTS.md`), which defines **six** sessions and no more —
+each one a scheduled login with a stated cost, so the number is how an operator finds the login a step is
+waiting on. A step labeled **"Smoke, opportunistic"** names no session on purpose: it is worth doing
+while you are already in the client, and it is never on its own a reason to schedule one. Writing a
+session number that the bundle does not define sends an operator looking for a login nobody scheduled, so
+if a step here needs a session that does not exist, the bundle is what changes, not this line.
+
 ### 1. Cold boot
 
 Tests: AceDB defaults populate, all 15 macros create, no errors at login.
@@ -203,7 +211,7 @@ Setup: `/cm config`, then visit **General → two tabs on Macros → Stat Priori
 2. **Lazy off-screen refresh stays correct.** While viewing General, run `/cm priority flask add 212283` (any valid flask ID). Navigate to the Macros page's **Flask** tab — the new entry is present (the hidden page was flagged dirty and rebuilt on show), with no stale state and no Lua error.
 3. **Defaults button styling (options-ui-§5).** On every page that has one (General, Macros, Stat Priority, Macro Bar), the top-right **Defaults** button renders **dark with gold text** like the Absorb Tracker / KickCD panels — **not** red. It is an AceGUI `Button` (not a raw canvas-parented `UIPanelButtonTemplate`, which inherits the canvas red skin). Click it and confirm the page reset still fires (functionality preserved through the widget swap).
 
-4. **Smoke, session 7 — the refresh burst is one rebuild, and the cap is real.** Not yet run: no client was available when `M4-22` landed, and nothing below may be reported as passing until someone has actually looked at it.
+4. **Smoke, opportunistic — the refresh burst is one rebuild, and the cap is real.** Not yet run: no client was available when `M4-22` landed, and nothing below may be reported as passing until someone has actually looked at it. This carried a "session 7" label until the bundle was checked against it; there is no session 7, and `M4-22` is not one of the bundle's eighteen items carrying an in-client-only check — the timer count and the cap are both pinned headless. What is below is the look you take while the panel is already open for something else.
 
    `O.RequestRefresh` used to arm a `C_Timer` and build a closure on **every** call, with all but the last discarded on a token compare — roughly 150 of each for the one rebuild the first-open item-info storm is supposed to produce. It now arms one timer for the whole burst and re-arms that one timer for whatever quiet is still owed. `tests/perf.lua`'s `refreshBurst` scenario counts the timers and `tests/test_settingsui.lua` pins the behavior, but **neither can see a real `GET_ITEM_INFO_RECEIVED` storm**: the headless clock is driven by hand, the mock's `C_Timer.After` fires inline, and no mock hydrates an item over the wire. What is being ruled out here is the failure mode a debounce rewrite actually has, which is not a slow panel — it is a panel that stops refreshing at all, and that is indistinguishable in game from a setting that did not take.
 
@@ -541,7 +549,7 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
 
    Note what this run cannot tell you on its own. `M4-03` — the same sweep with all five private copies still in place, which is the "before" reading the spec asks for — has not been run either, so this addon's deletion lands ahead of that evidence. KickCD, PanelMaster and ConsumableMaster now have no private copy; MultiMeters and AbsorbTracker still do. A failure confined to the three is the library member; a failure confined to the two is their private copies; a failure in all five is the sweep itself.
 
-20. **Smoke, session 6 — one stored color, and the two surfaces that read it.** Not yet run: no client was available when `M4-18` landed, and nothing below may be reported as passing until someone has actually looked at it.
+20. **Smoke, opportunistic — one stored color, and the two surfaces that read it.** Not yet run: no client was available when `M4-18` landed, and nothing below may be reported as passing until someone has actually looked at it. This carried a "session 6" label, which is the bundle's non-English-client pass and belongs to `M5-08` alone; `M4-18` is one of the M4 items with a visible surface and no session of its own, to be folded into whatever login is convenient. Step 4 below wants a hand-edited SavedVariables file, so run it on a client you are willing to log out of — but do not book a login for it.
 
    `settings/OptionsSetup.lua` and `settings/Slash.lua` each carried a hand-written decoder for the stored positional `{ r, g, b, a }` and they disagreed about a channel the table does not carry — `or 1` in the panel against `or 0` in the CLI, so one stored value read **white** on the swatch and **black** from `/cm get`. Both read `KCM.ColorDecode` now, which answers nil for an absent channel; the panel adds the four numbers `LibKa0s-Slash-1.0` already fills in, because AceGUI's picker hands `SetColor`'s arguments straight to `SetVertexColor` and that raises on a nil.
 
