@@ -120,7 +120,7 @@ and last the optional bar that displays the finished macros.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 1 tab | **Master controls** (the canonical eight, `options-ui-§15`), with a **Maintenance** subsection under it (Force resync, Force rewrite macros, Reset all priorities) |
+| **General** | 2 tabs | **Master controls** (the canonical eight, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
 | **Macro Bar** | 8 tabs | The optional on-screen macro bar — 62 of the addon's 68 schema rows live here |
@@ -162,7 +162,7 @@ Conflating them would make one of the two sliders do nothing at one end of the o
 
 **The two resets are different acts.** *Reset all settings* is the profile reset — the same act
 `Profiles → Reset Profile` performs, behind the collection's one wording. *Reset all priorities*, in
-the **Maintenance** subsection below the canonical block, clears every category's added / blocked / pinned items and every spec's
+the **Maintenance** tab, clears every category's added / blocked / pinned items and every spec's
 stat-priority override and leaves everything else standing, behind its own, narrower confirmation.
 The button that used to sit on this page said the second and did the first.
 

@@ -301,11 +301,23 @@ end
 -- library cannot derive is the Maintenance subsection under them, which declares
 -- no rows at all -- its three controls are acts, not settings.
 
--- The three targeted verbs, under their own heading beneath the canonical block.
--- Its own function rather than inlined into drawMaster: the two halves answer
--- different questions -- what this addon stores, and what it can be told to do.
+-- The three targeted verbs, on their OWN TAB beside Master controls.
+--
+-- They were a subsection under the canonical block until 2026-09-09, on the
+-- reasoning that a whole tab over three buttons pressed about once a month cost
+-- a click to reach them. The owner asked for the tab back, and the trade reads
+-- the other way round from inside the panel: Master controls is the one tab
+-- everybody opens, so hanging three destructive-ish acts off the bottom of it
+-- means the rows a player came for are no longer the whole of what they see.
+--
+-- Permitted, and worth saying why, because §15 is strict about this page: it
+-- forbids reordering, renaming or splitting the CANONICAL SET across tabs, and
+-- these three were never part of it. Master controls stays the first tab and
+-- still carries the canonical rows and nothing else.
+--
+-- No H.Section heading any more: the tab strip carries the name, and a heading
+-- repeating it is two labels for one thing.
 local function drawMaintenance(ctx)
-    H.Section(ctx, L["Maintenance"])
     H.ButtonPair(ctx,
         {
             text    = L["Force resync"],
@@ -327,11 +339,13 @@ end
 local function drawMaster(ctx)
     H.RenderRows(ctx, masterRows, { ["Master controls"] = masterTail }, nil,
         { noHeadings = true })
-    drawMaintenance(ctx)
 end
 
+-- Master controls FIRST, and that is §15's requirement rather than a habit: every addon's General
+-- page must open on it, under exactly that name.
 local TABS = {
     { group = "Master controls", label = L["Master controls"], draw = drawMaster },
+    { group = "Maintenance",     label = L["Maintenance"],     draw = drawMaintenance },
 }
 KCM.Settings.GENERAL_TABS = TABS
 

@@ -894,8 +894,8 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
                 "…whose first tab is " .. FIRST[key])
         end
 
-        t.eq(#drawn.general.tabs, 1,
-            "General is Master controls alone -- Maintenance folded into it as a subsection")
+        t.eq(#drawn.general.tabs, 2,
+            "General is Master controls plus Maintenance, one tab each")
         t.eq(#drawn.macrobar.tabs, 8, "the Macro Bar page keeps its eight")
         t.eq(#drawn.macros.tabs, #KCM.Categories.LIST,
             "the Macros page carries one tab per category")
@@ -1445,17 +1445,23 @@ test("Settings: the Master controls tab closes with the two reset buttons", func
     -- case below reads them off the mock factory instead.
 end)
 
--- The Maintenance TAB is gone and its three verbs are a subsection of Master
--- controls (options-ui-§16: anything extra goes after the canonical block). A
--- whole tab over three buttons pressed about once a month was a click to reach
--- three acts, beside the one tab everybody opens.
+-- The Maintenance TAB is back, by the owner's call on 2026-09-09. It was folded
+-- into Master controls as a subsection on the reasoning that a whole tab over
+-- three monthly buttons cost a click; from inside the panel the trade reads the
+-- other way, because Master controls is the tab everybody opens and three
+-- destructive-ish acts hanging off its bottom are three things a player did not
+-- come for.
+--
+-- Permitted where the canonical set is not: §15 forbids reordering, renaming or
+-- splitting THAT set across tabs, and these three were never in it. Master
+-- controls stays first, which §15 does require.
 --
 -- Read off the mock AceGUI's creation log rather than a stub, because these
 -- three are HOST-drawn — see the note above.
 --
--- red under: putting the subsection back on a second tab, dropping the
--- drawMaintenance call out of drawMaster, or renaming a button.
-test("Settings: the three maintenance verbs draw on the Master controls tab", function(t)
+-- red under: folding the three back under Master controls, dropping the
+-- Maintenance tab from TABS, or renaming a button.
+test("Settings: the three maintenance verbs draw on their own tab", function(t)
     local KCM = loader.loadFullAddon()
     local AceGUI = LibStub("AceGUI-3.0")
     local before = #AceGUI.__created
@@ -1463,7 +1469,7 @@ test("Settings: the three maintenance verbs draw on the Master controls tab", fu
     KCM.Settings.builders.general({})
     local ctx = KCM.Settings.Helpers.instance.__panelFor("general")
     ctx.panel.IsShown = function() return true end
-    ctx.activeTab = "Master controls"
+    ctx.activeTab = "Maintenance"
     KCM.Settings.Helpers.RefreshAllPanels()
 
     local seen = {}
@@ -1471,7 +1477,7 @@ test("Settings: the three maintenance verbs draw on the Master controls tab", fu
         local w = AceGUI.__created[i]
         if w.__text then seen[w.__text] = true end
     end
-    t.truthy(seen[KCM.L["Force resync"]], "Force resync is on Master controls")
+    t.truthy(seen[KCM.L["Force resync"]], "Force resync is on the Maintenance tab")
     t.truthy(seen[KCM.L["Force rewrite macros"]], "so is Force rewrite macros")
     t.truthy(seen[KCM.L["Reset all priorities"]], "and so is Reset all priorities")
 end)
