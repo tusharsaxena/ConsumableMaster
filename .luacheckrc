@@ -5,7 +5,7 @@
 -- repo's testkit/, which is linted THERE as source — linting the copy as well would report every
 -- finding twice and would let the copy drift green while the original went red, the one state
 -- tests/test_vendor_sync.lua exists to forbid. Everything else under tests/ is this repo's own
--- code and is linted (lint-§1).
+-- code and is linted (lint.md).
 
 std = "lua51"
 max_line_length = false
@@ -18,7 +18,7 @@ exclude_files = {
     "tests/_kit/",
 }
 
--- NO TOP-LEVEL `ignore`, and none is coming back (lint-§1, `M4-11`). This file carried
+-- NO TOP-LEVEL `ignore`, and none is coming back (lint.md, `M4-11`). This file carried
 -- `ignore = { "212", "542" }` until `M4c-03`. Both codes were honest — unused `self` on widget
 -- methods, one deliberately empty CSV branch — but a top-level ignore reaches all 99 files, so it
 -- silenced those two codes in every file that has no business producing them too, and a genuinely
@@ -120,7 +120,7 @@ files["tests/"] = {
 }
 
 -- ---------------------------------------------------------------------------
--- The narrowed 212s (lint-§1, `M4c-03`)
+-- The narrowed 212s (lint.md, `M4c-03`)
 -- ---------------------------------------------------------------------------
 --
 -- Every stanza below names ONE file and ONE argument name, in luacheck's `<code>/<variable>`

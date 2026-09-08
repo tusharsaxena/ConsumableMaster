@@ -193,7 +193,7 @@ The gate exists because `.luacheckrc:25` carried `ignore = { "212", "542" }` for
 2026-09-07 cycle. Both codes were honest — unused `self` on AceGUI widget methods, one deliberately
 empty CSV branch in `/cm stat secondary` — but the suppression reached all 99 files, so a genuinely
 dead argument written into `core/BagScanner.lua` would have landed green under a 0/0 badge. That is
-what `lint-§1` means by a suppression that reads as coverage and provides none.
+what `lint.md` means by a suppression that reads as coverage and provides none.
 
 What replaced it is at the foot of `.luacheckrc`: eleven `files[...]` stanzas, each naming one file
 and one argument name (`212/self`, `212/ctx`, `212/catKey`, `212/%.%.%.`), plus a single

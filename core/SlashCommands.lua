@@ -526,7 +526,7 @@ local function statSecondary(rest)
             -- the elseif chain so the three outcomes read in the order a user types them: blank,
             -- unknown, new. luacheck's 542 is answered on the line above rather than in
             -- .luacheckrc, because this is the only empty branch in the repository and a
-            -- file-wide suppression would hide the next one (lint-§1, `M4c-03`).
+            -- file-wide suppression would hide the next one (lint.md, `M4c-03`).
         elseif not SECONDARY_STATS[up] then
             bad[#bad + 1] = up
         elseif not seen[up] then
