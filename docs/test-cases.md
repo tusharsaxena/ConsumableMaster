@@ -571,6 +571,10 @@ badge and any count quoted in the docs must agree with it.
 - Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
 - Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
 
+### test_register.lua (1)
+
+- every deviation id the register cites is assigned by a bundle in docs/audits/
+
 ### test_runner_list.lua (4)
 
 - --list groups cases by suite file with counts
@@ -946,6 +950,7 @@ badge and any count quoted in the docs must agree with it.
 | test_pipeline.lua | 30 |
 | test_prose.lua | 2 |
 | test_ranker.lua | 23 |
+| test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
 | test_selector.lua | 50 |
@@ -959,4 +964,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **785** |
+| **Total** | **786** |

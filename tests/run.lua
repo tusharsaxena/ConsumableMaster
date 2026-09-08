@@ -444,6 +444,7 @@ local SUITES = {
     "test_pipeline",
     "test_prose",
     "test_ranker",
+    "test_register",
     "test_runner_list",
     "test_schema",
     "test_selector",
