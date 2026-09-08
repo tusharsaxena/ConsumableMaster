@@ -54,16 +54,35 @@ end
 -- silently. `true` was the only outline the boolean could express, so it maps to
 -- "OUTLINE" and `false` to "" (the stored value the "None" label names).
 --
--- The old key is REMOVED in the same step. Left behind it is a second copy of a
+-- THE OLD KEY IS WHAT MARKS AN UNMIGRATED PROFILE, and getting that wrong is the
+-- one way this step can look right and do the opposite. The guard used to read
+-- `if bar.labelFlags == nil`, which cannot be true on a real client: AceDB's
+-- copyDefaults rawsets every missing scalar from `dbDefaults` into the live
+-- profile table before anything downstream of AceDB:New runs, and
+-- defaults/Profile.lua ships `labelFlags = "OUTLINE"`. By the time RunMigrations
+-- looks, `labelFlags` is always a string, so the conversion never fired and the
+-- only line doing any work was the one that deleted `labelOutline` -- a player
+-- who had unticked the outline lost that choice to the shipped default, which is
+-- exactly the loss this step exists to prevent. It was invisible because every
+-- case covering it set `labelFlags = nil` by hand first, a state AceDB does not
+-- hand anyone.
+--
+-- So the guard tests `labelOutline`, the key a pre-v3 profile carries and no
+-- other profile does. The two never coexist in a SavedVariables file -- the
+-- boolean was retired in the same build that introduced the string -- so a
+-- profile whose `labelFlags` is a deliberate choice has already been through
+-- here, no longer carries the boolean, and is left alone.
+--
+-- The old key is REMOVED as it is converted. Left behind it is a second copy of a
 -- setting that no longer has a control, and the next reader to guess which one
 -- wins gets it wrong half the time.
 function D.MigrateLabelFlagsV3(profile)
     local bar = type(profile) == "table" and profile.macroBar
     if type(bar) ~= "table" then return false end
-    if bar.labelFlags == nil then
-        bar.labelFlags = (bar.labelOutline ~= false) and "OUTLINE" or ""
+    if bar.labelOutline ~= nil then
+        bar.labelFlags = bar.labelOutline and "OUTLINE" or ""
+        bar.labelOutline = nil
     end
-    bar.labelOutline = nil
     return true
 end
 
@@ -90,8 +109,9 @@ end
 -- information is not in the file to recover, and seeding the profile stamp from
 -- the account's would simply reinstate the defect for every profile at once. It
 -- is paid once per profile, and the stamp written on the way out is what makes it
--- once. The v3 step costs nothing on a re-run: it converts only where
--- `labelFlags` is absent, and clearing `labelOutline` is idempotent.
+-- once. The v3 step costs nothing on a re-run: it converts only where the retired
+-- `labelOutline` boolean is still there, and the conversion is what removes it, so
+-- a second pass finds nothing left to do.
 function D.RunMigrations()
     local db = KCM.db
     if not (db and db.global) then return end

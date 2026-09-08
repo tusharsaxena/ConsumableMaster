@@ -362,6 +362,13 @@ key. A stored value changing shape is a migration and not an edit to a defaults
 table: without it the panel would meet a boolean where it expects one of five
 strings and the player would lose a setting they had already made, silently.
 
+The step is gated on the **old** key being present, which is the only thing that
+marks an unmigrated profile. `labelFlags` cannot be used for that, however
+natural it reads: AceDB merges the shipped `"OUTLINE"` into the live profile
+before any of this addon's code runs, so it is never absent, and a guard on its
+absence retires the boolean without converting it — handing a player who had
+unticked the outline the default they had turned off.
+
 `macroBar.locked` is still stored here, but the control that writes it is the
 General page's **Lock frame** row now, on the Master controls tab
 (`options-ui-§15`). Only the tab moved; the path did not, so `/cm bar lock` and

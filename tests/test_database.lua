@@ -165,13 +165,23 @@ end)
 -- panel meets a boolean where it expects one of five strings and the player
 -- silently loses a setting they had already made.
 --
--- red under: dropping the `if g.schemaVersion < 3` arm from RunMigrations, or
+-- red under: dropping the `if p.schemaVersion < 3` arm from RunMigrations, or
 -- mapping `false` to "OUTLINE" (which is the shape the whole conversion exists
 -- to get right).
+--
+-- THE SETUP IS THE SUBJECT HERE, so read it before the assertions. These cases
+-- used to open with `labelFlags = nil`, and that hand-made state is why the step
+-- could be inert for a year without a single case noticing: AceDB fills every
+-- missing scalar from `dbDefaults` into the live profile table before any of this
+-- addon's code sees it, so `labelFlags` is the shipped "OUTLINE" on a real
+-- pre-v3 profile, not nil. What actually distinguishes such a profile is the
+-- retired `labelOutline` boolean still sitting next to it. Nothing below clears
+-- `labelFlags`; the fixture is left exactly as AceDB would hand it over.
 
 test("Database v3: an outlined label from an older profile reads back as OUTLINE", function(t)
     local KCM = h.loader.loadPure()
-    KCM.db.profile.macroBar.labelFlags = nil
+    t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE",
+        "AceDB has already merged the shipped default in -- this is the real starting state")
     KCM.db.profile.macroBar.labelOutline = true
     KCM.db.global = { schemaVersion = 2 }
     KCM.db.profile.schemaVersion = 2
@@ -179,28 +189,54 @@ test("Database v3: an outlined label from an older profile reads back as OUTLINE
     t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE", "true becomes the OUTLINE flag")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
         "and the boolean is removed rather than left as a second copy")
+    -- "OUTLINE" is also the shipped default, so the assertion above is satisfied
+    -- by a step that does nothing. The mapping itself is stated once, directly,
+    -- against a starting value the default cannot supply.
+    local bar = { labelFlags = "", labelOutline = true }
+    KCM.Database.MigrateLabelFlagsV3({ macroBar = bar })
+    t.eq(bar.labelFlags, "OUTLINE", "the conversion writes the flag, it does not merely leave it")
 end)
 
+-- THE CASE THE DEFECT WAS HIDING BEHIND. A player who unticked the outline stored
+-- `labelOutline = false`; AceDB then merges "OUTLINE" into `labelFlags` beside it,
+-- and a step that converts only when `labelFlags` is nil deletes the boolean,
+-- keeps the default, and hands that player an outline they had turned off.
+--
+-- red under: the `if bar.labelFlags == nil` guard this step shipped with --
+-- "expected , got OUTLINE".
 test("Database v3: an un-outlined label from an older profile reads back as no flags", function(t)
     local KCM = h.loader.loadPure()
-    KCM.db.profile.macroBar.labelFlags = nil
+    t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE",
+        "the shipped default is in place, as it is on any real profile")
     KCM.db.profile.macroBar.labelOutline = false
     KCM.db.global = { schemaVersion = 2 }
     KCM.db.profile.schemaVersion = 2
     KCM.Database.RunMigrations()
     t.eq(KCM.db.profile.macroBar.labelFlags, "",
         "false becomes the empty string, which is the stored value 'None' names")
+    t.eq(KCM.db.profile.macroBar.labelOutline, nil, "and the boolean is retired")
 end)
 
-test("Database v3: a profile that already carries labelFlags is left alone", function(t)
+-- A profile that has already been through the step carries no `labelOutline`, and
+-- the step must not touch its flags. This is stated against the step itself rather
+-- than through RunMigrations, because through the runner the version gate would
+-- answer instead and the case would measure the gate a second time.
+test("Database v3: a profile with no retired boolean keeps the flags it chose", function(t)
     local KCM = h.loader.loadPure()
-    KCM.db.profile.macroBar.labelFlags   = "THICKOUTLINE"
-    KCM.db.profile.macroBar.labelOutline = true
-    KCM.db.global = { schemaVersion = 2 }
-    KCM.db.profile.schemaVersion = 2
-    KCM.Database.RunMigrations()
-    t.eq(KCM.db.profile.macroBar.labelFlags, "THICKOUTLINE",
+    local bar = { labelFlags = "THICKOUTLINE" }
+    t.truthy(KCM.Database.MigrateLabelFlagsV3({ macroBar = bar }), "the step runs")
+    t.eq(bar.labelFlags, "THICKOUTLINE",
         "the deliberate choice survives; the step is a conversion, not a reset")
+end)
+
+-- Idempotence, now that the guard reads the key the conversion removes.
+test("Database v3: a second pass over a converted profile changes nothing", function(t)
+    local KCM = h.loader.loadPure()
+    local bar = { labelFlags = "OUTLINE", labelOutline = false }
+    KCM.Database.MigrateLabelFlagsV3({ macroBar = bar })
+    t.eq(bar.labelFlags, "", "converted on the first pass")
+    KCM.Database.MigrateLabelFlagsV3({ macroBar = bar })
+    t.eq(bar.labelFlags, "", "and the second pass has nothing left to convert")
 end)
 
 test("Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less one", function(t)
@@ -262,6 +298,13 @@ test("Database: a second profile written before v3 is migrated when it is switch
     KCM.db:SetProfile("Alt")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
         "the v3 step ran against the incoming profile and retired the boolean")
+    -- The boolean going away proves the step RAN. That it CONVERTED is a separate
+    -- claim, and the one the old guard failed: SetProfile merges the defaults into
+    -- the incoming profile first, exactly as AceDB does, so `labelFlags` arrives
+    -- as "OUTLINE" and a step gated on its absence would retire the boolean and
+    -- keep the default.
+    t.eq(KCM.db.profile.macroBar.labelFlags, "",
+        "and converted it -- the switched-to player's un-outlined label stays un-outlined")
 end)
 
 -- THE ONE-TIME COST OF THE PROFILE-SCOPED GATE, pinned so that it stays one-time.

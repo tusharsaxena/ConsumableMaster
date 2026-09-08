@@ -110,7 +110,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: the folder name the wrapper sends resolves to a mark that exists
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 
-### test_database.lua (22)
+### test_database.lua (23)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -129,7 +129,8 @@ badge and any count quoted in the docs must agree with it.
 - Database v2: MigrateMacroBarV2 tolerates a nil profile
 - Database v3: an outlined label from an older profile reads back as OUTLINE
 - Database v3: an un-outlined label from an older profile reads back as no flags
-- Database v3: a profile that already carries labelFlags is left alone
+- Database v3: a profile with no retired boolean keeps the flags it chose
+- Database v3: a second pass over a converted profile changes nothing
 - Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less one
 - Database: switching profile re-runs the migration pass
 - Database: a second profile written before v3 is migrated when it is switched to
@@ -877,7 +878,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 17 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 11 |
-| test_database.lua | 22 |
+| test_database.lua | 23 |
 | test_debug.lua | 13 |
 | test_debuglog.lua | 18 |
 | test_defaults.lua | 28 |
@@ -905,4 +906,4 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **755** |
+| **Total** | **756** |

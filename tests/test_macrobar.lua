@@ -1744,8 +1744,9 @@ test("macrobar label: the font FACE, FLAGS and SHADOW reach the FontString", fun
     t.eq(firstCall(plain.label, "SetShadowOffset")[2], 0,
         "and the shadow is CLEARED rather than left from a previous pass")
 
-    -- A profile written before schema v3 has no labelFlags at all; the outline is
-    -- what it always had.
+    -- A cfg with no labelFlags at all -- which AceDB never hands the drawing code,
+    -- since defaults/Profile.lua ships one, but a direct caller can -- keeps the
+    -- outline, because that is what the setting always was before v3.
     local legacy = styleButton()
     KCM.MacroBarButton.ApplyStyle(legacy, { buttonSize = 36, buttonLabel = true, labelScale = 25 })
     t.eq(firstCall(legacy.label, "SetFont")[4], "OUTLINE",
