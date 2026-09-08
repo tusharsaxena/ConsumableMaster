@@ -450,7 +450,7 @@ end
 --- `/cm resetall` are one act, and the addon's own note in settings/General.lua that
 --- "every execute path is shared with the slash commands" is only true while the
 --- whole act is behind this one function. First, not last, for the reason the
---- library's own RestoreAllDefaults orders it that way (libs/LibKa0s/Options.lua:620-636):
+--- library's own `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
 --- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
 --- would be writing into a panel that had already been drawn from the old value.
 function KCM.ResetAllToDefaults(reason)

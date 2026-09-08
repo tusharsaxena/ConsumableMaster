@@ -356,7 +356,7 @@ end)
 -- `set()`. `state.debugConsole` is that row: settings/Panel.lua's SESSION_PATHS
 -- answers it out of the console's own visibility, not out of db.profile, so
 -- `db:ResetProfile()` leaves it exactly as it found it and a console the player
--- opened outlives a reset that took everything around it. §12 makes restoring
+-- opened outlives a reset that took everything around it. options-ui-§12 makes restoring
 -- those rows by hand a MUST, and restoreSessionRows is where it happens.
 --
 -- Pinned on ResetAllToDefaults rather than on either door, because that is the

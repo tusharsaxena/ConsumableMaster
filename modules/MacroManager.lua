@@ -328,7 +328,7 @@ end
 -- place instead of once per log site. It stays a PREDICATE rather than a
 -- logging wrapper on purpose: Lua evaluates call arguments before the callee
 -- runs, so a wrapper would make KCM.Debug's arguments (the tostring calls
--- below) allocate even with debug off — the standard §12 zero-alloc rule these
+-- below) allocate even with debug off — the debug-logging-§4 zero-alloc rule these
 -- paths are written to. Same shape as core/ConsumableMaster.lua's isDebugOn,
 -- and it reads KCM.State directly exactly as the inline sites did.
 local function isDebugOn()

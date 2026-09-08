@@ -105,14 +105,14 @@ function BB.RefreshIcon(btn)
     end
 end
 
--- GCD-swipe suppression curve, built once and lazily (mirrors KickCD's
--- buildGcdSuppressCurve, modules/IconGrid_Render.lua ~line 84 there — same
+-- GCD-swipe suppression curve, built once and lazily (mirrors KickCD's own
+-- `buildGcdSuppressCurve`, in its modules/IconGrid_Render.lua — same
 -- pattern, deliberately duplicated rather than shared via LibKa0s; see
 -- closed issue #26 (GCD-01)).
 --
 -- Under Midnight a spell cooldown's start/duration are SECRET once combat
 -- begins, so Lua may not compare "is this just the GCD" itself (see the
--- comment block at core/MacroDisplay.lua:79-99). The trick is to never
+-- header on `MD.CooldownForID`, in core/MacroDisplay.lua). The trick is to never
 -- compare the secret in Lua: build a step curve once and hand it to
 -- EvaluateRemainingDuration, which runs C-side and accepts a secret-tainted
 -- duration object. The curve steps from 0 (hide) to 1 (show) at
@@ -143,8 +143,8 @@ local function buildGcdSuppressCurve()
 end
 
 -- Drive one Cooldown frame from MacroDisplay's cooldown state. Shared with the
--- flyout's entries (modules/MacroBarFlyout.lua:413), which paint the same
--- way — one applier so the same item never renders differently in the two
+-- flyout's entries -- `FO.RefreshCooldown` in modules/MacroBarFlyout.lua calls
+-- straight into this -- so the same item never renders differently in the two
 -- places.
 --
 -- Whether there IS a cooldown is decided upstream from data that is safe to

@@ -109,7 +109,7 @@ local COMMANDS = {
             local DL = KCM.DebugLog
             if arg == "on" or arg == "off" then
                 -- DL.SetEnabled is the single seam: it owns the chat ack, the
-                -- console transition line, and the options-panel refresh (§5).
+                -- console transition line, and the options-panel refresh (debug-logging-§5).
                 local want = (arg == "on")
                 if DL and DL.SetEnabled then
                     DL.SetEnabled(want)
@@ -298,7 +298,7 @@ if slashLib then
         -- while settings/OptionsSetup.lua answered `c[1] or 1`, so one stored
         -- value read black here and white in the panel. Handing on the
         -- decoder's nil is not a gap: lib.FormatValue fills an absent channel
-        -- from its own COLOR_KEYS (libs/LibKa0s/Slash.lua:89) with exactly
+        -- from its own COLOR_KEYS (in libs/LibKa0s/Slash.lua) with exactly
         -- these numbers, so what the user sees is unchanged and the addon
         -- carries one fewer copy of them.
         colorDecode  = KCM.ColorDecode,

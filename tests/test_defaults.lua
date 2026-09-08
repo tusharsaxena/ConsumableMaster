@@ -72,7 +72,7 @@ end)
 -- BLOODLUST and BATTLE_REZ are deliberately seed-plus-user-added only: drums
 -- and Emergency Soul Link share broad consumable subclasses with bombs and
 -- toys, so a Classifier matcher would sweep in unrelated junk. See
--- defaults/Categories.lua's note on these two rows and core/Classifier.lua:157
+-- defaults/Categories.lua's note on these two rows and `C.Match` in core/Classifier.lua
 -- (Classifier.Match returns false for a category with no matcher, by design).
 local NO_CLASSIFIER = { BLOODLUST = true, BATTLE_REZ = true }
 

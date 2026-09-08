@@ -379,7 +379,7 @@ function(t)
     -- which raises on a nil. The shared decoder answers nil for an absent
     -- channel on purpose; this seam is the one that cannot draw that answer, so
     -- it is the one that supplies numbers — and they are the same numbers
-    -- LibKa0s-Slash-1.0's own COLOR_KEYS fills in (libs/LibKa0s/Slash.lua:89),
+    -- LibKa0s-Slash-1.0's own COLOR_KEYS fills in (in libs/LibKa0s/Slash.lua),
     -- which is why the two surfaces agree rather than merely both being green.
     local nr, ng, nb, na = H.ColorDecode(nil)
     t.eq(type(nr) .. type(ng) .. type(nb) .. type(na), "numbernumbernumbernumber",

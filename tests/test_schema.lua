@@ -500,8 +500,8 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
     local want = {
         -- General lost `Lock position` to the General page's Master controls tab
         -- (options-ui-§15); the appearance tabs gained the class-color companion
-        -- beside every swatch (§17) and Labels gained the font face, the font
-        -- flags string and the font shadow the canonical font block mandates (§16).
+        -- beside every swatch (options-ui-§17) and Labels gained the font face, the font
+        -- flags string and the font shadow the canonical font block mandates (options-ui-§16).
         { "General",           1  },
         { "Layout",            8  },
         { "Bar appearance",    9  },

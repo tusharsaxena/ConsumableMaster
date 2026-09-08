@@ -90,15 +90,15 @@ if not lib then
 
     -- Show and Toggle_Window are the two entry points a user reaches for on
     -- purpose, so they are the two that explain themselves. Hide and
-    -- IsWindowShown stay SILENT: `settings/General.lua:268` calls Hide from the
-    -- Defaults action and the global reset's session sweep
+    -- IsWindowShown stay SILENT: settings/General.lua's Defaults action calls
+    -- Hide (the `KCM.DebugLog.Hide` guard in its `defaultsOnClick`) and the global reset's session sweep
     -- (`core/ConsumableMaster.lua`'s restoreSessionRows) writes the row's default
     -- through the same door, while IsWindowShown is a bare status query the
     -- [Debug console] row reads on every refresh -- so a notice on either would
     -- announce a window the user never asked to see, repeatedly. The row itself
     -- does not route through this seam: it is a schema row now
     -- (`state.debugConsole`, composed by MasterControls) resolved by
-    -- `settings/Panel.lua:166-183`'s SESSION_PATHS, which reaches for KCM.DebugLog
+    -- settings/Panel.lua's `SESSION_PATHS`, which reaches for KCM.DebugLog
     -- at call time and answers false when this degraded path is the one loaded.
     function DL.Show() notice() end
     function DL.Toggle_Window() notice() end
@@ -110,8 +110,8 @@ if not lib then
     -- whether a console exists, and falls back to the chat frame when it does
     -- not — withholding the instance is exactly what re-arms that fallback.
     -- AddLine is withheld for the matching reason: its one production caller is
-    -- `core/PerfSetup.lua:98`, inside a table that file only ever builds when
-    -- the LibKa0s Perf major loaded (`core/PerfSetup.lua:46` returns
+    -- the descriptor's `log` sink in core/PerfSetup.lua, inside a table that
+    -- file only ever builds when the LibKa0s Perf major loaded (`core/PerfSetup.lua:46` returns
     -- otherwise), so a no-op here would swallow diagnostics rather than degrade
     -- anything. Same for Clear / ShowCopy / RefreshHeader / UpdateScrollBar /
     -- UpdateStatus / the formatters: no consumer outside this file, so there is

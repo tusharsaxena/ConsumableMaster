@@ -97,7 +97,7 @@ test("macrobar layout: missing config falls back to shipped defaults", function(
     local KCM = h.loader.loadPure()
     local g = KCM.MacroBarLayout.Grid(2, nil)
     -- This exercises MacroBarLayout.lua's OWN `perRow = ... or N` fallback
-    -- (core/MacroBarLayout.lua:36), kept in step with the category count by
+    -- (the `perRow` clamp inside `normalize`), kept in step with the category count by
     -- the "macrobar defaults: perRow tracks the number of managed
     -- categories" case below. 2 slots stay on one row under any fallback
     -- value that has ever shipped, so this assertion doesn't move.

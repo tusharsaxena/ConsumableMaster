@@ -45,7 +45,8 @@
 --     "LibKa0s-DebugLog-1.0" resolves the instance, and this case would go red on
 --     Add, Toggle, IsShown, FindLine, BufferSize, CopyText and Text — seven
 --     members the wrapper was never meant to carry.
---   * KCM.SlashCommands is the host's own table (core/SlashCommands.lua:19),
+--   * KCM.SlashCommands is the host's own table (declared at the head of
+--     core/SlashCommands.lua),
 --     holding Verbs, GetLandingRows and the library object under `instance`. The
 --     degraded arm of settings/Slash.lua publishes NOTHING onto it — it rebinds
 --     file-scope locals and installs degradedDispatch — so what this case pins is
@@ -53,7 +54,7 @@
 --     host fact about a host table, and no major's surface states it.
 --   * KCM.Settings.Helpers is the near miss, and it is the one worth measuring.
 --     It is a host table DELEGATING to the instance through
---     `setmetatable(Helpers, { __index = UI })` (settings/OptionsSetup.lua:178),
+--     `setmetatable(Helpers, { __index = UI })`, in settings/OptionsSetup.lua,
 --     where AbsorbTracker's NS.Helpers IS the instance, decorated in place. pairs()
 --     does not walk __index, so Kit.publicMembers sees one half or the other and
 --     never the union this case needs. Measured on today's tree:
@@ -169,8 +170,8 @@ local DEBUGLOG_SEAM = {
 --   * `instance` is WITHHELD, and that is the load-bearing one: core/Debug.lua's
 --     emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
 --     whether a console exists and falls back to the chat frame when it does not.
---   * AddLine is withheld too. Its one production caller is
---     `core/PerfSetup.lua:98`, which that file only builds when the LibKa0s Perf
+--   * AddLine is withheld too. Its one production caller is the descriptor's
+--     `log` sink in core/PerfSetup.lua, which that file only builds when the LibKa0s Perf
 --     major loaded, so a no-op AddLine would swallow diagnostics rather than
 --     degrade anything.
 --   * Clear / ShowCopy / RefreshHeader / UpdateScrollBar / UpdateStatus and the
@@ -212,7 +213,7 @@ end)
 -- blacks out the whole command surface is non-compliant.
 local SLASH_SEAM = { "Verbs", "GetLandingRows" }
 
--- `instance` is the library object, published at settings/Slash.lua:305 purely so
+-- `instance` is the library object, published at the foot of settings/Slash.lua purely so
 -- the suite can assert identity rather than lookalike behavior.
 local SLASH_LIVE_ONLY = { "instance" }
 

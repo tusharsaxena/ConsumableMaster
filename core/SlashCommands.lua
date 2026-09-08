@@ -242,7 +242,7 @@ function KCM.FormatSchemaValue(def, v)
         -- (CONSUMABLEMASTER-R-05). KCM.ColorDecode is the shape reader now; the
         -- four numbers stay HERE because they are this renderer's answer to an
         -- absent channel, and they are the same four LibKa0s-Slash-1.0 renders
-        -- for one (libs/LibKa0s/Slash.lua:89). Byte-identical output — the
+        -- for one (`COLOR_KEYS` in libs/LibKa0s/Slash.lua). Byte-identical output — the
         -- rendering cases in tests/test_schema.lua are the pin.
         return ("{%.2f, %.2f, %.2f, %.2f}")
             :format(KCM.ColorDecode(v, 0, 0, 0, 1))

@@ -59,7 +59,7 @@ KCM.Settings.PANEL_TITLE = PANEL_TITLE
 -- CHOOSES what.
 --
 -- The numbers are LibKa0s-Slash-1.0's own COLOR_KEYS fallbacks
--- (libs/LibKa0s/Slash.lua:89), which is what `/cm get` already renders for the
+-- (`COLOR_KEYS` in libs/LibKa0s/Slash.lua), which is what `/cm get` already renders for the
 -- same absent channel. That is the whole point: the old `or 1` here made the
 -- panel show white where the CLI showed black, from one stored value. Pinned by
 -- a case that drives both surfaces (tests/test_slashsetup.lua).
@@ -111,7 +111,7 @@ if optionsLib and AceGUI then
     -- above it. Load all five and the wrapper a Border dropdown actually got
     -- belonged to whichever addon the client reached last. Nothing headless in any
     -- of the five repos could see it: each suite loads one copy, registers once and
-    -- passes, and §11a step 6 below checked the alignment with this addon alone.
+    -- passes, and docs/smoke-tests.md's §11a step 6 checked the alignment with this addon alone.
     --
     -- lib.__PatchLSM30Border (LibKa0s-Options-1.0 minor 15) is that same wrapper
     -- published once, guarded by lib.__lsmBorderPatched. Five vendored copies of

@@ -153,7 +153,7 @@ end
 -- instead of once per log site. It stays a PREDICATE rather than a logging
 -- wrapper on purpose: Lua evaluates call arguments before the callee runs, so a
 -- `dbg(fmt, ...)` wrapper would make KCM.Debug's arguments allocate even with
--- debug off — the standard §12 zero-alloc rule these paths are written to.
+-- debug off — the debug-logging-§4 zero-alloc rule these paths are written to.
 -- Today's two call sites pass only a plain string, but the wrapper shape is
 -- what makes the NEXT diagnostic (a tostring, a concat, a table) pay silently.
 -- Same shape as core/ConsumableMaster.lua's and modules/MacroManager.lua's

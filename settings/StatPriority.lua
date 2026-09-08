@@ -3,11 +3,11 @@
 -- Banner: the spec picker, pinned above the scroll in the page's chrome band
 --   (options-ui-§14) -- class+spec icon markup, sorted by stripped class name so
 --   the texture markup doesn't pollute the order. It was a "Selection" SECTION
---   inside the scroll until the redesign; §14 wants the thing a page is editing
+--   inside the scroll until the redesign; options-ui-§14 wants the thing a page is editing
 --   named at the top of it, where it stays visible while you scroll the controls
 --   it governs. It is still the SINGLE source of truth for KCM.Options._viewedSpec
 --   -- the spec-aware category tabs (Stat Food, Combat Potion, Flask, Weapon
---   Enchant) read it on each render, and §14's rule that the banner REPLACES a
+--   Enchant) read it on each render, and options-ui-§14's rule that the banner REPLACES a
 --   picker rather than mirroring one is why they show the viewed spec as a
 --   sentence and offer no second picker of their own.
 --

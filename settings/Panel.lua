@@ -532,7 +532,7 @@ Helpers.EnumValues = enumValues
 -- Both halves of what it added are elsewhere now, and better placed. The
 -- non-empty guarantee -- "None" when a media type has nothing registered, so the
 -- dropdown can be opened AND ValidateSchemaValue does not reject the value
--- already stored -- is the library's own, at libs/LibKa0s/Options.lua:770-773.
+-- already stored -- is the library's own, in `O.LSMValues` (libs/LibKa0s/Options.lua).
 -- This addon had it first and upstream took it. The hash-to-array conversion is
 -- `enumValues` above, which reads BOTH shapes at the one place needing an array.
 -- So the wrapper was not merely uncalled: it was two pieces of code that had
@@ -742,7 +742,7 @@ function Helpers.SetAndRefresh(path, value)
     end
     if not Helpers.Set(def.path, coerced) then return false end
     fireOnChange(def, coerced)
-    -- Scalar write → in-place widget re-sync, never a page rebuild (§11).
+    -- Scalar write → in-place widget re-sync, never a page rebuild (options-ui-§11).
     Helpers.RefreshScalars()
     return true
 end
@@ -776,7 +776,7 @@ end
 ---
 --- The composers (OptionsCompose) emit `path`, `page`, `group`, `subgroup`,
 --- `order`, `type`, `label`, `tooltip` and `default` -- everything options-ui-§16
---- and §17 pin. What they cannot know is this addon's own row vocabulary:
+--- and options-ui-§17 pin. What they cannot know is this addon's own row vocabulary:
 --- `panel` and `section` (which ValidateSchema checks), the `onChange` that
 --- applies the write, and the ordered `{ value =, text = }` media lists this
 --- addon declares where the library declares a hash.
