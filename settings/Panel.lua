@@ -77,8 +77,9 @@ KCM.Settings.macroOrder = KCM.Settings.macroOrder or {
 -- member bound while `UI` was still nil — read back nil at the call site with no
 -- way to tell it apart from a member the library never had (options-ui-§1). The
 -- addon's own wrappers below stay as OWN keys and shadow the library's
--- same-named function, which is what keeps Section / CreatePanel / LSMValues
--- able to call the instance's version without recursing into themselves.
+-- same-named function, which is what keeps Section and CreatePanel able to call
+-- the instance's version without recursing into themselves. LSMValues was the
+-- third of those until M4-C1; it is the library's outright now.
 local Helpers = KCM.Settings.Helpers or {}
 KCM.Settings.Helpers = Helpers
 
@@ -459,9 +460,16 @@ end
 -- schema declares `tooltip`, which would have blanked every tooltip body while
 -- leaving the label rendering — silently, and only in game.
 --
--- Helpers.EnumValues and Helpers.LSMValues stay here: they are the addon's own
--- schema vocabulary, called from settings/MacroBar.lua's rows and pinned by
--- tests/test_macrobar.lua.
+-- Helpers.EnumValues stays here, and it is not vocabulary any more -- it is the
+-- validator's single reader. `validateSchemaValue` below calls it, and nothing
+-- else in core/, modules/ or settings/ does. It used to be settings/MacroBar.lua's
+-- too; that stopped being true when M3-04 deleted the three `values` overrides,
+-- and the export survived because the job it does moved INTO this file rather
+-- than out of it. tests/test_macrobar.lua and tests/test_schema.lua still pin it.
+--
+-- `Helpers.LSMValues` used to be named here beside it. It is gone -- see the note
+-- below, where it used to be defined, for why the shape it adapted is no longer
+-- a shape anything asks for.
 
 -- BOTH enum shapes a row here can carry, normalized to the ordered
 -- `{ value =, text = }` array every caller of this function reads:
@@ -513,25 +521,27 @@ local function enumValues(def)
 end
 Helpers.EnumValues = enumValues
 
-function Helpers.LSMValues(mediaType)
-    -- A shape adapter over the library's, which answers a deferred closure over
-    -- a self-keyed HASH where this addon's schema declares an ordered
-    -- { value =, text = } array. enumList reads both, so only the row literal
-    -- differs — and the rows here are already written as functions.
-    --
-    -- What it gains is the guarantee: the library's never returns an empty
-    -- list. A media type with nothing registered yields a single "None",
-    -- because an empty one leaves the dropdown unopenable and makes
-    -- ValidateSchemaValue reject even the value already stored. This addon had
-    -- that placeholder first; the library has it now.
-    local hash = UI and UI.LSMValues(mediaType)() or {}
-    local keys = {}
-    for k in pairs(hash) do keys[#keys + 1] = k end
-    table.sort(keys)
-    local out = {}
-    for i2, k in ipairs(keys) do out[i2] = { value = k, text = k } end
-    return out
-end
+-- THE HOST `LSMValues` SHADOW IS GONE, and its absence is the point. It was a
+-- shape adapter: the library's O.LSMValues answers a deferred closure over a
+-- self-keyed HASH, and this addon's media rows used to declare the ordered
+-- { value =, text = } array instead, so the wrapper flattened one into the other.
+-- Its only caller in core/, modules/ or settings/ was settings/MacroBar.lua's
+-- `lsmValues`, the LibKa0s issue #15 workaround -- and M3-04 deleted that with
+-- the re-vendor carrying the upstream fix, leaving the adapter nothing to adapt.
+--
+-- Both halves of what it added are elsewhere now, and better placed. The
+-- non-empty guarantee -- "None" when a media type has nothing registered, so the
+-- dropdown can be opened AND ValidateSchemaValue does not reject the value
+-- already stored -- is the library's own, at libs/LibKa0s/Options.lua:770-773.
+-- This addon had it first and upstream took it. The hash-to-array conversion is
+-- `enumValues` above, which reads BOTH shapes at the one place needing an array.
+-- So the wrapper was not merely uncalled: it was two pieces of code that had
+-- each moved somewhere better, kept alive by tests that existed to test it.
+--
+-- What removing it changes for a caller: `Helpers.LSMValues` still resolves,
+-- through settings/OptionsSetup.lua's `__index`, but to the LIBRARY's -- a
+-- function returning a function over a hash, not an array. Anything wanting an
+-- array puts it through `Helpers.EnumValues`, exactly as every composed row does.
 
 -- The dispatch itself, by row type, is the library's under the same name, so
 -- Helpers.RenderField resolves through __index. Every maker behind it is the

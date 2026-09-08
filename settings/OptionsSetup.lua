@@ -132,8 +132,10 @@ if optionsLib and AceGUI then
     -- the rest — is now reachable on Helpers without being copied, so the two
     -- tables cannot drift and no member can be silently absent. The addon's own
     -- wrappers stay OWN keys on Helpers and shadow the library's same-named
-    -- function, which is what keeps Section / CreatePanel / LSMValues able to
-    -- call the instance's version without recursing into themselves.
+    -- function, which is what keeps Section and CreatePanel able to call the
+    -- instance's version without recursing into themselves. LSMValues was the
+    -- third until M4-C1 retired it; `Helpers.LSMValues` is the library's own
+    -- deferred reader now, reached straight through this __index.
     setmetatable(Helpers, { __index = UI })
 
     -- The instance, so the suite can assert IDENTITY against the library rather
@@ -159,17 +161,21 @@ else
 
     -- THE LOAD-COMPLETING HALF (options-ui-§1). settings/General.lua and
     -- settings/MacroBar.lua call the OptionsCompose composers inside schema-row
-    -- literals, AT FILE LOAD -- the same position `LSMValues` sits in. With the
-    -- member nil the page file raises, its rows never register, and a third of the
-    -- schema goes missing silently; with these here the file finishes.
+    -- literals, AT FILE LOAD. With the member nil the page file raises, its rows
+    -- never register, and a third of the schema goes missing silently; with these
+    -- here the file finishes. `LSMValues` used to be named as sitting in the same
+    -- position and it no longer does -- no page file evaluates it at file load
+    -- since M3-04, which is what let M4-C1 retire the host copy. Note it was never
+    -- published by THIS arm even then: settings/Panel.lua defined it
+    -- unconditionally, on both.
     --
     -- They answer an EMPTY row list, and that is the whole of the fallback. A
     -- composer is a pure function that emits a fixed row block, so a host copy of
     -- one is precisely the duplicate the library was extracted to end
     -- (options-ui-§1's "MUST NOT carry a copy of a widget maker ... into the
-    -- stub", anti-patterns #47) -- and the difference from LSMValues, whose empty
-    -- table still leaves the row standing, is real: the composed rows are ABSENT
-    -- on a degraded load. That costs nothing reachable. With the library gone the
+    -- stub", anti-patterns #47) -- and the difference from a host stub that hands
+    -- back an empty VALUE list, which still leaves its row standing, is real: the
+    -- composed rows are ABSENT on a degraded load. That costs nothing reachable. With the library gone the
     -- panel is never registered (settings/Panel.lua's registerPanel) and
     -- `/cm list|get|set` answer "unavailable" (they are LibKa0s-Slash-1.0's), so
     -- there is no surface left that could have read them. tests/test_settingsui.lua

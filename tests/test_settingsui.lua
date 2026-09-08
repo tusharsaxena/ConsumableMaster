@@ -193,11 +193,20 @@ test("Settings UI: the library's user-visible strings resolve to prose, not to t
         -- The media placeholder first, and it is the sharper of the two: the
         -- string is both the label shown in the dropdown AND the value stored
         -- in SavedVariables, so a key leaking here is written to disk.
-        local values = H.LSMValues("kcm_no_such_media_type")
-        t.eq(#values, 1, "an unregistered media type still offers exactly one option")
-        t.falsy(values[1].text:match("^[A-Z][A-Z0-9_]+$"),
+        -- Read off the library's deferred hash reader directly. This used to go
+        -- through the addon's own flattening wrapper, which M4-C1 retired once
+        -- its last caller went; going straight at `Helpers.LSMValues` -- the
+        -- library's, through __index -- is what this case wanted anyway, since
+        -- the string under test is lib.STRINGS.LSM_NONE and a host wrapper
+        -- between the assertion and the string could only hide a leak. The hash
+        -- is self-keyed, so the key IS the label shown and stored.
+        local values = H.LSMValues("kcm_no_such_media_type")()
+        local keys = {}
+        for k in pairs(values) do keys[#keys + 1] = k end
+        t.eq(#keys, 1, "an unregistered media type still offers exactly one option")
+        t.falsy(keys[1]:match("^[A-Z][A-Z0-9_]+$"),
             "the empty-media placeholder resolved to prose, not to its own key: "
-            .. values[1].text)
+            .. keys[1])
 
         -- The chat half: the per-page render failure, which reaches the user
         -- through KCM.Say. Read off the emitted line rather than off
@@ -423,10 +432,17 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
         local UI  = H.instance
         t.truthy(UI, "the instance is published")
 
-        -- The three the addon deliberately wraps. Each stays an OWN key that
+        -- The two the addon deliberately wraps. Each stays an OWN key that
         -- SHADOWS the library's same-named member — which is the only reason
         -- each can call the instance's version without recursing into itself.
-        local WRAPPED = { CreatePanel = true, Section = true, LSMValues = true }
+        -- LSMValues was a third until M4-C1: its wrapper flattened the library's
+        -- deferred hash into an ordered array for one caller, settings/MacroBar
+        -- .lua's issue-#15 workaround, and when M3-04 deleted that the wrapper
+        -- had nothing left to adapt for. Dropping it from this list is not a
+        -- weakened assertion — the loop below now asserts the OPPOSITE for that
+        -- name, that `Helpers.LSMValues` IS the instance's own function rather
+        -- than a lookalike, which is the stronger of the two claims.
+        local WRAPPED = { CreatePanel = true, Section = true }
 
         local walked = 0
         for name, member in pairs(UI) do

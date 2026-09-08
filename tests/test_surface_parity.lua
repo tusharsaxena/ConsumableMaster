@@ -155,11 +155,21 @@ end)
 --     grep -rhno '\bH\.[A-Za-z_]*'    settings/                | sort -u
 -- The second is the one that grew with this adoption -- the composers, the row
 -- engine and the strip are all reached as `H.` from a page file.
+--
+-- LSMValues came OFF this list at M4-C1, and how it left matters, because the
+-- grep as written would have kept it: the grep matches an ASSIGNMENT as readily
+-- as a call, and the only hit it had left was settings/Panel.lua defining the
+-- host wrapper. Delete the wrapper -- which M4-C1 did, its last real caller
+-- having gone with M3-04's issue-#15 cleanup -- and the grep falls silent. That
+-- is the right answer here rather than an omission: the name still resolves
+-- through __index to the library's, but nothing on this side of the seam calls
+-- it, and a degraded install has no instance to resolve to, so listing it would
+-- demand a stub for a member no page reads.
 local OPTIONS_SEAM = {
     "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BorderGroup",
     "BuildAboutContent", "Button", "ButtonPair", "CLASS_COLOR_NOTE", "ColorPair",
     "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
-    "FontGroup", "Get", "Grid", "LSMValues", "Label", "MasterControls",
+    "FontGroup", "Get", "Grid", "Label", "MasterControls",
     "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
     "RenderField", "RenderRows", "ResetScroll", "Resolve", "SECTION_HEADING_H",
     "SESSION_PATHS", "Section", "Set", "SetAndRefresh", "SetRenderer", "TabStrip",

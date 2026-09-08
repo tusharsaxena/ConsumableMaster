@@ -1178,9 +1178,20 @@ end)
 
 test("macrobar schema: LSMValues never hands back an empty list", function(t)
     local KCM = h.loader.loadFullAddon()
-    local out = KCM.Settings.Helpers.LSMValues("nosuchmediatype")
-    t.eq(#out, 1, "one placeholder row")
-    t.eq(out[1].value, "None", "placeholder is None")
+    -- Same guarantee, different owner. `Helpers.LSMValues` was the addon's own
+    -- flattening wrapper until M4-C1 retired it; it resolves through
+    -- settings/OptionsSetup.lua's __index to the LIBRARY's now, which answers the
+    -- DEFERRED closure over a self-keyed hash rather than an ordered array --
+    -- hence the second call and the key walk. What is asserted is deliberately
+    -- unchanged: a media type with nothing registered must still offer exactly
+    -- one option, because an empty list leaves the dropdown unopenable AND makes
+    -- ValidateSchemaValue reject the value already stored.
+    local read = KCM.Settings.Helpers.LSMValues("nosuchmediatype")
+    t.eq(type(read), "function", "the reader is deferred, not a load-time snapshot")
+    local keys = {}
+    for k in pairs(read()) do keys[#keys + 1] = k end
+    t.eq(#keys, 1, "one placeholder row")
+    t.eq(keys[1], "None", "placeholder is None")
 end)
 
 -- ---------------------------------------------------------------------------
