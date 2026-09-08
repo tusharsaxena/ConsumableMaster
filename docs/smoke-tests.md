@@ -622,6 +622,7 @@ Rename it back and `/reload`.
 | Flyout close paths (secure `_onleave`, click wrap, idle timer) | §11e in full, in and out of combat |
 | `Selector.ListAvailable` (the flyout's candidate source) | §11b + §11c |
 | `core/MacroDisplay.lua` (shared by the bar + the panel drag icon) | §11a step 2 + §9 step 1 (drag icon still shows the right icon/tooltip) |
+| Lint configuration (`.luacheckrc`) or a headless-only gate (`tests/test_lintconfig.lua`) | nothing — neither ships to the client, and `luacheck .` at 0/0 plus `lua tests/run.lua` green is the whole verification. `M4c-03` narrowed the suppressions and added the gate and touched no shipped behavior: its one edit under `core/` is a comment and a `-- luacheck: ignore 542` directive on an unchanged line |
 | Doc-only changes | nothing — docs don't ship to the client |
 
 If you change something not on this list, walk the full suite. The targeted lookup is a shortcut, not a substitute for understanding the blast radius of your change.

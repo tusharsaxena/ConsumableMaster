@@ -177,6 +177,30 @@ and left nothing watching; four commits later `M4-18`, `M4-21` and `M4-22` had p
 files each had every reason to touch. A sweep is a measurement of one afternoon. Only a gate
 makes it a property of the repository.
 
+## The blanket-suppression gate
+
+`tests/test_lintconfig.lua` reads `.luacheckrc` as Lua — under a sandboxed environment that
+auto-creates a table on first index, exactly as luacheck's own config loader does, so what the
+gate inspects is the table luacheck obeys rather than a text scan a different spelling would slip
+past. It reddens on three things, which are one rule seen from three sides: a top-level `ignore`;
+a warning class switched off wholesale at the top level (`unused_args = false` and its eight
+relatives); and an `ignore` inside a `files[...]` stanza whose key names a directory rather than
+one `.lua` file and whose entry does not narrow to a variable in luacheck's `<code>/<name>` form.
+A fourth case walks every tracked `.lua` file for a bare `-- luacheck: ignore` with no code after
+it, which is the same blanket wearing a different hat.
+
+The gate exists because `.luacheckrc:25` carried `ignore = { "212", "542" }` for the whole of the
+2026-09-07 cycle. Both codes were honest — unused `self` on AceGUI widget methods, one deliberately
+empty CSV branch in `/cm stat secondary` — but the suppression reached all 99 files, so a genuinely
+dead argument written into `core/BagScanner.lua` would have landed green under a 0/0 badge. That is
+what `lint-§1` means by a suppression that reads as coverage and provides none.
+
+What replaced it is at the foot of `.luacheckrc`: eleven `files[...]` stanzas, each naming one file
+and one argument name (`212/self`, `212/ctx`, `212/catKey`, `212/%.%.%.`), plus a single
+`-- luacheck: ignore 542` on the line in `core/SlashCommands.lua` that needs it. The narrowing is
+real and not cosmetic — add a fifth parameter named anything else to a `modules/Ranker.lua` scorer
+and luacheck reports it, which the blanket did not.
+
 ## What the mock will and won't catch
 
 `tests/wow_mock.lua`'s `CreateFrame` **models template capability**: methods a real

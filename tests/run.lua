@@ -433,6 +433,7 @@ local SUITES = {
     "test_id",
     "test_libka0s",
     "test_layout_cap",
+    "test_lintconfig",
     "test_load",
     "test_locale",
     "test_macrobar",

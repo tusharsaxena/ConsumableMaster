@@ -521,8 +521,12 @@ local function statSecondary(rest)
     local list, seen, bad = {}, {}, {}
     for token in (args[1]):gmatch("[^,]+") do
         local up = trim(token):upper()
-        if up == "" then
-            -- skip empty CSV slots
+        if up == "" then -- luacheck: ignore 542
+            -- An empty CSV slot is skipped, and the branch is written out rather than folded into
+            -- the elseif chain so the three outcomes read in the order a user types them: blank,
+            -- unknown, new. luacheck's 542 is answered on the line above rather than in
+            -- .luacheckrc, because this is the only empty branch in the repository and a
+            -- file-wide suppression would hide the next one (lint-§1, `M4c-03`).
         elseif not SECONDARY_STATS[up] then
             bad[#bad + 1] = up
         elseif not seen[up] then

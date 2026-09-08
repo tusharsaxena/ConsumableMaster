@@ -273,6 +273,13 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap: no census row outlives the breach it records
 - layoutcap: every census row carries a disposition that can be followed
 
+### test_lintconfig.lua (4)
+
+- lintconfig: .luacheckrc sets no top-level ignore
+- lintconfig: .luacheckrc switches no warning class off wholesale
+- lintconfig: every files[...] ignore is narrowed to a file or a name
+- lintconfig: no source file carries a bare inline luacheck ignore
+
 ### test_load.lua (1)
 
 - full addon loads in TOC order and publishes core handles
@@ -924,6 +931,7 @@ badge and any count quoted in the docs must agree with it.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_layout_cap.lua | 3 |
+| test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 125 |
@@ -946,4 +954,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **780** |
+| **Total** | **784** |
