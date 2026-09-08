@@ -36,7 +36,11 @@ test("Perf: the panel half attached to the instance", function(t)
     -- PerfPanel.lua would leave a working harness with a dead /cm perf and no
     -- error anywhere. Seven steps is PerfPanel's own list; the fallback leaves
     -- STEPS empty.
-    t.eq(#KCM.Perf.STEPS, 7, "the panel contributed its seven steps")
+    -- SIX since LibKa0s v1.29.0. `dump` was a step of its own; it folded into `report`, which
+    -- writes the summary and then the JSON. The count is asserted rather than the membership
+    -- because the panel's rows ARE the workflow, and a step appearing or vanishing is a change to
+    -- what the addon tells a player to do.
+    t.eq(#KCM.Perf.STEPS, 6, "the panel contributed its six steps")
     t.truthy(KCM.Perf.ShowPanel, "and its show entry point")
 end)
 
@@ -55,7 +59,7 @@ test("Perf: every panel step's label resolves to prose, not to its own key", fun
     -- first on purpose: an empty STEPS would otherwise make an unguarded loop
     -- pass with nothing checked, which is the vacuous shape this case exists
     -- to avoid.
-    t.eq(#P.STEPS, 7, "all seven rows are present to check")
+    t.eq(#P.STEPS, 6, "all six rows are present to check")
     for _, step in ipairs(P.STEPS) do
         t.falsy(step.label:match("^[A-Z][A-Z0-9_]+$"),
             "step '" .. step.key .. "' resolved to prose, not to its own key: " .. step.label)
