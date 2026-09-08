@@ -277,6 +277,19 @@ badge and any count quoted in the docs must agree with it.
 
 - full addon loads in TOC order and publishes core handles
 
+### test_locale.lua (10)
+
+- Locale: KCM.L is published as a table
+- Locale: an unknown key falls back to itself verbatim
+- Locale: the enUS manifest carries only entries that differ from their key
+- Locale: the literal scan reads the settings surface it is meant to guard
+- Locale: every user-facing literal in the settings surface is routed or recorded
+- Locale: every recorded residue literal is still unrouted in the file that names it
+- Locale: every residue entry carries one of the declared classes
+- Locale: the join-key exemption only ever covers a string the same file routes
+- Locale: the two custom widgets route their labels through L
+- Locale: the colour escapes on the drag-icon labels stay outside the key
+
 ### test_macrobar.lua (125)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
@@ -903,6 +916,7 @@ badge and any count quoted in the docs must agree with it.
 | test_libka0s.lua | 8 |
 | test_layout_cap.lua | 3 |
 | test_load.lua | 1 |
+| test_locale.lua | 10 |
 | test_macrobar.lua | 125 |
 | test_macromanager.lua | 46 |
 | test_mediasetup.lua | 12 |
@@ -922,4 +936,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **764** |
+| **Total** | **774** |

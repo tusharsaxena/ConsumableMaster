@@ -27,6 +27,14 @@ local pairs = pairs
 local CreateFrame, UIParent = CreateFrame, UIParent
 local GameTooltip = GameTooltip
 
+-- The locale table, taken the way every settings page takes it. The TOC's
+-- `# Locales` block loads locales/enUS.lua ahead of the whole `# Modules` block,
+-- so KCM.L is the real table by the time this upvalue is bound. It answers an
+-- unset key with the key itself, so the two labels below render byte-for-byte
+-- what they rendered before; the colour escapes stay OUTSIDE the key, because a
+-- translator must never have to carry `|c…|r` through a translation.
+local L = KCM.L
+
 local ICON_SIZE      = 36
 local ROW_HEIGHT     = 40
 local LABEL_GAP      = 8
@@ -71,10 +79,10 @@ local methods = {
         local idx = macroIndex(self.macroName)
         self.icon:SetTexture(macroIcon(self.macroName))
         if idx == 0 then
-            self.label:SetText("|cff999999Macro not created yet|r")
+            self.label:SetText("|cff999999" .. L["Macro not created yet"] .. "|r")
             self.frame:Disable()
         else
-            self.label:SetText("|cffffd100Drag to action bar|r")
+            self.label:SetText("|cffffd100" .. L["Drag to action bar"] .. "|r")
             self.frame:Enable()
         end
     end,

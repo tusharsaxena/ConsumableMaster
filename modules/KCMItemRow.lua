@@ -25,6 +25,13 @@ local pairs = pairs
 local CreateFrame, UIParent = CreateFrame, UIParent
 local GameTooltip = GameTooltip
 
+-- The locale table, taken the way every settings page takes it. The TOC's
+-- `# Locales` block loads locales/enUS.lua ahead of the whole `# Modules` block,
+-- so KCM.L is the real table by the time this upvalue is bound, and it answers an
+-- unset key with the key itself — so every label below renders byte-for-byte what
+-- it rendered before.
+local L = KCM.L
+
 local OWNED_TEX     = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local NOT_OWNED_TEX = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 local PICK_TEX      = "Interface\\COMMON\\FavoritesIcon"
@@ -166,13 +173,22 @@ end
 -- The MH / OH / MH+OH tag. ASCII rather than a middle-dot glyph: WoW's default font (Friz
 -- Quadrata TT) has narrow Unicode coverage and renders unsupported glyphs as tofu dots (see
 -- feedback notes on WoW glyph rendering). ASCII is guaranteed to render.
+--
+-- That rationale governs the CHARACTERS, not the routing, which is why the three tags go
+-- through L anyway. They abbreviate "main hand" and "off hand" — words a German or French
+-- client abbreviates differently — so they are translatable text, and each combination is
+-- ONE key rather than a concatenation, so a translator can reorder the pair as well as
+-- rename it. What the ASCII argument does buy is a constraint on the translation rather
+-- than on the seam, and locales/enUS.lua carries it as a note: a replacement must stay
+-- inside the font's coverage or it draws tofu. Leaving the tags unrouted would not have
+-- enforced that constraint — it would only have hidden the choice.
 local function refreshHandTag(self)
     if self.pickMH and self.pickOH then
-        self.handTag:SetText("MH+OH")
+        self.handTag:SetText(L["MH+OH"])
     elseif self.pickMH then
-        self.handTag:SetText("MH")
+        self.handTag:SetText(L["MH"])
     elseif self.pickOH then
-        self.handTag:SetText("OH")
+        self.handTag:SetText(L["OH"])
     else
         self.handTag:Hide()
         return
@@ -225,7 +241,7 @@ local function refreshLabelText(self, spellID)
         -- than the generic "[Loading]" placeholder.
         self.label:SetText(self.fallbackName)
     else
-        self.label:SetText("[Loading]")
+        self.label:SetText(L["[Loading]"])
     end
 end
 

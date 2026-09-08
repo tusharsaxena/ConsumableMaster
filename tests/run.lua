@@ -434,6 +434,7 @@ local SUITES = {
     "test_libka0s",
     "test_layout_cap",
     "test_load",
+    "test_locale",
     "test_macrobar",
     "test_macromanager",
     "test_mediasetup",

@@ -427,5 +427,11 @@ not gaps:
 - **Action buttons** use `H.ButtonPair` / `H.Button`, and a destructive one is confirm-gated through a
   `StaticPopup` — *Reset all settings* raises `KCM_RESET_ALL` and *Reset all priorities* raises
   `KCM_RESET_PRIORITIES`, rather than either acting on click.
-- Every user-visible string routes through `L[…]` (`localization-§1`). The composers' labels are the
-  library's own English literals, which is what makes them identical across the collection.
+- User-visible strings route through `L[…]` (`localization-§1`), and `tests/test_locale.lua` is what
+  holds that: it lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any
+  that is neither a subscript of `L` nor recorded, with a class, in its residue register. It is a gate
+  on the surface GROWING a bare literal — the register is a complete inventory of the seventy this page
+  and the settings CLI already carry, most of them chat diagnostics, degraded-install tails and the
+  `/cm` verb list. Read that register before assuming a string here is translatable. The composers'
+  labels are the library's own English literals, which is what makes them identical across the
+  collection.

@@ -18,3 +18,25 @@ KCM.L = L
 
 -- enUS entries are identity by default (the metatable handles them). Only add
 -- rows here when a display string must differ from its lookup key.
+
+-- ---------------------------------------------------------------------------
+-- Notes for whoever writes the first non-English locale
+-- ---------------------------------------------------------------------------
+--
+-- FONT COVERAGE BINDS THE TRANSLATION, NOT THE KEY. The priority row's hand tag
+-- (`L["MH"]`, `L["OH"]`, `L["MH+OH"]` in modules/KCMItemRow.lua) is deliberately
+-- ASCII: WoW's default face, Friz Quadrata TT, has narrow Unicode coverage and
+-- draws an unsupported glyph as a tofu box. The three keys are translatable —
+-- "main hand" and "off hand" abbreviate differently in other languages, and each
+-- combination is one key so the pair can be reordered as well as renamed — but a
+-- replacement has to stay inside the shipped face's coverage. That is a
+-- constraint on the string a translator writes; it was never a reason to keep
+-- the tag out of the seam.
+--
+-- WHAT IS NOT ROUTED, AND WHERE TO LOOK. tests/test_locale.lua gates the SETTINGS
+-- surface — settings/ and the KCM* widgets — and lists, with a reason for each,
+-- the strings there that stay in English. Outside that surface the `/cm` command
+-- output (core/SlashCommands.lua, core/SlashDump.lua) and the seeded category
+-- display names (defaults/Categories.lua) are still English literals; that is a
+-- known gap rather than a decision, and it is recorded in that file's header and
+-- in docs/settings-panel.md.

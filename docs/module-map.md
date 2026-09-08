@@ -634,7 +634,7 @@ Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)
 
 | File | Responsibility |
 |------|----------------|
-| `locales/enUS.lua` | Publishes `KCM.L`, a key-returning metatable. User-facing strings (panel labels, slash descriptions, popup text) go through `L[...]`. English is the only shipped locale — this is a shell, not localization plumbing. |
+| `locales/enUS.lua` | Publishes `KCM.L`, a key-returning metatable, and carries the notes a first translator needs. The **settings surface** — `settings/` and the `modules/KCM*` widgets — routes its user-facing strings through `L[...]`, and `tests/test_locale.lua` gates that: a bare prose literal added there is red until it is wrapped or given a class in that file's residue register. Outside it, `/cm` command output (`core/SlashCommands.lua`, `core/SlashDump.lua`) and the seeded category display names (`defaults/Categories.lua`) are still bare English — a known gap, not a claim. English is the only shipped locale; this is a shell, not localization plumbing. |
 
 ### Shared infrastructure
 
