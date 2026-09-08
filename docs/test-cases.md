@@ -867,6 +867,10 @@ badge and any count quoted in the docs must agree with it.
 - Widgets: no two widgets claim the same type name
 - Widgets: every widget name used by the settings pages is registered
 
+### test_eol.lua (1)
+
+- eol: every tracked file carries the terminator .gitattributes declares for it
+
 ## Totals
 
 | Suite | Cases |
@@ -906,4 +910,5 @@ badge and any count quoted in the docs must agree with it.
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
-| **Total** | **756** |
+| test_eol.lua | 1 |
+| **Total** | **757** |

@@ -513,6 +513,12 @@ The swap was designed to be pixel-identical, so **the pass is looking for "nothi
    3. `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → **3**. A 2 here means the payload on disk is not the one this commit vendored, and step 1 proved nothing.
    4. `/cm set macroBar.barBorderStyle "Not A Border"` → **rejected**, with the allowed values printed. `/cm set macroBar.barBorderStyle "Blizzard Tooltip"` → accepted, and the panel tracks it. This is the CLI half, and it is the half that fails *open*: the composed row hands the validator a self-keyed map where every other row hands it an ordered array, and a validator that does not normalize the map simply stops rejecting anything.
 
+18. **Smoke, session 3 — the tab strip survives being pooled and re-dressed.** Not yet run: no client was available when `M4-01` re-vendored LibKa0s v1.27.0, and nothing below may be reported as passing until someone has actually looked at it.
+
+   `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer builds a button and a content panel per click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses them, re-setting `OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a second selection pass, and the case that would pin band geometry as invariant under selection cannot be written yet — the shared mock answers `GetHeight` with 0 for every frame and that flips at kit 16, not here. **So a stale label, a mis-anchored button or a band that changes height on a re-dressed tab is invisible to every automated check in this repo.**
+
+   This addon draws four strips, so walk all four: `/cm config` → **General**, **Macro Bar**, **Stat Priority**, and any **Category** page. On each, cycle every tab three times, ending back on the first. Watch three things on each pass: the **label** is that tab's own, the **selected** tab is the one you pressed, and the strip's **band height** does not move as you go through it. A label carried over from the previously-dressed tab, a highlight on the wrong button, a body drawn under the wrong tab, or a strip whose height moves between passes is the pool handing back a frame it did not finish dressing.
+
 ### Perf harness (`/cm perf`)
 
 Only meaningful in game, and the SavedVariables half is only verifiable end to end here.
@@ -523,6 +529,7 @@ Only meaningful in game, and the SavedVariables half is only verifiable end to e
 4. `finish`. The addon comes back — bar returns, macros resume. Then `report` for the figures and `dump` for one JSON line in the debug console.
 5. `/reload`, then check `ConsumableMasterPerfDB` has one record under `runs` with a non-zero `interface`. **This is the only check that the TOC's `## SavedVariables` line is right** — get it wrong and the harness still announces the capture as saved while the data evaporates.
 6. Recovery path: start a run, `measure b`, then `cancel`. The addon must come back exactly as `finish` does.
+7. **Smoke, session 3 — the perf strings read US.** Not yet run. `LibKa0s-Perf-1.0` minor 8 arrived with `M4-01`'s v1.27.0 re-vendor and changes five player-facing strings: two `CANCELLED` and three `unlabelled` become `CANCELED` and `unlabeled`. No single capture shows all five, so run two. `/cm perf start mylabel` then `finish` — the started line and the report header both name the label. Then `/cm perf start` with no label and `cancel` — the start line, the report header and the cancel line must read **`unlabeled`** and **`perf run CANCELED`**. A double-L in either is a copy of the string that did not come from the vendored payload.
 
 ### Degraded install (optional, ~2 minutes)
 
