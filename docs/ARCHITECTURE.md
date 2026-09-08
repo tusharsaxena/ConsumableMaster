@@ -25,6 +25,54 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 
 `ConsumableMaster.toc` is the load-order source of truth (dependency order, not alphabetical).
 
+### Files over the 1500-line cap
+
+`layout-§1` caps every **authored** `.lua` this repository tracks at 1500 lines — `tests/` included,
+with vendored code (`libs/`, `tests/_kit/`) the only carve-out that reaches anything here; nothing in
+this repo is generated non-shipping data, so the second carve-out has no instance. It gives a file
+over the cap three terminal states: peeled, an open issue naming the seam a peel would follow, or a
+ratified row in [Documented deviations](#documented-deviations) carrying a re-check trigger. What it
+does not allow is a breach nothing anywhere remarks on — "the count sitting in a bundle manifest that
+no document reads". This table is the remark, and it is why an audit **MUST NOT** re-file `layout-§1`
+against any file in it.
+
+Two files, measured 2026-09-08 with
+
+```
+git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
+```
+
+| File | Lines (2026-09-08) | Disposition |
+|---|---|---|
+| `tests/test_macrobar.lua` | 1904 | Issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) — two cuts: the four pure-geometry sections out to `test_macrobar_layout.lua`, the chrome appliers and the flyout's bind/apply pass out to `test_macrobar_button.lua` |
+| `tests/test_settingsui.lua` | 1528 | Issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) — one cut at `:833`, the three `options-ui` conformance blocks out to `test_settingsui_optionsui.lua` |
+
+**Both breaches are test suites, and both take an issue rather than a deviation row.** That is a real
+difference from MultiMeters, which gave seven of its fifteen breaches a register row instead, and the
+reason is a fact about this repository rather than a difference of opinion: **no source file here is
+over the cap**. The largest are `settings/Category.lua` at 1127 and `settings/Panel.lua` at 1089, both
+on notice and neither in breach. MultiMeters' register rows exist because a suite that mirrors an
+over-cap module has no seam of its own — its partition is whatever partition the module ends up peeled
+on, so peeling the suite first commits to a partition the module has not chosen. Neither suite here is
+waiting on anything. `tests/test_macrobar.lua` mirrors five files that are each between 228 and 763
+lines and none of which will be peeled; `tests/test_settingsui.lua` splits on a seam the standard's own
+section numbering draws. Each has a seam it can be cut on today, so each gets the terminal state that
+says so.
+
+**The line counts are dated because they drift, and nothing asserts them.** What
+`tests/test_layout_cap.lua` asserts is the *membership* of this table, in both directions: a file that
+crosses 1500 and is not listed here turns the suite red, and so does a row for a file that has fallen
+back under the cap or been deleted. A figure in this column is a measurement, not a claim about today.
+
+**Neither file is peeled this cycle.** The 2026-09-07 remediation plan rules out splitting any file
+(`03_SPEC.md` § C22 non-goals) — the ruling on what the cap binds landed in the same cycle, and peeling
+before the ruling would have been work done against a rule that was still moving. The deliverable was
+the disposition, and the disposition is this table.
+
+**The 1000–1500 band is on notice, not in breach**: `settings/Category.lua` (1127) and
+`settings/Panel.lua` (1089) are the only two files in it. They are named here so a later reader can
+tell the band was looked at rather than missed; neither needs a disposition until it crosses.
+
 ## Module Map
 
 ```

@@ -134,6 +134,24 @@ A skip is for a case that has been written and watched failing against a defect 
 for which is a separate change; it is never a way to park a case whose assertion is
 merely inconvenient, and softening the assertion instead is worse than either.
 
+## The 1500-line cap gate
+
+`tests/test_layout_cap.lua` compares two things: every authored `.lua` git tracks, and the
+census under *Files over the 1500-line cap* in [ARCHITECTURE.md](./ARCHITECTURE.md). It reads
+them in both directions, so a file that crosses the cap unremarked and a row left behind for a
+file that has stopped breaching are each a red.
+
+`layout-§1` binds **every authored file the repository tracks**, `tests/` included; vendored
+code (`libs/`, `tests/_kit/`) is the only carve-out that reaches this repo. A red is cleared by
+giving the file one of the three terminal states the rule allows — peel it, open an issue naming
+the seam a peel would follow, or ratify a deviation row with a re-check trigger — and then adding
+its row to the census. It is not cleared by raising `CAP`, and it must not be cleared by dropping
+the suite from `SUITES`: `Kit.assertSuiteInventory` aborts the run on an undeclared suite file,
+which is the point of having one.
+
+The line figures in the census are dated measurements and nothing asserts them, so an ordinary
+edit to a large file does not redden this gate. Membership is the invariant, not the numbers.
+
 ## What the mock will and won't catch
 
 `tests/wow_mock.lua`'s `CreateFrame` **models template capability**: methods a real

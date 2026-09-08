@@ -152,7 +152,7 @@ they are the two to look at first if any of them ever needs splitting.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| > 1500 (over cap) | `tests/test_macrobar.lua` | 1688 | **Owed a fix or a tracked deviation ID with an owner — still unowned.** Not newly crossed: it crossed at [`20260807-022923`](20260807-022923/) and three bundles have now recorded it. 1314 NLOC across 178 functions at avg CCN 1.3, so it is case count and not tangle — but `layout-§1` treats over-cap as a defect rather than a state a disposition can hold. A check of the repo's issues, open and closed, finds nothing tracking it. |
+| > 1500 (over cap) | `tests/test_macrobar.lua` | 1688 | **Owned: issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32), naming the two cuts a peel would follow.** It crossed at [`20260807-022923`](20260807-022923/) and four bundles have now recorded it. 1314 NLOC across 178 functions at avg CCN 1.3, so it is case count and not tangle. The claim above this cell used to be that `layout-§1` treats over-cap as a defect rather than a state a disposition can hold; that reading is no longer right — the section was revised on 2026-09-08 to give a breach three terminal states, an open issue among them. The census that carries every breach in this repo, not just the one this table happens to have measured, is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. |
 | 1000–1500 (on notice) | — | — | None. |
 
 `manifest.json` reads `bandFiles` 0 and `overCapFiles` 1 in each of the three `20260807-*` runs, so

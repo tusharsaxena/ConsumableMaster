@@ -265,6 +265,12 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
+### test_layout_cap.lua (3)
+
+- layoutcap: every authored file over 1500 lines is named in the ARCHITECTURE.md census
+- layoutcap: no census row outlives the breach it records
+- layoutcap: every census row carries a disposition that can be followed
+
 ### test_load.lua (1)
 
 - full addon loads in TOC order and publishes core handles
@@ -892,6 +898,7 @@ badge and any count quoted in the docs must agree with it.
 | test_events.lua | 20 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
+| test_layout_cap.lua | 3 |
 | test_load.lua | 1 |
 | test_macrobar.lua | 125 |
 | test_macromanager.lua | 46 |
@@ -912,4 +919,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 6 |
 | test_eol.lua | 1 |
-| **Total** | **758** |
+| **Total** | **761** |
