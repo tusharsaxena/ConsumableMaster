@@ -2,8 +2,8 @@
 
 The CM-only action bar. On and unlocked out of the box — see
 [Defaults & the v2 migration](#defaults--the-v2-migration) — with everything
-about it living in `db.profile.macroBar`. User-facing description is in
-[README.md](../README.md#settings-panel).
+about it living in `db.profile.macroBar`. User-facing description is in [README.md](../README.md#usage); the
+control-by-control page reference is [settings-panel.md](./settings-panel.md).
 
 ## Files
 

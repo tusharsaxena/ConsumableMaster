@@ -8,11 +8,11 @@
 
 ![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
 
-An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros always pointed at the best consumable in your bags — across thirteen categories, plus two combo macros that switch depending on whether you're in combat. Set up your food, flask, and potion macros once and never rebuild them again.
+An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
-Whenever you loot something better, change spec, reload, or drop out of combat, Consumable Master updates each macro to use your best current pick — the right item, or the right spell for class abilities like Recuperate. The macros are account-wide, so one set is shared by all your characters. They're matched by name rather than by slot, so you can move them around your macro list freely and they'll keep working alongside your own macros.
+Loot something better, change spec, reload, or drop out of combat, and each macro re-points at your current best pick — the right item, or the right spell where a class ability does the job (Recuperate, for one). The macros are account-wide, so one set covers every character you have. They are matched by name rather than by slot, which means you can shuffle them around your macro list and they will keep working next to macros of your own.
 
-> **English game clients only, for now.** To read how much a consumable heals or which stats it grants, the addon parses item tooltips in **English text**, so it isn't fully supported on non-English clients yet. (Item and weapon *type* detection already works on any client.) Full localization is planned for a later release.
+> **English game clients only, for now.** Reading how much a consumable heals, or which stats it grants, means parsing the item's tooltip in **English text**, so other clients aren't fully supported yet. (Item and weapon *type* detection already works anywhere.) Full localization is planned for a later release.
 
 | #  |Category                                                     |Macro         |Spec-aware? |
 | -- |------------------------------------------------------------ |------------- |----------- |
@@ -32,15 +32,13 @@ Whenever you loot something better, change spec, reload, or drop out of combat, 
 | 14 |All-in-one health (combat: HS → HP pot, out of combat: food) |<code>KCM_HP_AIO</code> |No          |
 | 15 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
-If a better pick comes up while you're in combat, the macro updates the moment you leave — WoW doesn't allow macro changes mid-fight.
+If a better pick turns up while you are in combat, the macro updates the moment you leave. WoW does not allow macro changes mid-fight.
 
 ## What's new in 1.5.0
 
-- **Weapon enchant macro (`KCM_WPN_ENCH`).** Keeps the best oil or sharpening stone on each weapon hand, matched to your weapon type and your spec.
-- **Augment rune macro (`KCM_AUG_RUNE`).** Points at your best primary-stat augment rune, preferring reusable ones so you don't burn charges.
-- **Vantus rune macro (`KCM_VANTUS`).** Keeps a macro on your raid Versatility rune.
-- **New on-screen debug console.** A movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`); the log now clears on each login.
-- **Updated for World of Warcraft: Midnight (12.0.7).**
+- Three new macros. `KCM_WPN_ENCH` keeps the best oil or sharpening stone on each weapon hand, matched to the weapon's type and to your spec. `KCM_AUG_RUNE` points at your best primary-stat augment rune, preferring reusable ones so you do not burn charges. `KCM_VANTUS` covers the raid Versatility rune.
+- An on-screen debug console: a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle. Whether anything gets captured is a separate switch, `/cm debug on/off`. The log clears on each login.
+- Updated for World of Warcraft: Midnight (12.0.7).
 
 ## Screenshots
 
@@ -74,166 +72,15 @@ If a better pick comes up while you're in combat, the macro updates the moment y
 
 ## Usage
 
-Install it with your addon manager (or drop the folder into `Interface/AddOns`) and log in. On login, Consumable Master scans your bags, finds your consumables, and writes all its macros. Drag any macro onto your action bars from the macro window, or from the draggable icon at the top of each category tab in the settings.
+Install it with your addon manager, or drop the folder into `Interface/AddOns`, and log in. The macros are written for you on the way in: Consumable Master reads your bags, scores what it finds, and fills all fifteen. Drag them onto your action bars from the macro window, or from the small draggable icon under the title on any category tab in the settings, which is nearer to hand while you're already in there.
 
-You also get a **macro bar** — a bar holding only Consumable Master's macros, so you don't have to spend action-bar space on them. Each button has a shaded strip across its top with a small arrow: hover it and a flyout opens with every item or spell in that category you can use right now, so you can reach past the macro's top pick without opening your bags. The bar starts unlocked so you can drag it where you want it; lock it from the Macro Bar settings page (or `/cm bar lock`) when you're happy, or switch it off entirely with `/cm bar off`.
+You don't have to give up bar space for any of this. Consumable Master ships a bar of its own that holds its macros and nothing else, and it arrives unlocked so you can put it where you want before locking it down with `/cm bar lock`. Every button on that bar wears a shaded strip along one edge with a small arrow on it. Hover the strip and a flyout opens listing what you can use in that category right now, best-ranked nearest the button, so the second-best flask is a hover away rather than a bag dive. Long categories are trimmed to whatever you set Maximum flyout entries to. If none of that appeals, `/cm bar off`.
 
-### Slash commands
+You can overrule the ranking anywhere it gets something wrong. Each category has a tab on the Macros page showing its candidates in order: a green check on the ones you own, a yellow star on the one the macro is currently using. Grab a row by its drag handle and drop it higher to pin it above the score, or press × to block it so a later bag scan won't put it back. Every row carries a blue info button that explains why the item landed where it did, and the first time a ranking surprises you that button is the fastest way to find out you had pinned something two patches ago. Anything the addon has never heard of goes in through the add-by-ID box at the top of the tab: pick Item or Spell, then type the ID or shift-click the thing straight into the box.
 
-`/cm` is the short command; `/consumablemaster` does the same thing. Everything the addon prints to chat is tagged with a cyan `[CM]` so it's easy to spot.
+Four categories move with your spec. Flask, Combat Potion, Stat Food and Weapon Enchant all read the stat order you set on the Stat Priority page, where Crit, Haste, Mastery and Versatility are one list you drag into the order you want; click a stat's green tick and it drops to the bottom block and counts as nothing at all. The spec you're editing is pinned in that page's banner, and it governs the four spec-aware tabs as well, which is worth remembering when a flask macro looks wrong right after a spec swap. Day to day, though, the macros keep themselves current. `/cm resync` rechecks the picks if you're impatient, and `/cm rewritemacros` redraws every icon for the bar addons that hang on to a stale one.
 
-| Command | What it does |
-|---------|--------------|
-| `/cm` | Show the list of commands. |
-| `/cm config` | Open the settings panel. |
-| `/cm resync` | Rescan your bags and update any macro whose best pick changed. |
-| `/cm rewritemacros` | Rewrite every macro and its icon. Use this if an action-bar icon looks stale. |
-| `/cm reset path` | Put one setting back to its default (e.g. `/cm reset macroBar.orientation`). |
-| `/cm resetall` | Reset every priority list and stat choice back to defaults (asks first). |
-| `/cm debug` | Open or close the debug window; add `on` or `off` to turn logging on or off. |
-| `/cm bar` | Toggle the macro bar; `on`, `off`, `lock`, `unlock`, `reset` do those directly. |
-| `/cm version` | Show the addon version. |
-| `/cm perf` | Measure what the addon costs you in a fight. Opens a small step-by-step panel. |
-| `/cm list` | List every setting and its current value. |
-| `/cm get path` | Show one setting's value (e.g. `/cm get enabled`). |
-| `/cm set path value` | Change a setting from chat. |
-| `/cm priority cat list\|add\|remove\|up\|down\|reset [id]` | Edit a category's priority list from chat. `id` is an item ID like `12345` or a spell like `s:5512`. |
-| `/cm stat list\|primary\|secondary\|reset [specKey]` | Edit a spec's stat priority from chat. Defaults to your current spec. |
-| `/cm aio key list\|toggle\|up\|down\|reset` | Edit the combo macros (`HP_AIO` / `MP_AIO`). |
-| `/cm dump target` | Show internal details for troubleshooting (`categories`, `bags`, `item id`, `pick catKey`, …). |
-
-### Settings panel
-
-Settings live at **Escape → Options → AddOns → Consumable Master** (or type `/cm config`).
-
-Four pages, in sidebar order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. Every macro
-category used to be its own sidebar entry; they are tabs on the one **Macros** page now.
-
-**General**
-
-*Master controls*
-
-The same eight controls, under the same names, in every Ka0s addon.
-
-*   **Enable Consumable Master** — the master on/off switch. When it's off, your macros stop updating and keep whatever they last had. Turn it back on and they refresh right away. Remembered between sessions.
-*   **General visibility** — when the addon's display is shown at all: *Always*, *Only in combat*, *Only out of combat*, or *Never*. This is addon-wide; the Macro Bar page has its own **Combat visibility** for that one bar, and the bar shows only where both of them say show.
-*   **Master scale** / **Master alpha** — size and opacity for the whole addon's display. Also addon-wide: they multiply the bar's own **Bar scale** and **Bar opacity** rather than replacing them.
-*   **Lock frame** — unlock to drag the bar anywhere; its position is saved. While unlocked the bar tints gold and a **Consumable Master** handle appears above it — drag that (a full bar has no bare space to grab, since every pixel inside is a button). The help icon on the handle lists what you can drag where. Lock it again to hide the handle and click through the gaps. Also `/cm bar unlock` / `/cm bar lock`.
-*   **Debug console** — show or hide the on-screen debug window (same as a bare `/cm debug`). This does *not* turn logging on or off — use the window's **Debug: ON/OFF** toggle or `/cm debug on/off` for that. The window is hidden again each login.
-*   **Reset position** — move the bar back to the center of the screen.
-*   **Reset all settings** — put this profile back the way it shipped. Everything you have configured or added in it is discarded; your other profiles are not affected. Asks first.
-
-*Maintenance* — the three buttons under the controls above, on the same tab
-
-*   **Force resync** — rescan your bags and recheck every category's best pick. Macros only change if the pick actually changed. Same as `/cm resync`. Not available in combat.
-*   **Force rewrite macros** — rewrite every macro and its icon, even ones that didn't change. Use this when an action-bar icon looks stale (some bar addons hold the old icon across an upgrade). Same as `/cm rewritemacros`. Not available in combat. A `/reload` afterwards makes sure your bars redraw.
-*   **Reset all priorities** — wipe every added, blocked, and pinned item and every stat choice, and nothing else: your bar's appearance and the master controls are left alone. Asks first. (For the whole lot, use **Reset all settings** above.)
-
-**Stat Priority**
-
-One page that controls the four spec-aware categories (Stat Food, Combat Potion, Flask, Weapon Enchant).
-
-*   **Viewing spec** — pinned in the banner at the top of the page, so it stays visible while you scroll. Pick which spec you're editing; this also sets which spec is shown on the four spec-aware category tabs on the **Macros** page. Specs show their class icon and name (e.g. "Shaman — Enhancement").
-*   **Primary stat** — your spec's main stat. Consumables with your primary stat always beat secondary-stat ones.
-*   **Secondary stats** — Crit, Haste, Mastery and Versatility as one list you **drag** into the order you want. The one at the top counts the most. Each row carries a green tick: **click it** and the stat drops to the grayed block at the bottom and counts as zero, leaving a red cross behind. Click that to bring it back — it rejoins at the end of the order, since a stat that isn't ranked has no place to remember.
-*   **Reset stat priority** — drop your changes for the viewed spec and go back to its default.
-
-**Macro Bar**
-
-A bar that holds only Consumable Master's macros — nothing else can be dropped on it. It's **on and unlocked the first time you log in**, so you can drag it straight to where you want it and then lock it; turn it off entirely with **Enable macro bar** or `/cm bar off`. Drag a button off it onto a normal action bar to place the macro there as well, or drag one button onto another to swap their places.
-
-*General*
-
-*   **Enable macro bar** — show the bar. On by default; turning it off hides the bar and stops all its work, and nothing is rebuilt until you turn it back on.
-*   **Reset slot order** — undo any drag-and-drop rearranging of the buttons.
-
-Locking the bar and putting it back in the middle of the screen are **General → Master controls** now, with the rest of the addon-wide controls.
-
-*Layout*
-
-*   **Buttons per row** — how many buttons fit along the axis the bar fills first. 15 puts every macro on one line; 7 gives you two rows, and so on.
-*   **Button size**, **Button spacing**, **Bar padding**, **Bar scale** — the geometry, in pixels (padding is the inset between the outer buttons and the bar's edge).
-*   **Orientation** — *Horizontal* fills a row then wraps to the next row; *Vertical* fills a column then wraps to the next column.
-*   **Horizontal growth** / **Vertical growth** — whether the first button sits at the left or right edge, and whether the first row sits at the top or bottom.
-
-*Bar appearance*
-
-*   **Bar opacity** — how opaque the bar is when it isn't faded out. Multiplied by **Master alpha** on the General page.
-*   **Bar background** and its color — the backdrop drawn behind the buttons.
-*   **Show border**, **Border style**, **Border thickness** and **Border color** — the frame around the bar. The style list is every border texture LibSharedMedia knows about, so anything another addon registers shows up here too.
-
-Every color here has a **Use class color** checkbox beside it: tick it and that surface takes your class's color instead of the swatch. The swatch's **opacity** still applies either way, which is why it never grays out.
-
-*Button appearance*
-
-*   **Button background** and its color — the fill behind each icon, mostly visible while an icon is still loading.
-*   **Show border**, **Border style**, **Border thickness** and **Border color** — same LibSharedMedia list as the bar, so the two can match. Turn the border off for a flat, borderless grid of icons.
-*   **Border offset** — pushes the border outward, away from the icon. Raise this if a thick border is covering the artwork.
-*   **Icon zoom** — crops a percentage off each side of the icon. A little zoom trims the dark edge baked into most item icons so it stops reading as a second border.
-*   **Show stack count** — how many of the picked item you're carrying, in the corner of each button.
-*   **Show tooltips** — show the picked item's or spell's tooltip on hover.
-*   **Show GCD swipe** — paint the cooldown swipe during the global cooldown. Off by default: the 1.5s flash after every ability adds noise without telling you anything. With it off, a real cooldown's swipe also fades over its final second or so rather than counting all the way down, and the sparkle it plays on finishing is suppressed too.
-
-Cooldowns use your normal game settings (the standard sweep, plus countdown numbers if you have those turned on).
-
-*Labels*
-
-*   **Show button labels** — write each button's category name on it. On by default.
-*   **Label text** — *Always short* (the default) uses each category's short name, which keeps a full 15-slot bar readable. *Auto* uses the full category name and drops to the short form (Healing Potion → HP Pot) only when the full one won't fit, and *Always full* never shortens.
-*   **Label position** and **Label placement** — any of nine spots on the button, either *inside* (over the icon) or *outside* (just beyond that edge). The default is just outside the bottom edge, which keeps the label clear of both the icon and the flyout band on top. Outside labels can overlap a neighbor when spacing is tight.
-*   **Label offset X / Y** — nudge the label from its anchor.
-*   **Font**, **Font size (% of button)**, **Font color**, **Use class color**, **Font flags** and **Font shadow** — the label's typeface. The size is a percentage of the button, so labels stay proportional when you resize the bar. **Font flags** is the outline (*None*, *Outline*, *Thick outline*, *Monochrome*, *Monochrome outline*) — it replaced the old *Outline label text* checkbox, and an existing setting is carried over automatically.
-
-*Flyout*
-
-Each button has a shaded strip across its top edge with a small arrow on it. Hover anywhere on that strip and a flyout opens listing everything in that category you can actually use — every item in your bags and every spell you know, **including the one the macro is currently pointing at** — with the best-ranked one nearest the button. Click any of them to use it. Items you don't have and spells you haven't learned never appear; something on cooldown does appear, with its cooldown showing.
-
-The flyout only exists on this bar. A Consumable Master macro dragged onto a normal action bar stays an ordinary macro.
-
-It closes when you move the mouse off it, when you click the macro, when you click one of its entries, or after a few seconds of sitting untouched. In combat, only moving the mouse away closes it — WoW doesn't let addons hide this kind of frame mid-fight on their own, so the click and timer paths wait for the fight to end. Since clicking something means your mouse is about to move anyway, you'll rarely notice.
-
-*   **Enable flyout** — on by default.
-*   **Flyout side** — which edge the shaded band sits on, and the direction the flyout grows from there. Top by default.
-*   **Auto-close after** — how long the flyout stays open after your mouse leaves it. 1 second by default; moving back onto the band or the strip resets the clock, so it never closes while you're pointing at it. Set it to 0 to close the moment you move away. In combat it always closes as soon as you move away, whatever this is set to — WoW won't let addons hide this kind of frame on a timer mid-fight, and a flyout stuck open through a boss would be worse.
-*   **Reverse flyout order** — put the best-ranked item furthest from the button instead of nearest.
-*   **Maximum flyout entries** — how long a flyout can get. Categories with more available items show the top-ranked ones.
-*   **Shaded band thickness**, **Arrow size** and **Shaded band color** — the strip across the icon and the arrow on it. Thickness is a percentage of the icon, so it keeps its proportions if you resize the bar; a deeper band is an easier hover target (capped at half the button), and the button label automatically moves out of its way when the two share an edge. Arrow size is a percentage of the band, so over 100% it overflows onto the icon to stay readable on small buttons. Lower the band's opacity to let more of the artwork through.
-*   **Flyout background** and its color — a panel behind the flyout. Worth keeping on: without it, a flyout opening over a second row of bar buttons looks just like more bar. Its border matches the bar's own.
-*   **Flyout button size**, **Flyout spacing**, **Flyout padding**, **Gap from button** — sizing for the entries, the space between them, the inset from the panel's edge, and how far the first one stands off the macro button (raise the last one if a thick or offset button border overlaps the flyout). Hovering still works across that gap.
-
-Flyout entries follow every **Button appearance** setting above, so the strip always matches the bar.
-
-Two notes on how flyouts behave in a fight. Opening one, using it, and closing it by moving the mouse away all work normally — that part runs through Blizzard's secure code. But *which items are in it* is fixed when combat starts, because WoW won't let addons re-point a button mid-fight: use your last potion during a boss and its entry stays in the flyout until the fight ends (clicking it just does nothing, the same as a stale action bar). Cooldown swipes do keep ticking live.
-
-*Visibility*
-
-*   **Combat visibility** — *Always visible*, *Hide in combat*, or *Only in combat*. This one takes effect the instant combat starts or ends, mid-fight included.
-*   **Fade unless hovered** + **Faded opacity** — keep the bar faded until your mouse is over it. Faded buttons still work; only the opacity changes. Set the faded opacity to 0 to make it invisible until you hover it.
-
-*Buttons*
-
-A checkbox per macro. Uncheck the ones you don't want a slot for — the rest close up the gap.
-
-Because WoW won't let addons move or create bar buttons during a fight, changes you make in combat (enabling the bar, resizing it, rearranging it) apply the moment combat ends. The buttons themselves keep working throughout.
-
-**Macros**
-
-One tab per category, picked from the strip across the top of the page. The thirteen single
-macros each get a tab; spec-aware tabs show the viewed spec (set in the **Stat Priority** banner)
-at the top of the body.
-
-*   **Draggable macro icon** — the small icon under the title. Drag it onto a bar to place the macro.
-*   **Add item or spell by ID** — choose **Item** or **Spell**, then either type the ID or shift-click the item or spell straight into the box, and press Enter. A bad ID, or a link of the other kind, gives a chat error and keeps your text so you can fix it.
-*   **Priority list** — one row per candidate, in ranked order:
-    *   Icons show status: green check (you own it / know the spell), red (you don't), yellow star (currently used by the macro).
-    *   **Blue info button** — hover to see why an item scored where it did.
-    *   **Drag handle** — grab it and drag the row where you want it. A copy follows your cursor and a gold line shows where it will land. Dropping it there pins the item above the automatic ranking.
-    *   **×** — remove and block it, so it won't get auto-added again.
-*   **Reset category** — clear this category's added, blocked, and pinned items (for spec-aware tabs, just the viewed spec). Auto-found items stay.
-
-**AIO Health / AIO Mana**
-
-Two combo tabs (right after Healthstone). `KCM_HP_AIO` uses your Healthstone then Healing Potion in combat, and your Food pick out of combat. `KCM_MP_AIO` uses your Mana Potion in combat and your Drink out of combat. Each tab has an *In Combat* and an *Out of Combat* section; you can turn each sub-category on or off and reorder it within its section. Each row shows the current pick on the left and its controls on the right. The actual ranking is set on each category's own tab.
+Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which prints the full command list.
 
 ## How picking & ranking works
 
@@ -241,15 +88,15 @@ Each macro is built in four steps:
 
 1.  **Gather the candidates** — everything in the built-in default list, anything you added by hand, and anything found in your bags, minus anything you blocked with **×**.
 2.  **Score each candidate** — higher is better:
-    *   **Food / Drink** — how much it heals or restores, with a bonus for conjured items and percentage-based ones (so Midnight's %-based food beats older flat food).
-    *   **HP / MP potions** — how much they restore. An instant potion beats a heal-over-time one unless the heal-over-time total is more than 20% bigger, so a slightly larger slow heal won't win in an emergency.
+    *   **Food / Drink** — how much it heals or restores, with a bonus for conjured items and percentage-based ones, so Midnight's %-based food beats older flat food.
+    *   **HP / MP potions** — how much they restore. An instant potion beats a heal-over-time one unless the heal-over-time total is more than 20% bigger, so a slightly larger slow heal will not win an emergency.
     *   **Stat Food / Combat Potion / Flask** — how well it matches your spec's stat priority. Primary stat always beats secondary; among secondary stats, earlier choices count more.
-    *   **Weapon Enchant** — checks each equipped weapon separately. Attack Power oils/stones score highest for Strength/Agility specs and Spell Power ones score highest for Intellect specs, since that's each spec's real throughput stat; other oils still rank by your stat priority. Each enhancement is also tagged bladed (whetstone), blunt (weightstone), or any (oil) from its tooltip, and only ones that match your main-hand or off-hand weapon's type are considered for that hand. The macro applies the best matching enhancement to each hand independently — dual-wielding a sword and a mace can end up with a whetstone on one hand and a weightstone on the other — and drops a hand entirely if it's empty or has nothing valid to apply. Swapping weapons updates the macro right away, no reload needed.
-    *   **Augment Rune** — picks the augment rune granting the most primary stat. "Permanent" runes like Ethereal and Dreambound aren't a longer buff — they're just not used up — so they only win when they tie the best consumable on stat, never when a newer consumable rune grants more. Auto-discovers new runes from their tooltip, so future runes work without an update.
+    *   **Weapon Enchant** — each equipped weapon is checked on its own. Attack Power oils and stones score highest for Strength and Agility specs, Spell Power ones for Intellect specs, since that is each spec's real throughput stat; other oils rank by your stat priority. Every enhancement is also tagged from its tooltip as bladed (whetstone), blunt (weightstone) or any (oil), and only the ones matching that hand's weapon are considered for it. So dual-wielding a sword and a mace can end up with a whetstone on one hand and a weightstone on the other. A hand that is empty, or has nothing valid to apply, is dropped from the macro. Swap weapons and the macro follows immediately, no reload.
+    *   **Augment Rune** — the rune granting the most primary stat wins. "Permanent" runes like Ethereal and Dreambound are not a longer buff, only an unconsumed one, so they win ties and nothing else. New runes are discovered from their tooltip, which means a future one works without an addon update.
     *   **Healthstone** — a small preference for modern auto-leveling stones over old ones.
-    *   **Spell entries** — class abilities (like Recuperate as a Food entry) score above every item, so they sit at the top by default. You can pin items above them if you prefer.
+    *   **Spell entries** — class abilities (Recuperate as a Food entry, say) score above every item, so they sit at the top by default. Pin items above them if you prefer.
 3.  **Apply your pins** — any rows you dragged into place override the score.
-4.  **Pick the first one you have** — the first item you own or spell you know. If you have none, clicking the macro prints a friendly `[CM] no category` note.
+4.  **Pick the first one you have** — the first item you own or spell you know. If you have none of them, clicking the macro prints a friendly `[CM] no category` note.
 
 Hover the **blue info button** on any row to see exactly why it landed where it did.
 
@@ -257,39 +104,39 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 
 | Question | Answer |
 |----------|--------|
-| Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Your macros are never read, moved, or deleted. If you delete one of its macros by hand, it's recreated on the next update. |
-| Do the macros work across all my characters? | Yes. They're **account-wide**, so one set is shared by every character. Your priority lists and stat choices are shared account-wide too. |
-| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food, and Weapon Enchant depend on your stat priority, which changes with your spec, so they're spec-aware (Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust, and Battle Rez rank the same for every spec, so they share one list. |
-| How does it pick weapon enchants when I'm dual-wielding? | It checks each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit either — so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is simply left out of the macro. Swapping weapons updates it right away, no reload needed. |
-| Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound isn't a longer buff — it just isn't consumed — so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, that one is picked. Drag the reusable rune to the top of its list if you'd rather never spend charges. |
+| Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Yours are never read, moved, or deleted. Delete one of its macros by hand and it comes back on the next update. |
+| Do the macros work across all my characters? | Yes. They are **account-wide**, so one set is shared by every character, and your priority lists and stat choices are shared too. |
+| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food and Weapon Enchant depend on your stat priority, which changes with your spec (and Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust and Battle Rez rank the same for every spec, so they share one list. |
+| How does it pick weapon enchants when I'm dual-wielding? | Each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, oils fit either, so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is left out of the macro. Swapping weapons updates it right away, no reload needed. |
+| Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound is not a longer buff, it just is not consumed, so it only wins when it ties the best rune on primary stat. A single-use rune granting more stat is picked instead. Drag the reusable one to the top of its list if you would rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then either type the ID or shift-click the item (or spell) into the box, and press Enter. |
-| How do I force a specific item to always win? | Grab its row by the **drag handle** and drop it where you want. A moved (pinned) item overrides the automatic ranking. |
-| How do I permanently remove an item? | Use **×** on its row. That blocks it so it won't get auto-added again. **Reset category** or **Reset all priorities** (General → Master controls) clears the block. |
-| Does it work with ElvUI / Bartender / other bar addons? | Yes — the macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** + `/reload` occasionally sorts it out after an upgrade. |
-| Can I use this in a non-English client? | Not fully yet — **English only for now**. Item and weapon *type* detection works on any client, but it still reads tooltip **text** in English to get heal/mana/stat amounts, so other languages aren't fully supported. Full localization is planned for a later release. |
-| Will new patch flasks / potions work automatically? | Usually yes. It scans your bags and recognizes anything that matches by type and tooltip, so a freshly-looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
-| Why does a smaller instant HP potion beat a bigger heal-over-time one? | By design — an instant restore is usually what you want in an emergency. It only loses if the heal-over-time total is more than 20% bigger. You can override this by pinning the heal-over-time potion above the instant one. |
+| How do I force a specific item to always win? | Grab its row by the **drag handle** and drop it where you want it. A pinned item overrides the automatic ranking. |
+| How do I permanently remove an item? | Use **×** on its row. That blocks it, so it will not get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
+| Does it work with ElvUI / Bartender / other bar addons? | Yes. The macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** plus `/reload` usually sorts it out after an upgrade. |
+| Can I use this in a non-English client? | Not fully yet. Item and weapon *type* detection works on any client, but heal, mana and stat amounts are read out of the tooltip **text** in English. Full localization is planned for a later release. |
+| Will new patch flasks / potions work automatically? | Usually. It scans your bags and recognizes anything matching by type and tooltip, so a freshly-looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
+| Why does a smaller instant HP potion beat a bigger heal-over-time one? | Because an instant restore is usually what you want when you're about to die. The heal-over-time potion only wins if its total is more than 20% bigger. Pin the heal-over-time potion above the instant one to override that. |
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
 | Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Settings → General → Force rewrite macros** (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
-| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it's blocked or its tooltip hasn't loaded yet. |
-| I just looted a better food / flask but the macro didn't update. | Give it a second — bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
+| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it is blocked or its tooltip hasn't loaded yet. |
+| I just looted a better food / flask but the macro didn't update. | Give it a second, bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
-| Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check the viewed spec on the **Stat Priority** page matches your current spec. |
-| Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped or nothing that matches its weapon type — whetstones need a bladed weapon, weightstones a blunt one, oils fit either. Run `/cm dump pick WPN_ENCH` to see what was considered for each hand. |
-| I opened the debug console but nothing shows up in it. | The window and logging are two separate switches. A bare `/cm debug` only shows or hides the window — run `/cm debug on` (or click the window's **Debug: ON/OFF** toggle) to actually capture output. The log also clears on every login. |
+| Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check that the viewed spec on the **Stat Priority** page matches the spec you are actually playing. |
+| Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped or nothing that matches its weapon type: whetstones need a bladed weapon, weightstones a blunt one, oils fit either. Run `/cm dump pick WPN_ENCH` to see what was considered for each hand. |
+| I opened the debug console but nothing shows up in it. | The window and the logging are two separate switches, which is the one people trip over. A bare `/cm debug` only shows or hides the window; `/cm debug on` (or the window's **Debug: ON/OFF** toggle) is what captures output. The log also clears on every login. |
 | `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
-| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write — usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
-| `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading — reload and try again. |
-| I want to restore a default list after removing items by hand. | **Reset category** on the page clears that one category; **Reset all priorities** (General → Master controls) clears every category and every stat choice; **Reset all settings** (General → Master controls) puts the whole profile back. |
+| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
+| `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading. Reload and try again. |
+| I want to restore a default list after removing items by hand. | **Reset category** clears that one category. **Reset all priorities** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 
 ## Issues and feature requests
 
-Bugs, feature requests, and planned work are all tracked on GitHub: [github.com/tusharsaxena/consumablemaster/issues](https://github.com/tusharsaxena/consumablemaster/issues). Please file reports there rather than in comments — the issue tracker is where the project's to-do list lives.
+Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsaxena/consumablemaster/issues](https://github.com/tusharsaxena/consumablemaster/issues). Please file there rather than in comments. The tracker is the project's to-do list, and a comment is not.
 
 ## Version History
 
