@@ -34,12 +34,6 @@ Loot something better, change spec, reload, or drop out of combat, and each macr
 
 If a better pick turns up while you are in combat, the macro updates the moment you leave. WoW does not allow macro changes mid-fight.
 
-## What's new in 1.5.0
-
-- Three new macros. `KCM_WPN_ENCH` keeps the best oil or sharpening stone on each weapon hand, matched to the weapon's type and to your spec. `KCM_AUG_RUNE` points at your best primary-stat augment rune, preferring reusable ones so you do not burn charges. `KCM_VANTUS` covers the raid Versatility rune.
-- An on-screen debug console: a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle. Whether anything gets captured is a separate switch, `/cm debug on/off`. The log clears on each login.
-- Updated for World of Warcraft: Midnight (12.0.7).
-
 ## Screenshots
 
 **_Settings Panel_**
