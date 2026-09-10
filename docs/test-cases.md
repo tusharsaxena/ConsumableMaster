@@ -724,7 +724,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the secondary split is stored order first, then the rest
 - Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
-- Settings: the three maintenance verbs draw on the Master controls tab
+- Settings: the three maintenance verbs draw on their own tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
 - Settings UI: a first-open refresh burst arms one timer, not one per call
@@ -905,7 +905,7 @@ badge and any count quoted in the docs must agree with it.
 - WeaponSlots: an unknown item in the slot yields no affinity
 - WeaponSlots: a slot the client cannot report is safe to query
 
-### test_widgets.lua (6)
+### test_widgets.lua (8)
 
 - Widgets: every custom widget registers itself with AceGUI
 - Widgets: each registration supplies a constructor function
@@ -913,6 +913,8 @@ badge and any count quoted in the docs must agree with it.
 - Widgets: the version guard skips a widget already registered at that version
 - Widgets: no two widgets claim the same type name
 - Widgets: every widget name used by the settings pages is registered
+- Widgets: the score button lights no panel behind itself on hover
+- Widgets: the info glyph comes from the catalog, as LootHistory's does
 
 ### test_eol.lua (1)
 
@@ -962,6 +964,6 @@ badge and any count quoted in the docs must agree with it.
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 2 |
 | test_weaponslots.lua | 9 |
-| test_widgets.lua | 6 |
+| test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **786** |
+| **Total** | **788** |

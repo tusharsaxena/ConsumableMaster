@@ -1,6 +1,6 @@
 # Midnight quirks — tooltip parsing, subtype renames, secret values
 
-Catalog of WoW Midnight (Interface 12.0.x) behaviors that bite the addon. When something breaks at patch time, this is where to look first.
+Catalog of WoW Midnight (Interface 12.0.x–12.1.x) behaviors that bite the addon. When something breaks at patch time, this is where to look first.
 
 ## Subtype renames — no longer a classification concern
 

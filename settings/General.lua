@@ -1,25 +1,23 @@
 -- settings/General.lua — General page.
 --
--- ONE TAB on a pinned strip (options-ui-§13), where there used to be two:
+-- TWO TABS on a pinned strip (options-ui-§13):
 --
 --   * Master controls — the canonical eight (options-ui-§15), COMPOSED by the
 --     library's MasterControls rather than typed out here, and closed by the
 --     [Reset position] | [Reset all settings] button pair. It is the FIRST tab
 --     on the page, which is the whole rule: the one thing every player looks for
 --     first is in the same place, under the same words, in every Ka0s addon.
---     Under the canonical block, a `Maintenance` SUBSECTION carries the three
---     targeted verbs this addon has and no other Ka0s addon does: force a
---     resync, force a macro rewrite, and drop every priority override. None of
---     them is a setting, so none of them is a row.
 --
--- THE MAINTENANCE TAB IS GONE and its three buttons are that subsection. It was
--- a whole tab over three buttons a player presses about once a month, sitting
--- beside the one tab everybody actually opens. They are appended AFTER the
--- canonical block rather than interleaved into it (options-ui-§16: anything
--- extra goes after the block), under a heading, because the tab now mixes
--- settings rows with acts and options-ui-§7 wants each kind named. Nothing here is a
--- setting, so nothing moved in storage, and the page's Defaults button — which
--- walks `masterRows` — is unaffected by the fold.
+--   * Maintenance — the three targeted verbs this addon has and no other Ka0s
+--     addon does: force a resync, force a macro rewrite, and drop every priority
+--     override. None of them is a setting, so none of them is a row.
+--
+-- THE MAINTENANCE TAB WAS FOLDED AWAY AND CAME BACK. Between 2026-09-03 and
+-- 2026-09-09 its three buttons were a SUBSECTION appended after the canonical
+-- block, on the reasoning that a whole tab over three buttons pressed about once
+-- a month was not worth the strip position. 1.6.0 restored the tab. Nothing
+-- moved in storage either way — none of the three is a setting — and the page's
+-- Defaults button, which walks `masterRows`, was unaffected by both changes.
 --
 -- A ONE-SECTION PAGE STILL DRAWS A STRIP (options-ui-§13). The rule is not a size
 -- threshold: a player who has learned one Ka0s page has learned all of them, and
@@ -298,7 +296,7 @@ end
 -- rendered by the library's row engine (RenderRows, with the group heading
 -- suppressed because the tab already carries the name), so the rows, their order,
 -- their pairing and the closing button pair are all the library's; what the
--- library cannot derive is the Maintenance subsection under them, which declares
+-- library cannot derive is the Maintenance tab beside them, which declares
 -- no rows at all -- its three controls are acts, not settings.
 
 -- The three targeted verbs, on their OWN TAB beside Master controls.

@@ -95,7 +95,8 @@ Object keys are emitted in sorted order so two records diff cleanly.
   the wrong things about it in turn: first that it always reads `0` (true only of records emitted
   before the library stopped asking `GetAddOnMetadata`, which never served the field), then that it
   stamps the TOC. The 20260909-015018 record settles it — the record reads `120100` while the TOC
-  declares `120007`, so the two are different questions and this field answers the client's. A `0`
+  still declared `120007` at the time, so the two are different questions and this field answers the
+  client's. A `0`
   means a client with no `GetBuildInfo`.
 
 - **Encoder wart:** Lua has a single table type, so an **empty** list and an empty map are

@@ -138,7 +138,7 @@ reason worth keeping in view:
   placeholder is not an unused argument but a **missing** one, and `string.format` raises. A bare
   `/cm get` threw a Lua error in game for exactly as long as that line had two.
 
-Every line goes out through `KCM.Say` (`core/Constants.lua`), the secret-safe sink: the `[CM]` tag is
+Every line goes out through `KCM.Say` (`core/CoreSetup.lua`, over `KCM.PREFIX` from `core/Constants.lua`), the secret-safe sink: the `[CM]` tag is
 unconditional and a combat secret can never raise mid-line. The printer crosses to the library as a
 thunk rather than bare, because the library snapshots it at `:New`.
 

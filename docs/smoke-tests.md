@@ -5,7 +5,7 @@ A headless unit-test harness now covers the addon's logic — Classifier, Ranker
 Two flavors:
 
 - **[Quick smoke](#quick-smoke)** — the 30-second recipe to run after any change. Catches ~80% of regressions.
-- **[Full suite](#full-suite)** — twelve sections covering every user-visible surface. Run after structural changes (module rewrite, schema migration, framework swap, pre-release).
+- **[Full suite](#full-suite)** — thirteen sections covering every user-visible surface. Run after structural changes (module rewrite, schema migration, framework swap, pre-release).
 
 Plus a [targeted lookup](#targeted-by-change-area) at the bottom: "I changed X, what do I run?"
 
@@ -29,7 +29,7 @@ If the change touched a spec-aware category, also: switch specs via the talents 
 
 ## Full suite
 
-Twelve sections, each numbered so you can call out which one failed when reporting a regression. Run end-to-end before releases.
+Thirteen sections, each numbered so you can call out which one failed when reporting a regression. Run end-to-end before releases.
 
 **A word on the "Smoke, session N" labels below.** They name a session in the collection's 2026-09-07
 review-and-audit remediation bundle (`06_SMOKE_TESTS.md`), which defines **six** sessions and no more —
@@ -187,7 +187,7 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 1. Close the Settings panel. Run `/cm config`.
 2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **four** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
-4. Open General. A **tab strip** with exactly **one** tab, named exactly **Master controls** (`options-ui-§15`) — a one-section page still draws a strip. It carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair. Below that pair, a **Maintenance** heading over `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]` — the same three buttons that were a second tab until this pass, appended after the canonical block rather than interleaved into it. There is **no Maintenance tab**; a strip showing two tabs here is the fold half-done. A top-right **Defaults** button sits in the page header.
+4. Open General. A **tab strip** with exactly **two** tabs, **Master controls** first (`options-ui-§15` requires that order) and **Maintenance** beside it. Master controls carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair — and nothing else, since the three maintenance acts moved off it in 1.6.0. Maintenance carries `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`, under no heading of its own (the tab already carries the name). A strip showing one tab here, with the three acts hanging off the bottom of Master controls, is the pre-1.6.0 fold. A top-right **Defaults** button sits in the page header.
 4a. **Nothing is declared twice.** The Macro Bar page's General tab has **no** Lock and **no** Reset position — both moved here. `/cm set macroBar.locked true` still works and still ticks the **Lock frame** box on this page, because the setting moved tabs and not storage.
 4b. **The master rows are addon-wide, and they compose.** Set **Master scale** to 2.0 with the bar's own **Bar scale** at 1.0 → the bar doubles. Now set Bar scale to 0.5 → it lands halfway back, at an effective 1.0. Same for **Master alpha** against **Bar opacity**. Set **General visibility** to *Only in combat* with the bar's **Combat visibility** at *Always* → the bar appears on pull and goes on combat drop. Set the bar's Combat visibility to *Hide in combat* as well → the two can never agree, and the bar stays hidden.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -197,9 +197,9 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 9. Click **Force rewrite macros** — every `KCM_*` body + icon re-issued unconditionally. Useful when an action-bar framework is showing a stale texture.
 10. Click **Reset all settings** (Master controls, the right half of the closing pair) — StaticPopup confirms with the collection's one wording; on Yes, the whole active profile resets. Items currently in bags are re-discovered (so `discovered[id]` for bag items survives); previously-discovered items no longer in bags are dropped. Blocked in combat with a chat notice.
 10a. **The reset reaches the session row too** (`options-ui-§12`). Tick **Debug console** so the window is open, change something profile-backed (drag the bar, or drop Button size), then **Reset all settings** → Yes. The console window is **closed** and the checkbox is unticked, alongside everything the profile reset took. A profile reset alone cannot do this — the row's storage is its own `set()`, not the db — so a console still sitting open afterwards means the session sweep is gone. `/cm resetall` is the same act through the other door and must behave identically.
-10b. Click **Reset all priorities** (the Maintenance subsection) — a **different** StaticPopup, naming a narrower act. On Yes, every category's added / blocked / pinned items and every spec's stat-priority override are cleared and **nothing else is**: set a non-default `Button size` on the Macro Bar page first and confirm it survives. Blocked in combat with a chat notice.
+10b. Click **Reset all priorities** (the Maintenance tab) — a **different** StaticPopup, naming a narrower act. On Yes, every category's added / blocked / pinned items and every spec's stat-priority override are cleared and **nothing else is**: set a non-default `Button size` on the Macro Bar page first and confirm it survives. Blocked in combat with a chat notice.
 10a. **The slash path raises the same popup.** ⚠ `/cm reset` used to *be* this wipe; it now resets one row, and the destructive verb is `/cm resetall`. That move is only safe if the confirmation moved with it. Run `/cm resetall` → **the same StaticPopup appears**. **Cancel** → nothing is wiped (spot-check that a custom added item survives). Run it again and confirm → identical effect to step 10, because both reach the popup through the same file-scope `StaticPopup_Show("KCM_CONFIRM_RESET")`. Then bare `/cm reset` → the usage line naming `/cm resetall`, and **no popup**; `/cm reset macroBar.orientation` → that one row echoes and nothing else moves. (What this pins: the guard on the destructive path. A `/cm resetall` that wipes without asking, or a bare `/cm reset` that wipes at all, is the regression this convergence risked — see `../LibKa0s/docs/adoption-prompt.md`, "The two user-visible convergences".)
-11. Disable the addon (Enable off) and move **Master scale** off 1.0, then click the top-right **Defaults** button — scrolled down to the **Maintenance** subsection, so the whole tab is not on screen. It resets **this page only**: master enable flips back on (`[CM] Master enable ON`), scale / alpha / visibility come back to their shipped values, and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
+11. Disable the addon (Enable off) and move **Master scale** off 1.0, then click the top-right **Defaults** button — from the **Maintenance** tab, so the rows it resets are not even on screen. It resets **this page only**, every tab of it: master enable flips back on (`[CM] Master enable ON`), scale / alpha / visibility come back to their shipped values, and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
 
@@ -323,7 +323,7 @@ below is new behavior and none of it is covered by an automated case that can se
 **Every page has one**
 
 19. **General** draws a **two-tab** strip — **Master controls** first (`options-ui-§15`), then
-    **Master controls** alone, since Maintenance is a subsection of it now. There is no page left in this addon without a strip.
+    **Maintenance**. There is no page left in this addon without a strip.
 20. This addon registers no AceDBOptions **Profiles** page (`/cm resetall` is the profile reset, see
     section 7). If one is ever added it stays untabbed — it is library-drawn, it is the same in every
     Ka0s addon, and it is one of the two pages `options-ui-§13` exempts (the other being the landing
