@@ -46,7 +46,7 @@ Body shape (`buildWeaponEnchantBody`, exposed as `M._buildWeaponEnchantBody` for
 /use 17
 ```
 
-Each hand contributes an **application pair** — `/use item:<id>` puts the enhancement on the cursor, `/use <slot>` applies it to that weapon. A hand with a nil pick (no weapon equipped, or nothing whose `tt.weaponAffinity` matches that weapon's type) contributes **no lines at all**; it is never given the other hand's pick.
+Each hand contributes an **application pair** — `/use item:<id>` puts the enhancement on the cursor, `/use <slot>` applies it to that weapon. A hand with a nil pick (no weapon equipped, or nothing owned whose `tt.weaponAffinity` matches that weapon's type — note a ranged weapon matches oils, not stones) contributes **no lines at all**; it is never given the other hand's pick.
 
 - Both picks nil → `buildWeaponEnchantBody` returns nil and the caller falls through to `buildEmptyBody(cat)` with `iconItemID = nil`, so the cooking-pot icon renders.
 - Otherwise the stored icon follows `mhPick or ohPick`, so the bar shows the main-hand enhancement when there is one.

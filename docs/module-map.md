@@ -104,7 +104,9 @@ core/TooltipCache.lua  C_TooltipInfo.GetItemByID(id) → parsed struct cached pe
 
 core/WeaponSlots.lua  equipped main-hand (16) / off-hand (17) weapon subClassID
                    (gated on classID == Weapon) → "bladed" (whetstone) /
-                   "blunt" (weightstone) / nil (not enhanceable). Numeric =
+                   "blunt" (weightstone) / "other" (a weapon that takes no
+                   stone: bow, gun, wand — oils only) / nil (no weapon in
+                   the slot). Numeric =
                    locale-independent. Drives the per-hand Weapon Enchant picks.
 
 core/BagScanner.lua  C_Container.GetContainerItemInfo sweep → { [id] = count }.
@@ -356,10 +358,12 @@ If `C_TooltipInfo.GetItemByID` returns nil or empty, the cache marks the id `pen
 ### WeaponSlots (`core/WeaponSlots.lua`)
 
 ```lua
-KCM.WeaponSlots.SlotAffinity(slot) -> "bladed" | "blunt" | nil   -- slot 16 (main) / 17 (off)
+KCM.WeaponSlots.SlotAffinity(slot) -> "bladed" | "blunt" | "other" | nil  -- slot 16 (main) / 17 (off)
+                                   -- "other" = a weapon that takes no stone (bow, gun, wand):
+                                   -- oils apply, stones do not. nil = no weapon in the slot.
 ```
 
-Reads the equipped weapon's numeric `subClassID`, gated on `classID == Weapon` so a shield or an off-hand frill never reads as enhanceable. Numeric = locale-independent. `nil` means "no weapon, or nothing a whetstone/weightstone applies to"; oils (`weaponAffinity == "any"`) still need a non-nil slot affinity to be considered for that hand. Consumed by `Selector.PickBestForSlot` and by `settings/Category.lua`'s WPN_ENCH page header.
+Reads the equipped weapon's numeric `subClassID`, gated on `classID == Weapon` so a shield or an off-hand frill never reads as enhanceable. Numeric = locale-independent. **`nil` means one thing only: no weapon in that slot.** A weapon in neither stone table answers `"other"` — a bow, gun, crossbow or wand takes no whetstone and no weightstone, but an oil (`weaponAffinity == "any"`) applies to it exactly as it does to a sword. Until 2026-09-11 those two answers were the same `nil` and `PickBestForSlot` read it as the first, so every hunter got the empty-state macro while holding a picked oil. Consumed by `Selector.PickBestForSlot` and by `settings/Category.lua`'s WPN_ENCH page header.
 
 ### SpecHelper (`core/SpecHelper.lua`)
 
@@ -576,7 +580,7 @@ Where each responsibility lives in the source tree. Match this map to the actual
 | `core/DebugLogSetup.lua` | The addon's half of `LibKa0s-DebugLog-1.0`. Resolves the console's font through `KCM.MediaFont` (Blizzard `Fonts\ARIALN.TTF` fallback — a real client font, because `SetFont` on a missing file draws nothing and raises nothing; the library has no fallback of its own), and builds ONE console instance via `lib:New` — supplying the frame name (`ConsumableMasterDebugWindow`), `addonName` beside it so both console windows draw the shared copy / clear / close marks instead of two words and a `×`, the title, the `KCM.State.debug` read/write pair, the `KCM.Say` printer, the `[Init]` summary content and the `KCM.Options.Refresh` repaint on show/hide. Publishes the flat dot-callable surface the addon calls: `SetEnabled / IsEnabled / Toggle / AddLine / Clear / Show / Hide / Toggle_Window / IsWindowShown / ShowCopy / RefreshHeader / UpdateScrollBar / UpdateStatus` + `FormatPlain / FormatColored` (the library's function objects) + `instance`. `Toggle` flips the FLAG and is deliberately not the library's `Toggle`, which flips the window. Degrades to a windowless stub — publishing no `AddLine`, which is what re-arms `core/Debug.lua`'s chat fallback — when the library is absent. |
 | `core/SpecHelper.lua` | Class/spec identity. `GetCurrent()` returns `(classID, specID, specKey, specName)`. `GetStatPriority(specKey)` merges user override → seed default → class fallback. `MakeKey(classID, specID)` produces the canonical `<classID>_<specID>` string. Spec/spell lookups route through `KCM.Compat`. |
 | `core/TooltipCache.lua` | `C_TooltipInfo.GetItemByID(id)` parser + per-session cache. Captures heal/mana values (incl. HOT amounts), stat buffs, conjured/feast flags, durations. `Get(id) / Invalidate(id) / InvalidateAll() / IsUsableByPlayer(id)`. Handles NBSP and `\|4singular:plural;` escapes. |
-| `core/WeaponSlots.lua` | Equipped-weapon affinity for the Weapon Enchant category. Maps the main-hand (16) / off-hand (17) weapon's numeric `subClassID` (gated on `classID == Weapon`, so it's locale-independent) to `bladed` (whetstone) / `blunt` (weightstone) / `nil` (not enhanceable). |
+| `core/WeaponSlots.lua` | Equipped-weapon affinity for the Weapon Enchant category. Maps the main-hand (16) / off-hand (17) weapon's numeric `subClassID` (gated on `classID == Weapon`, so it's locale-independent) to `bladed` (whetstone) / `blunt` (weightstone) / `other` (a weapon that takes no stone — oils only) / `nil` (no weapon in the slot). |
 | `core/BagScanner.lua` | `Scan() -> {[itemID] = count}` (one pass over `C_Container`). `HasItem(itemID) -> ownsBool, count` via a single `C_Item.GetItemCount` call (no full-Scan fallback). Stateless. |
 | `core/Classifier.lua` | `(itemID) → categories`. `Match(catKey, id)`, `MatchAny(id) -> { catKeys }`, and `IsReusableAugRune(id) -> bool` (the `REUSABLE_AUG_IDS` set the AUG_RUNE scorer uses as a stat tie-break). Keys on the locale-independent numeric `classID`/`subClassID` from `GetItemInfoInstant` (plus tooltip flags for weapon-enchant / augment-rune); no subType-string matching. Tooltip-TEXT parsing stays English (tracked deviation, see scope.md). |
 | `core/MacroDisplay.lua` | Read-only display resolution. Keyed by macro name — `PickID / Texture / Count / Cooldown / SetTooltip / MacroIndex` — or by opaque KCM ID for the flyout's specific candidates — `TextureForID / CountForID / CooldownForID / SetTooltipForID` — plus `FALLBACK_ICON` and `Pickup(macroName)`, the one combat-guarded protected call (`PickupMacro`), shared by both drag surfaces so neither can forget the guard. `Cooldown` / `CooldownForID` return `active, durationObject, start, duration` rather than a raw triple: mid-fight the spell cooldown API goes secret, so the boolean comes from the NeverSecret `isActive`/`isEnabled` and the raw pair is withheld unless the client says it's plain ([midnight-quirks.md](./midnight-quirks.md#secret-values)). Reads the pick MacroManager recorded in `db.profile.macroState`; writes no macro. Shared by the macro bar's slots and `modules/KCMMacroDragIcon.lua` so icon/tooltip resolution can't drift between them. |

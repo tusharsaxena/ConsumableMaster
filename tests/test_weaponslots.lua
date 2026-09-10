@@ -57,9 +57,13 @@ local BLUNT_SUBCLASSES = {
     [10] = "Staves",
 }
 -- Weapon subclasses that take no temporary enhancement.
-local UNENHANCEABLE_SUBCLASSES = {
+-- Weapon subclasses in neither stone table. "Unenhanceable" was the old name
+-- and it was the bug in one word: every one of these is a weapon, and an
+-- any-affinity oil applies to all of them.
+local STONELESS_SUBCLASSES = {
     [2]  = "Bows",   [3]  = "Guns",  [18] = "Crossbows",
     [16] = "Thrown", [19] = "Wands", [11] = "Bear Claws (unused)",
+    [20] = "Fishing Poles",
 }
 
 test("WeaponSlots: every bladed weapon subclass reports bladed affinity", function(t)
@@ -86,15 +90,20 @@ test("WeaponSlots: every blunt weapon subclass reports blunt affinity", function
     end
 end)
 
-test("WeaponSlots: ranged and wand subclasses take no stone at all", function(t)
+-- THESE TAKE NO STONE, WHICH IS NOT THE SAME AS NOT BEING A WEAPON. They
+-- answered nil until 2026-09-11 and modules/Selector.lua read that nil as "the
+-- slot holds nothing enhanceable", so a hunter holding an "any" oil got the
+-- empty-state macro. They answer "other" now: no whetstone, no weightstone, but
+-- an oil applies. The empty-slot and armor cases below are what nil is for.
+test("WeaponSlots: ranged and wand subclasses take no stone, but are still weapons", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local id   = 7200
-    for subClassID, label in pairs(UNENHANCEABLE_SUBCLASSES) do
+    for subClassID, label in pairs(STONELESS_SUBCLASSES) do
         id = id + 1
         mock.setItem(id, { subType = label, classID = 2, subClassID = subClassID })
         mock.setEquipped(16, id)
-        t.eq(KCM.WeaponSlots.SlotAffinity(16), nil, label .. " has no affinity")
+        t.eq(KCM.WeaponSlots.SlotAffinity(16), "other", label .. " takes no stone but takes an oil")
     end
 end)
 

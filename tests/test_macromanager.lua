@@ -553,6 +553,31 @@ test("MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand
         "an unenhanceable weapon set still leaves a valid macro on the bar")
 end)
 
+-- END TO END, AT THE LEVEL THE BUG WAS REPORTED. The selector test pins the
+-- pick; this pins what the player actually sees on the action bar, because the
+-- symptom was never "the pick is wrong" -- /cm dump pick happily reported the
+-- oil as picked, since it asks PickBestForCategory, which no per-hand category
+-- ever uses. It was the macro that came out empty.
+test("MacroManager: a hunter with a bow and an oil gets a real body, not the stub", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local cat  = KCM.Categories.Get("WPN_ENCH")
+
+    mock.setItem(945001, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any", statBuffs = { { stat = "CRIT", amount = 13 } } } })
+    KCM.Selector.AddItem("WPN_ENCH", 945001)
+    mock.setBag(945001, 1)
+    mock.setItem(945100, { subType = "Bows", classID = 2, subClassID = 2 })
+    mock.setEquipped(16, 945100)
+    mock.setEquipped(17, nil)
+
+    local mh = KCM.Selector.PickBestForSlot("WPN_ENCH", 16, nil)
+    local oh = KCM.Selector.PickBestForSlot("WPN_ENCH", 17, nil)
+    KCM.MacroManager.SetWeaponEnchantMacro(cat, mh, oh)
+
+    t.truthy(KCM.db.profile.macroState["KCM_WPN_ENCH"].lastBody ~= cat.emptyText,
+        "a bow and an any-affinity oil must not produce the empty-state stub")
+end)
+
 test("MacroManager.SetWeaponEnchantMacro takes its icon from the main hand", function(t)
     local KCM = h.loader.loadPure()
     KCM.MacroManager.SetWeaponEnchantMacro(KCM.Categories.Get("WPN_ENCH"), 944001, 944002)

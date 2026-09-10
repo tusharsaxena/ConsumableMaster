@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-788%2F788_passing-green)
+![Tests](https://img.shields.io/badge/Tests-790%2F790_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -92,7 +92,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Will this delete or overwrite my existing macros? | No. Its macros are matched by **name**, never by slot, and it only ever touches its own. Yours are never read, moved, or deleted. Delete one of its macros by hand and it comes back on the next update. |
 | Do the macros work across all my characters? | Yes. They are **account-wide**, so one set is shared by every character, and your priority lists and stat choices are shared too. |
 | Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food and Weapon Enchant depend on your stat priority, which changes with your spec (and Weapon Enchant is weapon-type-aware on top of that). Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust and Battle Rez rank the same for every spec, so they share one list. |
-| How does it pick weapon enchants when I'm dual-wielding? | Each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, oils fit either, so a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing valid equipped is left out of the macro. Swapping weapons updates it right away, no reload needed. |
+| How does it pick weapon enchants when I'm dual-wielding? | Each hand on its own. A whetstone only goes on a bladed weapon, a weightstone only on a blunt one, and oils fit any weapon at all — including a bow, gun or wand, which take no stone. So a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing equipped is left out of the macro. Swapping weapons updates it right away, no reload needed. |
 | Why isn't it using my reusable (permanent) augment rune? | By design. A reusable rune like Ethereal or Dreambound is not a longer buff, it just is not consumed, so it only wins when it ties the best rune on primary stat. A single-use rune granting more stat is picked instead. Drag the reusable one to the top of its list if you would rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then either type the ID or shift-click the item (or spell) into the box, and press Enter. |
 | How do I force a specific item to always win? | Grab its row by the **drag handle** and drop it where you want it. A pinned item overrides the automatic ranking. |
@@ -111,7 +111,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | I just looted a better food / flask but the macro didn't update. | Give it a second, bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
 | Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check that the viewed spec on the **Stat Priority** page matches the spec you are actually playing. |
-| Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped or nothing that matches its weapon type: whetstones need a bladed weapon, weightstones a blunt one, oils fit either. Run `/cm dump pick WPN_ENCH` to see what was considered for each hand. |
+| Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped, or you own nothing that fits it: whetstones need a bladed weapon, weightstones a blunt one, and oils fit anything. The Weapon Enchant tab names each hand's weapon type above the list, so a hand reading **no stone (oils only)** wants an oil. |
 | I opened the debug console but nothing shows up in it. | The window and the logging are two separate switches, which is the one people trip over. A bare `/cm debug` only shows or hides the window; `/cm debug on` (or the window's **Debug: ON/OFF** toggle) is what captures output. The log also clears on every login. |
 | `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |

@@ -429,7 +429,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar master: General visibility is INTERSECTED with the bar's combat mode
 - macrobar master: General visibility = never takes the bar off screen
 
-### test_macromanager.lua (46)
+### test_macromanager.lua (47)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -470,6 +470,7 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager warns about an oversized body only once per category
 - MacroManager: the debug gate is a predicate — diagnostic arguments are not evaluated with debug off
 - MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand has a pick
+- MacroManager: a hunter with a bow and an oil gets a real body, not the stub
 - MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
 - MacroManager.SetWeaponEnchantMacro guards a missing category or DB
 - MacroManager.SetCompositeMacro stores the dynamic icon and no item id
@@ -632,7 +633,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: every color row is followed by its class-color companion
 - schema: every mixed tab breaks its blocks up with subsection headings
 
-### test_selector.lua (50)
+### test_selector.lua (51)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -648,6 +649,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector: MoveUp and MoveDown are MoveTo, so a drag and an arrow agree
 - Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
 - Selector: PickBestForSlot filters by weapon affinity + ownership
+- Selector: a ranged weapon takes an any-affinity oil
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
 - Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
 - Selector: PickBestForSlot skips a level-blocked enhancement
@@ -899,7 +901,7 @@ badge and any count quoted in the docs must agree with it.
 - WeaponSlots: keys on weapon subClassID, not the localized subType
 - WeaponSlots: every bladed weapon subclass reports bladed affinity
 - WeaponSlots: every blunt weapon subclass reports blunt affinity
-- WeaponSlots: ranged and wand subclasses take no stone at all
+- WeaponSlots: ranged and wand subclasses take no stone, but are still weapons
 - WeaponSlots: main hand and off hand are read independently
 - WeaponSlots: an off-hand holdable (armor) is not enhanceable
 - WeaponSlots: an unknown item in the slot yields no affinity
@@ -946,7 +948,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 125 |
-| test_macromanager.lua | 46 |
+| test_macromanager.lua | 47 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
@@ -955,7 +957,7 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
-| test_selector.lua | 50 |
+| test_selector.lua | 51 |
 | test_settingsui.lua | 44 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 16 |
@@ -966,4 +968,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **788** |
+| **Total** | **790** |

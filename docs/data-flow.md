@@ -27,7 +27,10 @@ event ──▶ bus:SendMessage(KCM.MSG.RECOMPUTE, reason)
             │                 oh = Selector.PickBestForSlot(cat.key, 17, scoreCache)
             │                 MacroManager.SetWeaponEnchantMacro(cat, mh, oh)
             │                 (each hand filtered to entries whose
-            │                  tt.weaponAffinity matches WeaponSlots.SlotAffinity)
+            │                  tt.weaponAffinity matches WeaponSlots.SlotAffinity;
+            │                  a slot answering "other" -- a bow, gun or wand --
+            │                  takes "any" oils and neither stone, and only a nil
+            │                  answer means there is no weapon to enhance)
             │             else:
             │                 pick = Selector.PickBestForCategory(cat.key, nil, scoreCache)
             │                 MacroManager.SetMacro(cat.macroName, pick, cat.key)

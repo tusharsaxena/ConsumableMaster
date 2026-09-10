@@ -1,9 +1,21 @@
 -- core/WeaponSlots.lua — equipped-weapon affinity for the Weapon Enchant
 -- category. Maps the main-hand (16) / off-hand (17) weapon's numeric weapon
--- subClassID to "bladed" (whetstone) / "blunt" (weightstone) / nil (not
--- enhanceable). Keys on the locale-independent classID / subClassID from
--- GetItemInfoInstant, never the localized subType display string (Ka0s
--- Standard localization-§4 / anti-pattern #37).
+-- subClassID to "bladed" (whetstone) / "blunt" (weightstone) / "other" (a
+-- weapon that takes neither stone) / nil (no weapon in the slot at all). Keys
+-- on the locale-independent classID / subClassID from GetItemInfoInstant, never
+-- the localized subType display string (Ka0s Standard localization-§4 /
+-- anti-pattern #37).
+--
+-- "other" AND nil ARE DIFFERENT ANSWERS, and collapsing them is what this file
+-- got wrong until 2026-09-11. A bow is not bladed and not blunt, so it takes no
+-- stone -- but it is still a WEAPON, and an oil whose weaponAffinity is "any"
+-- fits it exactly as it fits a sword. Answering nil for it said "there is
+-- nothing enhanceable here", modules/Selector.lua believed that and returned
+-- before testing a single item, and every hunter in the collection got the
+-- empty-state macro while holding an oil the priority list had already picked.
+-- nil now means one thing only: no weapon. Callers that want "is there
+-- something to enhance" test for nil; callers that want "which stone" compare
+-- against the token.
 
 local _, NS = ...
 local KCM = NS
@@ -41,5 +53,10 @@ function W.SlotAffinity(slot)
     if classID ~= CLASS_WEAPON then return nil end
     if BLADED[subClassID] then return "bladed" end
     if BLUNT[subClassID]  then return "blunt"  end
-    return nil
+    -- A weapon in neither table: bows (2), guns (3), crossbows (18), wands (19),
+    -- fishing poles (20), and whatever Blizzard adds next. Deliberately NOT an
+    -- enumeration -- a new weapon subclass should arrive as "takes an oil",
+    -- which is true of every weapon, rather than as "not a weapon", which
+    -- silently empties the macro until someone notices.
+    return "other"
 end

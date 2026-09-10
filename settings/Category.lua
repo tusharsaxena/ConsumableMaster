@@ -506,11 +506,22 @@ local function renderCompositeLegend(ctx)
         "medium")
 end
 
+-- Affinity token -> what the player reads. "other" is a weapon that takes no
+-- whetstone and no weightstone -- a bow, a gun, a wand -- and saying "other"
+-- to a player explains nothing, where saying it takes oils explains the row
+-- of red crosses beside every stone on the page. nil is a slot with no weapon
+-- in it and stays "(none)"; the two are different facts (core/WeaponSlots.lua).
+local function affinityLabel(aff)
+    if not aff then return L["(none)"] end
+    if aff == "other" then return L["no stone (oils only)"] end
+    return L[aff]
+end
+
 -- The icon legend above the list, plus the main/off-hand affinity line when per-hand.
 local function renderPriorityLegend(ctx, cat, mhAff, ohAff)
     if cat.perHand then
         H.Label(ctx,
-            (L["Main hand: %s | Off hand: %s"]):format(mhAff or L["(none)"], ohAff or L["(none)"]),
+            (L["Main hand: %s | Off hand: %s"]):format(affinityLabel(mhAff), affinityLabel(ohAff)),
             "medium")
         H.Label(ctx,
             (L["%s in bags    %s not in bags    %s picked (MH/OH) in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),

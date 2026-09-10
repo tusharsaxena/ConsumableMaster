@@ -285,6 +285,35 @@ test("Selector: PickBestForSlot filters by weapon affinity + ownership", functio
 end)
 
 -- ---------------------------------------------------------------
+-- PickBestForSlot: a weapon that takes no stone still takes an oil
+-- ---------------------------------------------------------------
+-- REGRESSION, reported 2026-09-11 from a live Beast Mastery hunter. A bow is a
+-- weapon, but it is neither bladed nor blunt, so it takes no whetstone and no
+-- weightstone -- and an "any" oil fits it exactly as it fits a sword. The bug
+-- was that SlotAffinity answered nil for it, the same nil it answers for an
+-- EMPTY slot, and PickBestForSlot read that nil as "no enhanceable weapon" and
+-- returned before testing a single item. Every hunter therefore got the
+-- empty-state macro while holding an oil the priority list had already picked.
+test("Selector: a ranged weapon takes an any-affinity oil", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local S    = KCM.Selector
+
+    mock.setItem(6201, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "bladed", statBuffs = { { stat = "AP",   amount = 10 } } } })
+    mock.setItem(6202, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "blunt",  statBuffs = { { stat = "AP",   amount = 15 } } } })
+    mock.setItem(6203, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any",    statBuffs = { { stat = "CRIT", amount = 13 } } } })
+    for _, id in ipairs({ 6201, 6202, 6203 }) do S.AddItem("WPN_ENCH", id) end
+    mock.setBag(6201, 1); mock.setBag(6202, 1); mock.setBag(6203, 1)
+
+    -- Bows are weapon subclass 2 -- in neither the bladed nor the blunt table.
+    mock.setItem(6300, { subType = "Bows", classID = 2, subClassID = 2 })
+    mock.setEquipped(16, 6300)
+
+    t.eq(S.PickBestForSlot("WPN_ENCH", 16, nil), 6203,
+        "a bow takes the any-affinity oil, and neither stone")
+end)
+
+-- ---------------------------------------------------------------
 -- PickBestForSlot: negative-ownership exclusion
 -- ---------------------------------------------------------------
 test("Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned", function(t)
