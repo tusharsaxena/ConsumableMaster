@@ -6,9 +6,7 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-786%2F786_passing-green)
 
-![Logo](https://media.forgecdn.net/attachments/1646/103/consumemaster-logo-jpg.jpg)
-
-An auto-managed consumable-macro addon for **World of Warcraft: Midnight**. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
+Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
 Loot something better, change spec, reload, or drop out of combat, and each macro re-points at your current best pick — the right item, or the right spell where a class ability does the job (Recuperate, for one). The macros are account-wide, so one set covers every character you have. They are matched by name rather than by slot, which means you can shuffle them around your macro list and they will keep working next to macros of your own.
 
@@ -36,33 +34,26 @@ If a better pick turns up while you are in combat, the macro updates the moment 
 
 ## Screenshots
 
-**_Settings Panel_**
-
-![Settings Panel](https://media.forgecdn.net/attachments/1806/219/kcm-01-general-png.png)
-
 **_Stat Priority Selector (Per Spec)_**
 
-![Stat Priority Selector (Per Spec)](https://media.forgecdn.net/attachments/1806/220/kcm-02-statpriority-png.png)
+![Stat Priority Selector (Per Spec)](https://media.forgecdn.net/attachments/1936/512/kcm-02-statpriority-png.png)
 
-**_Food Category Priority Selector (Not Spec Aware)_**
+**_Food category macro selector_**
 
-![Food Category Priority Selector (Not Spec Aware)](https://media.forgecdn.net/attachments/1806/221/kcm-03-food-png.png)
+![Food category macro selector](https://media.forgecdn.net/attachments/1936/513/kcm-03-food-png.png)
 
-**_All-in-One Health Category Priority Selector_**
+**_All-in-One health category macro selector_**
 
-![All-in-One Health Category Priority Selector](https://media.forgecdn.net/attachments/1806/222/kcm-04-aio-health-png.png)
+![All-in-One health category macro selector](https://media.forgecdn.net/attachments/1936/514/kcm-04-aio-health-png.png)
 
-**_Flask Category Priority Selector (Spec Aware)_**
+**_Ranking explainer_**
 
-![Flask Category Priority Selector (Spec Aware)](https://media.forgecdn.net/attachments/1806/223/kcm-05-flask-png.png)
+![Ranking explainer](https://media.forgecdn.net/attachments/1936/515/kcm-05-ranking-png.png)
 
-**_Weapon Enchant Priority Selector (Spec and Weapon Type Aware)_**
+**_Macro bar_**
 
-![Weapon Enchant Priority Selector (Spec and Weapon Type Aware)](https://media.forgecdn.net/attachments/1806/226/kcm-06-weapon-enchant-png.png)
+![Macro bar](https://media.forgecdn.net/attachments/1936/516/kcm-06-macro-bar-png.png)
 
-**_Ranking Explainer_**
-
-![Ranking Explainer](https://media.forgecdn.net/attachments/1806/224/kcm-06-ranking-png.png)
 
 ## Usage
 
