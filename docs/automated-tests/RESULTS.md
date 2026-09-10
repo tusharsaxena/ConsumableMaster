@@ -23,6 +23,7 @@ The **Tests** cell reads `passed/skipped/total`.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260910-234511`](20260910-234511/) | 1.5.0 → 1.6.0 | 0/0 | 102 | 788/0/788 | pass | 18837 | 1960 | 8.1 | 2.7 | 15 | 0 | **green** |
 | [`20260908-181304`](20260908-181304/) | 1.5.0 | 0/0 | 102 | 786/0/786 | pass | 18825 | 1957 | 8.1 | 2.7 | 15 | 0 | **green** |
 | [`20260825-103407`](20260825-103407/) | 1.5.0 | 0/0 | 58 | 698/698 | pass | 15870 | 1703 | 8.0 | 2.7 | 15 | 0 | **green** |
 | [`20260807-114612`](20260807-114612/) | 1.5.0 | 0/0 | 56 | 675/675 | pass | 15636 | 1676 | 8.0 | 2.7 | 15 | 0 | **green** |
@@ -34,11 +35,11 @@ The **Tests** cell reads `passed/skipped/total`.
 
 ## Test suite
 
-**786 cases** — 786 passed, 0 failed, 0 skipped. The generated inventory
-[`20260908-181304/test-cases.md`](20260908-181304/test-cases.md) is the authority on which cases existed at this run;
+**788 cases** — 788 passed, 0 failed, 0 skipped. The generated inventory
+[`20260910-234511/test-cases.md`](20260910-234511/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **698 → 786** since the previous run.
+Moved **786 → 788** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
@@ -53,14 +54,14 @@ A `0/0` says nothing about what was never looked at.
 ## Perf
 
 **5 scenarios** from `tests/perf.lua`; the measurements are in
-[`20260908-181304/perf.json`](20260908-181304/perf.json).
+[`20260910-234511/perf.json`](20260910-234511/perf.json).
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20260908-181304`](20260908-181304/) — **this run's measurement, not its diff.** Max CCN **15** across 1957
+Current as of [`20260910-234511`](20260910-234511/) — **this run's measurement, not its diff.** Max CCN **15** across 1960
 functions, **0** of them warned on; 2 file(s) in the 1000–1500 band and 2 over the 1500 cap
 (`layout-§1`).
 
@@ -77,10 +78,10 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `settings/Category.lua` | 1127 | **Accepted, and it is now the largest source file here.** Newly in the band and the crossing is dated: 729 lines at the previous run's commit, 987 when eighteen sidebar entries became four, over the line at 1084 with the tabbed General page, 1127 today. Still 373 under `layout-§1`'s cap and no function in it is warned on. The seam if it needs one is the drag-reorder block, which is self-contained. Re-check at 1300, or the moment a third tab arrives. |
+| 1000–1500 (on notice) | `settings/Category.lua` | 1132 | **Accepted, and it is now the largest source file here.** Newly in the band and the crossing is dated: 729 lines at the previous run's commit, 987 when eighteen sidebar entries became four, over the line at 1084 with the tabbed General page, 1127 today. Still 373 under `layout-§1`'s cap and no function in it is warned on. The seam if it needs one is the drag-reorder block, which is self-contained. Re-check at 1300, or the moment a third tab arrives. |
 | 1000–1500 (on notice) | `settings/Panel.lua` | 1165 | **Accepted.** Newly in the band: 920 at the previous run's commit, over the line at 1014 with the tabbed General page, 1165 after `M4-22`'s refresh-burst fix and `M3-04`'s v1.26.0 adoption. It holds this addon's highest-CCN function, `Helpers.BuildAboutContent` at exactly 15, so both numbers on this file are worth watching together rather than separately. Re-check at 1300. |
 | > 1500 (over cap) | `tests/test_macrobar.lua` | 1904 | **Owned: issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32), naming the two cuts a peel would follow.** It crossed at [`20260807-022923`](20260807-022923/) and four bundles have now recorded it. 1314 NLOC across 178 functions at avg CCN 1.3, so it is case count and not tangle. The claim above this cell used to be that `layout-§1` treats over-cap as a defect rather than a state a disposition can hold; that reading is no longer right — the section was revised on 2026-09-08 to give a breach three terminal states, an open issue among them. The census that carries every breach in this repo, not just the one this table happens to have measured, is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. |
-| > 1500 (over cap) | `tests/test_settingsui.lua` | 1669 | **Owned: issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33), naming the cut** — the three `options-ui` conformance blocks out to `test_settingsui_optionsui.lua`. In breach, and a breach with an open issue naming its seam is one of the three terminal states `layout-§1` allows since its 2026-09-08 revision. It crossed the cap during this cycle: 656 at the previous run's commit, 1528 by `M4-06`, 1669 after `M4-22`. The census that carries every breach in this repo — not just the ones this table measured — is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. No peel lands this cycle; `03_SPEC.md` § C22 rules one out. |
+| > 1500 (over cap) | `tests/test_settingsui.lua` | 1675 | **Owned: issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33), naming the cut** — the three `options-ui` conformance blocks out to `test_settingsui_optionsui.lua`. In breach, and a breach with an open issue naming its seam is one of the three terminal states `layout-§1` allows since its 2026-09-08 revision. It crossed the cap during this cycle: 656 at the previous run's commit, 1528 by `M4-06`, 1669 after `M4-22`. The census that carries every breach in this repo — not just the ones this table measured — is `docs/ARCHITECTURE.md` § *Files over the 1500-line cap*, and `tests/test_layout_cap.lua` holds it to the tracked set on every run. No peel lands this cycle; `03_SPEC.md` § C22 rules one out. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN

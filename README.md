@@ -1,10 +1,10 @@
 # Ka0s Consumable Master
 
-![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.0-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-786%2F786_passing-green)
+![Tests](https://img.shields.io/badge/Tests-788%2F788_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -127,6 +127,7 @@ Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsa
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.6.0 | 2026-09-10 | **Maintenance** has its own tab on the General page again<br>Fixed a refresh burst arming about a hundred and fifty timers to perform one rebuild<br>Category registration is now refused in combat and replayed when combat ends, instead of tainting<br>Fixed the info glyph lighting up a whole panel; it now matches Loot History's<br>Updated for game patch 12.1.0 |
 | 1.5.0 | 2026-07-13 | Three new macros: weapon enchant (`KCM_WPN_ENCH`, best oil/stone per hand, weapon- and spec-aware), augment rune (`KCM_AUG_RUNE`, best primary-stat rune, reusable-aware), and Vantus rune (`KCM_VANTUS`). New on-screen debug console — a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`); logging now resets each login. Updated for World of Warcraft: Midnight (12.0.7). |
 | 1.4.0 | 2026-05-03 | Redesigned settings panel with Blizzard sub-categories and an About page; slash commands moved to `/cm` with a cyan `[CM]` chat tag; new `/cm list`, `/cm get`, and `/cm set` commands; master enable toggle; Stat Priority now follows your active spec automatically. |
 | 1.3.0 | 2026-04-25 | New combo macros `KCM_HP_AIO` and `KCM_MP_AIO` that switch picks based on whether you're in combat, with AIO Health and AIO Mana settings pages to toggle and reorder each side. |
