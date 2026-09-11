@@ -1281,6 +1281,59 @@ test("macrobar flyout: Create wires the secure frames without erroring", functio
         "and its panel is a separate BackdropTemplate child, not the handler itself")
 end)
 
+-- ---------------------------------------------------------------------------
+-- Click gating — every secure button on the bar fires on the release it hears
+-- ---------------------------------------------------------------------------
+-- Both the slot and the flyout entries register for "AnyUp" only. Blizzard's
+-- SecureActionButton_OnClick acts on the DOWN half when the button's
+-- `useOnKeyDown` attribute is unset and the ActionButtonUseKeyDown cvar is on
+-- (the client default), so an up-only button handed a mouse click returned
+-- false and did nothing: no Lua error, no UI error. That is how a friend's bar
+-- was dead while the author's (cvar off) worked. `fires` below is the client's
+-- own decision, lifted from SecureTemplates.lua, for a hardware mouse click
+-- (isKeyPress and isSecureAction both nil) with the cvar forced ON.
+local function firesOnUpWithKeyDownCvar(btn)
+    local useOnKeyDown = btn:GetAttribute("useOnKeyDown")
+    if useOnKeyDown == nil then useOnKeyDown = true end   -- GetCVarBool("ActionButtonUseKeyDown")
+    local pressAndHold = btn:GetAttribute("pressAndHoldAction")
+    useOnKeyDown = useOnKeyDown or pressAndHold
+    local down = false                                     -- "AnyUp" hands us only the release
+    return (down and useOnKeyDown) or (not down and not useOnKeyDown) or false
+end
+
+test("macrobar click: a bar slot fires on mouse-up even with ActionButtonUseKeyDown on", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local parent = CreateFrame("Frame", "KCMMacroBarTest")
+    local btn = KCM.MacroBarButton.Create(parent, "WPN_ENCH", 1)
+    t.truthy(btn, "Create builds the slot")
+    t.eq(btn:GetAttribute("type"), "macro", "the slot clicks through its macro")
+    t.eq(btn:GetAttribute("useOnKeyDown"), false,
+        "the slot pins itself to the release it is registered for")
+    t.truthy(firesOnUpWithKeyDownCvar(btn),
+        "so the client's gate acts on the click instead of silently returning")
+end)
+
+test("macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local seed = KCM.SEED.HP_POT
+    mock.setItem(seed[1], { name = "Pot", subType = "Potions" })
+    mock.setBag(seed[1], 1)
+
+    local button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
+    button.catKey = "HP_POT"
+    local flyout = KCM.MacroBarFlyout.Create(button, "HP_POT", 1)
+    button.flyout = flyout
+    KCM.MacroBarFlyout.Apply(button, fcfg{ flyout = true })
+
+    local e = flyout.entries and flyout.entries[1]
+    t.truthy(e, "Apply grows the pool through the real create path")
+    t.eq(e:GetAttribute("useOnKeyDown"), false,
+        "the entry pins itself to the release it is registered for")
+    t.truthy(firesOnUpWithKeyDownCvar(e),
+        "so the client's gate acts on the click instead of silently returning")
+end)
+
 test("macrobar flyout: ApplyBackdrop paints the panel child, not the container", function(t)
     local KCM = h.loader.loadFullAddon()
     local button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
@@ -1613,9 +1666,9 @@ local function flyoutEntry(name)
     return e
 end
 
--- A bar slot with its flyout already built, and `n` entries already pooled —
--- entry creation itself needs a real secure template, so the pool is
--- pre-grown here and the create path stays an in-game concern.
+-- A bar slot with its flyout already built, and `n` entries already pooled as
+-- recording frames, so the chrome calls below can be asserted. The real create
+-- path is exercised by the "macrobar click" cases above.
 local function flyoutButton(catKey, n)
     local button = recFrame("KCMMacroBarButton1")
     button.catKey = catKey

@@ -185,6 +185,9 @@ local function createEntry(flyout, index)
     local btn = CreateFrame("Button", flyout:GetName() .. "Entry" .. index, flyout,
         "SecureActionButtonTemplate")
     btn:RegisterForClicks("AnyUp")
+    -- Same pin as the bar slot (modules/MacroBarButton.lua): without it the
+    -- ActionButtonUseKeyDown cvar makes the handler ignore an up-only click.
+    btn:SetAttribute("useOnKeyDown", false)
     btn:Hide()
 
     btn.backdropTex = btn:CreateTexture(nil, "BACKGROUND")

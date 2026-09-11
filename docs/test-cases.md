@@ -301,7 +301,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (125)
+### test_macrobar.lua (127)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -401,6 +401,8 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: it ships on, opening upward, closing after 3s
 - macrobar flyout: auto-close is configurable and 0 means never
 - macrobar flyout: Create wires the secure frames without erroring
+- macrobar click: a bar slot fires on mouse-up even with ActionButtonUseKeyDown on
+- macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on
 - macrobar flyout: ApplyBackdrop paints the panel child, not the container
 - macrobar flyout: leaving hands off to the countdown, and says so securely
 - macrobar flyout: combat state is driven into the snippet, not polled
@@ -947,7 +949,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 125 |
+| test_macrobar.lua | 127 |
 | test_macromanager.lua | 47 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -968,4 +970,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **790** |
+| **Total** | **792** |

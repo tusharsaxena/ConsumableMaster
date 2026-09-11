@@ -392,6 +392,10 @@ function BB.Create(parent, catKey, index)
     btn:SetAttribute("type", "macro")
     btn:SetAttribute("macro", name)
     btn:RegisterForClicks("AnyUp")
+    -- Pin the secure handler to the release we registered for. Left unset, it
+    -- falls back to the ActionButtonUseKeyDown cvar (on by default), acts only
+    -- on the DOWN half, and silently ignores every mouse click on this slot.
+    btn:SetAttribute("useOnKeyDown", false)
     btn:RegisterForDrag("LeftButton")
 
     btn.backdropTex = btn:CreateTexture(nil, "BACKGROUND")
