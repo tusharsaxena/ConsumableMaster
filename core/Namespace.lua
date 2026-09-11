@@ -20,4 +20,4 @@ NS.name = addonName
 -- therefore has to be set before either of them, and the bootstrap is the only
 -- file that runs earlier. (AbsorbTracker carries `NS.version` in its own
 -- core/Namespace.lua for exactly this reason.)
-NS.VERSION = "1.6.0"
+NS.VERSION = "1.6.1"
