@@ -32,9 +32,9 @@ Loot something better, change spec, reload, or drop out of combat, and each macr
 
 If a better pick turns up while you are in combat, the macro updates the moment you leave. WoW does not allow macro changes mid-fight.
 
-## What's new in 1.6.1
+## What's new in 1.6.2
 
-- Fixed the macro bar and its flyouts doing nothing when clicked while WoW's "cast on key down" setting is on (the game's default)
+- Fixed the AIO Health and AIO Mana tooltips on the macro bar showing the macro's text instead of the item or spell it will use
 
 ## Screenshots
 
@@ -131,6 +131,7 @@ Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsa
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.6.2 | 2026-09-11 | Fixed the AIO Health and AIO Mana tooltips on the macro bar showing the macro's text instead of the item or spell it will use |
 | 1.6.1 | 2026-09-11 | Fixed the macro bar and its flyouts doing nothing when clicked while WoW's "cast on key down" setting is on (the game's default) |
 | 1.6.0 | 2026-09-10 | **Maintenance** has its own tab on the General page again<br>Fixed a refresh burst arming about a hundred and fifty timers to perform one rebuild<br>Category registration is now refused in combat and replayed when combat ends, instead of tainting<br>Fixed the info glyph lighting up a whole panel; it now matches Loot History's<br>Updated for game patch 12.1.0 |
 | 1.5.0 | 2026-07-13 | Three new macros: weapon enchant (`KCM_WPN_ENCH`, best oil/stone per hand, weapon- and spec-aware), augment rune (`KCM_AUG_RUNE`, best primary-stat rune, reusable-aware), and Vantus rune (`KCM_VANTUS`). New on-screen debug console — a movable window with Copy and Clear, opened by `/cm debug` or the General → Debug console toggle (`/cm debug on/off`); logging now resets each login. Updated for World of Warcraft: Midnight (12.0.7). |

@@ -121,7 +121,7 @@ several tokens whose internal spacing has to survive.
 ## Help output convention
 
 ```
-Ka0s Consumable Master v1.6.1 — slash commands (alias: /consumablemaster)
+Ka0s Consumable Master v1.6.2 — slash commands (alias: /consumablemaster)
   /cm help — Show this help
   /cm config — Open the settings panel
 ```
