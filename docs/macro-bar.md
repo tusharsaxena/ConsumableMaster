@@ -84,6 +84,15 @@ Two details worth not re-deriving:
   fontstring on the button itself renders *below* the border frame and gets
   sliced by a thick edge texture. Three explicit frame levels beat relying on
   draw layers, because `Cooldown` is a frame rather than a layer.
+* **Clicks are pinned to the release.** Slots and flyout entries register for
+  `"AnyUp"` only, so each one also sets `useOnKeyDown = false`. Without it,
+  Blizzard's `SecureActionButton_OnClick` falls back to the
+  `ActionButtonUseKeyDown` cvar, which is on by default and makes the handler
+  act only on the *down* half. An up-only button never receives that half, so
+  every mouse click was dropped silently: no Lua error, no UI error. Until 1.6.1
+  the bar was dead for anyone with the cvar on, and worked for anyone with it
+  off. Registering `"AnyDown"` too would honor the cvar instead, but that means
+  re-registering on every cvar change, and re-registering is combat-forbidden.
 
 Labels are on by default, anchored just outside the bottom edge so they clear
 both the icon and the flyout band on top. `MacroBarLayout.LabelAnchor` turns the 9-way

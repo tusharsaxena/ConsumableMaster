@@ -213,7 +213,8 @@ client. If new code needs one of those methods, pass the template that grants it
 
 The stub also stores **attributes** for real (`SetAttribute` / `GetAttribute`), so a
 test can assert that the Lua side put the right values within a secure snippet's
-reach — `kcmEntries`, `kcmGrace` — and records `RegisterStateDriver` /
+reach — `kcmEntries`, `kcmGrace`, and the `useOnKeyDown` pin that decides whether a click
+fires at all — and records `RegisterStateDriver` /
 `RegisterAttributeDriver` calls in `mock.stateDrivers` / `mock.attributeDrivers`.
 Getters the addon does arithmetic or concatenation on (`GetFrameLevel`, `GetWidth`,
 `GetName`, …) return numbers and strings rather than the stub itself.
