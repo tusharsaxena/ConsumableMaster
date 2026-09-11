@@ -301,7 +301,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (127)
+### test_macrobar.lua (131)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -369,6 +369,10 @@ badge and any count quoted in the docs must agree with it.
 - macrodisplay: SetTooltip falls back to the macro name and body when unresolved
 - macrodisplay: SetTooltip with no such macro shows just the name
 - macrodisplay: SetTooltip does nothing without an owner
+- macrodisplay: an AIO tooltip out of combat shows its out-of-combat spell, not the macro text
+- macrodisplay: an AIO tooltip in combat shows the first in-combat step
+- macrodisplay: an AIO tooltip skips a disabled or pickless step, as the body does
+- macrodisplay: an AIO tooltip with nothing on the current side still falls back to the macro
 - macrodisplay: Pickup puts the macro on the cursor out of combat
 - macrodisplay: Pickup refuses in combat instead of calling the protected API
 - macrodisplay: Pickup on a macro that does not exist is a silent no-op
@@ -949,7 +953,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 127 |
+| test_macrobar.lua | 131 |
 | test_macromanager.lua | 47 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -970,4 +974,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **792** |
+| **Total** | **796** |

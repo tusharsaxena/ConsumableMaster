@@ -715,6 +715,60 @@ test("macrodisplay: SetTooltip does nothing without an owner", function(t)
     t.eq(#gt.calls, 0, "no owner, no tooltip work at all")
 end)
 
+-- An AIO macro stores no lastItemID (no single item is behind a composite), so
+-- its tooltip used to fall through to the raw macro text. It now shows the step
+-- `#showtooltip` shows: the first enabled in-combat pick while fighting, the
+-- first enabled out-of-combat pick otherwise.
+local function aioTooltip(KCM, picks, inCombat)
+    local gt = recordingTooltip()
+    _G.GameTooltip = gt
+    h.loader.mock.setCombat(inCombat)
+    KCM.Selector.PickBestForCategory = function(refKey) return picks[refKey] end
+    _G.CreateMacro("KCM_HP_AIO", 134400, "#showtooltip\n/castsequence [combat] reset=combat item:5512")
+    KCM.MacroDisplay.SetTooltip(h.loader.mock.makeStub(), "KCM_HP_AIO")
+    return gt
+end
+
+test("macrodisplay: an AIO tooltip out of combat shows its out-of-combat spell, not the macro text", function(t)
+    local KCM = h.loader.loadPure()
+    h.loader.mock.setSpell(185311, { name = "Recuperate" })
+    local gt = aioTooltip(KCM, { HS = 5512, HP_POT = 171267, FOOD = KCM.ID.AsSpell(185311) }, false)
+    local c = calledWith(gt, "SetSpellByID")
+    t.truthy(c, "the spell tooltip is set")
+    t.eq(c and c[2], 185311, "for the out-of-combat step's spell")
+    t.falsy(calledWith(gt, "SetText"), "the macro-text fallback never runs")
+    t.truthy(calledWith(gt, "Show"), "the tooltip is shown")
+end)
+
+test("macrodisplay: an AIO tooltip in combat shows the first in-combat step", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = aioTooltip(KCM, { HS = 5512, HP_POT = 171267, FOOD = 113509 }, true)
+    local c = calledWith(gt, "SetItemByID")
+    t.eq(c and c[2], 5512, "the healthstone heads the /castsequence, so it heads the tooltip")
+    t.falsy(calledWith(gt, "SetText"), "the macro-text fallback never runs")
+end)
+
+test("macrodisplay: an AIO tooltip skips a disabled or pickless step, as the body does", function(t)
+    local KCM = h.loader.loadPure()
+    local aioCfg = KCM.db.profile.categories.HP_AIO
+    aioCfg.enabled = aioCfg.enabled or {}
+    aioCfg.enabled.HS = false
+    local gt = aioTooltip(KCM, { HS = 5512, HP_POT = 171267 }, true)
+    t.eq((calledWith(gt, "SetItemByID") or {})[2], 171267, "a disabled healthstone hands over to the potion")
+
+    aioCfg.enabled.HS = nil
+    gt = aioTooltip(KCM, { HP_POT = 171267 }, true)
+    t.eq((calledWith(gt, "SetItemByID") or {})[2], 171267, "and so does a healthstone with no pick")
+end)
+
+test("macrodisplay: an AIO tooltip with nothing on the current side still falls back to the macro", function(t)
+    local KCM = h.loader.loadPure()
+    local gt = aioTooltip(KCM, { HS = 5512 }, false)
+    t.eq((calledWith(gt, "SetText") or {})[2], "KCM_HP_AIO",
+        "no out-of-combat pick: the name heads the fallback, as #showtooltip would show nothing")
+    t.falsy(calledWith(gt, "SetItemByID"), "the in-combat pick is not borrowed for the wrong side")
+end)
+
 -- ---------------------------------------------------------------------------
 -- Pickup (core/MacroDisplay.lua) — PickupMacro is protected in combat
 -- ---------------------------------------------------------------------------

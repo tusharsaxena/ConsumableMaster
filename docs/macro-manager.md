@@ -11,6 +11,7 @@ KCM.MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick) -> same result codes
 KCM.MacroManager.FlushPending()                          -> applied:int    -- on PLAYER_REGEN_ENABLED
 KCM.MacroManager.BuildBody(catKey, id)                   -> string         -- pure helper
 KCM.MacroManager.BuildCompositeBody(cat, pickFor)        -> string|nil     -- pure helper, exposed for /cm dump pick
+KCM.MacroManager.CompositeDisplayPick(cat, inCombat, pickFor) -> id|nil   -- the step #showtooltip shows, for the bar tooltip
 KCM.MacroManager.InvalidateState()                       -- clears macroState + pendingUpdates + oversize warnings
 ```
 
@@ -151,7 +152,7 @@ SetMacro(name, id, catKey):
 | `resolveIcon` | a composite's icon is a sentinel chosen by whether the body is active, not by an item, so it cannot come from `iconFor`. |
 | `oversizeDebugFmt` / `oversizeSay` / `deferDebugFmt` | the three wordings, which differ only in the noun. |
 
-`SetCompositeMacro` passes `iconItemID = nil`, which is what makes the stored `lastItemID` and the deferred entry's `itemID` come out nil.
+`SetCompositeMacro` passes `iconItemID = nil`, which is what makes the stored `lastItemID` and the deferred entry's `itemID` come out nil. With no stored pick, the macro bar's tooltip used to fall back to the raw body text. `core/MacroDisplay.lua` now asks `CompositeDisplayPick(cat, inCombat)` instead. That walks the same `compositeConfig` and drops the same unresolvable picks as the builders, and answers the head of the `/castsequence` in combat or the first `[nocombat]` line out of it. That is step 1 either way, because the client's position in the sequence can't be read from Lua.
 
 ## Combat deferral
 

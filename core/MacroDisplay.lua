@@ -192,13 +192,32 @@ local function setTooltipFromMacro(macroName)
     end
 end
 
+-- A composite (AIO) macro stores no pick, so ask MacroManager which step its
+-- `#showtooltip` is showing. Resolved at hover time only: it ranks the
+-- sub-categories, which is fine once per hover but not on every refresh tick,
+-- so Count and Cooldown deliberately do not route through here.
+local function compositePickFor(macroName)
+    local MM, cats = KCM.MacroManager, KCM.Categories
+    if not (MM and MM.CompositeDisplayPick and cats and cats.LIST) then return nil end
+    for _, cat in ipairs(cats.LIST) do
+        if cat.macroName == macroName then
+            if not cat.composite then return nil end
+            local inCombat = InCombatLockdown and InCombatLockdown() or false
+            return MM.CompositeDisplayPick(cat, inCombat)
+        end
+    end
+    return nil
+end
+
 -- Point GameTooltip at whatever the macro currently resolves to. Item and spell
--- picks get their real in-game tooltip; anything unresolved falls back to the
--- macro name plus its body so the button is never a mystery.
+-- picks get their real in-game tooltip, and so does the step an AIO macro is
+-- showing; anything unresolved falls back to the macro name plus its body so
+-- the button is never a mystery.
 function MD.SetTooltip(owner, macroName)
     if not (GameTooltip and owner) then return end
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    if not setTooltipForID(MD.PickID(macroName)) then
+    local id = MD.PickID(macroName) or compositePickFor(macroName)
+    if not setTooltipForID(id) then
         setTooltipFromMacro(macroName)
     end
     -- Show() runs on every path including the fallback — an early return that

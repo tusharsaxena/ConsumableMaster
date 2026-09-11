@@ -271,6 +271,45 @@ end
 
 M.BuildCompositeBody = buildCompositeBody  -- exposed for /cm dump pick
 
+local function selectorPick(refKey)
+    local S = KCM.Selector
+    return S and S.PickBestForCategory and S.PickBestForCategory(refKey) or nil
+end
+
+-- Whether a pick survives into the body on the given side: the in-combat side
+-- keeps what tokenForPick can spell, the out-of-combat side what
+-- actionLineForPick can.
+local function resolverFor(inCombat)
+    if inCombat then return tokenForPick end
+    return function(id) return actionLineForPick(id, "[nocombat]") end
+end
+
+-- The step a composite's `#showtooltip` shows right now, for the bar's tooltip
+-- (a composite stores no lastItemID, so core/MacroDisplay.lua has nothing else
+-- to point at). In combat that is the head of the /castsequence, out of it the
+-- first [nocombat] line. It walks the same config and drops the same
+-- unresolvable picks as the builders above, so it cannot name a step the body
+-- left out. nil when the current side is empty, which is also when
+-- `#showtooltip` has nothing to show.
+--
+-- Mid-fight each click advances the /castsequence past step 1. This still
+-- answers step 1: the client's sequence position is not readable from Lua.
+function M.CompositeDisplayPick(cat, inCombat, pickFor)
+    if not (cat and cat.composite and cat.components) then return nil end
+    local enabled, orderIn, orderOut = compositeConfig(cat)
+    if not enabled then return nil end
+    pickFor = pickFor or selectorPick
+    local resolves = resolverFor(inCombat)
+    local order = inCombat and orderIn or orderOut
+    for _, ref in ipairs(order) do
+        if enabled[ref] ~= false then
+            local pick = pickFor(ref)
+            if resolves(pick) then return pick end
+        end
+    end
+    return nil
+end
+
 -- ---------------------------------------------------------------------------
 -- Combat-deferral queue
 -- ---------------------------------------------------------------------------
