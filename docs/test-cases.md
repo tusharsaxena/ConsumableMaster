@@ -912,7 +912,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a flag map merges the pairs given over the stored map
 - every /cm stat and /cm aio write goes through the schema helper
 
-### test_slashsetup.lua (16)
+### test_slashsetup.lua (17)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -924,6 +924,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
+- Slash: /cm set keeps a multi-word font name whole
 - Slash: with the library absent every host-owned verb still dispatches
 - Slash: with the library absent only the five library-backed verbs degrade
 - Slash: a bare /cm degrades without latching, and an unknown verb still reports
@@ -1058,7 +1059,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 47 |
 | test_slash.lua | 89 |
-| test_slashsetup.lua | 16 |
+| test_slashsetup.lua | 17 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
@@ -1066,4 +1067,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **872** |
+| **Total** | **873** |

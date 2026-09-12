@@ -187,6 +187,31 @@ test("Slash: the schema CLI reads the addon's shapes through the library", funct
         "the echo renders it back through the same codec")
 end)
 
+-- Slash minor 10 (LibKa0s v1.34.0): a `string` row takes the WHOLE value after
+-- the path, trimmed, and a row with `values` matches that whole string. Through
+-- minor 9 the value was cut at the first space, so an LSM face with a space in its
+-- name could not be set from /cm set at all: `JetBrains` is not an allowed value.
+-- `macroBar.labelFont` is the row a player reaches for; the two Border style rows
+-- are the same shape. This addon has no free-text string row -- every one
+-- declares `values` -- so an LSM name is the whole of what the change reaches.
+--
+-- red under: LibKa0s-Slash-1.0 minor 9, which refuses `JetBrains` and leaves the
+-- stored face at its default.
+test("Slash: /cm set keeps a multi-word font name whole", function(t)
+    local KCM, mock = load()
+    local H = KCM.Settings.Helpers
+    t.eq(H.Get("macroBar.labelFont"), "Friz Quadrata TT", "the shipped face, going in")
+
+    mock.output = {}
+    KCM:OnSlashCommand("set macroBar.labelFont JetBrains Mono")
+    t.eq(H.Get("macroBar.labelFont"), "JetBrains Mono",
+        "every word is stored, not the first: " .. table.concat(mock.output, "\n"))
+
+    KCM:OnSlashCommand("set macroBar.labelFont   Friz Quadrata TT  ")
+    t.eq(H.Get("macroBar.labelFont"), "Friz Quadrata TT",
+        "trimmed at both ends, with the internal spaces kept")
+end)
+
 -- ── the degraded path (CM-A-32, CM-R-03) ──────────────────────────────────
 --
 -- KCM:OnSlashCommand used to read `if not Sl then return printHelp() end`, so
