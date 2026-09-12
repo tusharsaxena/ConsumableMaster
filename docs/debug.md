@@ -45,7 +45,7 @@ Functional-area tags in use today:
 
 Every settings change logs once as `[Set] <path> = <value>` at `Helpers.Set`; repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
 
-A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `Helpers.Bulk(act, scope, fn)` (or `Helpers.SetManyAndRefresh(entries, { bulk = { act, scope } })`), `Helpers.Set` still validates, writes and runs each row's onChange, but it only tallies the rows whose value changed. When the act closes it logs `[Set] <act> <scope>: N rows`. A nested bracket folds into the outer one, and a raising act still logs its line before the error propagates. The acts:
+A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `Helpers.Bulk(act, scope, fn)` (or `Helpers.SetManyAndRefresh(entries, { bulk = { act, scope } })`), `Helpers.Set` still validates, writes and runs each row's onChange, but it only tallies the rows whose value changed. When the act closes it logs `[Set] <act> <scope>: N rows`. A nested bracket folds into the outer one. A raising act still logs its one line, ending ` (stopped by an error)`, before the error propagates: `[Set] reset Macro Bar page: N rows (stopped by an error)`. A profile handler's line silences any bracket open around it (`Helpers.SilenceOpenBulk`), so a profile reset or copy run inside one is still one line in total. The acts:
 
 | Act | Line |
 |---|---|

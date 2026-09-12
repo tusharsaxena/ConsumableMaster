@@ -30,10 +30,10 @@ Defaults) and the registry acts (`Selector.ResetBucket`, `Selector.ResetAllBucke
 
 ## Tests first
 
-`tests/test_bulklog.lua` (new, 11 cases) and the flipped
+`tests/test_bulklog.lua` (new, 10 cases) and the flipped
 `tests/test_macrobar.lua` case "macrobar Defaults: the page reset is one [Set] line, written into
-the same table". The red run before the code: **837 passed, 11 failed** of 848, exactly the new and
-flipped cases. `tests/wow_mock.lua` gains `db:CopyProfile` (in place, `OnProfileCopied` carrying the
+the same table". The red run before the code: **837 passed, 11 failed** of 848, exactly the 10 new
+cases plus the flipped macrobar case. `tests/wow_mock.lua` gains `db:CopyProfile` (in place, `OnProfileCopied` carrying the
 source key), and `tests/test_locale.lua` gains the `DEBUG SCOPE` residue class for the two page
 scopes handed to `Helpers.Bulk`.
 
@@ -44,6 +44,30 @@ and still writes the row.
 
 ```
 lua tests/run.lua   848 passed, 0 failed, 0 skipped, 848 total
+luacheck .          0 warnings / 0 errors in 104 files
+lizard -C 15        No thresholds exceeded
+```
+
+## Follow-up pass (independent verifier)
+
+- A bulk act that raises logs its one line ending ` (stopped by an error)`, and the error is still
+  re-raised.
+- `Helpers.SilenceOpenBulk()`: the profile handler calls it before logging a reset or copy, so a
+  profile act run inside an open `Helpers.Bulk` is one line in total, never the handler's line plus
+  `outer: N rows`.
+- The reason for omitting the profile-reset count is corrected: N means the rows the reset actually
+  changed, which needs the values from before it. AceDB has already replaced the profile when
+  `OnProfileReset` fires, and AceDBOptions' Reset Profile button gives no earlier hook.
+
+`tests/test_bulklog.lua` goes from 10 to **14 cases**. The raising-act case is flipped to expect the
+marker, and four cases are new: MuteSetLog unmutes after a raise, a Macro Bar Defaults that raises
+mid-walk, the global reset nested in a bracket, and a profile reset and copy inside an open bracket.
+The red run before the code was **848 passed, 4 failed** of 852: the flipped case, the Macro Bar
+case, the profile-handler case, and the eol check on the files still being edited. The other two new
+cases pinned behaviour that already held.
+
+```
+lua tests/run.lua   852 passed, 0 failed, 0 skipped, 852 total
 luacheck .          0 warnings / 0 errors in 104 files
 lizard -C 15        No thresholds exceeded
 ```

@@ -21,10 +21,10 @@ badge and any count quoted in the docs must agree with it.
 - BagScanner.HasItem counts bank stacks in via the includeBank flag
 - BagScanner.HasItem reports not-owned when the item count API is absent
 
-### test_bulklog.lua (10)
+### test_bulklog.lua (14)
 
 - bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every onChange runs
-- bulk: a raising act still logs its line with the rows so far, re-raises, and unmutes
+- bulk: a raising act still logs its line with the rows so far, marked stopped, re-raises, and unmutes
 - bulk: a bracket inside a bracket folds into it, with one line for the outer act
 - bulk: SetManyAndRefresh's opts.bulk is the same one line, and a refused batch logs nothing
 - bulk: the Macro Bar page's Defaults on a page already at defaults logs 0 rows
@@ -33,6 +33,10 @@ badge and any count quoted in the docs must agree with it.
 - bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs
 - bulk: the global reset is one [Set] line from the profile handler, the session row muted
 - bulk: a profile copy is one [Set] line from the handler, and a switch is none
+- bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes
+- bulk: a Macro Bar Defaults that raises mid-walk logs its one line marked stopped, and re-raises
+- bulk: the global reset inside an open bracket is still one line in all
+- bulk: a profile handler's line inside an open bracket is the one line, for a reset and a copy
 
 ### test_bus.lua (11)
 
@@ -991,7 +995,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_bagscanner.lua | 12 |
-| test_bulklog.lua | 10 |
+| test_bulklog.lua | 14 |
 | test_bus.lua | 11 |
 | test_categories.lua | 4 |
 | test_classifier.lua | 16 |
@@ -1034,4 +1038,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **848** |
+| **Total** | **852** |

@@ -95,8 +95,9 @@ test("bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and e
     end)
 
 -- red under: a bracket whose close is skipped when the act raises -- the mute
--- would stick and every later write would go unlogged.
-test("bulk: a raising act still logs its line with the rows so far, re-raises, and unmutes",
+-- would stick and every later write would go unlogged -- or a line that reads
+-- as a finished act when the act was cut short.
+test("bulk: a raising act still logs its line with the rows so far, marked stopped, re-raises, and unmutes",
     function(t)
         local KCM, H, D = loadLogged()
         KCM.db.profile.scale = 1.5
@@ -108,7 +109,8 @@ test("bulk: a raising act still logs its line with the rows so far, re-raises, a
         end)
         t.eq(ok, false, "the error escapes")
         t.eq(err, "boom", "unwrapped")
-        t.eqList(setLines(D), { "reset boom: 1 rows" }, "the line still names the rows written")
+        t.eqList(setLines(D), { "reset boom: 1 rows (stopped by an error)" },
+            "the line still names the rows written, and says the act did not finish")
 
         D:Clear()
         H.Set("alpha", 0.75)
@@ -300,4 +302,112 @@ test("bulk: a profile copy is one [Set] line from the handler, and a switch is n
         KCM.db:SetProfile("Alt")
         KCM.State.debug = false
         t.eqList(setLines(D), {}, "a switch logs no [Set] line")
+    end)
+
+-- ---------------------------------------------------------------------------
+-- Errors, mutes and profile events inside a bracket
+-- ---------------------------------------------------------------------------
+
+-- red under: a MuteSetLog frame whose close is skipped when its act raises.
+test("bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes", function(t)
+    local KCM, H, D = loadLogged()
+    KCM.db.profile.scale = 1.5
+    arm(KCM, D)
+
+    local ok, err = pcall(H.MuteSetLog, function()
+        H.Set("scale", 1.25)
+        error("boom", 0)
+    end)
+    t.eq(ok, false, "the error escapes")
+    t.eq(err, "boom", "unwrapped")
+    t.eqList(setLines(D), {}, "the muted act logs nothing, not even on the way out")
+    t.eq(KCM.db.profile.scale, 1.25, "the write before the raise landed")
+
+    H.Set("alpha", 0.75)
+    KCM.State.debug = false
+    t.eqList(setLines(D), { "alpha = 0.75" }, "and the per-row line is back afterwards")
+end)
+
+-- A concrete act, not the bracket alone: a Macro Bar Defaults whose walk is cut
+-- short by a raising row write. The row's reactors are pcall-guarded, so a write
+-- is what can raise; the trap makes one later row's assignment raise.
+--
+-- red under: Helpers.Bulk logging the line unmarked, or not re-raising, so the
+-- act would carry on and move the position after a batch that did not land.
+test("bulk: a Macro Bar Defaults that raises mid-walk logs its one line marked stopped, and re-raises",
+    function(t)
+        local KCM, H, D = loadLogged()
+        KCM.Settings.builders["macrobar"]({})
+        local reset = H.instance.__panelFor("macrobar").panel.defaultsOnClick
+        KCM.MacroBar.Update = function() end
+        local moved = false
+        KCM.MacroBar.ResetPosition = function() moved = true end
+
+        local cfg = KCM.db.profile.macroBar
+        cfg.buttonSize = 50
+        -- alpha comes later in the walk than buttonSize. With its key absent, the
+        -- write reaches __newindex, which raises.
+        cfg.alpha = nil
+        setmetatable(cfg, { __newindex = function() error("boom", 0) end })
+
+        h.loader.mock.output = {}
+        arm(KCM, D)
+        reset()
+        KCM.State.debug = false
+        setmetatable(cfg, nil)
+
+        t.eqList(setLines(D), { "reset Macro Bar page: 1 rows (stopped by an error)" },
+            "one line, counting the row changed before the raise, and marked")
+        t.truthy(table.concat(h.loader.mock.output, "\n"):find("defaults action failed: boom", 1, true),
+            "the error left the act and reached the Defaults wrapper")
+        t.falsy(moved, "and the position, which moves only after the batch lands, did not")
+    end)
+
+-- The global reset already runs under MuteSetLog; an open bracket around it
+-- must not add its own line to the handler's.
+test("bulk: the global reset inside an open bracket is still one line in all", function(t)
+    local KCM, H, D = loadLogged()
+    consoleDouble(KCM)
+    H.Set("state.debugConsole", true)
+    arm(KCM, D)
+
+    H.Bulk("reset", "outer", function()
+        H.Set("scale", 1.5)
+        KCM.ResetAllToDefaults("test")
+    end)
+    KCM.State.debug = false
+    t.eqList(setLines(D), { "reset profile 'Default' to defaults" }, "the handler's line and nothing else")
+end)
+
+-- A profile reset or copy that AceDB runs inside an open bracket, not through
+-- ResetAllToDefaults: the handler's line is the act's one line, so the bracket
+-- it sits in logs none.
+--
+-- red under: the profile handler logging without silencing the open frame,
+-- which leaves an `outer: N rows` line beside it.
+test("bulk: a profile handler's line inside an open bracket is the one line, for a reset and a copy",
+    function(t)
+        local KCM, H, D = loadLogged()
+        KCM.db:SetProfile("Alt")
+        KCM.db.profile.macroBar.buttonSize = 50
+        KCM.db:SetProfile("Default")
+        arm(KCM, D)
+
+        H.Bulk("reset", "outer", function()
+            H.Set("scale", 1.5)
+            KCM.db:ResetProfile()
+        end)
+        t.eqList(setLines(D), { "reset profile 'Default' to defaults" }, "the reset: the handler's line only")
+
+        D:Clear()
+        H.Bulk("copy", "outer", function()
+            H.Set("scale", 1.5)
+            KCM.db:CopyProfile("Alt")
+        end)
+        t.eqList(setLines(D), { "copied profile 'Alt' → 'Default'" }, "the copy: the handler's line only")
+
+        D:Clear()
+        H.Bulk("reset", "after", function() H.Set("scale", 1.5) end)
+        KCM.State.debug = false
+        t.eqList(setLines(D), { "reset after: 1 rows" }, "the silence ended with the frame it was put on")
     end)

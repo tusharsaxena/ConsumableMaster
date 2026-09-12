@@ -402,11 +402,20 @@ function KCM.RegisterProfileCallbacks(target)
 
     -- The one log line a profile-wide act gets (debug-logging-§10): AceDB replaced
     -- the whole profile, which is not a batch through the helper, so the HANDLER
-    -- logs it, worded by the event. A switch rewrites no rows and this addon has
-    -- never traced one, so it gets no line. No row count: the profile also holds
-    -- the item registry, which is not rows, and a count of rows alone would
-    -- understate what the reset took.
+    -- logs it, worded by the event. Its line is the whole act, so it silences any
+    -- Helpers.Bulk bracket open around it: one line in total, never this one plus
+    -- an `outer: N rows`. A switch rewrites no rows and this addon has never
+    -- traced one, so it gets no line and silences nothing.
+    --
+    -- No row count on the reset: N means the rows the reset actually changed,
+    -- which needs their values from before it. AceDB has already replaced the
+    -- profile when OnProfileReset fires, and AceDBOptions' Reset Profile button
+    -- gives no earlier hook to take them from.
+    local TRACED = { OnProfileReset = true, OnProfileCopied = true }
     local function trace(event, d, key)
+        if not TRACED[event] then return end
+        local H = KCM.Settings and KCM.Settings.Helpers
+        if H and H.SilenceOpenBulk then H.SilenceOpenBulk() end
         if not isDebugOn() then return end
         local name = d and d.GetCurrentProfile and d:GetCurrentProfile()
         if event == "OnProfileReset" then

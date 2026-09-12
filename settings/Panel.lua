@@ -218,7 +218,8 @@ end
 -- the depth counter: a frame that closes inside another folds its tally into it,
 -- and only the outermost one logs. A MuteSetLog frame logs nothing and silences
 -- every frame around it -- that is the global reset, whose one line is the
--- OnProfileReset handler's.
+-- OnProfileReset handler's. SilenceOpenBulk does the same from outside a frame,
+-- for a profile handler whose line lands while a bracket is open.
 local bulk = nil
 
 local function sameValue(a, b)
@@ -275,12 +276,14 @@ end
 --- reacts exactly as it would outside, but logs no row of its own. When fn
 --- returns (or raises) the act logs `[Set] <act> <scope>: N rows`, N being the
 --- rows it changed; a bracket nested in another logs nothing and its rows count
---- toward the outer line. An error is re-raised unwrapped after the line.
+--- toward the outer line. An act that raises still logs its one line, ending
+--- ` (stopped by an error)`, and the error is then re-raised unwrapped.
 --- @return number  the rows changed
 function Helpers.Bulk(act, scope, fn)
     local ok, err, frame, nested = runFrame(fn, false)
     if not (nested or frame.silent) and KCM.State and KCM.State.debug then
-        KCM.Debug("Set", "%s %s: %s rows", tostring(act), tostring(scope), tostring(frame.count))
+        KCM.Debug("Set", ok and "%s %s: %s rows" or "%s %s: %s rows (stopped by an error)",
+            tostring(act), tostring(scope), tostring(frame.count))
     end
     if not ok then error(err, 0) end
     return frame.count
@@ -294,6 +297,14 @@ function Helpers.MuteSetLog(fn)
     local ok, err, frame = runFrame(fn, true)
     if not ok then error(err, 0) end
     return frame.count
+end
+
+--- Silence the bracket open right now, if there is one, because another seam has
+--- just logged the whole act: a profile reset or copy, whose one line is the
+--- profile handler's (core/ConsumableMaster.lua). Every frame around it goes
+--- quiet as it closes; a bracket opened afterwards logs as usual.
+function Helpers.SilenceOpenBulk()
+    if bulk then bulk.silent = true end
 end
 
 function Helpers.FindSchema(path)
