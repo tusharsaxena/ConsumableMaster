@@ -896,10 +896,11 @@ badge and any count quoted in the docs must agree with it.
 - TooltipCache: 'over' applies to the seconds form only
 - TooltipCache: a cooldown note is stripped and a bare cooldown line skipped
 
-### test_vendor_sync.lua (2)
+### test_vendor_sync.lua (3)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
 - tests/_kit is the test kit that shipped with that release
+- the automated-test runner is recorded executable (100755)
 
 ### test_weaponslots.lua (9)
 
@@ -970,8 +971,8 @@ badge and any count quoted in the docs must agree with it.
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
-| test_vendor_sync.lua | 2 |
+| test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **796** |
+| **Total** | **797** |
