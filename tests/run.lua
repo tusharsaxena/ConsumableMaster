@@ -431,6 +431,7 @@ local SUITES = {
     "test_envsetup",
     "test_itemsetup",
     "test_events",
+    "test_harness",
     "test_id",
     "test_libka0s",
     "test_layout_cap",

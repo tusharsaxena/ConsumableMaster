@@ -249,6 +249,19 @@ badge and any count quoted in the docs must agree with it.
 - RequestRecompute re-arms after its frame callback has fired
 - RequestRecompute's frame callback is inert if the request was already served
 
+### test_harness.lua (10)
+
+- Harness: the addon object is published as _G.KCM and is the namespace
+- Harness: AceGUI:Create hands back the permissive widget, logged in creation order
+- Harness: GetWidgetVersion answers 0 for an unregistered type
+- Harness: LibStub answers nil for an unknown major, silent flag or not
+- Harness: LibSharedMedia serves the fonts and borders the settings pages read
+- Harness: a string-method bus registration calls the target's method
+- Harness: OnEnable registers every game event without raising
+- Harness: AceConsole's Printf reaches the addon object, as in the client
+- Harness: perf suspend drops every game event, through the recorded event half
+- Harness: AceGUI:Release takes a widget back, and raises on a second release
+
 ### test_id.lua (8)
 
 - ID.AsSpell negates the spellID into a sentinel
@@ -975,6 +988,7 @@ badge and any count quoted in the docs must agree with it.
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 20 |
+| test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_layout_cap.lua | 3 |
@@ -1002,4 +1016,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **824** |
+| **Total** | **834** |

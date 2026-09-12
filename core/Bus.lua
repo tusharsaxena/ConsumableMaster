@@ -44,9 +44,15 @@ KCM.MSG = {
 -- The pipeline owns the ONLY subscription to RECOMPUTE and forwards it to the
 -- frame-coalescing entry point. Registered at load so it is live before the
 -- first PLAYER_ENTERING_WORLD (OnEnable) fires.
+--
+-- A function handler registered with no `arg` is called as fn(message, ...) --
+-- CallbackHandler stores it as-is and dispatches (eventname, ...) -- so the
+-- reason is the SECOND parameter. It read the third until #38 put the suite on
+-- the kit's AceEvent: the old harness called fn(target, message, ...), which no
+-- client does, and every bus-routed pass logged its reason as "unknown".
 local pipelineTarget = KCM.NewBusTarget()
 KCM._pipelineBusTarget = pipelineTarget
-pipelineTarget:RegisterMessage(KCM.MSG.RECOMPUTE, function(_, _, reason)
+pipelineTarget:RegisterMessage(KCM.MSG.RECOMPUTE, function(_, reason)
     if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
         KCM.Pipeline.RequestRecompute(reason)
     end
