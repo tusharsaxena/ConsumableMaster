@@ -241,6 +241,9 @@ local RESIDUE = {
     {"settings/Panel.lua", "expected color table", "VALIDATOR"},
     {"settings/Panel.lua", "invalid value for ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "value must not be nil", "VALIDATOR"},
+    {"settings/Panel.lua", "expected true or false for ", "VALIDATOR"},
+    {"settings/Panel.lua", "expected a list", "VALIDATOR"},
+    {"settings/Panel.lua", "expected a table", "VALIDATOR"},
     {"settings/Panel.lua", "settings tab '", "DIAGNOSTIC"},
     {"settings/Panel.lua", "settings panel unavailable on this client; use /cm.", "NOT YET ROUTED"},
 
@@ -289,6 +292,9 @@ local RESIDUE = {
     {"settings/Slash.lua", "Per-category priority list editor — try `/cm priority` for the list", "CLI SURFACE"},
     {"settings/Slash.lua", "Per-spec stat priority editor — try `/cm stat` for the list", "CLI SURFACE"},
     {"settings/Slash.lua", "Composite-category editor (HP_AIO, MP_AIO) — try `/cm aio` for the list", "CLI SURFACE"},
+    {"settings/Slash.lua", "expected a comma-separated list of keys", "VALIDATOR"},
+    {"settings/Slash.lua", "expected KEY=on|off pairs, comma-separated", "VALIDATOR"},
+    {"settings/Slash.lua", "edited with %s, not with /cm set", "VALIDATOR"},
     {"settings/Slash.lua", "Dump internal state — try `/cm dump` for the list", "CLI SURFACE"},
 
     -- settings/Slash.lua — SLASH_STRINGS, the LibKa0s-Slash override table.

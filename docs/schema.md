@@ -35,10 +35,10 @@ db.profile
 │   │           ├── pins
 │   │           └── discovered
 │   └── HP_AIO  │ MP_AIO                        ← composite (no item buckets)
-│       ├── enabled            { [refKey] = boolean }
-│       ├── orderInCombat      { refKey, refKey, ... }
-│       └── orderOutOfCombat   { refKey, ... }
-├── statPriority
+│       ├── enabled            { [refKey] = boolean }         -- schema row (flag map)
+│       ├── orderInCombat      { refKey, refKey, ... }         -- schema row (order)
+│       └── orderOutOfCombat   { refKey, ... }                 -- schema row (order)
+├── statPriority                                             -- ONE schema row (map)
 │   └── ["<classID>_<specID>"] = { primary, secondary[] }   -- user overrides only
 ├── macroState
 │   └── [macroName] = { lastItemID, lastBody, lastIcon, lastCat }   -- early-out cache
@@ -90,8 +90,8 @@ db.profile
     ├── useClassColorLabel          boolean
     ├── combatMode                  "ALWAYS" │ "HIDE_IN_COMBAT" │ "ONLY_IN_COMBAT"
     ├── fadeUnlessHover │ fadeAlpha boolean │ number
-    ├── order                       { catKey, ... }   -- slot order, drag-to-swap
-    └── shown                       { [catKey] = false }  -- unset means VISIBLE
+    ├── order                       { catKey, ... }   -- slot order, drag-to-swap; schema row (order)
+    └── shown                       { [catKey] = false }  -- unset means VISIBLE; schema row (flag map)
 ```
 
 ### Field semantics
@@ -100,8 +100,8 @@ db.profile
 - **`blocked[id] = true`** — user-blocked entry; subtracted from the candidate set. Auto-discovery cannot re-add a blocked id.
 - **`pins`** — array of `{ itemID, position }` (the field is `itemID`, and it holds a spell sentinel just as happily as an itemID). Pinned entries land at their requested position; non-pinned entries fill the gaps in score order. Top-to-bottom ordering. `MoveUp` / `MoveDown` rewrite the whole array as one contiguous `1..N` run, so two pins never contend for a position in practice.
 - **`discovered[id] = <unixTimestamp>`** — auto-discovered item, with last-sighting timestamp used by the GC sweep. Items only — bag discovery cannot find spells.
-- **`statPriority[<spec>]`** — optional. Missing entries fall back to the seed default (`Defaults_StatPriority.lua`); if the seed is also missing, the class-primary default is used.
-- **`BATTLE_REZ.mouseover`** — the one bucket-shape exception: an extra `boolean` field (default `true`) alongside `added` / `blocked` / `pins` / `discovered`. Read by `MacroManager` (`modules/MacroManager.lua:73`) to decide whether the macro body gets the `[@mouseover,help][@target,help]` targeting clause or falls back to `[@target,help]` alone; toggled from that category's tab on the Macros page ("Cast on mouseover" checkbox, `settings/Category.lua:373-386`).
+- **`statPriority[<spec>]`** — optional. Missing entries fall back to the seed default (`Defaults_StatPriority.lua`); if the seed is also missing, the class-primary default is used. The whole map is one whole-value schema row, `statPriority` (`settings/StatPriority.lua`). Every writer hands the whole map to `KCM.Schema:Set`, and the row's normalizer keeps a spec key, a real primary (`STR` / `AGI` / `INT`) and the secondaries deduplicated.
+- **`BATTLE_REZ.mouseover`** — the one bucket-shape exception: an extra `boolean` field (default `true`) alongside `added` / `blocked` / `pins` / `discovered`. Read by `MacroManager` (`modules/MacroManager.lua:73`) to decide whether the macro body gets the `[@mouseover,help][@target,help]` targeting clause or falls back to `[@target,help]` alone; It is the schema row `categories.BATTLE_REZ.mouseover`, toggled from that category's tab on the Macros page (the "Cast on mouseover" checkbox) and reachable as `/cm get|set|reset categories.BATTLE_REZ.mouseover`.
 - **`BLOODLUST` / `BATTLE_REZ` have no Classifier matcher.** Every other category in this tree gains candidates from the bag scan; these two are seed-plus-user-added only — `discovered` never populates on its own.
 - **`KCM.SEED.CLASS_GATE`** — a general mechanism, not specific to any one category: `Selector.spellAvailable` (`modules/Selector.lua`) consults it for every spell-form candidate in every category, falling back to it when `IsPlayerSpell` says no (e.g. a pet-granted ability like Primal Rage, which lives in the hunter pet's spellbook, not the player's). Maps a spell id to the class file name allowed to use it. Declared and explained in `defaults/Defaults_Bloodlust.lua`, the only seed file that currently populates it.
 - **`WPN_ENCH` is per-hand, not a single pick.** It still has one `bySpec` bucket like the other spec-aware categories, but the pipeline resolves it as two independent picks: `Selector.PickBestForSlot(catKey, slot, scoreCache)` filters the effective candidate set to entries whose tooltip-derived `tt.weaponAffinity` (`"bladed"` | `"blunt"` | `"any"`, from `TooltipCache`) matches `KCM.WeaponSlots.SlotAffinity(slot)` (`"bladed"` | `"blunt"` | `"other"` | `nil`) for the equipped main-hand (16) / off-hand (17) weapon, then ranks and picks within that filtered set. `AP` and `SP` are scored as spec-role stats — `AP` scores as the spec's primary throughput stat for STR/AGI specs, `SP` for INT specs (`Ranker.lua`'s primary-stat weight), so an Attack Power oil doesn't rank below a secondary-stat oil for a physical-damage spec. `MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick)` builds the macro from the two picks, dropping a hand with no weapon or no matching enhancement.
@@ -110,7 +110,7 @@ db.profile
 - **`labelFlags`** — the canonical font-flags string (`options-ui-§16`). It replaced the `labelOutline` boolean in schema **v3**; `""` is a real stored value and means no flags at all.
 - **`macroState`** — fingerprint cache for `MacroManager`'s "unchanged" early-out. `lastIcon` was added in v1.2.0 to support the `DYNAMIC_ICON` migration; `lastCat` lets `MacroManager` reason about which category owns a slot.
 
-- **`macroBar`** — the optional macro bar's entire state. Every scalar has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel widget and a `/cm set macroBar.<field>` path. Two fields are not scalars: **`order`** is the slot order. Dragging one slot onto another mutates it (`MacroBar.SwapSlots`), and so do the Macro Bar page's order and page resets (`settings/MacroBar.lua`). It is repaired on every read by `MacroBarModel.Order()` (unknown keys dropped, newly-shipped categories appended); **`shown[catKey] = false`** hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot **per profile**: the profile's own `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login or the next switch back. Schema **v3** converts `labelOutline` (boolean) to `labelFlags` (string) and removes the old key, because a stored value changing shape is a migration and never an edit to a defaults table. `locked` is still stored here and is still `macroBar.locked`; only the tab it is edited on moved (General → Master controls). Detail in [macro-bar.md](./macro-bar.md).
+- **`macroBar`** — the optional macro bar's entire state. Every setting has a matching `KCM.Settings.Schema` row (registered by `settings/MacroBar.lua`, defaults sourced from `dbDefaults`), so each is both a panel setting and a `/cm set macroBar.<field>` path. Two of them are whole-value rows rather than scalars. **`order`** is the slot order (type `order`). Dragging one slot onto another writes it (`MacroBar.SwapSlots`), and so do the Macro Bar page's order and page resets (`settings/MacroBar.lua`), each through the schema helper. `MacroBarModel.Order()` repairs it on every read without writing it back: unknown keys are dropped and newly-shipped categories appended. **`shown[catKey] = false`** (type `map`) hides a slot, and an *unset* key means visible so a category shipped after the profile was written appears rather than vanishing. A profile that predates the bar needs no structural migration — AceDB merges the defaults in — but schema **v2** (`core/Database.lua`) does force `enabled = true` + `locked = false` once, so an upgrading user meets the bar exactly like a new one does. That step is deliberately one-shot **per profile**: the profile's own `schemaVersion` bump means a later, deliberate opt-out is never stomped on the next login or the next switch back. Schema **v3** converts `labelOutline` (boolean) to `labelFlags` (string) and removes the old key, because a stored value changing shape is a migration and never an edit to a defaults table. `locked` is still stored here and is still `macroBar.locked`; only the tab it is edited on moved (General → Master controls). Detail in [macro-bar.md](./macro-bar.md).
 
 ### Effective candidate set
 
@@ -149,7 +149,7 @@ HP_AIO = {
 ```
 
 - `enabled[ref] ~= false` defaults to true when the field is unset (e.g. for refs added later via Categories metadata that aren't yet in the saved bucket).
-- `orderInCombat` and `orderOutOfCombat` are arrays of single-category keys. Sub-categories are **locked to their section** — HS / HP_POT / MP_POT only ever appear in `inCombat`; FOOD / DRINK only ever in `outOfCombat`. The Options panel enforces this; `Pipeline.RecomputeOne` doesn't double-check.
+- `orderInCombat` and `orderOutOfCombat` are arrays of single-category keys. Sub-categories are **locked to their section** — HS / HP_POT / MP_POT only ever appear in `inCombat`; FOOD / DRINK only ever in `outOfCombat`. The Options panel enforces this, and so does each section's schema row, whose validator keeps a section to its own shipped members; `Pipeline.RecomputeOne` doesn't double-check.
 - Composites have no `added` / `blocked` / `pins` / `discovered` buckets — picks come from the underlying single categories at recompute time.
 
 The composite body is assembled by `MacroManager.SetCompositeMacro` (see [macro-manager.md](./macro-manager.md#composite-body-assembly)).

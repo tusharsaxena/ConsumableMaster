@@ -24,14 +24,13 @@
 -- controls over one setting is exactly what that rule removes. Their stored paths
 -- did not move -- `macroBar.locked` is still `macroBar.locked`.
 --
--- Every scalar is a KCM.Settings.Schema row, so each one is simultaneously a
+-- Every setting is a KCM.Settings.Schema row, so each one is simultaneously a
 -- widget here and a `/cm get|set macroBar.<field>` path — one definition, both
--- surfaces. The per-macro checkboxes are the exception: they're a dynamic list
--- keyed by category, so they use the CustomCheckbox escape hatch with a get/set
--- pair onto db.profile.macroBar.shown.
---
--- Slot ORDER is not edited here — it's changed by dragging slots on the bar
--- itself (swap-on-drop). This page only offers "Reset order".
+-- surfaces. Two of them are WHOLE-VALUE rows the row engine does not draw
+-- (architecture-§5): `macroBar.shown`, which the Buttons tab's per-macro
+-- checkboxes write through the CustomCheckbox escape hatch (a dynamic list keyed
+-- by category), and `macroBar.order`, which is changed by dragging slots on the
+-- bar itself (swap-on-drop). This page only offers "Reset order".
 
 local _, NS = ...
 local KCM = NS
@@ -579,15 +578,37 @@ row{
     tooltip = L["Opacity of the bar while faded out. 0 makes it invisible until hovered."],
 }
 
+-- ── Buttons ────────────────────────────────────────────────────────────────
+--
+-- The two WHOLE-VALUE rows behind the Buttons tab (architecture-§5). A list over
+-- a FIXED member set -- the shipped categories -- that the player only reorders
+-- or toggles is a value, written whole through the helper like any other row.
+-- The row engine draws neither: the order is set by dragging one slot onto
+-- another ON THE BAR, and visibility by the tab's per-macro checkbox grid, a
+-- length no schema knows. Being rows is what puts every write -- the drag, a
+-- checkbox, Reset slot order, the page's Defaults, `/cm set` -- through one seam.
+local function slotKeys()
+    return KCM.MacroBarModel and KCM.MacroBarModel.AllKeys() or {}
+end
+row{
+    path = "macroBar.order", type = "order", group = "Buttons", members = slotKeys,
+    label = L["Slot order"],
+    tooltip = L["The order the macros sit in on the bar. Drag a button on the bar onto another to swap them; Reset slot order puts the shipped order back."],
+}
+row{
+    path = "macroBar.shown", type = "map", group = "Buttons", members = slotKeys, valueType = "bool",
+    label = L["Buttons on the bar"],
+    tooltip = L["Which macros have a button on the bar. A macro this does not name has one."],
+}
+
 -- ---------------------------------------------------------------------------
 -- Actions
 -- ---------------------------------------------------------------------------
 
+-- Through the schema helper: `macroBar.order` is a row, its validator stores a
+-- copy of the shipped order, and its onChange re-applies the bar.
 local function doResetOrder()
-    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
-    if not cfg then return end
-    cfg.order = CopyTable(BAR_DEFAULTS.order or {})
-    applyBar()
+    if not (KCM.Schema and KCM.Schema:Set("macroBar.order", BAR_DEFAULTS.order or {})) then return end
     H.RefreshAllPanels()
     KCM.Say("macro bar slot order reset.")
 end
@@ -609,12 +630,10 @@ end
 local function doResetPage()
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.macroBar
     if not cfg then return end
-    -- No row describes these yet, so they go back through the field writes that
-    -- already own them: the drag geometry's reset, and the order's and
-    -- visibility's shipped values.
+    -- The drag-written position has no row, so it goes back through the one
+    -- function that owns it. The slot order and visibility ARE rows, so the walk
+    -- below resets them with everything else.
     if KCM.MacroBar and KCM.MacroBar.ResetPosition then KCM.MacroBar.ResetPosition() end
-    cfg.order = CopyTable(BAR_DEFAULTS.order or {})
-    cfg.shown = CopyTable(BAR_DEFAULTS.shown or {})
     local entries = {}
     for _, def in ipairs(KCM.Settings.Schema) do
         if def.panel == "macrobar" and def.default ~= nil then
@@ -642,14 +661,17 @@ local function macroToggles(ctx)
                 H.CustomCheckbox(c, parent, relW, {
                     label   = cat and cat.displayName or key,
                     tooltip = (L["Show %s on the macro bar."]):format(cat and cat.macroName or key),
+                    -- A read, and it writes nothing: unset means shown.
                     get     = function()
-                        cfg.shown = cfg.shown or {}
-                        return cfg.shown[key] ~= false
+                        return not (cfg.shown and cfg.shown[key] == false)
                     end,
+                    -- The whole map with this slot's flag replaced, through the
+                    -- schema helper; the row's onChange re-applies the bar.
                     set     = function(v)
-                        cfg.shown = cfg.shown or {}
-                        cfg.shown[key] = v and true or false
-                        applyBar()
+                        local shown = {}
+                        for k, flag in pairs(cfg.shown or {}) do shown[k] = flag end
+                        shown[key] = v and true or false
+                        if KCM.Schema then KCM.Schema:Set("macroBar.shown", shown) end
                     end,
                 })
             end,

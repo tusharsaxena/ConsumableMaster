@@ -778,54 +778,65 @@ end)
 --
 -- The two AIO sections used to be reordered by paired up/down arrows, so the
 -- only mutation the model had was an adjacent swap written inline in the panel.
--- The drag needs "put this one third" in ONE call (options-ui-§18), so the
--- mutator is here, where it can be driven without a widget.
+-- The drag needs "put this one third" in ONE call (options-ui-§18).
+--
+-- The sections are VALUES, not registry membership (architecture-§5): each is a
+-- whole-value `order` row, so MoveCompositeRef splices a COPY and writes it
+-- through the schema helper. The splice itself is Selector.SpliceOrder, which is
+-- pure -- so the four-place case can still be driven over any list, even though
+-- no shipped section holds four sub-categories.
 
-test("Selector.MoveCompositeRef splices to an index rather than swapping neighbors", function(t)
-    local KCM = h.loader.loadPure()
-    local cfg = KCM.db.profile.categories.HP_AIO
-    cfg.orderInCombat = { "A", "B", "C", "D" }
+test("Selector.SpliceOrder moves one entry to an index rather than swapping neighbors", function(t)
+    local S = h.loader.loadPure().Selector
+    local arr = { "A", "B", "C", "D" }
 
     -- red under: expressing the move as a swap — a swap of 1 and 4 yields
     -- D,B,C,A, which is an order nobody asked for.
-    t.eq(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 4), true, "reports the change")
-    t.eqList(cfg.orderInCombat, { "B", "C", "D", "A" },
+    local out = S.SpliceOrder(arr, 1, 4)
+    t.eqList(out, { "B", "C", "D", "A" },
         "a four-place move leaves the rows it passed in the order they were in")
-
-    t.eq(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 4, 2), true, "and back again")
-    t.eqList(cfg.orderInCombat, { "B", "A", "C", "D" }, "dragging upward splices the same way")
+    t.eqList(S.SpliceOrder(out, 4, 2), { "B", "A", "C", "D" }, "dragging upward splices the same way")
+    t.eqList(arr, { "A", "B", "C", "D" }, "and the list handed in is never touched: the move is a copy")
 end)
 
-test("Selector.MoveCompositeRef refuses a move it cannot make", function(t)
-    local KCM = h.loader.loadPure()
-    local cfg = KCM.db.profile.categories.HP_AIO
-    cfg.orderInCombat = { "A", "B" }
-
+test("Selector.SpliceOrder refuses a move it cannot make", function(t)
     -- red under: dropping any of the bounds checks — an out-of-range index would
     -- otherwise table.remove a nil and insert it, silently shortening the array.
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 1), "a no-op move")
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 0, 1), "index below the array")
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 9), "target past the end")
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "noSuchField", 1, 2), "an unknown order field")
-    t.falsy(KCM.Selector.MoveCompositeRef("NO_SUCH_CAT", "orderInCombat", 1, 2), "an unknown category")
-    t.eqList(cfg.orderInCombat, { "A", "B" }, "and none of them touched the array")
+    local S = h.loader.loadPure().Selector
+    local arr = { "A", "B" }
+    t.eq(S.SpliceOrder(arr, 1, 1), nil, "a no-op move")
+    t.eq(S.SpliceOrder(arr, 0, 1), nil, "index below the array")
+    t.eq(S.SpliceOrder(arr, 1, 9), nil, "target past the end")
+    t.eq(S.SpliceOrder(arr, "1", 2), nil, "an index that is not a number")
+    t.eq(S.SpliceOrder(nil, 1, 2), nil, "no list at all")
 end)
 
-test("Selector.MoveCompositeRef never moves a ref between the two sections", function(t)
+test("Selector.MoveCompositeRef writes one section, spliced, through the schema helper", function(t)
     -- A sub-category is LOCKED to its combat state, and the two sections are two
     -- separate stored arrays — which is why the panel draws two flat controllers
     -- rather than one with a boundary (options-ui-§18).
     --
     -- red under: resolving the array from the category root rather than from the
-    -- named order field.
-    local KCM = h.loader.loadPure()
+    -- named order field, or writing the section in place instead of through the
+    -- helper.
+    local KCM = h.loader.loadFullAddon()
+    local S   = KCM.Selector
     local cfg = KCM.db.profile.categories.HP_AIO
-    cfg.orderInCombat    = { "HS", "HP_POT" }
-    cfg.orderOutOfCombat = { "FOOD" }
+    local H   = KCM.Settings.Helpers
+    local paths, realSet = {}, H.Set
+    H.Set = function(path, value) paths[#paths + 1] = path; return realSet(path, value) end
 
-    KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2)
+    t.eq(S.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2), true, "reports the change")
     t.eqList(cfg.orderInCombat, { "HP_POT", "HS" }, "the named section reordered")
     t.eqList(cfg.orderOutOfCombat, { "FOOD" }, "and the other one is untouched")
+    t.eqList(paths, { "categories.HP_AIO.orderInCombat" }, "as one whole-section write")
+
+    t.falsy(S.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 1), "a no-op move")
+    t.falsy(S.MoveCompositeRef("HP_AIO", "orderInCombat", 0, 1), "index below the array")
+    t.falsy(S.MoveCompositeRef("HP_AIO", "noSuchField", 1, 2), "an unknown order field")
+    t.falsy(S.MoveCompositeRef("NO_SUCH_CAT", "orderInCombat", 1, 2), "an unknown category")
+    t.eqList(cfg.orderInCombat, { "HP_POT", "HS" }, "and none of the refusals touched it")
+    t.eq(#paths, 1, "or wrote anything")
 end)
 
 -- ---------------------------------------------------------------

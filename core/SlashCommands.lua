@@ -8,8 +8,10 @@
 --   * the `/cm dump <target>` namespace lives in core/SlashDump.lua (CM-54).
 --
 -- /cm list / get / set are schema-driven via KCM.Settings.Helpers (see
--- settings/Panel.lua). /cm priority|stat|aio are dedicated verb namespaces
--- for the list-shaped state that doesn't fit a flat scalar schema.
+-- settings/Panel.lua). /cm priority|stat|aio are dedicated verb namespaces:
+-- `priority` for the item lists (the registry, which no row describes), and
+-- `stat` / `aio` as the readable editors for settings that are whole-value rows
+-- -- each of their writes goes through KCM.Schema:Set like `/cm set` does.
 --
 -- KickCD's slash handler (core/KickCD.lua) is the design reference.
 
@@ -231,6 +233,25 @@ end
 
 
 
+-- The whole-value rows (architecture-§5) are tables, rendered as text: an order
+-- as its keys in order, a map as sorted key=value pairs, unless the row renders
+-- itself (stat priority does, one spec per clause).
+local function formatOrder(_, v)
+    local parts = {}
+    for i, x in ipairs(v) do parts[i] = tostring(x) end
+    return #parts > 0 and table.concat(parts, ", ") or "{}"
+end
+
+local function formatMap(def, v)
+    if type(def.render) == "function" then return def.render(v) end
+    local parts = {}
+    for k, x in pairs(v) do parts[#parts + 1] = tostring(k) .. "=" .. tostring(x) end
+    table.sort(parts)
+    return #parts > 0 and table.concat(parts, ", ") or "{}"
+end
+
+local TABLE_FORMATTERS = { order = formatOrder, map = formatMap }
+
 -- Shared, type-aware, unit-annotated value formatter (slash-commands-§5). The
 -- single source of truth for both `/cm list` rows and the `get`/`set` echo, so
 -- the two paths can never diverge.
@@ -250,6 +271,8 @@ function KCM.FormatSchemaValue(def, v)
     if def.type == "number" and def.fmt then
         return def.fmt:format(v)
     end
+    local tableFormat = TABLE_FORMATTERS[def.type]
+    if tableFormat and type(v) == "table" then return tableFormat(def, v) end
     return tostring(v)
 end
 -- KCM.FormatSchemaValue above stays a published export — tests/test_schema.lua
@@ -475,6 +498,15 @@ local SECONDARY_STATS = {
     CRIT = true, HASTE = true, MASTERY = true, VERSATILITY = true,
 }
 
+-- `statPriority` is a whole-value schema row (architecture-§5): each verb builds
+-- the whole map with one spec's override replaced -- or dropped, for nil -- and
+-- writes it through the helper, which validates and logs it once.
+local function writeStatPriority(specKey, entry)
+    local setter = KCM.Schema
+    if not (setter and setter.Set) then return false end
+    return setter:Set("statPriority", KCM.SpecHelper.WithStatPriority(specKey, entry)) and true or false
+end
+
 local function statList(rest)
     local args = tokenize(rest)
     local specKey = resolveSpecKey(args[1])
@@ -498,12 +530,10 @@ local function statPrimary(rest)
         return say("Usage: /cm stat primary <STR|AGI|INT> [specKey]")
     end
     if not specKey then return say("could not resolve spec.") end
-    KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
     local cur = KCM.SpecHelper.GetStatPriority(specKey)
-    KCM.db.profile.statPriority[specKey] = {
-        primary   = stat,
-        secondary = cur.secondary or {},
-    }
+    if not writeStatPriority(specKey, { primary = stat, secondary = cur.secondary or {} }) then
+        return say("could not write the stat priority.")
+    end
     say(("statpriority.%s.primary = %s"):format(specKey, stat))
     afterMutation("slash_stat_primary")
 end
@@ -538,12 +568,10 @@ local function statSecondary(rest)
         return say(("Unknown secondary stat(s): %s.  Allowed: CRIT, HASTE, MASTERY, VERSATILITY")
             :format(table.concat(bad, ", ")))
     end
-    KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
     local cur = KCM.SpecHelper.GetStatPriority(specKey)
-    KCM.db.profile.statPriority[specKey] = {
-        primary   = cur.primary or "STR",
-        secondary = list,
-    }
+    if not writeStatPriority(specKey, { primary = cur.primary or "STR", secondary = list }) then
+        return say("could not write the stat priority.")
+    end
     say(("statpriority.%s.secondary = %s"):format(specKey, table.concat(list, ", ")))
     afterMutation("slash_stat_secondary")
 end
@@ -553,11 +581,13 @@ local function statReset(rest)
     local specKey = resolveSpecKey(args[1])
     if not specKey then return say("could not resolve spec.") end
     if not (KCM.db and KCM.db.profile) then return say("DB not ready.") end
-    KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
-    if KCM.db.profile.statPriority[specKey] == nil then
+    local stored = KCM.db.profile.statPriority
+    if not (stored and stored[specKey] ~= nil) then
         return say(("no override for %s; nothing to reset."):format(specKey))
     end
-    KCM.db.profile.statPriority[specKey] = nil
+    if not writeStatPriority(specKey, nil) then
+        return say("could not write the stat priority.")
+    end
     say(("dropped stat-priority override for %s — falling back to seed/class default.")
         :format(specKey))
     afterMutation("slash_stat_reset")
@@ -630,6 +660,21 @@ local function locateAIORef(cfg, ref)
     return nil, nil
 end
 
+-- A composite's `enabled` map and its two section orders are whole-value schema
+-- rows, `categories.<KEY>.<field>` (architecture-§5): every /cm aio write builds
+-- the whole value and hands it to the helper, never the stored one edited in
+-- place.
+local AIO_FIELDS = { "enabled", "orderInCombat", "orderOutOfCombat" }
+
+local function aioPath(cat, field)
+    return ("categories.%s.%s"):format(cat.key, field)
+end
+
+local function writeAIO(cat, field, value)
+    local setter = KCM.Schema
+    return (setter and setter.Set and setter:Set(aioPath(cat, field), value)) and true or false
+end
+
 local function aioList(cat)
     local cfg = compositeCfg(cat)
     if not cfg then return say("no DB bucket for " .. cat.key) end
@@ -686,19 +731,24 @@ local function aioToggle(cat, rest)
     local args = tokenize(rest)
     local cfg, ref = requireAIORef(cat, args, "Usage: /cm aio <key> toggle <ref> [on|off]")
     if not cfg then return end
-    cfg.enabled = cfg.enabled or {}
     local newVal = AIO_BOOL_WORDS[(args[2] or ""):lower()]
     if newVal == nil then
         -- No explicit word: flip the current value. An unset ref counts as ON,
         -- matching the composite body builder's `enabled[ref] ~= false` default,
         -- so the first toggle of an untouched ref turns it off.
-        local cur = cfg.enabled[ref]
+        local cur = cfg.enabled and cfg.enabled[ref]
         if cur == nil then cur = true end
         newVal = not cur
     end
     -- Always a real boolean — the body builder tests `~= false`, so a string or
-    -- a nil here would silently re-enable the ref.
-    cfg.enabled[ref] = newVal
+    -- a nil here would silently re-enable the ref. The row's validator refuses
+    -- anything else, too.
+    local flags = {}
+    for k, v in pairs(cfg.enabled or {}) do flags[k] = v end
+    flags[ref] = newVal
+    if not writeAIO(cat, "enabled", flags) then
+        return say(("could not write %s.enabled"):format(cat.key))
+    end
     say(("%s.enabled.%s = %s"):format(cat.key, ref, tostring(newVal)))
     afterMutation("slash_aio_toggle")
 end
@@ -708,13 +758,17 @@ local function aioMove(cat, rest, dir)
     local cfg, ref, field, idx = requireAIORef(cat, args,
         ("Usage: /cm aio <key> %s <ref>"):format(dir))
     if not cfg then return end
-    local arr = cfg[field]
+    local arr = {}
+    for i, v in ipairs(cfg[field]) do arr[i] = v end
     local target = (dir == "up") and (idx - 1) or (idx + 1)
     if target < 1 or target > #arr then
         return say(("'%s' already at %s edge of %s"):format(
             ref, (dir == "up" and "top" or "bottom"), AIO_SECTION_LABEL[field]))
     end
     arr[idx], arr[target] = arr[target], arr[idx]
+    if not writeAIO(cat, field, arr) then
+        return say(("could not write %s.%s"):format(cat.key, field))
+    end
     say(("%s.%s: %s moved %s (now position %d)")
         :format(cat.key, field, ref, dir, target))
     afterMutation("slash_aio_move_" .. dir)
@@ -727,9 +781,16 @@ local function aioReset(cat)
     if not defaults then return say("no defaults registered for " .. cat.key) end
     local cfg = compositeCfg(cat)
     if not cfg then return say("no DB bucket for " .. cat.key) end
-    cfg.enabled          = CopyTable(defaults.enabled or {})
-    cfg.orderInCombat    = CopyTable(defaults.orderInCombat or {})
-    cfg.orderOutOfCombat = CopyTable(defaults.orderOutOfCombat or {})
+    -- The three rows as ONE batch through the helper: each validator stores a
+    -- copy of its default, and the rows' shared onChange recomputes once.
+    local entries = {}
+    for i, f in ipairs(AIO_FIELDS) do
+        entries[i] = { path = aioPath(cat, f), value = defaults[f] or {} }
+    end
+    local setter = KCM.Schema
+    if not (setter and setter.SetMany and setter:SetMany(entries)) then
+        return say("could not reset " .. cat.key)
+    end
     say(("reset %s — enabled flags + section order restored."):format(cat.key))
     afterMutation("slash_aio_reset")
 end

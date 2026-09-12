@@ -565,12 +565,17 @@ test("macrobar model: the shipped default order needs no repair", function(t)
     t.falsy(changed, "default order is complete, unique and all-known")
 end)
 
-test("macrobar model: Order repairs and writes back a damaged saved order", function(t)
+-- The stored order is a whole-value schema row (architecture-§5), so its one
+-- writer is the helper, which normalizes on the way in. A read that wrote its
+-- repair back would be a second writer, sitting on a read path.
+--
+-- red under: reinstating the write-back in MacroBarModel.Order().
+test("macrobar model: Order repairs a damaged saved order on read, and writes nothing", function(t)
     local KCM = h.loader.loadPure()
     KCM.db.profile.macroBar.order = { "FOOD", "BOGUS" }
     local out = KCM.MacroBarModel.Order()
     t.eq(#out, #KCM.Categories.LIST, "returned order is complete")
-    t.eq(#KCM.db.profile.macroBar.order, #KCM.Categories.LIST, "repair persisted to the db")
+    t.eqList(KCM.db.profile.macroBar.order, { "FOOD", "BOGUS" }, "and the read left the stored one alone")
 end)
 
 test("macrobar model: Visible reflects the shown map over the saved order", function(t)
@@ -2105,3 +2110,93 @@ test("macrobar Defaults: each row is written through the schema helper, into the
         t.truthy(rows >= 60, "the whole page was walked (" .. rows .. " rows)")
         t.eq(logged["macroBar.locked"], nil, "and the lock, which is not this page's row, was not")
     end)
+
+-- ---------------------------------------------------------------------------
+-- #35 characterization: the slot order and per-macro visibility writers
+-- ---------------------------------------------------------------------------
+
+test("macrobar: dragging one slot onto another stores the swapped order", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local want = CopyTable(KCM.dbDefaults.profile.macroBar.order)
+    want[1], want[2] = want[2], want[1]
+    t.eq(KCM.MacroBar.SwapSlots(want[2], want[1]), true, "the swap reports success")
+    t.eq(ser(KCM.db.profile.macroBar.order), ser(want), "and the stored order is swapped")
+    t.eq(KCM.MacroBar.SwapSlots("FOOD", "FOOD"), false, "a slot dropped on itself is no change")
+end)
+
+test("macrobar: the Buttons tab's checkbox stores a real boolean in shown", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local UI   = KCM.Settings.Helpers.instance
+    local boxes = {}
+    local realAceGUI = UI.AceGUI
+    UI.AceGUI = setmetatable({
+        Create = function(_, kind)
+            local w = mock.makeAceWidget()
+            if kind == "CheckBox" then
+                w.SetLabel    = function(self, label) boxes[label] = self; return self end
+                w.SetCallback = function(self, ev, fn) self["__" .. ev] = fn; return self end
+                w.SetValue    = function(self, v) self.__value = v; return self end
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() end end })
+
+    KCM.Settings.builders.macrobar({})
+    local ctx = UI.__panelFor("macrobar")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Buttons"
+    KCM.Settings.Helpers.RefreshAllPanels()
+
+    local food = boxes[KCM.Categories.Get("FOOD").displayName]
+    t.truthy(food and food.__OnValueChanged, "the Food checkbox is drawn and wired")
+    t.eq(food.__value, true, "and opens showing the slot as shown")
+    food.__OnValueChanged(food, "OnValueChanged", false)
+    t.eq(KCM.db.profile.macroBar.shown.FOOD, false, "unticking hides the slot with a real false")
+    food.__OnValueChanged(food, "OnValueChanged", true)
+    t.eq(KCM.db.profile.macroBar.shown.FOOD, true, "and ticking it stores true")
+    t.eq(ser(KCM.db.profile.macroBar.shown), "{FOOD=true}", "and nothing else")
+    UI.AceGUI = realAceGUI
+end)
+
+-- red under: SwapSlots or the Buttons tab's checkbox writing their field directly.
+test("macrobar: the slot swap and the Buttons checkboxes write through the schema helper", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
+    local paths, realSet = {}, H.Set
+    H.Set = function(path, value) paths[#paths + 1] = path; return realSet(path, value) end
+
+    KCM.MacroBar.SwapSlots("FOOD", "DRINK")
+
+    local boxes = {}
+    local realAceGUI = UI.AceGUI
+    UI.AceGUI = setmetatable({
+        Create = function(_, kind)
+            local w = mock.makeAceWidget()
+            if kind == "CheckBox" then
+                w.SetLabel    = function(self, label) boxes[label] = self; return self end
+                w.SetCallback = function(self, ev, fn) self["__" .. ev] = fn; return self end
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() end end })
+    KCM.Settings.builders.macrobar({})
+    local ctx = UI.__panelFor("macrobar")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Buttons"
+    H.RefreshAllPanels()
+    local drink = boxes[KCM.Categories.Get("DRINK").displayName]
+    drink.__OnValueChanged(drink, "OnValueChanged", false)
+    UI.AceGUI = realAceGUI
+
+    t.eqList(paths, { "macroBar.order", "macroBar.shown" },
+        "a swap is one whole-order write and a checkbox one whole-map write")
+    t.eq(KCM.db.profile.macroBar.shown.DRINK, false, "and the checkbox's write landed")
+end)

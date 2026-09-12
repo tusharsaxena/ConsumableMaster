@@ -103,3 +103,16 @@ function SpecHelper.GetStatPriority(specKey)
         secondary = {},
     }
 end
+
+--- The whole `statPriority` map with ONE spec's override replaced -- or dropped,
+--- for a nil entry. A new table: `statPriority` is a whole-value schema row
+--- (architecture-§5), so every writer builds the map and hands it to the helper
+--- rather than editing the stored one. Pure: it reads the profile and writes
+--- nothing.
+function SpecHelper.WithStatPriority(specKey, entry)
+    local out = {}
+    local cur = KCM.db and KCM.db.profile and KCM.db.profile.statPriority
+    for k, v in pairs(cur or {}) do out[k] = v end
+    if specKey then out[specKey] = entry end
+    return out
+end

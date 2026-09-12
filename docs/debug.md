@@ -116,7 +116,7 @@ Scalar settings live as rows in `KCM.Settings.Schema` (the array is created in `
 |-------|--------|
 | `/cm list` | Every schema row, grouped by panel, with current value. |
 | `/cm get <path>` | Single-row read (e.g. `/cm get enabled`). |
-| `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. |
+| `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. A whole-value `order` row takes comma-separated keys (`/cm set macroBar.order DRINK,FOOD`), and a flag map `KEY=on\|off` pairs (`/cm set macroBar.shown FOOD=off`). |
 | `/cm reset <path>` | ONE row back to its `default`. Not the global wipe — that is `/cm resetall`, which keeps the host body and its confirm popup ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)). |
 
 `KCM.Schema:Set(path, value)` is the unified validate → write → onChange → refresh seam — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row. Row shape:
@@ -132,11 +132,11 @@ Schema[#Schema + 1] = {
 }
 ```
 
-`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **68** rows are wired today: the 62 `macroBar.*` rows registered by `settings/MacroBar.lua`, and the 6 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`). `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, resolved by `settings/Panel.lua`'s `SESSION_PATHS` rather than by the profile.
+`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **78** rows are wired today: the 64 `macroBar.*` rows registered by `settings/MacroBar.lua` (the slot order and visibility among them), the 6 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`), the 7 `settings/Category.lua` generates (each composite's flags and two section orders, and `categories.BATTLE_REZ.mouseover`), and `statPriority` from `settings/StatPriority.lua`. `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, resolved by `settings/Panel.lua`'s `SESSION_PATHS` rather than by the profile.
 
 ## List-shaped state — verb namespaces
 
-CM's panel state is mostly list-shaped (priority lists, AIO order, per-spec stats), which doesn't fit a flat scalar schema. Those operations live behind dedicated CLI verbs that follow the same write+notify+refresh contract:
+Three CLI namespaces cover the list-shaped state. The per-category priority lists are the structural registry: no row describes them, and `/cm priority` calls the registry writer, `Selector`. A composite's flags and section orders and the per-spec stat priorities are whole-value schema rows, so `/cm get|list|reset` already reach them. `/cm aio` and `/cm stat` are the readable editors for them, and each of their writes goes through `KCM.Schema:Set` exactly as `/cm set` does:
 
 | Verb namespace | Verbs | Notes |
 |----------------|-------|-------|

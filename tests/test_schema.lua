@@ -27,7 +27,10 @@ end)
 test("schema: every row is findable by path and has a valid type", function(t)
     local KCM = h.loader.loadWithSchema()
     local Helpers = KCM.Settings.Helpers
-    local validTypes = { bool = true, number = true, string = true, color = true }
+    -- `order` and `map` are the whole-value rows (architecture-§5): a list over a
+    -- fixed member set, and a keyed map, each validated and normalized at one path.
+    local validTypes = { bool = true, number = true, string = true, color = true,
+                         order = true, map = true }
     for _, row in ipairs(KCM.Settings.Schema) do
         t.truthy(Helpers.FindSchema(row.path), "FindSchema('" .. tostring(row.path) .. "') non-nil")
         t.truthy(validTypes[row.type], "row '" .. tostring(row.path) .. "' type '" .. tostring(row.type) .. "' is valid")
@@ -492,9 +495,10 @@ end)
 -- carry. The counts are the DESIGN's, written out longhand: derived from the
 -- schema they would agree with the schema no matter what it said.
 --
--- Buttons is exempted BY NAME rather than by relaxing the rule, because its
--- controls are one checkbox per managed macro -- a length no schema knows -- and
--- it is the only tab on the page with no `path` behind it.
+-- Buttons carries the two WHOLE-VALUE rows behind its controls (architecture-§5):
+-- `macroBar.order`, which a drag on the bar writes, and `macroBar.shown`, which
+-- its per-macro checkboxes write. The row engine draws neither -- a checkbox per
+-- managed macro is a length no schema knows -- but both are rows.
 test("schema: the Macro Bar page partitions into its designed tabs", function(t)
     local KCM = h.loader.loadFullAddon()
     local want = {
@@ -509,7 +513,7 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
         { "Labels",            12 },
         { "Flyout",            16 },
         { "Visibility",        3  },
-        { "Buttons",           0  },
+        { "Buttons",           2  },
     }
 
     -- Partition by `group` in DECLARATION order, exactly as a tab strip does.
@@ -536,7 +540,7 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
                 "'" .. group .. "' is bespoke and declares no schema row")
         end
     end
-    t.eq(#order, 7, "seven of the eight tabs are schema-backed, and none repeats")
+    t.eq(#order, 8, "all eight tabs are schema-backed, and none repeats")
 
     local rows = 0
     for _, row in ipairs(KCM.Settings.Schema) do
@@ -571,10 +575,7 @@ test("schema: the tab strips name only groups their rows declare", function(t)
         if row.panel == "macrobar" then declared[row.group] = true end
     end
     for _, tab in ipairs(KCM.Settings.MACROBAR_TABS) do
-        if tab.group ~= "Buttons" then
-            t.truthy(declared[tab.group],
-                "the '" .. tab.group .. "' tab has rows to draw")
-        end
+        t.truthy(declared[tab.group], "the '" .. tab.group .. "' tab has rows behind it")
         t.truthy(tab.label and tab.label ~= "", tab.group .. " has a visible label")
         t.eq(type(tab.draw), "function", tab.group .. " knows how to draw itself")
     end
@@ -873,3 +874,138 @@ test("schema: SetManyAndRefresh takes one caller reactor and a structural refres
         t.eq(structural, 1, "a structural batch rebuilds the page once")
         t.eq(scalars, 0, "instead of re-syncing it in place")
     end)
+
+-- ---------------------------------------------------------------------------
+-- #35 — the list-shaped state is whole-value rows (architecture-§5)
+-- ---------------------------------------------------------------------------
+--
+-- Stat priority, a composite's two sections and its flags, the bar's slot order
+-- and per-slot visibility were each written outside the helper with no row. They
+-- are rows now: a whole-value `order` or `map` the helper validates, normalizes
+-- and writes at one path, or, for mouseover, an ordinary bool.
+
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local VALUE_ROWS = {
+    { "statPriority",                       "map",   "statpriority" },
+    { "categories.HP_AIO.enabled",          "map",   "macros"       },
+    { "categories.HP_AIO.orderInCombat",    "order", "macros"       },
+    { "categories.HP_AIO.orderOutOfCombat", "order", "macros"       },
+    { "categories.MP_AIO.enabled",          "map",   "macros"       },
+    { "categories.MP_AIO.orderInCombat",    "order", "macros"       },
+    { "categories.MP_AIO.orderOutOfCombat", "order", "macros"       },
+    { "categories.BATTLE_REZ.mouseover",    "bool",  "macros"       },
+    { "macroBar.order",                     "order", "macrobar"     },
+    { "macroBar.shown",                     "map",   "macrobar"     },
+}
+
+local function defaultAt(KCM, path)
+    local v = KCM.dbDefaults.profile
+    for seg in path:gmatch("[^.]+") do v = v and v[seg] end
+    return v
+end
+
+test("schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local H = KCM.Settings.Helpers
+        t.eq(H.ValidateSchema(), 0, "every row validates")
+        for _, want in ipairs(VALUE_ROWS) do
+            local def = H.FindSchema(want[1])
+            t.truthy(def, want[1] .. " is a row")
+            t.eq(def and def.type, want[2], want[1] .. " is a " .. want[2] .. " row")
+            t.eq(def and def.panel, want[3], want[1] .. " belongs to the " .. want[3] .. " page")
+            t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
+                want[1] .. "'s default is the shipped one")
+        end
+        t.eq(#KCM.Settings.Schema, 78, "the 68 rows there were, plus these ten")
+    end)
+
+test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local H = KCM.Settings.Helpers
+    local V = H.ValidateSchemaValue
+    local def = H.FindSchema("macroBar.order")
+    local given = { "DRINK", "BOGUS", "DRINK", "FOOD" }
+    local out = V(def, given)
+    t.eq(out and out[1], "DRINK", "the first named key leads")
+    t.eq(out and out[2], "FOOD", "unknown keys and repeats are dropped")
+    t.eq(out and #out, #KCM.Categories.LIST, "and every missing member is appended")
+    t.falsy(out == given, "the stored list is a copy")
+    t.eq(V(def, "FOOD"), nil, "a string is not a list")
+    t.eqList(V(H.FindSchema("categories.HP_AIO.orderInCombat"), { "HP_POT" }), { "HP_POT", "HS" },
+        "a composite section is normalized over its own sub-categories")
+end)
+
+test("schema: a flag map keeps its members' booleans, drops strangers and refuses anything else",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local H = KCM.Settings.Helpers
+        local V = H.ValidateSchemaValue
+        local enabled = H.FindSchema("categories.HP_AIO.enabled")
+        t.eq(ser(V(enabled, { HS = false, DRINK = true })), "{HS=false}", "DRINK is MP_AIO's, not HP_AIO's")
+        t.eq(V(enabled, { HS = "no" }), nil, "a flag must be a real boolean")
+        t.eq(V(enabled, true), nil, "and the value a table")
+        t.eq(ser(V(H.FindSchema("macroBar.shown"), { FOOD = false, NOPE = true })), "{FOOD=false}",
+            "the bar's visibility map is keyed by category")
+    end)
+
+test("schema: statPriority keeps well-formed overrides and repairs their lists", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local H = KCM.Settings.Helpers
+    local def = H.FindSchema("statPriority")
+    local out = H.ValidateSchemaValue(def, {
+        ["7_263"] = { primary = "AGI", secondary = { "CRIT", "CRIT", "NOPE", "HASTE" } },
+        ["8_262"] = { secondary = { "CRIT" } },   -- no primary: SpecHelper's reader ignores it too
+        ["bogus"] = { primary = "INT" },          -- not a spec key
+    })
+    t.eq(ser(out), ser({ ["7_263"] = { primary = "AGI", secondary = { "CRIT", "HASTE" } } }),
+        "one override kept, its list deduplicated and stripped of unknown stats")
+    t.eq(H.ValidateSchemaValue(def, "AGI"), nil, "a string is not a map")
+end)
+
+-- Each whole-value row's field is written through the helper and nowhere else.
+-- Checked against the source, the way the registry's single writer is.
+--
+-- red under: any file writing one of these fields directly again.
+test("schema: no runtime file writes a whole-value row's field around the helper", function(t)
+    local root = _G.KCM_TEST_ROOT or "."
+    local PATTERNS = {
+        "statPriority%s*=[^=]", "statPriority%[[^%]]+%]%s*=[^=]",
+        "%.orderInCombat%s*=[^=]", "%.orderOutOfCombat%s*=[^=]",
+        "%.enabled%[[^%]]+%]%s*=[^=]", "%.mouseover%s*=[^=]",
+        "%.shown%s*=[^=]", "%.shown%[[^%]]+%]%s*=[^=]",
+        -- The bar's slot order by the names its old writers used; a bare `.order`
+        -- would also catch KCM.Settings.order, the page-order table.
+        "cfg%.order%s*=[^=]", "[^%w_]c%.order%s*=[^=]", "macroBar%.order%s*=[^=]",
+        "cfg%[f%]%s*=[^=]",
+    }
+    -- The load pass seeds and repairs before any reader runs (savedvariables-§1).
+    local ALLOWED = { ["core/Database.lua"] = true }
+    local offenders = {}
+    for _, rel in ipairs(h.loader.tocFiles()) do
+        if not ALLOWED[rel] and rel:match("^[cms][a-z]*/.+%.lua$") then
+            local f = io.open(root .. "/" .. rel, "r")
+            if f then
+                local n = 0
+                for line in f:lines() do
+                    n = n + 1
+                    local code = line:gsub("%-%-.*$", "")
+                    for _, p in ipairs(PATTERNS) do
+                        if code:find(p) then offenders[#offenders + 1] = rel .. ":" .. n end
+                    end
+                end
+                f:close()
+            end
+        end
+    end
+    t.eq(#offenders, 0, "direct writes around the helper: " .. table.concat(offenders, ", "))
+end)

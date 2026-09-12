@@ -1673,3 +1673,131 @@ test("Settings UI: a timer that fires early rebuilds instead of re-arming foreve
     KCM.Options.RequestRefresh()
     t.eq(rebuilds, 1, "the request was served rather than rescheduled against a clock that is not moving")
 end)
+
+-- ---------------------------------------------------------------------------
+-- #35 characterization: the Stat Priority and composite panel writers
+-- ---------------------------------------------------------------------------
+
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+test("Settings: the Stat Priority Defaults button drops only the viewed spec's override", function(t)
+    local KCM = loader.loadFullAddon()
+    local UI  = KCM.Settings.Helpers.instance
+    KCM.Options._viewedSpec, KCM.Options._viewedSpecAuto = "8_262", false
+    KCM.db.profile.statPriority = {
+        ["8_262"] = { primary = "AGI", secondary = { "HASTE" } },
+        ["7_263"] = { primary = "STR", secondary = {} },
+    }
+    KCM.Settings.builders.statpriority({})
+    UI.__panelFor("statpriority").panel.defaultsOnClick()
+    t.eq(ser(KCM.db.profile.statPriority), ser({ ["7_263"] = { primary = "STR", secondary = {} } }),
+        "the viewed spec's override is gone and the other stays")
+end)
+
+-- The Macros page captures AceGUI at file load, so the spy has to bracket the
+-- load of settings/Category.lua -- the same shape the mouseover case uses.
+local function categoryWithCheckboxSpy()
+    local mock = loader.mock
+    local files = {}
+    for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
+    for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
+    local KCM = loader.loadFiles(files)
+    local boxes = {}
+    local spy = setmetatable({
+        Create = function(_, kind)
+            local w = mock.makeStub()
+            if kind == "CheckBox" then
+                local callbacks = {}
+                w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+                w._callbacks = callbacks
+                boxes[#boxes + 1] = w
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() return mock.makeStub() end end })
+    local realLibStub = _G.LibStub
+    _G.LibStub = function(name, ...)
+        if name == "AceGUI-3.0" then return spy end
+        return realLibStub(name, ...)
+    end
+    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/Category.lua"))
+    chunk("ConsumableMaster", KCM)
+    _G.LibStub = realLibStub
+    return KCM, boxes
+end
+
+test("Settings: a composite's Enabled checkbox stores a real boolean for its sub-category", function(t)
+    local KCM, boxes = categoryWithCheckboxSpy()
+    local UI = KCM.Settings.Helpers.instance
+    KCM.Settings.builders["macros"]({})
+    local ctx = UI.__panelFor("macros")
+    KCM.Options.SetMacroTab("HP_AIO")
+    ctx.panel.IsShown = function() return true end
+    KCM.Settings.Helpers.RefreshAllPanels()
+
+    t.eq(#boxes, 3, "one Enabled checkbox per sub-category: HS, HP_POT, then FOOD")
+    local hpPot = boxes[2]
+    hpPot._callbacks.OnValueChanged(hpPot, "OnValueChanged", false)
+    t.eq(ser(KCM.db.profile.categories.HP_AIO.enabled), ser({ HS = true, HP_POT = false, FOOD = true }),
+        "unticking one sub-category writes its flag and no other")
+end)
+
+local function recordSets(KCM)
+    local H = KCM.Settings.Helpers
+    local paths, real = {}, H.Set
+    H.Set = function(path, value) paths[#paths + 1] = path; return real(path, value) end
+    return paths
+end
+
+-- red under: any of these controls writing its field directly again.
+test("Settings: every Stat Priority, composite and mouseover control writes through the schema helper",
+    function(t)
+        local KCM = loader.loadFullAddon()
+        local UI  = KCM.Settings.Helpers.instance
+        KCM.Options._viewedSpec, KCM.Options._viewedSpecAuto = "8_262", false
+        KCM.db.profile.statPriority = { ["8_262"] = { primary = "AGI", secondary = { "HASTE" } } }
+        local paths = recordSets(KCM)
+        KCM.Settings.builders.statpriority({})
+        local ctx = UI.__panelFor("statpriority")
+        ctx.panel.IsShown = function() return true end
+        KCM.Settings.Helpers.RefreshAllPanels()
+        ctx.kcmStatRows[1].kcmGlyph:_run("OnClick")
+        ctx.panel.defaultsOnClick()
+        KCM.ResetAllPriorities()
+        t.eqList(paths, { "statPriority", "statPriority", "statPriority" },
+            "the include glyph, the page Defaults and Reset all priorities")
+
+        local K2, boxes = categoryWithCheckboxSpy()
+        local paths2 = recordSets(K2)
+        local UI2 = K2.Settings.Helpers.instance
+        K2.Settings.builders["macros"]({})
+        local ctx2 = UI2.__panelFor("macros")
+        ctx2.panel.IsShown = function() return true end
+        K2.Options.SetMacroTab("HP_AIO")
+        K2.Settings.Helpers.RefreshAllPanels()
+        boxes[1]._callbacks.OnValueChanged(boxes[1], "OnValueChanged", false)
+        K2.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2)
+        StaticPopupDialogs["KCM_RESET_CATEGORY"].OnAccept(nil, { catKey = "HP_AIO", composite = true })
+        local n = #boxes
+        K2.Options.SetMacroTab("BATTLE_REZ")
+        K2.Settings.Helpers.RefreshAllPanels()
+        local mouseover = boxes[n + 1]
+        mouseover._callbacks.OnValueChanged(mouseover, "OnValueChanged", false)
+        t.eqList(paths2, {
+            "categories.HP_AIO.enabled", "categories.HP_AIO.orderInCombat",
+            "categories.HP_AIO.enabled", "categories.HP_AIO.orderInCombat",
+            "categories.HP_AIO.orderOutOfCombat",
+            "categories.BATTLE_REZ.mouseover",
+        }, "the Enabled checkbox, the drag, the section reset and the mouseover toggle")
+    end)

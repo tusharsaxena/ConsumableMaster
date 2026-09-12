@@ -683,6 +683,23 @@ function S.MoveTo(catKey, itemID, newIdx, specKey)
     return moveBy(catKey, itemID, nil, newIdx, specKey)
 end
 
+--- A COPY of `arr` with the entry at `from` moved to `to`, or nil for a move it
+--- cannot make (either index out of range, not a number, or the same).
+---
+--- A SPLICE TO INDEX, and the one definition of it. Saying a four-place move as
+--- a run of adjacent swaps leaves the rows it passed in an order nobody asked
+--- for and rebuilds the macro once per step on the way. Pure: the list handed
+--- in is never touched.
+function S.SpliceOrder(arr, from, to)
+    if type(arr) ~= "table" or type(from) ~= "number" or type(to) ~= "number" then return nil end
+    local size = #arr
+    if from < 1 or from > size or to < 1 or to > size or from == to then return nil end
+    local out = {}
+    for i, v in ipairs(arr) do out[i] = v end
+    table.insert(out, to, table.remove(out, from))
+    return out
+end
+
 --- Move one sub-category reference to an absolute position inside a COMPOSITE's
 --- section order (`orderInCombat` / `orderOutOfCombat`).
 ---
@@ -700,14 +717,19 @@ end
 --- @param from number        1-based current position
 --- @param to number          1-based target position
 --- @return boolean changed
+--- NOT a registry write. A section is a whole-value schema row,
+--- `categories.<KEY>.<orderField>` (architecture-§5), so the spliced copy is
+--- written through KCM.Schema:Set, whose validator and onChange (a recompute)
+--- run like any row's. Answers false where no helper is loaded.
 function S.MoveCompositeRef(catKey, orderField, from, to)
     local _, root = categoryRoot(catKey)
-    local arr = root and root[orderField]
-    if type(arr) ~= "table" then return false end
-    local size = #arr
-    if type(from) ~= "number" or type(to) ~= "number" then return false end
-    if from < 1 or from > size or to < 1 or to > size or from == to then return false end
-    table.insert(arr, to, table.remove(arr, from))
+    local moved = root and S.SpliceOrder(root[orderField], from, to)
+    if not moved then return false end
+    local setter = KCM.Schema
+    if not (setter and setter.Set
+            and setter:Set(("categories.%s.%s"):format(catKey, orderField), moved)) then
+        return false
+    end
     if KCM.State and KCM.State.debug then
         KCM.Debug("Prio", "move %s.%s %s -> %s", catKey, orderField, from, to)
     end

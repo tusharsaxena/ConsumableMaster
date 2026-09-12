@@ -124,7 +124,7 @@ end
 
 -- ---------------------------------------------------------------------------
 -- db-backed convenience wrappers. Everything above is data-in/data-out; these
--- three read (and repair) db.profile.macroBar so the UI layers don't each
+-- three read db.profile.macroBar so the UI layers don't each
 -- reimplement the nil ladder.
 -- ---------------------------------------------------------------------------
 
@@ -137,14 +137,15 @@ function BM.IsEnabled()
     return (cfg and cfg.enabled) and true or false
 end
 
--- Saved order, repaired against the shipped category list. Writes the repaired
--- array back only when NormalizeOrder actually changed something.
+-- Saved order, repaired against the shipped category list. A READ, and it writes
+-- nothing: `macroBar.order` is a whole-value schema row (architecture-§5), so its
+-- one writer is the helper, which normalizes on the way in. A stored order that
+-- predates a newly-shipped category is repaired here on every read, and stored
+-- repaired by the next write.
 function BM.Order()
     local cfg = BM.Config()
     if not cfg then return {} end
-    local order, changed = BM.NormalizeOrder(cfg.order)
-    if changed then cfg.order = order end
-    return order
+    return (BM.NormalizeOrder(cfg.order))
 end
 
 function BM.Visible()

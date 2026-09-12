@@ -192,6 +192,23 @@ function Helpers.Get(path)
     return parent[key]
 end
 
+-- A table value logs as its contents, not as an address: the whole-value rows
+-- are tables, and a color is one too. One level deep -- a stat-priority entry
+-- nested inside its map renders as {...}.
+local function logValue(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local parts = {}
+    if #v > 0 then
+        for i, x in ipairs(v) do parts[i] = tostring(x) end
+    else
+        for k, x in pairs(v) do
+            parts[#parts + 1] = tostring(k) .. "=" .. (type(x) == "table" and "{...}" or tostring(x))
+        end
+        table.sort(parts)
+    end
+    return "{" .. table.concat(parts, ", ") .. "}"
+end
+
 function Helpers.Set(path, value)
     local session = SESSION_PATHS[path]
     local ok
@@ -205,7 +222,7 @@ function Helpers.Set(path, value)
     end
     if not ok then return false end
     if KCM.State and KCM.State.debug then
-        KCM.Debug("Set", "%s = %s", tostring(path), tostring(value))
+        KCM.Debug("Set", "%s = %s", tostring(path), logValue(value))
     end
     return true
 end
@@ -224,8 +241,13 @@ end
 local _validPanels = {
     general = true, macros = true, statpriority = true, macrobar = true,
 }
-local _validSections = { general = true, macrobar = true }
-local _validTypes    = { bool = true, number = true, string = true, color = true }
+-- A row's `section` is the page that declares it. The Macros and Stat Priority
+-- pages declare the whole-value rows behind their own controls (architecture-§5).
+local _validSections = { general = true, macrobar = true, macros = true, statpriority = true }
+-- `order` and `map` are the WHOLE-VALUE rows (architecture-§5): a list over a
+-- fixed member set, and a keyed map. See VALIDATORS below.
+local _validTypes    = { bool = true, number = true, string = true, color = true,
+                         order = true, map = true }
 
 local function _printSchemaError(prefix, msg)
     KCM.Say("|cffff0000schema error|r: " .. prefix .. ": " .. msg)
@@ -664,6 +686,31 @@ end
 -- SetAndRefresh's RefreshScalars and O.Refresh's RefreshAllPanels — are
 -- callable on BOTH paths.
 
+-- A whole-value row's member set: a list, or a function answering one (the bar's
+-- slot keys are only known once the categories have loaded).
+local function membersOf(def)
+    local m = def.members
+    if type(m) == "function" then m = m() end
+    return type(m) == "table" and m or {}
+end
+
+-- A FLAG MAP (a composite's `enabled`, the bar's `shown`): keys outside the
+-- member set are dropped, and every kept value must be a real boolean -- the
+-- readers test `~= false`, so a string or a number would silently read as on.
+local function normalizeFlagMap(def, value)
+    local known, out = {}, {}
+    for _, m in ipairs(membersOf(def)) do known[m] = true end
+    for k, v in pairs(value) do
+        if known[k] then
+            if type(v) ~= "boolean" then
+                return nil, "expected true or false for " .. tostring(k)
+            end
+            out[k] = v
+        end
+    end
+    return out
+end
+
 -- One validator per declared schema type, built once at file load. Each returns
 -- the coerced value, or nil + a reason the caller can put in front of the user.
 -- A type with no entry here is not an error: see validateSchemaValue.
@@ -703,6 +750,38 @@ local VALIDATORS = {
     color = function(_, value)
         if type(value) ~= "table" then return nil, "expected color table" end
         return value
+    end,
+
+    -- A WHOLE-VALUE list over a fixed member set (architecture-§5): the bar's slot
+    -- order, a composite's section. NORMALIZED, not merely checked: unknown and
+    -- repeated members are dropped and every missing one is appended in the member
+    -- set's own order, so a stored order names each member exactly once. Always a
+    -- fresh table, so neither a caller's list nor a row's `default` -- which IS the
+    -- dbDefaults table -- is ever what gets stored.
+    order = function(def, value)
+        if type(value) ~= "table" then return nil, "expected a list" end
+        local members = membersOf(def)
+        local known, seen, out = {}, {}, {}
+        for _, m in ipairs(members) do known[m] = true end
+        for _, m in ipairs(value) do
+            if known[m] and not seen[m] then seen[m] = true; out[#out + 1] = m end
+        end
+        for _, m in ipairs(members) do
+            if not seen[m] then seen[m] = true; out[#out + 1] = m end
+        end
+        return out
+    end,
+
+    -- A WHOLE-VALUE keyed map. A row with its own `normalize` (stat priority's) is
+    -- handed the map; a row naming `members` is a flag map; anything else is
+    -- copied. Every arm answers a fresh table.
+    map = function(def, value)
+        if type(value) ~= "table" then return nil, "expected a table" end
+        if type(def.normalize) == "function" then return def.normalize(value) end
+        if def.members then return normalizeFlagMap(def, value) end
+        local out = {}
+        for k, v in pairs(value) do out[k] = v end
+        return out
     end,
 }
 

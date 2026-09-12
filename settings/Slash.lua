@@ -257,6 +257,56 @@ local SLASH_STRINGS = {
 local slashLib = LibStub and LibStub("LibKa0s-Slash-1.0", true)
 local Sl
 
+-- The whole-value rows' `/cm set` forms (architecture-§5). The library has no
+-- type for them, so the descriptor's `parse` answers these two and hands every
+-- other row to the library's own parser. An order is its keys, comma- or
+-- space-separated and case-folded; the row's normalizer appends every key left
+-- out. A flag map is KEY=on|off pairs and REPLACES the whole map. A map with its
+-- own normalizer (stat priority's) has an editor of its own, which the refusal
+-- names.
+local function parseKeyList(text)
+    local out = {}
+    for tok in (text or ""):gmatch("[^,%s]+") do out[#out + 1] = tok:upper() end
+    if #out == 0 then return nil, "expected a comma-separated list of keys" end
+    return out
+end
+
+local function parseFlagMap(text)
+    local out, n = {}, 0
+    for pair in (text or ""):gmatch("[^,%s]+") do
+        local k, word = pair:match("^([^=]+)=(.+)$")
+        local v = word and slashLib.ParseBool(word)
+        if v == nil then return nil, "expected KEY=on|off pairs, comma-separated" end
+        out[k:upper()] = v
+        n = n + 1
+    end
+    if n == 0 then return nil, "expected KEY=on|off pairs, comma-separated" end
+    return out
+end
+
+local function parseValue(row, text)
+    if row and row.type == "order" then return parseKeyList(text) end
+    if row and row.type == "map" then
+        if row.valueType == "bool" then return parseFlagMap(text) end
+        return nil, ("edited with %s, not with /cm set"):format(tostring(row.cliHint))
+    end
+    return slashLib.ParseValue(row, text)
+end
+
+-- The descriptor's `format`, which outranks the color codec, so it decodes a
+-- color itself exactly as the library would. The whole-value rows render through
+-- KCM.FormatSchemaValue, the addon's own renderer (core/SlashCommands.lua).
+local function formatValue(row, value)
+    if row and (row.type == "order" or row.type == "map") then
+        return KCM.FormatSchemaValue(row, value)
+    end
+    if row and row.type == "color" and type(value) == "table" then
+        local r, g, b, a = KCM.ColorDecode(value)
+        return slashLib.FormatValue(row, { r = r, g = g, b = b, a = a })
+    end
+    return slashLib.FormatValue(row, value)
+end
+
 if slashLib then
     Sl = slashLib:New({
         slash        = "/cm",
@@ -303,6 +353,10 @@ if slashLib then
         -- carries one fewer copy of them.
         colorDecode  = KCM.ColorDecode,
         colorEncode  = function(r, g, b, a) return { r, g, b, a or 1 } end,
+
+        -- The whole-value rows' reader and renderer (see parseValue / formatValue).
+        parse        = parseValue,
+        format       = formatValue,
     })
     -- The instance, so the suite can assert identity rather than lookalike
     -- behavior. Mirrors KCM.DebugLog.instance and Settings.Helpers.instance.

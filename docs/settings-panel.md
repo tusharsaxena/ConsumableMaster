@@ -123,7 +123,7 @@ and last the optional bar that displays the finished macros.
 | **General** | 2 tabs | **Master controls** (the canonical eight, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 62 of the addon's 68 schema rows live here |
+| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 78 schema rows live here |
 
 ### The General page's Master controls tab
 
@@ -379,8 +379,12 @@ Two different paths, and the difference is what a row shape can express.
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` →
-`SetAndRefresh` seam. There are **68**: 62 `macroBar.*` rows on the Macro Bar page and 6 in the
-General page's Master controls block. That count is no longer greppable — a composed block declares
+`SetAndRefresh` seam. There are **78**: 64 `macroBar.*` rows on the Macro Bar page, 6 in the
+General page's Master controls block, 7 on the Macros page and 1 on the Stat Priority page. Ten
+of them are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
+`map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section
+orders) and the Battle Rez mouseover bool. They are still rows, so those controls write through the
+helper and `/cm get|list|reset` reach them. That count is no longer greppable — a composed block declares
 its rows from one call — so read it off `#KCM.Settings.Schema`, which is what the suite does. Adding a
 row gains all three surfaces at once — never write a parallel mutator for a path that already has one.
 
@@ -391,16 +395,14 @@ it declares where the library declares a hash.
 **Bespoke controls** are everything a `{ path, type }` row cannot describe, and they are deliberate,
 not gaps:
 
-- The **per-category priority lists** and the **per-spec stat priorities** are collections, not
-  scalars. The item lists are the addon's one structural registry, and `modules/Selector.lua` is
-  their registry writer (`architecture-§5`, named in
-  [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema)). No row shape describes
-  either today, which is also why `/cm resetall` stays host-owned rather than adopting the library's
+- The **per-category priority lists** are a collection, not a scalar. They are the addon's one
+  structural registry, and `modules/Selector.lua` is their registry writer (`architecture-§5`, named
+  in [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema)). No row shape describes
+  them, which is also why `/cm resetall` stays host-owned rather than adopting the library's
   `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
-  The bespoke control is deliberate, but for the **stat priorities** it is not the whole story. They
-  are a per-spec preference, not a registry, and under `architecture-§5` a preference with neither a
-  schema row nor a `Documented deviations` row is an open finding. ARCHITECTURE.md → Settings Schema
-  → "Other state written outside the helper" lists it, and [#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35) tracks it.
+  The **per-spec stat priorities** used to sit here too. They are a preference, not a registry, so
+  since 2026-09-12 they are one whole-value row, `statPriority`, still edited by the page's own
+  list and dropdown ([#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35)).
 - The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua`)
   tries digits first — a bare number is unambiguous and must never reach a link matcher — then the
   selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is accepted as

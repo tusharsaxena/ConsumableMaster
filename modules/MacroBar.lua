@@ -491,7 +491,9 @@ function MB.ResetPosition()
 end
 
 -- Drag-drop reorder entry point (modules/MacroBarButton.lua). Blocked in
--- combat because the relayout that follows anchors protected frames.
+-- combat because the relayout that follows anchors protected frames. The swap is
+-- made on a copy and written WHOLE through the schema helper (architecture-§5):
+-- `macroBar.order` is a row, and its onChange is what re-applies the bar.
 function MB.SwapSlots(fromKey, toKey)
     local c = cfg()
     if not c then return false end
@@ -501,8 +503,8 @@ function MB.SwapSlots(fromKey, toKey)
     end
     local order = KCM.MacroBarModel.Order()
     if not KCM.MacroBarModel.Swap(order, fromKey, toKey) then return false end
-    c.order = order
-    applyLayout()
+    local setter = KCM.Schema
+    if not (setter and setter.Set and setter:Set("macroBar.order", order)) then return false end
     if KCM.Options and KCM.Options.RequestRefresh then KCM.Options.RequestRefresh() end
     return true
 end

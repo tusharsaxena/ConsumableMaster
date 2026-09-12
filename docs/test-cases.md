@@ -301,7 +301,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (133)
+### test_macrobar.lua (136)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -357,7 +357,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar schema: perRow's max slider value is derived from the category count
 - macrobar model: the bar ships on and unlocked so it is discoverable
 - macrobar model: the shipped default order needs no repair
-- macrobar model: Order repairs and writes back a damaged saved order
+- macrobar model: Order repairs a damaged saved order on read, and writes nothing
 - macrobar model: Visible reflects the shown map over the saved order
 - macrodisplay: an unwritten macro falls back to the cooking-pot icon
 - macrodisplay: an item pick resolves to the item's icon and count
@@ -436,6 +436,9 @@ badge and any count quoted in the docs must agree with it.
 - macrobar master: General visibility = never takes the bar off screen
 - macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
 - macrobar Defaults: each row is written through the schema helper, into the same table
+- macrobar: dragging one slot onto another stores the swapped order
+- macrobar: the Buttons tab's checkbox stores a real boolean in shown
+- macrobar: the slot swap and the Buttons checkboxes write through the schema helper
 
 ### test_macromanager.lua (47)
 
@@ -591,7 +594,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (50)
+### test_schema.lua (55)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -643,6 +646,11 @@ badge and any count quoted in the docs must agree with it.
 - schema: SetManyAndRefresh writes every row, each distinct onChange once, one refresh
 - schema: SetManyAndRefresh refuses the whole batch when one value is invalid
 - schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset
+- schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows
+- schema: an order row normalizes to its member set and never stores the caller's table
+- schema: a flag map keeps its members' booleans, drops strangers and refuses anything else
+- schema: statPriority keeps well-formed overrides and repairs their lists
+- schema: no runtime file writes a whole-value row's field around the helper
 
 ### test_selector.lua (55)
 
@@ -694,15 +702,15 @@ badge and any count quoted in the docs must agree with it.
 - Selector.PickBestForCategory skips an item the player is over the cap for
 - Selector.ListAvailable omits an item the player is over the cap for
 - Selector.PickBestForCategory keeps an item whose tooltip is still pending
-- Selector.MoveCompositeRef splices to an index rather than swapping neighbors
-- Selector.MoveCompositeRef refuses a move it cannot make
-- Selector.MoveCompositeRef never moves a ref between the two sections
+- Selector.SpliceOrder moves one entry to an index rather than swapping neighbors
+- Selector.SpliceOrder refuses a move it cannot make
+- Selector.MoveCompositeRef writes one section, spliced, through the schema helper
 - Registry resets: each of the three doors leaves exactly the stored shape it always did
 - Selector.ResetBucket clears one bucket's added/blocked/pins and keeps discovered
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (44)
+### test_settingsui.lua (47)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -748,8 +756,11 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: the rebuild waits out the quiet window before it lands
 - Settings UI: a storm that never goes quiet still rebuilds at the max wait
 - Settings UI: a timer that fires early rebuilds instead of re-arming forever
+- Settings: the Stat Priority Defaults button drops only the viewed spec's override
+- Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
+- Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_slash.lua (82)
+### test_slash.lua (87)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -833,6 +844,11 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a plain number row still clamps to min/max
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
+- /cm stat primary, secondary and reset leave exactly the stored map they always did
+- /cm aio toggle, down and reset leave exactly the stored sections they always did
+- /cm get and list render the list-shaped rows as text, never a table address
+- /cm set and reset reach the slot order, a flag map and mouseover
+- every /cm stat and /cm aio write goes through the schema helper
 
 ### test_slashsetup.lua (16)
 
@@ -963,7 +979,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 133 |
+| test_macrobar.lua | 136 |
 | test_macromanager.lua | 47 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -972,10 +988,10 @@ badge and any count quoted in the docs must agree with it.
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 50 |
+| test_schema.lua | 55 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 44 |
-| test_slash.lua | 82 |
+| test_settingsui.lua | 47 |
+| test_slash.lua | 87 |
 | test_slashsetup.lua | 16 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
@@ -984,4 +1000,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **806** |
+| **Total** | **822** |

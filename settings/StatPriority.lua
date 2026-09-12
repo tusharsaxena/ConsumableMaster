@@ -225,12 +225,13 @@ local function writeStatPriority(specKey, mutate)
             table.insert(compacted, s)
         end
     end
-    KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
-    KCM.db.profile.statPriority[specKey] = {
+    -- Written WHOLE through the schema helper (architecture-§5): the map with this
+    -- spec's entry replaced. See the `statPriority` row below.
+    if not KCM.Schema then return false end
+    return KCM.Schema:Set("statPriority", KCM.SpecHelper.WithStatPriority(specKey, {
         primary   = cur.primary,
         secondary = compacted,
-    }
-    return true
+    })) and true or false
 end
 
 --- The stored list, split into what is RANKED and what is not.
@@ -260,6 +261,73 @@ local function splitSecondaries(stored)
 end
 O.SplitSecondaries = splitSecondaries
 
+-- ---------------------------------------------------------------------
+-- The `statPriority` schema row (architecture-§5)
+-- ---------------------------------------------------------------------
+--
+-- A stat priority is a PREFERENCE, so it is a setting with a row rather than
+-- state written around the helper: ONE whole-value map, keyed by spec. Every
+-- writer -- this page's list and dropdown, its Defaults, the General page's Reset
+-- all priorities and `/cm stat` -- builds the whole map
+-- (SpecHelper.WithStatPriority) and hands it to KCM.Schema:Set, which validates,
+-- stores and logs it once. `/cm get`, `/cm list` and `/cm reset statPriority`
+-- reach it like any row. `/cm set` does not: a map of specs is not a one-line
+-- value, and `/cm stat` is its editor.
+--
+-- The normalizer keeps exactly what SpecHelper.GetStatPriority would read: a
+-- `<classID>_<specID>` key, a real primary, and the secondaries through the same
+-- rules splitSecondaries applies to the list.
+local PROFILE_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile) or {}
+
+local function normalizeStatPriority(value)
+    local out = {}
+    for specKey, entry in pairs(value) do
+        if type(specKey) == "string" and specKey:match("^%d+_%d+$")
+                and type(entry) == "table" and PRIMARY_OPTIONS[entry.primary] then
+            out[specKey] = {
+                primary   = entry.primary,
+                secondary = (splitSecondaries(entry.secondary)),
+            }
+        end
+    end
+    return out
+end
+
+-- One spec per clause, `7_263: AGI > CRIT, HASTE`, so `/cm get` reads the way the
+-- page does.
+local function renderStatPriority(value)
+    local keys = {}
+    for k in pairs(value) do keys[#keys + 1] = k end
+    table.sort(keys)
+    if #keys == 0 then return "{}" end
+    local parts = {}
+    for i, k in ipairs(keys) do
+        local e = value[k]
+        parts[i] = ("%s: %s > %s"):format(k, tostring(e.primary), table.concat(e.secondary or {}, ", "))
+    end
+    return table.concat(parts, "; ")
+end
+
+KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
+    path      = "statPriority",
+    type      = "map",
+    panel     = "statpriority",
+    section   = "statpriority",
+    group     = TAB_PRIORITY,
+    label     = L["Stat priority"],
+    tooltip   = L["Every spec's primary stat and ranked secondary stats, where you have changed them from the shipped ranking. Edited on this page or with /cm stat."],
+    default   = PROFILE_DEFAULTS.statPriority,
+    normalize = normalizeStatPriority,
+    render    = renderStatPriority,
+    cliHint   = "/cm stat",
+    -- New stats re-rank every spec-aware category, so the picks are recomputed.
+    onChange  = function()
+        if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
+            KCM.Pipeline.RequestRecompute("options_stat_priority")
+        end
+    end,
+}
+
 --- Store one new secondary ORDER. Everything the list can do -- a drag and an
 --- Include toggle alike -- ends here, as ONE write.
 local function writeSecondaryOrder(specKey, order)
@@ -279,10 +347,10 @@ end
 -- looking at.
 local function doResetStatPriority()
     local specKey = resolveViewedSpec()
-    if not (KCM.db and KCM.db.profile and specKey) then return end
-    KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
-    if KCM.db.profile.statPriority[specKey] then
-        KCM.db.profile.statPriority[specKey] = nil
+    local stored = KCM.db and KCM.db.profile and KCM.db.profile.statPriority
+    if not (stored and specKey and stored[specKey] and KCM.Schema) then return end
+    -- The whole map with this spec's entry dropped, through the schema helper.
+    if KCM.Schema:Set("statPriority", KCM.SpecHelper.WithStatPriority(specKey, nil)) then
         afterMutation("options_stat_reset")
     end
 end

@@ -118,13 +118,15 @@ local function doResetAllPriorities()
     if InCombatLockdown and InCombatLockdown() then
         return inCombatNotice("reset")
     end
-    local profile = KCM.db and KCM.db.profile
-    if not profile then return end
+    if not (KCM.db and KCM.db.profile) then return end
 
     if KCM.Selector and KCM.Selector.ResetAllBuckets then
         KCM.Selector.ResetAllBuckets()
     end
-    profile.statPriority = {}
+    -- The stat overrides are a SETTING, not registry membership: `statPriority`
+    -- is a whole-value row, emptied through the schema helper like every other
+    -- stat-priority write.
+    if KCM.Schema then KCM.Schema:Set("statPriority", {}) end
 
     resyncPipeline("options_reset_priorities")
 end
