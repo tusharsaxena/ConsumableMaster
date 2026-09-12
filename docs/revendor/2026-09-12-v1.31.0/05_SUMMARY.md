@@ -49,6 +49,34 @@ issue filing, and push, all as instructed.
 | `luacheck .` | 0 / 0 in 102 files | 0 / 0 in 102 files | **0 / 0 in 103 files** |
 | copy diff (content and bytes, both payloads) | 5 files differ | empty | empty |
 
-The same branch then took two more commits outside this bundle's scope: a debug trace on
-`MacroManager.InvalidateState` (9684962) and the perf ring named in the Settings Schema (cbdfdcc).
-The suite ends at 835.
+The same branch then took three more commits outside this bundle's scope: a debug trace on
+`MacroManager.InvalidateState` (9684962), the perf ring named in the Settings Schema (cbdfdcc), and
+the re-vendor of the re-cut v1.31.0 tag (08d155c, see the addendum below). The suite ends at 835.
+
+## Addendum, 2026-09-12: the v1.31.0 tag was re-cut before release
+
+This bundle was written against the first cut of the `v1.31.0` tag (commit `30db4ed`). Before anything
+was pushed, a review of that release found defects in the kit-17 fakes, and LibKa0s re-cut the tag on the
+fixed tree: **`v1.31.0` now points at `e7e1962`**. Commit **08d155c** re-vendored it, copying both
+payloads whole from the re-cut tag, and the vendor-sync cases pass against it.
+
+What the re-cut changed, relative to the tables above:
+
+| File | First cut | Re-cut |
+|---|---|---|
+| `Perf.lua` | minor 10 (unchanged) | **minor 11**: `P.Save` traces the ring trim once past its cap (debug-logging-§8) |
+| `OptionsWidgets.lua` | minor 15 | minor 15 (review fixes land inside the unreleased minor: `pairWith` keyed by `row.path or row.field`; a bound row's `disabledIf` reads through `row.get`) |
+| `OptionsCompose.lua` | minor 4 | minor 4 (unchanged surface) |
+| kit (`tests/_kit/`) | revision 17 | revision 17 (review fixes: repeating-timer delay no longer drifts; the nameless `NewAddon` path is exactly one table argument; the timer handle field is AceTimer's own `cancelled`, and `NewTimer` handles answer `IsCancelled()`; dispatch survives a handler error; `ADDON_LOADED` after login enables a load-on-demand addon; the AceEvent library object carries the message API) |
+
+So three files in `libs/LibKa0s/` move in this release, not two: 08d155c touches `OptionsCompose.lua`,
+`OptionsWidgets.lua` and `Perf.lua`, plus `tests/_kit/README.md` and `tests/_kit/mock_base.lua`. Any
+"the ring trim is not traced" finding recorded above is resolved upstream by Perf minor 11. The
+**To** row above still names the first cut; read it as `e7e1962`.
+
+Gate on the re-cut payload, at 08d155c:
+
+```
+lua tests/run.lua   835 passed, 0 failed, 0 skipped, 835 total
+luacheck .          0 warnings / 0 errors in 103 files
+```

@@ -102,3 +102,32 @@ The suite total did not move, matching the library's own measurement ("nothing m
 CHANGELOG v1.31.0 → *Adoption*): this harness still replaces the kit's Ace fakes at this commit.
 `luacheck` excludes `libs/` and `tests/_kit/`, so its 0/0 covers the addon and its own harness, not
 the payload; `test_vendor_sync.lua` covers the payload.
+
+## Addendum, 2026-09-12: the v1.31.0 tag was re-cut before release
+
+This bundle was written against the first cut of the `v1.31.0` tag (commit `30db4ed`, as the Source
+block above records). Before anything was pushed, a review of that release found defects in the kit-17
+fakes, and LibKa0s re-cut the tag on the fixed tree: **`v1.31.0` now points at `e7e1962`**. Commit
+**08d155c** re-vendored it, copying both payloads whole from the re-cut tag, and the vendor-sync cases
+pass against it.
+
+What the re-cut changed, relative to the tables above:
+
+| File | First cut | Re-cut |
+|---|---|---|
+| `Perf.lua` | minor 10 (unchanged) | **minor 11**: `P.Save` traces the ring trim once past its cap (debug-logging-§8) |
+| `OptionsWidgets.lua` | minor 15 | minor 15 (review fixes land inside the unreleased minor: `pairWith` keyed by `row.path or row.field`; a bound row's `disabledIf` reads through `row.get`) |
+| `OptionsCompose.lua` | minor 4 | minor 4 (unchanged surface) |
+| kit (`tests/_kit/`) | revision 17 | revision 17 (review fixes: repeating-timer delay no longer drifts; the nameless `NewAddon` path is exactly one table argument; the timer handle field is AceTimer's own `cancelled`, and `NewTimer` handles answer `IsCancelled()`; dispatch survives a handler error; `ADDON_LOADED` after login enables a load-on-demand addon; the AceEvent library object carries the message API) |
+
+So three files in `libs/LibKa0s/` move in this release, not two: 08d155c touches `OptionsCompose.lua`,
+`OptionsWidgets.lua` and `Perf.lua`, plus `tests/_kit/README.md` and `tests/_kit/mock_base.lua`. Any
+"the ring trim is not traced" finding recorded above is resolved upstream by Perf minor 11.
+
+Gate on the re-cut payload, at 08d155c (the suite had grown from 824 to 835 between the two cuts'
+re-vendor commits, through the #38 harness migration and two unrelated commits):
+
+```
+lua tests/run.lua   835 passed, 0 failed, 0 skipped, 835 total
+luacheck .          0 warnings / 0 errors in 103 files
+```
