@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-852%2F852_passing-green)
+![Tests](https://img.shields.io/badge/Tests-866%2F866_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -122,6 +122,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
 | `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading. Reload and try again. |
 | I want to restore a default list after removing items by hand. | **Reset category** clears that one category. **Reset all priorities** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
+| I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
 
 ## Issues and feature requests
 

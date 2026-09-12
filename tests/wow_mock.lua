@@ -539,6 +539,30 @@ function M.install(NS)
                 end,
             },
             { __index = function() return function() end end }),
+
+        -- AceDBOptions / AceConfig / AceConfigDialog, for settings/Profiles.lua -- the
+        -- one page this addon does not draw itself. Modeled on MultiMeters' fakes:
+        -- the options table remembers the db it was built over, the registry
+        -- remembers what was registered under which app name, and the dialog COUNTS
+        -- its Opens, which is how a case tells a page that redrew from one that did
+        -- not. Rebuilt per install, like every other entry in this table, so a count
+        -- never carries from one case into the next.
+        ["AceDBOptions-3.0"] = {
+            GetOptionsTable = function(_, db)
+                return { type = "group", name = "Profiles", args = {}, __db = db }
+            end,
+        },
+        ["AceConfig-3.0"] = {
+            __registered = {},
+            RegisterOptionsTable = function(self, name, tbl) self.__registered[name] = tbl end,
+        },
+        ["AceConfigDialog-3.0"] = {
+            __opens = 0,
+            Open = function(self, name, container)
+                self.__opens = self.__opens + 1
+                self.__lastOpen = { name = name, container = container }
+            end,
+        },
     }
     -- LibStub is a callable table, not a bare function, because the vendored
     -- LibKa0s files register themselves through `LibStub:NewLibrary(major,

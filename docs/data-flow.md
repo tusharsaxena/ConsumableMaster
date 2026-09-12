@@ -124,6 +124,8 @@ Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handler
 
 `Pipeline.Recompute` publishes `MACROBAR_REFRESH` alongside `PANEL_REFRESH` at the end of every pass; the macro bar owns the only receiver and repaints slot icons + counts. Unlike the panel refresh it is not debounced — a live on-screen bar should track the macro it just rewrote.
 
+A profile switch, copy or reset adds one more message. After its resync the profile handler publishes `PROFILE_CHANGED`, and the bar's receiver runs `MacroBar.Update()`. That is the whole re-apply: anchor, grid, slot order, shown slots, lock and visibility, none of which a repaint touches ([profiles.md](./profiles.md)).
+
 ### GIIR bag/non-bag split
 
 `OnItemInfoReceived` is the hottest event by frequency on first panel open. Opening Options hydrates ~150 priority-list items that aren't in bags, each fires this event as data arrives, and a full `Pipeline.Recompute` per fire (160+ tooltip parses × dozens of events / sec) tanks FPS for 5–10 seconds. Non-bag items can never affect a macro pick — macros only select from bag items — so the recompute is pure waste.

@@ -281,12 +281,13 @@ test("bulk: the global reset is one [Set] line from the profile handler, the ses
         t.eq(KCM.db.profile.macroBar.buttonSize, 36, "and the profile reset")
     end)
 
--- debug-logging-§10's handler wording for a copy; a switch rewrites no rows
--- and this addon has no switch trace, so it logs no [Set] line.
+-- debug-logging-§10's handler wording for a copy; a switch rewrites no rows, so
+-- it logs no [Set] line -- it keeps the `[Profile] switched to '<name>'` trace
+-- MultiMeters and KickCD carry.
 --
--- red under: the OnProfileCopied handler not logging, or the OnProfileChanged
--- one taking the copy's wording.
-test("bulk: a profile copy is one [Set] line from the handler, and a switch is none",
+-- red under: the OnProfileCopied handler not logging, the OnProfileChanged one
+-- taking the copy's wording, or a switch going untraced.
+test("bulk: a profile copy is one [Set] line from the handler, and a switch is a [Profile] line",
     function(t)
         local KCM, _, D = loadLogged()
         KCM.db:SetProfile("Alt")
@@ -302,6 +303,7 @@ test("bulk: a profile copy is one [Set] line from the handler, and a switch is n
         KCM.db:SetProfile("Alt")
         KCM.State.debug = false
         t.eqList(setLines(D), {}, "a switch logs no [Set] line")
+        t.truthy(hasLine(D, "[Profile] switched to 'Alt'"), "it logs where it switched to instead")
     end)
 
 -- ---------------------------------------------------------------------------

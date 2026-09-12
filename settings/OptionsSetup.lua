@@ -73,6 +73,30 @@ function Helpers.ColorDecode(c)
 end
 
 -- ---------------------------------------------------------------------
+-- The one rule about what a global reset must not touch
+-- ---------------------------------------------------------------------
+--
+-- Profiles rows are AceDBOptions-supplied and resetting them deletes user data,
+-- which is not what "restore defaults" means to anyone (options-ui-§3). And EVERY
+-- PROFILE-RESIDENT ROW is vetoed too (options-ui-§12): the global reset IS a
+-- profile reset, so writing each row's default into the profile first would be
+-- a write per row for values about to be discarded whole. What is left is what a
+-- profile reset cannot reach -- the sessionOnly rows, whose storage is their own
+-- `set()` rather than the db.
+--
+-- NAMED ONCE, ENFORCED TWICE. It is the library descriptor's `skipRestoreAll`
+-- below, and it is what core/ConsumableMaster.lua's session sweep asks before it
+-- writes a row -- the one reset loop this addon actually runs, on the degraded
+-- arm as well as the live one. Published above the library branch so both arms
+-- carry it. Two literal copies of this rule is one added page away from a reset
+-- that eats profiles.
+local function vetoedFromResetAll(row)
+    if row.panel == "profiles" then return true end
+    return not row.sessionOnly
+end
+KCM.Settings.VetoedFromResetAll = vetoedFromResetAll
+
+-- ---------------------------------------------------------------------
 -- LibKa0s-Options-1.0
 -- ---------------------------------------------------------------------
 --
@@ -187,6 +211,14 @@ if optionsLib and AceGUI then
         -- loaded yet when this runs.
         get = function(path) return Helpers.Get(path) end,
         set = function(path, value) Helpers.SetAndRefresh(path, value) end,
+
+        -- The veto above, by reference (options-ui-§3). This addon's global reset
+        -- is its own KCM.ResetAllToDefaults rather than the library's
+        -- RestoreAllDefaults, so the library never walks with it today; it is
+        -- declared anyway because the rule is stated against the descriptor, and a
+        -- later adoption of the library's walk must inherit the veto rather than
+        -- rediscover it.
+        skipRestoreAll = vetoedFromResetAll,
     })
 
     -- Restated because the library resolves AceGUI once at :New and re-resolves

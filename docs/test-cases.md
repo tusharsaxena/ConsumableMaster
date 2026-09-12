@@ -32,7 +32,7 @@ badge and any count quoted in the docs must agree with it.
 - bulk: the composite category reset is one [Set] line, and its reactor runs
 - bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs
 - bulk: the global reset is one [Set] line from the profile handler, the session row muted
-- bulk: a profile copy is one [Set] line from the handler, and a switch is none
+- bulk: a profile copy is one [Set] line from the handler, and a switch is a [Profile] line
 - bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes
 - bulk: a Macro Bar Defaults that raises mid-walk logs its one line marked stopped, and re-raises
 - bulk: the global reset inside an open bracket is still one line in all
@@ -586,6 +586,23 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
 
+### test_profiles.lua (14)
+
+- Profiles: the page is the last in the sidebar and its file loads last
+- Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
+- Profiles: a pooled, hidden SimpleGroup is shown before AceConfigDialog fills it
+- Profiles: a profile event redraws the page; a pipeline refresh does not
+- Profiles: with AceConfigDialog absent the page is simply not built
+- Profiles: the global-reset veto is named once and is the descriptor's skipRestoreAll
+- Profiles: the reset loop asks the same veto before it sweeps a row
+- Profiles: a global reset empties the active profile only and publishes PROFILE_CHANGED
+- Profiles: a switch re-applies the whole bar -- anchor, order, shown slots and enabled
+- Profiles: a copy re-applies the whole bar
+- Profiles: a reset re-applies the whole bar
+- Profiles: a switch or copy rewrites a macro whose incoming fingerprint matches a body no longer live
+- Profiles: each profile act logs its one handler line, a switch included
+- Profiles: the open settings pages rebuild on the switch itself, not after the debounce
+
 ### test_prose.lua (2)
 
 - prose: no authored file carries a British spelling from localization-§5's published list
@@ -664,7 +681,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: a render failure is reported instead of breaking the refresh loop
 - schema: RefreshScalars re-syncs widgets in place without a rebuild
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
-- schema: the page order lists four pages, each once
+- schema: the page order lists five pages, each once, Profiles last
 - schema: the Macros page carries one tab per category, in macroOrder
 - schema: the Macros strip is the designed run of tabs, in order
 - schema: a Macros tab is labeled with the category's display name
@@ -1022,6 +1039,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
+| test_profiles.lua | 14 |
 | test_prose.lua | 2 |
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
@@ -1038,4 +1056,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **852** |
+| **Total** | **866** |

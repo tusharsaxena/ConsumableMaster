@@ -836,9 +836,11 @@ end)
 --
 -- Not a size threshold and not a choice: a Ka0s page has a strip, so a player who
 -- has learned one page has learned all of them. The only exemptions are pages the
--- host does not render through the flow engine at all — the AceConfig-drawn
--- Profiles sub-page (which this addon does not ship) and the landing page, whose
--- body is buildMain.
+-- host does not render through the flow engine at all, and there are two: the
+-- AceConfig-drawn Profiles sub-page (settings/Profiles.lua), which AceConfigDialog
+-- draws whole, and the landing page, whose body is Helpers.BuildAboutContent. The
+-- landing page is not in KCM.Settings.order, so of the two only Profiles needs
+-- naming below -- and it is asserted to draw NO strip, not merely skipped.
 --
 -- Observed on the STRIP THE PAGE ACTUALLY DRAWS, through the library member every
 -- page routes to, rather than on a tab table a page publishes: a published table
@@ -865,6 +867,10 @@ local function renderEveryPage(KCM)
                 ctx.panel.IsShown = function() return true end
                 current = key
                 KCM.Settings.Helpers.RefreshAllPanels()
+                -- Off screen again before the next page, or the next refresh re-renders
+                -- this one too and records its strip under the next page's key -- which
+                -- is what a page that draws NO strip would otherwise inherit.
+                ctx.panel.IsShown = function() return false end
             end
         end
     end
@@ -873,8 +879,13 @@ local function renderEveryPage(KCM)
     return drawn
 end
 
+-- The §13 exemption, as it applies to KCM.Settings.order: the one page in it that
+-- the host does not draw through the flow engine.
+local STRIP_EXEMPT = { profiles = true }
+
 -- red under: returning early from any page's render before the strip is drawn,
--- or renaming the General page's first tab.
+-- renaming the General page's first tab, or drawing a strip over the Profiles
+-- page's AceConfigDialog tree.
 test("Settings: every page draws a tab strip, and General opens on Master controls",
     function(t)
         local KCM = loader.loadFullAddon()
@@ -888,11 +899,17 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
         }
         for _, key in ipairs(KCM.Settings.order) do
             local spec = drawn[key]
-            t.truthy(spec and spec.tabs and #spec.tabs > 0,
-                "the '" .. key .. "' page drew a strip")
-            t.eq(spec and spec.tabs[1] and spec.tabs[1].key, FIRST[key],
-                "…whose first tab is " .. FIRST[key])
+            if STRIP_EXEMPT[key] then
+                t.eq(spec, nil, "the '" .. key .. "' page is exempt and draws no strip")
+            else
+                t.truthy(spec and spec.tabs and #spec.tabs > 0,
+                    "the '" .. key .. "' page drew a strip")
+                t.eq(spec and spec.tabs[1] and spec.tabs[1].key, FIRST[key],
+                    "…whose first tab is " .. FIRST[key])
+            end
         end
+        t.truthy(KCM.Settings.builders.profiles,
+            "the exempt page is really in the order, so the exemption is exercised")
 
         t.eq(#drawn.general.tabs, 2,
             "General is Master controls plus Maintenance, one tab each")

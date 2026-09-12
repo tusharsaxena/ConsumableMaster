@@ -17,6 +17,14 @@
 --       from PanelRefresh because the bar is live during play (and cheap to
 --       repaint) while the panel rebuild is debounced and only matters when
 --       open.
+--   Ka0s_ConsumableMaster_ProfileChanged(reason) — profile handler → the macro
+--       bar, the options panel and the Profiles page. AceDB switched, copied or
+--       reset the profile, so every stored value is different at once. Sent by
+--       the ONE reaction KCM.RegisterProfileCallbacks installs, after the resync
+--       has rewritten the macros; `reason` is profile_changed / profile_copied /
+--       profile_reset. Separate from MacroBarRefresh because a repaint re-reads
+--       icons and counts only, and a new profile needs the bar re-applied whole
+--       (anchor, grid, order, shown slots, lock, enabled).
 
 local _, NS = ...
 local KCM = NS
@@ -39,6 +47,7 @@ KCM.MSG = {
     PANEL_REFRESH     = "Ka0s_ConsumableMaster_PanelRefresh",
     SPEC_CHANGED      = "Ka0s_ConsumableMaster_SpecChanged",
     MACROBAR_REFRESH  = "Ka0s_ConsumableMaster_MacroBarRefresh",
+    PROFILE_CHANGED   = "Ka0s_ConsumableMaster_ProfileChanged",
 }
 
 -- The pipeline owns the ONLY subscription to RECOMPUTE and forwards it to the

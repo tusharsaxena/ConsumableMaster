@@ -469,6 +469,7 @@ bespoke controls rather than through the row engine:
 | Trigger | Path |
 |---------|------|
 | macro bodies rewritten | pipeline publishes `MSG.MACROBAR_REFRESH`; the bar owns the only receiver and repaints icons + counts |
+| profile switched, copied or reset | the profile handler publishes `MSG.PROFILE_CHANGED` after its resync; the bar's receiver runs `Update()`, the whole re-apply, because every `macroBar` field is different at once. A repaint alone left the outgoing profile's anchor, grid, order and shown set on screen until `/reload` ([profiles.md](./profiles.md)) |
 | a cooldown starts | `SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN` → `KCM:OnCooldownUpdate` → `MacroBar.RefreshCooldowns()`. The swipe animates itself once set, so there is no `OnUpdate` loop. In combat the spell cooldown API goes secret, so the setter is `SetCooldownFromDurationObject` via `MacroBarButton.ApplyCooldown` — see [midnight-quirks.md](./midnight-quirks.md#secret-values) |
 | a setting changes | the schema row's `onChange` → `MacroBar.Update()` (idempotent, self-deferring) |
 | login / reload | `KCM:OnPlayerEnteringWorld` → `MacroBar.Update()`, a no-op while disabled |

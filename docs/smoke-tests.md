@@ -185,7 +185,7 @@ Tests: the `InCombatLockdown()` gate on `registerPanel` (`settings/Panel.lua`) a
 Tests: `/cm config` lands on About with sub-pages expanded; General-page checkboxes write through schema; resets fire StaticPopup.
 
 1. Close the Settings panel. Run `/cm config`.
-2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **four** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
+2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **five** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**, **Profiles**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
 4. Open General. A **tab strip** with exactly **two** tabs, **Master controls** first (`options-ui-§15` requires that order) and **Maintenance** beside it. Master controls carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair — and nothing else, since the three maintenance acts moved off it in 1.6.0. Maintenance carries `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`, under no heading of its own (the tab already carries the name). A strip showing one tab here, with the three acts hanging off the bottom of Master controls, is the pre-1.6.0 fold. A top-right **Defaults** button sits in the page header.
 4a. **Nothing is declared twice.** The Macro Bar page's General tab has **no** Lock and **no** Reset position — both moved here. `/cm set macroBar.locked true` still works and still ticks the **Lock frame** box on this page, because the setting moved tabs and not storage.
@@ -324,10 +324,10 @@ below is new behavior and none of it is covered by an automated case that can se
 
 19. **General** draws a **two-tab** strip — **Master controls** first (`options-ui-§15`), then
     **Maintenance**. There is no page left in this addon without a strip.
-20. This addon registers no AceDBOptions **Profiles** page (`/cm resetall` is the profile reset, see
-    section 7). If one is ever added it stays untabbed — it is library-drawn, it is the same in every
-    Ka0s addon, and it is one of the two pages `options-ui-§13` exempts (the other being the landing
-    page, whose body is `buildMain` and which declares no sections at all).
+20. **Profiles** draws **no** strip, and that is correct. It is AceDBOptions' own page, drawn whole by
+    AceConfigDialog and the same in every Ka0s addon. It is one of the two pages `options-ui-§13`
+    exempts, the other being the landing page, whose body is `Helpers.BuildAboutContent` and which
+    declares no sections at all. A strip drawn over the Profiles controls is the defect.
 21. **A wrapped strip does not move when you click it** (`options-ui-§13`, anti-patterns #70). On the
     **Macros** page, narrow the Settings window until the fifteen tabs wrap onto three rows. Select
     the FIRST tab, note where the content panel's top edge sits, then select the second — the rows
@@ -486,6 +486,25 @@ Tests: the profile-scoped migration gate in `core/Database.lua` and the `OnProfi
 5. Log out. Reopen the copy. Every profile you visited carries its own `schemaVersion = 3`, and `global.schemaVersion` still reads 3.
 6. **The one-time cost, so nobody files it as a bug.** No profile in a file written before this build carries a stamp, so each one meets the v2 step once on its first arrival: a profile with a deliberate `macroBar.enabled = false` comes back on. Set it off again, switch away and switch back, and confirm it now **stays** off. A bar that re-enables itself on *every* switch is a real defect — that is the profile stamp not being written.
 
+### 13a. Profiles page — every setting moves with the profile
+
+Tests: `settings/Profiles.lua`, the profile handler `KCM.RegisterProfileCallbacks` in `core/ConsumableMaster.lua`, the `PROFILE_CHANGED` receivers in `modules/MacroBar.lua` and `settings/Panel.lua`, and the fingerprint invalidation. `tests/test_profiles.lua` pins each against fakes. What only a live client proves is AceDBOptions' real controls driving the real AceDB, with the real bar and the real macros following.
+
+**Work on a COPY of `WTF/Account/<ACCOUNT>/SavedVariables/ConsumableMaster.lua`.** Back it up before you start. You need two different foods in your bags for the macro checks.
+
+1. **The page.** `/cm debug on`, and keep the console open for every step. `/cm config` → the sidebar lists **Profiles** last, after Macro Bar. Open it. AceDBOptions' controls (Reset Profile, the current profile, New, Existing Profiles, Copy From, Delete a Profile) sit **inside** the Consumable Master canvas, under the header and the `Ka0s Consumable Master › Profiles` breadcrumb, not in a floating window. There is **no** Defaults button top-right and **no** tab strip.
+2. **New.** Type `Alt` into New and press Enter. The console shows `[Profile] switched to 'Alt'`, the migration line `[DB] migrated profile 'Alt' schema v1 -> v3`, `[Macro] forced rewrite: cleared 0 macro fingerprint(s) and 0 queued write(s)` (a new profile has none), then a `[Scan]` and a `[Calc]` line. There is **no** `[Set]` line. The page now names Alt as the current profile.
+3. **Make Alt different where a repaint cannot reach.** Unlock the bar (General → Master controls → Lock frame off) and drag it to another corner. Set Macro Bar → Layout → Buttons per row to 5. Hide one slot on Macro Bar → Buttons, and move another slot to the front. On Macros → Food, block the food the macro is using now, so `KCM_FOOD` picks your other food. Note the item `KCM_FOOD` names (`/macro` → the account tab).
+4. **Switch back.** Existing Profiles → Default. **Without a `/reload`** the bar jumps to Default's position, returns to Default's grid, the hidden slot is back, the slot order is Default's, and the lock state is Default's. The console shows `[Profile] switched to 'Default'` and a `[Macro] forced rewrite: cleared N macro fingerprint(s) …` line. `KCM_FOOD` names Default's food again. A bar still showing Alt's layout is the defect this section exists for, because the bar used to only repaint.
+5. **Switch to Alt again.** Everything from step 3 comes back, and `KCM_FOOD` names Alt's food. **This is the fingerprint check.** Each profile remembers writing its own body, so a macro that keeps the other profile's item after this round trip means the fingerprints were trusted across the switch.
+6. **The bar off in one profile.** In Alt, untick Macro Bar → General → Enable macro bar. Switch to Default → the bar reappears. Switch to Alt → it disappears. No `/reload` anywhere.
+7. **Copy.** Switch to Default, then Copy From → Alt. The console shows exactly one `[Set] copied profile 'Alt' → 'Default'` line, followed by the `[Macro]`, `[Scan]` and `[Calc]` lines. There is no `[Profile]` line. The current profile is still Default. The bar takes Alt's layout at once (off, if step 6 left it off; tick it back on to see Alt's position and grid), and `KCM_FOOD` rewrites to Alt's food.
+8. **Reset.** Reset Profile → confirm. The console shows exactly one `[Set] reset profile 'Default' to defaults` line. The bar is back at screen center, unlocked, one row of 15 with every slot shown, and every page reads its shipped values. Then General → Master controls → **Reset all settings** → Yes: the same single line, because the two are the same act (`options-ui-§12`). Switch to Alt: its settings are untouched, and the profile list still holds both.
+9. **Delete.** Switch to Default, then Delete a Profile → Alt → confirm. Alt leaves the list. Nothing on the bar or in the macros changes, because a delete does not touch the active profile, and no `[Set]` or `[Profile]` line appears.
+10. **An open page follows a switch made elsewhere.** Create `Alt` again and set Button size to 50 there. Switch to Default, then open Macro Bar → Layout and leave it open. From chat: `/run LibStub("AceAddon-3.0"):GetAddon("ConsumableMaster").db:SetProfile("Alt")`. The Button size slider reads 50 **at once**, not a second later, and moving it changes Alt. Open Profiles: it names Alt as current.
+11. **Combat.** Pull a target dummy and run the same `/run` back to Default mid-fight. No Lua error. The bar keeps its layout until combat ends and then re-applies Default's, and the macro writes land on regen.
+12. **What stays out.** Across every switch above, the debug console's open state and `/cm perf`'s saved runs do not change. Neither lives in a profile.
+
 ## LibKa0s seam pass
 
 Run this after any change under `libs/LibKa0s/`, or to `core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, `core/PerfSetup.lua` or `settings/Panel.lua`'s seam. Everything below is chrome, timing or frame behavior — the parts the headless harness provably cannot reach (the mock's `IsShown` always reads truthy, `HookScript` is a no-op, and named frames are never published to `_G`).
@@ -604,7 +623,8 @@ Rename it back and `/reload`.
 | Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
-| `core/Database.lua` migrations / the profile hooks in `core/ConsumableMaster.lua` | §11a step 1a + §13 |
+| `core/Database.lua` migrations / the profile hooks in `core/ConsumableMaster.lua` | §11a step 1a + §13 + §13a |
+| `settings/Profiles.lua`, `KCM.MSG.PROFILE_CHANGED` or any of its receivers, `KCM.Settings.VetoedFromResetAll`, or the vendored AceConfig / AceDBOptions | §13a in full, plus §7 step 10a |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
 | `registerPanel`'s combat gate, or `OnRegenEnabled`'s replay of it | §6a |
 | Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |

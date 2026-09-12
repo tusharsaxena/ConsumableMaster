@@ -7,9 +7,9 @@ the recompute they trigger is [data-flow.md](./data-flow.md).
 ## Shape
 
 One `Settings.RegisterCanvasLayoutCategory` **parent** — the landing page — plus one
-`RegisterCanvasLayoutSubcategory` **body per page**, of which there are four. There is no
-AceConfigDialog anywhere in the addon:
-pages are built from raw AceGUI widgets on a Blizzard canvas (`options-ui-§2`). The canvas shell, the
+`RegisterCanvasLayoutSubcategory` **body per page**, of which there are five. AceConfigDialog draws
+exactly one of them, the **Profiles** page ([profiles.md](./profiles.md), `options-ui-§3`); the other
+four are built from raw AceGUI widgets on a Blizzard canvas (`options-ui-§2`). The canvas shell, the
 page registry, the widget makers, the two-column flow engine, the tab strip and the schema
 **composers** are all **LibKa0s-Options-1.0's**, wired in `settings/OptionsSetup.lua`;
 `settings/Panel.lua` owns registration and the shared header (title + atlas divider) built by
@@ -20,21 +20,22 @@ Each page module hands a **builder** to `RegisterTab`; `settings/Panel.lua` iter
 
 ### Every page draws a strip
 
-**All four pages** carry a **pinned tab strip** in the page's chrome band (`options-ui-§13`): only the
+**All four schema-drawn pages** carry a **pinned tab strip** in the page's chrome band (`options-ui-§13`): only the
 active tab's body draws, and the strip wraps onto as many rows as the canvas width needs. That is not
 a size threshold and not a choice — a Ka0s page has a strip, so a player who has learned one page has
 learned all of them. A page with exactly **one** section draws a **one-tab** strip; the tab that
 cannot be clicked is that page's section label.
 
-The only exemptions are pages the host does not render through the flow engine at all: the
-AceConfig-drawn **Profiles** sub-page (which this addon does not ship — `AceDBOptions` is not
-vendored, and the addon runs on a single AceDB profile) and the **landing page**, whose body is
-`Helpers.BuildAboutContent`.
+The only exemptions are pages the host does not render through the flow engine at all, and there
+are two: the AceConfig-drawn **Profiles** sub-page (`settings/Profiles.lua`), which AceConfigDialog
+draws whole and which carries no schema rows, and the **landing page**, whose body is
+`Helpers.BuildAboutContent` and which declares no sections. `tests/test_settingsui.lua` asserts the
+Profiles page draws **no** strip, rather than merely skipping it.
 
 The **Macros** page is why the strip exists here at all. Every macro category used to be its own
 `RegisterCanvasLayoutSubcategory` entry — fifteen rows in the AddOns sidebar for fifteen variations on
 one surface, and eighteen sub-pages in all. They are one page with fifteen tabs now, and the sidebar
-is down to four entries. The strip is **generated** from `KCM.Categories.LIST` in
+is down to five entries, the Profiles page among them. The strip is **generated** from `KCM.Categories.LIST` in
 `KCM.Settings.macroOrder`, exactly as the fifteen builders were: a sixteenth category is a row in
 `Categories.LIST` plus a key in `macroOrder`, and it gets a tab for free. There is no hand-written tab
 list, for the reason `options-ui-§13` gives against one — a list declared apart from the data goes
@@ -114,9 +115,10 @@ never a protected action (`options-ui-§13`).
 
 ## Page | Covers
 
-Display order is `KCM.Settings.order` (`settings/Panel.lua`) — four pages, in the order a player meets
+Display order is `KCM.Settings.order` (`settings/Panel.lua`) — five pages, in the order a player meets
 them: the addon-wide controls, the macros themselves, the ranking the spec-aware categories sort by,
-and last the optional bar that displays the finished macros.
+the optional bar that displays the finished macros, and last the Profiles page, which is AceDBOptions'
+own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
@@ -124,6 +126,7 @@ and last the optional bar that displays the finished macros.
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
 | **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 78 schema rows live here |
+| **Profiles** | none (`§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
 
@@ -175,6 +178,11 @@ covered the day it is declared — which is also why the composed row is given a
 `debugConsole = false` default in `settings/General.lua`: three separate resets key on
 `default ~= nil` before they will touch a row, and `OptionsCompose` emits that row without one.
 Both halves live behind the one function so the button and `/cm resetall` cannot drift.
+
+Which rows the sweep writes is **one predicate's** call, `KCM.Settings.VetoedFromResetAll`
+(`settings/OptionsSetup.lua`): it refuses the Profiles page's rows (`options-ui-§3`) and every
+profile-resident row (`§12`), which leaves the session rows. The same function is the library
+descriptor's `skipRestoreAll`, so the rule is named once and shared rather than restated.
 
 ### The Macros strip, in tab order
 

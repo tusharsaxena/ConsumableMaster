@@ -33,18 +33,20 @@ KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
 KCM.Settings.main    = nil
 
--- Canonical PAGE order — the four sub-pages in the AddOns sidebar, in the order
+-- Canonical PAGE order — the five sub-pages in the AddOns sidebar, in the order
 -- a player meets them: the master switch and the maintenance actions, the macro
 -- categories themselves (the addon's whole subject), the stat ranking the
--- spec-aware categories sort by, and last the optional on-screen bar that
--- displays the finished macros.
+-- spec-aware categories sort by, the optional on-screen bar that displays the
+-- finished macros, and last the Profiles page (settings/Profiles.lua), which is
+-- AceDBOptions' own UI and the same page in every Ka0s addon that ships one --
+-- last there too.
 --
 -- It used to carry eighteen entries because every macro category was its own
 -- sub-page. The categories are one page with a tab strip now (options-ui-§13),
 -- so the category run moved to KCM.Settings.macroOrder below and this table is
 -- back to being what its name says.
 KCM.Settings.order = KCM.Settings.order or {
-    "general", "macros", "statpriority", "macrobar",
+    "general", "macros", "statpriority", "macrobar", "profiles",
 }
 
 -- Canonical TAB order for the Macros page: the strip settings/Category.lua
@@ -1375,9 +1377,17 @@ end)
 
 -- ---------------------------------------------------------------------
 -- Bus receivers (architecture-§4). The options layer owns the sole
--- subscriptions to PANEL_REFRESH (debounced rebuild of any open page) and
--- SPEC_CHANGED (retrack the Stat Priority page to the new spec when the page
--- is auto-tracking). Each is registered on its own target — never two on one.
+-- options-layer subscriptions to PANEL_REFRESH (debounced rebuild of any open
+-- page), PROFILE_CHANGED (an immediate one) and SPEC_CHANGED (retrack the Stat
+-- Priority page to the new spec when the page is auto-tracking). Three
+-- different messages on one target, so none can clobber another.
+--
+-- PROFILE_CHANGED is NOT left to the debounced PANEL_REFRESH the resync also
+-- publishes. A page drawn from the outgoing profile holds controls that read and
+-- write it -- a table a switch has just swapped out -- so for the second or more
+-- the debounce waits, a click on one would write the wrong profile. The rebuild
+-- is structural and scoped to the page on screen (every other one is marked
+-- dirty), so it costs one page, once (options-ui-§11).
 -- ---------------------------------------------------------------------
 if KCM.NewBusTarget and KCM.MSG then
     local optionsTarget = KCM.NewBusTarget()
@@ -1385,6 +1395,9 @@ if KCM.NewBusTarget and KCM.MSG then
     optionsTarget:RegisterMessage(KCM.MSG.PANEL_REFRESH, function()
         if O.RequestRefresh then O.RequestRefresh()
         elseif O.Refresh then O.Refresh() end
+    end)
+    optionsTarget:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function()
+        if O.Refresh then O.Refresh() end
     end)
     optionsTarget:RegisterMessage(KCM.MSG.SPEC_CHANGED, function()
         if O._viewedSpecAuto and KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
