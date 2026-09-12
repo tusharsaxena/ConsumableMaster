@@ -445,12 +445,16 @@ categories" in `tests/test_macrobar.lua`, which fails if any one drifts from
 `Grid`'s reported column count, since `normalize` itself isn't exported.
 
 Two fields are not scalars. Each is a whole-value schema row (`architecture-§5`),
-written whole through `KCM.Schema:Set`, and the Buttons tab draws both with
-bespoke controls rather than through the row engine:
+written whole through the schema helper, and the Buttons tab draws both as one
+draggable list rather than through the row engine: shown slots first with a drag
+handle, a rule, then the hidden ones dimmed and handle-less
+([settings-panel.md](./settings-panel.md)):
 
-* `order` — the slot order (type `order`), changed by dragging one slot onto
-  another (`MacroBar.SwapSlots` swaps a copy with `MacroBarModel.Swap` and writes
-  it through the helper, whose `onChange` re-applies the bar), and restored to the
+* `order` — the slot order (type `order`). It is changed by dragging a row on the
+  Buttons tab, which is a SPLICE within the shown group, written with the hidden
+  slots after it. It is also changed by dropping one slot onto another on the bar
+  itself: `MacroBar.SwapSlots` swaps a copy with `MacroBarModel.Swap` and writes
+  it through the helper, whose `onChange` re-applies the bar. It is restored to the
   default by the Macro Bar page's order reset (`settings/MacroBar.lua`) and its
   Defaults button (`doResetPage`, which writes every page row through the schema
   helper's batch form and leaves `locked` alone). The row's validator normalizes
@@ -460,8 +464,10 @@ bespoke controls rather than through the row engine:
   slots, and every other slot follows. The default is the cosmetic tab order of the Macros page, `KCM.Settings.macroOrder`,
   duplicated as a literal in `dbDefaults` because `Panel.lua` loads much later —
   `tests/test_macrobar.lua` guards the two against drift.
-* `shown` — a flag map (type `map`) written by the Buttons tab's checkboxes and
-  `/cm set macroBar.shown FOOD=off`: `[catKey] = false` hides a slot. **Unset means visible**, so a
+* `shown` — a flag map (type `map`), written by the Buttons tab's tick and by
+  `/cm set macroBar.shown FOOD=off`. The tick also moves the slot, to the top of
+  the hidden group or the end of the shown one, so it writes `shown` and then
+  `order` as one batch: `[catKey] = false` hides a slot. **Unset means visible**, so a
   category shipped after a profile was written appears rather than vanishing.
 
 ## Refresh paths
@@ -469,6 +475,7 @@ bespoke controls rather than through the row engine:
 | Trigger | Path |
 |---------|------|
 | macro bodies rewritten | pipeline publishes `MSG.MACROBAR_REFRESH`; the bar owns the only receiver and repaints icons + counts |
+| profile switched, copied or reset | the profile handler publishes `MSG.PROFILE_CHANGED` after its resync; the bar's receiver runs `Update()`, the whole re-apply, because every `macroBar` field is different at once. A repaint alone left the outgoing profile's anchor, grid, order and shown set on screen until `/reload` ([profiles.md](./profiles.md)) |
 | a cooldown starts | `SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN` → `KCM:OnCooldownUpdate` → `MacroBar.RefreshCooldowns()`. The swipe animates itself once set, so there is no `OnUpdate` loop. In combat the spell cooldown API goes secret, so the setter is `SetCooldownFromDurationObject` via `MacroBarButton.ApplyCooldown` — see [midnight-quirks.md](./midnight-quirks.md#secret-values) |
 | a setting changes | the schema row's `onChange` → `MacroBar.Update()` (idempotent, self-deferring) |
 | login / reload | `KCM:OnPlayerEnteringWorld` → `MacroBar.Update()`, a no-op while disabled |

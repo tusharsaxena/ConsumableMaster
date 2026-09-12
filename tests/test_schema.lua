@@ -405,16 +405,17 @@ end)
 -- ---------------------------------------------------------------------------
 -- The page -> tab -> row partition
 --
--- The settings panel is four pages now, two of them carrying a tab strip. These
+-- The settings panel is five pages now: four that carry a tab strip, and the
+-- AceConfig-drawn Profiles page last, which carries no rows and no strip. These
 -- three cases are what catch a row drifting into the wrong tab, a tab losing its
 -- rows, and a category losing its tab -- none of which any other case would see,
 -- because every one of them still renders something.
 -- ---------------------------------------------------------------------------
 
-test("schema: the page order lists four pages, each once", function(t)
+test("schema: the page order lists five pages, each once, Profiles last", function(t)
     local KCM = h.loader.loadWithSchema()
-    t.eqList(KCM.Settings.order, { "general", "macros", "statpriority", "macrobar" },
-        "the sidebar reads General, Macros, Stat Priority, Macro Bar")
+    t.eqList(KCM.Settings.order, { "general", "macros", "statpriority", "macrobar", "profiles" },
+        "the sidebar reads General, Macros, Stat Priority, Macro Bar, Profiles")
     local seen = {}
     for _, name in ipairs(KCM.Settings.order) do
         t.falsy(seen[name], "'" .. name .. "' appears once in the page order")

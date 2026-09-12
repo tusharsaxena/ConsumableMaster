@@ -23,8 +23,17 @@ libs\LibSharedMedia-3.0\lib.xml
 libs\AceAddon-3.0\AceAddon-3.0.xml
 libs\AceEvent-3.0\AceEvent-3.0.xml
 libs\AceDB-3.0\AceDB-3.0.xml
+# AceDBOptions builds the Profiles page's options table over the AceDB object;
+# beside AceDB, as MultiMeters and KickCD place it.
+libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
 libs\AceConsole-3.0\AceConsole-3.0.xml
 libs\AceGUI-3.0\AceGUI-3.0.xml
+# AceConfig (Registry, Cmd, Dialog) draws the Profiles page -- its only use in
+# this addon (options-ui-§3). AFTER AceGUI, and that is load-bearing:
+# AceConfigDialog resolves AceGUI with a non-silent LibStub at file load, so
+# ahead of it the file raises unless some other addon happened to load AceGUI
+# first. Ace3's own TOC orders the two the same way.
+libs\AceConfig-3.0\AceConfig-3.0.xml
 # LSM30_Border / LSM30_Font dropdowns (border-style picker on the Macro Bar
 # page). Depends on AceGUI + LibSharedMedia, so it loads after both.
 libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
@@ -165,3 +174,7 @@ settings\Category.lua
 # verb table and publishes KCM:OnSlashCommand, which AceConsole resolves by name
 # when a command is typed rather than at load.
 settings\Slash.lua
+# The Profiles page: AceDBOptions' own UI, drawn by AceConfigDialog into this
+# addon's canvas. Last, so it is last in the AddOns sidebar -- KCM.Settings.order
+# names it last too -- and because nothing loads after it that reads it.
+settings\Profiles.lua

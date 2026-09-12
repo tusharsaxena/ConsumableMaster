@@ -40,6 +40,7 @@ Functional-area tags in use today:
 - `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply), and the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`
 - `GC` — stale-discovered sweep
 - `Set` — settings write at `Helpers.Set`, a bulk reset's one line, and the profile handler's reset/copy line
+- `Profile` — the profile handler's switch trace, `[Profile] switched to '<name>'`. A switch rewrites no rows, so it is not a `[Set]` line ([profiles.md](./profiles.md))
 - `Prio` — priority-list mutations (add/block/move) and the registry resets (`ResetBucket` / `ResetAllBuckets`)
 - `Bar` — macro-bar events worth noticing, today just a flyout truncated by `macroBar.flyoutMax` (never a silent cap)
 
@@ -54,6 +55,7 @@ A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `He
 | Macros page **Reset category** on a composite, and `/cm aio <key> reset` | `[Set] reset category <KEY>: N rows` |
 | **Reset all settings** / `/cm resetall` (`KCM.ResetAllToDefaults`) | `[Set] reset profile '<name>' to defaults`, from the `OnProfileReset` handler; the session sweep runs under `Helpers.MuteSetLog` |
 | An AceDB profile copy | `[Set] copied profile 'A' → 'B'`, from the `OnProfileCopied` handler |
+| An AceDB profile switch | `[Profile] switched to '<name>'`, from the `OnProfileChanged` handler. It is not a `[Set]` line, but it silences an open bracket the same way |
 
 N counts only rows whose stored value changed, so a Defaults press on a page already at defaults logs `0 rows`. Single-row resets (`/cm reset <path>`, Reset slot order, the Stat Priority page's Defaults) keep their one `[Set] <path> = <value>` line, and the registry resets keep their `[Prio]` line.
 

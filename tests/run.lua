@@ -228,6 +228,9 @@ local PURE_LAYER_OMITS = {
     ["modules/KCMScoreButton.lua"] = true,
     ["modules/KCMMacroDragIcon.lua"] = true,
     ["modules/KCMItemRow.lua"]     = true,
+    -- The Profiles page: AceConfigDialog draws it, off the harness's AceConfig
+    -- fakes, and tests/test_profiles.lua reaches it through the full-addon load.
+    ["settings/Profiles.lua"]      = true,
 }
 
 L.PURE_LAYER = {}
@@ -440,10 +443,12 @@ local SUITES = {
     "test_load",
     "test_locale",
     "test_macrobar",
+    "test_macrobar_buttons",
     "test_macromanager",
     "test_mediasetup",
     "test_perfsetup",
     "test_pipeline",
+    "test_profiles",
     "test_prose",
     "test_ranker",
     "test_register",

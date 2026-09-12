@@ -353,7 +353,17 @@ end
 M.makeAceWidget = makeAceWidget
 
 -- ---------------------------------------------------------------------------
--- AceDB (kept local: the kit's has no string-method callbacks or profile key)
+-- AceDB (kept local, and not for the profile key any more)
+--
+-- Through kit revision 17 the kit's AceDB fake handed every callback the ACTIVE
+-- profile's key, which is wrong for a copy; since revision 18 (LibKa0s v1.33.0)
+-- each event carries its own key, the copy's SOURCE included, and since revision
+-- 19 (v1.34.0) a reset carries none, exactly as this fake does. Two differences
+-- remain, and they are why this one stays: the kit
+-- calls every callback as a plain function, with no CallbackHandler string-method
+-- form (`target[method](target, event, ...)`), and it keeps the profile store as
+-- `sv.profiles` rather than as real AceDB's `db.profiles`, which the suites seed
+-- directly to stage a second profile.
 -- ---------------------------------------------------------------------------
 
 local function makeAceDB()
@@ -424,19 +434,23 @@ local function makeAceDB()
             callbacks[event][#callbacks[event] + 1] = { target = target, handler = handler }
         end
 
-        -- The third argument is the profile key CallbackHandler passes through.
-        -- It was the literal "Default" while one profile was all this fake had;
-        -- now a switch names the profile it switched to, and everything else
-        -- reports whichever profile is live.
-        local function fire(event, key)
+        -- What follows `(event, db)` is exactly what AceDB-3.0 passes: the NEW
+        -- profile's key for a switch, the SOURCE's for a copy, and NOTHING for a
+        -- reset (DBObjectLib's ResetProfile ends
+        -- `self.callbacks:Fire("OnProfileReset", self)`). Until LibKa0s v1.34.0
+        -- this fake answered a reset with the live key, so a handler that read a
+        -- key on a reset passed here and got nil in the client. The handler in
+        -- core/ConsumableMaster.lua names a reset from d:GetCurrentProfile() and
+        -- reads the key for a copy only, which is why nothing moved when it went.
+        local function fire(event, ...)
             for _, entry in ipairs(callbacks[event] or {}) do
                 local target, handler = entry.target, entry.handler
                 if type(handler) == "function" then
-                    handler(event, db, key or current)
+                    handler(event, db, ...)
                 elseif type(handler) == "string" and type(target) == "table"
                     and type(target[handler]) == "function"
                 then
-                    target[handler](target, event, db, key or current)
+                    target[handler](target, event, db, ...)
                 end
             end
         end
@@ -539,6 +553,30 @@ function M.install(NS)
                 end,
             },
             { __index = function() return function() end end }),
+
+        -- AceDBOptions / AceConfig / AceConfigDialog, for settings/Profiles.lua -- the
+        -- one page this addon does not draw itself. Modeled on MultiMeters' fakes:
+        -- the options table remembers the db it was built over, the registry
+        -- remembers what was registered under which app name, and the dialog COUNTS
+        -- its Opens, which is how a case tells a page that redrew from one that did
+        -- not. Rebuilt per install, like every other entry in this table, so a count
+        -- never carries from one case into the next.
+        ["AceDBOptions-3.0"] = {
+            GetOptionsTable = function(_, db)
+                return { type = "group", name = "Profiles", args = {}, __db = db }
+            end,
+        },
+        ["AceConfig-3.0"] = {
+            __registered = {},
+            RegisterOptionsTable = function(self, name, tbl) self.__registered[name] = tbl end,
+        },
+        ["AceConfigDialog-3.0"] = {
+            __opens = 0,
+            Open = function(self, name, container)
+                self.__opens = self.__opens + 1
+                self.__lastOpen = { name = name, container = container }
+            end,
+        },
     }
     -- LibStub is a callable table, not a bare function, because the vendored
     -- LibKa0s files register themselves through `LibStub:NewLibrary(major,

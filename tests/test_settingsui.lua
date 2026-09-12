@@ -836,9 +836,11 @@ end)
 --
 -- Not a size threshold and not a choice: a Ka0s page has a strip, so a player who
 -- has learned one page has learned all of them. The only exemptions are pages the
--- host does not render through the flow engine at all — the AceConfig-drawn
--- Profiles sub-page (which this addon does not ship) and the landing page, whose
--- body is buildMain.
+-- host does not render through the flow engine at all, and there are two: the
+-- AceConfig-drawn Profiles sub-page (settings/Profiles.lua), which AceConfigDialog
+-- draws whole, and the landing page, whose body is Helpers.BuildAboutContent. The
+-- landing page is not in KCM.Settings.order, so of the two only Profiles needs
+-- naming below -- and it is asserted to draw NO strip, not merely skipped.
 --
 -- Observed on the STRIP THE PAGE ACTUALLY DRAWS, through the library member every
 -- page routes to, rather than on a tab table a page publishes: a published table
@@ -865,6 +867,10 @@ local function renderEveryPage(KCM)
                 ctx.panel.IsShown = function() return true end
                 current = key
                 KCM.Settings.Helpers.RefreshAllPanels()
+                -- Off screen again before the next page, or the next refresh re-renders
+                -- this one too and records its strip under the next page's key -- which
+                -- is what a page that draws NO strip would otherwise inherit.
+                ctx.panel.IsShown = function() return false end
             end
         end
     end
@@ -873,8 +879,13 @@ local function renderEveryPage(KCM)
     return drawn
 end
 
+-- The §13 exemption, as it applies to KCM.Settings.order: the one page in it that
+-- the host does not draw through the flow engine.
+local STRIP_EXEMPT = { profiles = true }
+
 -- red under: returning early from any page's render before the strip is drawn,
--- or renaming the General page's first tab.
+-- renaming the General page's first tab, or drawing a strip over the Profiles
+-- page's AceConfigDialog tree.
 test("Settings: every page draws a tab strip, and General opens on Master controls",
     function(t)
         local KCM = loader.loadFullAddon()
@@ -888,11 +899,17 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
         }
         for _, key in ipairs(KCM.Settings.order) do
             local spec = drawn[key]
-            t.truthy(spec and spec.tabs and #spec.tabs > 0,
-                "the '" .. key .. "' page drew a strip")
-            t.eq(spec and spec.tabs[1] and spec.tabs[1].key, FIRST[key],
-                "…whose first tab is " .. FIRST[key])
+            if STRIP_EXEMPT[key] then
+                t.eq(spec, nil, "the '" .. key .. "' page is exempt and draws no strip")
+            else
+                t.truthy(spec and spec.tabs and #spec.tabs > 0,
+                    "the '" .. key .. "' page drew a strip")
+                t.eq(spec and spec.tabs[1] and spec.tabs[1].key, FIRST[key],
+                    "…whose first tab is " .. FIRST[key])
+            end
         end
+        t.truthy(KCM.Settings.builders.profiles,
+            "the exempt page is really in the order, so the exemption is exercised")
 
         t.eq(#drawn.general.tabs, 2,
             "General is Master controls plus Maintenance, one tab each")
@@ -1126,12 +1143,17 @@ test("Settings: every reorder list takes the library's handle gutter", function(
         local ctx = UI.__panelFor("statpriority")
         ctx.panel.IsShown = function() return true end
         KCM.Settings.Helpers.RefreshAllPanels()
+        KCM.Settings.builders.macrobar({})   -- the Macro Bar page's Buttons list
+        local bar = UI.__panelFor("macrobar")
+        bar.panel.IsShown = function() return true end
+        bar.activeTab = "Buttons"
+        KCM.Settings.Helpers.RefreshAllPanels()
     end)
     W.ReorderList = realReorder
     if not ok then error(err, 0) end
 
     t.eq(W.ROW_BOX.HANDLE_W, 30, "the collection's gutter, read from the library")
-    t.truthy(#seen >= 4, "all four call sites were exercised (" .. #seen .. ")")
+    t.truthy(#seen >= 5, "all five call sites were exercised (" .. #seen .. ")")
     for i, opts in ipairs(seen) do
         t.eq(opts.handleSize, nil,
             "list #" .. i .. " declares no handleSize, so the library's default decides")
@@ -1443,6 +1465,61 @@ test("Settings: the Master controls tab closes with the two reset buttons", func
     -- by settings/Panel.lua's own Button / ButtonPair, which hold AceGUI as a
     -- file-local captured at load, so swapping UI.AceGUI cannot see them. The
     -- case below reads them off the mock factory instead.
+end)
+
+-- options-ui-§12's SHOULD: the Reset all settings tooltip names the equivalence,
+-- "the same thing Profiles → Reset Profile does", rather than restating the popup.
+-- The button is the library composer's, and since LibKa0s-Options-1.0 minor 18 its
+-- tooltip follows the Options descriptor: `resetProfile` makes it a profile reset,
+-- and `profilesPage` says this addon ships the page the text points at. Read off
+-- the drawn button's OnEnter, which is the only place AttachTooltip puts it.
+--
+-- red under: a descriptor without `resetProfile` ("Restore every setting in this
+-- addon to its default.") or without `profilesPage` (the Profiles page unnamed).
+test("Settings: the Reset all settings tooltip names Profiles → Reset Profile", function(t)
+    local KCM = loader.loadFullAddon()
+    local UI  = KCM.Settings.Helpers.instance
+
+    local buttons = {}
+    local realAceGUI = UI.AceGUI
+    UI.AceGUI = setmetatable({
+        Create = function(_, kind)
+            local w = loader.mock.makeAceWidget()
+            if kind == "Button" then
+                local callbacks = {}
+                w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+                buttons[#buttons + 1] = { widget = w, callbacks = callbacks }
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() end end })
+
+    KCM.Settings.builders.general({})
+    local ctx = UI.__panelFor("general")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Master controls"
+    KCM.Settings.Helpers.RefreshAllPanels()
+
+    UI.AceGUI = realAceGUI
+
+    local reset
+    for _, b in ipairs(buttons) do
+        if rawget(b.widget, "__text") == "Reset all settings" then reset = b end
+    end
+    t.truthy(reset and reset.callbacks.OnEnter, "the button is drawn, with a tooltip")
+
+    local lines, tip = {}, _G.GameTooltip
+    local saved = rawget(tip, "AddLine")
+    rawset(tip, "AddLine", function(_, text) lines[#lines + 1] = text end)
+    local ok, err = pcall(reset.callbacks.OnEnter)
+    rawset(tip, "AddLine", saved)
+    t.truthy(ok, tostring(err))
+    t.eq(lines[1], "Reset the current profile to its defaults — the same thing "
+        .. "Profiles → Reset Profile does. Your other profiles are not affected.",
+        "the tooltip names the equivalence and the blast radius")
 end)
 
 -- The Maintenance TAB is back, by the owner's call on 2026-09-09. It was folded

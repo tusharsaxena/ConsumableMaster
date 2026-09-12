@@ -32,7 +32,7 @@ badge and any count quoted in the docs must agree with it.
 - bulk: the composite category reset is one [Set] line, and its reactor runs
 - bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs
 - bulk: the global reset is one [Set] line from the profile handler, the session row muted
-- bulk: a profile copy is one [Set] line from the handler, and a switch is none
+- bulk: a profile copy is one [Set] line from the handler, and a switch is a [Profile] line
 - bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes
 - bulk: a Macro Bar Defaults that raises mid-walk logs its one line marked stopped, and re-raises
 - bulk: the global reset inside an open bracket is still one line in all
@@ -331,7 +331,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (138)
+### test_macrobar.lua (136)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -468,9 +468,18 @@ badge and any count quoted in the docs must agree with it.
 - macrobar Defaults: the page reset is one [Set] line, written into the same table
 - macrobar Defaults: a batch that fails leaves the position where it was, and says so
 - macrobar: dragging one slot onto another stores the swapped order
-- macrobar: the Buttons tab's checkbox stores a real boolean in shown
-- macrobar: the slot swap and the Buttons checkboxes write through the schema helper
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
+
+### test_macrobar_buttons.lua (8)
+
+- Buttons: shown slots first in order, then hidden ones dimmed and handle-less, boundary = shown count
+- Buttons: a drag splices the shown group and writes the order once; a drop in place writes nothing
+- Buttons: untick goes to the top of the hidden group, tick to the end of the shown group
+- Buttons: every slot can be hidden, as the checkboxes allowed
+- Buttons: the last render's controller is canceled before the scroll is cleared
+- Buttons: in combat a drag and a tick are refused, write nothing and repaint nothing
+- Buttons: each act re-applies the bar once, and the bar carries the new order and set
+- macrobar: the slot swap, the list's drag and its tick write through the schema helper
 
 ### test_macromanager.lua (49)
 
@@ -586,6 +595,24 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
 
+### test_profiles.lua (15)
+
+- Profiles: the page is the last in the sidebar and its file loads last
+- Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
+- Profiles: a pooled, hidden SimpleGroup is shown before AceConfigDialog fills it
+- Profiles: a profile event redraws the page; a pipeline refresh does not
+- Profiles: with AceConfigDialog absent the page is simply not built
+- Profiles: the global-reset veto is named once and is the descriptor's skipRestoreAll
+- Profiles: the Options descriptor declares the profile reset and the Profiles page
+- Profiles: the reset loop asks the same veto before it sweeps a row
+- Profiles: a global reset empties the active profile only and publishes PROFILE_CHANGED
+- Profiles: a switch re-applies the whole bar -- anchor, order, shown slots and enabled
+- Profiles: a copy re-applies the whole bar
+- Profiles: a reset re-applies the whole bar
+- Profiles: a switch or copy rewrites a macro whose incoming fingerprint matches a body no longer live
+- Profiles: each profile act logs its one handler line, a switch included
+- Profiles: the open settings pages rebuild on the switch itself, not after the debounce
+
 ### test_prose.lua (2)
 
 - prose: no authored file carries a British spelling from localization-§5's published list
@@ -664,7 +691,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: a render failure is reported instead of breaking the refresh loop
 - schema: RefreshScalars re-syncs widgets in place without a rebuild
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
-- schema: the page order lists four pages, each once
+- schema: the page order lists five pages, each once, Profiles last
 - schema: the Macros page carries one tab per category, in macroOrder
 - schema: the Macros strip is the designed run of tabs, in order
 - schema: a Macros tab is labeled with the category's display name
@@ -744,7 +771,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (47)
+### test_settingsui.lua (48)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -783,6 +810,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the secondary split is stored order first, then the rest
 - Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
+- Settings: the Reset all settings tooltip names Profiles → Reset Profile
 - Settings: the three maintenance verbs draw on their own tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
@@ -886,7 +914,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a flag map merges the pairs given over the stored map
 - every /cm stat and /cm aio write goes through the schema helper
 
-### test_slashsetup.lua (16)
+### test_slashsetup.lua (17)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -898,6 +926,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
+- Slash: /cm set keeps a multi-word font name whole
 - Slash: with the library absent every host-owned verb still dispatches
 - Slash: with the library absent only the five library-backed verbs degrade
 - Slash: a bare /cm degrades without latching, and an unknown verb still reports
@@ -1017,20 +1046,22 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 138 |
+| test_macrobar.lua | 136 |
+| test_macrobar_buttons.lua | 8 |
 | test_macromanager.lua | 49 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
+| test_profiles.lua | 15 |
 | test_prose.lua | 2 |
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 47 |
+| test_settingsui.lua | 48 |
 | test_slash.lua | 89 |
-| test_slashsetup.lua | 16 |
+| test_slashsetup.lua | 17 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
@@ -1038,4 +1069,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **852** |
+| **Total** | **875** |

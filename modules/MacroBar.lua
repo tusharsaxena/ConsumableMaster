@@ -510,9 +510,19 @@ function MB.SwapSlots(fromKey, toKey)
 end
 
 -- ---------------------------------------------------------------------------
--- Bus receiver (architecture-§4). The bar owns the sole MACROBAR_REFRESH
--- subscription, on its own target — the pipeline publishes it after every
--- recompute so icons and counts track the freshly-written macro bodies.
+-- Bus receivers (architecture-§4), both on the bar's own target -- two
+-- DIFFERENT messages, so neither can clobber the other (CallbackHandler keys a
+-- callback by message AND target).
+--
+-- MACROBAR_REFRESH: the pipeline publishes it after every recompute so icons
+-- and counts track the freshly-written macro bodies. A repaint, nothing more.
+--
+-- PROFILE_CHANGED: the profile handler (core/ConsumableMaster.lua) publishes it
+-- after a switch, copy or reset. Every `macroBar` field is different at once, so
+-- the bar is RE-APPLIED whole -- anchor, backdrop, grid, order, shown slots,
+-- lock, visibility, alpha -- through the one seam that does all of it. Update
+-- takes the disable path when the incoming profile has the bar off, and defers
+-- itself wholesale to regen in combat, exactly as for any other caller.
 -- ---------------------------------------------------------------------------
 if KCM.NewBusTarget and KCM.MSG and KCM.MSG.MACROBAR_REFRESH then
     local target = KCM.NewBusTarget()
@@ -520,4 +530,7 @@ if KCM.NewBusTarget and KCM.MSG and KCM.MSG.MACROBAR_REFRESH then
     target:RegisterMessage(KCM.MSG.MACROBAR_REFRESH, function()
         if KCM.MacroBarModel and KCM.MacroBarModel.IsEnabled() then MB.Refresh() end
     end)
+    if KCM.MSG.PROFILE_CHANGED then
+        target:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function() MB.Update() end)
+    end
 end

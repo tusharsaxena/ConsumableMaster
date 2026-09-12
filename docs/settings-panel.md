@@ -7,9 +7,9 @@ the recompute they trigger is [data-flow.md](./data-flow.md).
 ## Shape
 
 One `Settings.RegisterCanvasLayoutCategory` **parent** — the landing page — plus one
-`RegisterCanvasLayoutSubcategory` **body per page**, of which there are four. There is no
-AceConfigDialog anywhere in the addon:
-pages are built from raw AceGUI widgets on a Blizzard canvas (`options-ui-§2`). The canvas shell, the
+`RegisterCanvasLayoutSubcategory` **body per page**, of which there are five. AceConfigDialog draws
+exactly one of them, the **Profiles** page ([profiles.md](./profiles.md), `options-ui-§3`); the other
+four are built from raw AceGUI widgets on a Blizzard canvas (`options-ui-§2`). The canvas shell, the
 page registry, the widget makers, the two-column flow engine, the tab strip and the schema
 **composers** are all **LibKa0s-Options-1.0's**, wired in `settings/OptionsSetup.lua`;
 `settings/Panel.lua` owns registration and the shared header (title + atlas divider) built by
@@ -20,21 +20,22 @@ Each page module hands a **builder** to `RegisterTab`; `settings/Panel.lua` iter
 
 ### Every page draws a strip
 
-**All four pages** carry a **pinned tab strip** in the page's chrome band (`options-ui-§13`): only the
+**All four schema-drawn pages** carry a **pinned tab strip** in the page's chrome band (`options-ui-§13`): only the
 active tab's body draws, and the strip wraps onto as many rows as the canvas width needs. That is not
 a size threshold and not a choice — a Ka0s page has a strip, so a player who has learned one page has
 learned all of them. A page with exactly **one** section draws a **one-tab** strip; the tab that
 cannot be clicked is that page's section label.
 
-The only exemptions are pages the host does not render through the flow engine at all: the
-AceConfig-drawn **Profiles** sub-page (which this addon does not ship — `AceDBOptions` is not
-vendored, and the addon runs on a single AceDB profile) and the **landing page**, whose body is
-`Helpers.BuildAboutContent`.
+The only exemptions are pages the host does not render through the flow engine at all, and there
+are two: the AceConfig-drawn **Profiles** sub-page (`settings/Profiles.lua`), which AceConfigDialog
+draws whole and which carries no schema rows, and the **landing page**, whose body is
+`Helpers.BuildAboutContent` and which declares no sections. `tests/test_settingsui.lua` asserts the
+Profiles page draws **no** strip, rather than merely skipping it.
 
 The **Macros** page is why the strip exists here at all. Every macro category used to be its own
 `RegisterCanvasLayoutSubcategory` entry — fifteen rows in the AddOns sidebar for fifteen variations on
 one surface, and eighteen sub-pages in all. They are one page with fifteen tabs now, and the sidebar
-is down to four entries. The strip is **generated** from `KCM.Categories.LIST` in
+is down to five entries, the Profiles page among them. The strip is **generated** from `KCM.Categories.LIST` in
 `KCM.Settings.macroOrder`, exactly as the fifteen builders were: a sixteenth category is a row in
 `Categories.LIST` plus a key in `macroOrder`, and it gets a tab for free. There is no hand-written tab
 list, for the reason `options-ui-§13` gives against one — a list declared apart from the data goes
@@ -114,9 +115,10 @@ never a protected action (`options-ui-§13`).
 
 ## Page | Covers
 
-Display order is `KCM.Settings.order` (`settings/Panel.lua`) — four pages, in the order a player meets
+Display order is `KCM.Settings.order` (`settings/Panel.lua`) — five pages, in the order a player meets
 them: the addon-wide controls, the macros themselves, the ranking the spec-aware categories sort by,
-and last the optional bar that displays the finished macros.
+the optional bar that displays the finished macros, and last the Profiles page, which is AceDBOptions'
+own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
@@ -124,6 +126,7 @@ and last the optional bar that displays the finished macros.
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
 | **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 78 schema rows live here |
+| **Profiles** | none (`§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
 
@@ -152,7 +155,7 @@ Three of the rows are **new addon-wide settings** and three moved:
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
 | Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
 | *Reset position* | — | moved from Macro Bar → General |
-| *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording |
+| *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
 
 **The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
 govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and
@@ -175,6 +178,21 @@ covered the day it is declared — which is also why the composed row is given a
 `debugConsole = false` default in `settings/General.lua`: three separate resets key on
 `default ~= nil` before they will touch a row, and `OptionsCompose` emits that row without one.
 Both halves live behind the one function so the button and `/cm resetall` cannot drift.
+
+Which rows the sweep writes is **one predicate's** call, `KCM.Settings.VetoedFromResetAll`
+(`settings/OptionsSetup.lua`): it refuses the Profiles page's rows (`options-ui-§3`) and every
+profile-resident row (`§12`), which leaves the session rows. The same function is the library
+descriptor's `skipRestoreAll`, so the rule is named once and shared rather than restated.
+
+**The tooltip comes from the descriptor, not from this page.** The button is the composer's, and
+the composer is the only writer of its text (`options-ui-§15`). Since LibKa0s-Options-1.0 minor 18 it
+picks the wording from the Options descriptor, so `settings/OptionsSetup.lua` declares what the reset
+is: `resetProfile`, which is the same `db:ResetProfile()` `KCM.ResetAllToDefaults` calls, and
+`profilesPage = true`, because the Profiles page is registered. Without `resetProfile` the tooltip
+reads *Restore every setting in this addon to its default.*, which overstates a reset that leaves the
+other profiles alone. The library's `RestoreAllDefaults` is the only other reader of `resetProfile`,
+and nothing in this addon calls it, so the two fields change the tooltip and nothing else. The
+button still runs `KCM_RESET_ALL` and the popup still runs `KCM.ResetAllToDefaults`.
 
 ### The Macros strip, in tab order
 
@@ -221,10 +239,27 @@ mix control types and therefore carry **subsection headings** (`options-ui-§7`)
 | 5 | **Labels** | 12 | *Text* (show, label text) · *Layout* (anchor, placement, both offsets) · *Font* (the composed six) |
 | 6 | **Flyout** | 16 | *Layout* (nine) · *Background* (toggle + swatch + companion) · *Icon* (band, arrow, shade swatch + companion) |
 | 7 | **Visibility** | 3 | — combat mode, fade unless hover, faded opacity |
-| 8 | **Buttons** | 0 | one checkbox per managed macro, a length no schema knows |
+| 8 | **Buttons** | 2 | `macroBar.order` and `macroBar.shown`, drawn as one draggable list (below), a length no schema knows |
 
 `Lock position` and `Reset position` are **not** on this page any more — they moved to Master controls
 and were deleted here. Two controls over one setting is exactly what `options-ui-§15` removes.
+
+**The Buttons tab is one draggable list, in MultiMeters' Columns shape.** Each row is the library's
+drag handle, a tick and the button's name. The shown buttons come first, in the bar's order, then a
+rule, then the hidden ones, dimmed and with no handle. `boundary` is the shown count, so a drag cannot
+cross the rule. The list is the stored `macroBar.order` partitioned into shown and hidden, each keeping
+its stored order, so neither row changes shape.
+- **A drag** within the shown group is a splice, not a swap. It writes `macroBar.order` once: the new
+  shown order, followed by the hidden buttons in their existing order. That is one `[Set]` line.
+- **A tick** is a move too. Unticking sends a button to the top of the hidden group, and ticking a
+  hidden one sends it to the end of the shown group. It writes `macroBar.shown` and then
+  `macroBar.order` as one batch through `KCM.Schema:SetMany`: two `[Set]` lines, one bar re-apply
+  and one page rebuild.
+
+Every button may be hidden, as the checkboxes this list replaced allowed. Both acts are refused in
+combat, like the bar's own swap, and a refused act writes and repaints nothing. Dropping one button
+onto another on the bar itself still swaps the two. The rows are pooled raw frames, released with
+the controller at the top of every render (`options-ui-§18`).
 
 Two tabs were renamed in the earlier redesign. *Bar* became **General**: on a page called Macro Bar
 the word carried nothing, and it collided with *Bar appearance* two tabs along. *Macros on the bar*

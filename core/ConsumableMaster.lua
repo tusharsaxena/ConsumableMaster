@@ -396,6 +396,25 @@ end
 --- `afterReset` above is the resync, and it is the whole reaction an incoming
 --- profile needs -- which is why KCM.ResetAllToDefaults no longer calls it
 --- directly. One path, not two.
+---
+--- ONE REACTION, FOR ALL THREE EVENTS, in this order:
+---
+---   1. the act's one log line (below);
+---   2. the migrations, for an incoming profile an older build wrote;
+---   3. on a switch or a copy, the macro FINGERPRINTS are forgotten. The macros
+---      are account-wide and `macroState` is per profile, so the incoming
+---      profile's fingerprints describe the bodies IT last wrote -- not what the
+---      account's macros hold now, which is the outgoing profile's. Where the two
+---      happen to agree, MacroManager's "unchanged" early-out would skip the write
+---      and leave the outgoing profile's body live. A reset needs nothing here: it
+---      empties `macroState` with the rest of the profile;
+---   4. the resync, which rewrites every macro against the incoming profile;
+---   5. PROFILE_CHANGED on the bus, the message this addon's surfaces rebuild off
+---      (options-ui-§12). AFTER the resync, so the macro bar re-applies itself
+---      against macros that already carry the incoming profile's bodies. The
+---      pipeline's MACROBAR_REFRESH is not enough on its own: it repaints icons
+---      and counts, and a new profile brings a new anchor, grid, slot order,
+---      shown set, lock and enable state, which only MacroBar.Update applies.
 function KCM.RegisterProfileCallbacks(target)
     local db = target and target.db
     if not (db and db.RegisterCallback) then return end
@@ -404,16 +423,15 @@ function KCM.RegisterProfileCallbacks(target)
     -- the whole profile, which is not a batch through the helper, so the HANDLER
     -- logs it, worded by the event. Its line is the whole act, so it silences any
     -- Helpers.Bulk bracket open around it: one line in total, never this one plus
-    -- an `outer: N rows`. A switch rewrites no rows and this addon has never
-    -- traced one, so it gets no line and silences nothing.
+    -- an `outer: N rows`. A reset and a copy replace the profile's rows and carry
+    -- the [Set] tag; a switch rewrites no rows and takes the `[Profile]` trace
+    -- MultiMeters and KickCD carry.
     --
     -- No row count on the reset: N means the rows the reset actually changed,
     -- which needs their values from before it. AceDB has already replaced the
     -- profile when OnProfileReset fires, and AceDBOptions' Reset Profile button
     -- gives no earlier hook to take them from.
-    local TRACED = { OnProfileReset = true, OnProfileCopied = true }
     local function trace(event, d, key)
-        if not TRACED[event] then return end
         local H = KCM.Settings and KCM.Settings.Helpers
         if H and H.SilenceOpenBulk then H.SilenceOpenBulk() end
         if not isDebugOn() then return end
@@ -422,8 +440,12 @@ function KCM.RegisterProfileCallbacks(target)
             KCM.Debug("Set", "reset profile '%s' to defaults", tostring(name))
         elseif event == "OnProfileCopied" then
             KCM.Debug("Set", "copied profile '%s' → '%s'", tostring(key), tostring(name))
+        else
+            KCM.Debug("Profile", "switched to '%s'", tostring(name))
         end
     end
+
+    local FORGETS_FINGERPRINTS = { OnProfileChanged = true, OnProfileCopied = true }
 
     local function reload(reason)
         return function(event, d, key)
@@ -431,7 +453,13 @@ function KCM.RegisterProfileCallbacks(target)
             if KCM.Database and KCM.Database.RunMigrations then
                 KCM.Database.RunMigrations()
             end
+            if FORGETS_FINGERPRINTS[event] and KCM.MacroManager and KCM.MacroManager.InvalidateState then
+                KCM.MacroManager.InvalidateState()
+            end
             afterReset(reason)
+            if KCM.bus and KCM.bus.SendMessage and KCM.MSG then
+                KCM.bus:SendMessage(KCM.MSG.PROFILE_CHANGED, reason)
+            end
         end
     end
 
@@ -453,12 +481,21 @@ end
 --- Reached through KCM.Settings at CALL time and silent when it is not there: this
 --- file loads long before settings/, and on a degraded load (no LibKa0s / AceGUI)
 --- there is no schema to walk and nothing session-only to restore.
+---
+--- WHICH ROWS is the shared veto's call, not this loop's: settings/OptionsSetup.lua
+--- names it once as KCM.Settings.VetoedFromResetAll and hands the same function to
+--- the library as its descriptor's `skipRestoreAll` (options-ui-§3). It refuses
+--- the Profiles page and every profile-resident row, which leaves exactly the
+--- session rows. This is the only reset loop the addon runs, on the degraded arm
+--- as on the live one, so it is the one the rule's "shared with the degradation
+--- stub's own reset loop" means.
 local function restoreSessionRows()
     local S = KCM.Settings
     local H = S and S.Helpers
-    if not (H and H.Set and S.Schema) then return end
+    local vetoed = S and S.VetoedFromResetAll
+    if not (H and H.Set and S.Schema and vetoed) then return end
     for _, row in ipairs(S.Schema) do
-        if row.sessionOnly and row.default ~= nil then
+        if not vetoed(row) and row.default ~= nil then
             H.Set(row.path, row.default)
         end
     end

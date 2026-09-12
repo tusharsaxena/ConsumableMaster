@@ -207,3 +207,5 @@ Bounded to **3 attempts** before giving up, with a one-time chat notice. Prevent
 ## InvalidateState — `/cm rewritemacros`
 
 Clears `macroState` + `pendingUpdates` + the oversized-warning gate. The next pipeline run re-issues every macro unconditionally because the early-out fingerprints are gone. Used by `/cm rewritemacros` (and the Force rewrite macros button in General settings) when an action-bar icon looks stale and you want a fresh `EditMacro` call even though the body hasn't changed.
+
+The profile handler calls it too, on every profile **switch** and **copy** (`KCM.RegisterProfileCallbacks`, `core/ConsumableMaster.lua`). `macroState` is per profile while the macros are account-wide, so an incoming profile's fingerprint can match the body that profile would write while the live macro holds the outgoing profile's. Trusting it would skip the write. See [profiles.md](./profiles.md#why-the-fingerprints-are-forgotten).
