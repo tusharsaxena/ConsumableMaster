@@ -786,3 +786,90 @@ test("schema: every mixed tab breaks its blocks up with subsection headings", fu
             "'" .. group .. "' declares its headings once each, in order")
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- SetManyAndRefresh — several rows as one act (issue #36)
+-- ---------------------------------------------------------------------------
+--
+-- A page reset writes every row of the page. Through SetAndRefresh one at a time
+-- that is one onChange and one refresh per row; this is the same seam -- validate,
+-- write through Helpers.Set, react, refresh -- taken once for the whole batch.
+
+local function fakeRows(KCM)
+    local schema = KCM.Settings.Schema
+    local fired = {}
+    local shared = function(v) fired[#fired + 1] = "shared:" .. tostring(v) end
+    local rows = {
+        { path = "scale", type = "number", min = 0.5, max = 2, onChange = shared },
+        { path = "alpha", type = "number", min = 0.1, max = 1, onChange = shared },
+        { path = "enabled", type = "bool",
+          onChange = function(v) fired[#fired + 1] = "own:" .. tostring(v) end },
+    }
+    local saved = {}
+    for i, r in ipairs(rows) do
+        local live = KCM.Settings.Helpers.FindSchema(r.path)
+        saved[i] = { live = live, onChange = live.onChange }
+        live.onChange = r.onChange
+    end
+    return fired, function() for _, s in ipairs(saved) do s.live.onChange = s.onChange end end, schema
+end
+
+test("schema: SetManyAndRefresh writes every row, each distinct onChange once, one refresh", function(t)
+    local KCM = h.loader.loadWithSchema()
+    local H = KCM.Settings.Helpers
+    local fired, restore = fakeRows(KCM)
+    local scalars = 0
+    H.RefreshScalars = function() scalars = scalars + 1 end
+
+    local ok = H.SetManyAndRefresh({
+        { path = "scale", value = 9 },
+        { path = "alpha", value = 0.5 },
+        { path = "enabled", value = false },
+    })
+    restore()
+    t.eq(ok, true, "the batch landed")
+    t.eq(KCM.db.profile.scale, 2, "each value is validated -- the number clamped")
+    t.eq(KCM.db.profile.alpha, 0.5, "and written")
+    t.eq(KCM.db.profile.enabled, false, "every one of them")
+    t.eqList(fired, { "shared:2", "own:false" }, "a shared reactor runs once, each other one once")
+    t.eq(scalars, 1, "and the page is re-synced once")
+end)
+
+test("schema: SetManyAndRefresh refuses the whole batch when one value is invalid", function(t)
+    local KCM  = h.loader.loadWithSchema()
+    local mock = h.loader.mock
+    local H = KCM.Settings.Helpers
+    local fired, restore = fakeRows(KCM)
+    mock.output = {}
+    local ok = H.SetManyAndRefresh({
+        { path = "scale", value = 1.5 },
+        { path = "enabled", value = "yes please" },
+    })
+    local unknown = H.SetManyAndRefresh({ { path = "not.a.setting", value = 1 } })
+    restore()
+    t.eq(ok, false, "an invalid value fails the batch")
+    t.eq(KCM.db.profile.scale, 1.0, "and nothing in it was written")
+    t.eq(#fired, 0, "no reactor ran")
+    t.truthy(#mock.output > 0, "the user is told why")
+    t.eq(unknown, false, "a path that is not a row is refused too")
+end)
+
+test("schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset",
+    function(t)
+        local KCM = h.loader.loadWithSchema()
+        local H = KCM.Settings.Helpers
+        local fired, restore = fakeRows(KCM)
+        local applied, scalars, structural = 0, 0, 0
+        H.RefreshScalars   = function() scalars = scalars + 1 end
+        H.RefreshAllPanels = function() structural = structural + 1 end
+        local ok = KCM.Schema:SetMany({
+            { path = "scale", value = 1.25 },
+            { path = "enabled", value = false },
+        }, { onChange = function() applied = applied + 1 end, structural = true })
+        restore()
+        t.eq(ok, true, "the published setter takes a batch too")
+        t.eq(applied, 1, "the caller's one apply pass stands in for the rows' reactors")
+        t.eq(#fired, 0, "so theirs do not also run")
+        t.eq(structural, 1, "a structural batch rebuilds the page once")
+        t.eq(scalars, 0, "instead of re-syncing it in place")
+    end)

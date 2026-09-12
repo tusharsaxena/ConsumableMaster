@@ -301,7 +301,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (131)
+### test_macrobar.lua (133)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -434,6 +434,8 @@ badge and any count quoted in the docs must agree with it.
 - macrobar master: Master scale and Master alpha MULTIPLY the bar's own
 - macrobar master: General visibility is INTERSECTED with the bar's combat mode
 - macrobar master: General visibility = never takes the bar off screen
+- macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
+- macrobar Defaults: each row is written through the schema helper, into the same table
 
 ### test_macromanager.lua (47)
 
@@ -589,7 +591,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (47)
+### test_schema.lua (50)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -638,6 +640,9 @@ badge and any count quoted in the docs must agree with it.
 - schema: every row on every page carries a group
 - schema: every color row is followed by its class-color companion
 - schema: every mixed tab breaks its blocks up with subsection headings
+- schema: SetManyAndRefresh writes every row, each distinct onChange once, one refresh
+- schema: SetManyAndRefresh refuses the whole batch when one value is invalid
+- schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset
 
 ### test_selector.lua (55)
 
@@ -958,7 +963,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 131 |
+| test_macrobar.lua | 133 |
 | test_macromanager.lua | 47 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -967,7 +972,7 @@ badge and any count quoted in the docs must agree with it.
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 47 |
+| test_schema.lua | 50 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 44 |
 | test_slash.lua | 82 |
@@ -979,4 +984,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **801** |
+| **Total** | **806** |

@@ -448,8 +448,9 @@ Two non-scalar fields are edited outside the schema:
 
 * `order` — the slot order, changed by dragging one slot onto another
   (`MacroBar.SwapSlots` → `MacroBarModel.Swap`), and restored to the default
-  by the Macro Bar page's order reset (`settings/MacroBar.lua:589`) and its
-  Reset page (`:602`, which replaces the whole `macroBar` table). `MacroBarModel.Order()` repairs
+  by the Macro Bar page's order reset (`settings/MacroBar.lua`) and its
+  Defaults button (`doResetPage`, which writes every page row through the schema
+  helper's batch form and leaves `locked` alone). `MacroBarModel.Order()` repairs
   a saved order on read: unknown keys dropped, newly-shipped categories
   appended. The default is the cosmetic tab order of the Macros page, `KCM.Settings.macroOrder`,
   duplicated as a literal in `dbDefaults` because `Panel.lua` loads much later —

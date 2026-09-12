@@ -592,17 +592,37 @@ local function doResetOrder()
     KCM.Say("macro bar slot order reset.")
 end
 
--- Top-right Defaults button (options-ui-§5): every macroBar setting back to
--- its shipped value, including position, order and per-macro visibility. Other
--- pages' settings are untouched — including `macroBar.locked`, which is stored
--- here but is the General page's row now and comes back with its own page.
+-- Top-right Defaults button (options-ui-§5): every setting on THIS PAGE back to
+-- its shipped value, plus the bar's position, slot order and per-macro
+-- visibility. Other pages' settings are untouched — including
+-- `macroBar.locked`, which is stored in the same table but is the General page's
+-- row now and comes back with its own page.
+--
+-- EVERY ROW THROUGH THE SCHEMA HELPER, IN PLACE (architecture-§5). This used to
+-- replace the whole `macroBar` table with a copy of the defaults, which skipped
+-- every row's validation and its [Set] line and left anything holding the old
+-- table reading a stale one. It is one batch, so the bar is still re-applied once
+-- and the page still rebuilt once, as the whole-table write did.
+--
+-- A table default (every color) goes in as a COPY: a row's `default` IS the
+-- dbDefaults table, and storing it would alias the defaults into the profile.
 local function doResetPage()
-    if not (KCM.db and KCM.db.profile) then return end
-    local locked = KCM.db.profile.macroBar and KCM.db.profile.macroBar.locked
-    KCM.db.profile.macroBar = CopyTable(BAR_DEFAULTS)
-    KCM.db.profile.macroBar.locked = locked
-    applyBar()
-    H.RefreshAllPanels()
+    local cfg = KCM.db and KCM.db.profile and KCM.db.profile.macroBar
+    if not cfg then return end
+    -- No row describes these yet, so they go back through the field writes that
+    -- already own them: the drag geometry's reset, and the order's and
+    -- visibility's shipped values.
+    if KCM.MacroBar and KCM.MacroBar.ResetPosition then KCM.MacroBar.ResetPosition() end
+    cfg.order = CopyTable(BAR_DEFAULTS.order or {})
+    cfg.shown = CopyTable(BAR_DEFAULTS.shown or {})
+    local entries = {}
+    for _, def in ipairs(KCM.Settings.Schema) do
+        if def.panel == "macrobar" and def.default ~= nil then
+            local v = def.default
+            entries[#entries + 1] = { path = def.path, value = type(v) == "table" and CopyTable(v) or v }
+        end
+    end
+    H.SetManyAndRefresh(entries, { onChange = applyBar, structural = true })
 end
 
 -- ---------------------------------------------------------------------------

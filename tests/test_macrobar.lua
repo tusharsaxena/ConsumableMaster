@@ -2009,3 +2009,99 @@ test("macrobar master: General visibility = never takes the bar off screen", fun
     KCM.MacroBar.Update()
     t.eq(seen.barVisible, true, "and 'always' brings it back")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The Macro Bar page's Defaults button (issue #36)
+-- ---------------------------------------------------------------------------
+--
+-- It used to replace the whole `macroBar` table with a copy of the defaults and
+-- put `.locked` back, so no row's write went through the schema helper, nothing
+-- was logged at the [Set] seam, and anything holding the old table kept reading
+-- it. The characterization case pins what the button LEAVES, which must not
+-- move; the second pins how it gets there.
+
+local function macroBarDefaults(KCM)
+    local UI = KCM.Settings.Helpers.instance
+    KCM.Settings.builders["macrobar"]({})
+    return UI.__panelFor("macrobar").panel.defaultsOnClick
+end
+
+-- Deterministic rendering, so two stored shapes compare as strings.
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function customizeBar(KCM)
+    local c = KCM.db.profile.macroBar
+    c.enabled, c.locked, c.scale, c.buttonSize = false, true, 1.5, 50
+    c.labelText, c.barBorderColor = "FULL", { 1, 0, 0, 1 }
+    c.point, c.relPoint, c.x, c.y = "TOP", "TOP", 120, -40
+    c.order = { "DRINK", "FOOD" }
+    c.shown = { FOOD = false }
+    return c
+end
+
+test("macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+        local reset = macroBarDefaults(KCM)
+        customizeBar(KCM)
+
+        local updates, structural = 0, 0
+        KCM.MacroBar.Update = function() updates = updates + 1 end
+        local realAll = H.RefreshAllPanels
+        H.RefreshAllPanels = function(...) structural = structural + 1; return realAll(...) end
+
+        reset()
+
+        local c, d = KCM.db.profile.macroBar, KCM.dbDefaults.profile.macroBar
+        for k, v in pairs(d) do
+            if k ~= "locked" then
+                t.eq(ser(c[k]), ser(v), "macroBar." .. k .. " is back to its default")
+            end
+        end
+        t.eq(c.locked, true, "the lock is the General page's setting and survives")
+        t.falsy(c.barBorderColor == d.barBorderColor, "a color comes back as a copy, not the defaults' own table")
+        t.falsy(c.order == d.order, "and so does the slot order")
+        t.eq(updates, 1, "the bar is re-applied once, not once per row")
+        t.eq(structural, 1, "and the page is rebuilt once")
+        H.RefreshAllPanels = realAll
+    end)
+
+test("macrobar Defaults: each row is written through the schema helper, into the same table",
+    function(t)
+        -- red under: reinstating `KCM.db.profile.macroBar = CopyTable(BAR_DEFAULTS)`
+        -- -- the table is replaced and no row reaches the [Set] seam.
+        local KCM = h.loader.loadFullAddon()
+        local reset = macroBarDefaults(KCM)
+        local c = customizeBar(KCM)
+        KCM.MacroBar.Update = function() end
+
+        local D = KCM.DebugLog.instance
+        KCM.State.debug = true
+        D:Clear()
+        reset()
+        KCM.State.debug = false
+
+        t.eq(KCM.db.profile.macroBar, c, "the macroBar table is the one every reader already holds")
+        local rows, logged = 0, {}
+        for _, line in ipairs(D.buffer) do
+            local path = line:match("%[Set%] (macroBar%.[%w_]+) = ")
+            if path then logged[path] = (logged[path] or 0) + 1 end
+        end
+        for _, def in ipairs(KCM.Settings.Schema) do
+            if def.panel == "macrobar" then
+                rows = rows + 1
+                t.eq(logged[def.path], 1, def.path .. " is written once, at the [Set] seam")
+            end
+        end
+        t.truthy(rows >= 60, "the whole page was walked (" .. rows .. " rows)")
+        t.eq(logged["macroBar.locked"], nil, "and the lock, which is not this page's row, was not")
+    end)

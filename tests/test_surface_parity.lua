@@ -263,7 +263,7 @@ local OPTIONS_SEAM = {
     "FontGroup", "Get", "Grid", "Label", "MasterControls",
     "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
     "RenderField", "RenderRows", "ResetScroll", "Resolve", "SECTION_HEADING_H",
-    "SESSION_PATHS", "Section", "Set", "SetAndRefresh", "SetRenderer", "TabStrip",
+    "SESSION_PATHS", "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "TabStrip",
     "ValidateSchema", "ValidateSchemaValue", "instance",
 }
 

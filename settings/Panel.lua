@@ -747,10 +747,72 @@ function Helpers.SetAndRefresh(path, value)
     return true
 end
 
--- Published unified setter (architecture-§5): NS.Schema:Set(path, value).
+-- The reactors a batch runs: the caller's one `opts.onChange` when it names one,
+-- otherwise each DISTINCT row onChange once, in first-seen order, handed the value
+-- of the first row that carries it.
+local function runBatchReactors(plan, opts)
+    if opts and opts.onChange then
+        -- Reported under the batch's first path, through the one reporter a row's
+        -- own onChange uses, so a failure reads the same whichever reactor raised.
+        fireOnChange({ path = plan[1] and plan[1].def.path, onChange = opts.onChange })
+        return
+    end
+    local ran = {}
+    for _, step in ipairs(plan) do
+        local fn = step.def.onChange
+        if fn and not ran[fn] then
+            ran[fn] = true
+            fireOnChange(step.def, step.value)
+        end
+    end
+end
+
+-- Several rows as ONE act. It is the seam SetAndRefresh is -- validate, write
+-- through Helpers.Set (so every row still logs its own [Set] line,
+-- debug-logging-§10), react, refresh -- taken once for the whole batch rather
+-- than once per row. A page reset is what it exists for: sixty rows through
+-- SetAndRefresh would be sixty onChanges and sixty refreshes for one click.
+--
+-- ALL OR NOTHING: every entry is resolved and validated before the first write,
+-- so a batch holding one bad value writes none of them.
+--
+-- `opts.onChange` names the one apply pass a page's rows all share (the Macro
+-- Bar page's MacroBar.Update), and then it runs instead of the rows' own.
+-- `opts.structural` swaps the in-place re-sync for a page rebuild, for a batch
+-- that changes what a page draws and not only the values it shows.
+--
+-- @param entries  array of { path = <schema path>, value = <new value> }
+-- @return boolean  true when every entry was written
+function Helpers.SetManyAndRefresh(entries, opts)
+    local plan = {}
+    for i, e in ipairs(entries or {}) do
+        -- A path that is not a row is refused silently, exactly as SetAndRefresh
+        -- refuses one: every caller is addon code naming its own rows.
+        local def = Helpers.FindSchema(e.path)
+        if not def then return false end
+        local coerced, reason = validateSchemaValue(def, e.value)
+        if coerced == nil then
+            KCM.Say("invalid value for " .. tostring(e.path) .. ": "
+                  .. tostring(reason or "value must not be nil"))
+            return false
+        end
+        if not (SESSION_PATHS[def.path] or Helpers.Resolve(def.path)) then return false end
+        plan[i] = { def = def, value = coerced }
+    end
+    for _, step in ipairs(plan) do Helpers.Set(step.def.path, step.value) end
+    runBatchReactors(plan, opts)
+    if opts and opts.structural then Helpers.RefreshAllPanels() else Helpers.RefreshScalars() end
+    return true
+end
+
+-- Published unified setter (architecture-§5): NS.Schema:Set(path, value), and
+-- its batch form NS.Schema:SetMany(entries, opts).
 KCM.Schema = KCM.Schema or {}
 function KCM.Schema:Set(path, value)
     return Helpers.SetAndRefresh(path, value)
+end
+function KCM.Schema:SetMany(entries, opts)
+    return Helpers.SetManyAndRefresh(entries, opts)
 end
 
 -- ---------------------------------------------------------------------
