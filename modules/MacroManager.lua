@@ -629,9 +629,24 @@ end
 -- (stored icon corrupted, action-bar framework cached the old texture, etc.).
 -- Also drops the combat-deferral queue since those entries reference stale
 -- state expectations.
+--
+-- Clearing learned data is a data mutation (debug-logging-§8, and §10 since
+-- v2.44.0), so it leaves one [Macro] line saying how much it forgot. The
+-- counting sits behind the debug gate, so debug-off costs nothing.
 -- ---------------------------------------------------------------------------
 
+local function countEntries(t)
+    local n = 0
+    for _ in pairs(t or {}) do n = n + 1 end
+    return n
+end
+
 function M.InvalidateState()
+    if isDebugOn() then
+        local state = KCM.db and KCM.db.profile and KCM.db.profile.macroState
+        KCM.Debug("Macro", "forced rewrite: cleared %s macro fingerprint(s) and %s queued write(s)",
+            countEntries(state), countEntries(pendingUpdates))
+    end
     if KCM.db and KCM.db.profile then
         KCM.db.profile.macroState = {}
     end

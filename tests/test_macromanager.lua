@@ -472,6 +472,42 @@ test("MacroManager.InvalidateState drops queued combat writes", function(t)
         "queued entries reference stale expectations, so they are discarded")
 end)
 
+-- debug-logging-§8, read with v2.44.0's debug-logging-§10: clearing learned data
+-- is a data mutation, so the forced rebuild says what it forgot. It is the one
+-- write to macroState a player can trigger (/cm rewritemacros, Force rewrite
+-- macros), and before this it cleared the cache without a trace.
+--
+-- red under: InvalidateState emitting no [Macro] line with debug on, or one with
+-- debug off.
+test("MacroManager.InvalidateState traces what it cleared, and only with debug on", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 942003)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 942003, "FOOD")
+
+    -- loadPure does not load core/Debug.lua, so the sink is stood up here.
+    local lines = {}
+    KCM.Debug = function(tag, fmt, ...)
+        lines[#lines + 1] = { tag = tag, text = fmt:format(...) }
+    end
+    KCM.State = KCM.State or {}
+    KCM.State.debug = false
+    KCM.MacroManager.InvalidateState()
+    t.eq(#lines, 0, "debug off: no line")
+
+    KCM.MacroManager.SetMacro("KCM_FOOD", 942003, "FOOD")
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 942004, "FOOD")
+    mock.setCombat(false)
+    KCM.State.debug = true
+    KCM.MacroManager.InvalidateState()
+    KCM.State.debug = false
+    t.eq(#lines, 1, "debug on: exactly one line")
+    t.eq(lines[1] and lines[1].tag, "Macro", "under the macro write path's tag")
+    t.eq(lines[1] and lines[1].text,
+        "forced rewrite: cleared 1 macro fingerprint(s) and 1 queued write(s)",
+        "naming how much learned state it dropped")
+end)
+
 -- ---------------------------------------------------------------------------
 -- Oversized bodies
 -- ---------------------------------------------------------------------------

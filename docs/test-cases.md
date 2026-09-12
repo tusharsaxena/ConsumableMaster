@@ -454,7 +454,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar: the slot swap and the Buttons checkboxes write through the schema helper
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macromanager.lua (48)
+### test_macromanager.lua (49)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -491,6 +491,7 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager: a re-queued write keeps its retry count for the combat window
 - MacroManager.InvalidateState forces the next pass to rewrite every body
 - MacroManager.InvalidateState drops queued combat writes
+- MacroManager.InvalidateState traces what it cleared, and only with debug on
 - MacroManager falls back to the empty body when a body exceeds 255 bytes
 - MacroManager warns about an oversized body only once per category
 - MacroManager: the debug gate is a predicate — diagnostic arguments are not evaluated with debug off
@@ -996,7 +997,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 137 |
-| test_macromanager.lua | 48 |
+| test_macromanager.lua | 49 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
@@ -1016,4 +1017,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **834** |
+| **Total** | **835** |
