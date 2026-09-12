@@ -671,3 +671,34 @@ test("MacroManager.SetCompositeMacro guards a non-composite category and a missi
     KCM.db = saved
     t.eq(result, "error", "no DB is an error")
 end)
+
+-- The architecture-§5 named-state claim ARCHITECTURE.md makes -- MacroManager owns
+-- the macro fingerprint cache, and commitMacro and InvalidateState are its only
+-- writers -- checked against the source rather than trusted. A write the naming
+-- leaves out is a MUST failure, so a new writer in another file must fail here
+-- until it is named. MacroDisplay reads the cache and writes nothing.
+--
+-- red under: any file but modules/MacroManager.lua assigning `macroState` or one
+-- of its entries.
+test("Named state: modules/MacroManager.lua is the only runtime writer of macroState", function(t)
+    local root = _G.KCM_TEST_ROOT or "."
+    local offenders = {}
+    for _, rel in ipairs(h.loader.tocFiles()) do
+        if rel ~= "modules/MacroManager.lua" and rel:match("^[cms][a-z]*/.+%.lua$") then
+            local f = io.open(root .. "/" .. rel, "r")
+            if f then
+                local n = 0
+                for line in f:lines() do
+                    n = n + 1
+                    local code = line:gsub("%-%-.*$", "")
+                    local s = code:find("[^=~<>]=%f[^=]")
+                    if s and code:sub(1, s):find("macroState%f[^%w_]") then
+                        offenders[#offenders + 1] = rel .. ":" .. n
+                    end
+                end
+                f:close()
+            end
+        end
+    end
+    t.eq(#offenders, 0, "macroState written outside MacroManager: " .. table.concat(offenders, ", "))
+end)

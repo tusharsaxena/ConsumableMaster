@@ -441,7 +441,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar: the slot swap and the Buttons checkboxes write through the schema helper
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macromanager.lua (47)
+### test_macromanager.lua (48)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -490,6 +490,7 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.SetCompositeMacro coalesces an unchanged rewrite
 - MacroManager.SetCompositeMacro defers in combat and replays as a composite
 - MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
+- Named state: modules/MacroManager.lua is the only runtime writer of macroState
 
 ### test_mediasetup.lua (12)
 
@@ -981,7 +982,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 137 |
-| test_macromanager.lua | 47 |
+| test_macromanager.lua | 48 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
@@ -1001,4 +1002,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **823** |
+| **Total** | **824** |
