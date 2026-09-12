@@ -639,7 +639,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: every color row is followed by its class-color companion
 - schema: every mixed tab breaks its blocks up with subsection headings
 
-### test_selector.lua (51)
+### test_selector.lua (55)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -692,6 +692,10 @@ badge and any count quoted in the docs must agree with it.
 - Selector.MoveCompositeRef splices to an index rather than swapping neighbors
 - Selector.MoveCompositeRef refuses a move it cannot make
 - Selector.MoveCompositeRef never moves a ref between the two sections
+- Registry resets: each of the three doors leaves exactly the stored shape it always did
+- Selector.ResetBucket clears one bucket's added/blocked/pins and keeps discovered
+- Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
+- Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
 ### test_settingsui.lua (44)
 
@@ -964,7 +968,7 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 47 |
-| test_selector.lua | 51 |
+| test_selector.lua | 55 |
 | test_settingsui.lua | 44 |
 | test_slash.lua | 82 |
 | test_slashsetup.lua | 16 |
@@ -975,4 +979,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **797** |
+| **Total** | **801** |

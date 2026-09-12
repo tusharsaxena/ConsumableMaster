@@ -475,6 +475,63 @@ function S.Block(catKey, itemID, specKey)
     return true
 end
 
+-- ---------------------------------------------------------------------------
+-- Registry resets (architecture-§5)
+-- ---------------------------------------------------------------------------
+-- A registry RESET is a writer operation: it applies a player's choice, so it
+-- runs through this module like every other membership change. The three doors
+-- that reach it -- `/cm priority <cat> reset`, the Macros page's per-category
+-- reset and the General page's Reset all priorities -- call these two and never
+-- touch a bucket themselves.
+--
+-- Only the player's own edits go: `added`, `blocked` and `pins`. `discovered` is
+-- what the bags said, not what the player chose, so every reset keeps it.
+
+local RESET_FIELDS = { "added", "blocked", "pins" }
+
+--- Reset one category's bucket (the viewed / current spec's, for a spec-aware
+--- category). Refuses an unknown category, a composite (it has no bucket) and a
+--- spec-aware category with no resolvable spec.
+--- @return boolean reset
+function S.ResetBucket(catKey, specKey)
+    local cat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey)
+    if not cat or cat.composite then return false end
+    local bucket = S.GetBucket(catKey, specKey)
+    if not bucket then return false end
+    for _, f in ipairs(RESET_FIELDS) do bucket[f] = {} end
+    if KCM.State and KCM.State.debug then
+        KCM.Debug("Prio", "reset %s%s", catKey,
+            specKey and (" spec=" .. tostring(specKey)) or "")
+    end
+    return true
+end
+
+-- Driven off what is STORED, not off a list of category keys: a spec-aware
+-- category keeps its buckets under `bySpec`, and a key list goes stale the first
+-- time a category is added. A field that is not a table is left as it is rather
+-- than created, so this never grows a bucket the profile did not have.
+local function clearStoredBucket(bucket)
+    if type(bucket) ~= "table" then return end
+    for _, f in ipairs(RESET_FIELDS) do
+        if type(bucket[f]) == "table" then bucket[f] = {} end
+    end
+end
+
+--- Reset every category's bucket, every spec bucket included.
+--- @return boolean reset  false only when there is no profile to reset
+function S.ResetAllBuckets()
+    local cats = KCM.db and KCM.db.profile and KCM.db.profile.categories
+    if not cats then return false end
+    for _, root in pairs(cats) do
+        clearStoredBucket(root)
+        if type(root) == "table" and type(root.bySpec) == "table" then
+            for _, specBucket in pairs(root.bySpec) do clearStoredBucket(specBucket) end
+        end
+    end
+    if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset every category") end
+    return true
+end
+
 -- Record that an item was seen in bags (auto-discovery). Spells can't be
 -- bag-discovered; guard anyway. Blocked items are never promoted to
 -- discovered (user intent overrides). The stored value is a unix timestamp

@@ -408,15 +408,12 @@ end
 local function priorityReset(cat)
     if rejectComposite(cat, "reset") then return end
     local specKey = categorySpec(cat)
-    local bucket = KCM.Selector and KCM.Selector.GetBucket
-        and KCM.Selector.GetBucket(cat.key, specKey)
-    if not bucket then
+    -- Through the registry writer (architecture-§5): a reset is a membership
+    -- change like any other, and Selector is the one module that makes them.
+    if not (KCM.Selector and KCM.Selector.ResetBucket
+            and KCM.Selector.ResetBucket(cat.key, specKey)) then
         return say("could not reach category bucket.")
     end
-    bucket.added   = {}
-    bucket.blocked = {}
-    bucket.pins    = {}
-    if KCM.State and KCM.State.debug then KCM.Debug("Prio", "reset %s", cat.key) end
     say(("reset %s%s — added/blocked/pins cleared (discovered items preserved).")
         :format(cat.key, cat.specAware and (" (spec " .. tostring(specKey) .. ")") or ""))
     afterMutation("slash_priority_reset")

@@ -183,16 +183,15 @@ local function resetCompositeCategory(catKey)
     afterMutation("options_aio_reset_cat")
 end
 
--- Single-category reset: clear the user's own edits. `discovered` is
--- deliberately left alone — auto-discovery findings survive a category reset.
+-- Single-category reset: clear the user's own edits, through the registry
+-- writer (architecture-§5). `discovered` is deliberately left alone —
+-- auto-discovery findings survive a category reset — and that rule is
+-- Selector.ResetBucket's, not this popup's.
 local function resetSingleCategory(catKey, specKey)
-    local bucket = KCM.Selector and KCM.Selector.GetBucket
-        and KCM.Selector.GetBucket(catKey, specKey)
-    if not bucket then return end
-    bucket.added   = {}
-    bucket.blocked = {}
-    bucket.pins    = {}
-    if isDebugOn() then KCM.Debug("Prio", "reset %s", catKey) end
+    if not (KCM.Selector and KCM.Selector.ResetBucket
+            and KCM.Selector.ResetBucket(catKey, specKey)) then
+        return
+    end
     afterMutation("options_reset_cat")
 end
 
