@@ -37,13 +37,25 @@ Functional-area tags in use today:
 - `DB` — schema migration, only logged when one actually runs
 - `Scan` — auto-discovery pass summary (reason in content)
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)
-- `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply)
+- `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply), and the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`
 - `GC` — stale-discovered sweep
-- `Set` — settings write at `Helpers.Set`
-- `Prio` — priority-list mutations (add/block/move) and category/all resets
+- `Set` — settings write at `Helpers.Set`, a bulk reset's one line, and the profile handler's reset/copy line
+- `Prio` — priority-list mutations (add/block/move) and the registry resets (`ResetBucket` / `ResetAllBuckets`)
 - `Bar` — macro-bar events worth noticing, today just a flyout truncated by `macroBar.flyoutMax` (never a silent cap)
 
 Every settings change logs once as `[Set] <path> = <value>` at `Helpers.Set`; repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
+
+A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `Helpers.Bulk(act, scope, fn)` (or `Helpers.SetManyAndRefresh(entries, { bulk = { act, scope } })`), `Helpers.Set` still validates, writes and runs each row's onChange, but it only tallies the rows whose value changed. When the act closes it logs `[Set] <act> <scope>: N rows`. A nested bracket folds into the outer one. A raising act still logs its one line, ending ` (stopped by an error)`, before the error propagates: `[Set] reset Macro Bar page: N rows (stopped by an error)`. A profile handler's line silences any bracket open around it (`Helpers.SilenceOpenBulk`), so a profile reset or copy run inside one is still one line in total. The acts:
+
+| Act | Line |
+|---|---|
+| Macro Bar page **Defaults** | `[Set] reset Macro Bar page: N rows` |
+| General page **Defaults** | `[Set] reset General page: N rows` |
+| Macros page **Reset category** on a composite, and `/cm aio <key> reset` | `[Set] reset category <KEY>: N rows` |
+| **Reset all settings** / `/cm resetall` (`KCM.ResetAllToDefaults`) | `[Set] reset profile '<name>' to defaults`, from the `OnProfileReset` handler; the session sweep runs under `Helpers.MuteSetLog` |
+| An AceDB profile copy | `[Set] copied profile 'A' → 'B'`, from the `OnProfileCopied` handler |
+
+N counts only rows whose stored value changed, so a Defaults press on a page already at defaults logs `0 rows`. Single-row resets (`/cm reset <path>`, Reset slot order, the Stat Priority page's Defaults) keep their one `[Set] <path> = <value>` line, and the registry resets keep their `[Prio]` line.
 
 The `DebugLog.SetEnabled` seam prints a **color-coded** chat ack through `KCM.Say` — `debug logging |cff40ff40ON|r` (green) / `|cffff4040OFF|r` (red) — matching the title-bar `Debug: ON/OFF` toggle so the flag reads identically in chat and on the console (debug-logging-§5).
 
@@ -106,7 +118,7 @@ Captures persist in their own SavedVariables global, `ConsumableMasterPerfDB` (a
 
 `/cm resync` — invalidates `TooltipCache`, re-runs auto-discovery against bags, then runs a direct (non-coalesced) `Pipeline.Recompute`. Use after editing a scorer / classifier / tooltip pattern to force a fresh evaluation.
 
-`/cm rewritemacros` (alias `/cm rewrite`) — clears `macroState` + `pendingUpdates` + the oversized-warning gate via `MacroManager.InvalidateState()`, then runs `Pipeline.Recompute` so every macro is re-issued unconditionally. Use when an action-bar icon looks stale (some bar frameworks cache `GetActionTexture` results across an `EditMacro`; a `/reload` after the rewrite forces a re-query).
+`/cm rewritemacros` (alias `/cm rewrite`) — clears `macroState` + `pendingUpdates` + the oversized-warning gate via `MacroManager.InvalidateState()`, then runs `Pipeline.Recompute` so every macro is re-issued unconditionally. With debug logging on, the clear leaves one `[Macro] forced rewrite: cleared <n> macro fingerprint(s) and <m> queued write(s)` line in the console. Use when an action-bar icon looks stale (some bar frameworks cache `GetActionTexture` results across an `EditMacro`; a `/reload` after the rewrite forces a re-query).
 
 ## Schema-driven slash UX (KickCD parity)
 
@@ -116,7 +128,7 @@ Scalar settings live as rows in `KCM.Settings.Schema` (the array is created in `
 |-------|--------|
 | `/cm list` | Every schema row, grouped by panel, with current value. |
 | `/cm get <path>` | Single-row read (e.g. `/cm get enabled`). |
-| `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. |
+| `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. A whole-value `order` row takes comma-separated keys (`/cm set macroBar.order DRINK,FOOD`): the keys named lead, and every other key keeps its stored order behind them. A flag map takes `KEY=on\|off` pairs (`/cm set macroBar.shown FOOD=off`), merged over the stored map, so a key the pairs do not name keeps its flag. |
 | `/cm reset <path>` | ONE row back to its `default`. Not the global wipe — that is `/cm resetall`, which keeps the host body and its confirm popup ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)). |
 
 `KCM.Schema:Set(path, value)` is the unified validate → write → onChange → refresh seam — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row. Row shape:
@@ -132,11 +144,11 @@ Schema[#Schema + 1] = {
 }
 ```
 
-`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **68** rows are wired today: the 62 `macroBar.*` rows registered by `settings/MacroBar.lua`, and the 6 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`). `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, resolved by `settings/Panel.lua`'s `SESSION_PATHS` rather than by the profile.
+`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **78** rows are wired today: the 64 `macroBar.*` rows registered by `settings/MacroBar.lua` (the slot order and visibility among them), the 6 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`), the 7 `settings/Category.lua` generates (each composite's flags and two section orders, and `categories.BATTLE_REZ.mouseover`), and `statPriority` from `settings/StatPriority.lua`. `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, resolved by `settings/Panel.lua`'s `SESSION_PATHS` rather than by the profile.
 
 ## List-shaped state — verb namespaces
 
-CM's panel state is mostly list-shaped (priority lists, AIO order, per-spec stats), which doesn't fit a flat scalar schema. Those operations live behind dedicated CLI verbs that follow the same write+notify+refresh contract:
+Three CLI namespaces cover the list-shaped state. The per-category priority lists are the structural registry: no row describes them, and `/cm priority` calls the registry writer, `Selector`. A composite's flags and section orders and the per-spec stat priorities are whole-value schema rows, so `/cm get|list|reset` already reach them. `/cm aio` and `/cm stat` are the readable editors for them, and each of their writes goes through `KCM.Schema:Set` exactly as `/cm set` does:
 
 | Verb namespace | Verbs | Notes |
 |----------------|-------|-------|

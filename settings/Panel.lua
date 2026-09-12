@@ -192,8 +192,53 @@ function Helpers.Get(path)
     return parent[key]
 end
 
+-- A table value logs as its contents, not as an address: the whole-value rows
+-- are tables, and a color is one too. One level deep -- a stat-priority entry
+-- nested inside its map renders as {...}.
+local function logValue(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local parts = {}
+    if #v > 0 then
+        for i, x in ipairs(v) do parts[i] = tostring(x) end
+    else
+        for k, x in pairs(v) do
+            parts[#parts + 1] = tostring(k) .. "=" .. (type(x) == "table" and "{...}" or tostring(x))
+        end
+        table.sort(parts)
+    end
+    return "{" .. table.concat(parts, ", ") .. "}"
+end
+
+-- The bulk bracket (debug-logging-§10). A bulk copy or reset is ONE
+-- `[Set] <act> <scope>: N rows` line, never a line per row, and N is the rows
+-- whose stored value the act actually CHANGED -- a row already at its default is
+-- not counted. While a bracket is open, Helpers.Set tallies instead of logging.
+--
+-- `bulk` is the innermost open frame, `prev` the one it sits in, so the chain is
+-- the depth counter: a frame that closes inside another folds its tally into it,
+-- and only the outermost one logs. A MuteSetLog frame logs nothing and silences
+-- every frame around it -- that is the global reset, whose one line is the
+-- OnProfileReset handler's. SilenceOpenBulk does the same from outside a frame,
+-- for a profile handler whose line lands while a bracket is open.
+local bulk = nil
+
+local function sameValue(a, b)
+    if a == b then return true end
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for k, v in pairs(a) do
+        if not sameValue(v, b[k]) then return false end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then return false end
+    end
+    return true
+end
+
 function Helpers.Set(path, value)
     local session = SESSION_PATHS[path]
+    -- Read BEFORE the write, and only inside a bracket: nothing else needs it.
+    local before
+    if bulk then before = Helpers.Get(path) end
     local ok
     if session then
         ok = session.set(value) and true or false
@@ -204,10 +249,62 @@ function Helpers.Set(path, value)
         ok = true
     end
     if not ok then return false end
-    if KCM.State and KCM.State.debug then
-        KCM.Debug("Set", "%s = %s", tostring(path), tostring(value))
+    if bulk then
+        if not sameValue(before, value) then bulk.count = bulk.count + 1 end
+    elseif KCM.State and KCM.State.debug then
+        KCM.Debug("Set", "%s = %s", tostring(path), logValue(value))
     end
     return true
+end
+
+-- Runs fn inside a frame. A raising fn still closes it, so a mute cannot stick.
+-- Answers pcall's ok and error, the frame's tally, and whether it was nested.
+local function runFrame(fn, silent)
+    local frame = { count = 0, prev = bulk, silent = silent }
+    bulk = frame
+    local ok, err = pcall(fn)
+    bulk = frame.prev
+    local outer = frame.prev
+    if outer then
+        outer.count  = outer.count + frame.count
+        outer.silent = outer.silent or frame.silent
+    end
+    return ok, err, frame, outer ~= nil
+end
+
+--- Run fn as ONE bulk act: every Helpers.Set inside it validates, writes and
+--- reacts exactly as it would outside, but logs no row of its own. When fn
+--- returns (or raises) the act logs `[Set] <act> <scope>: N rows`, N being the
+--- rows it changed; a bracket nested in another logs nothing and its rows count
+--- toward the outer line. An act that raises still logs its one line, ending
+--- ` (stopped by an error)`, and the error is then re-raised unwrapped.
+--- @return number  the rows changed
+function Helpers.Bulk(act, scope, fn)
+    local ok, err, frame, nested = runFrame(fn, false)
+    if not (nested or frame.silent) and KCM.State and KCM.State.debug then
+        KCM.Debug("Set", ok and "%s %s: %s rows" or "%s %s: %s rows (stopped by an error)",
+            tostring(act), tostring(scope), tostring(frame.count))
+    end
+    if not ok then error(err, 0) end
+    return frame.count
+end
+
+--- Run fn with the per-row line muted and NO line of its own, for an act another
+--- seam logs once: the global reset, logged by the OnProfileReset handler. A
+--- bracket around it logs nothing either (one line overall).
+--- @return number  the rows changed
+function Helpers.MuteSetLog(fn)
+    local ok, err, frame = runFrame(fn, true)
+    if not ok then error(err, 0) end
+    return frame.count
+end
+
+--- Silence the bracket open right now, if there is one, because another seam has
+--- just logged the whole act: a profile reset or copy, whose one line is the
+--- profile handler's (core/ConsumableMaster.lua). Every frame around it goes
+--- quiet as it closes; a bracket opened afterwards logs as usual.
+function Helpers.SilenceOpenBulk()
+    if bulk then bulk.silent = true end
 end
 
 function Helpers.FindSchema(path)
@@ -224,8 +321,13 @@ end
 local _validPanels = {
     general = true, macros = true, statpriority = true, macrobar = true,
 }
-local _validSections = { general = true, macrobar = true }
-local _validTypes    = { bool = true, number = true, string = true, color = true }
+-- A row's `section` is the page that declares it. The Macros and Stat Priority
+-- pages declare the whole-value rows behind their own controls (architecture-§5).
+local _validSections = { general = true, macrobar = true, macros = true, statpriority = true }
+-- `order` and `map` are the WHOLE-VALUE rows (architecture-§5): a list over a
+-- fixed member set, and a keyed map. See VALIDATORS below.
+local _validTypes    = { bool = true, number = true, string = true, color = true,
+                         order = true, map = true }
 
 local function _printSchemaError(prefix, msg)
     KCM.Say("|cffff0000schema error|r: " .. prefix .. ": " .. msg)
@@ -664,6 +766,31 @@ end
 -- SetAndRefresh's RefreshScalars and O.Refresh's RefreshAllPanels — are
 -- callable on BOTH paths.
 
+-- A whole-value row's member set: a list, or a function answering one (the bar's
+-- slot keys are only known once the categories have loaded).
+local function membersOf(def)
+    local m = def.members
+    if type(m) == "function" then m = m() end
+    return type(m) == "table" and m or {}
+end
+
+-- A FLAG MAP (a composite's `enabled`, the bar's `shown`): keys outside the
+-- member set are dropped, and every kept value must be a real boolean -- the
+-- readers test `~= false`, so a string or a number would silently read as on.
+local function normalizeFlagMap(def, value)
+    local known, out = {}, {}
+    for _, m in ipairs(membersOf(def)) do known[m] = true end
+    for k, v in pairs(value) do
+        if known[k] then
+            if type(v) ~= "boolean" then
+                return nil, "expected true or false for " .. tostring(k)
+            end
+            out[k] = v
+        end
+    end
+    return out
+end
+
 -- One validator per declared schema type, built once at file load. Each returns
 -- the coerced value, or nil + a reason the caller can put in front of the user.
 -- A type with no entry here is not an error: see validateSchemaValue.
@@ -703,6 +830,38 @@ local VALIDATORS = {
     color = function(_, value)
         if type(value) ~= "table" then return nil, "expected color table" end
         return value
+    end,
+
+    -- A WHOLE-VALUE list over a fixed member set (architecture-§5): the bar's slot
+    -- order, a composite's section. NORMALIZED, not merely checked: unknown and
+    -- repeated members are dropped and every missing one is appended in the member
+    -- set's own order, so a stored order names each member exactly once. Always a
+    -- fresh table, so neither a caller's list nor a row's `default` -- which IS the
+    -- dbDefaults table -- is ever what gets stored.
+    order = function(def, value)
+        if type(value) ~= "table" then return nil, "expected a list" end
+        local members = membersOf(def)
+        local known, seen, out = {}, {}, {}
+        for _, m in ipairs(members) do known[m] = true end
+        for _, m in ipairs(value) do
+            if known[m] and not seen[m] then seen[m] = true; out[#out + 1] = m end
+        end
+        for _, m in ipairs(members) do
+            if not seen[m] then seen[m] = true; out[#out + 1] = m end
+        end
+        return out
+    end,
+
+    -- A WHOLE-VALUE keyed map. A row with its own `normalize` (stat priority's) is
+    -- handed the map; a row naming `members` is a flag map; anything else is
+    -- copied. Every arm answers a fresh table.
+    map = function(def, value)
+        if type(value) ~= "table" then return nil, "expected a table" end
+        if type(def.normalize) == "function" then return def.normalize(value) end
+        if def.members then return normalizeFlagMap(def, value) end
+        local out = {}
+        for k, v in pairs(value) do out[k] = v end
+        return out
     end,
 }
 
@@ -747,10 +906,81 @@ function Helpers.SetAndRefresh(path, value)
     return true
 end
 
--- Published unified setter (architecture-§5): NS.Schema:Set(path, value).
+-- The reactors a batch runs: the caller's one `opts.onChange` when it names one,
+-- otherwise each DISTINCT row onChange once, in first-seen order, handed the value
+-- of the first row that carries it.
+local function runBatchReactors(plan, opts)
+    if opts and opts.onChange then
+        -- Reported under the batch's first path, through the one reporter a row's
+        -- own onChange uses, so a failure reads the same whichever reactor raised.
+        fireOnChange({ path = plan[1] and plan[1].def.path, onChange = opts.onChange })
+        return
+    end
+    local ran = {}
+    for _, step in ipairs(plan) do
+        local fn = step.def.onChange
+        if fn and not ran[fn] then
+            ran[fn] = true
+            fireOnChange(step.def, step.value)
+        end
+    end
+end
+
+-- Several rows as ONE act. It is the seam SetAndRefresh is -- validate, write
+-- through Helpers.Set, react, refresh -- taken once for the whole batch rather
+-- than once per row. A page reset is what it exists for: sixty rows through
+-- SetAndRefresh would be sixty onChanges and sixty refreshes for one click.
+--
+-- LOGGING (debug-logging-§10). A plain batch logs one [Set] line per row. A batch
+-- that IS a bulk copy or reset passes `opts.bulk = { act = , scope = }`, and then
+-- its writes and reactors run inside Helpers.Bulk: one `[Set] <act> <scope>: N rows`
+-- line, no per-row line. The bracket opens only after validation, so a refused
+-- batch logs nothing.
+--
+-- ALL OR NOTHING: every entry is resolved and validated before the first write,
+-- so a batch holding one bad value writes none of them.
+--
+-- `opts.onChange` names the one apply pass a page's rows all share (the Macro
+-- Bar page's MacroBar.Update), and then it runs instead of the rows' own.
+-- `opts.structural` swaps the in-place re-sync for a page rebuild, for a batch
+-- that changes what a page draws and not only the values it shows.
+--
+-- @param entries  array of { path = <schema path>, value = <new value> }
+-- @return boolean  true when every entry was written
+function Helpers.SetManyAndRefresh(entries, opts)
+    local plan = {}
+    for i, e in ipairs(entries or {}) do
+        -- A path that is not a row is refused silently, exactly as SetAndRefresh
+        -- refuses one: every caller is addon code naming its own rows.
+        local def = Helpers.FindSchema(e.path)
+        if not def then return false end
+        local coerced, reason = validateSchemaValue(def, e.value)
+        if coerced == nil then
+            KCM.Say("invalid value for " .. tostring(e.path) .. ": "
+                  .. tostring(reason or "value must not be nil"))
+            return false
+        end
+        if not (SESSION_PATHS[def.path] or Helpers.Resolve(def.path)) then return false end
+        plan[i] = { def = def, value = coerced }
+    end
+    local function apply()
+        for _, step in ipairs(plan) do Helpers.Set(step.def.path, step.value) end
+        runBatchReactors(plan, opts)
+    end
+    local b = opts and opts.bulk
+    if b then Helpers.Bulk(b.act, b.scope, apply) else apply() end
+    if opts and opts.structural then Helpers.RefreshAllPanels() else Helpers.RefreshScalars() end
+    return true
+end
+
+-- Published unified setter (architecture-§5): NS.Schema:Set(path, value), and
+-- its batch form NS.Schema:SetMany(entries, opts).
 KCM.Schema = KCM.Schema or {}
 function KCM.Schema:Set(path, value)
     return Helpers.SetAndRefresh(path, value)
+end
+function KCM.Schema:SetMany(entries, opts)
+    return Helpers.SetManyAndRefresh(entries, opts)
 end
 
 -- ---------------------------------------------------------------------

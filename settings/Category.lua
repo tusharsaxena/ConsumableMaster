@@ -145,6 +145,82 @@ local function afterMutation(reason)
 end
 
 -- ---------------------------------------------------------------------
+-- The schema rows (architecture-§5)
+-- ---------------------------------------------------------------------
+--
+-- What a category tab SETS, as opposed to the item list it edits (that is the
+-- structural registry, and Selector writes it): a composite's sub-category flags
+-- and its two section orders, and a targeted category's mouseover toggle. Each is
+-- a row, so this tab's controls, `/cm aio` and `/cm get|set|list|reset` write it
+-- through the one helper. The flags are a whole-value flag map over the
+-- composite's own sub-categories, and each section a whole-value order over its
+-- shipped members: lists over a FIXED member set, which the player reorders or
+-- toggles and never adds to. Mouseover is a plain bool.
+--
+-- Generated from KCM.Categories.LIST, like the tab strip, so a composite or a
+-- targeted category added there gets its rows without a line here. Every row
+-- shares ONE onChange, so a batch across a composite's three rows recomputes once.
+local CATEGORY_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile
+    and KCM.dbDefaults.profile.categories) or {}
+
+local MOUSEOVER_LABEL   = L["Cast on mouseover"]
+local MOUSEOVER_TOOLTIP = L["Rez whoever you are hovering (raid frame or corpse), falling back to "
+    .. "your target. Turn off to act on your target only."]
+
+local function recomputeAfterRow()
+    if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
+        KCM.Pipeline.RequestRecompute("options_category_setting")
+    end
+end
+
+local function categoryRow(cat, field, spec)
+    spec.path     = ("categories.%s.%s"):format(cat.key, field)
+    spec.panel    = "macros"
+    spec.section  = "macros"
+    spec.group    = cat.key
+    spec.default  = CATEGORY_DEFAULTS[cat.key] and CATEGORY_DEFAULTS[cat.key][field]
+    spec.onChange = recomputeAfterRow
+    KCM.Settings.Schema[#KCM.Settings.Schema + 1] = spec
+end
+
+-- Both sections' sub-categories: the keys a composite's `enabled` map may carry.
+local function compositeMembers(cat)
+    local out = {}
+    for _, list in ipairs({ cat.components.inCombat or {}, cat.components.outOfCombat or {} }) do
+        for _, ref in ipairs(list) do out[#out + 1] = ref end
+    end
+    return out
+end
+
+local function declareCompositeRows(cat)
+    local name = cat.displayName or cat.key
+    categoryRow(cat, "enabled", {
+        type = "map", valueType = "bool", members = compositeMembers(cat),
+        label   = (L["%s: sub-categories in the macro"]):format(name),
+        tooltip = L["Which sub-categories the composite macro includes. One this does not name is included."],
+    })
+    categoryRow(cat, "orderInCombat", {
+        type = "order", members = cat.components.inCombat or {},
+        label   = (L["%s: In Combat order"]):format(name),
+        tooltip = L["The order the in-combat sub-categories take in the macro body."],
+    })
+    categoryRow(cat, "orderOutOfCombat", {
+        type = "order", members = cat.components.outOfCombat or {},
+        label   = (L["%s: Out of Combat order"]):format(name),
+        tooltip = L["The order the out-of-combat sub-categories take in the macro body."],
+    })
+end
+
+for _, cat in ipairs((KCM.Categories and KCM.Categories.LIST) or {}) do
+    if cat.composite and cat.components then declareCompositeRows(cat) end
+    if cat.targeted then
+        categoryRow(cat, "mouseover", {
+            type = "bool", label = MOUSEOVER_LABEL, tooltip = MOUSEOVER_TOOLTIP,
+        })
+    end
+end
+
+-- ---------------------------------------------------------------------
 -- StaticPopup for per-category reset. One popup, shared across all
 -- category tabs — the active catKey is parked in popup.data on show.
 -- ---------------------------------------------------------------------
@@ -167,8 +243,12 @@ end
 local AIO_RESET_FIELDS = { "enabled", "orderInCombat", "orderOutOfCombat" }
 
 -- Composite reset: restore the enabled flags and both section orders from the
--- shipped defaults. CopyTable, never an alias — aliasing dbDefaults would let a
--- later edit corrupt the defaults for the rest of the session.
+-- shipped defaults, as ONE batch through the schema helper. Each row's validator
+-- stores a copy, never an alias — aliasing dbDefaults would let a later edit
+-- corrupt the defaults for the rest of the session. The batch's one reactor is
+-- this popup's own recompute, and it rebuilds the tab once. A bulk reset, so its
+-- one log line is `[Set] reset category <KEY>: N rows` (debug-logging-§10) --
+-- `/cm aio <key> reset` is the same act and logs the same line.
 local function resetCompositeCategory(catKey)
     local defaults = KCM.dbDefaults and KCM.dbDefaults.profile
         and KCM.dbDefaults.profile.categories
@@ -176,23 +256,30 @@ local function resetCompositeCategory(catKey)
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
         and KCM.db.profile.categories[catKey]
     if not (defaults and cfg) then return end
-    for _, f in ipairs(AIO_RESET_FIELDS) do
-        cfg[f] = CopyTable(defaults[f] or {})
+    local entries = {}
+    for i, f in ipairs(AIO_RESET_FIELDS) do
+        entries[i] = { path = ("categories.%s.%s"):format(catKey, f), value = defaults[f] or {} }
     end
-    if isDebugOn() then KCM.Debug("Prio", "reset %s", catKey) end
-    afterMutation("options_aio_reset_cat")
+    H.SetManyAndRefresh(entries, {
+        onChange = function()
+            if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
+                KCM.Pipeline.RequestRecompute("options_aio_reset_cat")
+            end
+        end,
+        structural = true,
+        bulk = { act = "reset", scope = "category " .. catKey },
+    })
 end
 
--- Single-category reset: clear the user's own edits. `discovered` is
--- deliberately left alone — auto-discovery findings survive a category reset.
+-- Single-category reset: clear the user's own edits, through the registry
+-- writer (architecture-§5). `discovered` is deliberately left alone —
+-- auto-discovery findings survive a category reset — and that rule is
+-- Selector.ResetBucket's, not this popup's.
 local function resetSingleCategory(catKey, specKey)
-    local bucket = KCM.Selector and KCM.Selector.GetBucket
-        and KCM.Selector.GetBucket(catKey, specKey)
-    if not bucket then return end
-    bucket.added   = {}
-    bucket.blocked = {}
-    bucket.pins    = {}
-    if isDebugOn() then KCM.Debug("Prio", "reset %s", catKey) end
+    if not (KCM.Selector and KCM.Selector.ResetBucket
+            and KCM.Selector.ResetBucket(catKey, specKey)) then
+        return
+    end
     afterMutation("options_reset_cat")
 end
 
@@ -379,13 +466,15 @@ local function renderCategoryHeader(ctx, scroll, cat, specKey)
     if cat.targeted then
         local bucket = KCM.db.profile.categories[cat.key]
         makeCheckbox(scroll, {
-            label = L["Cast on mouseover"],
-            tooltip = L["Rez whoever you are hovering (raid frame or corpse), falling back to "
-                .. "your target. Turn off to act on your target only."],
+            label = MOUSEOVER_LABEL,
+            tooltip = MOUSEOVER_TOOLTIP,
             value = bucket.mouseover ~= false,
+            -- Through the `categories.<KEY>.mouseover` row (see the rows above).
             onChange = function(v)
-                bucket.mouseover = v and true or false
-                afterMutation("options_mouseover_toggle")
+                if KCM.Schema and KCM.Schema:Set(("categories.%s.mouseover"):format(cat.key),
+                        v and true or false) then
+                    afterMutation("options_mouseover_toggle")
+                end
             end,
         })
         H.AddSpacer(scroll, 4)
@@ -873,7 +962,7 @@ end
 -- Extracted out of renderComposite rather than left inlined: the loop body was
 -- four widget declarations with closures over the same locals, and the whole
 -- function sat at CCN 18 with it.
-local function renderCompositeRow(scroll, cfg, ref, list)
+local function renderCompositeRow(scroll, catKey, cfg, ref, list)
     local refCat   = KCM.Categories.Get(ref)
     local refLabel = refCat and refCat.displayName or ref
     local pick     = (KCM.Selector and KCM.Selector.PickBestForCategory)
@@ -894,10 +983,15 @@ local function renderCompositeRow(scroll, cfg, ref, list)
         tooltip  = (L["Include %s in the macro body."]):format(refLabel),
         value    = (cfg.enabled == nil) or (cfg.enabled[ref] ~= false),
         width    = CHECK_W,
+        -- The whole flag map with this sub-category's flag replaced, through the
+        -- `categories.<KEY>.enabled` row.
         onChange = function(v)
-            cfg.enabled = cfg.enabled or {}
-            cfg.enabled[ref] = v
-            afterMutation("options_aio_toggle")
+            local flags = {}
+            for k, flag in pairs(cfg.enabled or {}) do flags[k] = flag end
+            flags[ref] = v and true or false
+            if KCM.Schema and KCM.Schema:Set(("categories.%s.enabled"):format(catKey), flags) then
+                afterMutation("options_aio_toggle")
+            end
         end,
     })
 
@@ -955,7 +1049,7 @@ local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
     }) or nil)
 
     for _, ref in ipairs(orderArr) do
-        renderCompositeRow(scroll, cfg, ref, list)
+        renderCompositeRow(scroll, catKey, cfg, ref, list)
     end
 
     -- The insertion line lives on what every row in THIS section shares as an ancestor. Each

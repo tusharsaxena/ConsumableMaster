@@ -4,7 +4,15 @@
 -- is vendored, not written here (testing-§1). This file is the ConsumableMaster
 -- half: the controllable item / bag / spell / spec / macro / cooldown stores, the
 -- Midnight secret-value and duration-object stand-ins, the template-gated frame
--- stub, and the Ace3 fakes whose semantics this addon's suites depend on.
+-- stub, and the few Ace-side pieces that are this addon's own.
+--
+-- The Ace fakes are the KIT'S (#38). AceAddon, AceEvent, AceConsole and AceGUI
+-- come from mock_base.lua untouched but for three wraps below: NewAddon also
+-- publishes `_G.KCM`, AceGUI:Create hands back the permissive widget, and
+-- GetWidgetVersion answers 0 for an unregistered type. What stays wholly local
+-- is AceDB (profiles and callbacks), the LibSharedMedia fake, and a LibStub that
+-- answers nil for an unknown major without the silent flag. Everything else is
+-- registered into the kit's `__libs`, so kit revisions to the fakes arrive here.
 --
 -- It takes the kit's base BUILDER as its argument rather than dofile-ing it, so
 -- `tests/run.lua` holds the one and only reference to each kit file.
@@ -33,8 +41,8 @@
 --   M.setPlayerLevel(n)        -- backs UnitLevel("player") (default 80)
 --   M.setPlayerClass(classFile) -- backs UnitClass("player")'s 2nd return (default "SHAMAN")
 --
--- The message bus stub is keyed by (message, target) per the standard's
--- anti-pattern #33 so future NS.bus receivers are testable.
+-- The message bus is the kit's AceEvent: two CallbackHandler registries keyed by
+-- (message, target) per anti-pattern #33, published as `mock.base.__msgRegistry`.
 
 return function(base)
 
@@ -84,7 +92,6 @@ function M.reset()
     M.playerClass = "SHAMAN"
     M.metadata = { ConsumableMaster = { Title = "Consumable Master", Notes = "A fixture." } }
     M.macros   = {}       -- name -> { icon, body }
-    M.busReg   = {}       -- "message" -> { [target] = callback }
     M.cursor   = nil      -- { kind, arg } as GetCursorInfo would report
     M.cooldowns = {}      -- opaque KCM id -> { start, duration, enable }
     M.secretCooldowns = false  -- SecretWhenCooldownsRestricted in effect?
@@ -346,58 +353,8 @@ end
 M.makeAceWidget = makeAceWidget
 
 -- ---------------------------------------------------------------------------
--- Ace3 stubs
+-- AceDB (kept local: the kit's has no string-method callbacks or profile key)
 -- ---------------------------------------------------------------------------
-
-local function makeAceAddon(NS)
-    local AceAddon = {}
-    function AceAddon:NewAddon(targetOrName, ...)
-        local addon = type(targetOrName) == "table" and targetOrName or NS
-        -- Embed the no-op mixin surface the addon expects from AceEvent /
-        -- AceConsole so registrations at load don't blow up.
-        addon.RegisterEvent       = addon.RegisterEvent       or function() end
-        addon.UnregisterEvent     = addon.UnregisterEvent     or function() end
-        addon.RegisterChatCommand = addon.RegisterChatCommand or function() end
-        addon.ScheduleTimer       = addon.ScheduleTimer       or function() end
-        M.embedMessaging(addon)
-        _G.KCM = addon
-        return addon
-    end
-    function AceAddon:GetAddon() return NS end
-    return AceAddon
-end
-
--- Install AceEvent-style messaging onto `target`: RegisterMessage /
--- UnregisterMessage / SendMessage. The registry is keyed by (message, target)
--- (anti-pattern #33) and SendMessage broadcasts to every target registered for
--- that message — matching AceEvent's addon-global message semantics, so a
--- message sent on one embed reaches receivers on any other embed.
-local function embedMessaging(target)
-    target.RegisterMessage = function(self, message, handler)
-        M.busReg[message] = M.busReg[message] or {}
-        M.busReg[message][self] = handler or message
-    end
-    target.UnregisterMessage = function(self, message)
-        if M.busReg[message] then M.busReg[message][self] = nil end
-    end
-    target.SendMessage = function(_, message, ...)
-        local reg = M.busReg[message]
-        if not reg then return end
-        for tgt, h in pairs(reg) do
-            if type(h) == "function" then h(tgt, message, ...)
-            elseif type(h) == "string" and tgt[h] then tgt[h](tgt, message, ...) end
-        end
-    end
-    return target
-end
-M.embedMessaging = embedMessaging
-
-local function makeAceEvent()
-    local AceEvent = {}
-    function AceEvent.Embed(_, target) return embedMessaging(target) end
-    return AceEvent
-end
-M.makeAceEvent = makeAceEvent
 
 local function makeAceDB()
     local AceDB = {}
@@ -510,6 +467,19 @@ local function makeAceDB()
             fire("OnProfileChanged", name)
         end
 
+        -- db:CopyProfile(name) -- the active profile becomes a copy of `name`,
+        -- IN PLACE like a reset, and OnProfileCopied carries the SOURCE's key,
+        -- which is what the real library passes.
+        db.CopyProfile = function(_, name)
+            local src = db.profiles[name]
+            if type(src) ~= "table" or name == current then return end
+            local p = db.profile
+            for k in pairs(p) do p[k] = nil end
+            for k, v in pairs(deepcopy(src)) do p[k] = v end
+            copyDefaults(p, defaults.profile)
+            fire("OnProfileCopied", name)
+        end
+
         db.GetCurrentProfile = function() return current end
 
         return db
@@ -534,56 +504,12 @@ function M.install(NS)
         if type(k) == "string" and not k:find("^__") then _G[k] = v end
     end
 
-    local libs = {
-        ["AceAddon-3.0"]   = makeAceAddon(NS),
-        ["AceEvent-3.0"]   = makeAceEvent(),
-        ["AceConsole-3.0"] = makeStub(),
+    -- The kit's own registry: its NewAddon embeds through the kit's LibStub, which
+    -- reads this table, so every fake this file keeps is registered INTO it rather
+    -- than into a private one the kit never consults.
+    local libs = B.__libs
+    local own = {
         ["AceDB-3.0"]      = makeAceDB(),
-        -- AceGUI: Create returns a permissive widget stub; GetWidgetVersion
-        -- returns 0 for a type nobody has registered (a number, so widget files'
-        -- `>= Version` guard compares cleanly and proceeds to register).
-        --
-        -- THE REGISTRY IS A REAL TABLE, and that is not decoration. Real AceGUI
-        -- keeps `WidgetRegistry` (type → constructor) and `WidgetVersions`
-        -- (type → version) as plain tables, and the library's own
-        -- `lib.__PatchLSM30Border` reads the first of them directly. With both
-        -- absent the catch-all `__index` below answered `WidgetRegistry` with a
-        -- FUNCTION, and indexing that raised — 245 cases red on a stub whose
-        -- shape had drifted from the thing it stands in for, not on anything the
-        -- addon did. Recording a registration also lets a case SEE one, which is
-        -- what pins the Border fixup now that this addon no longer carries a
-        -- private copy of it.
-        --
-        -- `Create` deliberately ignores the registry and always hands back the
-        -- permissive stub. The four KCM* widget files register constructors that
-        -- build real frames at call time; honoring them here would change what
-        -- every settings case gets back, and the widget bodies have their own
-        -- suite (tests/test_widgets.lua).
-        --
-        -- `__created` is a HARNESS-SIDE creation log, in creation order. No
-        -- production code knows it exists; it is how a case reaches a widget on a
-        -- page that draws through settings/Panel.lua's own Button / ButtonPair,
-        -- which hold AceGUI as a file-local captured at load and so cannot be
-        -- intercepted by swapping the instance's AceGUI out.
-        ["AceGUI-3.0"]     = setmetatable({
-                                __created = {},
-                                WidgetRegistry = {},
-                                WidgetVersions = {},
-                                Create = function(self)
-                                    local w = makeAceWidget()
-                                    local log = type(self) == "table" and rawget(self, "__created")
-                                    if log then log[#log + 1] = w end
-                                    return w
-                                end,
-                                RegisterWidgetType = function(self, wtype, ctor, version)
-                                    self.WidgetRegistry[wtype] = ctor
-                                    self.WidgetVersions[wtype] = version
-                                end,
-                                RegisterLayout = function() end,
-                                GetWidgetVersion = function(self, wtype)
-                                    return self.WidgetVersions[wtype] or 0
-                                end,
-                             }, { __index = function() return function() return makeStub() end end }),
         -- LibSharedMedia: enough of the real surface for the settings layer's
         -- LSMValues() lists and the macro bar's border fetch. `media` mirrors
         -- LSM's own default registrations for the media types we read.
@@ -623,19 +549,51 @@ function M.install(NS)
     -- mode). An UNKNOWN major still answers nil rather than raising, silent
     -- flag or not: several suites swap LibStub out and back, and a raising
     -- lookup would turn those into errors rather than the nil they expect.
-    local libMinors = {}
-    local LibStub = setmetatable({}, {
-        __call = function(_, name) return libs[name] end,
-    })
-    function LibStub:NewLibrary(major, minor)
-        minor = tonumber(minor) or tonumber(tostring(minor):match("%d+"))
-        local old = libMinors[major]
-        if old and old >= minor then return nil end
-        libMinors[major] = minor
-        libs[major] = libs[major] or {}
-        return libs[major], old
+    for name, lib in pairs(own) do libs[name] = lib end
+
+    -- AceGUI is the kit's (its WidgetRegistry / WidgetVersions tables,
+    -- RegisterWidgetType, RegisterLayout / GetLayout, Release and the `__created`
+    -- creation log), with two wraps that are this addon's own:
+    --
+    -- * `Create` hands back the PERMISSIVE widget (makeAceWidget above) rather than
+    --   the kit's data recorder or a registered constructor. The four KCM* widget
+    --   files register constructors that build real frames at call time; honoring
+    --   them would change what every settings case gets back, and the widget
+    --   bodies have their own suite (tests/test_widgets.lua). Each widget is still
+    --   appended to the kit's `__created`, which is how a case reaches a widget on
+    --   a page that draws through settings/Panel.lua's Button / ButtonPair.
+    -- * `GetWidgetVersion` answers 0 for a type nobody registered. The real one
+    --   answers nil; 0 is a number, so a widget file's `>= version` guard compares
+    --   cleanly and registers.
+    local AceGUI = libs["AceGUI-3.0"]
+    function AceGUI.Create(self)
+        local w = makeAceWidget()
+        self.__created[#self.__created + 1] = w
+        return w
     end
-    function LibStub:GetLibrary(major) return libs[major] end
+    local kitGetWidgetVersion = AceGUI.GetWidgetVersion
+    function AceGUI.GetWidgetVersion(self, wtype)
+        return kitGetWidgetVersion(self, wtype) or 0
+    end
+
+    -- AceAddon is the kit's: NewAddon honors the production mixin list
+    -- (AceEvent-3.0, AceConsole-3.0), names the object, registers it for
+    -- GetAddon and stamps the object model. The one wrap is this addon's own:
+    -- the addon object is also published as _G.KCM, which the loader clears
+    -- before each build and suites read back.
+    local AceAddon = libs["AceAddon-3.0"]
+    local kitNewAddon = AceAddon.NewAddon
+    function AceAddon.NewAddon(self, ...)
+        local addon = kitNewAddon(self, ...)
+        _G.KCM = addon
+        return addon
+    end
+    local kitLibStub = B.LibStub
+    local LibStub = setmetatable({}, {
+        __call = function(_, name) return kitLibStub(name, true) end,
+    })
+    function LibStub:NewLibrary(major, minor) return kitLibStub:NewLibrary(major, minor) end
+    function LibStub:GetLibrary(major) return kitLibStub:GetLibrary(major, true) end
     _G.LibStub = LibStub
     -- Exposed so tests/run.lua can see which majors actually registered.
     M.libs = libs

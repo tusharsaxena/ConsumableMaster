@@ -778,52 +778,234 @@ end)
 --
 -- The two AIO sections used to be reordered by paired up/down arrows, so the
 -- only mutation the model had was an adjacent swap written inline in the panel.
--- The drag needs "put this one third" in ONE call (options-ui-§18), so the
--- mutator is here, where it can be driven without a widget.
+-- The drag needs "put this one third" in ONE call (options-ui-§18).
+--
+-- The sections are VALUES, not registry membership (architecture-§5): each is a
+-- whole-value `order` row, so MoveCompositeRef splices a COPY and writes it
+-- through the schema helper. The splice itself is Selector.SpliceOrder, which is
+-- pure -- so the four-place case can still be driven over any list, even though
+-- no shipped section holds four sub-categories.
 
-test("Selector.MoveCompositeRef splices to an index rather than swapping neighbors", function(t)
-    local KCM = h.loader.loadPure()
-    local cfg = KCM.db.profile.categories.HP_AIO
-    cfg.orderInCombat = { "A", "B", "C", "D" }
+test("Selector.SpliceOrder moves one entry to an index rather than swapping neighbors", function(t)
+    local S = h.loader.loadPure().Selector
+    local arr = { "A", "B", "C", "D" }
 
     -- red under: expressing the move as a swap — a swap of 1 and 4 yields
     -- D,B,C,A, which is an order nobody asked for.
-    t.eq(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 4), true, "reports the change")
-    t.eqList(cfg.orderInCombat, { "B", "C", "D", "A" },
+    local out = S.SpliceOrder(arr, 1, 4)
+    t.eqList(out, { "B", "C", "D", "A" },
         "a four-place move leaves the rows it passed in the order they were in")
-
-    t.eq(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 4, 2), true, "and back again")
-    t.eqList(cfg.orderInCombat, { "B", "A", "C", "D" }, "dragging upward splices the same way")
+    t.eqList(S.SpliceOrder(out, 4, 2), { "B", "A", "C", "D" }, "dragging upward splices the same way")
+    t.eqList(arr, { "A", "B", "C", "D" }, "and the list handed in is never touched: the move is a copy")
 end)
 
-test("Selector.MoveCompositeRef refuses a move it cannot make", function(t)
-    local KCM = h.loader.loadPure()
-    local cfg = KCM.db.profile.categories.HP_AIO
-    cfg.orderInCombat = { "A", "B" }
-
+test("Selector.SpliceOrder refuses a move it cannot make", function(t)
     -- red under: dropping any of the bounds checks — an out-of-range index would
     -- otherwise table.remove a nil and insert it, silently shortening the array.
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 1), "a no-op move")
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 0, 1), "index below the array")
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 9), "target past the end")
-    t.falsy(KCM.Selector.MoveCompositeRef("HP_AIO", "noSuchField", 1, 2), "an unknown order field")
-    t.falsy(KCM.Selector.MoveCompositeRef("NO_SUCH_CAT", "orderInCombat", 1, 2), "an unknown category")
-    t.eqList(cfg.orderInCombat, { "A", "B" }, "and none of them touched the array")
+    local S = h.loader.loadPure().Selector
+    local arr = { "A", "B" }
+    t.eq(S.SpliceOrder(arr, 1, 1), nil, "a no-op move")
+    t.eq(S.SpliceOrder(arr, 0, 1), nil, "index below the array")
+    t.eq(S.SpliceOrder(arr, 1, 9), nil, "target past the end")
+    t.eq(S.SpliceOrder(arr, "1", 2), nil, "an index that is not a number")
+    t.eq(S.SpliceOrder(nil, 1, 2), nil, "no list at all")
 end)
 
-test("Selector.MoveCompositeRef never moves a ref between the two sections", function(t)
+test("Selector.MoveCompositeRef writes one section, spliced, through the schema helper", function(t)
     -- A sub-category is LOCKED to its combat state, and the two sections are two
     -- separate stored arrays — which is why the panel draws two flat controllers
     -- rather than one with a boundary (options-ui-§18).
     --
     -- red under: resolving the array from the category root rather than from the
-    -- named order field.
-    local KCM = h.loader.loadPure()
+    -- named order field, or writing the section in place instead of through the
+    -- helper.
+    local KCM = h.loader.loadFullAddon()
+    local S   = KCM.Selector
     local cfg = KCM.db.profile.categories.HP_AIO
-    cfg.orderInCombat    = { "HS", "HP_POT" }
-    cfg.orderOutOfCombat = { "FOOD" }
+    local H   = KCM.Settings.Helpers
+    local paths, realSet = {}, H.Set
+    H.Set = function(path, value) paths[#paths + 1] = path; return realSet(path, value) end
 
-    KCM.Selector.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2)
+    t.eq(S.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2), true, "reports the change")
     t.eqList(cfg.orderInCombat, { "HP_POT", "HS" }, "the named section reordered")
     t.eqList(cfg.orderOutOfCombat, { "FOOD" }, "and the other one is untouched")
+    t.eqList(paths, { "categories.HP_AIO.orderInCombat" }, "as one whole-section write")
+
+    t.falsy(S.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 1), "a no-op move")
+    t.falsy(S.MoveCompositeRef("HP_AIO", "orderInCombat", 0, 1), "index below the array")
+    t.falsy(S.MoveCompositeRef("HP_AIO", "noSuchField", 1, 2), "an unknown order field")
+    t.falsy(S.MoveCompositeRef("NO_SUCH_CAT", "orderInCombat", 1, 2), "an unknown category")
+    t.eqList(cfg.orderInCombat, { "HP_POT", "HS" }, "and none of the refusals touched it")
+    t.eq(#paths, 1, "or wrote anything")
+end)
+
+-- ---------------------------------------------------------------
+-- Registry resets — the three doors, one writer (architecture-§5, issue #34)
+-- ---------------------------------------------------------------
+--
+-- A registry RESET is a writer operation, so `/cm priority <cat> reset`, the
+-- Macros page's per-category reset and Reset all priorities all go through
+-- Selector.ResetBucket / Selector.ResetAllBuckets. The characterization case
+-- below was written against the three hand-rolled resets BEFORE they moved, and
+-- pins the stored shape each one leaves: added / blocked / pins emptied, spec
+-- buckets included, `.discovered` untouched, and nothing else moved.
+
+-- Deterministic rendering of a table, so two stored shapes compare as strings.
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local SPEC_A, SPEC_B = "7_263", "7_264"   -- the mock's current spec, and another
+
+local function seedRegistry(KCM)
+    local cats = KCM.db.profile.categories
+    cats.FOOD.added      = { [901] = true }
+    cats.FOOD.blocked    = { [902] = true }
+    cats.FOOD.pins       = { { itemID = 903, position = 1 } }
+    cats.FOOD.discovered = { [904] = 1700000000 }
+    -- A bucket missing a field: the every-list reset leaves a missing field missing.
+    cats.DRINK.added = { [911] = true }
+    cats.DRINK.pins  = nil
+    cats.STAT_FOOD.bySpec = {
+        [SPEC_A] = { added = { [921] = true }, blocked = { [922] = true },
+                     pins = { { itemID = 923, position = 1 } }, discovered = { [924] = 1700000001 } },
+        [SPEC_B] = { added = { [931] = true }, blocked = {},
+                     pins = { { itemID = 933, position = 2 } }, discovered = { [934] = 1700000002 } },
+    }
+    KCM.db.profile.statPriority = { [SPEC_A] = { primary = "AGI", secondary = { "CRIT" } } }
+    -- No recompute, discovery or sweep may add to what the reset itself left.
+    KCM.Pipeline.RequestRecompute = function() end
+    KCM.Pipeline.Recompute        = function() end
+    KCM.Pipeline.RunAutoDiscovery = function() return 0 end
+end
+
+-- What resetting one bucket leaves: each of the three fields that holds a table
+-- becomes an empty one, and every other field is as it was.
+local function cleared(bucket)
+    for _, f in ipairs({ "added", "blocked", "pins" }) do
+        if type(bucket[f]) == "table" then bucket[f] = {} end
+    end
+    return bucket
+end
+
+local function expectAfter(KCM, mutate)
+    local want = CopyTable(KCM.db.profile.categories)
+    mutate(want)
+    return ser(want)
+end
+
+test("Registry resets: each of the three doors leaves exactly the stored shape it always did",
+    function(t)
+        -- 1. `/cm priority <cat> reset`, a single category and a spec-aware one
+        --    (which resets the CURRENT spec's bucket and no other).
+        local KCM = h.loader.loadFullAddon()
+        seedRegistry(KCM)
+        local want = expectAfter(KCM, function(c) cleared(c.FOOD) end)
+        KCM:OnSlashCommand("priority food reset")
+        t.eq(ser(KCM.db.profile.categories), want, "/cm priority food reset")
+        want = expectAfter(KCM, function(c) cleared(c.STAT_FOOD.bySpec[SPEC_A]) end)
+        KCM:OnSlashCommand("priority stat_food reset")
+        t.eq(ser(KCM.db.profile.categories), want, "/cm priority stat_food reset (current spec)")
+
+        -- 2. The Macros page's per-category reset popup, on the VIEWED spec.
+        KCM = h.loader.loadFullAddon()
+        seedRegistry(KCM)
+        local accept = StaticPopupDialogs["KCM_RESET_CATEGORY"].OnAccept
+        want = expectAfter(KCM, function(c) cleared(c.STAT_FOOD.bySpec[SPEC_B]) end)
+        accept(nil, { catKey = "STAT_FOOD", specKey = SPEC_B, composite = false })
+        t.eq(ser(KCM.db.profile.categories), want, "the per-category popup, spec B")
+        want = expectAfter(KCM, function(c) cleared(c.FOOD) end)
+        accept(nil, { catKey = "FOOD", composite = false })
+        t.eq(ser(KCM.db.profile.categories), want, "the per-category popup, FOOD")
+
+        -- 3. Reset all priorities: every bucket, spec buckets included, driven off
+        --    the stored shape. The composites have no bucket fields and keep theirs.
+        KCM = h.loader.loadFullAddon()
+        seedRegistry(KCM)
+        want = expectAfter(KCM, function(c)
+            for _, root in pairs(c) do
+                cleared(root)
+                for _, b in pairs(root.bySpec or {}) do cleared(b) end
+            end
+        end)
+        KCM.ResetAllPriorities()
+        t.eq(ser(KCM.db.profile.categories), want, "Reset all priorities")
+        t.eq(KCM.db.profile.categories.DRINK.pins, nil, "a missing field stays missing")
+        t.eq(ser(KCM.db.profile.statPriority), "{}", "and the stat overrides are gone")
+    end)
+
+test("Selector.ResetBucket clears one bucket's added/blocked/pins and keeps discovered", function(t)
+    local KCM = h.loader.loadPure()
+    local S   = KCM.Selector
+    seedRegistry(KCM)
+    local cats = KCM.db.profile.categories
+
+    t.eq(S.ResetBucket("STAT_FOOD", SPEC_B), true, "reports the reset")
+    local b = cats.STAT_FOOD.bySpec[SPEC_B]
+    t.eq(ser(b), "{added={},blocked={},discovered={934=1700000002},pins={}}",
+        "spec B emptied, its discoveries kept")
+    t.eq(cats.STAT_FOOD.bySpec[SPEC_A].added[921], true, "spec A untouched")
+    t.eq(cats.FOOD.added[901], true, "and so is every other category")
+
+    t.eq(S.ResetBucket("FOOD"), true, "a single category")
+    t.eq(next(cats.FOOD.added), nil, "added cleared")
+    t.eq(cats.FOOD.discovered[904], 1700000000, "discovered kept")
+
+    t.eq(S.ResetBucket("NO_SUCH_CAT"), false, "an unknown category is refused")
+    t.eq(S.ResetBucket("HP_AIO"), false, "a composite has no bucket to reset")
+    t.eq(cats.HP_AIO.added, nil, "and grows no bucket fields for asking")
+end)
+
+test("Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered",
+    function(t)
+        local KCM = h.loader.loadPure()
+        seedRegistry(KCM)
+        local cats = KCM.db.profile.categories
+        t.eq(KCM.Selector.ResetAllBuckets(), true, "reports the reset")
+        t.eq(next(cats.FOOD.pins), nil, "FOOD pins cleared")
+        t.eq(next(cats.STAT_FOOD.bySpec[SPEC_A].blocked), nil, "spec A cleared")
+        t.eq(next(cats.STAT_FOOD.bySpec[SPEC_B].pins), nil, "spec B cleared")
+        t.eq(cats.STAT_FOOD.bySpec[SPEC_B].discovered[934], 1700000002, "discoveries kept")
+        t.eq(cats.DRINK.pins, nil, "a missing field is not created")
+        t.eq(ser(cats.HP_AIO.orderInCombat), ser(KCM.dbDefaults.profile.categories.HP_AIO.orderInCombat),
+            "a composite's own fields are not the registry's and are left alone")
+        t.eq(ser(KCM.db.profile.statPriority), ser({ [SPEC_A] = { primary = "AGI", secondary = { "CRIT" } } }),
+            "stat priorities are a setting, not registry membership, and are not this verb's")
+    end)
+
+-- The architecture-§5 claim ARCHITECTURE.md makes -- Selector is the item-list
+-- registry's only runtime writer -- checked against the source rather than trusted.
+--
+-- red under: any file but modules/Selector.lua assigning a bucket's added /
+-- blocked / pins, or writing a bucket field by index, the way the three resets did.
+test("Registry: modules/Selector.lua is the only runtime writer of the bucket fields", function(t)
+    local root = _G.KCM_TEST_ROOT or "."
+    local PATTERNS = {
+        "%.added%s*=[^=]", "%.blocked%s*=[^=]", "%.pins%s*=[^=]",
+        "[bB]ucket%[[^%]]+%]%s*=[^=]", "table%.insert%([%w_.]*%.pins",
+    }
+    local offenders = {}
+    for _, rel in ipairs(h.loader.tocFiles()) do
+        if rel ~= "modules/Selector.lua" and rel:match("^[cms][a-z]*/.+%.lua$") then
+            local f = io.open(root .. "/" .. rel, "r")
+            if f then
+                local n = 0
+                for line in f:lines() do
+                    n = n + 1
+                    local code = line:gsub("%-%-.*$", "")
+                    for _, p in ipairs(PATTERNS) do
+                        if code:find(p) then offenders[#offenders + 1] = rel .. ":" .. n end
+                    end
+                end
+                f:close()
+            end
+        end
+    end
+    t.eq(#offenders, 0, "registry writes outside Selector: " .. table.concat(offenders, ", "))
 end)

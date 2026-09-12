@@ -565,12 +565,17 @@ test("macrobar model: the shipped default order needs no repair", function(t)
     t.falsy(changed, "default order is complete, unique and all-known")
 end)
 
-test("macrobar model: Order repairs and writes back a damaged saved order", function(t)
+-- The stored order is a whole-value schema row (architecture-§5), so its one
+-- writer is the helper, which normalizes on the way in. A read that wrote its
+-- repair back would be a second writer, sitting on a read path.
+--
+-- red under: reinstating the write-back in MacroBarModel.Order().
+test("macrobar model: Order repairs a damaged saved order on read, and writes nothing", function(t)
     local KCM = h.loader.loadPure()
     KCM.db.profile.macroBar.order = { "FOOD", "BOGUS" }
     local out = KCM.MacroBarModel.Order()
     t.eq(#out, #KCM.Categories.LIST, "returned order is complete")
-    t.eq(#KCM.db.profile.macroBar.order, #KCM.Categories.LIST, "repair persisted to the db")
+    t.eqList(KCM.db.profile.macroBar.order, { "FOOD", "BOGUS" }, "and the read left the stored one alone")
 end)
 
 test("macrobar model: Visible reflects the shown map over the saved order", function(t)
@@ -2008,4 +2013,271 @@ test("macrobar master: General visibility = never takes the bar off screen", fun
     KCM.db.profile.visibility = "always"
     KCM.MacroBar.Update()
     t.eq(seen.barVisible, true, "and 'always' brings it back")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The Macro Bar page's Defaults button (issue #36)
+-- ---------------------------------------------------------------------------
+--
+-- It used to replace the whole `macroBar` table with a copy of the defaults and
+-- put `.locked` back, so no row's write went through the schema helper, nothing
+-- was logged at the [Set] seam, and anything holding the old table kept reading
+-- it. The characterization case pins what the button LEAVES, which must not
+-- move; the second pins how it gets there.
+
+local function macroBarDefaults(KCM)
+    local UI = KCM.Settings.Helpers.instance
+    KCM.Settings.builders["macrobar"]({})
+    return UI.__panelFor("macrobar").panel.defaultsOnClick
+end
+
+-- Deterministic rendering, so two stored shapes compare as strings.
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function customizeBar(KCM)
+    local c = KCM.db.profile.macroBar
+    c.enabled, c.locked, c.scale, c.buttonSize = false, true, 1.5, 50
+    c.labelText, c.barBorderColor = "FULL", { 1, 0, 0, 1 }
+    c.point, c.relPoint, c.x, c.y = "TOP", "TOP", 120, -40
+    c.order = { "DRINK", "FOOD" }
+    c.shown = { FOOD = false }
+    return c
+end
+
+test("macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+        local reset = macroBarDefaults(KCM)
+        customizeBar(KCM)
+
+        local updates, structural = 0, 0
+        KCM.MacroBar.Update = function() updates = updates + 1 end
+        local realAll = H.RefreshAllPanels
+        H.RefreshAllPanels = function(...) structural = structural + 1; return realAll(...) end
+
+        reset()
+
+        local c, d = KCM.db.profile.macroBar, KCM.dbDefaults.profile.macroBar
+        for k, v in pairs(d) do
+            if k ~= "locked" then
+                t.eq(ser(c[k]), ser(v), "macroBar." .. k .. " is back to its default")
+            end
+        end
+        t.eq(c.locked, true, "the lock is the General page's setting and survives")
+        t.falsy(c.barBorderColor == d.barBorderColor, "a color comes back as a copy, not the defaults' own table")
+        t.falsy(c.order == d.order, "and so does the slot order")
+        t.eq(updates, 1, "the bar is re-applied once, not once per row")
+        t.eq(structural, 1, "and the page is rebuilt once")
+        H.RefreshAllPanels = realAll
+    end)
+
+test("macrobar Defaults: the page reset is one [Set] line, written into the same table",
+    function(t)
+        -- A bulk reset logs ONE `[Set] <act> <scope>: N rows` line, never one per
+        -- row, and N is the rows it actually changed (debug-logging-§10).
+        --
+        -- red under: dropping `bulk` from doResetPage's SetManyAndRefresh opts --
+        -- every row logs its own [Set] line again -- or reinstating
+        -- `KCM.db.profile.macroBar = CopyTable(BAR_DEFAULTS)`, which replaces the
+        -- table and writes no row through the helper.
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+        local reset = macroBarDefaults(KCM)
+        local c = customizeBar(KCM)
+        KCM.MacroBar.Update = function() end
+
+        -- N, measured before the reset: the page rows not already at their default.
+        local rows, moved = 0, 0
+        for _, def in ipairs(KCM.Settings.Schema) do
+            if def.panel == "macrobar" and def.default ~= nil then
+                rows = rows + 1
+                if ser(H.Get(def.path)) ~= ser(def.default) then moved = moved + 1 end
+            end
+        end
+
+        local D = KCM.DebugLog.instance
+        KCM.State.debug = true
+        D:Clear()
+        reset()
+        KCM.State.debug = false
+
+        t.eq(KCM.db.profile.macroBar, c, "the macroBar table is the one every reader already holds")
+        local set = {}
+        for _, line in ipairs(D.buffer) do
+            local body = line:match("%[Set%] (.*)$")
+            if body then set[#set + 1] = body end
+        end
+        t.eqList(set, { ("reset Macro Bar page: %d rows"):format(moved) },
+            "one [Set] line for the whole page, and no per-row line")
+        t.eq(moved, 7, "customizeBar moved seven page rows; the lock and the position are not rows here")
+        t.truthy(rows >= 60, "the whole page was in scope (" .. rows .. " rows)")
+    end)
+
+test("macrobar Defaults: a batch that fails leaves the position where it was, and says so",
+    function(t)
+        -- red under: ResetPosition running before the batch validates, so a refused
+        -- batch still moves the bar back to center.
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+        local reset = macroBarDefaults(KCM)
+        local c = customizeBar(KCM)
+        KCM.MacroBar.Update = function() end
+
+        local realMany, realSay, said = H.SetManyAndRefresh, KCM.Say, {}
+        H.SetManyAndRefresh = function() return false end
+        KCM.Say = function(msg) said[#said + 1] = tostring(msg) end
+        reset()
+        H.SetManyAndRefresh, KCM.Say = realMany, realSay
+
+        t.eq(c.point, "TOP", "the anchor point is untouched")
+        t.eq(c.x, 120, "and so is the offset")
+        t.eq(#said, 1, "the failure is reported once")
+        t.truthy((said[1] or ""):find("position", 1, true), "and names the position: " .. tostring(said[1]))
+
+        reset()
+        local d = KCM.dbDefaults.profile.macroBar
+        t.eq(c.point, d.point, "a batch that succeeds resets the position with it")
+        t.eq(c.x, d.x, "offset and all")
+    end)
+
+-- ---------------------------------------------------------------------------
+-- #35 characterization: the slot order and per-macro visibility writers
+-- ---------------------------------------------------------------------------
+
+test("macrobar: dragging one slot onto another stores the swapped order", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local want = CopyTable(KCM.dbDefaults.profile.macroBar.order)
+    want[1], want[2] = want[2], want[1]
+    t.eq(KCM.MacroBar.SwapSlots(want[2], want[1]), true, "the swap reports success")
+    t.eq(ser(KCM.db.profile.macroBar.order), ser(want), "and the stored order is swapped")
+    t.eq(KCM.MacroBar.SwapSlots("FOOD", "FOOD"), false, "a slot dropped on itself is no change")
+end)
+
+test("macrobar: the Buttons tab's checkbox stores a real boolean in shown", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local UI   = KCM.Settings.Helpers.instance
+    local boxes = {}
+    local realAceGUI = UI.AceGUI
+    UI.AceGUI = setmetatable({
+        Create = function(_, kind)
+            local w = mock.makeAceWidget()
+            if kind == "CheckBox" then
+                w.SetLabel    = function(self, label) boxes[label] = self; return self end
+                w.SetCallback = function(self, ev, fn) self["__" .. ev] = fn; return self end
+                w.SetValue    = function(self, v) self.__value = v; return self end
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() end end })
+
+    KCM.Settings.builders.macrobar({})
+    local ctx = UI.__panelFor("macrobar")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Buttons"
+    KCM.Settings.Helpers.RefreshAllPanels()
+
+    local food = boxes[KCM.Categories.Get("FOOD").displayName]
+    t.truthy(food and food.__OnValueChanged, "the Food checkbox is drawn and wired")
+    t.eq(food.__value, true, "and opens showing the slot as shown")
+    food.__OnValueChanged(food, "OnValueChanged", false)
+    t.eq(KCM.db.profile.macroBar.shown.FOOD, false, "unticking hides the slot with a real false")
+    food.__OnValueChanged(food, "OnValueChanged", true)
+    t.eq(KCM.db.profile.macroBar.shown.FOOD, true, "and ticking it stores true")
+    t.eq(ser(KCM.db.profile.macroBar.shown), "{FOOD=true}", "and nothing else")
+    UI.AceGUI = realAceGUI
+end)
+
+-- red under: SwapSlots or the Buttons tab's checkbox writing their field directly.
+test("macrobar: the slot swap and the Buttons checkboxes write through the schema helper", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local H, UI = KCM.Settings.Helpers, KCM.Settings.Helpers.instance
+    local paths, realSet = {}, H.Set
+    H.Set = function(path, value) paths[#paths + 1] = path; return realSet(path, value) end
+
+    KCM.MacroBar.SwapSlots("FOOD", "DRINK")
+
+    local boxes = {}
+    local realAceGUI = UI.AceGUI
+    UI.AceGUI = setmetatable({
+        Create = function(_, kind)
+            local w = mock.makeAceWidget()
+            if kind == "CheckBox" then
+                w.SetLabel    = function(self, label) boxes[label] = self; return self end
+                w.SetCallback = function(self, ev, fn) self["__" .. ev] = fn; return self end
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() end end })
+    KCM.Settings.builders.macrobar({})
+    local ctx = UI.__panelFor("macrobar")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Buttons"
+    H.RefreshAllPanels()
+    local drink = boxes[KCM.Categories.Get("DRINK").displayName]
+    drink.__OnValueChanged(drink, "OnValueChanged", false)
+    UI.AceGUI = realAceGUI
+
+    t.eqList(paths, { "macroBar.order", "macroBar.shown" },
+        "a swap is one whole-order write and a checkbox one whole-map write")
+    t.eq(KCM.db.profile.macroBar.shown.DRINK, false, "and the checkbox's write landed")
+end)
+
+-- The architecture-§5 named-state claim ARCHITECTURE.md makes -- MacroBar owns the
+-- bar's drag-only geometry, and savePosition and ResetPosition are its only
+-- writers -- checked against the source rather than trusted. A write the naming
+-- leaves out is a MUST failure, so a new writer in another file must fail here
+-- until it is named. The load pass creates the empty `macroBar` table and nothing
+-- else; a whole-table write over `macroBar` anywhere else is a schema-row write
+-- (the Defaults button's, before #36) and is caught too.
+--
+-- red under: any file but modules/MacroBar.lua assigning `.point` / `.relPoint`,
+-- `macroBar.x` / `.y`, or the whole `macroBar` table.
+local function assignedLHS(code)
+    local s = code:find("[^=~<>]=%f[^=]")
+    return s and code:sub(1, s) or nil
+end
+
+test("Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry", function(t)
+    local root = _G.KCM_TEST_ROOT or "."
+    local PATTERNS = {
+        "%.point%f[^%w_]", "%.relPoint%f[^%w_]", "macroBar%.[xy]%f[^%w_]", "%.macroBar%s*$",
+    }
+    local ALLOWED = { ["modules/MacroBar.lua"] = true, ["core/Database.lua"] = true }
+    local offenders = {}
+    for _, rel in ipairs(h.loader.tocFiles()) do
+        if not ALLOWED[rel] and rel:match("^[cms][a-z]*/.+%.lua$") then
+            local f = io.open(root .. "/" .. rel, "r")
+            if f then
+                local n = 0
+                for line in f:lines() do
+                    n = n + 1
+                    local lhs = assignedLHS((line:gsub("%-%-.*$", "")))
+                    if lhs then
+                        for _, p in ipairs(PATTERNS) do
+                            if lhs:find(p) then offenders[#offenders + 1] = rel .. ":" .. n end
+                        end
+                    end
+                end
+                f:close()
+            end
+        end
+    end
+    t.eq(#offenders, 0, "bar geometry written outside MacroBar: " .. table.concat(offenders, ", "))
 end)

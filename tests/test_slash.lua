@@ -829,3 +829,182 @@ test("/cm list covers every row in the settings schema", function(t)
         t.truthy(text:find(row.path, 1, true), "schema row '" .. row.path .. "' appears in /cm list")
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- #35 characterization: what the /cm stat and /cm aio writers leave behind
+-- ---------------------------------------------------------------------------
+--
+-- Written against the direct field writes BEFORE they moved onto the schema
+-- helper, so the move is held to the stored shape each verb always produced.
+
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+test("/cm stat primary, secondary and reset leave exactly the stored map they always did", function(t)
+    local KCM = load()
+    local other = { primary = "INT", secondary = { "MASTERY" } }
+    KCM.db.profile.statPriority = { ["8_262"] = CopyTable(other) }
+    local seed = KCM.SpecHelper.GetStatPriority("7_263")
+
+    KCM:OnSlashCommand("stat primary AGI")
+    t.eq(ser(KCM.db.profile.statPriority),
+        ser({ ["8_262"] = other, ["7_263"] = { primary = "AGI", secondary = seed.secondary or {} } }),
+        "primary: the current spec gains an override carrying its resolved secondaries")
+
+    KCM:OnSlashCommand("stat secondary HASTE,CRIT,HASTE")
+    t.eq(ser(KCM.db.profile.statPriority),
+        ser({ ["8_262"] = other, ["7_263"] = { primary = "AGI", secondary = { "HASTE", "CRIT" } } }),
+        "secondary: the ordered, deduplicated list, the primary kept")
+
+    KCM:OnSlashCommand("stat reset")
+    t.eq(ser(KCM.db.profile.statPriority), ser({ ["8_262"] = other }),
+        "reset: the current spec's override is gone and no other spec's is touched")
+end)
+
+test("/cm aio toggle, down and reset leave exactly the stored sections they always did", function(t)
+    local KCM = load()
+    local cfg = KCM.db.profile.categories.HP_AIO
+    local d = KCM.dbDefaults.profile.categories.HP_AIO
+
+    KCM:OnSlashCommand("aio hp_aio toggle HP_POT off")
+    t.eq(ser(cfg.enabled), ser({ HS = true, HP_POT = false, FOOD = true }), "toggle writes one flag")
+    KCM:OnSlashCommand("aio hp_aio down HS")
+    t.eq(ser(cfg.orderInCombat), ser({ "HP_POT", "HS" }), "down swaps within the section")
+    t.eq(ser(cfg.orderOutOfCombat), ser(d.orderOutOfCombat), "and leaves the other section alone")
+
+    KCM:OnSlashCommand("aio hp_aio reset")
+    for _, f in ipairs({ "enabled", "orderInCombat", "orderOutOfCombat" }) do
+        t.eq(ser(cfg[f]), ser(d[f]), "reset restores " .. f)
+        t.falsy(cfg[f] == d[f], f .. " comes back as a copy of the defaults")
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- #35: the list-shaped settings are rows, so /cm get|set|list|reset reach them
+-- ---------------------------------------------------------------------------
+
+local function recordSets(KCM)
+    local H = KCM.Settings.Helpers
+    local paths, real = {}, H.Set
+    H.Set = function(path, value) paths[#paths + 1] = path; return real(path, value) end
+    return paths
+end
+
+test("/cm get and list render the list-shaped rows as text, never a table address", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "get macroBar.order")
+    t.truthy(text:find("FOOD, DRINK", 1, true), "the slot order reads as a list: " .. text)
+    text = say(KCM, mock, "get categories.HP_AIO.enabled")
+    t.truthy(text:find("HS=true", 1, true), "a flag map reads key=value: " .. text)
+    KCM:OnSlashCommand("stat primary AGI")
+    text = say(KCM, mock, "get statPriority")
+    t.truthy(text:find("7_263", 1, true) and text:find("AGI", 1, true),
+        "a stat override reads by spec: " .. text)
+    text = say(KCM, mock, "list")
+    t.falsy(text:find("table: ", 1, true), "no row in /cm list renders as a table address")
+    t.truthy(text:find("categories.BATTLE_REZ.mouseover", 1, true), "and mouseover is listed")
+end)
+
+test("/cm set and reset reach the slot order, a flag map and mouseover", function(t)
+    local KCM, mock = load()
+    local c = KCM.db.profile.macroBar
+    KCM:OnSlashCommand("set macroBar.order drink,food")
+    t.eq(c.order[1], "DRINK", "the named slots lead, case-folded")
+    t.eq(c.order[2], "FOOD", "in the order given")
+    t.eq(#c.order, #KCM.Categories.LIST, "and every other slot follows, so none is lost")
+    KCM:OnSlashCommand("set macroBar.shown FOOD=off")
+    t.eq(ser(c.shown), "{FOOD=false}", "a flag map is written whole from key=value pairs")
+    KCM:OnSlashCommand("set categories.BATTLE_REZ.mouseover off")
+    t.eq(KCM.db.profile.categories.BATTLE_REZ.mouseover, false, "mouseover is an ordinary bool row")
+    KCM:OnSlashCommand("reset categories.BATTLE_REZ.mouseover")
+    t.eq(KCM.db.profile.categories.BATTLE_REZ.mouseover, true, "and resets to its default")
+    KCM:OnSlashCommand("reset macroBar.order")
+    t.eq(ser(c.order), ser(KCM.dbDefaults.profile.macroBar.order), "the order resets")
+    t.falsy(c.order == KCM.dbDefaults.profile.macroBar.order,
+        "to a copy of the default, never the defaults' own table")
+    local text = say(KCM, mock, "set statPriority AGI")
+    t.truthy(text:find("/cm stat", 1, true),
+        "stat priority is edited by /cm stat, and the refusal says so: " .. text)
+end)
+
+-- red under: the order parse handing the validator the named keys alone, which
+-- then appends the rest in category-list order and moves the AIO slots to the end.
+test("/cm set on an order keeps every unnamed key in its current stored order", function(t)
+    local KCM = load()
+    local c = KCM.db.profile.macroBar
+    local function without(list, drop)
+        local out = {}
+        for _, k in ipairs(list) do if not drop[k] then out[#out + 1] = k end end
+        return out
+    end
+    local before = {}
+    for i, k in ipairs(c.order) do before[i] = k end
+    KCM:OnSlashCommand("set macroBar.order DRINK,FOOD")
+    local want = { "DRINK", "FOOD" }
+    for _, k in ipairs(without(before, { DRINK = true, FOOD = true })) do want[#want + 1] = k end
+    t.eqList(c.order, want, "the named slots lead and the rest keep the shipped order")
+
+    -- A customized stored order: the tail follows IT, not the member set.
+    local custom = {}
+    for i = #before, 1, -1 do custom[#custom + 1] = before[i] end
+    KCM.Schema:Set("macroBar.order", custom)
+    KCM:OnSlashCommand("set macroBar.order hs")
+    want = { "HS" }
+    for _, k in ipairs(without(custom, { HS = true })) do want[#want + 1] = k end
+    t.eqList(c.order, want, "the rest keep the player's own stored order")
+
+    -- The AIO sections take the same rule. Two members a section cannot show
+    -- the tail's order, so the test pins that the parse reads the stored value.
+    local H, gets, realGet = KCM.Settings.Helpers, {}, KCM.Settings.Helpers.Get
+    H.Get = function(path) gets[path] = true; return realGet(path) end
+    KCM:OnSlashCommand("set categories.HP_AIO.orderInCombat hp_pot")
+    KCM:OnSlashCommand("set categories.HP_AIO.orderOutOfCombat food")
+    H.Get = realGet
+    t.truthy(gets["categories.HP_AIO.orderInCombat"], "the in-combat order parse reads the stored order")
+    t.truthy(gets["categories.HP_AIO.orderOutOfCombat"], "and so does the out-of-combat one")
+    t.eqList(KCM.db.profile.categories.HP_AIO.orderInCombat, { "HP_POT", "HS" },
+        "and the section is written with the named key first")
+end)
+
+-- red under: the flag-map parse answering only the pairs given, which the
+-- whole-value write then stores as the entire map, un-hiding every other slot.
+test("/cm set on a flag map merges the pairs given over the stored map", function(t)
+    local KCM = load()
+    local c = KCM.db.profile.macroBar
+    KCM.Schema:Set("macroBar.shown", { DRINK = false })
+    KCM:OnSlashCommand("set macroBar.shown FOOD=off")
+    t.eq(ser(c.shown), "{DRINK=false,FOOD=false}", "a hidden slot stays hidden")
+    KCM:OnSlashCommand("set macroBar.shown drink=on")
+    t.eq(ser(c.shown), "{DRINK=true,FOOD=false}", "and one pair changes only its own key")
+
+    local aio = KCM.db.profile.categories.HP_AIO
+    KCM:OnSlashCommand("aio hp_aio toggle HS off")
+    KCM:OnSlashCommand("set categories.HP_AIO.enabled HP_POT=off")
+    t.eq(ser(aio.enabled), ser({ HS = false, HP_POT = false, FOOD = true }),
+        "a composite's enabled map keeps the flags nobody named")
+end)
+
+-- red under: any of these verbs writing its field directly again.
+test("every /cm stat and /cm aio write goes through the schema helper", function(t)
+    local KCM = load()
+    local paths = recordSets(KCM)
+    KCM:OnSlashCommand("stat primary AGI")
+    KCM:OnSlashCommand("stat secondary CRIT")
+    KCM:OnSlashCommand("stat reset")
+    KCM:OnSlashCommand("aio hp_aio toggle HS off")
+    KCM:OnSlashCommand("aio hp_aio down HS")
+    KCM:OnSlashCommand("aio hp_aio reset")
+    t.eqList(paths, {
+        "statPriority", "statPriority", "statPriority",
+        "categories.HP_AIO.enabled", "categories.HP_AIO.orderInCombat",
+        "categories.HP_AIO.enabled", "categories.HP_AIO.orderInCombat",
+        "categories.HP_AIO.orderOutOfCombat",
+    }, "one helper write per verb, and the section reset writes its three rows")
+end)

@@ -21,7 +21,8 @@ test("a target hears a message, then goes silent after unregister", function(t)
     -- A receiver on its own target hears a message sent on KCM.bus.
     local got = {}
     local target = KCM.NewBusTarget()
-    target:RegisterMessage(KCM.MSG.PANEL_REFRESH, function(_, _, tag)
+    -- CallbackHandler calls a function handler as fn(message, ...).
+    target:RegisterMessage(KCM.MSG.PANEL_REFRESH, function(_, tag)
         got[#got + 1] = tag or "(none)"
     end)
     KCM.bus:SendMessage(KCM.MSG.PANEL_REFRESH, "hello")

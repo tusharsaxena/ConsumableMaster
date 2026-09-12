@@ -203,6 +203,16 @@ and luacheck reports it, which the blanket did not.
 
 ## What the mock will and won't catch
 
+**The Ace fakes are the kit's.** Since [#38](https://github.com/tusharsaxena/ConsumableMaster/issues/38)
+`tests/wow_mock.lua` no longer replaces AceAddon, AceEvent, AceConsole or AceGUI. It registers
+its own pieces into the kit's `__libs` and wraps three calls: `NewAddon` also publishes
+`_G.KCM`, `AceGUI:Create` hands back the permissive widget, and `GetWidgetVersion` answers 0 for
+an unregistered type. AceDB, the LibSharedMedia fake and a lenient `LibStub` stay local. So a kit
+revision to an Ace fake now reaches this suite; `tests/test_harness.lua` pins both halves. One
+fidelity this bought straight away: a function message handler is called as `fn(message, ...)`,
+as CallbackHandler calls it, and that exposed `core/Bus.lua` reading the recompute reason one
+argument too late.
+
 `tests/wow_mock.lua`'s `CreateFrame` **models template capability**: methods a real
 frame only gets from its template — `SetFrameRef` / `GetFrameRef` / `Execute` /
 `WrapScript` from a `SecureHandler*Template`, `SetBackdrop*` from

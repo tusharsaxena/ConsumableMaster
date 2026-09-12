@@ -444,17 +444,24 @@ categories" in `tests/test_macrobar.lua`, which fails if any one drifts from
 `#KCM.Categories.LIST` — the layout fallback is observed indirectly, via
 `Grid`'s reported column count, since `normalize` itself isn't exported.
 
-Two non-scalar fields are edited outside the schema:
+Two fields are not scalars. Each is a whole-value schema row (`architecture-§5`),
+written whole through `KCM.Schema:Set`, and the Buttons tab draws both with
+bespoke controls rather than through the row engine:
 
-* `order` — the slot order, changed by dragging one slot onto another
-  (`MacroBar.SwapSlots` → `MacroBarModel.Swap`), and restored to the default
-  by the Macro Bar page's order reset (`settings/MacroBar.lua:589`) and its
-  Reset page (`:602`, which replaces the whole `macroBar` table). `MacroBarModel.Order()` repairs
-  a saved order on read: unknown keys dropped, newly-shipped categories
-  appended. The default is the cosmetic tab order of the Macros page, `KCM.Settings.macroOrder`,
+* `order` — the slot order (type `order`), changed by dragging one slot onto
+  another (`MacroBar.SwapSlots` swaps a copy with `MacroBarModel.Swap` and writes
+  it through the helper, whose `onChange` re-applies the bar), and restored to the
+  default by the Macro Bar page's order reset (`settings/MacroBar.lua`) and its
+  Defaults button (`doResetPage`, which writes every page row through the schema
+  helper's batch form and leaves `locked` alone). The row's validator normalizes
+  every write over the shipped categories. `MacroBarModel.Order()` repairs a saved
+  order on read, without writing it back: unknown keys dropped, newly-shipped
+  categories appended. `/cm set macroBar.order DRINK,FOOD` names the leading
+  slots, and every other slot follows. The default is the cosmetic tab order of the Macros page, `KCM.Settings.macroOrder`,
   duplicated as a literal in `dbDefaults` because `Panel.lua` loads much later —
   `tests/test_macrobar.lua` guards the two against drift.
-* `shown` — `[catKey] = false` hides a slot. **Unset means visible**, so a
+* `shown` — a flag map (type `map`) written by the Buttons tab's checkboxes and
+  `/cm set macroBar.shown FOOD=off`: `[catKey] = false` hides a slot. **Unset means visible**, so a
   category shipped after a profile was written appears rather than vanishing.
 
 ## Refresh paths

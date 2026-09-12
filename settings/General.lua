@@ -106,41 +106,27 @@ local function doResetAll()
     H.RefreshAllPanels()
 end
 
--- The bucket fields a priority reset clears. `discovered` is deliberately not
--- among them: auto-discovery findings are what the bags say, not what the player
--- chose, and they survive exactly as they survive a per-category reset.
-local PRIORITY_FIELDS = { "added", "blocked", "pins" }
-
-local function clearBucket(bucket)
-    if type(bucket) ~= "table" then return end
-    for _, field in ipairs(PRIORITY_FIELDS) do
-        if type(bucket[field]) == "table" then bucket[field] = {} end
-    end
-end
-
 -- The TARGETED reset the old "Reset all priorities" button claimed and did not
 -- do: every category's added / blocked / pinned items and every spec's stat
 -- priority override, and nothing else — the macro bar's appearance, the master
 -- controls and the composite section orders are all left standing.
 --
--- Driven off the SHAPE of what is stored rather than off a list of category
--- keys: a spec-aware category keeps its buckets under `bySpec`, and a list of
--- keys written here is a list that goes stale the first time a category is
--- added.
+-- The item lists are the structural registry, so clearing them is the registry
+-- writer's reset verb (architecture-§5): Selector.ResetAllBuckets, which walks
+-- the stored shape, spec buckets included, and keeps `discovered`.
 local function doResetAllPriorities()
     if InCombatLockdown and InCombatLockdown() then
         return inCombatNotice("reset")
     end
-    local profile = KCM.db and KCM.db.profile
-    if not profile then return end
+    if not (KCM.db and KCM.db.profile) then return end
 
-    for _, bucket in pairs(profile.categories or {}) do
-        clearBucket(bucket)
-        if type(bucket) == "table" and type(bucket.bySpec) == "table" then
-            for _, specBucket in pairs(bucket.bySpec) do clearBucket(specBucket) end
-        end
+    if KCM.Selector and KCM.Selector.ResetAllBuckets then
+        KCM.Selector.ResetAllBuckets()
     end
-    profile.statPriority = {}
+    -- The stat overrides are a SETTING, not registry membership: `statPriority`
+    -- is a whole-value row, emptied through the schema helper like every other
+    -- stat-priority write.
+    if KCM.Schema then KCM.Schema:Set("statPriority", {}) end
 
     resyncPipeline("options_reset_priorities")
 end
@@ -270,10 +256,16 @@ H.RegisterRows(masterRows, "general", "general", {
 -- radius does not narrow to the visible tab (options-ui-§13). Derived from the
 -- rows rather than from a hand-written list, so a row added to the block is
 -- covered without anyone remembering to add it here.
+--
+-- A bulk reset: one `[Set] reset General page: N rows` line, and each row's own
+-- onChange still runs (debug-logging-§10). The bracket closes BEFORE the console
+-- is disarmed below, so the line is not lost to it.
 local function doResetGeneralPage()
-    for _, row in ipairs(masterRows) do
-        if row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
-    end
+    H.Bulk("reset", "General page", function()
+        for _, row in ipairs(masterRows) do
+            if row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+        end
+    end)
     -- The console back to its LOGIN state, which is more than the row's default:
     -- logging off AND the window hidden. The row only owns the window.
     if KCM.DebugLog and KCM.DebugLog.SetEnabled then

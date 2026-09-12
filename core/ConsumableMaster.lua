@@ -328,8 +328,10 @@ function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
 end
 
 -- Wipe every user customization and restore from dbDefaults — category
--- buckets, stat-priority overrides, and the master enable flag. Preserves
--- macroState so live macros aren't orphaned. Shared by the Options panel's
+-- buckets, stat-priority overrides, and the master enable flag. The profile
+-- reset empties macroState with everything else; the resync below re-issues
+-- every macro, which rebuilds each fingerprint, so live macros stay valid.
+-- Shared by the Options panel's
 -- "Reset all priorities" execute and the /cm reset StaticPopup — both
 -- paths land here to keep semantics identical regardless of entry point.
 --
@@ -398,8 +400,34 @@ function KCM.RegisterProfileCallbacks(target)
     local db = target and target.db
     if not (db and db.RegisterCallback) then return end
 
+    -- The one log line a profile-wide act gets (debug-logging-§10): AceDB replaced
+    -- the whole profile, which is not a batch through the helper, so the HANDLER
+    -- logs it, worded by the event. Its line is the whole act, so it silences any
+    -- Helpers.Bulk bracket open around it: one line in total, never this one plus
+    -- an `outer: N rows`. A switch rewrites no rows and this addon has never
+    -- traced one, so it gets no line and silences nothing.
+    --
+    -- No row count on the reset: N means the rows the reset actually changed,
+    -- which needs their values from before it. AceDB has already replaced the
+    -- profile when OnProfileReset fires, and AceDBOptions' Reset Profile button
+    -- gives no earlier hook to take them from.
+    local TRACED = { OnProfileReset = true, OnProfileCopied = true }
+    local function trace(event, d, key)
+        if not TRACED[event] then return end
+        local H = KCM.Settings and KCM.Settings.Helpers
+        if H and H.SilenceOpenBulk then H.SilenceOpenBulk() end
+        if not isDebugOn() then return end
+        local name = d and d.GetCurrentProfile and d:GetCurrentProfile()
+        if event == "OnProfileReset" then
+            KCM.Debug("Set", "reset profile '%s' to defaults", tostring(name))
+        elseif event == "OnProfileCopied" then
+            KCM.Debug("Set", "copied profile '%s' → '%s'", tostring(key), tostring(name))
+        end
+    end
+
     local function reload(reason)
-        return function()
+        return function(event, d, key)
+            trace(event, d, key)
             if KCM.Database and KCM.Database.RunMigrations then
                 KCM.Database.RunMigrations()
             end
@@ -453,12 +481,19 @@ end
 --- library's own `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
 --- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
 --- would be writing into a panel that had already been drawn from the old value.
+---
+--- ONE LOG LINE for the whole act (debug-logging-§10): the OnProfileReset
+--- handler's `[Set] reset profile '<name>' to defaults`. Both halves run inside
+--- Helpers.MuteSetLog, so the session sweep's own write logs no row, and no line
+--- is added here. `reason` is the caller's audit tag and is no longer logged.
 function KCM.ResetAllToDefaults(reason)
     if not (KCM.db and KCM.db.ResetProfile) then return false end
-    reason = reason or "reset_all"
-    if isDebugOn() then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
-    restoreSessionRows()
-    KCM.db:ResetProfile()
+    local function act()
+        restoreSessionRows()
+        KCM.db:ResetProfile()
+    end
+    local H = KCM.Settings and KCM.Settings.Helpers
+    if H and H.MuteSetLog then H.MuteSetLog(act) else act() end
     return true
 end
 
