@@ -392,7 +392,9 @@ it declares where the library declares a hash.
 not gaps:
 
 - The **per-category priority lists** and the **per-spec stat priorities** are collections, not
-  scalars. No row shape describes them, which is also why `/cm resetall` stays host-owned rather than
+  scalars. The item lists are the addon's one structural registry, and `modules/Selector.lua` is
+  their registry writer (`architecture-§5`, named in
+  [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema)). No row shape describes either, which is also why `/cm resetall` stays host-owned rather than
   adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
 - The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua`)
   tries digits first — a bare number is unambiguous and must never reach a link matcher — then the

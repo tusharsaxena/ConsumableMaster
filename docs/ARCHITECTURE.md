@@ -131,7 +131,29 @@ Two layers, and it is worth keeping them apart.
 
 reports **68 rows**: 62 `macroBar.*` rows in `settings/MacroBar.lua` and the 6 composed Master controls rows in `settings/General.lua`. It is read off the live array rather than grepped, because a composed block declares its rows from one call and `grep -c '^\s*path\s*='` now under-counts by every row a composer emits.
 
-Two things are deliberately *not* schema rows. `KCM.State.debug` — the session LOGGING flag — is never persisted, so it has no path to declare; the Master controls tab's `Debug console` row is a different thing, the console WINDOW's visibility, and it declares the session path `state.debugConsole` that `settings/Panel.lua`'s `SESSION_PATHS` resolves. The per-category priority lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)).
+Two things are deliberately *not* schema rows. `KCM.State.debug` — the session LOGGING flag — is never persisted, so it has no path to declare; the Master controls tab's `Debug console` row is a different thing, the console WINDOW's visibility, and it declares the session path `state.debugConsole` that `settings/Panel.lua`'s `SESSION_PATHS` resolves. The per-category item lists and the per-spec stat priorities are collections, not scalars, and no row shape describes them — which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)). They are not the same kind of collection, though, and `architecture-§5` treats them differently.
+
+### Structural registry: the per-category item lists
+
+This addon holds **one** structural registry (`architecture-§5`). The player adds and removes its members at runtime, `dbDefaults` ships it empty (`defaults/Profile.lua:47-62`), and no schema row names a member.
+
+- **Storage keys.** `profile.categories[catKey].added` and `.blocked` (sets of opaque ids), plus their order bookkeeping `.pins` (`{ itemID, position }`). These sit on the bucket itself for a single category, and under `profile.categories[catKey].bySpec[specKey]` for the four spec-aware ones (`STAT_FOOD`, `CMBT_POT`, `FLASK`, `WPN_ENCH`). `.discovered` is in the same bucket, but it is bookkeeping the bag scan fills, not membership the player chooses.
+- **Writer.** `modules/Selector.lua`: `AddItem` (`:439`), `Block` (`:461`), and `MoveTo` / `MoveUp` / `MoveDown` over `moveBy` (`:577-664`) for membership and pins, plus `MarkDiscovered` (`:485`) and `SweepStaleDiscovered` (`:545`) for `.discovered`. The Macros pages (`settings/Category.lua`) and the `/cm priority` verbs (`core/SlashCommands.lua`) call these. `GetBucket` (`:69`) lazily creates an empty spec bucket on first read; that is a traversal accessor, not a writer.
+- **Load pass.** `KCM.Database.RunMigrations` (`core/Database.lua:115`), called from `KCM:OnInitialize` (`core/ConsumableMaster.lua:41`) and from the three AceDB profile callbacks that `KCM.RegisterProfileCallbacks` installs (`core/ConsumableMaster.lua:397-412`). It has no `categories` step today: AceDB's merge of `dbDefaults` is what seeds the empty buckets.
+
+**Not yet the only runtime writer.** Three registry resets still clear `added`, `blocked` and `pins` themselves instead of going through `Selector`: `/cm priority <cat> reset` (`core/SlashCommands.lua:408-418`), the Macros page's per-category reset (`settings/Category.lua:188-194`) and **Reset all priorities** (`settings/General.lua:112-146`). `architecture-§5` makes a registry reset a writer operation, so this is an open code finding. The fix is one `Selector` reset verb that all three call.
+
+### Other state written outside the helper
+
+None of the following is a registry. Each is either a preference or an order over a fixed set of shipped keys, so `architecture-§5` wants each one to have a schema row or a `Documented deviations` row. As of 2026-09-12 none has either, and that is an open finding:
+
+- `profile.statPriority[specKey]`, written by `/cm stat` (`core/SlashCommands.lua:506`, `:546`, `:563`) and the Stat Priority page (`settings/StatPriority.lua:229`, `:285`), and cleared wholesale by `settings/General.lua:143`;
+- the composite sections `profile.categories[HP_AIO|MP_AIO].enabled[ref]`, `.orderInCombat` and `.orderOutOfCombat`, written by `Selector.MoveCompositeRef` (`modules/Selector.lua:646`), `/cm aio` (`core/SlashCommands.lua:704`, `:720`, `:726`) and the composite page (`settings/Category.lua:180`, `:899`);
+- `profile.macroBar.order` and `.shown[catKey]`, written at `modules/MacroBar.lua:504`, `core/MacroBarModel.lua:146` and `settings/MacroBar.lua:589`, `:631`;
+- `profile.categories.BATTLE_REZ.mouseover`, written at `settings/Category.lua:387`;
+- the macro bar's drag-written position `macroBar.point` / `.relPoint` / `.x` / `.y`, written on drag-stop (`modules/MacroBar.lua:100`) and by `MacroBar.ResetPosition` (`:483`).
+
+Separately, the Macro Bar page's **Reset page** (`settings/MacroBar.lua:602`) replaces the whole `macroBar` table, schema rows included, without going through the helper. That is the schema-row MUST, not this list.
 
 ## Message Bus
 
