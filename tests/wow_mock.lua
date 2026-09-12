@@ -353,7 +353,16 @@ end
 M.makeAceWidget = makeAceWidget
 
 -- ---------------------------------------------------------------------------
--- AceDB (kept local: the kit's has no string-method callbacks or profile key)
+-- AceDB (kept local, and not for the profile key any more)
+--
+-- Through kit revision 17 the kit's AceDB fake handed every callback the ACTIVE
+-- profile's key, which is wrong for a copy; since revision 18 (LibKa0s v1.33.0)
+-- each event carries its own key, the copy's SOURCE included, exactly as this
+-- fake does. Two differences remain, and they are why this one stays: the kit
+-- calls every callback as a plain function, with no CallbackHandler string-method
+-- form (`target[method](target, event, ...)`), and it keeps the profile store as
+-- `sv.profiles` rather than as real AceDB's `db.profiles`, which the suites seed
+-- directly to stage a second profile.
 -- ---------------------------------------------------------------------------
 
 local function makeAceDB()
