@@ -328,8 +328,10 @@ function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
 end
 
 -- Wipe every user customization and restore from dbDefaults — category
--- buckets, stat-priority overrides, and the master enable flag. Preserves
--- macroState so live macros aren't orphaned. Shared by the Options panel's
+-- buckets, stat-priority overrides, and the master enable flag. The profile
+-- reset empties macroState with everything else; the resync below re-issues
+-- every macro, which rebuilds each fingerprint, so live macros stay valid.
+-- Shared by the Options panel's
 -- "Reset all priorities" execute and the /cm reset StaticPopup — both
 -- paths land here to keep semantics identical regardless of entry point.
 --

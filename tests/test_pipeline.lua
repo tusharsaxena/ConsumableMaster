@@ -267,13 +267,14 @@ test("ResetAllToDefaults clears stat-priority overrides and re-enables the addon
     t.eq(KCM.db.profile.enabled, true, "the master enable is a customization too")
 end)
 
-test("ResetAllToDefaults preserves macro state so live macros are not orphaned", function(t)
+test("ResetAllToDefaults empties macro state and the resync rebuilds each macro's fingerprint", function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     mock.setItem(950003, { subType = "Food & Drink", tt = { healValue = 500 } })
     mock.setBag(950003, 1)
     KCM.MacroManager.SetMacro("KCM_FOOD", 950003, "FOOD")
     KCM.ResetAllToDefaults("test")
-    t.truthy(KCM.db.profile.macroState["KCM_FOOD"], "the macro the user has on their bars is kept")
+    t.truthy(KCM.db.profile.macroState["KCM_FOOD"],
+        "the profile reset emptied it, and the resync re-issued the macro and stored its fingerprint again")
 end)
 
 test("ResetAllToDefaults rediscovers what is still in bags", function(t)

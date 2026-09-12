@@ -557,7 +557,7 @@ badge and any count quoted in the docs must agree with it.
 - discovery stays silent for a bag item that matches no category
 - ResetAllToDefaults wipes category customizations back to the shipped state
 - ResetAllToDefaults clears stat-priority overrides and re-enables the addon
-- ResetAllToDefaults preserves macro state so live macros are not orphaned
+- ResetAllToDefaults empties macro state and the resync rebuilds each macro's fingerprint
 - ResetAllToDefaults rediscovers what is still in bags
 - ResetAllToDefaults reports whether it mutated anything
 - ResetAllToDefaults keeps the addon on when the defaults have no enabled key
