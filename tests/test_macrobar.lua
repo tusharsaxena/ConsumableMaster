@@ -2200,3 +2200,46 @@ test("macrobar: the slot swap and the Buttons checkboxes write through the schem
         "a swap is one whole-order write and a checkbox one whole-map write")
     t.eq(KCM.db.profile.macroBar.shown.DRINK, false, "and the checkbox's write landed")
 end)
+
+-- The architecture-§5 named-state claim ARCHITECTURE.md makes -- MacroBar owns the
+-- bar's drag-only geometry, and savePosition and ResetPosition are its only
+-- writers -- checked against the source rather than trusted. A write the naming
+-- leaves out is a MUST failure, so a new writer in another file must fail here
+-- until it is named. The load pass creates the empty `macroBar` table and nothing
+-- else; a whole-table write over `macroBar` anywhere else is a schema-row write
+-- (the Defaults button's, before #36) and is caught too.
+--
+-- red under: any file but modules/MacroBar.lua assigning `.point` / `.relPoint`,
+-- `macroBar.x` / `.y`, or the whole `macroBar` table.
+local function assignedLHS(code)
+    local s = code:find("[^=~<>]=%f[^=]")
+    return s and code:sub(1, s) or nil
+end
+
+test("Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry", function(t)
+    local root = _G.KCM_TEST_ROOT or "."
+    local PATTERNS = {
+        "%.point%f[^%w_]", "%.relPoint%f[^%w_]", "macroBar%.[xy]%f[^%w_]", "%.macroBar%s*$",
+    }
+    local ALLOWED = { ["modules/MacroBar.lua"] = true, ["core/Database.lua"] = true }
+    local offenders = {}
+    for _, rel in ipairs(h.loader.tocFiles()) do
+        if not ALLOWED[rel] and rel:match("^[cms][a-z]*/.+%.lua$") then
+            local f = io.open(root .. "/" .. rel, "r")
+            if f then
+                local n = 0
+                for line in f:lines() do
+                    n = n + 1
+                    local lhs = assignedLHS((line:gsub("%-%-.*$", "")))
+                    if lhs then
+                        for _, p in ipairs(PATTERNS) do
+                            if lhs:find(p) then offenders[#offenders + 1] = rel .. ":" .. n end
+                        end
+                    end
+                end
+                f:close()
+            end
+        end
+    end
+    t.eq(#offenders, 0, "bar geometry written outside MacroBar: " .. table.concat(offenders, ", "))
+end)
