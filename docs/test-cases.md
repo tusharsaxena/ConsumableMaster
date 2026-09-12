@@ -331,7 +331,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (138)
+### test_macrobar.lua (136)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -468,9 +468,18 @@ badge and any count quoted in the docs must agree with it.
 - macrobar Defaults: the page reset is one [Set] line, written into the same table
 - macrobar Defaults: a batch that fails leaves the position where it was, and says so
 - macrobar: dragging one slot onto another stores the swapped order
-- macrobar: the Buttons tab's checkbox stores a real boolean in shown
-- macrobar: the slot swap and the Buttons checkboxes write through the schema helper
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
+
+### test_macrobar_buttons.lua (8)
+
+- Buttons: shown slots first in order, then hidden ones dimmed and handle-less, boundary = shown count
+- Buttons: a drag splices the shown group and writes the order once; a drop in place writes nothing
+- Buttons: untick goes to the top of the hidden group, tick to the end of the shown group
+- Buttons: every slot can be hidden, as the checkboxes allowed
+- Buttons: the last render's controller is canceled before the scroll is cleared
+- Buttons: in combat a drag and a tick are refused, write nothing and repaint nothing
+- Buttons: each act re-applies the bar once, and the bar carries the new order and set
+- macrobar: the slot swap, the list's drag and its tick write through the schema helper
 
 ### test_macromanager.lua (49)
 
@@ -1034,7 +1043,8 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 138 |
+| test_macrobar.lua | 136 |
+| test_macrobar_buttons.lua | 8 |
 | test_macromanager.lua | 49 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -1056,4 +1066,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **866** |
+| **Total** | **872** |

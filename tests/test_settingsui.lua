@@ -1143,12 +1143,17 @@ test("Settings: every reorder list takes the library's handle gutter", function(
         local ctx = UI.__panelFor("statpriority")
         ctx.panel.IsShown = function() return true end
         KCM.Settings.Helpers.RefreshAllPanels()
+        KCM.Settings.builders.macrobar({})   -- the Macro Bar page's Buttons list
+        local bar = UI.__panelFor("macrobar")
+        bar.panel.IsShown = function() return true end
+        bar.activeTab = "Buttons"
+        KCM.Settings.Helpers.RefreshAllPanels()
     end)
     W.ReorderList = realReorder
     if not ok then error(err, 0) end
 
     t.eq(W.ROW_BOX.HANDLE_W, 30, "the collection's gutter, read from the library")
-    t.truthy(#seen >= 4, "all four call sites were exercised (" .. #seen .. ")")
+    t.truthy(#seen >= 5, "all five call sites were exercised (" .. #seen .. ")")
     for i, opts in ipairs(seen) do
         t.eq(opts.handleSize, nil,
             "list #" .. i .. " declares no handleSize, so the library's default decides")

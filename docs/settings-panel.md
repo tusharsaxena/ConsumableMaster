@@ -229,10 +229,27 @@ mix control types and therefore carry **subsection headings** (`options-ui-§7`)
 | 5 | **Labels** | 12 | *Text* (show, label text) · *Layout* (anchor, placement, both offsets) · *Font* (the composed six) |
 | 6 | **Flyout** | 16 | *Layout* (nine) · *Background* (toggle + swatch + companion) · *Icon* (band, arrow, shade swatch + companion) |
 | 7 | **Visibility** | 3 | — combat mode, fade unless hover, faded opacity |
-| 8 | **Buttons** | 0 | one checkbox per managed macro, a length no schema knows |
+| 8 | **Buttons** | 2 | `macroBar.order` and `macroBar.shown`, drawn as one draggable list (below), a length no schema knows |
 
 `Lock position` and `Reset position` are **not** on this page any more — they moved to Master controls
 and were deleted here. Two controls over one setting is exactly what `options-ui-§15` removes.
+
+**The Buttons tab is one draggable list, in MultiMeters' Columns shape.** Each row is the library's
+drag handle, a tick and the button's name. The shown buttons come first, in the bar's order, then a
+rule, then the hidden ones, dimmed and with no handle. `boundary` is the shown count, so a drag cannot
+cross the rule. The list is the stored `macroBar.order` partitioned into shown and hidden, each keeping
+its stored order, so neither row changes shape.
+- **A drag** within the shown group is a splice, not a swap. It writes `macroBar.order` once: the new
+  shown order, followed by the hidden buttons in their existing order. That is one `[Set]` line.
+- **A tick** is a move too. Unticking sends a button to the top of the hidden group, and ticking a
+  hidden one sends it to the end of the shown group. It writes `macroBar.shown` and then
+  `macroBar.order` as one batch through `KCM.Schema:SetMany`: two `[Set]` lines, one bar re-apply
+  and one page rebuild.
+
+Every button may be hidden, as the checkboxes this list replaced allowed. Both acts are refused in
+combat, like the bar's own swap, and a refused act writes and repaints nothing. Dropping one button
+onto another on the bar itself still swaps the two. The rows are pooled raw frames, released with
+the controller at the top of every render (`options-ui-§18`).
 
 Two tabs were renamed in the earlier redesign. *Bar* became **General**: on a page called Macro Bar
 the word carried nothing, and it collided with *Bar appearance* two tabs along. *Macros on the bar*

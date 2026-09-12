@@ -443,6 +443,7 @@ local SUITES = {
     "test_load",
     "test_locale",
     "test_macrobar",
+    "test_macrobar_buttons",
     "test_macromanager",
     "test_mediasetup",
     "test_perfsetup",
