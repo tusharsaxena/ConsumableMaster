@@ -314,7 +314,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (137)
+### test_macrobar.lua (138)
 
 - macrobar layout: one row of 13 reports 13 columns and one row
 - macrobar layout: first slot sits at the padding offset
@@ -449,6 +449,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar master: General visibility = never takes the bar off screen
 - macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
 - macrobar Defaults: each row is written through the schema helper, into the same table
+- macrobar Defaults: a batch that fails leaves the position where it was, and says so
 - macrobar: dragging one slot onto another stores the swapped order
 - macrobar: the Buttons tab's checkbox stores a real boolean in shown
 - macrobar: the slot swap and the Buttons checkboxes write through the schema helper
@@ -996,7 +997,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 137 |
+| test_macrobar.lua | 138 |
 | test_macromanager.lua | 49 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -1017,4 +1018,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **835** |
+| **Total** | **836** |

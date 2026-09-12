@@ -630,10 +630,8 @@ end
 local function doResetPage()
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.macroBar
     if not cfg then return end
-    -- The drag-written position has no row, so it goes back through the one
-    -- function that owns it. The slot order and visibility ARE rows, so the walk
-    -- below resets them with everything else.
-    if KCM.MacroBar and KCM.MacroBar.ResetPosition then KCM.MacroBar.ResetPosition() end
+    -- The slot order and visibility ARE rows, so the walk resets them with
+    -- everything else.
     local entries = {}
     for _, def in ipairs(KCM.Settings.Schema) do
         if def.panel == "macrobar" and def.default ~= nil then
@@ -641,7 +639,15 @@ local function doResetPage()
             entries[#entries + 1] = { path = def.path, value = type(v) == "table" and CopyTable(v) or v }
         end
     end
-    H.SetManyAndRefresh(entries, { onChange = applyBar, structural = true })
+    -- The batch is all or nothing, so it runs FIRST: a refused batch writes no
+    -- row, and the position must not move on its own either.
+    if not H.SetManyAndRefresh(entries, { onChange = applyBar, structural = true }) then
+        KCM.Say(L["Macro bar defaults were not applied; the bar's position was left as it was."])
+        return
+    end
+    -- The drag-written position has no row, so it goes back through the one
+    -- function that owns it.
+    if KCM.MacroBar and KCM.MacroBar.ResetPosition then KCM.MacroBar.ResetPosition() end
 end
 
 -- ---------------------------------------------------------------------------

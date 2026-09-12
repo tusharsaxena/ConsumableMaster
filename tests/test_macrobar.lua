@@ -2111,6 +2111,33 @@ test("macrobar Defaults: each row is written through the schema helper, into the
         t.eq(logged["macroBar.locked"], nil, "and the lock, which is not this page's row, was not")
     end)
 
+test("macrobar Defaults: a batch that fails leaves the position where it was, and says so",
+    function(t)
+        -- red under: ResetPosition running before the batch validates, so a refused
+        -- batch still moves the bar back to center.
+        local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
+        local reset = macroBarDefaults(KCM)
+        local c = customizeBar(KCM)
+        KCM.MacroBar.Update = function() end
+
+        local realMany, realSay, said = H.SetManyAndRefresh, KCM.Say, {}
+        H.SetManyAndRefresh = function() return false end
+        KCM.Say = function(msg) said[#said + 1] = tostring(msg) end
+        reset()
+        H.SetManyAndRefresh, KCM.Say = realMany, realSay
+
+        t.eq(c.point, "TOP", "the anchor point is untouched")
+        t.eq(c.x, 120, "and so is the offset")
+        t.eq(#said, 1, "the failure is reported once")
+        t.truthy((said[1] or ""):find("position", 1, true), "and names the position: " .. tostring(said[1]))
+
+        reset()
+        local d = KCM.dbDefaults.profile.macroBar
+        t.eq(c.point, d.point, "a batch that succeeds resets the position with it")
+        t.eq(c.x, d.x, "offset and all")
+    end)
+
 -- ---------------------------------------------------------------------------
 -- #35 characterization: the slot order and per-macro visibility writers
 -- ---------------------------------------------------------------------------
