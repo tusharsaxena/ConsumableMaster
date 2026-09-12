@@ -37,7 +37,7 @@ Functional-area tags in use today:
 - `DB` — schema migration, only logged when one actually runs
 - `Scan` — auto-discovery pass summary (reason in content)
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)
-- `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply)
+- `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply), and the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`
 - `GC` — stale-discovered sweep
 - `Set` — settings write at `Helpers.Set`
 - `Prio` — priority-list mutations (add/block/move) and category/all resets
@@ -106,7 +106,7 @@ Captures persist in their own SavedVariables global, `ConsumableMasterPerfDB` (a
 
 `/cm resync` — invalidates `TooltipCache`, re-runs auto-discovery against bags, then runs a direct (non-coalesced) `Pipeline.Recompute`. Use after editing a scorer / classifier / tooltip pattern to force a fresh evaluation.
 
-`/cm rewritemacros` (alias `/cm rewrite`) — clears `macroState` + `pendingUpdates` + the oversized-warning gate via `MacroManager.InvalidateState()`, then runs `Pipeline.Recompute` so every macro is re-issued unconditionally. Use when an action-bar icon looks stale (some bar frameworks cache `GetActionTexture` results across an `EditMacro`; a `/reload` after the rewrite forces a re-query).
+`/cm rewritemacros` (alias `/cm rewrite`) — clears `macroState` + `pendingUpdates` + the oversized-warning gate via `MacroManager.InvalidateState()`, then runs `Pipeline.Recompute` so every macro is re-issued unconditionally. With debug logging on, the clear leaves one `[Macro] forced rewrite: cleared <n> macro fingerprint(s) and <m> queued write(s)` line in the console. Use when an action-bar icon looks stale (some bar frameworks cache `GetActionTexture` results across an `EditMacro`; a `/reload` after the rewrite forces a re-query).
 
 ## Schema-driven slash UX (KickCD parity)
 
