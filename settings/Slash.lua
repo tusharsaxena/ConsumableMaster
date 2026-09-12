@@ -264,8 +264,10 @@ local Sl
 -- every other key follows in its CURRENT stored order, so a slot nobody named
 -- keeps its place relative to the rest. The row's normalizer then drops strangers
 -- and appends any member the stored order has never seen. A flag map is
--- KEY=on|off pairs and REPLACES the whole map. A map with its own normalizer
--- (stat priority's) has an editor of its own, which the refusal names.
+-- KEY=on|off pairs MERGED over the current stored map: a key the pairs do not
+-- name keeps its stored flag, so hiding one button never un-hides another. A map
+-- with its own normalizer (stat priority's) has an editor of its own, which the
+-- refusal names.
 local function parseKeyList(row, text)
     local out, named = {}, {}
     for tok in (text or ""):gmatch("[^,%s]+") do
@@ -281,8 +283,11 @@ local function parseKeyList(row, text)
     return out
 end
 
-local function parseFlagMap(text)
+local function parseFlagMap(row, text)
     local out, n = {}, 0
+    local H = helpers()
+    local stored = H and H.Get(row.path)
+    for k, v in pairs(type(stored) == "table" and stored or {}) do out[k] = v end
     for pair in (text or ""):gmatch("[^,%s]+") do
         local k, word = pair:match("^([^=]+)=(.+)$")
         local v = word and slashLib.ParseBool(word)
@@ -297,7 +302,7 @@ end
 local function parseValue(row, text)
     if row and row.type == "order" then return parseKeyList(row, text) end
     if row and row.type == "map" then
-        if row.valueType == "bool" then return parseFlagMap(text) end
+        if row.valueType == "bool" then return parseFlagMap(row, text) end
         return nil, ("edited with %s, not with /cm set"):format(tostring(row.cliHint))
     end
     return slashLib.ParseValue(row, text)

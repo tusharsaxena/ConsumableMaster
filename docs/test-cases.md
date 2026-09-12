@@ -777,7 +777,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_slash.lua (88)
+### test_slash.lua (89)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -866,6 +866,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm get and list render the list-shaped rows as text, never a table address
 - /cm set and reset reach the slot order, a flag map and mouseover
 - /cm set on an order keeps every unnamed key in its current stored order
+- /cm set on a flag map merges the pairs given over the stored map
 - every /cm stat and /cm aio write goes through the schema helper
 
 ### test_slashsetup.lua (16)
@@ -1010,7 +1011,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 47 |
-| test_slash.lua | 88 |
+| test_slash.lua | 89 |
 | test_slashsetup.lua | 16 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
@@ -1019,4 +1020,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **837** |
+| **Total** | **838** |

@@ -163,9 +163,9 @@ files["modules/Ranker.lua"] = {
 
 -- Three more receivers that arrive because the caller decides the calling convention: the
 -- StaticPopupDialogs OnAccept at settings/Category.lua:209, which reads only the `data` payload
--- Blizzard hands it; KCM.Schema:Set (settings/Panel.lua:752), published with method sugar per
+-- Blizzard hands it; KCM.Schema:Set (settings/Panel.lua:890), published with method sugar per
 -- architecture-§5 and forwarding straight to Helpers.SetAndRefresh; and KCM:OnSlashCommand
--- (settings/Slash.lua:411), which AceConsole invokes on the addon object.
+-- (settings/Slash.lua:480), which AceConsole invokes on the addon object.
 files["settings/Category.lua"] = { ignore = { "212/self" } }
 files["settings/Panel.lua"]    = { ignore = { "212/self" } }
 files["settings/Slash.lua"]    = { ignore = { "212/self" } }

@@ -973,6 +973,24 @@ test("/cm set on an order keeps every unnamed key in its current stored order", 
         "and the section is written with the named key first")
 end)
 
+-- red under: the flag-map parse answering only the pairs given, which the
+-- whole-value write then stores as the entire map, un-hiding every other slot.
+test("/cm set on a flag map merges the pairs given over the stored map", function(t)
+    local KCM = load()
+    local c = KCM.db.profile.macroBar
+    KCM.Schema:Set("macroBar.shown", { DRINK = false })
+    KCM:OnSlashCommand("set macroBar.shown FOOD=off")
+    t.eq(ser(c.shown), "{DRINK=false,FOOD=false}", "a hidden slot stays hidden")
+    KCM:OnSlashCommand("set macroBar.shown drink=on")
+    t.eq(ser(c.shown), "{DRINK=true,FOOD=false}", "and one pair changes only its own key")
+
+    local aio = KCM.db.profile.categories.HP_AIO
+    KCM:OnSlashCommand("aio hp_aio toggle HS off")
+    KCM:OnSlashCommand("set categories.HP_AIO.enabled HP_POT=off")
+    t.eq(ser(aio.enabled), ser({ HS = false, HP_POT = false, FOOD = true }),
+        "a composite's enabled map keeps the flags nobody named")
+end)
+
 -- red under: any of these verbs writing its field directly again.
 test("every /cm stat and /cm aio write goes through the schema helper", function(t)
     local KCM = load()
