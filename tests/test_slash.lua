@@ -934,6 +934,45 @@ test("/cm set and reset reach the slot order, a flag map and mouseover", functio
         "stat priority is edited by /cm stat, and the refusal says so: " .. text)
 end)
 
+-- red under: the order parse handing the validator the named keys alone, which
+-- then appends the rest in category-list order and moves the AIO slots to the end.
+test("/cm set on an order keeps every unnamed key in its current stored order", function(t)
+    local KCM = load()
+    local c = KCM.db.profile.macroBar
+    local function without(list, drop)
+        local out = {}
+        for _, k in ipairs(list) do if not drop[k] then out[#out + 1] = k end end
+        return out
+    end
+    local before = {}
+    for i, k in ipairs(c.order) do before[i] = k end
+    KCM:OnSlashCommand("set macroBar.order DRINK,FOOD")
+    local want = { "DRINK", "FOOD" }
+    for _, k in ipairs(without(before, { DRINK = true, FOOD = true })) do want[#want + 1] = k end
+    t.eqList(c.order, want, "the named slots lead and the rest keep the shipped order")
+
+    -- A customized stored order: the tail follows IT, not the member set.
+    local custom = {}
+    for i = #before, 1, -1 do custom[#custom + 1] = before[i] end
+    KCM.Schema:Set("macroBar.order", custom)
+    KCM:OnSlashCommand("set macroBar.order hs")
+    want = { "HS" }
+    for _, k in ipairs(without(custom, { HS = true })) do want[#want + 1] = k end
+    t.eqList(c.order, want, "the rest keep the player's own stored order")
+
+    -- The AIO sections take the same rule. Two members a section cannot show
+    -- the tail's order, so the test pins that the parse reads the stored value.
+    local H, gets, realGet = KCM.Settings.Helpers, {}, KCM.Settings.Helpers.Get
+    H.Get = function(path) gets[path] = true; return realGet(path) end
+    KCM:OnSlashCommand("set categories.HP_AIO.orderInCombat hp_pot")
+    KCM:OnSlashCommand("set categories.HP_AIO.orderOutOfCombat food")
+    H.Get = realGet
+    t.truthy(gets["categories.HP_AIO.orderInCombat"], "the in-combat order parse reads the stored order")
+    t.truthy(gets["categories.HP_AIO.orderOutOfCombat"], "and so does the out-of-combat one")
+    t.eqList(KCM.db.profile.categories.HP_AIO.orderInCombat, { "HP_POT", "HS" },
+        "and the section is written with the named key first")
+end)
+
 -- red under: any of these verbs writing its field directly again.
 test("every /cm stat and /cm aio write goes through the schema helper", function(t)
     local KCM = load()

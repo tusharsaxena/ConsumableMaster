@@ -260,14 +260,24 @@ local Sl
 -- The whole-value rows' `/cm set` forms (architecture-§5). The library has no
 -- type for them, so the descriptor's `parse` answers these two and hands every
 -- other row to the library's own parser. An order is its keys, comma- or
--- space-separated and case-folded; the row's normalizer appends every key left
--- out. A flag map is KEY=on|off pairs and REPLACES the whole map. A map with its
--- own normalizer (stat priority's) has an editor of its own, which the refusal
--- names.
-local function parseKeyList(text)
-    local out = {}
-    for tok in (text or ""):gmatch("[^,%s]+") do out[#out + 1] = tok:upper() end
+-- space-separated and case-folded: the keys named lead, in the order given, and
+-- every other key follows in its CURRENT stored order, so a slot nobody named
+-- keeps its place relative to the rest. The row's normalizer then drops strangers
+-- and appends any member the stored order has never seen. A flag map is
+-- KEY=on|off pairs and REPLACES the whole map. A map with its own normalizer
+-- (stat priority's) has an editor of its own, which the refusal names.
+local function parseKeyList(row, text)
+    local out, named = {}, {}
+    for tok in (text or ""):gmatch("[^,%s]+") do
+        local k = tok:upper()
+        if not named[k] then named[k] = true; out[#out + 1] = k end
+    end
     if #out == 0 then return nil, "expected a comma-separated list of keys" end
+    local H = helpers()
+    local stored = H and H.Get(row.path)
+    for _, k in ipairs(type(stored) == "table" and stored or {}) do
+        if not named[k] then named[k] = true; out[#out + 1] = k end
+    end
     return out
 end
 
@@ -285,7 +295,7 @@ local function parseFlagMap(text)
 end
 
 local function parseValue(row, text)
-    if row and row.type == "order" then return parseKeyList(text) end
+    if row and row.type == "order" then return parseKeyList(row, text) end
     if row and row.type == "map" then
         if row.valueType == "bool" then return parseFlagMap(text) end
         return nil, ("edited with %s, not with /cm set"):format(tostring(row.cliHint))
