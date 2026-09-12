@@ -29,8 +29,8 @@ Nothing, and no local shim was deleted: this repo never had one. There is no
 `AceGUI:Release` (#27), the AceEvent event half on an Embed (#29) and `NewAddon`'s `Printf`
 (#30). All three are inert here because `tests/wow_mock.lua` replaces the kit's AceAddon,
 AceEvent, AceConsole and AceGUI wholesale (`:538-540`, `:568`). Adopting them is a harness
-migration. The decline goes back to the owner as one proposed issue and was **not filed** in
-this run (see `03_DECISIONS.md`).
+migration. The decline went back to the owner as one proposed issue, filed afterwards as
+[#38](https://github.com/tusharsaxena/ConsumableMaster/issues/38) (see `03_DECISIONS.md`).
 
 ## Gates
 

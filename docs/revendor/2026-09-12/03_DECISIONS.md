@@ -13,7 +13,7 @@ non-interactively.
 **No shim was deleted**, because none existed: nothing in `tests/wow_mock.lua` patches a kit
 gap. It replaces the libraries outright.
 
-**The three declines are one issue, not yet filed.** This run was told not to file GitHub
-issues. The decline is returned to the owner as a proposed issue: migrate `tests/wow_mock.lua`
+**The three declines are one issue, [#38](https://github.com/tusharsaxena/ConsumableMaster/issues/38).** This run was told not to file GitHub issues, so
+the decline went back to the owner as a proposed issue, filed afterwards: migrate `tests/wow_mock.lua`
 off its own AceAddon, AceEvent, AceConsole and AceGUI onto the kit's, so kit revisions reach this
 suite. It is `state:triaged` in substance (worth doing, not today), severity low.

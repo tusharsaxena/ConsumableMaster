@@ -400,7 +400,7 @@ not gaps:
   The bespoke control is deliberate, but for the **stat priorities** it is not the whole story. They
   are a per-spec preference, not a registry, and under `architecture-§5` a preference with neither a
   schema row nor a `Documented deviations` row is an open finding. ARCHITECTURE.md → Settings Schema
-  → "Other state written outside the helper" lists it.
+  → "Other state written outside the helper" lists it, and [#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35) tracks it.
 - The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua`)
   tries digits first — a bare number is unambiguous and must never reach a link matcher — then the
   selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is accepted as
