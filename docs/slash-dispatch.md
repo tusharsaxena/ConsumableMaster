@@ -84,10 +84,10 @@ read the same rows and cannot drift.
 
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
-| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:425`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (`:569`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
-| `aio` | `AIO_COMMANDS` (`:740`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:793`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:445`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
+| `stat` | `STAT_COMMANDS` (`:596`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
+| `bar` | `BAR_COMMANDS` (`:854`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:374`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
