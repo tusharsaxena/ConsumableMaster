@@ -176,6 +176,34 @@ test("Profiles: the global-reset veto is named once and is the descriptor's skip
         "a session row is exactly what the walk keeps")
 end)
 
+-- The descriptor says what the global reset IS (LibKa0s-Options-1.0 minor 18):
+-- `resetProfile` is the same db:ResetProfile() KCM.ResetAllToDefaults runs, and
+-- `profilesPage` declares the AceDBOptions page this addon registers. Here the
+-- library reads them for the Reset all settings tooltip and nothing else: its
+-- RestoreAllDefaults, the only other reader of `resetProfile`, has no caller in
+-- this addon.
+--
+-- red under: a descriptor without either field, or a resetProfile that does
+-- anything but reset the active profile once.
+test("Profiles: the Options descriptor declares the profile reset and the Profiles page", function(t)
+    local captured
+    local KCM = h.loader.loadFiles(h.loader.tocFiles(), false, function()
+        local Options = LibStub("LibKa0s-Options-1.0")
+        local realNew = Options.New
+        Options.New = function(self, d) captured = d; return realNew(self, d) end
+    end)
+    t.eq(captured and captured.profilesPage, true, "the Profiles page is declared")
+    t.eq(type(captured and captured.resetProfile), "function", "and so is the profile reset")
+
+    local realDB, calls, receiver = KCM.db, 0, nil
+    KCM.db = { ResetProfile = function(self) calls = calls + 1; receiver = self end }
+    captured.resetProfile()
+    local fake = KCM.db
+    KCM.db = realDB
+    t.eq(calls, 1, "which resets the profile, once")
+    t.eq(receiver, fake, "on the live db, read when it is called rather than at load")
+end)
+
 -- The same predicate on the reset loop that actually runs: KCM.ResetAllToDefaults'
 -- session sweep, which is also the degraded arm's only reset loop.
 --

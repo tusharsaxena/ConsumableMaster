@@ -1467,6 +1467,61 @@ test("Settings: the Master controls tab closes with the two reset buttons", func
     -- case below reads them off the mock factory instead.
 end)
 
+-- options-ui-§12's SHOULD: the Reset all settings tooltip names the equivalence,
+-- "the same thing Profiles → Reset Profile does", rather than restating the popup.
+-- The button is the library composer's, and since LibKa0s-Options-1.0 minor 18 its
+-- tooltip follows the Options descriptor: `resetProfile` makes it a profile reset,
+-- and `profilesPage` says this addon ships the page the text points at. Read off
+-- the drawn button's OnEnter, which is the only place AttachTooltip puts it.
+--
+-- red under: a descriptor without `resetProfile` ("Restore every setting in this
+-- addon to its default.") or without `profilesPage` (the Profiles page unnamed).
+test("Settings: the Reset all settings tooltip names Profiles → Reset Profile", function(t)
+    local KCM = loader.loadFullAddon()
+    local UI  = KCM.Settings.Helpers.instance
+
+    local buttons = {}
+    local realAceGUI = UI.AceGUI
+    UI.AceGUI = setmetatable({
+        Create = function(_, kind)
+            local w = loader.mock.makeAceWidget()
+            if kind == "Button" then
+                local callbacks = {}
+                w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+                buttons[#buttons + 1] = { widget = w, callbacks = callbacks }
+            end
+            return w
+        end,
+        RegisterWidgetType = function() end,
+        RegisterLayout     = function() end,
+        GetWidgetVersion   = function() return 0 end,
+    }, { __index = function() return function() end end })
+
+    KCM.Settings.builders.general({})
+    local ctx = UI.__panelFor("general")
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = "Master controls"
+    KCM.Settings.Helpers.RefreshAllPanels()
+
+    UI.AceGUI = realAceGUI
+
+    local reset
+    for _, b in ipairs(buttons) do
+        if rawget(b.widget, "__text") == "Reset all settings" then reset = b end
+    end
+    t.truthy(reset and reset.callbacks.OnEnter, "the button is drawn, with a tooltip")
+
+    local lines, tip = {}, _G.GameTooltip
+    local saved = rawget(tip, "AddLine")
+    rawset(tip, "AddLine", function(_, text) lines[#lines + 1] = text end)
+    local ok, err = pcall(reset.callbacks.OnEnter)
+    rawset(tip, "AddLine", saved)
+    t.truthy(ok, tostring(err))
+    t.eq(lines[1], "Reset the current profile to its defaults — the same thing "
+        .. "Profiles → Reset Profile does. Your other profiles are not affected.",
+        "the tooltip names the equivalence and the blast radius")
+end)
+
 -- The Maintenance TAB is back, by the owner's call on 2026-09-09. It was folded
 -- into Master controls as a subsection on the reasoning that a whole tab over
 -- three monthly buttons cost a click; from inside the panel the trade reads the

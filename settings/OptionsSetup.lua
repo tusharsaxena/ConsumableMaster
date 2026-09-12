@@ -219,6 +219,21 @@ if optionsLib and AceGUI then
         -- later adoption of the library's walk must inherit the veto rather than
         -- rediscover it.
         skipRestoreAll = vetoedFromResetAll,
+
+        -- WHAT THE GLOBAL RESET IS, declared for the Reset all settings tooltip
+        -- (options-ui-§12's SHOULD, LibKa0s-Options-1.0 minor 18). The button is
+        -- the MasterControls composer's and so is its text (options-ui-§15); the
+        -- composer words it from these two fields: `resetProfile` says the reset
+        -- is a profile reset, and `profilesPage` that this addon ships the page
+        -- whose Reset Profile it equals. The tooltip then names that equivalence.
+        --
+        -- It is the same db:ResetProfile() KCM.ResetAllToDefaults calls, read off
+        -- KCM.db at CALL time because the db does not exist when this file loads.
+        -- It changes nothing else: the library's only other reader of it is
+        -- RestoreAllDefaults, which this addon never calls, so the button still
+        -- raises KCM_RESET_ALL and the popup still runs KCM.ResetAllToDefaults.
+        resetProfile = function() KCM.db:ResetProfile() end,
+        profilesPage = true,
     })
 
     -- Restated because the library resolves AceGUI once at :New and re-resolves

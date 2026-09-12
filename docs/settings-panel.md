@@ -155,7 +155,7 @@ Three of the rows are **new addon-wide settings** and three moved:
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
 | Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
 | *Reset position* | — | moved from Macro Bar → General |
-| *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording |
+| *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
 
 **The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
 govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and
@@ -183,6 +183,16 @@ Which rows the sweep writes is **one predicate's** call, `KCM.Settings.VetoedFro
 (`settings/OptionsSetup.lua`): it refuses the Profiles page's rows (`options-ui-§3`) and every
 profile-resident row (`§12`), which leaves the session rows. The same function is the library
 descriptor's `skipRestoreAll`, so the rule is named once and shared rather than restated.
+
+**The tooltip comes from the descriptor, not from this page.** The button is the composer's, and
+the composer is the only writer of its text (`options-ui-§15`). Since LibKa0s-Options-1.0 minor 18 it
+picks the wording from the Options descriptor, so `settings/OptionsSetup.lua` declares what the reset
+is: `resetProfile`, which is the same `db:ResetProfile()` `KCM.ResetAllToDefaults` calls, and
+`profilesPage = true`, because the Profiles page is registered. Without `resetProfile` the tooltip
+reads *Restore every setting in this addon to its default.*, which overstates a reset that leaves the
+other profiles alone. The library's `RestoreAllDefaults` is the only other reader of `resetProfile`,
+and nothing in this addon calls it, so the two fields change the tooltip and nothing else. The
+button still runs `KCM_RESET_ALL` and the popup still runs `KCM.ResetAllToDefaults`.
 
 ### The Macros strip, in tab order
 

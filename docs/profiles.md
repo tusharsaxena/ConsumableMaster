@@ -161,6 +161,13 @@ once and enforced on both paths. The addon's global reset does not use the libra
 `RestoreAllDefaults` today, so the descriptor field is declarative. It is there so a later adoption
 of the library's walk inherits the veto rather than rediscovering it.
 
+The descriptor also carries `resetProfile` (the same `db:ResetProfile()`) and `profilesPage = true`.
+The library reads them to word the **Reset all settings** tooltip, which names this page's **Reset
+Profile** as the same act. Supplying `resetProfile` does not make `skipRestoreAll` live: the only
+reader of either is `RestoreAllDefaults`, and nothing calls it. If a later change did adopt the walk,
+the library would narrow it to the `sessionOnly` rows itself before asking the veto, and the veto
+would agree, since it keeps exactly those rows.
+
 ## Testing
 
 `tests/test_profiles.lua` pins every claim on this page against the harness's AceDB and AceConfig
