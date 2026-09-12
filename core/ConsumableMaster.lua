@@ -400,8 +400,25 @@ function KCM.RegisterProfileCallbacks(target)
     local db = target and target.db
     if not (db and db.RegisterCallback) then return end
 
+    -- The one log line a profile-wide act gets (debug-logging-§10): AceDB replaced
+    -- the whole profile, which is not a batch through the helper, so the HANDLER
+    -- logs it, worded by the event. A switch rewrites no rows and this addon has
+    -- never traced one, so it gets no line. No row count: the profile also holds
+    -- the item registry, which is not rows, and a count of rows alone would
+    -- understate what the reset took.
+    local function trace(event, d, key)
+        if not isDebugOn() then return end
+        local name = d and d.GetCurrentProfile and d:GetCurrentProfile()
+        if event == "OnProfileReset" then
+            KCM.Debug("Set", "reset profile '%s' to defaults", tostring(name))
+        elseif event == "OnProfileCopied" then
+            KCM.Debug("Set", "copied profile '%s' → '%s'", tostring(key), tostring(name))
+        end
+    end
+
     local function reload(reason)
-        return function()
+        return function(event, d, key)
+            trace(event, d, key)
             if KCM.Database and KCM.Database.RunMigrations then
                 KCM.Database.RunMigrations()
             end
@@ -455,12 +472,19 @@ end
 --- library's own `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
 --- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
 --- would be writing into a panel that had already been drawn from the old value.
+---
+--- ONE LOG LINE for the whole act (debug-logging-§10): the OnProfileReset
+--- handler's `[Set] reset profile '<name>' to defaults`. Both halves run inside
+--- Helpers.MuteSetLog, so the session sweep's own write logs no row, and no line
+--- is added here. `reason` is the caller's audit tag and is no longer logged.
 function KCM.ResetAllToDefaults(reason)
     if not (KCM.db and KCM.db.ResetProfile) then return false end
-    reason = reason or "reset_all"
-    if isDebugOn() then KCM.Debug("Prio", "reset all (reason=%s)", tostring(reason)) end
-    restoreSessionRows()
-    KCM.db:ResetProfile()
+    local function act()
+        restoreSessionRows()
+        KCM.db:ResetProfile()
+    end
+    local H = KCM.Settings and KCM.Settings.Helpers
+    if H and H.MuteSetLog then H.MuteSetLog(act) else act() end
     return true
 end
 

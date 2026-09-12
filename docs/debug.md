@@ -39,11 +39,23 @@ Functional-area tags in use today:
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)
 - `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply), and the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`
 - `GC` — stale-discovered sweep
-- `Set` — settings write at `Helpers.Set`
-- `Prio` — priority-list mutations (add/block/move) and category/all resets
+- `Set` — settings write at `Helpers.Set`, a bulk reset's one line, and the profile handler's reset/copy line
+- `Prio` — priority-list mutations (add/block/move) and the registry resets (`ResetBucket` / `ResetAllBuckets`)
 - `Bar` — macro-bar events worth noticing, today just a flyout truncated by `macroBar.flyoutMax` (never a silent cap)
 
 Every settings change logs once as `[Set] <path> = <value>` at `Helpers.Set`; repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
+
+A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `Helpers.Bulk(act, scope, fn)` (or `Helpers.SetManyAndRefresh(entries, { bulk = { act, scope } })`), `Helpers.Set` still validates, writes and runs each row's onChange, but it only tallies the rows whose value changed. When the act closes it logs `[Set] <act> <scope>: N rows`. A nested bracket folds into the outer one, and a raising act still logs its line before the error propagates. The acts:
+
+| Act | Line |
+|---|---|
+| Macro Bar page **Defaults** | `[Set] reset Macro Bar page: N rows` |
+| General page **Defaults** | `[Set] reset General page: N rows` |
+| Macros page **Reset category** on a composite, and `/cm aio <key> reset` | `[Set] reset category <KEY>: N rows` |
+| **Reset all settings** / `/cm resetall` (`KCM.ResetAllToDefaults`) | `[Set] reset profile '<name>' to defaults`, from the `OnProfileReset` handler; the session sweep runs under `Helpers.MuteSetLog` |
+| An AceDB profile copy | `[Set] copied profile 'A' → 'B'`, from the `OnProfileCopied` handler |
+
+N counts only rows whose stored value changed, so a Defaults press on a page already at defaults logs `0 rows`. Single-row resets (`/cm reset <path>`, Reset slot order, the Stat Priority page's Defaults) keep their one `[Set] <path> = <value>` line, and the registry resets keep their `[Prio]` line.
 
 The `DebugLog.SetEnabled` seam prints a **color-coded** chat ack through `KCM.Say` — `debug logging |cff40ff40ON|r` (green) / `|cffff4040OFF|r` (red) — matching the title-bar `Debug: ON/OFF` toggle so the flag reads identically in chat and on the console (debug-logging-§5).
 

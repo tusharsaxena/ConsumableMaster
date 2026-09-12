@@ -467,6 +467,19 @@ local function makeAceDB()
             fire("OnProfileChanged", name)
         end
 
+        -- db:CopyProfile(name) -- the active profile becomes a copy of `name`,
+        -- IN PLACE like a reset, and OnProfileCopied carries the SOURCE's key,
+        -- which is what the real library passes.
+        db.CopyProfile = function(_, name)
+            local src = db.profiles[name]
+            if type(src) ~= "table" or name == current then return end
+            local p = db.profile
+            for k in pairs(p) do p[k] = nil end
+            for k, v in pairs(deepcopy(src)) do p[k] = v end
+            copyDefaults(p, defaults.profile)
+            fire("OnProfileCopied", name)
+        end
+
         db.GetCurrentProfile = function() return current end
 
         return db

@@ -2080,14 +2080,29 @@ test("macrobar Defaults: every page setting back to its shipped value, the lock 
         H.RefreshAllPanels = realAll
     end)
 
-test("macrobar Defaults: each row is written through the schema helper, into the same table",
+test("macrobar Defaults: the page reset is one [Set] line, written into the same table",
     function(t)
-        -- red under: reinstating `KCM.db.profile.macroBar = CopyTable(BAR_DEFAULTS)`
-        -- -- the table is replaced and no row reaches the [Set] seam.
+        -- A bulk reset logs ONE `[Set] <act> <scope>: N rows` line, never one per
+        -- row, and N is the rows it actually changed (debug-logging-§10).
+        --
+        -- red under: dropping `bulk` from doResetPage's SetManyAndRefresh opts --
+        -- every row logs its own [Set] line again -- or reinstating
+        -- `KCM.db.profile.macroBar = CopyTable(BAR_DEFAULTS)`, which replaces the
+        -- table and writes no row through the helper.
         local KCM = h.loader.loadFullAddon()
+        local H   = KCM.Settings.Helpers
         local reset = macroBarDefaults(KCM)
         local c = customizeBar(KCM)
         KCM.MacroBar.Update = function() end
+
+        -- N, measured before the reset: the page rows not already at their default.
+        local rows, moved = 0, 0
+        for _, def in ipairs(KCM.Settings.Schema) do
+            if def.panel == "macrobar" and def.default ~= nil then
+                rows = rows + 1
+                if ser(H.Get(def.path)) ~= ser(def.default) then moved = moved + 1 end
+            end
+        end
 
         local D = KCM.DebugLog.instance
         KCM.State.debug = true
@@ -2096,19 +2111,15 @@ test("macrobar Defaults: each row is written through the schema helper, into the
         KCM.State.debug = false
 
         t.eq(KCM.db.profile.macroBar, c, "the macroBar table is the one every reader already holds")
-        local rows, logged = 0, {}
+        local set = {}
         for _, line in ipairs(D.buffer) do
-            local path = line:match("%[Set%] (macroBar%.[%w_]+) = ")
-            if path then logged[path] = (logged[path] or 0) + 1 end
+            local body = line:match("%[Set%] (.*)$")
+            if body then set[#set + 1] = body end
         end
-        for _, def in ipairs(KCM.Settings.Schema) do
-            if def.panel == "macrobar" then
-                rows = rows + 1
-                t.eq(logged[def.path], 1, def.path .. " is written once, at the [Set] seam")
-            end
-        end
-        t.truthy(rows >= 60, "the whole page was walked (" .. rows .. " rows)")
-        t.eq(logged["macroBar.locked"], nil, "and the lock, which is not this page's row, was not")
+        t.eqList(set, { ("reset Macro Bar page: %d rows"):format(moved) },
+            "one [Set] line for the whole page, and no per-row line")
+        t.eq(moved, 7, "customizeBar moved seven page rows; the lock and the position are not rows here")
+        t.truthy(rows >= 60, "the whole page was in scope (" .. rows .. " rows)")
     end)
 
 test("macrobar Defaults: a batch that fails leaves the position where it was, and says so",

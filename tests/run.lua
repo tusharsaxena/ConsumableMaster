@@ -417,6 +417,7 @@ _G.KCM_TEST = KCM_TEST
 -- file that does exist is itself an error.
 local SUITES = {
     "test_bagscanner",
+    "test_bulklog",
     "test_bus",
     "test_categories",
     "test_classifier",

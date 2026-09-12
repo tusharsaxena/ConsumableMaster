@@ -246,7 +246,9 @@ local AIO_RESET_FIELDS = { "enabled", "orderInCombat", "orderOutOfCombat" }
 -- shipped defaults, as ONE batch through the schema helper. Each row's validator
 -- stores a copy, never an alias — aliasing dbDefaults would let a later edit
 -- corrupt the defaults for the rest of the session. The batch's one reactor is
--- this popup's own recompute, and it rebuilds the tab once.
+-- this popup's own recompute, and it rebuilds the tab once. A bulk reset, so its
+-- one log line is `[Set] reset category <KEY>: N rows` (debug-logging-§10) --
+-- `/cm aio <key> reset` is the same act and logs the same line.
 local function resetCompositeCategory(catKey)
     local defaults = KCM.dbDefaults and KCM.dbDefaults.profile
         and KCM.dbDefaults.profile.categories
@@ -258,15 +260,15 @@ local function resetCompositeCategory(catKey)
     for i, f in ipairs(AIO_RESET_FIELDS) do
         entries[i] = { path = ("categories.%s.%s"):format(catKey, f), value = defaults[f] or {} }
     end
-    local ok = H.SetManyAndRefresh(entries, {
+    H.SetManyAndRefresh(entries, {
         onChange = function()
             if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
                 KCM.Pipeline.RequestRecompute("options_aio_reset_cat")
             end
         end,
         structural = true,
+        bulk = { act = "reset", scope = "category " .. catKey },
     })
-    if ok and isDebugOn() then KCM.Debug("Prio", "reset %s", catKey) end
 end
 
 -- Single-category reset: clear the user's own edits, through the registry

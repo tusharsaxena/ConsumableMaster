@@ -782,13 +782,16 @@ local function aioReset(cat)
     local cfg = compositeCfg(cat)
     if not cfg then return say("no DB bucket for " .. cat.key) end
     -- The three rows as ONE batch through the helper: each validator stores a
-    -- copy of its default, and the rows' shared onChange recomputes once.
+    -- copy of its default, and the rows' shared onChange recomputes once. A bulk
+    -- reset, logged as the Macros page's Reset category logs it: one
+    -- `[Set] reset category <KEY>: N rows` line (debug-logging-§10).
     local entries = {}
     for i, f in ipairs(AIO_FIELDS) do
         entries[i] = { path = aioPath(cat, f), value = defaults[f] or {} }
     end
     local setter = KCM.Schema
-    if not (setter and setter.SetMany and setter:SetMany(entries)) then
+    local opts = { bulk = { act = "reset", scope = "category " .. cat.key } }
+    if not (setter and setter.SetMany and setter:SetMany(entries, opts)) then
         return say("could not reset " .. cat.key)
     end
     say(("reset %s — enabled flags + section order restored."):format(cat.key))

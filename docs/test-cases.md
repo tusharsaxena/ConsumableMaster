@@ -21,6 +21,19 @@ badge and any count quoted in the docs must agree with it.
 - BagScanner.HasItem counts bank stacks in via the includeBank flag
 - BagScanner.HasItem reports not-owned when the item count API is absent
 
+### test_bulklog.lua (10)
+
+- bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every onChange runs
+- bulk: a raising act still logs its line with the rows so far, re-raises, and unmutes
+- bulk: a bracket inside a bracket folds into it, with one line for the outer act
+- bulk: SetManyAndRefresh's opts.bulk is the same one line, and a refused batch logs nothing
+- bulk: the Macro Bar page's Defaults on a page already at defaults logs 0 rows
+- bulk: the General page's Defaults is one [Set] line and runs each row's onChange
+- bulk: the composite category reset is one [Set] line, and its reactor runs
+- bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs
+- bulk: the global reset is one [Set] line from the profile handler, the session row muted
+- bulk: a profile copy is one [Set] line from the handler, and a switch is none
+
 ### test_bus.lua (11)
 
 - bus, NewBusTarget, and message catalog are published
@@ -448,7 +461,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar master: General visibility is INTERSECTED with the bar's combat mode
 - macrobar master: General visibility = never takes the bar off screen
 - macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
-- macrobar Defaults: each row is written through the schema helper, into the same table
+- macrobar Defaults: the page reset is one [Set] line, written into the same table
 - macrobar Defaults: a batch that fails leaves the position where it was, and says so
 - macrobar: dragging one slot onto another stores the swapped order
 - macrobar: the Buttons tab's checkbox stores a real boolean in shown
@@ -978,6 +991,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_bagscanner.lua | 12 |
+| test_bulklog.lua | 10 |
 | test_bus.lua | 11 |
 | test_categories.lua | 4 |
 | test_classifier.lua | 16 |
@@ -1020,4 +1034,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **838** |
+| **Total** | **848** |

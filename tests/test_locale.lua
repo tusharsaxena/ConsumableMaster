@@ -220,6 +220,12 @@ end
 --                   name so the size of the gap is a number a reader can act on
 --                   rather than an impression, and so that routing one is a
 --                   two-line change that this file notices.
+--   DEBUG SCOPE     The scope a bulk act names in its one debug-console line,
+--                   `[Set] <act> <scope>: N rows` (debug-logging-§10), handed to
+--                   Helpers.Bulk rather than to KCM.Debug on the same line, which
+--                   is the only reason the debug-sink exemption above cannot see
+--                   it. Same audience and same owner as a KCM.Debug format:
+--                   developer diagnostics docs/debug.md governs, never chat.
 local RESIDUE = {
     -- settings/Panel.lua
     {"settings/Panel.lua", "|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r",
@@ -255,9 +261,11 @@ local RESIDUE = {
     {"settings/General.lua", "Consumable Master", "LIB DESCRIPTOR"},
     {"settings/General.lua", "macro bar position reset.", "NOT YET ROUTED"},
     {"settings/General.lua", "Master enable ", "SPLIT COLOR"},
+    {"settings/General.lua", "General page", "DEBUG SCOPE"},
 
     -- settings/MacroBar.lua
     {"settings/MacroBar.lua", "macro bar slot order reset.", "NOT YET ROUTED"},
+    {"settings/MacroBar.lua", "Macro Bar page", "DEBUG SCOPE"},
 
     -- settings/Category.lua
     {"settings/Category.lua", "icon-button onClick failed: ", "DIAGNOSTIC"},
@@ -318,6 +326,7 @@ local CLASSES = {
     ["DIAGNOSTIC"] = true, ["VALIDATOR"] = true, ["DEGRADED STEM"] = true,
     ["SPLIT COLOR"] = true, ["FRAGMENT"] = true, ["LIB DESCRIPTOR"] = true,
     ["DEAD"] = true, ["CLI SURFACE"] = true, ["NOT YET ROUTED"] = true,
+    ["DEBUG SCOPE"] = true,
 }
 
 -- ---------------------------------------------------------------------

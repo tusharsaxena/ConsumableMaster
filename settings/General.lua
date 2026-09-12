@@ -256,10 +256,16 @@ H.RegisterRows(masterRows, "general", "general", {
 -- radius does not narrow to the visible tab (options-ui-§13). Derived from the
 -- rows rather than from a hand-written list, so a row added to the block is
 -- covered without anyone remembering to add it here.
+--
+-- A bulk reset: one `[Set] reset General page: N rows` line, and each row's own
+-- onChange still runs (debug-logging-§10). The bracket closes BEFORE the console
+-- is disarmed below, so the line is not lost to it.
 local function doResetGeneralPage()
-    for _, row in ipairs(masterRows) do
-        if row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
-    end
+    H.Bulk("reset", "General page", function()
+        for _, row in ipairs(masterRows) do
+            if row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+        end
+    end)
     -- The console back to its LOGIN state, which is more than the row's default:
     -- logging off AND the window hidden. The row only owns the window.
     if KCM.DebugLog and KCM.DebugLog.SetEnabled then

@@ -621,9 +621,11 @@ end
 --
 -- EVERY ROW THROUGH THE SCHEMA HELPER, IN PLACE (architecture-§5). This used to
 -- replace the whole `macroBar` table with a copy of the defaults, which skipped
--- every row's validation and its [Set] line and left anything holding the old
--- table reading a stale one. It is one batch, so the bar is still re-applied once
--- and the page still rebuilt once, as the whole-table write did.
+-- every row's validation and left anything holding the old table reading a stale
+-- one. It is one batch, so the bar is still re-applied once and the page still
+-- rebuilt once, as the whole-table write did. It is a bulk reset, so it logs one
+-- `[Set] reset Macro Bar page: N rows` line and no row of its own
+-- (debug-logging-§10).
 --
 -- A table default (every color) goes in as a COPY: a row's `default` IS the
 -- dbDefaults table, and storing it would alias the defaults into the profile.
@@ -641,7 +643,10 @@ local function doResetPage()
     end
     -- The batch is all or nothing, so it runs FIRST: a refused batch writes no
     -- row, and the position must not move on its own either.
-    if not H.SetManyAndRefresh(entries, { onChange = applyBar, structural = true }) then
+    if not H.SetManyAndRefresh(entries, {
+        onChange = applyBar, structural = true,
+        bulk = { act = "reset", scope = "Macro Bar page" },
+    }) then
         KCM.Say(L["Macro bar defaults were not applied; the bar's position was left as it was."])
         return
     end

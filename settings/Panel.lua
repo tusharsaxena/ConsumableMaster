@@ -209,8 +209,35 @@ local function logValue(v)
     return "{" .. table.concat(parts, ", ") .. "}"
 end
 
+-- The bulk bracket (debug-logging-§10). A bulk copy or reset is ONE
+-- `[Set] <act> <scope>: N rows` line, never a line per row, and N is the rows
+-- whose stored value the act actually CHANGED -- a row already at its default is
+-- not counted. While a bracket is open, Helpers.Set tallies instead of logging.
+--
+-- `bulk` is the innermost open frame, `prev` the one it sits in, so the chain is
+-- the depth counter: a frame that closes inside another folds its tally into it,
+-- and only the outermost one logs. A MuteSetLog frame logs nothing and silences
+-- every frame around it -- that is the global reset, whose one line is the
+-- OnProfileReset handler's.
+local bulk = nil
+
+local function sameValue(a, b)
+    if a == b then return true end
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for k, v in pairs(a) do
+        if not sameValue(v, b[k]) then return false end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then return false end
+    end
+    return true
+end
+
 function Helpers.Set(path, value)
     local session = SESSION_PATHS[path]
+    -- Read BEFORE the write, and only inside a bracket: nothing else needs it.
+    local before
+    if bulk then before = Helpers.Get(path) end
     local ok
     if session then
         ok = session.set(value) and true or false
@@ -221,10 +248,52 @@ function Helpers.Set(path, value)
         ok = true
     end
     if not ok then return false end
-    if KCM.State and KCM.State.debug then
+    if bulk then
+        if not sameValue(before, value) then bulk.count = bulk.count + 1 end
+    elseif KCM.State and KCM.State.debug then
         KCM.Debug("Set", "%s = %s", tostring(path), logValue(value))
     end
     return true
+end
+
+-- Runs fn inside a frame. A raising fn still closes it, so a mute cannot stick.
+-- Answers pcall's ok and error, the frame's tally, and whether it was nested.
+local function runFrame(fn, silent)
+    local frame = { count = 0, prev = bulk, silent = silent }
+    bulk = frame
+    local ok, err = pcall(fn)
+    bulk = frame.prev
+    local outer = frame.prev
+    if outer then
+        outer.count  = outer.count + frame.count
+        outer.silent = outer.silent or frame.silent
+    end
+    return ok, err, frame, outer ~= nil
+end
+
+--- Run fn as ONE bulk act: every Helpers.Set inside it validates, writes and
+--- reacts exactly as it would outside, but logs no row of its own. When fn
+--- returns (or raises) the act logs `[Set] <act> <scope>: N rows`, N being the
+--- rows it changed; a bracket nested in another logs nothing and its rows count
+--- toward the outer line. An error is re-raised unwrapped after the line.
+--- @return number  the rows changed
+function Helpers.Bulk(act, scope, fn)
+    local ok, err, frame, nested = runFrame(fn, false)
+    if not (nested or frame.silent) and KCM.State and KCM.State.debug then
+        KCM.Debug("Set", "%s %s: %s rows", tostring(act), tostring(scope), tostring(frame.count))
+    end
+    if not ok then error(err, 0) end
+    return frame.count
+end
+
+--- Run fn with the per-row line muted and NO line of its own, for an act another
+--- seam logs once: the global reset, logged by the OnProfileReset handler. A
+--- bracket around it logs nothing either (one line overall).
+--- @return number  the rows changed
+function Helpers.MuteSetLog(fn)
+    local ok, err, frame = runFrame(fn, true)
+    if not ok then error(err, 0) end
+    return frame.count
 end
 
 function Helpers.FindSchema(path)
@@ -847,10 +916,15 @@ local function runBatchReactors(plan, opts)
 end
 
 -- Several rows as ONE act. It is the seam SetAndRefresh is -- validate, write
--- through Helpers.Set (so every row still logs its own [Set] line,
--- debug-logging-§10), react, refresh -- taken once for the whole batch rather
+-- through Helpers.Set, react, refresh -- taken once for the whole batch rather
 -- than once per row. A page reset is what it exists for: sixty rows through
 -- SetAndRefresh would be sixty onChanges and sixty refreshes for one click.
+--
+-- LOGGING (debug-logging-§10). A plain batch logs one [Set] line per row. A batch
+-- that IS a bulk copy or reset passes `opts.bulk = { act = , scope = }`, and then
+-- its writes and reactors run inside Helpers.Bulk: one `[Set] <act> <scope>: N rows`
+-- line, no per-row line. The bracket opens only after validation, so a refused
+-- batch logs nothing.
 --
 -- ALL OR NOTHING: every entry is resolved and validated before the first write,
 -- so a batch holding one bad value writes none of them.
@@ -878,8 +952,12 @@ function Helpers.SetManyAndRefresh(entries, opts)
         if not (SESSION_PATHS[def.path] or Helpers.Resolve(def.path)) then return false end
         plan[i] = { def = def, value = coerced }
     end
-    for _, step in ipairs(plan) do Helpers.Set(step.def.path, step.value) end
-    runBatchReactors(plan, opts)
+    local function apply()
+        for _, step in ipairs(plan) do Helpers.Set(step.def.path, step.value) end
+        runBatchReactors(plan, opts)
+    end
+    local b = opts and opts.bulk
+    if b then Helpers.Bulk(b.act, b.scope, apply) else apply() end
     if opts and opts.structural then Helpers.RefreshAllPanels() else Helpers.RefreshScalars() end
     return true
 end
