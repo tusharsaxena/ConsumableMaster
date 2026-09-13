@@ -1239,6 +1239,22 @@ local REFRESH_MAX_WAIT_SEC = 3.0
 -- onRefreshDue. One of the two has to be named before it exists.
 local armRefresh
 
+-- Held while the Macros page's Add-by-ID box is in use (settings/Category.lua's
+-- O.AddByIDBusy: it has the keys or holds text). This path's rebuilds are the
+-- GET_ITEM_INFO_RECEIVED swaps of "?" for a name and the pipeline's repaints;
+-- the line's own pre-warm and name lookup produce exactly those events, and a
+-- rebuild releases the box, dropping a pending lookup and the typed text with
+-- no word on the status line. So the request waits, asking again a quiet
+-- second later as a fresh window (the cap restarts, or it would poll at the
+-- 0.05s floor), and lands once the box is idle. A stalled timer is not held:
+-- nothing could ever observe the box going idle through it.
+local function heldByEntry(now)
+    if not (O.AddByIDBusy and O.AddByIDBusy()) then return false end
+    O._refreshFirstAt, O._refreshLastAt = now, now
+    armRefresh(now, REFRESH_DEBOUNCE_SEC)
+    return true
+end
+
 -- The one scheduled callback, hoisted to file scope so it is constructed once
 -- at load rather than once per call: the old shape built one of these per
 -- request and discarded 149 of every 150. Its state lives on O, where the
@@ -1284,6 +1300,8 @@ local function onRefreshDue()
         armRefresh(now, REFRESH_DEBOUNCE_SEC - quiet)
         return
     end
+
+    if not stalled and heldByEntry(now) then return end
 
     O._refreshFirstAt, O._refreshLastAt = nil, nil
     O.Refresh()

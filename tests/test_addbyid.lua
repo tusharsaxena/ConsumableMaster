@@ -271,13 +271,206 @@ test("Add-by-ID: the tooltip and the refusals say where a name can come from", f
 end)
 
 test("Add-by-ID: a spec-aware tab with no spec suggests nothing", function(t)
-    -- red under: suggestions on a tab whose resolver refuses every entry; a pick would skip it
+    -- red under: suggestions on a tab whose resolver refuses every entry (a pick would skip it and
+    -- file the id with no spec), which takes BOTH guards going: no `info` there, and no candidates.
     local KCM = loadCategorySettings()
     loader.mock.setItem(960011, { name = "Test Flask", subType = "Flasks & Phials" })
     t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
+    -- A candidate that WOULD match. BuildCandidateSet(FLASK, nil) falls back to the player's
+    -- current spec, so this is the bucket the line would read if it were handed candidates.
+    discover(KCM, "FLASK", { 960011 })
+    local known = false
+    for _, id in ipairs(KCM.Selector.BuildCandidateSet("FLASK", nil)) do
+        if id == 960011 then known = true end
+    end
+    t.truthy(known, "the fixture is a candidate under the bucket the line would read")
     local line = renderLine(KCM, "FLASK")
     line.typeText("test flask")
     t.eq(line.shownIds(), "", "no list goes up")
+end)
+
+test("Add-by-ID: a spec-aware tab with no spec promises no list and no name hint", function(t)
+    -- red under: the one tooltip for every tab ("pick it from the list", "this list knows")
+    local KCM = loadCategorySettings()
+    local line = renderLine(KCM, "FLASK")
+    local lines = {}
+    rawset(_G.GameTooltip, "AddLine", function(_, text) lines[#lines + 1] = text end)
+    line.edit._callbacks.OnEnter(line.edit, "OnEnter")
+    local tip = table.concat(lines, "\n")
+    t.falsy(tip:find("from the list", 1, true), "no list to pick from ('" .. tip .. "')")
+    t.falsy(tip:find("this list knows", 1, true), "and no hint about the list's names")
+    t.truthy(tip:find("spec", 1, true), "it says a spec is what is missing")
+end)
+
+--- Wrap Helpers.IdInput so the spec the page hands it is kept: its onAdd and its candidates.
+local function captureSpec(KCM)
+    local H = KCM.Settings.Helpers
+    local real, box = H.IdInput, {}
+    rawset(H, "IdInput", function(ctx, parent, spec)
+        box.spec = spec
+        return real(ctx, parent, spec)
+    end)
+    return box
+end
+
+test("Add-by-ID: onAdd re-checks existence, since a pick skips the resolver", function(t)
+    -- red under: an onAdd that stores whatever number it is handed
+    local KCM = loadCategorySettings()
+    loader.mock.setItem(960050, { name = "Real Draught", subType = "Potions" })
+    local box = captureSpec(KCM)
+    renderLine(KCM, "HP_POT")
+    local added = recordAdds(KCM)
+
+    box.spec.onAdd(0)
+    box.spec.onAdd(-960050)
+    box.spec.onAdd(99999991)
+    t.eq(#added, 0, "a zero, a negative and an id the client does not know are refused")
+    box.spec.onAdd(960050)
+    t.eq(added[1], 960050, "a real item goes in")
+    t.eq(#added, 1, "and only that one")
+end)
+
+test("Add-by-ID: the candidates are the Type's own kind, turned back from their stored shape",
+    function(t)
+        -- red under: an Item fromStored that keeps the negative spell sentinels, or a Spell one
+        -- that keeps item ids
+        local KCM = loadCategorySettings()
+        loader.mock.setItem(960040, { name = "Elixir of Quiet Waters", subType = "Potions" })
+        loader.mock.setSpell(7744, { name = "Will of the Forsaken" })
+        discover(KCM, "HP_POT", { 960040 })
+        KCM.Selector.GetBucket("HP_POT").added[KCM.ID.AsSpell(7744)] = true
+        local box = captureSpec(KCM)
+        renderLine(KCM, "HP_POT")
+
+        local function has(list, want)
+            for _, id in ipairs(list) do if id == want then return true end end
+            return false
+        end
+        local items = box.spec.candidates()
+        t.truthy(has(items, 960040), "an item candidate is listed under Item")
+        for _, id in ipairs(items) do
+            t.truthy(id > 0 and id ~= 7744, "and no spell, raw or behind its sentinel (" .. id .. ")")
+        end
+        KCM.Options._addKind.HP_POT = "SPELL"
+        local spells = box.spec.candidates()
+        t.eq(#spells, 1, "under Spell, the one spell and no item")
+        t.eq(spells[1], 7744, "as its spell id")
+    end)
+
+--- The owner's case with the ranks in the bags: the player carries ranks 2 and 3, the client has
+--- never seen rank 1 this session, and none of them is one of this tab's candidates.
+local function carryZephyr()
+    for _, id in ipairs(ZEPHYR_IDS) do
+        loader.mock.setItem(id, { name = ZEPHYR, subType = "Potions" })
+    end
+    forgetName("item", 191393)
+    loader.mock.setBag(191394, 1)
+    loader.mock.setBag(191395, 1)
+end
+
+test("Add-by-ID: ranks the player carries are one shared name too, listed to pick from",
+    function(t)
+        -- red under: candidates that are the category's ids alone. The client answers one rank for
+        -- the name, no candidate shares it, so that rank is added for the player.
+        local KCM = loadCategorySettings()
+        carryZephyr()
+        local line = renderLine(KCM, "HP_POT")
+        local added = recordAdds(KCM)
+
+        line.submit(ZEPHYR)
+        t.eq(#added, 0, "no carried rank is added on the client's word")
+        t.truthy((line.status._text or ""):find("pick one from the list", 1, true),
+            "the name is refused as shared ('" .. tostring(line.status._text) .. "')")
+        t.eq(line.shownIds(), "191394,191395", "and the list the refusal promises opens, both ranks")
+        line.pick(191395)
+        t.eq(added[1], 191395, "a pick adds the carried rank that was picked")
+
+        KCM = loadCategorySettings()
+        carryZephyr()
+        discover(KCM, "HP_POT", { 191393 })
+        line = renderLine(KCM, "HP_POT")
+        line.typeText("hushed")
+        t.eq(line.shownIds(), "191393,191394,191395",
+            "a rank the tab knows and the ranks in the bags list together")
+    end)
+
+test("Add-by-ID: changing Type keeps what was typed across the redraw", function(t)
+    -- red under: the redraw releasing the box, whose OnAcquire clears it
+    local KCM = loadCategorySettings()
+    local line = renderLine(KCM, "HP_POT")
+    line.typeText("will of")
+    line.type._callbacks.OnValueChanged(line.type, "OnValueChanged", "SPELL")
+    local last
+    for _, w in ipairs(line.made) do
+        if w._kind == "EditBox" then last = w end
+    end
+    t.truthy(last ~= line.edit, "the page was drawn again, with a new box")
+    t.eq(last._text, "will of", "which holds the text typed before the switch")
+
+    -- Carried once: the next redraw draws an empty box, as ever.
+    KCM.Settings.Helpers.RefreshAllPanels()
+    local again
+    for _, w in ipairs(line.made) do
+        if w._kind == "EditBox" then again = w end
+    end
+    t.truthy(again ~= last and not again._text, "a later redraw carries nothing")
+end)
+
+--- A clock and a timer queue the test advances, as tests/test_settingsui.lua's refresh cases use:
+--- the harness's C_Timer runs callbacks inline, which cannot say "a second passed".
+local function fakeSchedule(KCM)
+    local s = { now = 0, rebuilds = 0, queue = {} }
+    local savedGetTime, savedAfter = _G.GetTime, _G.C_Timer.After
+    _G.GetTime = function() return s.now end
+    _G.C_Timer.After = function(delay, fn) s.queue[#s.queue + 1] = { at = s.now + (delay or 0), fn = fn } end
+    rawset(KCM.Settings.Helpers, "RefreshAllPanels", function() s.rebuilds = s.rebuilds + 1 end)
+    function s.advance(seconds)
+        local target = s.now + seconds
+        while true do
+            local idx
+            for i, e in ipairs(s.queue) do
+                if e.at <= target and (idx == nil or e.at < s.queue[idx].at) then idx = i end
+            end
+            if not idx then break end
+            local e = table.remove(s.queue, idx)
+            s.now = e.at
+            e.fn()
+        end
+        s.now = target
+    end
+    function s.restore() _G.GetTime, _G.C_Timer.After = savedGetTime, savedAfter end
+    return s
+end
+
+test("Add-by-ID: a debounced page rebuild waits while the box is in use", function(t)
+    -- red under: a rebuild that releases the box mid-entry. The library's OnRelease drops a pending
+    -- name lookup and the text, with no word on the status line.
+    local KCM = loadCategorySettings()
+    local line = renderLine(KCM, "HP_POT")
+    local focused, visible = true, true
+    line.edit.editbox = { HasFocus = function() return focused end }
+    line.edit.frame = { IsVisible = function() return visible end }
+    local s = fakeSchedule(KCM)
+
+    KCM.Options.RequestRefresh()          -- an item landing: GET_ITEM_INFO_RECEIVED's PANEL_REFRESH
+    s.advance(5)
+    t.eq(s.rebuilds, 0, "no rebuild while the box has the keys")
+
+    focused = false
+    line.edit._text = "Potion of the Hushed Zephyr"
+    s.advance(5)
+    t.eq(s.rebuilds, 0, "nor while it holds text, a submitted name's lookup included")
+
+    line.edit._text = ""
+    s.advance(1.5)
+    t.eq(s.rebuilds, 1, "once the box is idle, the held rebuild lands, once")
+
+    line.edit._text = "left behind"
+    visible = false
+    KCM.Options.RequestRefresh()
+    s.advance(1.5)
+    t.eq(s.rebuilds, 2, "a box that is not on screen holds nothing")
+    s.restore()
 end)
 
 test("Add-by-ID: changing Type redraws the line, so its list is the new kind's", function(t)

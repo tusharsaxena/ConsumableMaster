@@ -504,6 +504,17 @@ local ID_KINDS = {
                 C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)
         end,
         loads   = true,
+        -- The items in the bags, which join this category's candidates. A host
+        -- kind gets no client source from the library, so without these a rank
+        -- the player carries but the tab does not list is neither suggested nor
+        -- counted when two carried ranks share a name.
+        carried = function()
+            local ids = {}
+            local BS = KCM.BagScanner
+            for id in pairs(BS and BS.Scan and BS.Scan() or {}) do ids[#ids + 1] = id end
+            table.sort(ids)
+            return ids
+        end,
         nameHint = L["Names work for items you carry (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link."],
         store   = function(id) return id end,
         fromStored = function(id) return KCM.ID.IsItem(id) and id or nil end,
@@ -593,18 +604,25 @@ end
 
 -- The IDs this category already knows, as the dropdown's kind names them: the
 -- seed, the added and the discovered, less the blocked (Selector.BuildCandidateSet),
--- each turned back from its stored shape. The client cannot search item names,
--- so these are what a name and the suggestions reach beyond the bags: every rank
--- of a crafted potion the category knows, carried or not.
+-- each turned back from its stored shape; then, under Item, the items in the
+-- bags. The client cannot search item names, so the first are what a name and
+-- the suggestions reach beyond the bags: every rank of a crafted potion the
+-- category knows, carried or not. The second make a name two CARRIED ranks
+-- share ambiguous, and list those ranks to pick from, when the tab lists
+-- neither: the library counts the bags only for its own item kind.
 local function addByIDCandidates(cat, specKey)
     return function()
-        local kind, out = addKindOf(cat), {}
+        local kind, out, seen = addKindOf(cat), {}, {}
+        local function take(id)
+            if id and not seen[id] then
+                seen[id] = true
+                out[#out + 1] = id
+            end
+        end
         local Sel = KCM.Selector
         local stored = Sel and Sel.BuildCandidateSet and Sel.BuildCandidateSet(cat.key, specKey)
-        for _, id in ipairs(stored or {}) do
-            local own = kind.fromStored(id)
-            if own then out[#out + 1] = own end
-        end
+        for _, id in ipairs(stored or {}) do take(kind.fromStored(id)) end
+        for _, id in ipairs(kind.carried and kind.carried() or {}) do take(id) end
         return out
     end
 end
@@ -628,16 +646,51 @@ local function addResolvedID(cat, specKey, id)
     end
 end
 
+-- The edit box the last render drew, for O.AddByIDBusy; and the text a Type
+-- change carries across its redraw, by category key, taken by the next render
+-- of that tab.
+local addByIDBox
+local carriedText = {}
+
+-- The line's tooltip. A spec-aware tab with no spec draws no list and resolves
+-- no name, so it neither offers one nor ends in the name hint.
+local function addByIDTooltip(cat, specless)
+    if specless then
+        return L["Enter an itemID or spellID, or shift-click an item or spell link into the box. Press Enter or click Add."]
+            .. " " .. L["With no active spec, this spec-aware category has nowhere to put an entry."]
+    end
+    return L["Enter an itemID or spellID, shift-click an item or spell link into the box, or type a name and pick it from the list. Press Enter or click Add."]
+        .. " " .. addKindOf(cat).nameHint
+end
+
+-- Whether the Add-by-ID box on screen is in use: it has the keys, or it holds
+-- text -- a name being typed, a refused one kept for correcting, or a submitted
+-- one whose lookup is still waiting on the client. settings/Panel.lua holds the
+-- debounced page rebuild while this answers true: a rebuild releases the box,
+-- and the library's OnRelease drops the lookup and clears the text with no word
+-- on the status line. A box that is not visible holds nothing.
+function O.AddByIDBusy()
+    local eb = addByIDBox
+    local frame = eb and eb.frame
+    if not (frame and frame.IsVisible and frame:IsVisible()) then return false end
+    local box = eb.editbox
+    if box and box.HasFocus and box:HasFocus() then return true end
+    local text = eb.GetText and eb:GetText()
+    return type(text) == "string" and text ~= ""
+end
+
 -- Add by ID: the Type dropdown, then LibKa0s-Options-1.0's IdInput line under it
 -- -- an edit box taking an ID, a shift-clicked link or a name, an Add button, and
 -- a status line that says why an entry was refused and keeps the text. As the
--- player types, the library lists the matching IDs this category knows, every
--- rank its own row; a pick goes through the same onAdd. The line never writes a
--- path; onAdd hands the ID to the Selector writer. Changing Type redraws the
--- page a frame later: the list is built once a render, so an item row left
--- under Spell would be filed as a spell.
+-- player types, the library lists the matching IDs this category knows or the
+-- bags carry, every rank its own row; a pick goes through the same onAdd. The
+-- line never writes a path; onAdd hands the ID to the Selector writer. Changing
+-- Type redraws the page a frame later: the list is built once a render, so an
+-- item row left under Spell would be filed as a spell. What was typed rides
+-- across that redraw, which would otherwise hand back an empty box.
 local function renderAddByID(ctx, scroll, cat, specKey)
     local specless = cat.specAware and not specKey
+    local box
     H.Section(ctx, L["Add item or spell by ID"])
     local addRow = newRow(scroll)
     makeDropdown(addRow, {
@@ -649,18 +702,23 @@ local function renderAddByID(ctx, scroll, cat, specKey)
         relativeWidth = 0.4,
         onChange      = function(v)
             O._addKind[cat.key] = v
+            local typed = box and box.GetText and box:GetText()
+            carriedText[cat.key] = type(typed) == "string" and typed ~= "" and typed or nil
             C_Timer.After(0, function() H.RefreshAllPanels() end)
         end,
     })
-    H.IdInput(ctx, scroll, {
+    local _, eb = H.IdInput(ctx, scroll, {
         kind       = addByIDKind(cat, specless),
         candidates = not specless and addByIDCandidates(cat, specKey) or nil,
         label      = L["ID, link or name"],
-        tooltip    = L["Enter an itemID or spellID, shift-click an item or spell link into the box, or type a name and pick it from the list. Press Enter or click Add."]
-            .. " " .. addKindOf(cat).nameHint,
+        tooltip    = addByIDTooltip(cat, specless),
         strings    = specless and NO_SPEC_STRINGS or addByIDStrings(cat),
         onAdd      = function(id) addResolvedID(cat, specKey, id) end,
     })
+    box, addByIDBox = eb, eb
+    local carried = carriedText[cat.key]
+    carriedText[cat.key] = nil
+    if carried and eb and eb.SetText then eb:SetText(carried) end
 end
 
 -- Per-hand picks + affinity (Weapon Enchant only). Computed once up front so both the header
