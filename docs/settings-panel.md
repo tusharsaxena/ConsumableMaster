@@ -451,24 +451,34 @@ not gaps:
      client's own lookup (`C_Spell.GetSpellInfo(name)` / `C_Item.GetItemInfoInstant(name)`), which
      knows an item only if the player carries it or carried it this session. Then a case-insensitive
      exact name over the IDs the category already knows: `Selector.BuildCandidateSet` (seed, added
-     and discovered, less blocked), item IDs under Type=Item and spell IDs under Type=Spell. The
-     client has no item-name search, so a name reaches nothing else. A name two IDs share, such as
-     the three crafted-quality ranks of *Potion of the Hushed Zephyr*, is refused as ambiguous
-     (`Several items share the name '<text>': pick one from the list, or use the ID.`). One rank is
-     never added for the player, and neither are all of them;
+     and discovered, less blocked), item IDs under Type=Item and spell IDs under Type=Spell; under
+     Type=Item the items in the bags (`KCM.BagScanner.Scan`) join them. The client has no item-name
+     search, so a name reaches nothing else. A name two of these IDs share, such as the three
+     crafted-quality ranks of *Potion of the Hushed Zephyr* when the tab lists them or the player
+     carries two, is refused as ambiguous (`Several items share the name '<text>': pick one from the
+     list, or use the ID.`). One rank is never added for the player, and neither are all of them. A
+     rank that is neither listed nor carried is outside the check: with one rank carried and the rest
+     unknown, the client's answer is the only match, and that rank resolves;
   4. the kind's existence check, which every result must pass.
 
   **Suggestions.** As the player types, the library lists up to ten matching IDs from the same
-  candidates under the box, every rank of a shared name its own row, told apart by its gray ID. A
-  host kind gets no crafted-quality tier icon: the library draws that only for its own item kind.
+  candidates under the box, every rank of a shared name its own row, told apart by its gray ID. The
+  rows are the ranks the tab lists or the bags carry, so a refused shared name's list shows those
+  and no others; the library adds no client source for a host kind, which is why the bags are
+  candidates here. A host kind gets no crafted-quality tier icon and no quality color: the library
+  draws those only for its own item kind.
   A click, or Up/Down and Enter, picks a row. The pick goes to the same `onAdd`, which runs the
   kind's existence check again, because a pick skips the resolver. Enter with no row picked
   submits the typed text, so a shared name is still refused. The host kind declares `info` (a
   row's name and icon) and, for items, `loads`, so drawing the line asks the client for up to 200
-  uncached candidates and a typed name waits for them before it is refused. A spec-aware tab with
-  no spec gets no `info` and no candidates, so no list goes up. Changing **Type** redraws the page a
-  frame later: the list is built once per render, and an item row left under Spell would be filed
-  as a spell. The tooltip and `notFound` end in the kind's hint, `Names work for items you carry
+  uncached candidates and a typed name waits for them before it is refused (up to about two seconds
+  when one never loads). A spec-aware tab with no spec gets no `info` and no candidates, so no list
+  goes up, and its tooltip offers no list and no name hint: it says a spec is missing. Changing
+  **Type** redraws the page a frame later: the list is built once per render, and an item row left
+  under Spell would be filed as a spell. The typed text is carried across that redraw. While the box
+  has focus or holds text (`O.AddByIDBusy`), the debounced page rebuild (`PANEL_REFRESH`) waits,
+  because a rebuild releases the box and the library's `OnRelease` would drop a pending lookup and
+  clear the text without a word. The tooltip and `notFound` end in the kind's hint, `Names work for items you carry
   (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link.`
   (the spell hint names the spellbook).
 

@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_addbyid.lua (7)
+### test_addbyid.lua (13)
 
 - Add-by-ID: typing lists the category's candidates, every rank of a shared name its own row
 - Add-by-ID: a name the client cannot look up resolves through the category's candidates
@@ -14,6 +14,12 @@ badge and any count quoted in the docs must agree with it.
 - Add-by-ID: a shared name lists every rank, and Enter without a pick is refused
 - Add-by-ID: the tooltip and the refusals say where a name can come from
 - Add-by-ID: a spec-aware tab with no spec suggests nothing
+- Add-by-ID: a spec-aware tab with no spec promises no list and no name hint
+- Add-by-ID: onAdd re-checks existence, since a pick skips the resolver
+- Add-by-ID: the candidates are the Type's own kind, turned back from their stored shape
+- Add-by-ID: ranks the player carries are one shared name too, listed to pick from
+- Add-by-ID: changing Type keeps what was typed across the redraw
+- Add-by-ID: a debounced page rebuild waits while the box is in use
 - Add-by-ID: changing Type redraws the line, so its list is the new kind's
 
 ### test_bagscanner.lua (12)
@@ -1039,7 +1045,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_addbyid.lua | 7 |
+| test_addbyid.lua | 13 |
 | test_bagscanner.lua | 12 |
 | test_bulklog.lua | 14 |
 | test_bus.lua | 11 |
@@ -1086,4 +1092,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **888** |
+| **Total** | **894** |
