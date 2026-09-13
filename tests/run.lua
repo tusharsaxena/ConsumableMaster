@@ -423,6 +423,7 @@ _G.KCM_TEST = KCM_TEST
 -- — it registers as a SKIP rather than as nothing, and declaring `pending` on a
 -- file that does exist is itself an error.
 local SUITES = {
+    "test_addbyid",
     "test_bagscanner",
     "test_bulklog",
     "test_bus",

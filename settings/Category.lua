@@ -9,7 +9,8 @@
 --   1. KCMMacroDragIcon row.
 --   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
 --   3. Section "Add item or spell by ID" — Type dropdown, then LibKa0s-Options-1.0's
---      IdInput line: an ID, a shift-clicked link or a name | Add, over a status line.
+--      IdInput line: an ID, a shift-clicked link or a name | Add, over a status line,
+--      with a list of the category's matching IDs under the box as the player types.
 --   4. Section "Priority list" — legend label + one row per item:
 --        drag handle | KCMItemRow | KCMScoreButton | X
 --      The handle drags the row to a new priority. The gesture is
@@ -467,9 +468,17 @@ local ID_KINDS = {
         noun    = L["spell"],
         plural  = L["spells"],
         exists  = function(id) return spellNameByID(id) end,
+        -- A suggestion row, and a name among the candidates, are read through this.
+        info    = function(id)
+            return spellNameByID(id),
+                C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(id)
+        end,
+        nameHint = L["Names work for spells in your spellbook and ones this list knows; otherwise use the ID or shift-click a link."],
         -- Spell IDs go in through the opaque sentinel, never raw, or they
         -- collide with itemIDs.
         store   = function(id) return KCM.ID.AsSpell(id) end,
+        -- The other way: a stored entry back to a spellID, or nil for an item.
+        fromStored = function(id) return KCM.ID.SpellID(id) end,
         -- Shift-clicking a spell out of a spellbook pastes a spell link. Parsed
         -- here rather than in a shared helper because the two kinds' links are
         -- different strings, and this table is where a kind's differences live.
@@ -487,7 +496,17 @@ local ID_KINDS = {
             return not (C_Item and C_Item.GetItemInfoInstant)
                 or C_Item.GetItemInfoInstant(id)
         end,
+        -- GetItemNameByID needs the client's cache, which the library's pre-warm
+        -- fills for the candidates (`loads`); the icon needs none.
+        info    = function(id)
+            if not C_Item then return nil end
+            return C_Item.GetItemNameByID and C_Item.GetItemNameByID(id),
+                C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)
+        end,
+        loads   = true,
+        nameHint = L["Names work for items you carry (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link."],
         store   = function(id) return id end,
+        fromStored = function(id) return KCM.ID.IsItem(id) and id or nil end,
         -- The library's primitive, through the KCM.Item seam so a degraded install
         -- behaves the same. It matches the link's own `item:<id>` segment, so it is
         -- locale-independent and takes a bare itemString as happily as a full link.
@@ -501,13 +520,28 @@ local function addKindOf(cat)
 end
 
 -- The line's words, through L. Handed to the library as VALUES, never as KCM.L
--- itself (LIBKA0S-05, "the L trap"). `{noun}` and `{text}` are the library's
--- tokens, filled from the kind below and from what was typed.
+-- itself (LIBKA0S-05, "the L trap"). `{noun}`, `{plural}`, `{text}`, `{count}`
+-- and `{hint}` are the library's tokens, filled from the kind below, from what
+-- was typed, and from `nameHint`. notFound ends in the hint because the client
+-- has no item-name search: a name reaches only what the player carries (or
+-- carried this session) and the IDs this category already knows.
 local ADD_BY_ID_STRINGS = {
-    add      = L["Add"],
-    empty    = L["Type an ID, a link or a name."],
-    notFound = L["No {noun} matches '{text}'."],
+    add       = L["Add"],
+    empty     = L["Type an ID, a link or a name."],
+    notFound  = L["No {noun} matches '{text}'. {hint}"],
+    ambiguous = L["Several {plural} share the name '{text}': pick one from the list, or use the ID."],
+    looking   = L["Looking up {plural}..."],
+    more      = L["+{count} more"],
 }
+
+-- The words the library reads by key, with the hint read off whichever kind
+-- the Type dropdown names when a refusal is written.
+local function addByIDStrings(cat)
+    return setmetatable({}, { __index = function(_, key)
+        if key == "nameHint" then return addKindOf(cat).nameHint end
+        return ADD_BY_ID_STRINGS[key]
+    end })
+end
 
 -- The same line on a spec-aware tab with no spec to file under. The library
 -- clamps a host resolver's reason to its own three, so the refusal is its
@@ -522,32 +556,57 @@ local NO_SPEC_STRINGS = {
 -- reason. With no spec to file under, every entry is refused here, before the
 -- id line treats it as added: a refusal keeps the typed text, an add clears it.
 -- Then digits -- a bare number is unambiguous and must never reach a
--- link matcher -- then the kind's own link parser, then the client's name lookup
--- through LibKa0s-Options-1.0's ResolveId. Whatever is found must pass the kind's
+-- link matcher -- then the kind's own link parser, then a name, through
+-- LibKa0s-Options-1.0's ResolveId: the client's lookup, and the category's own
+-- candidates by name. A name several of them share is "ambiguous", so one
+-- crafted-quality rank is never added for the player. Whatever is found must pass the kind's
 -- existence check, so an ID the client does not know is refused however it was
 -- typed, and a link of the other kind is never cross-filed: an item link read as
 -- a spell would file an itemID behind the opaque sentinel.
-local function resolveAddByID(cat, text, specless)
+local function resolveAddByID(cat, text, specless, candidates)
     if specless then return nil, "notFound" end
     local kind = addKindOf(cat)
     local id = tonumber(text:match("^%d+$")) or kind.fromLink(text)
     local name
     if not id then
-        id, name = H.ResolveId(kind.lookup, text)
+        id, name = H.ResolveId(kind.lookup, text, candidates)
         if not id then return nil, name end
     end
     if id <= 0 or not kind.exists(id) then return nil, "notFound" end
     return id, name
 end
 
--- The IdInput kind: this addon's resolver, with the noun its messages use read
--- off whichever kind the dropdown names at the moment of the add. A metatable
--- rather than a redraw on every dropdown change, because the dropdown's onChange
--- stores the choice and nothing else.
+-- The IdInput kind: this addon's resolver, with the noun, the `info` its
+-- suggestion rows are named through and `loads` read off whichever kind the
+-- dropdown names at the moment they are read. A spec-aware tab with no spec has
+-- no `info`, so no list goes up: a picked row goes straight to onAdd, past the
+-- resolver that refuses every entry there.
 local function addByIDKind(cat, specless)
-    return setmetatable({
-        resolve = function(text) return resolveAddByID(cat, text, specless) end,
-    }, { __index = function(_, key) return addKindOf(cat)[key] end })
+    local own = {
+        resolve = function(text, candidates)
+            return resolveAddByID(cat, text, specless, candidates)
+        end,
+    }
+    if specless then own.info, own.loads = false, false end
+    return setmetatable(own, { __index = function(_, key) return addKindOf(cat)[key] end })
+end
+
+-- The IDs this category already knows, as the dropdown's kind names them: the
+-- seed, the added and the discovered, less the blocked (Selector.BuildCandidateSet),
+-- each turned back from its stored shape. The client cannot search item names,
+-- so these are what a name and the suggestions reach beyond the bags: every rank
+-- of a crafted potion the category knows, carried or not.
+local function addByIDCandidates(cat, specKey)
+    return function()
+        local kind, out = addKindOf(cat), {}
+        local Sel = KCM.Selector
+        local stored = Sel and Sel.BuildCandidateSet and Sel.BuildCandidateSet(cat.key, specKey)
+        for _, id in ipairs(stored or {}) do
+            local own = kind.fromStored(id)
+            if own then out[#out + 1] = own end
+        end
+        return out
+    end
 end
 
 -- The resolved ID into the category, through Selector.AddItem as ever. The page
@@ -557,10 +616,13 @@ end
 -- BEFORE onAdd and touches neither after a clean one, so the wait is no longer
 -- load-bearing; it is kept, and pinned by its test, as the shape that is safe
 -- under either order. A spec-aware tab with no spec never gets here: its
--- resolver refuses first.
+-- resolver refuses first, and it draws no suggestions. A picked suggestion
+-- arrives without the resolver, so the kind's existence check runs here too.
 local function addResolvedID(cat, specKey, id)
+    local kind = addKindOf(cat)
+    if type(id) ~= "number" or id <= 0 or not kind.exists(id) then return end
     local changed = KCM.Selector and KCM.Selector.AddItem
-        and KCM.Selector.AddItem(cat.key, addKindOf(cat).store(id), specKey)
+        and KCM.Selector.AddItem(cat.key, kind.store(id), specKey)
     if changed then
         C_Timer.After(0, function() afterMutation("options_add_item") end)
     end
@@ -568,8 +630,12 @@ end
 
 -- Add by ID: the Type dropdown, then LibKa0s-Options-1.0's IdInput line under it
 -- -- an edit box taking an ID, a shift-clicked link or a name, an Add button, and
--- a status line that says why an entry was refused and keeps the text. The line
--- never writes a path; onAdd hands the ID to the Selector writer.
+-- a status line that says why an entry was refused and keeps the text. As the
+-- player types, the library lists the matching IDs this category knows, every
+-- rank its own row; a pick goes through the same onAdd. The line never writes a
+-- path; onAdd hands the ID to the Selector writer. Changing Type redraws the
+-- page a frame later: the list is built once a render, so an item row left
+-- under Spell would be filed as a spell.
 local function renderAddByID(ctx, scroll, cat, specKey)
     local specless = cat.specAware and not specKey
     H.Section(ctx, L["Add item or spell by ID"])
@@ -583,14 +649,17 @@ local function renderAddByID(ctx, scroll, cat, specKey)
         relativeWidth = 0.4,
         onChange      = function(v)
             O._addKind[cat.key] = v
+            C_Timer.After(0, function() H.RefreshAllPanels() end)
         end,
     })
     H.IdInput(ctx, scroll, {
-        kind    = addByIDKind(cat, specless),
-        label   = L["ID, link or name"],
-        tooltip = L["Enter an itemID or spellID, shift-click an item or spell link into the box, or type the name of one the game already knows. Press Enter or click Add."],
-        strings = specless and NO_SPEC_STRINGS or ADD_BY_ID_STRINGS,
-        onAdd   = function(id) addResolvedID(cat, specKey, id) end,
+        kind       = addByIDKind(cat, specless),
+        candidates = not specless and addByIDCandidates(cat, specKey) or nil,
+        label      = L["ID, link or name"],
+        tooltip    = L["Enter an itemID or spellID, shift-click an item or spell link into the box, or type a name and pick it from the list. Press Enter or click Add."]
+            .. " " .. addKindOf(cat).nameHint,
+        strings    = specless and NO_SPEC_STRINGS or addByIDStrings(cat),
+        onAdd      = function(id) addResolvedID(cat, specKey, id) end,
     })
 end
 
