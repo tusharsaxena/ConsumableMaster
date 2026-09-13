@@ -438,14 +438,27 @@ not gaps:
   The **per-spec stat priorities** used to sit here too. They are a preference, not a registry, so
   since 2026-09-12 they are one whole-value row, `statPriority`, still edited by the page's own
   list and dropdown ([#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35)).
-- The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua`)
-  tries digits first — a bare number is unambiguous and must never reach a link matcher — then the
-  selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is accepted as
-  readily as a typed ID. ITEM goes through the `KCM.Item` seam onto `LibKa0s-Item-1.0`'s
-  `ItemIDFromLink`; SPELL parses the spell link it alone can receive. A link of the *wrong* kind is
-  refused rather than cross-filed, because an item link parsed as a spell would store an itemID
-  behind the opaque spell sentinel and collide with a real spell ID. Every rejection says why and
-  keeps the typed text.
+- The **Add-by-ID line** takes free text, not a scalar. It is `LibKa0s-Options-1.0`'s `IdInput`
+  (minor 16): an edit box, an **Add** button and a status line under both, drawn under the page's own
+  **Type** dropdown (Item / Spell). The widget never writes a path. `settings/Category.lua` hands it
+  a host kind whose `resolve` is `resolveAddByID`, which reads the dropdown at the moment of the add
+  and tries four things in order:
+  1. digits (a bare number is unambiguous and must never reach a link matcher);
+  2. the selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is
+     accepted as readily as a typed ID. ITEM goes through the `KCM.Item` seam onto
+     `LibKa0s-Item-1.0`'s `ItemIDFromLink`; SPELL parses the spell link it alone can receive;
+  3. the client's **name** lookup, through the library's `ResolveId` (`C_Spell.GetSpellInfo(name)` /
+     `C_Item.GetItemInfoInstant(name)`). An item's name resolves only once the client has cached
+     that item;
+  4. the kind's existence check, which every result must pass.
+
+  `onAdd` stores a spell through `KCM.ID.AsSpell` and hands the ID to `Selector.AddItem`, so the
+  stored shape (`added[id] = true`, spells negative) is what it always was. A link of the *wrong*
+  kind is refused rather than cross-filed, because an item link read as a spell would store an
+  itemID behind the opaque spell sentinel and collide with a real spell ID. A refusal says why on the
+  status line (`No item matches '<text>'.`) and keeps the typed text. The page rebuild after an add
+  waits a frame (`C_Timer.After(0, …)`): the widget clears its edit box and status line after `onAdd`
+  returns, and a rebuild inside `onAdd` would already have released both to AceGUI's pool.
 - The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and
   `settings/Panel.lua`'s `SESSION_PATHS` resolves its `state.debugConsole` path to the console
   window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare

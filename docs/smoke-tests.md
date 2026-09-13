@@ -362,24 +362,25 @@ Tests: the banner's spec picker drives the spec-aware editor and the spec-aware 
 
 ### 9. Settings panel — Macros, a single category
 
-Tests: drag icon, Add by ID (item + spell), priority list (drag to reorder, X), score tooltip.
+Tests: drag icon, Add by ID (item + spell; ID, link or name), priority list (drag to reorder, X), score tooltip.
 
 1. Open the Macros page and pick any single-category tab (e.g. **Healing Potion**).
 2. Drag the macro icon at the top onto an action bar. Confirm placement worked (Blizzard `PlaceAction` drop — taint-free).
    - **In combat:** the drag is refused with `[CM] in combat — drag a macro to an action bar once combat ends.` and no Lua error. `PickupMacro` is protected; the same guard covers the macro-bar slots.
-3. Add by ID — Type=Item, paste an item ID you don't own (e.g. an old-tier potion). Press Enter. The row appears in the priority list with the red-X "not owned" glyph.
-4. Add by ID — Type=Spell, paste a spell ID (e.g. `1231411` for Recuperate, only valid on Rogues). Press Enter. The row appears with the spell name and icon. On a non-Rogue: validation rejects with `[CM] unknown spellID`.
-5. Submit an invalid ID (e.g. `99999999`). Validation rejects; the typed text persists in the EditBox so you can correct without re-typing.
-6. **Drag a row by its handle** — the icon where the up/down arrows used to be. Throughout the drag a **copy of the row follows the cursor**, the row it came from **fades**, and a **gold insertion line** sits where it will land. Drop it: pinning takes effect immediately, and the macro body updates if the move changes the owned-item walk.
+3. Add by ID — Type=Item, paste an item ID you don't own (e.g. an old-tier potion). Press Enter. The row appears in the priority list with the red-X "not owned" glyph, and the box empties.
+4. Add by ID — Type=Spell, paste a spell ID (e.g. `1231411` for Recuperate, only valid on Rogues) and click **Add** instead of pressing Enter. The row appears with the spell name and icon. On a non-Rogue: the status line under the box reads `No spell matches '1231411'.` and nothing reaches chat.
+5. Add by **name** — Type=Item, type the exact name of a potion in your bags (e.g. the one already on the list, after removing it with × first). Press Enter. It resolves to the same row. Then Type=Spell, type a class ability's name (e.g. `Recuperate` on a Rogue): the row appears. A name the client has not seen yet (an item you never looted this session) is refused with `No item matches '<name>'.`; that is the client's cache, not a bug.
+6. Submit an invalid ID (e.g. `99999999`), and an item link with Type=Spell. Each is refused on the status line; the typed text stays in the box so you can correct it without re-typing. Right after a successful add, check the **legend** and the section headings are all still worded: a blank one is the page rebuild having reached a widget the Add line was still clearing.
+7. **Drag a row by its handle** — the icon where the up/down arrows used to be. Throughout the drag a **copy of the row follows the cursor**, the row it came from **fades**, and a **gold insertion line** sits where it will land. Drop it: pinning takes effect immediately, and the macro body updates if the move changes the owned-item walk.
    - **Drag it several rows, not one.** The rows it passes must each shift by exactly one and keep their own order. A list that comes back scrambled means the move is being applied as a run of swaps rather than as one `Selector.MoveTo` — which is what the arrows did, and is indistinguishable from a real move until you drag past more than one row.
    - Drop it back where it started: nothing is written, and the macro is not rebuilt.
    - **On a list long enough to scroll, scroll down first and then drag.** The list must stay where you left it — both immediately and about a second later, when the macro pipeline repaints a second time. A jump back to the top means the scroll offset is not being carried across the rebuild.
    - The handle is the only part of the row that drags. Pressing the item name, the info button or the X must not start one.
    - **After every drag, and after clicking Defaults, scan the WHOLE page for stray handles.** A handle may only ever appear at the left edge of a priority row — never beside *Drag to action bar*, never on the *Add item or spell by ID* row, never on a dropdown, never below *Reset category*. One that turns up there is a handle that outlived its render and rode a pooled container into an unrelated widget. `/cm debug` prints `[Prio] paint <cat> rows=N` per repaint and `[Prio] released N handles`; the two counts should track.
-7. Click the blue info button — tooltip shows the per-item score breakdown from `Ranker.Explain`. Numbers should match `/cm dump pick <cat>` exactly.
-8. Click X on a row — item removed from priority list AND added to the blocked set (auto-discovery won't re-add).
-9. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved. The top-right **Defaults** button opens the same confirmation.
-10. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
+8. Click the blue info button — tooltip shows the per-item score breakdown from `Ranker.Explain`. Numbers should match `/cm dump pick <cat>` exactly.
+9. Click X on a row — item removed from priority list AND added to the blocked set (auto-discovery won't re-add).
+10. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved. The top-right **Defaults** button opens the same confirmation.
+11. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
 
 ### 9a. Cross-addon — the drag feels the same in both addons
 
@@ -620,7 +621,7 @@ Rename it back and `/reload`.
 | BagScanner | §2 |
 | Selector mutators | §9 (priority list buttons), §11 (`/cm priority`) |
 | MacroManager body builders | §3, §4 |
-| Weapon Enchant (`core/WeaponSlots.lua`, per-hand pick) | §3a, §3c step 4, §9 step 10 |
+| Weapon Enchant (`core/WeaponSlots.lua`, per-hand pick) | §3a, §3c step 4, §9 step 11 |
 | Augment Rune (`isAugmentRune` marker, reusable tiebreak) | §3b, §9 |
 | Pipeline / events | §1 (boot), §5 (spec change), §6 (combat) |
 | Schema rows | §7 (toggle in panel), §11 (`/cm list`/`get`/`set`) |
