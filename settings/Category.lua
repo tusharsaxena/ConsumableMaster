@@ -551,10 +551,13 @@ local function addByIDKind(cat, specless)
 end
 
 -- The resolved ID into the category, through Selector.AddItem as ever. The page
--- rebuild waits a frame: IdInput clears its edit box and status line AFTER onAdd
--- returns, and a rebuild inside onAdd would already have released both into
--- AceGUI's pool, where the page drawn in their place may have taken them. A
--- spec-aware tab with no spec never gets here: its resolver refuses first.
+-- rebuild waits a frame. It was written for the IdInput that cleared its edit box
+-- and status line AFTER onAdd returned, onto widgets a rebuild inside onAdd had
+-- already released into AceGUI's pool. Since LibKa0s v1.35.0 IdInput clears both
+-- BEFORE onAdd and touches neither after a clean one, so the wait is no longer
+-- load-bearing; it is kept, and pinned by its test, as the shape that is safe
+-- under either order. A spec-aware tab with no spec never gets here: its
+-- resolver refuses first.
 local function addResolvedID(cat, specKey, id)
     local changed = KCM.Selector and KCM.Selector.AddItem
         and KCM.Selector.AddItem(cat.key, addKindOf(cat).store(id), specKey)

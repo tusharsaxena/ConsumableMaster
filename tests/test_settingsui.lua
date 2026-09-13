@@ -907,9 +907,10 @@ end)
 
 test("Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets",
     function(t)
-        -- red under: afterMutation called inline in onAdd. The rebuild releases the edit box and
-        -- the status label the library clears once onAdd returns, and AceGUI pools them, so the
-        -- clear would land on widgets that may already belong to the page drawn in their place.
+        -- red under: afterMutation called inline in onAdd. Through LibKa0s v1.34.0 the library
+        -- cleared the edit box and the status label once onAdd returned, onto widgets the rebuild
+        -- had already released to AceGUI's pool. v1.35.0 clears both before onAdd, so the box is
+        -- already empty here either way; the deferral stays pinned as the order safe under both.
         local KCM = loadCategorySettings()
         seedAddables()
         local line = renderAddByIDLine(KCM, "HP_POT")
@@ -952,7 +953,7 @@ end)
 test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line",
     function(t)
         -- red under: the spec check made in onAdd. onAdd returning normally is a success to the
-        -- id line, which then clears the box and the status line, so a valid ID was wiped and
+        -- id line, which has already cleared the box and the status line, so a valid ID was wiped and
         -- the reason went to chat, the one place the line's own refusals never go.
         local KCM = loadCategorySettings()
         local mock = loader.mock

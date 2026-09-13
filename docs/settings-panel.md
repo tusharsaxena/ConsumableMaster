@@ -459,10 +459,12 @@ not gaps:
   status line (`No item matches '<text>'.`) and keeps the typed text. A spec-aware tab with no
   active spec refuses every entry the same way, in the resolver and before anything is looked up
   (`No active spec, so this spec-aware category has nowhere to put '<text>'.`), so the text stays
-  there too. A check made in `onAdd` would come too late: the widget reads `onAdd` returning as a
-  success and clears the box. The page rebuild after an add
-  waits a frame (`C_Timer.After(0, …)`): the widget clears its edit box and status line after `onAdd`
-  returns, and a rebuild inside `onAdd` would already have released both to AceGUI's pool.
+  there too. A check made in `onAdd` would come too late: the widget has already cleared the box
+  before `onAdd` runs, and reads `onAdd` returning as a success. The page rebuild after an add
+  waits a frame (`C_Timer.After(0, …)`). Through LibKa0s v1.34.0 the widget cleared its edit box and
+  status line after `onAdd` returned, onto widgets a rebuild inside `onAdd` had already released to
+  AceGUI's pool. Since v1.35.0 it clears both before `onAdd` and touches neither after a clean one,
+  so the wait is no longer load-bearing. It is kept as the order that is safe under either behavior.
 - The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and
   `settings/Panel.lua`'s `SESSION_PATHS` resolves its `state.debugConsole` path to the console
   window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare
