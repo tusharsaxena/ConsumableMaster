@@ -447,16 +447,36 @@ not gaps:
   2. the selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is
      accepted as readily as a typed ID. ITEM goes through the `KCM.Item` seam onto
      `LibKa0s-Item-1.0`'s `ItemIDFromLink`; SPELL parses the spell link it alone can receive;
-  3. the client's **name** lookup, through the library's `ResolveId` (`C_Spell.GetSpellInfo(name)` /
-     `C_Item.GetItemInfoInstant(name)`). An item's name resolves only once the client has cached
-     that item;
+  3. a **name**, through the library's `ResolveId` with this category's **candidates**. First the
+     client's own lookup (`C_Spell.GetSpellInfo(name)` / `C_Item.GetItemInfoInstant(name)`), which
+     knows an item only if the player carries it or carried it this session. Then a case-insensitive
+     exact name over the IDs the category already knows: `Selector.BuildCandidateSet` (seed, added
+     and discovered, less blocked), item IDs under Type=Item and spell IDs under Type=Spell. The
+     client has no item-name search, so a name reaches nothing else. A name two IDs share, such as
+     the three crafted-quality ranks of *Potion of the Hushed Zephyr*, is refused as ambiguous
+     (`Several items share the name '<text>': pick one from the list, or use the ID.`). One rank is
+     never added for the player, and neither are all of them;
   4. the kind's existence check, which every result must pass.
+
+  **Suggestions.** As the player types, the library lists up to ten matching IDs from the same
+  candidates under the box, every rank of a shared name its own row, told apart by its gray ID. A
+  host kind gets no crafted-quality tier icon: the library draws that only for its own item kind.
+  A click, or Up/Down and Enter, picks a row. The pick goes to the same `onAdd`, which runs the
+  kind's existence check again, because a pick skips the resolver. Enter with no row picked
+  submits the typed text, so a shared name is still refused. The host kind declares `info` (a
+  row's name and icon) and, for items, `loads`, so drawing the line asks the client for up to 200
+  uncached candidates and a typed name waits for them before it is refused. A spec-aware tab with
+  no spec gets no `info` and no candidates, so no list goes up. Changing **Type** redraws the page a
+  frame later: the list is built once per render, and an item row left under Spell would be filed
+  as a spell. The tooltip and `notFound` end in the kind's hint, `Names work for items you carry
+  (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link.`
+  (the spell hint names the spellbook).
 
   `onAdd` stores a spell through `KCM.ID.AsSpell` and hands the ID to `Selector.AddItem`, so the
   stored shape (`added[id] = true`, spells negative) is what it always was. A link of the *wrong*
   kind is refused rather than cross-filed, because an item link read as a spell would store an
   itemID behind the opaque spell sentinel and collide with a real spell ID. A refusal says why on the
-  status line (`No item matches '<text>'.`) and keeps the typed text. A spec-aware tab with no
+  status line (`No item matches '<text>'.` followed by the kind's hint) and keeps the typed text. A spec-aware tab with no
   active spec refuses every entry the same way, in the resolver and before anything is looked up
   (`No active spec, so this spec-aware category has nowhere to put '<text>'.`), so the text stays
   there too. A check made in `onAdd` would come too late: the widget has already cleared the box
