@@ -17,6 +17,9 @@
 --     with the client's ("ConsumableMaster", NS) vararg (was tests/loader.lua);
 --   * tests/_kit/mock_base.lua — the universal half of the WoW mock, extended
 --     by this addon's own tests/wow_mock.lua.
+-- A fourth is opted into: tests/_kit/mock_ids.lua (kit revision 20), the id
+-- lookups behind the Add-by-ID line's name and link path, handed to
+-- tests/wow_mock.lua so this file stays the one reference to each kit file.
 -- Never edit tests/_kit/ here: a kit problem is a finding to fix in LibKa0s and
 -- re-vendor, and tests/test_vendor_sync.lua fails on a local patch.
 --
@@ -35,7 +38,8 @@ _G.KCM_TEST_ROOT = ROOT
 local Kit      = dofile(ROOT .. "/tests/_kit/framework.lua")
 local Loader   = dofile(ROOT .. "/tests/_kit/loader.lua")
 local mockBase = dofile(ROOT .. "/tests/_kit/mock_base.lua")
-local mock     = dofile(ROOT .. "/tests/wow_mock.lua")(mockBase)
+local mockIds  = dofile(ROOT .. "/tests/_kit/mock_ids.lua")
+local mock     = dofile(ROOT .. "/tests/wow_mock.lua")(mockBase, mockIds)
 
 local ADDON_NAME = "ConsumableMaster"
 

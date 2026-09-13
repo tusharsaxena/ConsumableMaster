@@ -269,9 +269,6 @@ local RESIDUE = {
 
     -- settings/Category.lua
     {"settings/Category.lua", "icon-button onClick failed: ", "DIAGNOSTIC"},
-    {"settings/Category.lua", "unknown spellID: ", "NOT YET ROUTED"},
-    {"settings/Category.lua", "unknown itemID: ", "NOT YET ROUTED"},
-    {"settings/Category.lua", "expected a positive numeric ID or a pasted link; got: ", "NOT YET ROUTED"},
     {"settings/Category.lua", "spec-aware category: no active spec — can't add.", "NOT YET ROUTED"},
 
     -- settings/Slash.lua — the seventeen verb descriptions and their replies.

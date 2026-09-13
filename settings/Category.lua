@@ -8,7 +8,8 @@
 -- Single category layout:
 --   1. KCMMacroDragIcon row.
 --   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
---   3. Section "Add item or spell by ID" — Type dropdown | ID input (paired).
+--   3. Section "Add item or spell by ID" — Type dropdown, then LibKa0s-Options-1.0's
+--      IdInput line: an ID, a shift-clicked link or a name | Add, over a status line.
 --   4. Section "Priority list" — legend label + one row per item:
 --        drag handle | KCMItemRow | KCMScoreButton | X
 --      The handle drags the row to a new priority. The gesture is
@@ -404,31 +405,6 @@ local function makeDropdown(parent, opts)
     return dd
 end
 
-local function makeEditBox(parent, opts)
-    local eb = AceGUI:Create("EditBox")
-    if opts.label then eb:SetLabel(opts.label) end
-    if opts.relativeWidth then eb:SetRelativeWidth(opts.relativeWidth)
-    elseif opts.width    then eb:SetWidth(opts.width)
-    else                       eb:SetFullWidth(true) end
-    if opts.maxLetters and eb.editbox and eb.editbox.SetMaxLetters then
-        eb.editbox:SetMaxLetters(opts.maxLetters)
-    end
-    if opts.onSubmit then
-        -- A successful submit triggers afterMutation → RefreshAllPanels →
-        -- ResetScroll, which releases this very widget. SetText after the
-        -- handler would be a use-after-release. Skip it: the rebuilt
-        -- panel's fresh EditBox starts empty, which is what we want.
-        -- On validation failure (no rebuild), the typed text deliberately
-        -- persists so the user can fix the typo without re-typing.
-        eb:SetCallback("OnEnterPressed", function(_, _, v)
-            opts.onSubmit(v)
-        end)
-    end
-    if opts.tooltip then H.AttachTooltip(eb, opts.label, opts.tooltip) end
-    parent:AddChild(eb)
-    return eb
-end
-
 local function makeCheckbox(parent, opts)
     local cb = AceGUI:Create("CheckBox")
     cb:SetLabel(opts.label or "")
@@ -481,13 +457,16 @@ local function renderCategoryHeader(ctx, scroll, cat, specKey)
     end
 end
 
--- What the Type dropdown's two choices mean to the validator: how to prove the
--- ID exists, what to say when it doesn't, and how to store it. Module-level, so
--- a third kind is one table entry rather than another elseif arm.
+-- What the Type dropdown's two choices mean to the add-by-ID line: which of
+-- LibKa0s-Options-1.0's kinds looks a name up, the words its messages use, how to
+-- prove an ID exists, and how to store it. Module-level, so a third kind is one
+-- table entry rather than another elseif arm.
 local ID_KINDS = {
     SPELL = {
+        lookup  = "spell",
+        noun    = L["spell"],
+        plural  = L["spells"],
         exists  = function(id) return spellNameByID(id) end,
-        unknown = "unknown spellID: ",
         -- Spell IDs go in through the opaque sentinel, never raw, or they
         -- collide with itemIDs.
         store   = function(id) return KCM.ID.AsSpell(id) end,
@@ -499,13 +478,15 @@ local ID_KINDS = {
         end,
     },
     ITEM = {
+        lookup  = "item",
+        noun    = L["item"],
+        plural  = L["items"],
         -- Classic/Midnight safety: reject only when the API is PRESENT and says
         -- it doesn't know the ID. An absent API passes the check.
         exists  = function(id)
             return not (C_Item and C_Item.GetItemInfoInstant)
                 or C_Item.GetItemInfoInstant(id)
         end,
-        unknown = "unknown itemID: ",
         store   = function(id) return id end,
         -- The library's primitive, through the KCM.Item seam so a degraded install
         -- behaves the same. It matches the link's own `item:<id>` segment, so it is
@@ -514,35 +495,69 @@ local ID_KINDS = {
     },
 }
 
--- Validate one typed ID and seed it into the category. Every rejection path says why and
--- stops; only a fully-resolved ID reaches Selector.AddItem.
-local function submitAddByID(cat, specKey, text)
-    local kind = ID_KINDS[O._addKind[cat.key] or "ITEM"] or ID_KINDS.ITEM
-    -- Digits first, then the kind's own link parser. Shift-clicking an item out of
-    -- the bags is the natural gesture for "add this one" and it pastes a full link,
-    -- which this box used to reject with "expected a positive numeric ID" — an
-    -- answer that is true and useless. The order matters: a bare number is
-    -- unambiguous and must never be run through a link matcher.
-    local id = tonumber(text) or (kind.fromLink and kind.fromLink(text))
-    if not id or id <= 0 then
-        KCM.Say("expected a positive numeric ID or a pasted link; got: " .. tostring(text))
-        return
+-- The kind the Type dropdown names for this category right now.
+local function addKindOf(cat)
+    return ID_KINDS[O._addKind[cat.key] or "ITEM"] or ID_KINDS.ITEM
+end
+
+-- The line's words, through L. Handed to the library as VALUES, never as KCM.L
+-- itself (LIBKA0S-05, "the L trap"). `{noun}` and `{text}` are the library's
+-- tokens, filled from the kind below and from what was typed.
+local ADD_BY_ID_STRINGS = {
+    add      = L["Add"],
+    empty    = L["Type an ID, a link or a name."],
+    notFound = L["No {noun} matches '{text}'."],
+}
+
+-- Typed text to an ID of the kind the dropdown names, or nil and the library's
+-- reason. Digits first -- a bare number is unambiguous and must never reach a
+-- link matcher -- then the kind's own link parser, then the client's name lookup
+-- through LibKa0s-Options-1.0's ResolveId. Whatever is found must pass the kind's
+-- existence check, so an ID the client does not know is refused however it was
+-- typed, and a link of the other kind is never cross-filed: an item link read as
+-- a spell would file an itemID behind the opaque sentinel.
+local function resolveAddByID(cat, text)
+    local kind = addKindOf(cat)
+    local id = tonumber(text:match("^%d+$")) or kind.fromLink(text)
+    local name
+    if not id then
+        id, name = H.ResolveId(kind.lookup, text)
+        if not id then return nil, name end
     end
-    if not kind.exists(id) then
-        KCM.Say(kind.unknown .. id)
-        return
-    end
+    if id <= 0 or not kind.exists(id) then return nil, "notFound" end
+    return id, name
+end
+
+-- The IdInput kind: this addon's resolver, with the noun its messages use read
+-- off whichever kind the dropdown names at the moment of the add. A metatable
+-- rather than a redraw on every dropdown change, because the dropdown's onChange
+-- stores the choice and nothing else.
+local function addByIDKind(cat)
+    return setmetatable({
+        resolve = function(text) return resolveAddByID(cat, text) end,
+    }, { __index = function(_, key) return addKindOf(cat)[key] end })
+end
+
+-- The resolved ID into the category, through Selector.AddItem as ever. The page
+-- rebuild waits a frame: IdInput clears its edit box and status line AFTER onAdd
+-- returns, and a rebuild inside onAdd would already have released both into
+-- AceGUI's pool, where the page drawn in their place may have taken them.
+local function addResolvedID(cat, specKey, id)
     if cat.specAware and not specKey then
         KCM.Say("spec-aware category: no active spec — can't add.")
         return
     end
-    local storedID = kind.store(id)
     local changed = KCM.Selector and KCM.Selector.AddItem
-        and KCM.Selector.AddItem(cat.key, storedID, specKey)
-    if changed then afterMutation("options_add_item") end
+        and KCM.Selector.AddItem(cat.key, addKindOf(cat).store(id), specKey)
+    if changed then
+        C_Timer.After(0, function() afterMutation("options_add_item") end)
+    end
 end
 
--- Add by ID (kind selector | ID input, paired 50/50)
+-- Add by ID: the Type dropdown, then LibKa0s-Options-1.0's IdInput line under it
+-- -- an edit box taking an ID, a shift-clicked link or a name, an Add button, and
+-- a status line that says why an entry was refused and keeps the text. The line
+-- never writes a path; onAdd hands the ID to the Selector writer.
 local function renderAddByID(ctx, scroll, cat, specKey)
     H.Section(ctx, L["Add item or spell by ID"])
     local addRow = newRow(scroll)
@@ -557,12 +572,12 @@ local function renderAddByID(ctx, scroll, cat, specKey)
             O._addKind[cat.key] = v
         end,
     })
-    makeEditBox(addRow, {
-        label         = L["ID"],
-        tooltip       = L["Enter an itemID or spellID to add to this category. Press Enter to add."],
-        relativeWidth = 0.6,
-        maxLetters    = 12,
-        onSubmit      = function(text) submitAddByID(cat, specKey, text) end,
+    H.IdInput(ctx, scroll, {
+        kind    = addByIDKind(cat),
+        label   = L["ID, link or name"],
+        tooltip = L["Enter an itemID or spellID, shift-click an item or spell link into the box, or type the name of one the game already knows. Press Enter or click Add."],
+        strings = ADD_BY_ID_STRINGS,
+        onAdd   = function(id) addResolvedID(cat, specKey, id) end,
     })
 end
 

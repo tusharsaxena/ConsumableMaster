@@ -771,7 +771,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (48)
+### test_settingsui.lua (54)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -794,7 +794,13 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
 - Settings: the category reset popup is inert with no payload and on an unknown category
-- Settings: add-by-ID rejects bad input by kind and says why
+- Settings: add-by-ID is the library's id line — an edit box, an Add button, a status line
+- Settings: add-by-ID takes an ID or a shift-clicked link, of the kind the Type dropdown names
+- Settings: add-by-ID takes a name, through the client's own lookup
+- Settings: add-by-ID adds nothing it cannot resolve, says why on its line and keeps the text
+- Settings: add-by-ID stores through Selector.AddItem in the shape it always had
+- Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets
+- Settings: a priority row's Remove button still calls Selector.Block
 - Settings: add-by-ID refuses a spec-aware category with no resolvable spec
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
@@ -1059,7 +1065,7 @@ badge and any count quoted in the docs must agree with it.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 48 |
+| test_settingsui.lua | 54 |
 | test_slash.lua | 89 |
 | test_slashsetup.lua | 17 |
 | test_spechelper.lua | 16 |
@@ -1069,4 +1075,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **875** |
+| **Total** | **881** |

@@ -15,7 +15,9 @@
 -- registered into the kit's `__libs`, so kit revisions to the fakes arrive here.
 --
 -- It takes the kit's base BUILDER as its argument rather than dofile-ing it, so
--- `tests/run.lua` holds the one and only reference to each kit file.
+-- `tests/run.lua` holds the one and only reference to each kit file. The second
+-- argument is the kit's opt-in id-lookup installer (`tests/_kit/mock_ids.lua`),
+-- passed the same way; see the C_Item block in M.install for what it answers.
 --
 -- Installs into _G, not into a loader environment table: this addon's suites
 -- rebuild the whole world per case and reach straight into `_G.LibStub` /
@@ -44,7 +46,7 @@
 -- The message bus is the kit's AceEvent: two CallbackHandler registries keyed by
 -- (message, target) per anti-pattern #33, published as `mock.base.__msgRegistry`.
 
-return function(base)
+return function(base, installIds)
 
 local M = {}
 
@@ -190,6 +192,11 @@ local SUBTYPE_CLASS = {
     ["Shields"]           = { 4, 6 },  -- Armor / Shield (not enhanceable)
 }
 
+-- The kit's records answer a name (and a link) for ResolveId; M.ids exists once installed.
+local function seedIdRecord(kind, id, name, icon)
+    if M.ids then M.ids.addIdRecord(kind, id, name, icon) end
+end
+
 function M.setItem(id, spec)
     spec = spec or {}
     local cls = SUBTYPE_CLASS[spec.subType]
@@ -209,6 +216,7 @@ function M.setItem(id, spec)
         -- reachable without driving the real C_TooltipInfo parser.
         pending     = spec.pending and true or nil,
     }
+    seedIdRecord("item", id, M.items[id].name, "icon:" .. id)
 end
 
 function M.setBag(id, count)
@@ -222,6 +230,7 @@ function M.setPlayerLevel(n) M.playerLevel = n or 80 end
 function M.setSpell(id, spec)
     spec = spec or {}
     M.spells[id] = { name = spec.name or ("Spell " .. tostring(id)), known = spec.known ~= false }
+    seedIdRecord("spell", id, M.spells[id].name, "spellicon:" .. id)
 end
 
 function M.setSpec(classID, specIndex, specID, specName)
@@ -784,9 +793,26 @@ function M.install(NS)
             return (toc and field and toc[field]) or ""
         end,
     }
+    -- NAME AND LINK LOOKUPS ARE THE KIT'S (revision 20, tests/_kit/mock_ids.lua, handed in by
+    -- tests/run.lua), for LibKa0s-Options-1.0's ResolveId behind the Add-by-ID line. Installed on
+    -- a PRIVATE table rather than onto _G: the installer fills only keys still missing, and the
+    -- C_Item / C_Spell below are this file's own, so the kit's would never be reached. A name or a
+    -- link goes to the kit's records for the id it names, and the id is answered from this file's
+    -- stores as always. M.setItem / M.setSpell seed both, so one call serves both lookups.
+    M.ids = installIds and installIds({}) or nil
+    local function itemKey(key)
+        if type(key) == "number" or not M.ids then return key end
+        return (M.ids.C_Item.GetItemInfoInstant(key))
+    end
+    local function spellKey(key)
+        if type(key) == "number" or not M.ids then return key end
+        local info = M.ids.C_Spell.GetSpellInfo(key)
+        return info and info.spellID
+    end
     _G.C_Item = {
-        GetItemInfoInstant = function(id)
-            local it = M.items[id]
+        GetItemInfoInstant = function(key)
+            local id = itemKey(key)
+            local it = id and M.items[id]
             if not it then return nil end
             -- itemID, itemType, itemSubType, equipLoc, icon, classID, subClassID
             return id, "Consumable", it.subType, "", 0, it.classID, it.subClassID
@@ -802,9 +828,12 @@ function M.install(NS)
     }
     _G.C_Spell = {
         GetSpellName = function(spellID) return M.spells[spellID] and M.spells[spellID].name or nil end,
-        GetSpellInfo = function(spellID)
-            local s = M.spells[spellID]
-            return s and { name = s.name } or nil
+        -- By id, or by a name the kit's records know. spellID and iconID are the client's
+        -- SpellInfo fields ResolveId reads alongside the name.
+        GetSpellInfo = function(key)
+            local id = spellKey(key)
+            local s = id and M.spells[id]
+            return s and { name = s.name, spellID = id, iconID = "spellicon:" .. id } or nil
         end,
         GetSpellTexture = function(spellID)
             return M.spells[spellID] and ("spellicon:" .. spellID) or nil
