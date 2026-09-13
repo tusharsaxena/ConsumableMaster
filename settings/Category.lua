@@ -465,6 +465,9 @@ end
 local ID_KINDS = {
     SPELL = {
         lookup  = "spell",
+        -- The library kind these ids are: its rows wear the spell's subtext. Its lookup and its
+        -- spellbook do not come with it; the resolver below keeps what is added.
+        base    = "spell",
         noun    = L["spell"],
         plural  = L["spells"],
         exists  = function(id) return spellNameByID(id) end,
@@ -488,6 +491,9 @@ local ID_KINDS = {
     },
     ITEM = {
         lookup  = "item",
+        -- The library kind these ids are: its rows wear the crafted-quality tier icon and the
+        -- name its quality color. Its bags do not come with it, which is why `carried` stays.
+        base    = "item",
         noun    = L["item"],
         plural  = L["items"],
         -- Classic/Midnight safety: reject only when the API is PRESENT and says
@@ -588,10 +594,12 @@ local function resolveAddByID(cat, text, specless, candidates)
 end
 
 -- The IdInput kind: this addon's resolver, with the noun, the `info` its
--- suggestion rows are named through and `loads` read off whichever kind the
--- dropdown names at the moment they are read. A spec-aware tab with no spec has
--- no `info`, so no list goes up: a picked row goes straight to onAdd, past the
--- resolver that refuses every entry there.
+-- suggestion rows are named through, `loads` and `base` read off whichever kind
+-- the dropdown names at the moment they are read. `base` is what dresses the rows
+-- (tier icon, quality color, subtext), and it makes a picked row go through the
+-- resolver before onAdd, so a pick is refused as a typed ID would be. A
+-- spec-aware tab with no spec has no `info` (its own `false` beats the base's),
+-- so no list goes up at all.
 local function addByIDKind(cat, specless)
     local own = {
         resolve = function(text, candidates)

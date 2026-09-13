@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_addbyid.lua (13)
+### test_addbyid.lua (16)
 
 - Add-by-ID: typing lists the category's candidates, every rank of a shared name its own row
 - Add-by-ID: a name the client cannot look up resolves through the category's candidates
@@ -20,6 +20,9 @@ badge and any count quoted in the docs must agree with it.
 - Add-by-ID: ranks the player carries are one shared name too, listed to pick from
 - Add-by-ID: changing Type keeps what was typed across the redraw
 - Add-by-ID: a debounced page rebuild waits while the box is in use
+- Add-by-ID: a crafted potion's rows show each rank's tier icon, its name in quality color
+- Add-by-ID: a picked row is asked of this addon's resolver, which can refuse it
+- Add-by-ID: under Spell the rows show the spell's subtext, and a pick stores the sentinel
 - Add-by-ID: changing Type redraws the line, so its list is the new kind's
 
 ### test_bagscanner.lua (12)
@@ -1045,7 +1048,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_addbyid.lua | 13 |
+| test_addbyid.lua | 16 |
 | test_bagscanner.lua | 12 |
 | test_bulklog.lua | 14 |
 | test_bus.lua | 11 |
@@ -1092,4 +1095,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **894** |
+| **Total** | **897** |

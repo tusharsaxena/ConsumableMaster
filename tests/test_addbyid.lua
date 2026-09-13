@@ -473,6 +473,109 @@ test("Add-by-ID: a debounced page rebuild waits while the box is in use", functi
     s.restore()
 end)
 
+-- ── what a row wears: the library's item and spell decorations, through `base` ──────────────
+--
+-- LibKa0s draws an item row's crafted-quality tier icon and quality color, and a spell row's
+-- subtext, only for a kind whose decorations it knows. This addon's kind is its own (its existence
+-- checks, its spell sentinels, its no-spec refusal), so it names the library kind its ids belong
+-- to as `base`. This harness's C_Item carries no quality and there is no C_TradeSkillUI or
+-- ITEM_QUALITY_COLORS, so a case stands them up after the load (mock.install rebuilds C_Item) and
+-- puts the two globals back after, whatever the case did: KCMItemRow reads C_TradeSkillUI too.
+
+local ZEPHYR_TIERS = { [191393] = 1, [191394] = 2, [191395] = 3 }
+local RARE = "|cff0070dd"
+
+local function withClientDecorations(body)
+    local savedTiers, savedColors = rawget(_G, "C_TradeSkillUI"), rawget(_G, "ITEM_QUALITY_COLORS")
+    local ok, err = pcall(body)
+    rawset(_G, "C_TradeSkillUI", savedTiers)
+    rawset(_G, "ITEM_QUALITY_COLORS", savedColors)
+    if not ok then error(err, 0) end
+end
+
+--- The three Zephyr ranks as the client shows them: rare quality, crafted tiers 1 to 3.
+local function decorateZephyr()
+    for _, id in ipairs(ZEPHYR_IDS) do loader.mock.items[id].quality = 3 end
+    rawset(_G, "ITEM_QUALITY_COLORS", { [3] = { hex = RARE } })
+    rawset(_G, "C_TradeSkillUI", {
+        GetItemCraftedQualityByItemInfo = function(id) return ZEPHYR_TIERS[id] end,
+    })
+    _G.C_Item.GetItemQualityByID = function(id)
+        local it = loader.mock.items[id]
+        return it and it.quality
+    end
+end
+
+test("Add-by-ID: a crafted potion's rows show each rank's tier icon, its name in quality color",
+    function(t)
+        -- red under: an Item kind with no `base`. The library draws the tier and the color only for
+        -- its own item kind, so the three rows read one plain name told apart by id alone.
+        withClientDecorations(function()
+            local KCM = loadCategorySettings()
+            seedZephyr(KCM)
+            decorateZephyr()
+            local line = renderLine(KCM, "HP_POT")
+            local added = recordAdds(KCM)
+
+            line.typeText("hushed")
+            t.eq(line.shownIds(), "191393,191394,191395", "the three ranks, each its own row")
+            for _, row in ipairs(line.rows()) do
+                local label = row.labelText or ""
+                local tier = ZEPHYR_TIERS[row.entry.id]
+                t.truthy(label:find("Professions-Icon-Quality-Tier" .. tier .. "-Small", 1, true),
+                    "rank " .. tier .. "'s row shows its tier icon ('" .. label .. "')")
+                t.truthy(label:find(RARE .. ZEPHYR .. "|r", 1, true),
+                    "and its name in the item's quality color ('" .. label .. "')")
+            end
+
+            line.submit(ZEPHYR)
+            t.eq(#added, 0, "Enter on the full name with no pick adds nothing")
+            t.truthy((line.status._text or ""):find("pick one from the list", 1, true),
+                "it is refused as shared ('" .. tostring(line.status._text) .. "')")
+            line.pick(191395)
+            t.eq(#added, 1, "picking tier 3 writes once")
+            t.eq(added[1], 191395, "and writes tier 3")
+        end)
+    end)
+
+test("Add-by-ID: a picked row is asked of this addon's resolver, which can refuse it", function(t)
+    -- red under: an Item kind with no `base`, whose pick goes straight to onAdd: the existence
+    -- check there drops it with nothing on the status line and the typed name cleared.
+    local KCM = loadCategorySettings()
+    seedZephyr(KCM)
+    local line = renderLine(KCM, "HP_POT")
+    local added = recordAdds(KCM)
+
+    line.typeText("hushed")
+    loader.mock.items[191395] = nil       -- the client stops knowing the id after the list went up
+    line.pick(191395)
+    t.eq(#added, 0, "an id the existence check refuses is not added")
+    local status = line.status._text or ""
+    t.truthy(status:find("191395", 1, true), "the status line says which ('" .. status .. "')")
+    t.eq(line.edit._text, "hushed", "and what was typed is kept")
+end)
+
+test("Add-by-ID: under Spell the rows show the spell's subtext, and a pick stores the sentinel",
+    function(t)
+        -- red under: a Spell kind with no `base`: no rank label on its rows
+        local KCM = loadCategorySettings()
+        loader.mock.setSpell(7744, { name = "Will of the Forsaken" })
+        KCM.Selector.GetBucket("HP_POT").added[KCM.ID.AsSpell(7744)] = true
+        KCM.Options._addKind.HP_POT = "SPELL"
+        _G.C_Spell.GetSpellSubtext = function(id) return id == 7744 and "Racial" or "" end
+        local line = renderLine(KCM, "HP_POT")
+        local added = recordAdds(KCM)
+
+        line.typeText("will of")
+        local row = line.rows()[1]
+        local label = row and row.labelText or ""
+        t.truthy(label:find("Will of the Forsaken Racial", 1, true),
+            "the row names the spell and its subtext ('" .. label .. "')")
+        line.pick(7744)
+        t.eq(#added, 1, "one pick, one write")
+        t.eq(added[1], KCM.ID.AsSpell(7744), "through the opaque sentinel, as ever")
+    end)
+
 test("Add-by-ID: changing Type redraws the line, so its list is the new kind's", function(t)
     -- red under: a Type dropdown that only stores the choice. The list is built once a render, so
     -- an item row left under Spell would be picked and filed as a spell.

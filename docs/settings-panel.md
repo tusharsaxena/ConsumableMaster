@@ -465,11 +465,17 @@ not gaps:
   candidates under the box, every rank of a shared name its own row, told apart by its gray ID. The
   rows are the ranks the tab lists or the bags carry, so a refused shared name's list shows those
   and no others; the library adds no client source for a host kind, which is why the bags are
-  candidates here. A host kind gets no crafted-quality tier icon and no quality color: the library
-  draws those only for its own item kind.
-  A click, or Up/Down and Enter, picks a row. The pick goes to the same `onAdd`, which runs the
-  kind's existence check again, because a pick skips the resolver. Enter with no row picked
-  submits the typed text, so a shared name is still refused. The host kind declares `info` (a
+  candidates here. Each row is icon, name, rank, then the gray ID. The kind names the library kind
+  its ids are as `base` (`"item"` under Type=Item, `"spell"` under Type=Spell, LibKa0s v1.35.0), so
+  the rows wear that kind's decorations: an item's name in its quality color and its
+  crafted-quality (or reagent) tier icon, so the three Zephyr ranks read tier 1, 2 and 3; a spell's
+  subtext ("Racial"). `base` brings no name lookup and no bags or spellbook, so what is listed and
+  what resolves stay this addon's candidates and resolver.
+  A click, or Up/Down and Enter, picks a row. Because the kind is based, the library asks the
+  resolver about the picked ID (as its digits) before `onAdd`: a refusal adds nothing, keeps the
+  typed text and says why on the status line (`No item matches '<id>'.`). `onAdd` runs the
+  existence check once more. Enter with no row picked submits the typed text, so a shared name is
+  still refused. The host kind declares `info` (a
   row's name and icon) and, for items, `loads`, so drawing the line asks the client for up to 200
   uncached candidates and a typed name waits for them before it is refused (up to about two seconds
   when one never loads). A spec-aware tab with no spec gets no `info` and no candidates, so no list
