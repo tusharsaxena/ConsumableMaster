@@ -269,7 +269,6 @@ local RESIDUE = {
 
     -- settings/Category.lua
     {"settings/Category.lua", "icon-button onClick failed: ", "DIAGNOSTIC"},
-    {"settings/Category.lua", "spec-aware category: no active spec — can't add.", "NOT YET ROUTED"},
 
     -- settings/Slash.lua — the seventeen verb descriptions and their replies.
     {"settings/Slash.lua", "Show this help", "CLI SURFACE"},

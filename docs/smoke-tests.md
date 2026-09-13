@@ -381,6 +381,7 @@ Tests: drag icon, Add by ID (item + spell; ID, link or name), priority list (dra
 9. Click X on a row — item removed from priority list AND added to the blocked set (auto-discovery won't re-add).
 10. Click **Reset category** — StaticPopup confirms; on Yes, that category's added / blocked / pins wipe. Discovered items preserved. The top-right **Defaults** button opens the same confirmation.
 11. For spec-aware categories (FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH): all of the above but verify the bucket is the viewed spec's, not the player's current spec.
+    - **With no active spec** (a character under level 10, or the Stat Priority picker on "(no active spec)"): submit a valid item ID on the Flask tab. Nothing is added. The status line reads `No active spec, so this spec-aware category has nowhere to put '<ID>'.`, the ID stays in the box, and nothing reaches chat.
 
 ### 9a. Cross-addon — the drag feels the same in both addons
 

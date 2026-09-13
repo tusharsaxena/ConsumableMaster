@@ -801,7 +801,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: add-by-ID stores through Selector.AddItem in the shape it always had
 - Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets
 - Settings: a priority row's Remove button still calls Selector.Block
-- Settings: add-by-ID refuses a spec-aware category with no resolvable spec
+- Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
 - Settings: the Macros page reaches its strip with no categories to tab

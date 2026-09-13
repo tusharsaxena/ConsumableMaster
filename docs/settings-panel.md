@@ -456,7 +456,11 @@ not gaps:
   stored shape (`added[id] = true`, spells negative) is what it always was. A link of the *wrong*
   kind is refused rather than cross-filed, because an item link read as a spell would store an
   itemID behind the opaque spell sentinel and collide with a real spell ID. A refusal says why on the
-  status line (`No item matches '<text>'.`) and keeps the typed text. The page rebuild after an add
+  status line (`No item matches '<text>'.`) and keeps the typed text. A spec-aware tab with no
+  active spec refuses every entry the same way, in the resolver and before anything is looked up
+  (`No active spec, so this spec-aware category has nowhere to put '<text>'.`), so the text stays
+  there too. A check made in `onAdd` would come too late: the widget reads `onAdd` returning as a
+  success and clears the box. The page rebuild after an add
   waits a frame (`C_Timer.After(0, …)`): the widget clears its edit box and status line after `onAdd`
   returns, and a rebuild inside `onAdd` would already have released both to AceGUI's pool.
 - The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and

@@ -656,41 +656,6 @@ local function loadCategorySettings()
     return loader.loadFiles(files)
 end
 
--- Select one category tab and hand back every EditBox the renderer built.
---
--- Create is patched on the mock's own AceGUI table rather than behind a LibStub
--- swap: settings/Panel.lua and settings/Category.lua both captured that table at
--- load, so patching it in place is what puts the library's Section/Label helpers
--- and the category renderer on the same stub. `label`/`editbox` are set to a
--- real `false` because the widget helpers probe those sub-frames before using
--- them, and the permissive stub would otherwise hand back a function to index.
-local function renderCategoryEditBoxes(KCM, catKey)
-    local mock = loader.mock
-    local boxes = {}
-    local AceGUI = LibStub("AceGUI-3.0")
-    AceGUI.Create = function(_, kind)
-        local w = mock.makeStub()
-        w.label, w.editbox = false, false
-        if kind == "EditBox" then
-            local callbacks = {}
-            w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
-            w._callbacks = callbacks
-            boxes[#boxes + 1] = w
-        end
-        return w
-    end
-
-    local UI = KCM.Settings.Helpers.instance
-    KCM.Settings.builders["macros"]({})
-    local ctx = UI.__panelFor("macros")
-    -- The category is a TAB on the one Macros page now, so it is selected rather
-    -- than built: fifteen builders became one.
-    KCM.Options.SetMacroTab(catKey)
-    ctx.panel.IsShown = function() return true end
-    KCM.Settings.Helpers.RefreshAllPanels()
-    return boxes
-end
-
 test("Settings: the category reset popup restores a composite's AIO fields from defaults",
     function(t)
         local KCM = loadCategorySettings()
@@ -760,6 +725,13 @@ test("Settings: the category reset popup is inert with no payload and on an unkn
 -- IdInput: the edit box, the Add button beside it and the status line under both, built in that
 -- order. Every widget records its text, so a case can read the reason a failed add shows and see
 -- whether the typed text was kept. `made` is every widget the render built, in order.
+--
+-- Create is patched on the mock's own AceGUI table rather than behind a LibStub
+-- swap: settings/Panel.lua and settings/Category.lua both captured that table at
+-- load, so patching it in place is what puts the library's Section/Label helpers
+-- and the category renderer on the same stub. `label`/`editbox` are set to a
+-- real `false` because the widget helpers probe those sub-frames before using
+-- them, and the permissive stub would otherwise hand back a function to index.
 local function renderAddByIDLine(KCM, catKey)
     local mock = loader.mock
     local made = {}
@@ -977,23 +949,33 @@ test("Settings: a priority row's Remove button still calls Selector.Block", func
     t.eq(blocked[1] and blocked[1][2], 960010, "the row's own id")
 end)
 
-test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec", function(t)
-    local KCM = loadCategorySettings()
-    local mock = loader.mock
-    mock.setItem(960011, { name = "Test Flask", subType = "Flasks & Phials" })
+test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line",
+    function(t)
+        -- red under: the spec check made in onAdd. onAdd returning normally is a success to the
+        -- id line, which then clears the box and the status line, so a valid ID was wiped and
+        -- the reason went to chat, the one place the line's own refusals never go.
+        local KCM = loadCategorySettings()
+        local mock = loader.mock
+        mock.setItem(960011, { name = "Test Flask", subType = "Flasks & Phials" })
 
-    -- settings/StatPriority.lua is not loaded here, so O.ResolveViewedSpec is
-    -- absent and FLASK renders with no viewed spec — the same state a
-    -- sub-level-10 character sees.
-    t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
+        -- settings/StatPriority.lua is not loaded here, so O.ResolveViewedSpec is
+        -- absent and FLASK renders with no viewed spec — the same state a
+        -- sub-level-10 character sees.
+        t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
 
-    local eb = renderCategoryEditBoxes(KCM, "FLASK")[1]
-    t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field rendered anyway")
-    eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", "960011")
+        local line = renderAddByIDLine(KCM, "FLASK")
+        t.truthy(line.edit and line.edit._callbacks.OnEnterPressed, "the add-by-ID line rendered anyway")
+        local added = recordAdds(KCM)
+        local said = #mock.output
+        line.submit("960011")
 
-    t.truthy(mock.output[#mock.output]:find("spec-aware category: no active spec", 1, true),
-        "the ID is valid, but there is nowhere to put it and the user is told")
-end)
+        t.eq(#added, 0, "the ID is valid, but there is nowhere to put it: nothing is added")
+        t.eq(line.edit._text, "960011", "the typed text is kept, as on every other refusal")
+        local status = line.status and line.status._text or ""
+        t.truthy(status:lower():find("no active spec", 1, true) and status:find("960011", 1, true),
+            "the status line says why, naming what was typed ('" .. status .. "')")
+        t.eq(#mock.output, said, "and the refusal does not go to chat")
+    end)
 
 -- ---------------------------------------------------------------------------
 -- options-ui-§13 — EVERY page draws a strip

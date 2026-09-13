@@ -509,14 +509,26 @@ local ADD_BY_ID_STRINGS = {
     notFound = L["No {noun} matches '{text}'."],
 }
 
+-- The same line on a spec-aware tab with no spec to file under. The library
+-- clamps a host resolver's reason to its own three, so the refusal is its
+-- "notFound", reworded here to say what is actually missing.
+local NO_SPEC_STRINGS = {
+    add      = ADD_BY_ID_STRINGS.add,
+    empty    = ADD_BY_ID_STRINGS.empty,
+    notFound = L["No active spec, so this spec-aware category has nowhere to put '{text}'."],
+}
+
 -- Typed text to an ID of the kind the dropdown names, or nil and the library's
--- reason. Digits first -- a bare number is unambiguous and must never reach a
+-- reason. With no spec to file under, every entry is refused here, before the
+-- id line treats it as added: a refusal keeps the typed text, an add clears it.
+-- Then digits -- a bare number is unambiguous and must never reach a
 -- link matcher -- then the kind's own link parser, then the client's name lookup
 -- through LibKa0s-Options-1.0's ResolveId. Whatever is found must pass the kind's
 -- existence check, so an ID the client does not know is refused however it was
 -- typed, and a link of the other kind is never cross-filed: an item link read as
 -- a spell would file an itemID behind the opaque sentinel.
-local function resolveAddByID(cat, text)
+local function resolveAddByID(cat, text, specless)
+    if specless then return nil, "notFound" end
     local kind = addKindOf(cat)
     local id = tonumber(text:match("^%d+$")) or kind.fromLink(text)
     local name
@@ -532,21 +544,18 @@ end
 -- off whichever kind the dropdown names at the moment of the add. A metatable
 -- rather than a redraw on every dropdown change, because the dropdown's onChange
 -- stores the choice and nothing else.
-local function addByIDKind(cat)
+local function addByIDKind(cat, specless)
     return setmetatable({
-        resolve = function(text) return resolveAddByID(cat, text) end,
+        resolve = function(text) return resolveAddByID(cat, text, specless) end,
     }, { __index = function(_, key) return addKindOf(cat)[key] end })
 end
 
 -- The resolved ID into the category, through Selector.AddItem as ever. The page
 -- rebuild waits a frame: IdInput clears its edit box and status line AFTER onAdd
 -- returns, and a rebuild inside onAdd would already have released both into
--- AceGUI's pool, where the page drawn in their place may have taken them.
+-- AceGUI's pool, where the page drawn in their place may have taken them. A
+-- spec-aware tab with no spec never gets here: its resolver refuses first.
 local function addResolvedID(cat, specKey, id)
-    if cat.specAware and not specKey then
-        KCM.Say("spec-aware category: no active spec — can't add.")
-        return
-    end
     local changed = KCM.Selector and KCM.Selector.AddItem
         and KCM.Selector.AddItem(cat.key, addKindOf(cat).store(id), specKey)
     if changed then
@@ -559,6 +568,7 @@ end
 -- a status line that says why an entry was refused and keeps the text. The line
 -- never writes a path; onAdd hands the ID to the Selector writer.
 local function renderAddByID(ctx, scroll, cat, specKey)
+    local specless = cat.specAware and not specKey
     H.Section(ctx, L["Add item or spell by ID"])
     local addRow = newRow(scroll)
     makeDropdown(addRow, {
@@ -573,10 +583,10 @@ local function renderAddByID(ctx, scroll, cat, specKey)
         end,
     })
     H.IdInput(ctx, scroll, {
-        kind    = addByIDKind(cat),
+        kind    = addByIDKind(cat, specless),
         label   = L["ID, link or name"],
         tooltip = L["Enter an itemID or spellID, shift-click an item or spell link into the box, or type the name of one the game already knows. Press Enter or click Add."],
-        strings = ADD_BY_ID_STRINGS,
+        strings = specless and NO_SPEC_STRINGS or ADD_BY_ID_STRINGS,
         onAdd   = function(id) addResolvedID(cat, specKey, id) end,
     })
 end
