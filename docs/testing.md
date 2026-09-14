@@ -37,10 +37,15 @@ claims?"*. The two questions give the same answer only while the library has tag
 than the tag this addon has taken.
 
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
-the normal state rather than a defect. It is the state as this is written: `../LibKa0s` sits on
-**v1.27.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.26.0**, and the commands above report **306**
-differing lines for the library and **947** for the test kit. Re-vendoring to quiet them would be
-the actual mistake — it would pull an untested library release for the sake of a clean diff.
+the normal state rather than a defect. Measured on 2026-09-14, it is at its mildest: `../LibKa0s`
+sits five commits past **v1.35.0** (docs syncs, a test-comment re-measure and their merges, none
+touching `LibKa0s/`), [`CLAUDE.md`](../CLAUDE.md) names **v1.35.0**, and the two library commands
+print nothing while the two test-kit commands report one file, `README.md`: 18 lines of count prose
+the library reworded after the tag. Both payloads still match the v1.35.0 tag byte for byte. The
+next release widens the diffs with nothing changed on this side, as an earlier revision of this
+page recorded (sibling on v1.27.0, `CLAUDE.md` naming v1.26.0, **306** differing lines for the
+library and **947** for the test kit). Re-vendoring to quiet them would be the actual mistake — it
+would pull an untested library release for the sake of a clean diff.
 
 **The authoritative comparison is against the tag `CLAUDE.md` names**, and that one must be empty at
 every commit:
