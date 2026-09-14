@@ -438,14 +438,69 @@ not gaps:
   The **per-spec stat priorities** used to sit here too. They are a preference, not a registry, so
   since 2026-09-12 they are one whole-value row, `statPriority`, still edited by the page's own
   list and dropdown ([#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35)).
-- The **Add-by-ID box** takes free text, not a scalar. `submitAddByID` (`settings/Category.lua`)
-  tries digits first — a bare number is unambiguous and must never reach a link matcher — then the
-  selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is accepted as
-  readily as a typed ID. ITEM goes through the `KCM.Item` seam onto `LibKa0s-Item-1.0`'s
-  `ItemIDFromLink`; SPELL parses the spell link it alone can receive. A link of the *wrong* kind is
-  refused rather than cross-filed, because an item link parsed as a spell would store an itemID
-  behind the opaque spell sentinel and collide with a real spell ID. Every rejection says why and
-  keeps the typed text.
+- The **Add-by-ID line** takes free text, not a scalar. It is `LibKa0s-Options-1.0`'s `IdInput`
+  (minor 16): an edit box, an **Add** button and a status line under both, drawn under the page's own
+  **Type** dropdown (Item / Spell). The widget never writes a path. `settings/Category.lua` hands it
+  a host kind whose `resolve` is `resolveAddByID`, which reads the dropdown at the moment of the add
+  and tries four things in order:
+  1. digits (a bare number is unambiguous and must never reach a link matcher);
+  2. the selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is
+     accepted as readily as a typed ID. ITEM goes through the `KCM.Item` seam onto
+     `LibKa0s-Item-1.0`'s `ItemIDFromLink`; SPELL parses the spell link it alone can receive;
+  3. a **name**, through the library's `ResolveId` with this category's **candidates**. First the
+     client's own lookup (`C_Spell.GetSpellInfo(name)` / `C_Item.GetItemInfoInstant(name)`), which
+     knows an item only if the player carries it or carried it this session. Then a case-insensitive
+     exact name over the IDs the category already knows: `Selector.BuildCandidateSet` (seed, added
+     and discovered, less blocked), item IDs under Type=Item and spell IDs under Type=Spell; under
+     Type=Item the items in the bags (`KCM.BagScanner.Scan`) join them. The client has no item-name
+     search, so a name reaches nothing else. A name two of these IDs share, such as the three
+     crafted-quality ranks of *Potion of the Hushed Zephyr* when the tab lists them or the player
+     carries two, is refused as ambiguous (`Several items share the name '<text>': pick one from the
+     list, or use the ID.`). One rank is never added for the player, and neither are all of them. A
+     rank that is neither listed nor carried is outside the check: with one rank carried and the rest
+     unknown, the client's answer is the only match, and that rank resolves;
+  4. the kind's existence check, which every result must pass.
+
+  **Suggestions.** As the player types, the library lists up to ten matching IDs from the same
+  candidates under the box, every rank of a shared name its own row, told apart by its gray ID. The
+  rows are the ranks the tab lists or the bags carry, so a refused shared name's list shows those
+  and no others; the library adds no client source for a host kind, which is why the bags are
+  candidates here. Each row is icon, name, rank, then the gray ID. The kind names the library kind
+  its ids are as `base` (`"item"` under Type=Item, `"spell"` under Type=Spell, LibKa0s v1.35.0), so
+  the rows wear that kind's decorations: an item's name in its quality color and its
+  crafted-quality (or reagent) tier icon, so the three Zephyr ranks read tier 1, 2 and 3; a spell's
+  subtext ("Racial"). `base` brings no name lookup and no bags or spellbook, so what is listed and
+  what resolves stay this addon's candidates and resolver.
+  A click, or Up/Down and Enter, picks a row. Because the kind is based, the library asks the
+  resolver about the picked ID (as its digits) before `onAdd`: a refusal adds nothing, keeps the
+  typed text and says why on the status line (`No item matches '<id>'.`). `onAdd` runs the
+  existence check once more. Enter with no row picked submits the typed text, so a shared name is
+  still refused. The host kind declares `info` (a
+  row's name and icon) and, for items, `loads`, so drawing the line asks the client for up to 200
+  uncached candidates and a typed name waits for them before it is refused (up to about two seconds
+  when one never loads). A spec-aware tab with no spec gets no `info` and no candidates, so no list
+  goes up, and its tooltip offers no list and no name hint: it says a spec is missing. Changing
+  **Type** redraws the page a frame later: the list is built once per render, and an item row left
+  under Spell would be filed as a spell. The typed text is carried across that redraw. While the box
+  has focus or holds text (`O.AddByIDBusy`), the debounced page rebuild (`PANEL_REFRESH`) waits,
+  because a rebuild releases the box and the library's `OnRelease` would drop a pending lookup and
+  clear the text without a word. The tooltip and `notFound` end in the kind's hint, `Names work for items you carry
+  (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link.`
+  (the spell hint names the spellbook).
+
+  `onAdd` stores a spell through `KCM.ID.AsSpell` and hands the ID to `Selector.AddItem`, so the
+  stored shape (`added[id] = true`, spells negative) is what it always was. A link of the *wrong*
+  kind is refused rather than cross-filed, because an item link read as a spell would store an
+  itemID behind the opaque spell sentinel and collide with a real spell ID. A refusal says why on the
+  status line (`No item matches '<text>'.` followed by the kind's hint) and keeps the typed text. A spec-aware tab with no
+  active spec refuses every entry the same way, in the resolver and before anything is looked up
+  (`No active spec, so this spec-aware category has nowhere to put '<text>'.`), so the text stays
+  there too. A check made in `onAdd` would come too late: the widget has already cleared the box
+  before `onAdd` runs, and reads `onAdd` returning as a success. The page rebuild after an add
+  waits a frame (`C_Timer.After(0, …)`). Through LibKa0s v1.34.0 the widget cleared its edit box and
+  status line after `onAdd` returned, onto widgets a rebuild inside `onAdd` had already released to
+  AceGUI's pool. Since v1.35.0 it clears both before `onAdd` and touches neither after a clean one,
+  so the wait is no longer load-bearing. It is kept as the order that is safe under either behavior.
 - The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and
   `settings/Panel.lua`'s `SESSION_PATHS` resolves its `state.debugConsole` path to the console
   window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare

@@ -6,6 +6,25 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
+### test_addbyid.lua (16)
+
+- Add-by-ID: typing lists the category's candidates, every rank of a shared name its own row
+- Add-by-ID: a name the client cannot look up resolves through the category's candidates
+- Add-by-ID: picking a suggestion stores through Selector.AddItem exactly once
+- Add-by-ID: a shared name lists every rank, and Enter without a pick is refused
+- Add-by-ID: the tooltip and the refusals say where a name can come from
+- Add-by-ID: a spec-aware tab with no spec suggests nothing
+- Add-by-ID: a spec-aware tab with no spec promises no list and no name hint
+- Add-by-ID: onAdd re-checks existence, since a pick skips the resolver
+- Add-by-ID: the candidates are the Type's own kind, turned back from their stored shape
+- Add-by-ID: ranks the player carries are one shared name too, listed to pick from
+- Add-by-ID: changing Type keeps what was typed across the redraw
+- Add-by-ID: a debounced page rebuild waits while the box is in use
+- Add-by-ID: a crafted potion's rows show each rank's tier icon, its name in quality color
+- Add-by-ID: a picked row is asked of this addon's resolver, which can refuse it
+- Add-by-ID: under Spell the rows show the spell's subtext, and a pick stores the sentinel
+- Add-by-ID: changing Type redraws the line, so its list is the new kind's
+
 ### test_bagscanner.lua (12)
 
 - BagScanner.Scan is empty when bags are empty
@@ -771,7 +790,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (48)
+### test_settingsui.lua (54)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -794,8 +813,14 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
 - Settings: the category reset popup is inert with no payload and on an unknown category
-- Settings: add-by-ID rejects bad input by kind and says why
-- Settings: add-by-ID refuses a spec-aware category with no resolvable spec
+- Settings: add-by-ID is the library's id line — an edit box, an Add button, a status line
+- Settings: add-by-ID takes an ID or a shift-clicked link, of the kind the Type dropdown names
+- Settings: add-by-ID takes a name, through the client's own lookup
+- Settings: add-by-ID adds nothing it cannot resolve, says why on its line and keeps the text
+- Settings: add-by-ID stores through Selector.AddItem in the shape it always had
+- Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets
+- Settings: a priority row's Remove button still calls Selector.Block
+- Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
 - Settings: the Macros page reaches its strip with no categories to tab
@@ -1023,6 +1048,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
+| test_addbyid.lua | 16 |
 | test_bagscanner.lua | 12 |
 | test_bulklog.lua | 14 |
 | test_bus.lua | 11 |
@@ -1059,7 +1085,7 @@ badge and any count quoted in the docs must agree with it.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 48 |
+| test_settingsui.lua | 54 |
 | test_slash.lua | 89 |
 | test_slashsetup.lua | 17 |
 | test_spechelper.lua | 16 |
@@ -1069,4 +1095,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **875** |
+| **Total** | **897** |

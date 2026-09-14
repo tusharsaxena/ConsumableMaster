@@ -640,9 +640,10 @@ test("Settings: a targeted category tab offers the mouseover toggle, bound to bu
 --
 -- Both are file-locals hanging off UI callbacks, and neither had a test. The
 -- popup handler is reachable directly (StaticPopupDialogs is a plain global
--- table), so it is driven as-is. The add-by-ID validator is only reachable
--- through the EditBox its renderer builds, so these cases render the page and
--- fire OnEnterPressed the way a keypress would.
+-- table), so it is driven as-is. The add-by-ID line is LibKa0s-Options-1.0's
+-- IdInput, reachable only through the widgets it builds, so these cases render
+-- the page and fire OnEnterPressed (or the Add button's OnClick) the way a
+-- keypress or a click would.
 -- ---------------------------------------------------------------------
 
 -- The pure layer plus BOTH settings files, so the popup table is populated and
@@ -653,41 +654,6 @@ local function loadCategorySettings()
     for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
     files[#files + 1] = "settings/Category.lua"
     return loader.loadFiles(files)
-end
-
--- Select one category tab and hand back every EditBox the renderer built.
---
--- Create is patched on the mock's own AceGUI table rather than behind a LibStub
--- swap: settings/Panel.lua and settings/Category.lua both captured that table at
--- load, so patching it in place is what puts the library's Section/Label helpers
--- and the category renderer on the same stub. `label`/`editbox` are set to a
--- real `false` because the widget helpers probe those sub-frames before using
--- them, and the permissive stub would otherwise hand back a function to index.
-local function renderCategoryEditBoxes(KCM, catKey)
-    local mock = loader.mock
-    local boxes = {}
-    local AceGUI = LibStub("AceGUI-3.0")
-    AceGUI.Create = function(_, kind)
-        local w = mock.makeStub()
-        w.label, w.editbox = false, false
-        if kind == "EditBox" then
-            local callbacks = {}
-            w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
-            w._callbacks = callbacks
-            boxes[#boxes + 1] = w
-        end
-        return w
-    end
-
-    local UI = KCM.Settings.Helpers.instance
-    KCM.Settings.builders["macros"]({})
-    local ctx = UI.__panelFor("macros")
-    -- The category is a TAB on the one Macros page now, so it is selected rather
-    -- than built: fifteen builders became one.
-    KCM.Options.SetMacroTab(catKey)
-    ctx.panel.IsShown = function() return true end
-    KCM.Settings.Helpers.RefreshAllPanels()
-    return boxes
 end
 
 test("Settings: the category reset popup restores a composite's AIO fields from defaults",
@@ -755,80 +721,262 @@ test("Settings: the category reset popup is inert with no payload and on an unkn
         t.eq(#reasons, 0, "no mutation is reported when there is nothing to reset")
     end)
 
-test("Settings: add-by-ID rejects bad input by kind and says why", function(t)
-    local KCM = loadCategorySettings()
+-- Render one category tab and hand back its add-by-ID line, which is LibKa0s-Options-1.0's
+-- IdInput: the edit box, the Add button beside it and the status line under both, built in that
+-- order. Every widget records its text, so a case can read the reason a failed add shows and see
+-- whether the typed text was kept. `made` is every widget the render built, in order.
+--
+-- Create is patched on the mock's own AceGUI table rather than behind a LibStub
+-- swap: settings/Panel.lua and settings/Category.lua both captured that table at
+-- load, so patching it in place is what puts the library's Section/Label helpers
+-- and the category renderer on the same stub. `label`/`editbox` are set to a
+-- real `false` because the widget helpers probe those sub-frames before using
+-- them, and the permissive stub would otherwise hand back a function to index.
+local function renderAddByIDLine(KCM, catKey)
     local mock = loader.mock
-    mock.setItem(960010, { name = "Test Potion", subType = "Potions" })
-    mock.setSpell(7744, { name = "Will of the Forsaken" })
-
-    local eb = renderCategoryEditBoxes(KCM, "HP_POT")[1]
-    t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field is wired to Enter")
-    local submit = function(text) eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", text) end
-
-    local function lastSaid()
-        return mock.output[#mock.output]
+    local made = {}
+    local AceGUI = LibStub("AceGUI-3.0")
+    AceGUI.Create = function(_, kind)
+        local w = mock.makeStub()
+        w.label, w.editbox = false, false
+        w._kind = kind
+        local callbacks = {}
+        w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+        w._callbacks = callbacks
+        w.SetText = function(self, v) self._text = v; return self end
+        w.GetText = function(self) return self._text end
+        w.SetLabel = function(self, v) self._label = v; return self end
+        made[#made + 1] = w
+        return w
     end
 
-    submit("abc")
-    t.truthy(lastSaid():find("expected a positive numeric ID or a pasted link; got: abc", 1, true),
-        "non-numeric input is named back to the user")
-    submit("0")
-    t.truthy(lastSaid():find("expected a positive numeric ID or a pasted link; got: 0", 1, true),
-        "zero is rejected, not silently added")
-    submit("999999")
-    t.truthy(lastSaid():find("unknown itemID: 999999", 1, true),
-        "ITEM is the default kind, and an ID the client doesn't know is refused")
+    local UI = KCM.Settings.Helpers.instance
+    KCM.Settings.builders["macros"]({})
+    local ctx = UI.__panelFor("macros")
+    KCM.Options.SetMacroTab(catKey)
+    ctx.panel.IsShown = function() return true end
+    KCM.Settings.Helpers.RefreshAllPanels()
 
-    KCM.Options._addKind.HP_POT = "SPELL"
-    submit("999999")
-    t.truthy(lastSaid():find("unknown spellID: 999999", 1, true),
-        "the kind selector switches which existence check runs")
+    local line = { made = made }
+    for i, w in ipairs(made) do
+        if w._kind == "EditBox" then
+            local nxt, after = made[i + 1], made[i + 2]
+            line.edit   = w
+            line.add    = (nxt and nxt._kind == "Button") and nxt or nil
+            line.status = (after and after._kind == "Label") and after or nil
+            break
+        end
+    end
+    -- Type into the box, then press Enter: the box holds the text either way, as AceGUI's does.
+    function line.submit(text)
+        line.edit._text = text
+        line.edit._callbacks.OnEnterPressed(line.edit, "OnEnterPressed", text)
+    end
+    return line
+end
 
-    -- The success path, on both kinds: a resolvable ID reaches Selector.AddItem.
+-- Selector.AddItem replaced by a recorder of the ids it is handed, in call order.
+local function recordAdds(KCM)
     local added = {}
-    KCM.Selector.AddItem = function(catKey, id) added[#added + 1] = id; return true end
-    submit("7744")
-    t.eq(added[1], KCM.ID.AsSpell(7744), "a spell ID is stored through the opaque sentinel")
-    KCM.Options._addKind.HP_POT = "ITEM"
-    submit("960010")
-    t.eq(added[2], 960010, "an item ID is stored raw")
+    KCM.Selector.AddItem = function(_, id) added[#added + 1] = id; return true end
+    return added
+end
 
-    -- A SHIFT-CLICKED LINK, which is the natural gesture for "add this one" and used to be told
-    -- "expected a positive numeric ID" — an answer that is true and useless. Parsed through
-    -- KCM.Item.ItemIDFromLink, so it behaves identically on a degraded install.
-    submit("|cffa335ee|Hitem:960010::::::::80:253::::::|h[Test Potion]|h|r")
-    t.eq(added[3], 960010, "the link resolved to the same id the digits did")
+-- The two fixtures every add-by-ID case types at: one item, one spell. Seeded after the load,
+-- because the install that load runs is what clears the stores.
+local function seedAddables()
+    loader.mock.setItem(960010, { name = "Test Potion", subType = "Potions" })
+    loader.mock.setSpell(7744, { name = "Will of the Forsaken" })
+end
 
-    -- And the same on the spell side, through that kind's own parser.
-    KCM.Options._addKind.HP_POT = "SPELL"
-    submit("|cff71d5ff|Hspell:7744|h[Will of the Forsaken]|h|r")
-    t.eq(added[4], KCM.ID.AsSpell(7744), "a pasted spell link stores through the sentinel too")
+test("Settings: add-by-ID is the library's id line — an edit box, an Add button, a status line",
+    function(t)
+        -- red under: renderAddByID drawing its own makeEditBox again (no Add button, no status
+        -- line, and nothing but digits or a link could ever resolve)
+        local KCM = loadCategorySettings()
+        seedAddables()
+        local line = renderAddByIDLine(KCM, "HP_POT")
+        t.truthy(line.edit, "the tab draws an edit box")
+        t.truthy(line.add and line.add._callbacks.OnClick, "with an Add button wired beside it")
+        t.truthy(line.status, "and a status line under both")
+        t.truthy(line.edit._label and line.edit._label:find("name", 1, true),
+            "the box's label says a name is accepted, not only an ID")
 
-    -- A link of the WRONG kind is refused rather than cross-filed: an item link parsed as a spell
-    -- would file an itemID under the opaque sentinel, where it collides with a real spell.
-    submit("|cffa335ee|Hitem:960010::::::::80:253::::::|h[Test Potion]|h|r")
-    t.truthy(lastSaid():find("expected a positive numeric ID or a pasted link", 1, true),
-        "an item link is not accepted while the kind selector says SPELL")
-    t.eq(added[5], nil, "and nothing was added")
-end)
+        local added = recordAdds(KCM)
+        line.edit._text = "960010"
+        line.add._callbacks.OnClick(line.add, "OnClick")
+        t.eq(added[1], 960010, "Add submits what the box holds")
+    end)
 
-test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec", function(t)
+test("Settings: add-by-ID takes an ID or a shift-clicked link, of the kind the Type dropdown names",
+    function(t)
+        -- red under: a resolver that ignores O._addKind (a spell ID stored raw, where it collides
+        -- with an itemID). Dropping this addon's own link parsers is NOT caught here, and need
+        -- not be: the library's ResolveId reads a link of the kind's own type as well
+        local KCM = loadCategorySettings()
+        seedAddables()
+        local line = renderAddByIDLine(KCM, "HP_POT")
+        local added = recordAdds(KCM)
+
+        line.submit("960010")
+        t.eq(added[1], 960010, "ITEM is the default kind, and an item ID is stored raw")
+        -- Through KCM.Item.ItemIDFromLink, so a pasted link behaves the same on a degraded install.
+        line.submit("|cffa335ee|Hitem:960010::::::::80:253::::::|h[Test Potion]|h|r")
+        t.eq(added[2], 960010, "a pasted item link resolves to the same ID")
+
+        KCM.Options._addKind.HP_POT = "SPELL"
+        line.submit("7744")
+        t.eq(added[3], KCM.ID.AsSpell(7744), "a spell ID goes in through the opaque sentinel")
+        line.submit("|cff71d5ff|Hspell:7744|h[Will of the Forsaken]|h|r")
+        t.eq(added[4], KCM.ID.AsSpell(7744), "and so does a pasted spell link")
+        t.eq(line.edit._text, "", "each success clears the box for the next one")
+    end)
+
+test("Settings: add-by-ID takes a name, through the client's own lookup", function(t)
+    -- red under: a resolver that stops at digits and links (no H.ResolveId name step), or one
+    -- that asks the other kind's lookup
     local KCM = loadCategorySettings()
-    local mock = loader.mock
-    mock.setItem(960011, { name = "Test Flask", subType = "Flasks & Phials" })
+    seedAddables()
+    local line = renderAddByIDLine(KCM, "HP_POT")
+    local added = recordAdds(KCM)
 
-    -- settings/StatPriority.lua is not loaded here, so O.ResolveViewedSpec is
-    -- absent and FLASK renders with no viewed spec — the same state a
-    -- sub-level-10 character sees.
-    t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
+    line.submit("Test Potion")
+    t.eq(added[1], 960010, "an item's name resolves to its ID")
 
-    local eb = renderCategoryEditBoxes(KCM, "FLASK")[1]
-    t.truthy(eb and eb._callbacks.OnEnterPressed, "the add-by-ID field rendered anyway")
-    eb._callbacks.OnEnterPressed(eb, "OnEnterPressed", "960011")
+    KCM.Options._addKind.HP_POT = "SPELL"
+    line.submit("Will of the Forsaken")
+    t.eq(added[2], KCM.ID.AsSpell(7744), "a spell's name resolves, and stores through the sentinel")
 
-    t.truthy(mock.output[#mock.output]:find("spec-aware category: no active spec", 1, true),
-        "the ID is valid, but there is nowhere to put it and the user is told")
+    line.submit("Test Potion")
+    t.eq(added[3], nil, "an item's name is not a spell's: nothing is added under SPELL")
 end)
+
+test("Settings: add-by-ID adds nothing it cannot resolve, says why on its line and keeps the text",
+    function(t)
+        -- red under: dropping the kind's existence check (an ID the client does not know would be
+        -- added), or sending the reason to chat instead of the status line
+        local KCM = loadCategorySettings()
+        seedAddables()
+        local mock = loader.mock
+        local line = renderAddByIDLine(KCM, "HP_POT")
+        local added = recordAdds(KCM)
+        local said = #mock.output
+
+        local function refused(kind, text, noun, why)
+            KCM.Options._addKind.HP_POT = kind
+            line.status._text = nil
+            line.submit(text)
+            t.eq(#added, 0, why .. ": nothing is added")
+            local status = line.status._text or ""
+            t.truthy(status:find(text, 1, true) and status:find(noun, 1, true),
+                why .. ": the status line names the " .. noun .. " and what was typed ('"
+                    .. status .. "')")
+            t.eq(line.edit._text, text, why .. ": the typed text is kept for correcting")
+        end
+
+        refused("ITEM", "999999", "item", "an item ID the client does not know")
+        refused("ITEM", "0", "item", "zero")
+        refused("ITEM", "Nonexistent Thing", "item", "a name nothing answers to")
+        refused("SPELL", "999999", "spell", "a spell ID the client does not know")
+        -- A link of the WRONG kind is refused rather than cross-filed: an item link read as a spell
+        -- would file an itemID behind the opaque sentinel, where it collides with a real spell.
+        refused("SPELL", "|cffa335ee|Hitem:960010::::::::80:253::::::|h[Test Potion]|h|r", "spell",
+            "an item link while Type says SPELL")
+        t.eq(#mock.output, said, "no refusal went to chat")
+    end)
+
+test("Settings: add-by-ID stores through Selector.AddItem in the shape it always had", function(t)
+    -- red under: the spell stored as its raw ID, or the bucket written some other way than
+    -- through the Selector writer
+    local KCM = loadCategorySettings()
+    seedAddables()
+    local reasons = {}
+    KCM.Pipeline.RequestRecompute = function(reason) reasons[#reasons + 1] = reason end
+    local line = renderAddByIDLine(KCM, "HP_POT")
+    line.submit("Test Potion")
+    KCM.Options._addKind.HP_POT = "SPELL"
+    line.submit("7744")
+
+    local bucket = KCM.Selector.GetBucket("HP_POT")
+    t.eq(bucket.added[960010], true, "the item is an `added[id] = true` entry")
+    t.truthy(KCM.ID.AsSpell(7744) < 0, "the spell sentinel is negative")
+    t.eq(bucket.added[KCM.ID.AsSpell(7744)], true, "and the spell is keyed by it")
+    t.eq(bucket.added[7744], nil, "never by its raw ID")
+    t.eq(reasons[1], "options_add_item", "the pipeline hears the add under its audit reason")
+end)
+
+test("Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets",
+    function(t)
+        -- red under: afterMutation called inline in onAdd. Through LibKa0s v1.34.0 the library
+        -- cleared the edit box and the status label once onAdd returned, onto widgets the rebuild
+        -- had already released to AceGUI's pool. v1.35.0 clears both before onAdd, so the box is
+        -- already empty here either way; the deferral stays pinned as the order safe under both.
+        local KCM = loadCategorySettings()
+        seedAddables()
+        local line = renderAddByIDLine(KCM, "HP_POT")
+        KCM.Selector.AddItem = function() return true end
+        KCM.Pipeline.RequestRecompute = function() end
+        local queued = {}
+        _G.C_Timer.After = function(_, fn) queued[#queued + 1] = fn end
+        local textAtRebuild
+        rawset(KCM.Settings.Helpers, "RefreshAllPanels", function() textAtRebuild = line.edit._text end)
+
+        line.submit("960010")
+        t.eq(textAtRebuild, nil, "nothing was rebuilt while the line was mid-submit")
+        t.eq(#queued, 1, "the rebuild waits for the next frame")
+        queued[1]()
+        t.eq(textAtRebuild, "", "by then the line had already cleared its own box")
+    end)
+
+test("Settings: a priority row's Remove button still calls Selector.Block", function(t)
+    -- red under: the add-by-ID change reaching into the rows (renderRowButtons'
+    -- selectorAction("Block", ...) is the writer the row has always used)
+    local KCM = loadCategorySettings()
+    seedAddables()
+    KCM.Selector.AddItem("HP_POT", 960010)
+    KCM.Pipeline.RequestRecompute = function() end
+    local line = renderAddByIDLine(KCM, "HP_POT")
+    local blocked = {}
+    KCM.Selector.Block = function(catKey, id) blocked[#blocked + 1] = { catKey, id }; return true end
+
+    local remove, seenRow
+    for _, w in ipairs(line.made) do
+        if w._kind == "KCMItemRow" then seenRow = true end
+        if seenRow and w._kind == "KCMIconButton" and not remove then remove = w end
+    end
+    t.truthy(remove and remove._callbacks.OnClick, "the added item's row draws its Remove button")
+    remove._callbacks.OnClick(remove, "OnClick")
+    t.eq(blocked[1] and blocked[1][1], "HP_POT", "Remove blocks in the row's own category")
+    t.eq(blocked[1] and blocked[1][2], 960010, "the row's own id")
+end)
+
+test("Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line",
+    function(t)
+        -- red under: the spec check made in onAdd. onAdd returning normally is a success to the
+        -- id line, which has already cleared the box and the status line, so a valid ID was wiped and
+        -- the reason went to chat, the one place the line's own refusals never go.
+        local KCM = loadCategorySettings()
+        local mock = loader.mock
+        mock.setItem(960011, { name = "Test Flask", subType = "Flasks & Phials" })
+
+        -- settings/StatPriority.lua is not loaded here, so O.ResolveViewedSpec is
+        -- absent and FLASK renders with no viewed spec — the same state a
+        -- sub-level-10 character sees.
+        t.falsy(KCM.Options.ResolveViewedSpec, "no viewed-spec resolver in this file set")
+
+        local line = renderAddByIDLine(KCM, "FLASK")
+        t.truthy(line.edit and line.edit._callbacks.OnEnterPressed, "the add-by-ID line rendered anyway")
+        local added = recordAdds(KCM)
+        local said = #mock.output
+        line.submit("960011")
+
+        t.eq(#added, 0, "the ID is valid, but there is nowhere to put it: nothing is added")
+        t.eq(line.edit._text, "960011", "the typed text is kept, as on every other refusal")
+        local status = line.status and line.status._text or ""
+        t.truthy(status:lower():find("no active spec", 1, true) and status:find("960011", 1, true),
+            "the status line says why, naming what was typed ('" .. status .. "')")
+        t.eq(#mock.output, said, "and the refusal does not go to chat")
+    end)
 
 -- ---------------------------------------------------------------------------
 -- options-ui-§13 — EVERY page draws a strip
