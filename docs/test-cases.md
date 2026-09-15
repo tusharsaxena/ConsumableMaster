@@ -847,8 +847,10 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_slash.lua (89)
+### test_slash.lua (91)
 
+- /cm test toggles test mode through the Master controls row
+- /cm test on and off set it, and a refused start says why
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
 - /cm priority add accepts a spell sentinel (s:ID)
@@ -985,6 +987,21 @@ badge and any count quoted in the docs must agree with it.
 - Parity: the LibKa0s-Slash stub carries the whole live seam
 - Parity: the LibKa0s-Options stub carries the whole live seam
 
+### test_testmode.lua (12)
+
+- Test mode: the row is composed directly below Debug console, session-only, default off
+- Test mode: lives in the session, never in the profile
+- Test mode: ticking shows the bar through a visibility that hides it; unticking restores it
+- Test mode: a locked bar shows its handle and wash, and still does not move
+- Test mode: a bar with every slot hidden lays out every slot, and gives them back
+- Test mode: refused in combat, in one gray line, and the panel re-syncs
+- Test mode: refused with the bar off, in one line that says how to turn it on
+- Test mode: combat starting ends it, says so once, and restores the real visibility
+- Test mode: turning the bar off ends it
+- Test mode: Reset all settings ends it
+- Test mode: the Master controls box follows every start and stop
+- Test mode: /cm bar test toggles it, and takes on and off
+
 ### test_tooltipcache.lua (23)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
@@ -1086,13 +1103,14 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 54 |
-| test_slash.lua | 89 |
+| test_slash.lua | 91 |
 | test_slashsetup.lua | 17 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
+| test_testmode.lua | 12 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **897** |
+| **Total** | **911** |

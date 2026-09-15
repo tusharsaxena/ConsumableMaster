@@ -151,7 +151,8 @@ end
 -- Session-only paths — settings whose store is NOT db.profile
 -- ---------------------------------------------------------------------
 --
--- One entry today: the debug console's visibility. options-ui-§15 puts a
+-- Two entries: the debug console's visibility and the macro bar's test mode.
+-- The first is described here; the second is at its entry. options-ui-§15 puts a
 -- `Debug console` row on the Master controls tab and debug-logging keeps it
 -- SESSION-only -- a console left open is not a setting the next character
 -- inherits -- so it has a schema `path` like every other row and no home in the
@@ -181,6 +182,21 @@ local SESSION_PATHS = {
                 DL.Hide()
             end
             return true
+        end,
+    },
+    -- The macro bar's test mode (options-ui-§15, preview-mode), composed from
+    -- settings/General.lua's `testModePath`. MacroBar.SetTestMode is the whole
+    -- act: a refusal prints its own line and re-syncs the panel, and its false
+    -- answer makes SetAndRefresh report the write as not taken.
+    ["state.testMode"] = {
+        get = function()
+            local MB = KCM.MacroBar
+            return (MB and MB.IsTesting and MB.IsTesting()) and true or false
+        end,
+        set = function(v)
+            local MB = KCM.MacroBar
+            if not (MB and MB.SetTestMode) then return false end
+            return MB.SetTestMode(v) and true or false
         end,
     },
 }

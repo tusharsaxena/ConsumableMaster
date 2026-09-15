@@ -179,8 +179,12 @@ local COMMANDS = {
         function(rest) cliGet(rest) end},
     {"set",           "Set a setting — `/cm set <path> <value>` (try /cm list)",
         function(rest) cliSet(rest) end},
-    {"bar",           "Macro bar — `/cm bar [on|off|lock|unlock|reset]` (bare toggles it)",
+    {"bar",           "Macro bar — `/cm bar [on|off|lock|unlock|reset|test]` (bare toggles it)",
         function(rest) V.RunBar(rest) end},
+    -- Every Ka0s addon's test mode is `/<slash> test`. The same switch as the
+    -- Master controls box and `/cm bar test`: one body, V.RunTest.
+    {"test",          "Test mode — `/cm test [on|off]` (bare toggles it); holds the macro bar on screen",
+        function(rest) V.RunTest(rest) end},
     {"priority",      "Per-category priority list editor — try `/cm priority` for the list",
         function(rest) V.RunPriority(rest) end},
     {"stat",          "Per-spec stat priority editor — try `/cm stat` for the list",
@@ -199,8 +203,8 @@ KCM.COMMANDS = COMMANDS
 -- LibKa0s-Slash-1.0 — the dispatcher
 -- ---------------------------------------------------------------------
 --
--- Everything above is this addon's: seventeen verbs, five sub-command tables
--- with three different handler arities, the dump targets, and the schema CLI.
+-- Everything above is this addon's: eighteen verbs, five sub-command tables
+-- with two different handler arities, the dump targets, and the schema CLI.
 -- What the library takes is the part that is the same in every Ka0s addon —
 -- trim, split, lowercase the verb only, apply the alias, find the entry, call
 -- it; plus the help header and rows.
