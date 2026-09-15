@@ -251,7 +251,7 @@ local RESIDUE = {
     {"settings/Panel.lua", "expected a list", "VALIDATOR"},
     {"settings/Panel.lua", "expected a table", "VALIDATOR"},
     {"settings/Panel.lua", "settings tab '", "DIAGNOSTIC"},
-    {"settings/Panel.lua", "settings panel unavailable on this client; use /cm.", "NOT YET ROUTED"},
+    {"settings/Panel.lua", "settings panel unavailable on this client; use /cm help.", "NOT YET ROUTED"},
 
     -- settings/General.lua
     {"settings/General.lua", "in combat — %s deferred until regen.", "FRAGMENT"},

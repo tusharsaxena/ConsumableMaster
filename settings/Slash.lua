@@ -458,9 +458,23 @@ end
 -- one alias and looks the verb up in COMMANDS — the same five steps the
 -- library's own OnSlash takes, because doing fewer would change what the same
 -- typed line means depending on whether the library loaded.
+local function findCommand(cmd)
+    for _, entry in ipairs(COMMANDS) do
+        if entry[1] == cmd then return entry end
+    end
+end
+
 local function degradedDispatch(msg)
     local raw = (msg or ""):match("^%s*(.-)%s*$") or ""
-    if raw == "" then return printHelp() end
+    -- Bare /cm runs `config`, as the library's OnSlash does since Slash minor
+    -- 11 (slash-commands-§4); `help` prints the index. `config` is a host verb,
+    -- so on this path it reaches KCM.Options.Open, which says the panel is
+    -- unavailable. With no `config` row it falls back to help, as the library does.
+    if raw == "" then
+        local config = findCommand("config")
+        if config then return config[3]("") end
+        return printHelp()
+    end
 
     -- Only the verb is lowercased. `rest` keeps its case because schema paths
     -- are case-sensitive, and its internal spacing because a color is several
@@ -469,9 +483,8 @@ local function degradedDispatch(msg)
     cmd = (cmd or ""):lower()
     cmd = ALIASES[cmd] or cmd
 
-    for _, entry in ipairs(COMMANDS) do
-        if entry[1] == cmd then return entry[3](rest or "") end
-    end
+    local entry = findCommand(cmd)
+    if entry then return entry[3](rest or "") end
 
     say(SLASH_STRINGS.UNKNOWN_COMMAND:format(cmd))
     return printHelp()

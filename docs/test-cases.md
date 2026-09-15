@@ -848,7 +848,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_slash.lua (89)
+### test_slash.lua (91)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -861,7 +861,9 @@ badge and any count quoted in the docs must agree with it.
 - /cm with an unknown command reports it and prints help
 - /cm dump pick renders a category's effective priority and marks owned picks
 - /cm rewrite is a back-compat alias for rewritemacros
-- /cm with no argument prints the help table
+- /cm with no argument opens the settings panel through config
+- /cm with only whitespace opens the settings panel too
+- /cm help prints the help table
 - /cm lower-cases only the verb, leaving arguments alone
 - /cm tolerates surrounding whitespace
 - /cm help and the About panel read the same command table
@@ -940,7 +942,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a flag map merges the pairs given over the stored map
 - every /cm stat and /cm aio write goes through the schema helper
 
-### test_slashsetup.lua (17)
+### test_slashsetup.lua (18)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -955,7 +957,8 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /cm set keeps a multi-word font name whole
 - Slash: with the library absent every host-owned verb still dispatches
 - Slash: with the library absent only the five library-backed verbs degrade
-- Slash: a bare /cm degrades without latching, and an unknown verb still reports
+- Slash: /cm help degrades without latching, and an unknown verb still reports
+- Slash: with the library absent a bare /cm still runs config, every time
 - Slash: the degraded path keeps the library's parse — verb only is lowercased
 - Slash: the panel's degraded advice agrees with what /cm actually answers
 - Slash: `/cm get` and the settings panel decode one stored color the same way
@@ -1087,8 +1090,8 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 54 |
-| test_slash.lua | 89 |
-| test_slashsetup.lua | 17 |
+| test_slash.lua | 91 |
+| test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
 | test_tooltipcache.lua | 23 |
@@ -1096,4 +1099,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **898** |
+| **Total** | **901** |

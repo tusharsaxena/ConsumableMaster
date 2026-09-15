@@ -18,7 +18,7 @@ local say = KCM.Say
 -- ---------------------------------------------------------------------------
 -- Dump targets: single source of truth. Each entry has a one-line summary
 -- (shown in help) and a handler. Add new dump targets here and they appear
--- in both `/cm` and `/cm dump` help output automatically.
+-- in both `/cm help` and `/cm dump` help output automatically.
 -- ---------------------------------------------------------------------------
 
 local DUMP_TARGETS = {}

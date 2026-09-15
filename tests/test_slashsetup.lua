@@ -32,9 +32,21 @@ test("Slash: /cm routes through the instance rather than a parallel path", funct
     local fired = 0
     local real = Sl.PrintHelp
     Sl.PrintHelp = function(self) fired = fired + 1; return real(self) end
-    KCM:OnSlashCommand("")
+    KCM:OnSlashCommand("help")
     Sl.PrintHelp = real
-    t.eq(fired, 1, "a bare /cm reaches the library's own help")
+    t.eq(fired, 1, "/cm help reaches the library's own help")
+
+    -- A bare /cm is the library's too: it goes through Sl:OnSlash, which runs
+    -- `config` (Slash minor 11) rather than the help above.
+    local seen, onSlash = {}, Sl.OnSlash
+    Sl.OnSlash = function(self, msg) seen[#seen + 1] = msg; return onSlash(self, msg) end
+    KCM.Options.Open = function() return true end
+    fired = 0
+    Sl.PrintHelp = function(self) fired = fired + 1; return real(self) end
+    KCM:OnSlashCommand("")
+    Sl.PrintHelp, Sl.OnSlash = real, onSlash
+    t.eq(#seen, 1, "a bare /cm reaches the library's OnSlash")
+    t.eq(fired, 0, "…and does not print the help index")
 end)
 
 test("Slash: the library reads the addon's live COMMANDS table, not a copy", function(t)
@@ -88,7 +100,7 @@ test("Slash: the addon's own shipped wording survives the library's strings", fu
     -- "(X is an alias for Y)", and its unknown-verb line is lowercase
     -- "unknown command 'x'".
     mock.output = {}
-    KCM:OnSlashCommand("")
+    KCM:OnSlashCommand("help")
     local header = mock.output[1] or ""
     t.truthy(header:find("|cffffd100Ka0s Consumable Master|r", 1, true),
         "the header still carries the addon's gold brand")
@@ -289,7 +301,7 @@ test("Slash: with the library absent only the five library-backed verbs degrade"
         "…and not perf, which needs LibKa0s-Perf to answer: " .. text)
 end)
 
-test("Slash: a bare /cm degrades without latching, and an unknown verb still reports", function(t)
+test("Slash: /cm help degrades without latching, and an unknown verb still reports", function(t)
     local KCM, mock = loadDegraded()
     -- A degraded install that explains itself once and then goes silent is
     -- worse than an error, so this must answer every time.
@@ -297,9 +309,9 @@ test("Slash: a bare /cm degrades without latching, and an unknown verb still rep
     -- red under: guarding sayDegraded with an `announced` latch.
     for i = 1, 3 do
         mock.output = {}
-        KCM:OnSlashCommand("")
+        KCM:OnSlashCommand("help")
         t.truthy(table.concat(mock.output, "\n"):find("are unavailable", 1, true),
-            "bare /cm answers on invocation " .. i)
+            "/cm help answers on invocation " .. i)
     end
 
     mock.output = {}
@@ -307,6 +319,30 @@ test("Slash: a bare /cm degrades without latching, and an unknown verb still rep
     local text = table.concat(mock.output, "\n")
     t.truthy(text:lower():find("unknown command", 1, true),
         "an unknown verb is still named: " .. text)
+end)
+
+test("Slash: with the library absent a bare /cm still runs config, every time", function(t)
+    local KCM, mock = loadDegraded()
+    -- The stub mirrors Slash minor 11: bare /cm runs `config`, whitespace-only
+    -- included. `config` is a host verb, so it answers here, and what it says is
+    -- that the panel is unavailable. It must say so on every invocation.
+    --
+    -- red under: restoring `if raw == "" then return printHelp() end` in
+    -- degradedDispatch, which prints the degraded notice and never runs config.
+    local entry
+    for _, c in ipairs(KCM.COMMANDS) do
+        if c[1] == "config" then entry = c end
+    end
+    local fired, real = 0, entry[3]
+    entry[3] = function(rest) fired = fired + 1; return real(rest) end
+    for i, line in ipairs({ "", "   ", "" }) do
+        mock.output = {}
+        KCM:OnSlashCommand(line)
+        t.eq(fired, i, "bare /cm reaches config on invocation " .. i)
+        t.truthy(table.concat(mock.output, "\n"):lower():find("unavailable", 1, true),
+            "…and answers on invocation " .. i .. ": " .. table.concat(mock.output, "\n"))
+    end
+    entry[3] = real
 end)
 
 test("Slash: the degraded path keeps the library's parse — verb only is lowercased", function(t)

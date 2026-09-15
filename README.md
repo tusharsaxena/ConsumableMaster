@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-898%2F898_passing-green)
+![Tests](https://img.shields.io/badge/Tests-901%2F901_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -69,7 +69,7 @@ You can overrule the ranking anywhere it gets something wrong. Each category has
 
 Four categories move with your spec. Flask, Combat Potion, Stat Food and Weapon Enchant all read the stat order you set on the Stat Priority page, where Crit, Haste, Mastery and Versatility are one list you drag into the order you want; click a stat's green tick and it drops to the bottom block and counts as nothing at all. The spec you're editing is pinned in that page's banner, and it governs the four spec-aware tabs as well, which is worth remembering when a flask macro looks wrong right after a spec swap. Day to day, though, the macros keep themselves current. `/cm resync` rechecks the picks if you're impatient, and `/cm rewritemacros` redraws every icon for the bar addons that hang on to a stale one.
 
-Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which prints the full command list.
+Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which opens that page. `/cm help` prints the full command list.
 
 ## How picking & ranking works
 

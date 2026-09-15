@@ -2,8 +2,8 @@
 --
 -- Two ordered tables drive the slash UX:
 --   * COMMANDS — top-level subcommands. Each row is {name, description, fn}.
---     The dispatcher prints the help index when invoked bare, looks up by
---     name, and re-prints help on an unknown name. Help text is generated
+--     Invoked bare, the dispatcher runs `config` (`help` prints the index);
+--     it looks up by name, and prints help on an unknown name. Help text is generated
 --     from the same table, so adding a command = adding a single row.
 --   * the `/cm dump <target>` namespace lives in core/SlashDump.lua (CM-54).
 --

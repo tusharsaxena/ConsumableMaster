@@ -122,9 +122,51 @@ end)
 -- Dispatcher
 -- ---------------------------------------------------------------------------
 
-test("/cm with no argument prints the help table", function(t)
+-- Slash minor 11 (LibKa0s v1.38.0, slash-commands-§4): a bare /cm runs the
+-- `config` verb, so the settings panel opens on its landing page, and `help`
+-- is the index. Through minor 10 a bare /cm printed the index.
+--
+-- red under: LibKa0s-Slash-1.0 minor 10, where "" reaches PrintHelp and the
+-- config body never runs.
+local function wrapConfig(KCM)
+    for _, c in ipairs(KCM.COMMANDS) do
+        if c[1] == "config" then
+            local probe = { fired = 0 }
+            local real = c[3]
+            c[3] = function(rest) probe.fired = probe.fired + 1; probe.rest = rest; return real(rest) end
+            probe.restore = function() c[3] = real end
+            return probe
+        end
+    end
+end
+
+test("/cm with no argument opens the settings panel through config", function(t)
     local KCM, mock = load()
+    local opened = 0
+    KCM.Options.Open = function() opened = opened + 1; return true end
+    local probe = wrapConfig(KCM)
+    t.truthy(probe, "config is in COMMANDS")
     local text = say(KCM, mock, "")
+    probe.restore()
+    t.eq(probe.fired, 1, "a bare /cm runs the config verb's own body")
+    t.eq(probe.rest, "", "…with an empty argument")
+    t.eq(opened, 1, "…which opens the settings panel")
+    t.falsy(text:find("slash commands", 1, true),
+        "and the help index is not printed: " .. text)
+end)
+
+test("/cm with only whitespace opens the settings panel too", function(t)
+    local KCM, mock = load()
+    local opened = 0
+    KCM.Options.Open = function() opened = opened + 1; return true end
+    local text = say(KCM, mock, "   \t  ")
+    t.eq(opened, 1, "whitespace-only input is a bare /cm")
+    t.falsy(text:find("Unknown command", 1, true), "and is not read as an empty verb: " .. text)
+end)
+
+test("/cm help prints the help table", function(t)
+    local KCM, mock = load()
+    local text = say(KCM, mock, "help")
     -- Driven from the dispatcher table itself, which is the thing that must be
     -- fully covered — a view of it could agree with the help output while both
     -- disagreed with what actually dispatches.

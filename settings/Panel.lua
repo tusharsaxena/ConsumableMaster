@@ -402,7 +402,7 @@ local function sayPanelUnavailable()
         -- degraded arm reports as still working (CM-R-03).
         KCM.Say(KCM.LIBKA0S_MISSING ..
             ", so the settings panel is unavailable, and so are /cm list, " ..
-            "/cm get and /cm set. The rest of /cm still works — type /cm for " ..
+            "/cm get and /cm set. The rest of /cm still works — type /cm help for " ..
             "the list.")
     end
 end
@@ -1377,7 +1377,7 @@ function O.Open()
         expandMainCategory()
         return true
     end
-    KCM.Say("settings panel unavailable on this client; use /cm.")
+    KCM.Say("settings panel unavailable on this client; use /cm help.")
     return false
 end
 

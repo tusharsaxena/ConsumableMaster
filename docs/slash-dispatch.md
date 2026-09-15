@@ -118,6 +118,11 @@ through `lowerFirst`: the sub-verb folds, its arguments do not. Schema paths are
 (`/cm set macroBar.iconSize 32`), a stat `specKey` may arrive as `SHAMAN:ENHANCEMENT`, and a color is
 several tokens whose internal spacing has to survive.
 
+A bare `/cm`, empty or only whitespace, is not a verb. Since LibKa0s-Slash-1.0 minor 11 (LibKa0s
+v1.38.0) the library runs the `config` row's body with an empty argument, so the settings panel opens
+on its About landing page (`slash-commands-§4`). `/cm help` prints the index. Before minor 11 a bare
+`/cm` printed the index, and a host with no `config` row still gets that.
+
 ## Help output convention
 
 ```
@@ -157,12 +162,13 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:461`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:467`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the
 library loaded. The one alias, `rewrite` → `rewritemacros`, is a file local read by both arms, because
-two alias tables for one addon is the drift the convergence collapsed.
+two alias tables for one addon is the drift the convergence collapsed. A bare line runs `config` here
+too, as the library's `OnSlash` does, and on this path `config` answers that the panel is unavailable.
 
 `GetLandingRows` returns an **empty** list in that state rather than a host-formatted fallback: with
 LibKa0s missing the settings panel is never registered, so there is no About page to render into, and

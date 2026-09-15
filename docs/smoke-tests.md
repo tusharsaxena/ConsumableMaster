@@ -414,8 +414,8 @@ Tests: section-locked sub-cats, enabled toggle, reorder within section.
 
 Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 
-1. `/cm` (no args) — help table. Every entry should be in the `COMMANDS` ordered list.
-2. `/cm help` — same as above.
+1. `/cm` (no args) — opens the settings panel on the About page, the same as `/cm config`. `/cm` followed by only spaces does the same. No help table prints.
+2. `/cm help` — help table. Every entry should be in the `COMMANDS` ordered list.
 3. `/cm config` — opens panel (covered in section 7).
 4. `/cm version` — prints the version.
 5. `/cm debug` — toggles debug; UI checkbox flips to match.
