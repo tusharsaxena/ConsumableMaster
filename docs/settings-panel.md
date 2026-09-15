@@ -122,10 +122,10 @@ own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs | **Master controls** (the canonical eight plus Test mode, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
+| **General** | 2 tabs | **Master controls** (the canonical eight, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
+| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 78 schema rows live here |
 | **Profiles** | none (`§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -139,13 +139,17 @@ they cannot drift into nine orders (`options-ui-§15`).
 | Enable Consumable Master | General visibility |
 | Master scale | Master alpha |
 | Lock frame | Debug console |
-| Test mode | |
 | *Reset position* | *Reset all settings* |
 
 The last row is the tab's closing **button pair**, not two schema rows: they are acts rather than
 settings.
 
-Three of the rows are **new addon-wide settings**, three moved, and Test mode is new session state:
+There is **no Test mode row** and no `/cm test` verb. Unlocking the bar already shows everything a
+preview would: the gold wash over its extent and the drag handle. The standard (v2.49.0,
+`options-ui-§15`) exempts an addon whose unlocked view is its preview, so here **Lock frame** is the
+switch.
+
+Three of the rows are **new addon-wide settings** and three moved:
 
 | Row | Stored path | Where it came from |
 |---|---|---|
@@ -155,7 +159,6 @@ Three of the rows are **new addon-wide settings**, three moved, and Test mode is
 | Master alpha | `alpha` | **new**, addon-wide |
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
 | Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
-| Test mode | `state.testMode` | **new**, on a line of its own: the macro bar's test mode, session-only, composed from `testModePath` and resolved by `SESSION_PATHS` to `MacroBar.SetTestMode`. Refused in combat or with the bar off; combat starting ends it ([macro-bar.md](./macro-bar.md#test-mode)) |
 | *Reset position* | — | moved from Macro Bar → General |
 | *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
 
@@ -177,7 +180,7 @@ half a profile reset by construction cannot do: a session-only row's storage is 
 (`SESSION_PATHS`), not the db, so `Debug console` survived a reset that took everything around it.
 It is written off the `sessionOnly` **flag** rather than off that one path, so a second such row is
 covered the day it is declared — which is also why the composed row is given an explicit
-`debugConsole = false` default (and test mode's `testMode = false`) in `settings/General.lua`: three separate resets key on
+`debugConsole = false` default in `settings/General.lua`: three separate resets key on
 `default ~= nil` before they will touch a row, and `OptionsCompose` emits that row without one.
 Both halves live behind the one function so the button and `/cm resetall` cannot drift.
 
@@ -416,7 +419,7 @@ Two different paths, and the difference is what a row shape can express.
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` →
-`SetAndRefresh` seam. There are **79**: 64 `macroBar.*` rows on the Macro Bar page, 7 in the
+`SetAndRefresh` seam. There are **78**: 64 `macroBar.*` rows on the Macro Bar page, 6 in the
 General page's Master controls block, 7 on the Macros page and 1 on the Stat Priority page. Ten
 of them are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
 `map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section
@@ -509,12 +512,6 @@ not gaps:
   `/cm debug` (`debug-logging-§5`); logging is armed separately, via the in-window `Debug: ON/OFF`
   toggle or `/cm debug on|off`. `KCM.State.debug` is session-only and never persisted, so it still has
   no path to declare.
-- The **Test mode** row is composed the same way, from `testModePath = "state.testMode"`, on its own
-  line under Lock frame / Debug console. Its tooltip replaces the composer's generic one with what the
-  mode does to the bar. `SESSION_PATHS` resolves it to `MacroBar.IsTesting` / `MacroBar.SetTestMode`.
-  A refused start (combat, or the bar turned off) prints one line and re-syncs the panel itself,
-  because `SetAndRefresh` does not redraw after a write that was not taken and the click has already
-  drawn a tick.
 
 ## Layout rules
 

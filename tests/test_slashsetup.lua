@@ -229,7 +229,7 @@ end
 -- addon and reach nothing in LibKa0s, so a degraded install must keep them.
 local HOST_VERBS = {
     "config", "version", "debug", "resync", "rewritemacros", "resetall",
-    "bar", "test", "priority", "stat", "aio", "dump",
+    "bar", "priority", "stat", "aio", "dump",
 }
 
 test("Slash: with the library absent every host-owned verb still dispatches", function(t)

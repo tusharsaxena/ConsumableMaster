@@ -465,7 +465,6 @@ local SUITES = {
     "test_slashsetup",
     "test_spechelper",
     "test_surface_parity",
-    "test_testmode",
     "test_tooltipcache",
     "test_vendor_sync",
     "test_weaponslots",

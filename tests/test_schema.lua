@@ -605,7 +605,6 @@ local MASTER_ROWS = {
     { "alpha",              "number" },
     { "macroBar.locked",    "bool"   },
     { "state.debugConsole", "bool"   },
-    { "state.testMode",     "bool"   },
 }
 
 -- red under: renaming the group, declaring any other general-page group ahead of
@@ -659,7 +658,7 @@ test("schema: every session-only row declares a default, so a reset can reach it
                 "'" .. tostring(row.path) .. "' declares a default")
         end
     end
-    t.eq(n, 2, "the debug console and test mode are this addon's two session-only rows")
+    t.eq(n, 1, "the debug console is this addon's one session-only row")
 end)
 
 -- red under: leaving the old declaration in place anywhere it used to live.
@@ -928,8 +927,7 @@ test("schema: stat priority, the composite sections, slot order and visibility, 
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 79,
-            "the 68 rows there were, plus these ten, plus the Master controls Test mode row")
+        t.eq(#KCM.Settings.Schema, 78, "the 68 rows there were, plus these ten")
     end)
 
 test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)

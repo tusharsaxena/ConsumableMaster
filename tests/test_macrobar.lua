@@ -1109,6 +1109,25 @@ test("macrobar schema: locking and unlocking reaches the bar frame, whichever su
         H.RefreshScalars = realRefresh
     end)
 
+-- The bar's own OnDragStart has always asked the lock. The handle's did not, so
+-- anything that reached the handle on a locked bar could still drag it.
+--
+-- red under: a handle OnDragStart that calls StartMoving without asking the lock.
+test("macrobar: the drag handle does not move a locked bar", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, bar, handle = buildMacroBar(KCM)
+    local moved = 0
+    bar.StartMoving = function() moved = moved + 1 end
+
+    KCM.MacroBar.SetLocked(true)
+    handle:GetScript("OnDragStart")(handle)
+    t.eq(moved, 0, "a locked bar is not dragged by its handle")
+
+    KCM.MacroBar.SetLocked(false)
+    handle:GetScript("OnDragStart")(handle)
+    t.eq(moved, 1, "unlocked, the same drag moves it")
+end)
+
 test("macrobar schema: a flag written from /cm re-syncs the open Macro Bar page in place",
     function(t)
         -- Symptom 1, observed on the rendered widget: the value the checkbox

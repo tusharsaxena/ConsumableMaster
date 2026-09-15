@@ -59,11 +59,6 @@ local function inCombat()
     return InCombatLockdown and InCombatLockdown() and true or false
 end
 
--- Test mode is on (see the Test mode section below). Read by three apply passes.
-local function testing()
-    return (KCM.State and KCM.State.testMode) == true
-end
-
 -- A stored swatch resolved through its "use class color" companion
 -- (options-ui-§17). One resolver for the whole addon, in core/CoreSetup.lua, so
 -- the bar's backdrop and its border cannot disagree about whether the stored
@@ -165,8 +160,9 @@ local function buildBar()
     handle:SetBackdropColor(0, 0, 0, 0.75)
     handle:SetBackdropBorderColor(1, 0.82, 0, 0.6)
     handle:RegisterForDrag("LeftButton")
-    -- Dragging is the LOCK's business, not the handle's. Test mode puts the handle
-    -- up on a locked bar so its extent can be seen, and that must not make it movable.
+    -- Dragging is the LOCK's business, not the handle's. The bar's own
+    -- OnDragStart asks the lock; the handle asks it too, so nothing that reaches
+    -- the handle on a locked bar can move it.
     handle:SetScript("OnDragStart", function()
         local c = cfg()
         if not c or c.locked then return end
@@ -181,7 +177,7 @@ local function buildBar()
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(KCM.L["Consumable Master"], 1, 0.82, 0)
         local locked = (cfg() or {}).locked
-        GameTooltip:AddLine(locked and KCM.L["Locked. Unlock the bar to move it: /cm bar unlock."]
+        GameTooltip:AddLine(locked and KCM.L["Locked. Unlock the bar to move it — /cm bar unlock."]
             or KCM.L["Drag to move the bar."], 1, 1, 1, true)
         GameTooltip:Show()
     end)
@@ -211,10 +207,9 @@ local function buildBar()
         GameTooltip:AddLine(KCM.L["Drag a button off the bar to put its macro on an action bar."], 1, 1, 1, true)
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(KCM.L["Only Consumable Master macros can sit on this bar."], 0.6, 0.6, 0.6, true)
-        -- Locked with the handle up means test mode is showing it.
         local locked = (cfg() or {}).locked
         GameTooltip:AddLine(locked
-            and KCM.L["Test mode is showing this handle. Unlock the bar to drag it — /cm bar unlock."]
+            and KCM.L["Locked. Unlock the bar to drag this handle — /cm bar unlock."]
             or KCM.L["Lock the bar to hide this handle — /cm bar lock."], 0.6, 0.6, 0.6, true)
         GameTooltip:Show()
     end)
@@ -278,11 +273,8 @@ local function applyLock()
     if not bar then return end
     local c = cfg() or {}
     local unlocked = not c.locked
-    -- Test mode reveals the bar's extent the way unlocking does, and nothing more:
-    -- the mouse and the drag stay the lock's.
-    local reveal = unlocked or testing()
     bar:EnableMouse(unlocked)
-    if reveal then bar.moveHint:Show() else bar.moveHint:Hide() end
+    if unlocked then bar.moveHint:Show() else bar.moveHint:Hide() end
     -- Handle is at least as wide as its own label, and never narrower than the
     -- bar, so a one-button bar still gets a grabbable strip.
     local handle = bar.handle
@@ -291,7 +283,7 @@ local function applyLock()
         -- handle never crowds the two together.
         local textW = (handle.text:GetStringWidth() or 0) + HANDLE_PAD + HANDLE_HELP * 2
         handle:SetWidth(math.max(textW, bar:GetWidth() or textW))
-        handle:SetShown(reveal)
+        handle:SetShown(unlocked)
     end
 end
 
@@ -304,13 +296,6 @@ local function applyVisibility()
     if UnregisterStateDriver then UnregisterStateDriver(bar, "visibility") end
     if not c.enabled then
         bar:Hide()
-        return
-    end
-    -- Test mode shows the bar whatever either visibility says, and holds no driver
-    -- while it does. It is out of combat by construction (refused in combat, ended
-    -- at PLAYER_REGEN_DISABLED), so a plain Show() is safe.
-    if testing() then
-        bar:Show()
         return
     end
     -- The addon-wide General visibility and this bar's own Combat visibility are
@@ -333,10 +318,6 @@ local function applyLayout()
     if not bar then return end
     local c = cfg() or {}
     local visible = KCM.MacroBarModel.Visible()
-    -- An all-hidden bar collapses to one empty cell. Test mode lays out every slot
-    -- instead, so there is something to see and place. The slots already exist
-    -- (ensure() builds all of them), so this is Show and anchor, out of combat.
-    if #visible == 0 and testing() then visible = KCM.MacroBarModel.Order() end
     local grid = KCM.MacroBarLayout.Grid(#visible, c)
 
     bar:SetScale((tonumber(c.scale) or 1) * masterScale())
@@ -353,95 +334,6 @@ local function applyLayout()
             btn:Show()
         end
     end
-end
-
--- ---------------------------------------------------------------------------
--- Test mode (options-ui-§15, preview-mode)
--- ---------------------------------------------------------------------------
---
--- Placeholder content on the bar, turned on and left on until turned off, and
--- independent of the lock. While it is on, the bar is SHOWN whatever General
--- visibility and the bar's own Combat visibility say, its handle and gold wash
--- are up so its extent can be seen, and an all-hidden bar lays out every slot.
--- The mouse and the drag stay the lock's.
---
--- Session state (KCM.State.testMode) with one writer, MB.SetTestMode. The
--- Master controls row (settings/Panel.lua's SESSION_PATHS), `/cm test` and
--- `/cm bar test` all reach it through the schema seam.
---
--- It never meets a fight. Starting is refused in combat, and it ENDS at
--- PLAYER_REGEN_DISABLED, while protected frames can still be written, so the
--- re-apply that hands visibility back to the secure driver runs before lockdown
--- instead of waiting for regen with the bar force-shown. The listener is
--- registered only while test mode is on, so off it costs nothing.
-
-local testEvents      -- bus target for the combat listener, made on first start
-local onCombat
-
-local function gray(s) return "|cff808080" .. s .. "|r" end
-
--- The Master controls checkbox reads KCM.State.testMode through SESSION_PATHS.
--- An in-place re-sync is what makes it follow a start or stop it did not make.
-local function refreshPanel()
-    local H = KCM.Settings and KCM.Settings.Helpers
-    if H and H.RefreshScalars then H.RefreshScalars() end
-end
-
-local function listen(on)
-    if on then
-        testEvents = testEvents or (KCM.NewBusTarget and KCM.NewBusTarget())
-        if testEvents then testEvents:RegisterEvent("PLAYER_REGEN_DISABLED", onCombat) end
-    elseif testEvents then
-        testEvents:UnregisterEvent("PLAYER_REGEN_DISABLED")
-    end
-end
-
--- Clears the flag and the listener, and answers whether test mode was on. No
--- re-apply: MB.Update's disable path calls this while it is hiding the bar.
-local function clearTest()
-    if not testing() then return false end
-    KCM.State.testMode = false
-    listen(false)
-    return true
-end
-
-local function stopTest(line)
-    if not clearTest() then return false end
-    MB.Update()
-    KCM.Say(line)
-    refreshPanel()
-    return true
-end
-
-function onCombat()
-    stopTest(KCM.L["Test mode off — combat started"])
-end
-
-function MB.IsTesting() return testing() end
-
---- Start or stop test mode, and answer whether it is now in the state asked for.
---- A refusal prints its one line here and re-syncs the panel, because the click
---- that asked has already drawn a tick.
-function MB.SetTestMode(on)
-    on = on and true or false
-    if on == testing() then return true end
-    if not on then return stopTest(KCM.L["Test mode off"]) end
-    if inCombat() then
-        KCM.Say(gray(KCM.L["cannot start test mode during combat"]))
-        refreshPanel()
-        return false
-    end
-    if not (KCM.MacroBarModel and KCM.MacroBarModel.IsEnabled()) then
-        KCM.Say(gray(KCM.L["cannot start test mode — the macro bar is off; turn it on with /cm bar on"]))
-        refreshPanel()
-        return false
-    end
-    KCM.State.testMode = true
-    listen(true)
-    MB.Update()
-    KCM.Say(KCM.L["Test mode on — the macro bar is shown whatever its visibility says; combat ends it"])
-    refreshPanel()
-    return true
 end
 
 -- ---------------------------------------------------------------------------
@@ -520,11 +412,6 @@ function MB.Update()
         return false
     end
     if not c.enabled then
-        -- Test mode has nothing to show on a bar that is off, so it ends with it.
-        if clearTest() then
-            KCM.Say(KCM.L["Test mode off — the macro bar was turned off"])
-            refreshPanel()
-        end
         if bar then
             if UnregisterStateDriver then UnregisterStateDriver(bar, "visibility") end
             bar:Hide()

@@ -206,7 +206,7 @@ end
 --                   them (LIBKA0S-09, issue #16). Routing a string nothing
 --                   renders is noise.
 --   CLI SURFACE     A `/cm` verb description or reply. `/cm` prints these
---                   eighteen verbs and core/SlashCommands.lua's five
+--                   seventeen verbs and core/SlashCommands.lua's five
 --                   sub-command tables through one lib.FormatRow, and four
 --                   fifths of that listing lives outside the scanned surface.
 --                   Routing this fifth alone would split one help listing
@@ -270,7 +270,7 @@ local RESIDUE = {
     -- settings/Category.lua
     {"settings/Category.lua", "icon-button onClick failed: ", "DIAGNOSTIC"},
 
-    -- settings/Slash.lua — the eighteen verb descriptions and their replies.
+    -- settings/Slash.lua — the seventeen verb descriptions and their replies.
     {"settings/Slash.lua", "Show this help", "CLI SURFACE"},
     {"settings/Slash.lua", "Open the settings panel", "CLI SURFACE"},
     {"settings/Slash.lua", "Settings panel unavailable.", "CLI SURFACE"},
@@ -292,8 +292,7 @@ local RESIDUE = {
     {"settings/Slash.lua", "List every schema setting and its current value", "CLI SURFACE"},
     {"settings/Slash.lua", "Print a setting's current value — `/cm get <path>`", "CLI SURFACE"},
     {"settings/Slash.lua", "Set a setting — `/cm set <path> <value>` (try /cm list)", "CLI SURFACE"},
-    {"settings/Slash.lua", "Macro bar — `/cm bar [on|off|lock|unlock|reset|test]` (bare toggles it)", "CLI SURFACE"},
-    {"settings/Slash.lua", "Test mode — `/cm test [on|off]` (bare toggles it); holds the macro bar on screen", "CLI SURFACE"},
+    {"settings/Slash.lua", "Macro bar — `/cm bar [on|off|lock|unlock|reset]` (bare toggles it)", "CLI SURFACE"},
     {"settings/Slash.lua", "Per-category priority list editor — try `/cm priority` for the list", "CLI SURFACE"},
     {"settings/Slash.lua", "Per-spec stat priority editor — try `/cm stat` for the list", "CLI SURFACE"},
     {"settings/Slash.lua", "Composite-category editor (HP_AIO, MP_AIO) — try `/cm aio` for the list", "CLI SURFACE"},

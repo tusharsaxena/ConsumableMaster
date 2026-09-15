@@ -474,9 +474,9 @@ end
 --- profile reset by construction cannot do: a session-only row's storage is its own
 --- `set()` (settings/Panel.lua's SESSION_PATHS), not the db, so `db:ResetProfile()`
 --- cannot reach it and the row outlives a reset that took everything around it. The
---- debug console's visibility and the macro bar's test mode are the addon's two such
---- rows, and the sweep is written off the `sessionOnly` FLAG rather than off their
---- paths, which is how test mode was covered the day it was declared.
+--- debug console's visibility is the addon's only such row today, and the sweep is
+--- written off the `sessionOnly` FLAG rather than off that one path so a second one
+--- is covered the day it is declared.
 ---
 --- Reached through KCM.Settings at CALL time and silent when it is not there: this
 --- file loads long before settings/, and on a degraded load (no LibKa0s / AceGUI)

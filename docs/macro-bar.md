@@ -341,9 +341,9 @@ button, and a button's `OnDragStart` picks the macro up. So unlocking the bar
 shows a labeled strip above it (`KCMMacroBarHandle`, a child of the container)
 whose drag scripts call `StartMoving` on the bar. It's sized to the wider of its
 own contents and the bar, and hidden again on lock. The gold wash over the bar
-stays as the "this is unlocked" signal. Test mode shows both on a locked bar too,
-and there the handle's drag does nothing: moving is the lock's call
-([Test mode](#test-mode)).
+stays as the "this is unlocked" signal. The handle's `OnDragStart` asks the lock
+itself, as the bar's own does, so it never moves a locked bar, and both of its
+tooltips say to unlock when the bar is locked.
 
 At its right end sits a **help icon** whose tooltip spells out the three drag
 gestures (move the bar, swap two slots, drop a macro on an action bar) plus the
@@ -353,41 +353,6 @@ wide — prose long enough to explain both gestures would either clip or force t
 handle wider than the bar it labels, while a 14px icon costs the same at every
 width. The handle's own tooltip stays a single line, so hovering it to drag
 doesn't dump a wall of text.
-
-## Test mode
-
-Test mode puts the bar on screen so it can be seen and placed without waiting
-for the moment its settings would show it (`options-ui-§15`, `preview-mode`). It
-is the **Test mode** checkbox under General → Master controls, composed from
-`testModePath = "state.testMode"`, the top-level `/cm test [on|off]` that every
-Ka0s addon's test mode answers to, and its bar-scoped form `/cm bar test [on|off]`.
-All three write that row through the schema seam, and `MacroBar.SetTestMode` is
-the act.
-
-While it is on:
-
-- The bar is **shown** whatever General visibility and Combat visibility say.
-  `applyVisibility` unregisters the secure driver and calls `Show()`, which is
-  safe because test mode is never on in combat.
-- The **gold wash and the handle** are up, as if the bar were unlocked, so its
-  extent is visible. The mouse and the drag stay with **Lock frame**: a locked
-  bar still lets clicks through, and its handle's `OnDragStart` does nothing (the
-  handle's tooltip says to unlock).
-- A bar with **every slot hidden** lays out all of them instead of collapsing to
-  one empty cell. The slots already exist, because `ensure()` builds one per
-  category up front, so this is `Show` and anchoring out of combat and never a
-  new secure frame. They are the real buttons, bound to their real macros.
-
-It is session state (`KCM.State.testMode`, off at every login) and never in the
-profile. Starting it is refused, with one line, in combat and when the bar is
-turned off. It ends when **combat starts**: `PLAYER_REGEN_DISABLED` fires before
-lockdown, so the `MacroBar.Update()` that hands visibility back to the driver
-still runs then, instead of waiting for regen with the bar held up. That
-listener lives on the bar's own bus target and is registered only while test
-mode is on. Turning the bar off ends it too, and so does **Reset all settings**,
-through the session sweep, which is why the composer spec declares
-`testMode = false`. Every start and stop re-syncs the open panel, a refused
-start included, so the box never shows a state the bar is not in.
 
 ## Defaults & the v2 / v3 migrations
 
@@ -436,7 +401,6 @@ Everything here follows from one rule: **buttons are protected frames.**
 | combat-conditional visibility | `RegisterStateDriver(bar, "visibility", <driver>)` — Blizzard's secure environment performs the toggle, so it works mid-fight, taint-free. The driver string comes from `MacroBarModel.ResolveVisibility(db.profile.visibility, macroBar.combatMode)`, which INTERSECTS the addon-wide General visibility with this bar's own Combat visibility: the bar shows only where both say show, and a pair that can never agree answers `"hide"` outright rather than registering a driver that flickers |
 | hover fade | `SetAlpha`, unprotected and safe in combat. Faded buttons stay clickable by design. Both the hovered and the faded value are multiplied by the addon-wide `db.profile.alpha`, exactly as `SetScale` is multiplied by `db.profile.scale` (`options-ui-§15`) |
 | lock / unlock | `EnableMouse` + a texture toggle on the unprotected container — safe in combat |
-| test mode | never on in combat: refused under lockdown, and ended at `PLAYER_REGEN_DISABLED`, which fires before lockdown, so its re-apply runs while protected frames can still be written |
 | drag out to a Blizzard bar | `MacroDisplay.Pickup`, shared with the settings-panel drag icon. `PickupMacro` is **protected**, so it is blocked in combat with a chat notice rather than an `ADDON_ACTION_BLOCKED` error; the drop itself is Blizzard's own taint-free `PlaceAction` flow |
 | drag-to-swap | blocked in combat with a chat notice (the relayout that follows anchors protected frames) |
 

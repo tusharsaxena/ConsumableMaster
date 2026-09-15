@@ -2,7 +2,7 @@
 --
 -- TWO TABS on a pinned strip (options-ui-§13):
 --
---   * Master controls — the canonical set plus Test mode (options-ui-§15), COMPOSED by the
+--   * Master controls — the canonical eight (options-ui-§15), COMPOSED by the
 --     library's MasterControls rather than typed out here, and closed by the
 --     [Reset position] | [Reset all settings] button pair. It is the FIRST tab
 --     on the page, which is the whole rule: the one thing every player looks for
@@ -165,8 +165,8 @@ StaticPopupDialogs["KCM_RESET_PRIORITIES"] = {
 -- The Master controls tab — COMPOSED, never typed out (options-ui-§15)
 -- ---------------------------------------------------------------------
 --
--- Seven rows in the canonical order: six two per line, then Test mode on a line
--- of its own, closed by the two resets as a button pair. Nine addons emit them from this one declaration, which is what
+-- Eight rows, two per line, in the canonical order, closed by the two resets as
+-- a button pair. Nine addons emit them from this one declaration, which is what
 -- makes the order, the labels and the ranges identical without nine people
 -- agreeing to be careful.
 --
@@ -195,10 +195,6 @@ local masterRows, masterTail = H.MasterControls{
     -- and lives outside the profile. settings/Panel.lua's SESSION_PATHS is what
     -- resolves it.
     debugConsolePath = "state.debugConsole",
-    -- The macro bar's test mode (options-ui-§15, LibKa0s compose minor 6): a
-    -- session-only checkbox on its own line below Lock frame / Debug console.
-    -- Verbatim like the console path, and resolved the same way (SESSION_PATHS).
-    testModePath     = "state.testMode",
     keys      = { locked = "macroBar.locked" },
     defaults  = {
         enabled    = PROFILE_DEFAULTS.enabled,
@@ -214,10 +210,6 @@ local masterRows, masterTail = H.MasterControls{
         -- button and `/cm reset general` all key on `default ~= nil`, and the composer
         -- emits the row without one. Closed at login is the state a fresh session has.
         debugConsole = false,
-        -- Session state as well, and a literal for the same reason. It is what lets
-        -- the global reset, this page's Defaults and `/cm reset general` end test
-        -- mode: the composer emits the row without a default too.
-        testMode     = false,
     },
     onResetPosition = function()
         if KCM.MacroBar and KCM.MacroBar.ResetPosition then
@@ -227,14 +219,6 @@ local masterRows, masterTail = H.MasterControls{
     end,
     onResetAll = function() StaticPopup_Show("KCM_RESET_ALL") end,
 }
-
--- The composer's Test mode tooltip is generic. This one says what the mode does
--- to the one thing this addon draws.
-for _, row in ipairs(masterRows) do
-    if row.path == "state.testMode" then
-        row.tooltip = L["Show the macro bar whatever its visibility settings say, with its handle and outline up so you can see and place it. A bar with every button hidden shows them all. Moving it still needs Lock frame off. Combat ends test mode. Same as /cm test."]
-    end
-end
 
 H.RegisterRows(masterRows, "general", "general", {
     enabled = {

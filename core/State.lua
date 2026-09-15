@@ -12,8 +12,3 @@ KCM.State = KCM.State or {}
 -- Debug console + verbose logging enabled flag. Default off; /cm debug and the
 -- console header toggle both route through DebugLog:SetEnabled which sets this.
 if KCM.State.debug == nil then KCM.State.debug = false end
-
--- The macro bar's test mode (options-ui-§15, preview-mode). Session-only for the
--- same reason: placeholder content is not a setting the next login inherits.
--- MacroBar.SetTestMode is its one writer.
-if KCM.State.testMode == nil then KCM.State.testMode = false end

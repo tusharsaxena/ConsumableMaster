@@ -22,53 +22,6 @@ local function effectiveSet(KCM, catKey)
     return set
 end
 
--- Every Ka0s addon's test mode is `/<slash> test`. Here it is the same switch as
--- the Master controls box and `/cm bar test`: the `state.testMode` row, written
--- through the schema seam so the box follows.
---
--- red under: a `test` verb missing from COMMANDS, or one that sets the state
--- directly and bypasses the row.
-test("/cm test toggles test mode through the Master controls row", function(t)
-    local KCM, mock = load()
-    local H = KCM.Settings.Helpers
-    KCM.MacroBar.Update()
-    local writes, realSet = {}, KCM.Schema.Set
-    KCM.Schema.Set = function(self, path, v) writes[#writes + 1] = path; return realSet(self, path, v) end
-    say(KCM, mock, "test")
-    t.eq(H.Get("state.testMode"), true, "bare, it turns test mode on")
-    say(KCM, mock, "test")
-    KCM.Schema.Set = realSet
-    t.eq(H.Get("state.testMode"), false, "and bare again, off")
-    t.eqList(writes, { "state.testMode", "state.testMode" }, "each through the row's schema seam")
-end)
-
--- red under: `on` / `off` read as a flip, or a start that skips the combat and
--- bar-off refusals.
-test("/cm test on and off set it, and a refused start says why", function(t)
-    local KCM, mock = load()
-    local H = KCM.Settings.Helpers
-    KCM.MacroBar.Update()
-    say(KCM, mock, "test on")
-    say(KCM, mock, "test on")
-    t.eq(H.Get("state.testMode"), true, "`on` turns it on and leaves it on")
-    say(KCM, mock, "test off")
-    t.eq(H.Get("state.testMode"), false, "`off` turns it off")
-
-    mock.setCombat(true)
-    local text = say(KCM, mock, "test on")
-    mock.setCombat(false)
-    t.eq(H.Get("state.testMode"), false, "refused in combat")
-    t.truthy(text:find("combat", 1, true), "and says so: " .. text)
-
-    KCM.MacroBar.SetEnabled(false)
-    text = say(KCM, mock, "test")
-    t.eq(H.Get("state.testMode"), false, "refused with the bar off")
-    t.truthy(text:find("/cm bar on", 1, true), "and says how to turn it on: " .. text)
-
-    text = say(KCM, mock, "test sideways")
-    t.truthy(text:find("usage: /cm test [on|off]", 1, true), "anything else prints the usage: " .. text)
-end)
-
 test("/cm set toggles a bool setting through the schema", function(t)
     local KCM = load()
     KCM:OnSlashCommand("set enabled false")

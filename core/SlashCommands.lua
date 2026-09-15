@@ -851,26 +851,6 @@ end
 -- the combat deferral); the finer-grained layout/appearance settings are
 -- reachable as schema paths via `/cm set macroBar.<field>`.
 
--- `/cm test [on|off]`, and its bar-scoped form `/cm bar test [on|off]`: one body,
--- published as Verbs.RunTest for the top-level verb. It writes the Master controls
--- row through the schema seam, so the checkbox follows and a refusal says why once
--- (MacroBar.SetTestMode).
-local function barTest(arg)
-    if not (KCM.Schema and KCM.Schema.Set) then return say("test mode unavailable.") end
-    local word = lowerFirst(arg)
-    local on
-    if word == "on" then
-        on = true
-    elseif word == "off" then
-        on = false
-    elseif word == "" then
-        on = not KCM.MacroBar.IsTesting()
-    else
-        return say("usage: /cm test [on|off], or /cm bar test [on|off]")
-    end
-    KCM.Schema:Set("state.testMode", on)
-end
-
 local BAR_COMMANDS = {
     {"on",     "Show the macro bar",
         function() KCM.MacroBar.SetEnabled(true);  say("macro bar |cff00ff00ON|r") end},
@@ -882,16 +862,13 @@ local BAR_COMMANDS = {
         function() KCM.MacroBar.SetLocked(false);  say("macro bar unlocked — drag it, then /cm bar lock") end},
     {"reset",  "Move the bar back to the center of the screen",
         function() KCM.MacroBar.ResetPosition();   say("macro bar position reset") end},
-    {"test",   "Show the bar in test mode — `/cm bar test [on|off]` (bare toggles it)",
-        function(arg) barTest(arg) end},
 }
 
 local function barHelp()
     local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config() or {}
-    say(("macro bar: %s, %s%s"):format(
+    say(("macro bar: %s, %s"):format(
         cfg.enabled and "|cff00ff00ON|r" or "|cffff5555OFF|r",
-        cfg.locked  and "locked" or "unlocked",
-        KCM.MacroBar.IsTesting() and ", test mode on" or ""))
+        cfg.locked  and "locked" or "unlocked"))
     for _, entry in ipairs(BAR_COMMANDS) do
         say(("  |cffffff00/cm bar %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
     end
@@ -902,7 +879,7 @@ local function runBar(rest)
     if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then
         return say("macro bar unavailable.")
     end
-    local sub, tail = lowerFirst(rest)
+    local sub = lowerFirst(rest)
     -- Bare `/cm bar` toggles, matching how `/cm debug` reads as a switch.
     if sub == "" then
         local on = not KCM.MacroBarModel.IsEnabled()
@@ -911,7 +888,7 @@ local function runBar(rest)
     end
     if sub == "help" then return barHelp() end
     local entry = findCommand(BAR_COMMANDS, sub)
-    if entry then return entry[3](tail) end
+    if entry then return entry[3]() end
     say("unknown bar subcommand '" .. sub .. "'")
     barHelp()
 end
@@ -927,7 +904,6 @@ end
 
 KCM.SlashCommands.Verbs = {
     RunBar      = runBar,
-    RunTest     = barTest,
     RunPriority = runPriority,
     RunStat     = runStat,
     RunAIO      = runAIO,
