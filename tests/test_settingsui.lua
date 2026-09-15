@@ -1666,7 +1666,7 @@ test("Settings: the Reset all settings tooltip names Profiles → Reset Profile"
     rawset(tip, "AddLine", saved)
     t.truthy(ok, tostring(err))
     t.eq(lines[1], "Reset the current profile to its defaults — the same thing "
-        .. "Profiles → Reset Profile does. Your other profiles are not affected.",
+        .. "Profiles -> Reset Profile does. Your other profiles are not affected.",
         "the tooltip names the equivalence and the blast radius")
 end)
 
