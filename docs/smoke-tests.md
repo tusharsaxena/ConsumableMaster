@@ -187,7 +187,7 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 1. Close the Settings panel. Run `/cm config`.
 2. Expect: lands on the **Ka0s Consumable Master** parent page (logo + tagline + slash help). Left sidebar has the parent expanded with exactly **five** sub-pages visible, in this order: **General**, **Macros**, **Stat Priority**, **Macro Bar**, **Profiles**. (It listed eighteen before the redesign; the fifteen category pages are tabs on Macros now.)
 3. Manually collapse the parent in the sidebar. Run `/cm config` again. Sidebar re-expands.
-4. Open General. A **tab strip** with exactly **two** tabs, **Master controls** first (`options-ui-§15` requires that order) and **Maintenance** beside it. Master controls carries eight controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, then the `[Reset position | Reset all settings]` button pair — and nothing else, since the three maintenance acts moved off it in 1.6.0. Maintenance carries `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`, under no heading of its own (the tab already carries the name). A strip showing one tab here, with the three acts hanging off the bottom of Master controls, is the pre-1.6.0 fold. A top-right **Defaults** button sits in the page header.
+4. Open General. A **tab strip** with exactly **two** tabs, **Master controls** first (`options-ui-§15` requires that order) and **Maintenance** beside it. Master controls carries nine controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, `[Minimap button]` alone on its own line (the composer pairs it with *Test mode*, which this addon does not have), then the `[Reset position | Reset all settings]` button pair — and nothing else, since the three maintenance acts moved off it in 1.6.0. Maintenance carries `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`, under no heading of its own (the tab already carries the name). A strip showing one tab here, with the three acts hanging off the bottom of Master controls, is the pre-1.6.0 fold. A top-right **Defaults** button sits in the page header.
 4a. **Nothing is declared twice.** The Macro Bar page's General tab has **no** Lock and **no** Reset position — both moved here. `/cm set macroBar.locked true` still works and still ticks the **Lock frame** box on this page, because the setting moved tabs and not storage.
 4b. **The master rows are addon-wide, and they compose.** Set **Master scale** to 2.0 with the bar's own **Bar scale** at 1.0 → the bar doubles. Now set Bar scale to 0.5 → it lands halfway back, at an effective 1.0. Same for **Master alpha** against **Bar opacity**. Set **General visibility** to *Only in combat* with the bar's **Combat visibility** at *Always* → the bar appears on pull and goes on combat drop. Set the bar's Combat visibility to *Hide in combat* as well → the two can never agree, and the bar stays hidden.
 5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
@@ -200,6 +200,41 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 10b. Click **Reset all priorities** (the Maintenance tab) — a **different** StaticPopup, naming a narrower act. On Yes, every category's added / blocked / pinned items and every spec's stat-priority override are cleared and **nothing else is**: set a non-default `Button size` on the Macro Bar page first and confirm it survives. Blocked in combat with a chat notice.
 10a. **The slash path raises the same popup.** ⚠ `/cm reset` used to *be* this wipe; it now resets one row, and the destructive verb is `/cm resetall`. That move is only safe if the confirmation moved with it. Run `/cm resetall` → **the same StaticPopup appears**. **Cancel** → nothing is wiped (spot-check that a custom added item survives). Run it again and confirm → identical effect to step 10, because both reach the popup through the same file-scope `StaticPopup_Show("KCM_CONFIRM_RESET")`. Then bare `/cm reset` → the usage line naming `/cm resetall`, and **no popup**; `/cm reset macroBar.orientation` → that one row echoes and nothing else moves. (What this pins: the guard on the destructive path. A `/cm resetall` that wipes without asking, or a bare `/cm reset` that wipes at all, is the regression this convergence risked — see `../LibKa0s/docs/adoption-prompt.md`, "The two user-visible convergences".)
 11. Disable the addon (Enable off) and move **Master scale** off 1.0, then click the top-right **Defaults** button — from the **Maintenance** tab, so the rows it resets are not even on screen. It resets **this page only**, every tab of it: master enable flips back on (`[CM] Master enable ON`), scale / alpha / visibility come back to their shipped values, and the debug console switches off. Category and stat-priority customizations are left untouched (verify a custom added item survives). Blocked in combat with a chat notice.
+
+### 7c. The launcher — the minimap button and the broker plugin (`launcher-§1`)
+
+Tests: one object on two surfaces, the rung, the visibility row, and the saved position.
+
+1. Log in. A round button wearing **this addon's own logo** sits on the minimap ring — not a
+   Blizzard cooking icon and not a blank square. A blank square is the failure this step exists
+   for: a missing or wrongly formatted `media/logos/consumablemaster.logo.128.tga` draws nothing
+   and raises nothing. The same art is on the addon's row in the **AddOns** list, because
+   `## IconTexture` names the same file.
+2. **Left-click it.** The macro bar **unlocks**: the gold wash appears over its extent and the drag
+   handle appears above it — this addon's rung is (b), and unlocking IS its preview. Open
+   General → Master controls: **Lock frame** is now unticked. Left-click the button again and the
+   box ticks back. The checkbox and the button must never disagree: they are one write seam.
+   `/cm bar lock` is the third door onto the same state.
+3. **Right-click it.** The settings panel opens, exactly as `/cm config` does. Right-click must do
+   this on every Ka0s addon whatever its left button does, and must never touch the lock.
+4. **Drag the button** a third of the way round the ring, `/reload`, and confirm it is still where
+   you left it. LibDBIcon keys that angle by the addon's folder name, so a button that snaps back
+   to the default angle means the two registrations are not using the same name.
+5. Untick **Minimap button** on Master controls. The button disappears **immediately**, not at the
+   next reload. Tick it and it comes back at the angle from step 4. Now hide it through the
+   button's OWN right-click menu if your client offers one, reopen the panel, and confirm the
+   checkbox followed — the row and the library write the same key.
+6. **The button is installation-wide, not profile-wide.** With it hidden, switch to another profile
+   on the Profiles page. It stays hidden. Switch back. Still hidden.
+7. **And a profile reset does not bring it back.** With it still hidden, run
+   **Reset all settings** → Yes (or `/cm resetall`). Every profile setting returns to its default
+   and the button stays hidden — a button the player deliberately hid reappearing here is the
+   failure `launcher-§3` puts the table in the global store to prevent. (The page's own **Defaults**
+   button is a different act and DOES reset the row, which is correct: it is page-scoped.)
+8. **If you run a broker display** (Titan Panel, ElvUI data texts, Bazooka), Ka0s Consumable Master
+   appears in its plugin list wearing the same logo, and clicking it there does exactly what
+   clicking the minimap button does — one object, two surfaces. There is deliberately **no**
+   setting that hides it from a display; the display has its own.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
 

@@ -71,6 +71,8 @@ Four categories move with your spec. Flask, Combat Potion, Stat Food and Weapon 
 
 Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which opens that page. `/cm help` prints the full command list.
 
+There is also a button on your minimap wearing the addon's logo. **Right-click it** to open the settings page from anywhere. **Left-click it** to unlock the macro bar, move it, and lock it again — the same switch as **Lock frame** in the settings and `/cm bar lock`. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
+
 ## How picking & ranking works
 
 Each macro is built in four steps:

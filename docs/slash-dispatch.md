@@ -2,10 +2,10 @@
 
 `/cm` and `/consumablemaster` reach one dispatcher: the **LibKa0s-Slash-1.0** instance built in
 `settings/Slash.lua`. The library owns the parse, the help renderer, the row and value formatters and
-the schema CLI. This addon owns seventeen verbs, five sub-command tables with three different handler
+the schema CLI. This addon owns nineteen verbs, five sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — seventeen verbs is over eight, and four verbs
+Both halves of `documentation-§3`'s trigger fire here — nineteen verbs is over eight, and four verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -32,7 +32,7 @@ asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instan
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
 renderer's input.
 
-The seventeen verbs, in declaration order, which is also the order `/cm help` and the About page
+The nineteen verbs, in declaration order, which is also the order `/cm help` and the About page
 print them:
 
 | Verb | Backed by | Behavior |
@@ -40,6 +40,8 @@ print them:
 | `help` | library | Header plus one row per `COMMANDS` entry. |
 | `config` | host | `KCM.Options.Open()`, and says so plainly when the panel is not registered. |
 | `version` | host | `v<version>` from the TOC metadata through `core/EnvSetup.lua`. |
+| `enable` | host | Writes `enabled = true` through `Helpers.SetAndRefresh` — the Master controls checkbox's own path and seam — then echoes the stored value through the library's shared `path = value` formatter. |
+| `disable` | host | The same write with `false`. Neither verb holds state of its own (`slash-commands-§2`); with `libs/LibKa0s/` absent there is no `enabled` row to write and both say so rather than going inert. |
 | `perf` | LibKa0s-Perf | Resolves `KCM.Perf` at **call** time, prints the lines it returns. |
 | `debug` | host | Bare toggles the console window; `on`/`off` set logging through `DebugLog.SetEnabled`. |
 | `resync` | host | Invalidate the tooltip cache, run auto-discovery, recompute every category. |
@@ -156,7 +158,7 @@ state. It still has to behave.
 library — `help`, `list`, `get`, `set`, `reset` and `perf`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
-`/cm is unavailable`, which was untrue of eleven of the seventeen verbs and told the player to stop
+`/cm is unavailable`, which was untrue of thirteen of the nineteen verbs and told the player to stop
 typing commands that worked.
 
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse

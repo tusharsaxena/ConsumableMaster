@@ -150,7 +150,7 @@ end
 -- XML's own directory). They cannot come from the TOC the way the addon's own
 -- files do: the TOC names one aggregate XML, and Loader.tocFiles skips `libs\`
 -- outright — so before the kit shipped a derivation, every runner in the
--- collection re-typed the same eight-entry list.
+-- collection re-typed the same list by hand.
 --
 -- Getting this list wrong is silent, which is why it must not be typed: a module
 -- whose dependency is absent returns BEFORE LibStub:NewLibrary, so the major is
@@ -163,7 +163,7 @@ L.LIB_FILES = Loader.xmlFiles(ROOT .. "/libs/LibKa0s/LibKa0s.xml")
 -- Compiled once and re-executed per build. Every suite rebuilds its whole
 -- environment (mock.install wipes the LibStub registry), so the chunks have to
 -- run again on each build — but they only have to be READ from disk once, and
--- these fourteen files run several hundred times across the suite. They run in the
+-- these sixteen files run several hundred times across the suite. They run in the
 -- kit loader's environment, exactly as Loader.load would run them, so the two
 -- paths cannot drift; only the disk read is hoisted.
 local libChunks

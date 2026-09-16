@@ -196,8 +196,8 @@ test("LibKa0s: library file basenames are unique across every vendored major", f
 end)
 
 test("LibKa0s: omitting the vendored files leaves every major absent, not half-wired", function(t)
-    -- The degraded scenario is loadable rather than hypothetical: four of the
-    -- five majors return BEFORE LibStub:NewLibrary when Core is missing, so
+    -- The degraded scenario is loadable rather than hypothetical: every major
+    -- but Core returns BEFORE LibStub:NewLibrary when Core is missing, so
     -- feeding the loader a deliberately partial file list is exactly the
     -- install a user with no libs/LibKa0s/ has. Every setup file's fallback is
     -- proven against this, not against a hand-written stub.

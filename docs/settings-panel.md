@@ -122,7 +122,7 @@ own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs | **Master controls** (the canonical eight, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
+| **General** | 2 tabs | **Master controls** (the canonical set, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
 | **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 78 schema rows live here |
@@ -131,7 +131,7 @@ own UI and last in every Ka0s addon that ships one.
 ### The General page's Master controls tab
 
 The **first** tab on the page, named exactly `Master controls`, and its rows are **composed** by
-`H.MasterControls` rather than typed out — nine addons emit the same eight from one declaration, so
+`H.MasterControls` rather than typed out — nine addons emit the same set from one declaration, so
 they cannot drift into nine orders (`options-ui-§15`).
 
 | | |
@@ -139,7 +139,13 @@ they cannot drift into nine orders (`options-ui-§15`).
 | Enable Consumable Master | General visibility |
 | Master scale | Master alpha |
 | Lock frame | Debug console |
+| Minimap button | |
 | *Reset position* | *Reset all settings* |
+
+**Minimap button** opens its own line rather than pairing. The composer's fourth line is
+`[Minimap button] [Test mode]`, and the always-present row takes column 1 precisely so an addon
+without a test mode does not draw a hole in the first column with a lone control beside it. This
+addon has no test mode (see below), so column 2 is empty.
 
 The last row is the tab's closing **button pair**, not two schema rows: they are acts rather than
 settings.
@@ -159,8 +165,40 @@ Three of the rows are **new addon-wide settings** and three moved:
 | Master alpha | `alpha` | **new**, addon-wide |
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
 | Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
+| Minimap button | `global.minimap.hide` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session |
 | *Reset position* | — | moved from Macro Bar → General |
 | *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
+
+### The Minimap button row — shown says one thing, the store says the other
+
+The row is `global.minimap.hide`, and three things about it are deliberate.
+
+**Its store is LibDBIcon's OWN table, not a key beside it.** `db.global.minimap` is the table this
+addon hands straight to `LibDBIcon:Register`, and `hide` is the boolean LibDBIcon writes itself when
+the player uses the button's own right-click menu — `minimapPos` lands in the same table when they
+drag it. A parallel `minimap.show` would be a second record of one state that a library also writes,
+and the day they disagree the button and the checkbox disagree (anti-pattern #81).
+
+**Its scope is GLOBAL, and that is the decision rather than where it landed.** A minimap button
+belongs to the installation, not to a profile. Switching profiles must not move the player's
+buttons, and *Reset all settings* — a **profile** reset by definition (`options-ui-§12`) — must not
+un-hide a button they deliberately hid. `settings/OptionsSetup.lua`'s `vetoedFromResetAll` keys the
+global reset's session sweep on `row.sessionOnly`, and this row is **stored**, not session, so the
+sweep skips it and `db:ResetProfile()` cannot reach `db.global`. Both halves are pinned by cases in
+`tests/test_launcher.lua`.
+
+**Its label says SHOWN and its stored key says HIDDEN, so the row inverts.** That inversion lives in
+the addon's single write seam and nowhere else — `settings/Panel.lua`'s `GLOBAL_PATHS`, a second
+diversion table beside `SESSION_PATHS` (a second table rather than a wider one because the two
+differ exactly where the reset sweep reads them). The `set` writes `hide = not value` and then calls
+`KCM.Launcher:SetShown(value)`, so the button follows the checkbox immediately rather than at the
+next reload. The page's own **Defaults** button does reset this row, which is the page-scoped act it
+has always been and is not the profile reset the paragraph above is about.
+
+The button itself, and the broker plugin that is the same object, are
+[ARCHITECTURE.md → LibKa0s adoption](./ARCHITECTURE.md#libka0s-adoption)'s `Launcher-1.0` row. Its
+**left click** toggles **Lock frame** — the same seam this checkbox drives — and its right click
+opens this panel.
 
 **The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
 govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and

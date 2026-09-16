@@ -14,6 +14,8 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 - **Drag-and-drop reordering of priority list rows**, on the single-category tabs of the Macros page. The gesture is `LibKa0s-Widgets-1.0`'s `ReorderList` — handle, carried copy and insertion line — and it replaced the ↑ / ↓ buttons those rows used to carry; the composite AIO sections still reorder with the arrows. `/cm priority <cat> up|down` does the same thing from chat.
 - **A CM-only macro bar** (on and unlocked by default, switchable off) holding the managed macros as secure buttons, with configurable layout / geometry / chrome / labels / visibility, drag-to-swap reordering, and a per-slot hover flyout listing every currently-usable candidate in that category. Deliberately narrow: it hosts *only* `KCM_*` macros — it is not a general-purpose action-bar replacement, and it will not accept arbitrary items, spells or foreign macros. See [macro-bar.md](./macro-bar.md).
 
+- **A launcher — the minimap button and the broker plugin** (`launcher-§1`), added at LibKa0s v1.39.0. It is ONE LibDataBroker object registered twice, so a broker display (Titan Panel, ElvUI data texts, Bazooka) shows the same icon and answers the same click as the button on the minimap. Left-click toggles the macro bar's **lock** — rung (b), this addon's preview switch — and right-click opens the settings panel. The button's visibility is the **Minimap button** row on Master controls ([settings-panel.md](./settings-panel.md)); the broker plugin deliberately has no toggle of its own, because a display already offers one per plugin. This bullet used to sit under *Out of scope* and was moved rather than added: the standard made a launcher mandatory across the collection.
+
 ## Out of scope
 
 These have been considered and explicitly declined. A change of heart needs an issue + design discussion, not a stealth PR.
@@ -25,7 +27,6 @@ These have been considered and explicitly declined. A change of heart needs an i
 - **Cauldrons / phials** as separate categories. Phials are absorbed into FLASK by subclass (Flask/Phial, subClassID 3). Cauldrons don't have a managed macro. Weapon oils and whetstones are the WPN_ENCH category, and augment runes are the AUG_RUNE category — both matched by tooltip effect rather than by item class.
 - **Bandages.** First aid is a separate workflow; not relevant to current Midnight endgame.
 - **Profile import/export.** Profiles live in `ConsumableMasterDB`, per account. AceDBOptions' *Copy From* is the only way to move settings between them; there is no serialization layer.
-- **LDB / minimap icon.**
 - **A general-purpose action bar.** The macro bar hosts `KCM_*` macros only. Paging, stances, arbitrary items/spells/macros, and per-button keybindings are Bartender/ElvUI territory (keybindings are tracked as a possible narrow exception).
 - **Shopping-list / restock reminders.**
 - **Feasts** in `STAT_FOOD`. Personal feasts and ground feasts are excluded from the seed; users wanting a feast macro can add the item ID manually.
