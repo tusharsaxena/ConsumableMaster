@@ -55,7 +55,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.39.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.42.0 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
@@ -68,10 +68,13 @@ because it answers a maintainer's question on a page written for players — the
 LibKa0s supplies the chat printer, the debug console, the slash dispatcher and schema CLI, the
 settings-panel shell, its row widgets and the schema composers behind the Master controls tab and the font / border / color blocks, the reorder drag behind the priority rows, a composite's two combat sections and the stat-priority list, the shipped art and font, the TOC-manifest reader behind
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
-harness, and the minimap button and broker plugin behind `core/LauncherSetup.lua`. Ten of its
-majors are consumed — `Widgets` joined them when the priority rows took the library's drag handle
-(`settings/Category.lua`, `settings/StatPriority.lua`), and `Launcher` joined at v1.39.0 with the
-launcher adoption; `Pool` alone ships in the payload unused. It is vendored whole-folder
+harness, the minimap button and broker plugin behind `core/LauncherSetup.lua`, and the **latch** the
+disabled state and the perf harness's suspended arm are two named holds on. **Eleven** of its majors
+are consumed — `Widgets` joined them when the priority rows took the library's drag handle
+(`settings/Category.lua`, `settings/StatPriority.lua`), `Launcher` joined at v1.39.0 with the
+launcher adoption, and `Lifecycle` at v1.41.0 with the stand-down
+([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)); `Pool` alone ships in the
+payload unused. It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

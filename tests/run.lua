@@ -445,6 +445,7 @@ local SUITES = {
     "test_debuglog",
     "test_docmap",
     "test_defaults",
+    "test_disabled",
     "test_envsetup",
     "test_itemsetup",
     "test_events",

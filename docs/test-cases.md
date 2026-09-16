@@ -246,6 +246,27 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
+### test_disabled.lua (18)
+
+- Disabled 1: enabled, the addon registers a non-empty set
+- Disabled 3: the registration set is EMPTY, by count and by name
+- Disabled 3b: /cm disable takes the same route as the checkbox
+- Disabled 4: no OnUpdate and no state driver is left armed
+- Disabled 5: the bar is hidden, and its show ladder answers no
+- Disabled 6: firing every event it used to watch reaches nothing
+- Disabled 6b: the harness WOULD have caught a survivor
+- Disabled 7: every reserved verb still answers normally
+- Disabled 7b: the bare /cm opens the settings panel
+- Disabled 7c: a feature verb refuses on exactly one line, and reaches no seam
+- Disabled 7d: the refusal line is the collection's shape, not a re-spelling
+- Disabled 8: left-click is refused and writes nothing; right-click opens the panel
+- Disabled 9: re-enabling rebuilds exactly the set it took down
+- Disabled 9b: a setting changed while disabled is honored on the way back up
+- Disabled 10: releasing perf does not stand up an addon disable still holds
+- Disabled 10b: the same, with the holds taken in the other order
+- Disabled 10c: the perf harness takes its hold on this very latch
+- Disabled 10d: a profile that arrives disabled stands the addon down
+
 ### test_envsetup.lua (5)
 
 - EnvSetup: KCM.Meta reads THIS addon's TOC
@@ -979,7 +1000,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a disabled addon refuses resync rather than reporting a pass that wrote nothing
 - Slash: every verb outside the live set refuses while disabled, and every live one answers
 - Slash: enable itself still works while disabled, or the pair is one-way
-- Slash: the refusal reaches the degraded dispatcher too
+- Slash: with LibKa0s absent there is no refusal to print, and the verb acts
 
 ### test_slashsetup.lua (18)
 
@@ -1105,6 +1126,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
+| test_disabled.lua | 18 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 20 |
@@ -1142,4 +1164,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **928** |
+| **Total** | **946** |

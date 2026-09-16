@@ -26,11 +26,13 @@ local KCM = NS
 -- unconditional and a combat "secret" can never raise mid-line.
 local say = KCM.Say
 
--- The locale seam (localization-§1). One string in this file goes through it --
--- the disabled-verb refusal below -- and it is the first of the `/cm` surface's
--- to; the rest are the CLI SURFACE residue tests/test_locale.lua registers, which
--- is one decision about the whole command listing and not this one.
-local L = KCM.L
+-- The locale seam (localization-§1) is no longer reached from this file. The one
+-- string that went through it was the disabled-verb refusal, and that line is the
+-- LIBRARY's now: slash-commands-§7 fixes one shape collection-wide and forbids
+-- re-spelling it per addon, so an `L` override could only ever make this addon's
+-- copy disagree with the other ten. The rest of the `/cm` surface is the CLI
+-- SURFACE residue tests/test_locale.lua registers, which is one decision about the
+-- whole command listing rather than a string-by-string one.
 
 -- The verb bodies, owned by core/SlashCommands.lua. Resolved once here rather
 -- than per call: settings/ loads after core/, so the table is already populated,
@@ -288,12 +290,19 @@ local COMMANDS = {
 -- does not drive a feature; it reports on one, which is what `debug` and `perf`
 -- are live for. Refusing it would take the diagnostic away at the one moment
 -- somebody is asking why the addon is quiet.
-local ALWAYS_LIVE = {
-    help = true, config = true, version = true,
-    enable = true, disable = true,
-    debug = true, perf = true,
-    get = true, set = true, list = true, reset = true, resetall = true,
-    dump = true,
+--
+-- THE SET IS AN ARRAY BECAUSE IT IS HANDED TO THE LIBRARY as the descriptor's
+-- `liveVerbs` (Slash minor 13). Passing it WIDENS lib.LIVE_VERBS by this addon's
+-- one extra verb; it must never be used to NARROW it. v2.56.0 of the standard cut
+-- the disabled surface to `enable` and `help`, the owner tested that and reversed
+-- it at v2.57.0 -- `/cm` on a disabled addon answered with a refusal instead of
+-- opening the settings panel, which is the one surface a player uses to switch it
+-- back on by hand. Every reserved verb answers here, and the bare `/cm` opens the
+-- panel exactly as it does when the addon is running.
+local LIVE_VERBS = {
+    "help", "config", "version", "enable", "disable", "debug",
+    "perf", "get", "set", "list", "reset", "resetall",
+    "dump",
 }
 
 -- Read through the same seam the checkbox and `/cm get enabled` read, never a
@@ -307,20 +316,25 @@ local function addonEnabled()
     return not (H and H.Get(ENABLED_PATH) == false)
 end
 
--- ONE LINE, and nothing else. No partial work, no side effect, no second line:
--- one line is the whole courtesy, and a paragraph explaining the state is a
--- lecture stapled to a command the player is about to re-run anyway.
-for _, entry in ipairs(COMMANDS) do
-    if not ALWAYS_LIVE[entry[1]] then
-        local run = entry[3]
-        entry[3] = function(rest)
-            if not addonEnabled() then
-                return say(L["disabled \226\128\148 |cffffff00/cm enable|r turns it back on"])
-            end
-            return run(rest)
-        end
-    end
-end
+-- THE GATE IS THE LIBRARY'S NOW, and the wrap that used to sit here is gone.
+--
+-- It was written against Slash minor 11, which had no gate at all, and it did the
+-- job: it refused at the table rather than in six verb bodies, and it covered both
+-- dispatch arms. Minor 12 added the gate and minor 13 settled its shape, so
+-- keeping the wrap would be a second gate beside it -- and the two would then have
+-- to agree about which verbs are live and about how the refusal is worded, which
+-- is the drift the shared dispatcher exists to end. `isEnabled`, `brandName` and
+-- `liveVerbs` on the descriptor below are the whole of the host's half.
+--
+-- WHAT MOVED WITH IT IS THE WORDING. This addon printed its own sentence --
+-- `disabled — /cm enable turns it back on`. slash-commands-§7 fixes one shape
+-- collection-wide, built by `cli:DisabledLine()` from the brand name, and says it
+-- MUST NOT be re-spelled per addon, per verb or per call site. So the line is the
+-- library's, here and at the launcher's left click (core/LauncherSetup.lua).
+--
+-- The `L` seam went with the string, which is the right answer rather than a loss:
+-- the line is the collection's, not this addon's, and the library's own note says
+-- an `L` override does not reach it.
 
 -- Publish the command table so the About panel and any future consumer read
 -- the same source of truth as the /cm dispatcher (slash-commands-§4).
@@ -461,6 +475,29 @@ if slashLib then
         commands     = COMMANDS,
         aliases      = ALIASES,
         version      = addonVersion,
+
+        -- THE DISABLED GATE (Slash minor 13, slash-commands-§2 and §7). Three
+        -- fields, and the library does the rest: the twelve reserved verbs and
+        -- the bare `/cm` answer normally while the addon is off -- a player must
+        -- be able to read and repair settings and to REACH THE PANEL then, which
+        -- is precisely when they are most likely to need to, and `enable` above
+        -- all, or the pair is one-way -- while this addon's own feature verbs
+        -- answer the one refusal line and do nothing else.
+        --
+        -- `isEnabled` is asked at DISPATCH time and never cached, so the command
+        -- after an `/cm enable` works. It reads through the same seam the
+        -- checkbox and `/cm get enabled` read (slash-commands-§2's "no state of
+        -- their own").
+        isEnabled    = addonEnabled,
+        -- The brand name in plain text, and the SAME string core/LauncherSetup.lua
+        -- gives the LDB object as `label` (launcher-§1 forbids escapes in that
+        -- field, which is what makes it safe to drop into a colored line). Spelled
+        -- as a literal in both places and pinned against each other by
+        -- tests/test_disabled.lua, rather than one file reaching into the other.
+        brandName    = "Ka0s Consumable Master",
+        -- WIDENS the library's twelve by this addon's read-only `dump`; it must
+        -- never narrow them. See LIVE_VERBS above.
+        liveVerbs    = LIVE_VERBS,
         -- A thunk, not `say` bare: the library snapshots the printer at :New.
         -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
         -- print.

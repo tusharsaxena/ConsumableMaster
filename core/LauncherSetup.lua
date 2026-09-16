@@ -28,6 +28,13 @@
 -- what lets the left button be spent on something better. The library owns that
 -- half; `openSettings` below is all it asks for.
 --
+-- WHILE THE ADDON IS DISABLED the left click is REFUSED and the right click is
+-- unchanged (launcher-§2, slash-commands-§7). Rung (b) drives a preview switch
+-- and a preview switch is a feature, so the left button prints the one refusal
+-- line and does nothing else -- no SavedVariables write above all. The button
+-- itself stays on the minimap: `minimap.hide` is a per-installation display
+-- preference and says nothing about whether the addon is running.
+--
 -- THE LEFT CLICK DRIVES THE EXISTING SWITCH THROUGH THE EXISTING SEAM and holds
 -- no copy of it. `MB.SetLocked` is the write path both `/cm bar lock|unlock` and
 -- the Master-controls *Lock frame* checkbox already take (CM-R-05,
@@ -150,6 +157,26 @@ KCM.Launcher = lib:New({
     -- take; it reads the CURRENT value out of the profile rather than keeping
     -- one, so three surfaces cannot disagree.
     onClick = function()
+        -- REFUSED WHILE THE ADDON IS DISABLED (launcher-§2, slash-commands-§7).
+        -- This is a rung-(b) left click: it drives the preview switch, which is a
+        -- FEATURE, so it prints the one refusal line and does nothing else -- in
+        -- particular it writes no SavedVariables, which is the thing a minimap
+        -- button with no disabled gate does every single time it is clicked.
+        -- Unlocking a bar that is not drawn is not a coherent request anyway.
+        --
+        -- THE LINE IS THE DISPATCHER'S, never re-spelled here: one wording,
+        -- collection-wide, built once by cli:DisabledLine() (slash-commands-§7).
+        -- The right click is UNCHANGED in either state -- it opens the settings
+        -- panel, which is setup rather than a feature, and it is one of the two
+        -- routes a player uses to switch the addon back on by hand.
+        --
+        -- The DISABLED hold, not the latch as a whole: a perf capture's suspended
+        -- arm is a diagnostic the player started, not a switch they threw.
+        if KCM.IsAddonDisabled and KCM.IsAddonDisabled() then
+            local Sl = KCM.SlashCommands and KCM.SlashCommands.instance
+            if Sl then KCM.Say(Sl:DisabledLine()) end
+            return
+        end
         local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
         if not (cfg and KCM.MacroBar and KCM.MacroBar.SetLocked) then
             return KCM.Say("macro bar unavailable.")

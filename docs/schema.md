@@ -27,7 +27,12 @@ db.profile
 ├── schemaVersion        3          -- THIS profile's migration marker; gates every
 │                                   -- step that writes the profile scope. Not a
 │                                   -- default: RunMigrations writes it on arrival.
-├── enabled              boolean    -- master enable; gates Pipeline.Recompute
+├── enabled              boolean    -- master enable. It drives the LATCH
+│                                   -- (core/LifecycleSetup.lua): writing it
+│                                   -- false stands the WHOLE addon down --
+│                                   -- every event and bus message
+│                                   -- unregistered, the bar off the screen --
+│                                   -- rather than gating one macro pass
 │                                   -- the three ADDON-WIDE master controls
 │                                   -- (options-ui-§15). NOT the macro bar's own
 │                                   -- scale/alpha/combatMode -- the two compose.

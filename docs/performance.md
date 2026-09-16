@@ -50,18 +50,33 @@ is an upvalue read, a nil test and a field read: no table lookup through `KCM`, 
 window is open — an ungated bracket would accumulate outside every window and poison the next
 report.
 
-## Suspend and resume
+## Suspend and resume are two holds on ONE latch
 
-`suspend` drops every event the addon listens on (`KCM:UnregisterAllEvents()`) and re-runs
-`MacroBar.Update`, which tears the bar down. That stops the recompute pipeline, auto-discovery and
-the cooldown repaint in one move. `resume` calls `KCM:OnEnable` — the real list, called rather than
-copied, so a tenth event added there cannot be forgotten here — rebuilds the bar and requests a
-recompute.
+`suspend` and `resume` are no longer this file's, and `LibKa0s-Perf-1.0` minor 12 no longer calls
+them. `P.Suspend()` takes the **`perf` hold** on the addon's single `LibKa0s-Lifecycle-1.0` latch and
+`P.Resume()` gives it back; the latch runs the teardown, and only if this is the first hold. The
+teardown itself is `core/LifecycleSetup.lua`'s `standDown` / `standUp`, which is the very same code
+the **disabled** state reaches — see
+[ARCHITECTURE.md](./ARCHITECTURE.md#the-disabled-state-is-total).
 
-Two rules the contract depends on: it works **without a reload** (reloading shifts shared-frame
-ownership, the confound that makes Blizzard's own addon profiler useless for this question), and
-visibility is enforced at the **source** rather than by hiding frames, or a combat transition would
-re-show the bar behind suspend's back.
+That is the point of the move rather than a tidy-up. A second teardown path written beside this one
+would give the addon two mechanisms that both mean "be inert", and they diverge on the first module
+added after the second was written. It also fixes a case a boolean could not represent: a player can
+disable the addon **mid-capture** and re-enable it there, so **releasing one hold must not resurrect
+an addon the other is still holding down**. "Resume before saving or reporting" is unchanged in
+force and sharpened in meaning — it requires the harness to **release its own hold**, not to stand
+the addon up, and an addon the player left disabled at the end of a run stays disabled.
+
+`P.suspended` keeps its name and its meaning and is now a **view** on the latch rather than a second
+boolean beside it; assigning to it raises.
+
+Two rules the contract depends on, unchanged: it works **without a reload** (reloading shifts
+shared-frame ownership, the confound that makes Blizzard's own addon profiler useless for this
+question), and visibility is enforced at the **source** — `MacroBarModel.IsEnabled()` — rather than by
+hiding frames, or a combat transition would re-show the bar behind the stand-down's back.
+
+Standing up rebuilds from the settings **as they are now**, never from a snapshot taken on the way
+down.
 
 ## Storage
 

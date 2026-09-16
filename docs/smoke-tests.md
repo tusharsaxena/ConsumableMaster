@@ -190,8 +190,11 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 4. Open General. A **tab strip** with exactly **two** tabs, **Master controls** first (`options-ui-§15` requires that order) and **Maintenance** beside it. Master controls carries nine controls, two per line, in this order: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, `[Minimap button]` alone on its own line (the composer pairs it with *Test mode*, which this addon does not have), then the `[Reset position | Reset all settings]` button pair — and nothing else, since the three maintenance acts moved off it in 1.6.0. Maintenance carries `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`, under no heading of its own (the tab already carries the name). A strip showing one tab here, with the three acts hanging off the bottom of Master controls, is the pre-1.6.0 fold. A top-right **Defaults** button sits in the page header.
 4a. **Nothing is declared twice.** The Macro Bar page's General tab has **no** Lock and **no** Reset position — both moved here. `/cm set macroBar.locked true` still works and still ticks the **Lock frame** box on this page, because the setting moved tabs and not storage.
 4b. **The master rows are addon-wide, and they compose.** Set **Master scale** to 2.0 with the bar's own **Bar scale** at 1.0 → the bar doubles. Now set Bar scale to 0.5 → it lands halfway back, at an effective 1.0. Same for **Master alpha** against **Bar opacity**. Set **General visibility** to *Only in combat* with the bar's **Combat visibility** at *Always* → the bar appears on pull and goes on combat drop. Set the bar's Combat visibility to *Hide in combat* as well → the two can never agree, and the bar stays hidden.
-5. Toggle Enable off — `[CM] Master enable OFF` prints. `/cm dump pick food` shows the `Pipeline.Recompute skipped writes (disabled)` debug line if debug is on. The panel still refreshes (so `[Loading]` rows hydrate) but no macro is rewritten.
-6. Toggle Enable on — `[CM] Master enable ON` prints. A recompute kicks immediately; macros refresh against current state.
+5. Toggle Enable off — `[CM] Master enable OFF` prints, **and the addon stops running** (`slash-commands-§7`). The macro bar **goes off the screen immediately** — that is the reported bug and the one thing to look at first; a bar still sitting there is the draw gate this was fixed for. Confirm the rest with `/framestack` and the debug console: nothing repaints on a bag change, a spec change or a cooldown tick, and no macro is rewritten. The settings panel stays open and usable, and every `/cm` verb still answers — both are **setup**, not features.
+5a. **In combat.** Pull something, toggle Enable off mid-fight. The bar cannot be taken down under lockdown, so it goes on the **regen** that follows — and nothing else survives: the addon holds exactly one registration, `PLAYER_REGEN_ENABLED`, and drops that too the moment it fires.
+5b. **Through a `/reload`.** Disabled, `/reload`. The addon comes back **still off**, having registered nothing at all — not registering nine events and tearing them down a frame later.
+5c. **Through a profile switch.** With the addon disabled, switch to a profile where it is enabled: it comes back up, because the AceDB profile callbacks survive the disabled state on purpose. Switch back: it stands down again.
+6. Toggle Enable on — `[CM] Master enable ON` prints. Every event re-registers, the bar comes back **only if `Enable macro bar` is still ticked** (the rebuild reads the settings as they are *now*, not as they were when it went down — test it by unticking the bar while the addon is off), and a recompute kicks immediately.
 7. Toggle Debug — color-coded ack `[CM] debug logging ON` (green) / `OFF` (red), plus a `[Debug] logging enabled/disabled` line in the console; on enable, an `[Init]` session summary line (addon + version, schema, profile) follows the bracket. Tagged debug console lines start / stop appearing.
 8. Click **Force resync** — TooltipCache invalidates, auto-discovery re-runs, pipeline recomputes. Blocked in combat with a chat notice.
 9. Click **Force rewrite macros** — every `KCM_*` body + icon re-issued unconditionally. Useful when an action-bar framework is showing a stale texture.
@@ -470,16 +473,27 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 13. `/cm stat list` — current spec. `/cm stat primary AGI` — sets primary. `/cm stat secondary CRIT,HASTE,MASTERY,VERSATILITY` — replaces the secondary list. `/cm stat reset` — drops override. `/cm stat list 7_264` — explicit spec key. `/cm stat list SHAMAN:ENHANCEMENT` — friendly form.
 14. `/cm aio hp_aio list` — assembled order. `/cm aio hp_aio toggle hs` — flip enabled. `/cm aio hp_aio up hp_pot` — within-section reorder. `/cm aio hp_aio reset` — restores defaults.
 14a. **A disabled addon refuses a feature verb** (`slash-commands-§2`). `/cm disable`, then
-    `/cm resync` — one line, `disabled — /cm enable turns it back on`, with the verb gold, and
-    **nothing else**: no *auto-discovery found N*, no *recomputed all categories*. Same for
-    `/cm bar on` (the bar does not appear), `/cm priority hp_pot add 12345` (`/cm enable`,
-    then `/cm priority hp_pot list` — 12345 is not there), `/cm stat primary AGI` and
-    `/cm aio hp_aio toggle hs`. While still disabled, confirm the rest of the surface answers
-    normally: `/cm help`, `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm list`,
-    `/cm get enabled`, `/cm set scale 1.1`, `/cm reset scale`, `/cm dump categories` — and
-    `/cm enable`, which must never refuse or the switch is one-way. A verb that prints the refusal
-    and then acts anyway is the failure this step exists for, which is why each line above says what
-    to look at as well as what to type.
+    `/cm resync` — one line, `Ka0s Consumable Master is disabled — enable it with /cm enable`,
+    with the command gold, and **nothing else**: no *auto-discovery found N*, no *recomputed all
+    categories*. The wording is the collection's and is built by the library, so the same sentence
+    with a different shape means somebody re-spelled it host-side. Same for `/cm bar on` (the bar
+    does not appear), `/cm priority hp_pot add 12345` (`/cm enable`, then
+    `/cm priority hp_pot list` — 12345 is not there), `/cm stat primary AGI` and
+    `/cm aio hp_aio toggle hs`. A verb that prints the refusal and then acts anyway is the failure
+    this step exists for, which is why each line says what to look at as well as what to type.
+14b. **The rest of the surface is UNCHANGED while disabled** (`slash-commands-§7`, restored at
+    v2.57.0 after a day narrowed). Still disabled, confirm each of these answers **normally**:
+    `/cm help` (the full index, with the refusal line under the header — not instead of it),
+    `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm list`, `/cm get enabled`,
+    `/cm set scale 1.1`, `/cm reset scale`, `/cm resetall`, `/cm dump categories`, and
+    `/cm enable`, which must never refuse or the switch is one-way. **And the bare `/cm` opens the
+    settings panel** — that is the case that settled the reversal, so a refusal there is the
+    regression. A typo (`/cm resyncc`) gets `unknown command` and the index, **not** the refusal.
+14c. **The launcher while disabled** (`launcher-§2`). Still disabled, **left**-click the minimap
+    button: one refusal line, the bar does not appear, and **nothing is written** — re-check
+    `Lock frame` on the General page, which must not have moved. **Right**-click it: the settings
+    panel opens, exactly as it does when the addon is running. The button itself stays on the
+    minimap in either state.
 15. `/cm dump categories` — prints the category list with macro names + spec-awareness.
 16. `/cm dump statpriority` — current spec's primary + secondary.
 17. `/cm dump bags` — bag scanner output.

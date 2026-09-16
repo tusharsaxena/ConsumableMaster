@@ -66,6 +66,13 @@ locales\enUS.lua
 # and Database (SV migrations) load next; the pure engine modules
 # (SpecHelper → Classifier) follow.
 core\Namespace.lua
+# LifecycleSetup builds the ONE latch (LibKa0s-Lifecycle-1.0) the disabled state
+# and the perf harness's suspended arm are two named holds on (slash-commands-§7).
+# It sits HERE, and the position is load-bearing: core/PerfSetup.lua below builds
+# its probe with `lifecycle = KCM.Lifecycle`, which Perf.lua minor 12 requires, so
+# the instance has to exist first. Everything it reaches outward through -- the
+# bus, KCM:OnEnable's list, the macro bar, the printer -- is a call-time thunk.
+core\LifecycleSetup.lua
 # PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. It sits here,
 # second, because performance-§1 requires it BEFORE any file that takes
 # `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua and

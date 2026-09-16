@@ -1145,11 +1145,21 @@ end)
 -- macro write pass early-returns on `enabled`), so a half-checked gate would look
 -- exactly like the bug.
 
--- The refusal VERBATIM, not a substring of it. `/cm help` prints the `disable`
--- row, whose description also names `/cm enable` and also ends "turns it back
--- on", so a loose match calls the help index a refusal and the sweep below
--- reports the live set as gated.
-local REFUSAL = "disabled \226\128\148 |cffffff00/cm enable|r turns it back on"
+-- The refusal VERBATIM, not a substring of it: `/cm help` prints the `disable`
+-- row, whose description also names `/cm enable`, so a loose match would call the
+-- help index a refusal and the sweep below would report the live set as gated.
+--
+-- TAKEN FROM THE LIBRARY'S OWN BUILDER rather than typed here. The wording is the
+-- COLLECTION's (slash-commands-§7), fixed in one place and forbidden to be
+-- re-spelled per addon, so a literal in this file would be a second copy of it --
+-- and the first thing to go stale the day the shape moves. What this suite is
+-- for is that the addon REFUSES and does not act; which sentence it refuses with
+-- is the library's business and tests/test_disabled.lua is where the shape itself
+-- is pinned.
+local function refusalLine(KCM)
+    local Sl = KCM.SlashCommands and KCM.SlashCommands.instance
+    return Sl and Sl:DisabledLine() or "<no dispatcher>"
+end
 
 test("Slash: a disabled addon refuses a feature verb and does not act on it", function(t)
     local KCM, mock = load()
@@ -1157,7 +1167,7 @@ test("Slash: a disabled addon refuses a feature verb and does not act on it", fu
 
     local before = effectiveSet(KCM, "FOOD")[987654]
     local line = say(KCM, mock, "priority food add 987654")
-    t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it names the verb that turns it back on: " .. line)
+    t.truthy(line:find(refusalLine(KCM), 1, true) ~= nil, "it refuses, in the shape the collection uses: " .. line)
     t.eq(effectiveSet(KCM, "FOOD")[987654], before, "and the item was NOT added")
     -- One line, nothing else (slash-commands-§2): no partial work, no second line.
     t.eq(select(2, line:gsub("\n", "")), 0, "one line and no more")
@@ -1170,7 +1180,7 @@ test("Slash: a disabled addon refuses the macro-bar verb without touching the ba
     H.SetAndRefresh("enabled", false)
 
     local line = say(KCM, mock, "bar on")
-    t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it refuses: " .. line)
+    t.truthy(line:find(refusalLine(KCM), 1, true) ~= nil, "it refuses: " .. line)
     t.eq(KCM.db.profile.macroBar.enabled, false, "and the bar stayed off")
 end)
 
@@ -1188,7 +1198,7 @@ test("Slash: a disabled addon refuses resync rather than reporting a pass that w
 
         local line = say(KCM, mock, "resync")
         KCM.Pipeline.Recompute = realRecompute
-        t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it refuses: " .. line)
+        t.truthy(line:find(refusalLine(KCM), 1, true) ~= nil, "it refuses: " .. line)
         t.eq(ran, 0, "and the pipeline never ran")
         t.eq(line:find("recomputed", 1, true), nil, "nothing claims a recompute happened")
     end)
@@ -1212,7 +1222,13 @@ test("Slash: every verb outside the live set refuses while disabled, and every l
         for _, entry in ipairs(KCM.COMMANDS) do
             KCM.Settings.Helpers.SetAndRefresh("enabled", false)
             local line = say(KCM, mock, entry[1])
-            local isRefusal = line:find(REFUSAL, 1, true) ~= nil
+            -- EXACTLY ONE LINE, not merely containing the sentence. `/cm help`
+            -- prints the same line under its header and then the whole index
+            -- (Slash minor 13), which is not a refusal OF help -- the player has
+            -- to be able to SEE `enable` in the list -- so a containment test
+            -- alone would file `help` as gated.
+            local isRefusal = line:find(refusalLine(KCM), 1, true) ~= nil
+                and select(2, line:gsub("\n", "")) == 0
             if isRefusal then refused[#refused + 1] = entry[1]
             else answered[#answered + 1] = entry[1] end
         end
@@ -1234,16 +1250,27 @@ test("Slash: enable itself still works while disabled, or the pair is one-way", 
     t.eq(H.Get("enabled"), true, "the one verb that must never refuse turned it back on")
 end)
 
-test("Slash: the refusal reaches the degraded dispatcher too", function(t)
-    -- Both arms look the verb up in the SAME COMMANDS table and call entry[3],
-    -- which is why the gate wraps the entries rather than sitting in either
-    -- dispatcher: a disabled addon answers identically whether LibKa0s loaded or
-    -- not. `enabled` has no schema row on this arm, so the write is a bare
-    -- Helpers.Set -- the read seam is the same one either way.
+test("Slash: with LibKa0s absent there is no refusal to print, and the verb acts", function(t)
+    -- THE DEGRADED ARM DOES NOT REFUSE, and that is a decision rather than a gap.
+    --
+    -- The gate is the dispatcher library's from Slash minor 13, and so is the
+    -- refusal line: slash-commands-§7 fixes ONE shape collection-wide and says it
+    -- MUST NOT be re-spelled per addon, per verb or per call site. With
+    -- libs/LibKa0s/ absent there is no builder to call and no format string to
+    -- read, so the only way to refuse here would be to hand-copy the sentence --
+    -- which is precisely the drift the one-place rule exists to stop, and it would
+    -- be a copy that only ever ran on a tampered install.
+    --
+    -- Nothing is owed. The feature-verb refusal is §2's SHOULD, an addon that
+    -- declines it is not deviating and owes no register row, and this build has
+    -- already told the player on its own line that half the surface is missing.
+    -- The stand-down is a MUST and is NOT what is skipped here: that arm has no
+    -- LibKa0s-Lifecycle-1.0 either, so a build with no library keeps the old
+    -- stored-flag behavior in full -- it is a tampered install, not a supported
+    -- state (see tests/test_disabled.lua, which runs against the live arm).
     local KCM = h.loader.loadFullAddon(true)
     KCM.Settings.Helpers.Set("enabled", false)
-    local before = effectiveSet(KCM, "FOOD")[987654]
     local line = say(KCM, h.loader.mock, "priority food add 987654")
-    t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it refuses there too: " .. line)
-    t.eq(effectiveSet(KCM, "FOOD")[987654], before, "and did not act")
+    t.eq(line:find("is disabled", 1, true), nil, "no hand-copied refusal was printed: " .. line)
+    t.truthy(effectiveSet(KCM, "FOOD")[987654], "and the verb acted, as it always did here")
 end)

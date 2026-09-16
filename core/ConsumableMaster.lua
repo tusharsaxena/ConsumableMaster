@@ -41,6 +41,20 @@ function KCM:OnInitialize()
         KCM.Database.RunMigrations()
     end
 
+    -- THE `disabled` HOLD, TAKEN FROM THE STORED PATH, and taken HERE because
+    -- this is the first moment the path can be read: AceDB built the profile one
+    -- line above. It is not a special case -- it is the same call the checkbox
+    -- and `/cm disable` make (core/LifecycleSetup.lua's KCM.OnEnabledChanged),
+    -- which is what stops "disabled at login" and "disabled by the player" being
+    -- two code paths that can disagree.
+    --
+    -- BEFORE AceAddon calls KCM:OnEnable, which is what makes the guard at the
+    -- foot of this file the whole of the login story: a player who logs in with
+    -- the addon off never registers an event in the first place.
+    if KCM.OnEnabledChanged then
+        KCM.OnEnabledChanged(not (self.db.profile and self.db.profile.enabled == false))
+    end
+
     -- PROFILE CALLBACKS (options-ui-§12). Defined below, beside `afterReset` --
     -- the resync they run -- and reached as a FIELD so the call resolves at run
     -- time rather than needing the local in lexical scope up here.
@@ -122,9 +136,21 @@ function P.RecomputeOne(catKey, scoreCache, reason)
     return KCM.MacroManager.SetMacro(cat.macroName, pick, catKey)
 end
 
--- Master enable. It gates only the macro write loop — the panel refresh runs
--- either way (see Recompute).
+-- Master enable, ASKED OF THE LATCH rather than of the stored flag.
+--
+-- Through 1.6.2 this function was the stored flag's ONLY consumer in the whole
+-- addon, which is what made `disabled` a draw gate: nine events stayed
+-- registered, the bus stayed subscribed and the macro bar stayed on screen,
+-- while this one read skipped the macro write pass (anti-pattern #85). The flag
+-- now drives core/LifecycleSetup.lua's latch, and by the time a recompute could
+-- reach here while disabled there is no longer a bus subscription to carry it.
+--
+-- It is kept, and it reads the LATCH, so that the `perf` hold gates the write
+-- pass too: a capture's suspended arm must not rewrite macros either, and one
+-- question with one answer is the whole point of the latch. The stored-flag read
+-- stays as the fallback for a build with no LibKa0s and therefore no latch.
 local function macrosEnabled()
+    if KCM.IsStoodDown and KCM.IsStoodDown() then return false end
     return not (KCM.db and KCM.db.profile and KCM.db.profile.enabled == false)
 end
 
@@ -461,6 +487,14 @@ function KCM.RegisterProfileCallbacks(target)
     local function reload(reason)
         return function(event, d, key)
             trace(event, d, key)
+            -- THE LATCH FIRST, because the incoming profile can carry a
+            -- different `enabled` and everything below it is a feature: the
+            -- resync writes macros and the bus message repaints surfaces, and
+            -- neither may run for a profile that arrives switched off. A switch
+            -- INTO an enabled profile stands the addon up here, so the resync
+            -- below runs against live registrations rather than into the void
+            -- (slash-commands-§7's "the AceDB profile callbacks survive").
+            if KCM.ReevaluateEnabled then KCM.ReevaluateEnabled() end
             if KCM.Database and KCM.Database.RunMigrations then
                 KCM.Database.RunMigrations()
             end
@@ -587,6 +621,18 @@ function KCM:OnSpecChanged()
 end
 
 function KCM:OnRegenEnabled()
+    -- THE PENDING STAND-DOWN, FINISHED AND RELEASED (slash-commands-§7).
+    -- A disable that landed mid-fight could not touch the bar's state driver or
+    -- its anchors, so core/LifecycleSetup.lua parked the job and re-registered
+    -- this one event to come back on. Finish the bar — its own show ladder
+    -- already answers no — and then drop the registration, which is the last one
+    -- a disabled addon holds. No macro flush: a pending macro write is a feature,
+    -- and the incoming body is recomputed from current state on the way back up.
+    if KCM.IsStoodDown and KCM.IsStoodDown() then
+        if KCM.MacroBar and KCM.MacroBar.FlushPending then KCM.MacroBar.FlushPending() end
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
     if KCM.MacroManager and KCM.MacroManager.FlushPending then
         local n = KCM.MacroManager.FlushPending()
         if n > 0 and KCM.State and KCM.State.debug then
@@ -647,7 +693,18 @@ function KCM:OnEquipmentChanged(event, slotID)
     end
 end
 
+-- THE REGISTRATION LIST, and the one place it is written down. The latch's
+-- `standUp` CALLS this rather than copying it, and `standDown` drops the lot
+-- with UnregisterAllEvents, so the two can never name different sets.
+--
+-- IT REFUSES TO RUN WHILE A HOLD IS TAKEN, and that is not a draw gate: it is
+-- the door, not a handler. AceAddon calls OnEnable after OnInitialize, which is
+-- where the `disabled` hold is taken from the stored path, so a player who logs
+-- in with the addon off registers NOTHING — rather than registering nine events
+-- and having them torn down a frame later, which is a race the perf harness can
+-- land in the middle of.
 function KCM:OnEnable()
+    if KCM.IsStoodDown and KCM.IsStoodDown() then return end
     self:RegisterEvent("PLAYER_ENTERING_WORLD",         "OnPlayerEnteringWorld")
     self:RegisterEvent("BAG_UPDATE_DELAYED",            "OnBagUpdateDelayed")
     self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged")

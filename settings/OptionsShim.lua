@@ -248,20 +248,31 @@ end
 -- is structural and scoped to the page on screen (every other one is marked
 -- dirty), so it costs one page, once (options-ui-§11).
 -- ---------------------------------------------------------------------
+--
+-- THE THREE ARE HANDED IN AS A SUBSCRIBE FUNCTION (core/Bus.lua), not installed
+-- here, because the stand-down has to be able to drop them and put them back.
+-- The PANEL and its category registration SURVIVE the disabled state -- they are
+-- setup, not features (slash-commands-§7) -- but these three registrations are
+-- not the panel: they are the pipeline's route into it, and the pipeline is what
+-- stands down. Every one of their publishers (PANEL_REFRESH, PROFILE_CHANGED's
+-- resync, SPEC_CHANGED) is a stood-down path, so keeping them registered would
+-- leave three live subscriptions listening for messages that can no longer be
+-- sent. A player's own write through the panel does not go near them: Helpers.
+-- SetAndRefresh re-syncs the widgets directly.
 if KCM.NewBusTarget and KCM.MSG then
-    local optionsTarget = KCM.NewBusTarget()
-    KCM._optionsBusTarget = optionsTarget
-    optionsTarget:RegisterMessage(KCM.MSG.PANEL_REFRESH, function()
-        if O.RequestRefresh then O.RequestRefresh()
-        elseif O.Refresh then O.Refresh() end
-    end)
-    optionsTarget:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function()
-        if O.Refresh then O.Refresh() end
-    end)
-    optionsTarget:RegisterMessage(KCM.MSG.SPEC_CHANGED, function()
-        if O._viewedSpecAuto and KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
-            local _, _, key = KCM.SpecHelper.GetCurrent()
-            if key then O._viewedSpec = key end
-        end
+    KCM._optionsBusTarget = KCM.NewBusTarget(function(optionsTarget)
+        optionsTarget:RegisterMessage(KCM.MSG.PANEL_REFRESH, function()
+            if O.RequestRefresh then O.RequestRefresh()
+            elseif O.Refresh then O.Refresh() end
+        end)
+        optionsTarget:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function()
+            if O.Refresh then O.Refresh() end
+        end)
+        optionsTarget:RegisterMessage(KCM.MSG.SPEC_CHANGED, function()
+            if O._viewedSpecAuto and KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
+                local _, _, key = KCM.SpecHelper.GetCurrent()
+                if key then O._viewedSpec = key end
+            end
+        end)
     end)
 end

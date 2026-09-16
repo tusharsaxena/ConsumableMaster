@@ -11,7 +11,7 @@ with red tests or lint errors is not allowed.
 
 | Gate | Command | What it does |
 |------|---------|--------------|
-| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, the LibKa0s seams (chat printer, debug console, slash dispatcher and schema CLI, settings-panel shell plus the Blizzard canvas callbacks it stamps, perf harness, and the media seam — which folder name crosses it, whether the path that comes back names art actually present in this build's vendored payload, and whether the close-button wrapper still carries that name as its third argument) and their degraded paths, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, the locale seam and the routing gate over the settings surface (`tests/test_locale.lua` lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any that is neither wrapped in `L` nor classed in its residue register), and the `/cm` dispatcher — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
+| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, the LibKa0s seams (chat printer, debug console, slash dispatcher and schema CLI, settings-panel shell plus the Blizzard canvas callbacks it stamps, perf harness, and the media seam — which folder name crosses it, whether the path that comes back names art actually present in this build's vendored payload, and whether the close-button wrapper still carries that name as its third argument) and their degraded paths, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, the locale seam and the routing gate over the settings surface (`tests/test_locale.lua` lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any that is neither wrapped in `L` nor classed in its residue register), the `/cm` dispatcher, and the **disabled-state conformance suite** `slash-commands-§7` requires (`tests/test_disabled.lua`, which asserts on the mock's REGISTRATION SET rather than on any handler's return value — a suite written against an early return certifies the draw gate it exists to catch) — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
 | Lint | `luacheck .` | Static analysis across the addon **including the test tree** (`libs/`, `docs/audits/`, `docs/reviews/` and `tests/_kit/` excluded — the kit is a byte copy linted in the LibKa0s repo as source). Must report **0 errors**. |
 
 Syntax-check a single file with `luac -p path/to/file.lua`.
@@ -87,9 +87,13 @@ single-diff form and it accused **this repo** of drift while clearing the other 
 was backwards, because ConsumableMaster's checkout was the correct one and the library's own ship
 folder had the LF files. Content was byte-identical throughout.
 
-Re-vendoring is **whole-folder**, never file by file: nine of the payload's ten majors resolve
-`LibKa0s-Core-1.0` before registering, and `Options` and `Perf` are each split across files with
-paired attach guards, so a per-file copy is how cross-major skew gets manufactured.
+Re-vendoring is **whole-folder**, never file by file: every major in the payload but `Core` itself
+resolves `LibKa0s-Core-1.0` before registering, `Perf` from minor 12 also refuses to register
+without `LibKa0s-Lifecycle-1.0`, and `Options` and `Perf` are each split across files with paired
+attach guards — so a per-file copy is how cross-major skew gets manufactured. A floor bump like
+Perf's is a re-vendor trigger, and it fails LOUDLY in the one case it can happen: a copy that
+arrives beside a payload with no `Lifecycle.lua` loses the perf probe outright rather than finding
+out mid-run.
 
 ## Local toolchain
 

@@ -132,7 +132,19 @@ function BM.Config()
     return KCM.db and KCM.db.profile and KCM.db.profile.macroBar or nil
 end
 
+--- THE SHOW LADDER'S SOURCE, and the one rung the stand-down answers at.
+---
+--- slash-commands-§7 requires a disabled addon's frames be hidden AT THE SOURCE
+--- rather than imperatively, and this is that source: every surface that decides
+--- whether the bar exists on screen asks here. Hiding the bar in a teardown
+--- function instead would last until the next combat transition, target swap or
+--- settings change re-showed it behind the switch's back (performance-§6).
+---
+--- KCM.IsStoodDown is the LATCH, so `disabled` and the perf harness's suspended
+--- arm give the same answer rather than two -- which is the reason there is one
+--- latch and not a boolean per reason (core/LifecycleSetup.lua).
 function BM.IsEnabled()
+    if KCM.IsStoodDown and KCM.IsStoodDown() then return false end
     local cfg = BM.Config()
     return (cfg and cfg.enabled) and true or false
 end

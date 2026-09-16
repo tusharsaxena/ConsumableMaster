@@ -110,6 +110,23 @@ category name reads as "show me this one". `/cm bar` with no sub-verb **toggles*
 `/cm debug` reads as a switch. `/cm dump <itemID>` is the same instinct spelled with a number: a
 numeric head routes to the `item` target rather than failing as an unknown target name.
 
+**`lock` / `unlock` live under `bar`, and that sub-tree is the whole surface this addon owes**
+(`slash-commands-§8`). Both are reserved verbs across the collection and both mean *lock the addon's
+frames*; whether an addon registers them at all is a **MAY**. `/cm bar lock` and `/cm bar unlock`
+write `macroBar.locked` through `KCM.MacroBar.SetLocked` — the same `KCM.Schema:Set` seam the *Lock
+frame* checkbox and the launcher's left click take — so there is one value and one `onChange`, never
+a `KCM.locked` local beside them. `§8` names this addon's sub-tree form explicitly and rules it
+**fine as it stands**.
+
+Top-level `/cm lock` and `/cm unlock` **MAY** be added as aliases onto the sub-tree's act, and
+**are deliberately not**. The alias would be unambiguous here — this addon has exactly one lockable
+frame — so the option is genuinely open; declining it costs a player two words and buys the addon one
+fewer spelling of the same act. **A declined MAY is not a deviation and owes no register row**: the
+deviation register is for ratified departures from a MUST or a SHOULD, and filing declined options
+there would bury the real rows under noise. Both verbs are **feature verbs**, so they refuse while
+the addon is disabled: unlocking a frame that is not drawn is not a coherent request, and the refusal
+names the step the player actually needs.
+
 Adding a sub-verb is one row in the relevant table. Adding a dump target is one `DUMP_TARGETS` entry
 plus one `DUMP_ORDER` name — the order table exists so help output is stable rather than hash-ordered.
 
@@ -149,28 +166,41 @@ Every line goes out through `KCM.Say` (`core/CoreSetup.lua`, over `KCM.PREFIX` f
 unconditional and a combat secret can never raise mid-line. The printer crosses to the library as a
 thunk rather than bare, because the library snapshots it at `:New`.
 
-## While the addon is disabled, a feature verb refuses
+## While the addon is disabled, the slash surface is UNCHANGED
 
-`slash-commands-§2` SHOULDs it: a verb that **drives the addon's features** answers, while `enabled`
-is false, on **one** tagged line naming `/cm enable`, and does nothing else. Acting is the wrong
-answer twice over — the player asked for something the addon is standing down from doing, and a
-silent no-op leaves them no clue why nothing happened. This addon's no-op really was silent:
-`macrosEnabled()` gates the macro write pass (`core/ConsumableMaster.lua`), so `/cm resync` while
-disabled ran the pipeline and then announced *recomputed all categories.* over a pass that wrote no
-macro at all.
+The addon itself is not — it stands down completely, and what that means is
+[the disabled state](./ARCHITECTURE.md#the-disabled-state-is-total). The command surface is a
+separate question, and the answer is that it keeps working: **the dispatcher and the settings
+registration are SETUP, not features** (`slash-commands-§7`), so keeping them live costs nothing the
+stand-down was trying to reclaim. The addon is inert; its command surface is not the addon.
 
-**The gate is at the table, not in the verbs.** `settings/Slash.lua` wraps each `COMMANDS` entry's
-handler once, in a loop over the table, immediately before publishing `KCM.COMMANDS`. A guard pasted
-into each body is one place per verb to forget, and the next verb somebody adds forgets it by
-default; wrapping here inverts that — a new verb is gated unless its name is added to the live set,
-which is the direction an omission should fail in. It also covers **both dispatch arms** for free,
-since `Sl:OnSlash` and `degradedDispatch` each look the verb up in this same table and call
-`entry[3]`, so a disabled addon answers identically whether LibKa0s loaded or not.
+Every reserved verb answers, and **the bare `/cm` opens the settings panel** exactly as it does when
+the addon is running. That last case is the one that settled it: the standard narrowed this surface
+to `enable` and `help` at v2.56.0, the owner hit `/cm` on a disabled addon expecting the panel — the
+one surface from which it can be switched back on by hand — got a refusal, and v2.57.0 reversed the
+narrowing. A rule that makes the off switch harder to find has misunderstood which half of the pair
+it protects.
 
-**The live set, named once as data** (`ALWAYS_LIVE`). Twelve names are `slash-commands-§2`'s, and the
-reasoning is that a player must be able to read and repair settings, and to reach the panel, while
-the addon is off — which is precisely when they are most likely to need to — and `enable` above all,
-or the pair is one-way:
+**Only this addon's own FEATURE verbs refuse**, which is `slash-commands-§2`'s SHOULD and survived
+the reversal unchanged: a verb that **drives the addon's features** answers, while `enabled` is
+false, on **one** tagged line naming `/cm enable`, and does nothing else. Acting is the wrong answer
+twice over — the player asked for something the addon is standing down from doing, and a silent
+no-op leaves them no clue why nothing happened. This addon's no-op really was silent:
+`macrosEnabled()` gated the macro write pass and nothing else, so `/cm resync` while disabled ran the
+pipeline and then announced *recomputed all categories.* over a pass that wrote no macro at all.
+
+**The gate is the dispatcher library's** (`LibKa0s-Slash-1.0` minor 13), not this addon's. The host's
+half is three descriptor fields in `settings/Slash.lua` — `isEnabled`, `brandName` and `liveVerbs` —
+and nothing else. `isEnabled` is asked at dispatch time and never cached, so the command after an
+`/cm enable` works. The table-level wrap this addon carried before minor 12 is gone: a second gate
+beside the library's would have to agree with it about which verbs are live and about how the
+refusal is worded, which is the drift the shared dispatcher exists to end.
+
+**The live set is `liveVerbs`, named once as data**, and it **WIDENS** the library's twelve by one —
+it must never be used to narrow them. The twelve are `slash-commands-§2`'s, and the reasoning is that
+a player must be able to read and repair settings, and to reach the panel, while the addon is off —
+which is precisely when they are most likely to need to — and `enable` above all, or the pair is
+one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
@@ -182,16 +212,26 @@ invalidate nothing, so `dump` does not drive a feature — it reports on one, wh
 `debug` and `perf` are live for. Refusing it would take the diagnostic away at the one moment
 somebody is asking why the addon has gone quiet.
 
-The refusal reads `disabled — /cm enable turns it back on`, with the verb gold, and it is the one
-`/cm` string routed through `KCM.L`. It is **one line and nothing else**: no partial work, no side
-effect, no second line. The rule stays a **SHOULD** in the standard — a courtesy rather than a
-correctness property — and this addon takes it.
+The refusal reads `Ka0s Consumable Master is disabled — enable it with /cm enable`, with the command
+gold. **The wording is the collection's, not this addon's**: `slash-commands-§7` fixes one shape for
+all eleven addons, `cli:DisabledLine()` builds it, and it MUST NOT be re-spelled per addon, per verb
+or per call site — which is why it no longer goes through `KCM.L` and why the launcher's left click
+calls the same member rather than writing the line again. It is **one line and nothing else**: no
+partial work, no side effect, no second line. The rule stays a **SHOULD** in the standard — a
+courtesy rather than a correctness property — and this addon takes it.
+
+`/cm help` prints that same line immediately under its header and then the whole index. That is not
+a refusal *of* `help`: the index answers in full, because the player has to be able to SEE `enable`
+in the list. A **typo** is a different case again and gets `unknown command '<verb>'` plus the index
+— the gate sits after the `COMMANDS` lookup, so a verb the addon ships and is standing down from is
+refused, while a word it does not ship means the addon genuinely did not understand.
 
 The cases (`tests/test_slash.lua`) assert **both halves**, that the verb said so *and* that it did
 not act, because a case reading only the chat line passes over a verb that printed the refusal and
 then did the thing anyway — which, given the silent no-op above, would look exactly like the bug. One
 of them sweeps every entry in `KCM.COMMANDS`, so a verb added tomorrow is covered on the day it is
-declared.
+declared. `tests/test_disabled.lua` is where the surface as a whole is pinned — all twelve reserved
+verbs, the bare `/cm`, and the shape of the refusal line itself.
 
 ## When the library is absent
 
@@ -215,6 +255,16 @@ takes, because doing fewer would change what the same typed line means depending
 library loaded. The one alias, `rewrite` → `rewritemacros`, is a file local read by both arms, because
 two alias tables for one addon is the drift the convergence collapsed. A bare line runs `config` here
 too, as the library's `OnSlash` does, and on this path `config` answers that the panel is unavailable.
+
+**No feature verb refuses on this arm, and that is a decision rather than a gap.** The gate is the
+library's from minor 13 and so is the refusal line; with `libs/LibKa0s/` absent there is no builder
+to call and no format string to read, so the only way to refuse here would be to hand-copy the
+sentence — which is precisely the one-place rule's whole subject, for a copy that would only ever run
+on a tampered install. Nothing is owed: the feature-verb refusal is a **SHOULD**, an addon that
+declines it is not deviating and owes no register row, and this build has already told the player on
+its own line that half the surface is missing. The **stand-down** is a MUST and is not what is
+skipped here — that arm has no `LibKa0s-Lifecycle-1.0` either, so a build with no library keeps the
+old stored-flag behavior in full, which is the tampered install's problem and not a supported state.
 
 `GetLandingRows` returns an **empty** list in that state rather than a host-formatted fallback: with
 LibKa0s missing the settings panel is never registered, so there is no About page to render into, and

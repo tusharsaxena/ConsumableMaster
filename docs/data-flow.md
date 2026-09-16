@@ -13,7 +13,13 @@ event ──▶ bus:SendMessage(KCM.MSG.RECOMPUTE, reason)
             │  multiple events in the same frame collapse to one run
             ▼
           Recompute(reason)
-            │  enabled = db.profile.enabled ~= false
+            │  enabled = not KCM.IsStoodDown()      -- the LATCH, not the raw
+            │                                       -- flag: the perf hold gates
+            │                                       -- the write pass too. While
+            │                                       -- DISABLED nothing gets this
+            │                                       -- far -- the bus subscription
+            │                                       -- that carries RECOMPUTE is
+            │                                       -- unregistered.
             │  if enabled:
             │      scoreCache = { fields = {} }          -- fresh per pass
             │      for each cat in Categories.LIST:

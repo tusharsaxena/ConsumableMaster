@@ -110,12 +110,17 @@ end
 --- The draw PROFILE_CHANGED asks for. A PRIVATE bus target: CallbackHandler keys a
 --- callback by (message, target), so a second PROFILE_CHANGED receiver on a shared
 --- object would silently replace the first (architecture-§4, anti-pattern #32).
+--- The subscription is handed to KCM.NewBusTarget as a FUNCTION rather than
+--- installed here, so the latch can drop it and replay it (core/Bus.lua,
+--- slash-commands-§7): every message registration the addon owns is actually
+--- unregistered while it is disabled, this one included.
 local function listen(H, ctx)
-    local bus = KCM.NewBusTarget and KCM.NewBusTarget()
-    if not (bus and KCM.MSG and KCM.MSG.PROFILE_CHANGED) then return end
-    bus:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function()
-        profileEvents = profileEvents + 1
-        H.RefreshPanel(ctx, true)
+    if not (KCM.NewBusTarget and KCM.MSG and KCM.MSG.PROFILE_CHANGED) then return end
+    KCM.NewBusTarget(function(bus)
+        bus:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function()
+            profileEvents = profileEvents + 1
+            H.RefreshPanel(ctx, true)
+        end)
     end)
 end
 

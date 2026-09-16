@@ -310,6 +310,14 @@ local RESIDUE = {
 
     -- settings/Slash.lua — SLASH_STRINGS, the LibKa0s-Slash override table.
     {"settings/Slash.lua", "|cffffd100Ka0s Consumable Master|r v%s \\226\\128\\148 slash commands", "LIB DESCRIPTOR"},
+    -- The descriptor's `brandName` (Slash minor 13). It is the plain-text brand
+    -- name the library drops into the disabled-state refusal line, the SAME string
+    -- core/LauncherSetup.lua gives the LDB object as `label`, and launcher-§1
+    -- forbids escape sequences in it. Not routable: the line is the COLLECTION's
+    -- wording rather than this addon's (slash-commands-§7), the library's own note
+    -- says an `L` override does not reach it, and a translated brand name would
+    -- also be the wrong row beside the other ten in a broker display.
+    {"settings/Slash.lua", "Ka0s Consumable Master", "LIB DESCRIPTOR"},
     {"settings/Slash.lua", "Unknown command: |cffffff00%s|r", "LIB DESCRIPTOR"},
     {"settings/Slash.lua", "Usage: %s get <path>  (try /cm list)", "LIB DESCRIPTOR"},
     {"settings/Slash.lua", "Usage: %s reset <path> \\226\\128\\148 this resets ONE setting. ", "LIB DESCRIPTOR"},

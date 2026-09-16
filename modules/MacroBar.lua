@@ -305,7 +305,10 @@ local function applyVisibility()
     if not bar then return end
     local c = cfg() or {}
     if UnregisterStateDriver then UnregisterStateDriver(bar, "visibility") end
-    if not c.enabled then
+    -- Through MacroBarModel.IsEnabled for the reason MB.Update takes that route:
+    -- a stood-down addon draws nothing, and a second reading of `c.enabled` here
+    -- would be a rung of the ladder that had not heard about it.
+    if not (KCM.MacroBarModel.IsEnabled and KCM.MacroBarModel.IsEnabled()) then
         bar:Hide()
         return
     end
@@ -422,9 +425,17 @@ function MB.Update()
         pendingUpdate = true
         return false
     end
-    if not c.enabled then
+    -- ONE SHOW LADDER for both reasons the bar can be off: the player's own
+    -- `macroBar.enabled` row and the addon standing down (slash-commands-§7).
+    -- MacroBarModel.IsEnabled answers for both, so this branch cannot disagree
+    -- with the one the refresh subscription takes.
+    if not (KCM.MacroBarModel.IsEnabled and KCM.MacroBarModel.IsEnabled()) then
         if bar then
             if UnregisterStateDriver then UnregisterStateDriver(bar, "visibility") end
+            -- The fade tick is an OnUpdate, and an OnUpdate left on a frame is a
+            -- timer that is still going to wake up. Cleared rather than left
+            -- armed to find a hidden bar.
+            bar:SetScript("OnUpdate", nil)
             bar:Hide()
         end
         return true
@@ -547,13 +558,17 @@ end
 -- takes the disable path when the incoming profile has the bar off, and defers
 -- itself wholesale to regen in combat, exactly as for any other caller.
 -- ---------------------------------------------------------------------------
+-- Handed in as a SUBSCRIBE FUNCTION (core/Bus.lua) so the latch can drop both
+-- registrations on the way down and replay them on the way back up. The bar is
+-- the one thing this addon draws, so these are feature registrations in the
+-- plainest sense (slash-commands-§7).
 if KCM.NewBusTarget and KCM.MSG and KCM.MSG.MACROBAR_REFRESH then
-    local target = KCM.NewBusTarget()
-    KCM._macroBarBusTarget = target
-    target:RegisterMessage(KCM.MSG.MACROBAR_REFRESH, function()
-        if KCM.MacroBarModel and KCM.MacroBarModel.IsEnabled() then MB.Refresh() end
+    KCM._macroBarBusTarget = KCM.NewBusTarget(function(target)
+        target:RegisterMessage(KCM.MSG.MACROBAR_REFRESH, function()
+            if KCM.MacroBarModel and KCM.MacroBarModel.IsEnabled() then MB.Refresh() end
+        end)
+        if KCM.MSG.PROFILE_CHANGED then
+            target:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function() MB.Update() end)
+        end
     end)
-    if KCM.MSG.PROFILE_CHANGED then
-        target:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function() MB.Update() end)
-    end
 end

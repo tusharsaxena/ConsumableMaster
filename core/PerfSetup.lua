@@ -43,30 +43,36 @@ local lib = LibStub and LibStub("LibKa0s-Perf-1.0", true)
 -- the /cm perf handler says so, and the two bracket sites take their upvalue
 -- nil-tolerantly (`(Perf and Perf.on)`) so neither errors on that build. There
 -- is no separate PerfPanel major to probe; it attaches onto the instance.
-if not lib then return end
+-- The latch, built one file earlier. Perf.lua minor 12 REQUIRES it and raises at
+-- :New without it, so a missing one is a probe that never builds rather than a
+-- run that measures a fully live addon and reports a delta of about zero — a
+-- wrong answer that looks exactly like a good one. Both majors ship in the same
+-- whole-folder payload, so the only way to be here without it is a partial
+-- vendor, which library-stack-§7 already forbids.
+if not (lib and KCM.Lifecycle) then return end
 
--- What "inert" means for this addon. Two rules the library's contract depends
--- on: it must work WITHOUT a reload (reloading shifts shared-frame ownership,
--- which is the confound that makes Blizzard's own addon profiler useless for
--- this question), and visibility has to be enforced at the SOURCE rather than
--- by hiding frames here — otherwise a combat transition or a settings change
--- re-shows the bar behind suspend's back.
-local function suspend()
-    -- Drops every event this addon listens on, which stops the recompute
-    -- pipeline, auto-discovery and the cooldown repaint in one move.
-    if KCM.UnregisterAllEvents then KCM:UnregisterAllEvents() end
-    if KCM.MacroBar and KCM.MacroBar.Update then KCM.MacroBar.Update() end
-end
-
-local function resume()
-    -- Re-registering is KCM:OnEnable's own list, called rather than copied, so
-    -- a tenth event added there cannot be forgotten here.
-    if KCM.OnEnable then KCM:OnEnable() end
-    if KCM.MacroBar and KCM.MacroBar.Update then KCM.MacroBar.Update() end
-    if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
-        KCM.Pipeline.RequestRecompute("perf_resume")
-    end
-end
+-- WHAT "INERT" MEANS FOR THIS ADDON IS NOT THIS FILE'S ANSWER ANY MORE.
+--
+-- `suspend` and `resume` used to live here, and Perf.lua called them. From minor
+-- 12 the descriptor takes a `lifecycle` instead: P.Suspend() takes the `perf`
+-- HOLD on core/LifecycleSetup.lua's latch and P.Resume() gives it back, and the
+-- latch decides whether anything actually happens. The two functions did not
+-- vanish — they are `standDown` / `standUp` over there, where the DISABLED arm
+-- reaches the very same code.
+--
+-- That is the point of the move rather than a tidy-up. Keeping a copy here would
+-- give this addon two mechanisms that both mean "be inert", and they diverge on
+-- the first module added after the second was written: the perf arm would
+-- unregister nine events and the disable arm eight, and nothing would say so
+-- (anti-pattern #85). It also fixes the case a boolean could not represent — a
+-- player who disables the addon mid-capture, and a `resume` that would otherwise
+-- bring it back to life under them.
+--
+-- The two rules the contract still depends on are unchanged and are enforced
+-- over there: it works WITHOUT a reload (reloading shifts shared-frame
+-- ownership, the confound that makes Blizzard's own addon profiler useless for
+-- this question), and visibility is enforced at the SOURCE rather than by hiding
+-- frames imperatively.
 
 local P = lib:New({
     -- Seeds the sampler and panel frame globals, matching the debug console's
@@ -117,8 +123,10 @@ local P = lib:New({
     print   = function(line) KCM.Say(line) end,
     showLog = function() KCM.DebugLog.Show() end,
 
-    suspend = suspend,
-    resume  = resume,
+    -- THE LATCH, not a suspend/resume pair (Perf minor 12). `P.Suspend()` takes
+    -- the `perf` hold and `P.Resume()` releases it; whether the addon comes back
+    -- is the latch's decision, and it answers no while `disabled` is still held.
+    lifecycle = KCM.Lifecycle,
 
     -- Presentation order for the report. Membership controls printing only —
     -- Note() accepts any key — so an undeclared bracket still records silently.

@@ -36,10 +36,43 @@ AceEvent:Embed(KCM.bus)
 
 -- Each receiver owns its own embedded target so unregister is isolated and no
 -- two subscriptions ever share one table.
-function KCM.NewBusTarget()
+-- THE SUBSCRIBE FUNCTION IS THE STAND-DOWN SEAM (slash-commands-§7). A caller
+-- hands in the function that installs its registrations rather than installing
+-- them itself, and this file REMEMBERS it. That is what makes the bus half of
+-- `disabled` reversible: KCM.Bus.StandDown drops every message registration the
+-- addon owns -- actually unregistered, not gated -- and KCM.Bus.StandUp replays
+-- each subscribe function to rebuild them from the settings AS THEY ARE NOW.
+-- A receiver that registered its own messages inline would be the one survivor
+-- of every stand-down, and nothing would say so.
+--
+-- The argument is optional so a caller with nothing to replay (a bare target a
+-- test builds) still gets one; such a target is not recorded.
+local subscriptions = {}
+
+function KCM.NewBusTarget(subscribe)
     local t = {}
     AceEvent:Embed(t)
+    if type(subscribe) == "function" then
+        subscriptions[#subscriptions + 1] = { target = t, subscribe = subscribe }
+        subscribe(t)
+    end
     return t
+end
+
+KCM.Bus = KCM.Bus or {}
+
+--- Drop every message registration the addon owns. Called from the latch's
+--- standDown (core/LifecycleSetup.lua), never directly, and never gated: an
+--- early-returning handler is a draw gate, not a stand-down (anti-pattern #85).
+function KCM.Bus.StandDown()
+    for _, rec in ipairs(subscriptions) do
+        if rec.target.UnregisterAllMessages then rec.target:UnregisterAllMessages() end
+    end
+end
+
+--- Re-install them, in the order they were declared at load.
+function KCM.Bus.StandUp()
+    for _, rec in ipairs(subscriptions) do rec.subscribe(rec.target) end
 end
 
 KCM.MSG = {
@@ -59,10 +92,11 @@ KCM.MSG = {
 -- reason is the SECOND parameter. It read the third until #38 put the suite on
 -- the kit's AceEvent: the old harness called fn(target, message, ...), which no
 -- client does, and every bus-routed pass logged its reason as "unknown".
-local pipelineTarget = KCM.NewBusTarget()
-KCM._pipelineBusTarget = pipelineTarget
-pipelineTarget:RegisterMessage(KCM.MSG.RECOMPUTE, function(_, reason)
-    if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
-        KCM.Pipeline.RequestRecompute(reason)
-    end
+local pipelineTarget = KCM.NewBusTarget(function(t)
+    t:RegisterMessage(KCM.MSG.RECOMPUTE, function(_, reason)
+        if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
+            KCM.Pipeline.RequestRecompute(reason)
+        end
+    end)
 end)
+KCM._pipelineBusTarget = pipelineTarget

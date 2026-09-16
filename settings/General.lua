@@ -247,13 +247,16 @@ H.RegisterRows(masterRows, "general", "general", {
         onChange = function(v)
             local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
             KCM.Say("Master enable " .. state)
-            -- Off→on: kick a recompute so macros refresh against the current
-            -- bag / spec state immediately rather than waiting for the next
-            -- event. Off→off is harmless (RequestRecompute schedules a run
-            -- which the gate in Pipeline.Recompute then skips).
-            if v and KCM.Pipeline and KCM.Pipeline.RequestRecompute then
-                KCM.Pipeline.RequestRecompute("master_enable")
-            end
+            -- THE ONE REACTION, AND IT IS THE LATCH'S (slash-commands-§7).
+            -- This row is the addon-wide switch, so `/cm enable`, `/cm disable`,
+            -- `/cm set enabled true` and the checkbox all arrive here, and from
+            -- here they all reach KCM.OnEnabledChanged.
+            --
+            -- The off→on recompute this used to kick is the latch's `standUp`
+            -- now, along with re-registering the nine events and re-applying the
+            -- bar -- none of which this row did, which is exactly why `/cm
+            -- disable` did not take the macro bar down through 1.6.2.
+            if KCM.OnEnabledChanged then KCM.OnEnabledChanged(v and true or false) end
         end,
     },
     -- The three addon-wide display rows all reach the same apply pass: the macro
