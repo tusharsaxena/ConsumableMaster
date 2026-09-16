@@ -66,8 +66,39 @@ test("Launcher: the object is a launcher, wearing this addon's own logo", functi
     -- updates, which this object does not have.
     t.eq(object.type, "launcher", "type is launcher, not data source")
     t.eq(object.icon, ICON, "the icon is this addon's own 128 logo")
-    t.eq(object.label, "Ka0s Consumable Master", "a display prints the real title")
+    t.eq(object.label, "Ka0s Consumable Master", "a display prints the brand name")
     t.eq(type(object.OnClick), "function", "there is exactly one click implementation")
+end)
+
+-- red under: `label` wired to the TOC `## Title`, set to the folder name, or
+-- respelled ad hoc. None of the three raises, and none of them is visible from
+-- inside this addon at all -- the damage is to the ROW BESIDE the other ten in a
+-- broker display, which no case here can see and no player sees until they
+-- install a second Ka0s addon.
+test("Launcher: the broker label is the brand name in plain text", function(t)
+    local KCM = loader.loadFullAddon()
+    local label = KCM.Launcher:Object().label
+
+    -- `Ka0s <Name>` verbatim (launcher-§1), so the eleven group together under K
+    -- in a display that sorts its plugins.
+    t.eq(label, "Ka0s Consumable Master", "the brand name, spelled the collection's way")
+    t.eq(label:find("|c", 1, true), nil, "no color escape opens in it")
+    t.eq(label:find("|r", 1, true), nil, "and none closes")
+    t.truthy(label ~= FOLDER, "it is not the folder name -- that is the registration key")
+
+    -- NOT THE TOC TITLE, AND NOT WIRED TO IT. The two happen to read the same
+    -- here because this addon's Title carries no escapes; the collection's
+    -- counter-example does, and an addon that derived one from the other would
+    -- ship that addon's escapes into every broker row. What is checkable from
+    -- outside is that the descriptor spells the label as a LITERAL rather than
+    -- reaching for the manifest, since the manifest reach is the only shape that
+    -- could grow an escape without anyone editing this field.
+    local fh = io.open((_G.KCM_TEST_ROOT or ".") .. "/core/LauncherSetup.lua", "r")
+    local src = fh and fh:read("*a") or ""
+    if fh then fh:close() end
+    t.truthy(src ~= "", "core/LauncherSetup.lua is readable, so this half really ran")
+    t.truthy(src:find('label = "Ka0s Consumable Master"', 1, true) ~= nil,
+        "the descriptor names the label as a literal, not as a manifest read")
 end)
 
 test("Launcher: the icon file the object names is on disk, at the TOC's path", function(t)

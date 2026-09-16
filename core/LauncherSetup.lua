@@ -106,8 +106,26 @@ KCM.Launcher = lib:New({
     -- drops the angle the player dragged the button to and labels the broker
     -- plugin with the other name (launcher-§1).
     name  = addonName,
-    -- What a broker display prints. The folder name is not what anyone calls
-    -- this addon, and the display has room for the real title.
+    -- THE ADDON'S BRAND NAME IN PLAIN TEXT, `Ka0s <Name>` (launcher-§1). This is
+    -- the string a broker display prints in its own row, and it prints it BESIDE
+    -- THE OTHER TEN, so it is the single field that decides whether the
+    -- collection reads as one collection in Titan Panel or as eleven unrelated
+    -- addons that happen to be installed together. Across the eleven adoptions it
+    -- came out three ways -- `Absorb Tracker`, `Ka0s KickCD`, `Ka0s Pretty Chat`
+    -- -- because nothing said what it was, and a display sorting alphabetically
+    -- filed one of them under A while the rest sat together under K.
+    --
+    -- DELIBERATELY NOT THE TOC'S `## Title`, and not wired to it. A Title MAY
+    -- carry color escapes and one in the collection does: Ka0s Pretty Chat's is
+    -- `Ka0s |cffff0000P|cffff9900r|cffffff00e|...`. Handed to a display that draws
+    -- the string raw, that row splatters across a list in which every other row is
+    -- plain text; handed to one that strips escapes, it arrives mangled instead.
+    -- So: no escape sequence of any kind, ever.
+    --
+    -- AND NOT THE FOLDER NAME EITHER, which is the `name` above -- the key
+    -- LibDBIcon stores the button's position under, and a string a player reads
+    -- nowhere as prose. `ConsumableMaster` is an identifier; `Ka0s Consumable
+    -- Master` is a name. Two fields, two jobs (anti-pattern #84).
     label = "Ka0s Consumable Master",
     icon  = ICON,
 
