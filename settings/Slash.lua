@@ -26,6 +26,12 @@ local KCM = NS
 -- unconditional and a combat "secret" can never raise mid-line.
 local say = KCM.Say
 
+-- The locale seam (localization-§1). One string in this file goes through it --
+-- the disabled-verb refusal below -- and it is the first of the `/cm` surface's
+-- to; the rest are the CLI SURFACE residue tests/test_locale.lua registers, which
+-- is one decision about the whole command listing and not this one.
+local L = KCM.L
+
 -- The verb bodies, owned by core/SlashCommands.lua. Resolved once here rather
 -- than per call: settings/ loads after core/, so the table is already populated,
 -- and a missing key would be a load-order bug worth failing loudly on.
@@ -245,6 +251,76 @@ local COMMANDS = {
     {"dump",          "Dump internal state — try `/cm dump` for the list",
         function(rest) V.Dump(rest) end},
 }
+
+-- ---------------------------------------------------------------------------
+-- The disabled state: a feature verb refuses, ONCE, in one place
+-- ---------------------------------------------------------------------------
+--
+-- slash-commands-§2 SHOULDs it and now says it precisely enough to implement: a
+-- verb that DRIVES THE ADDON'S FEATURES answers, while `enabled` is false, on ONE
+-- tagged line naming `/cm enable`, and does nothing else. Acting is the wrong
+-- answer twice over -- the player asked for something the addon is currently
+-- standing down from doing, and a silent no-op leaves them with no clue why
+-- nothing happened. This addon's no-op really is silent: `macrosEnabled()` gates
+-- the macro write pass (core/ConsumableMaster.lua), so `/cm resync` while
+-- disabled already printed "recomputed all categories." over a pass that wrote
+-- nothing.
+--
+-- THE GATE IS AT THE TABLE, NOT IN THE VERBS, and that is the whole design. A
+-- guard pasted into each of the six bodies is six places to forget, and the
+-- seventh verb somebody adds forgets it by DEFAULT. Wrapping here inverts that:
+-- a new verb is gated unless its name is added to the live set below, which is
+-- the direction an omission should fail in. It also covers BOTH dispatch arms for
+-- free -- Sl:OnSlash and degradedDispatch each look the verb up in this same
+-- table and call entry[3] -- so a disabled addon answers identically whether
+-- LibKa0s loaded or not.
+--
+-- THE LIVE SET, NAMED ONCE AS DATA. slash-commands-§2 fixes twelve of these, and
+-- the reasoning is that a player must be able to READ AND REPAIR SETTINGS and to
+-- REACH THE PANEL while the addon is off -- which is precisely when they are most
+-- likely to need to -- and `enable` above all, or the pair is one-way. `debug`
+-- and `perf` are diagnostics rather than features: the usual reason to reach for
+-- either is that the addon is misbehaving.
+--
+-- `dump` IS THIS ADDON'S THIRTEENTH, and it is a judgment rather than a quote.
+-- It is read-only by construction -- core/SlashDump.lua's five targets print what
+-- they find and write nothing, recompute nothing and invalidate nothing -- so it
+-- does not drive a feature; it reports on one, which is what `debug` and `perf`
+-- are live for. Refusing it would take the diagnostic away at the one moment
+-- somebody is asking why the addon is quiet.
+local ALWAYS_LIVE = {
+    help = true, config = true, version = true,
+    enable = true, disable = true,
+    debug = true, perf = true,
+    get = true, set = true, list = true, reset = true, resetall = true,
+    dump = true,
+}
+
+-- Read through the same seam the checkbox and `/cm get enabled` read, never a
+-- local of its own (slash-commands-§2's "no state of their own"): Helpers.Get
+-- resolves `enabled` out of db.profile whether or not a schema row exists, so
+-- this answers on the degraded arm too. A nil -- no db yet -- reads as ENABLED,
+-- matching core/ConsumableMaster.lua's `enabled == false` test, because the
+-- addon's default is on and a verb typed before login should not be refused.
+local function addonEnabled()
+    local H = helpers()
+    return not (H and H.Get(ENABLED_PATH) == false)
+end
+
+-- ONE LINE, and nothing else. No partial work, no side effect, no second line:
+-- one line is the whole courtesy, and a paragraph explaining the state is a
+-- lecture stapled to a command the player is about to re-run anyway.
+for _, entry in ipairs(COMMANDS) do
+    if not ALWAYS_LIVE[entry[1]] then
+        local run = entry[3]
+        entry[3] = function(rest)
+            if not addonEnabled() then
+                return say(L["disabled \226\128\148 |cffffff00/cm enable|r turns it back on"])
+            end
+            return run(rest)
+        end
+    end
+end
 
 -- Publish the command table so the About panel and any future consumer read
 -- the same source of truth as the /cm dispatcher (slash-commands-§4).

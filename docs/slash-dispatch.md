@@ -19,14 +19,14 @@ Three files, and the split is deliberate:
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
-`COMMANDS` is built. That is why `settings/Slash.lua:32` resolves it once at load rather than per
+`COMMANDS` is built. That is why `settings/Slash.lua:38` resolves it once at load rather than per
 call: a missing key there would be a load-order bug worth failing loudly on, not a condition to
 tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:84`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:196` so the verb set has one source
+`COMMANDS` (`settings/Slash.lua:141`) is an ordered list of positional triples
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:327` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
@@ -134,7 +134,7 @@ Ka0s Consumable Master v1.6.2 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:224`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:355`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -149,12 +149,56 @@ Every line goes out through `KCM.Say` (`core/CoreSetup.lua`, over `KCM.PREFIX` f
 unconditional and a combat secret can never raise mid-line. The printer crosses to the library as a
 thunk rather than bare, because the library snapshots it at `:New`.
 
+## While the addon is disabled, a feature verb refuses
+
+`slash-commands-§2` SHOULDs it: a verb that **drives the addon's features** answers, while `enabled`
+is false, on **one** tagged line naming `/cm enable`, and does nothing else. Acting is the wrong
+answer twice over — the player asked for something the addon is standing down from doing, and a
+silent no-op leaves them no clue why nothing happened. This addon's no-op really was silent:
+`macrosEnabled()` gates the macro write pass (`core/ConsumableMaster.lua`), so `/cm resync` while
+disabled ran the pipeline and then announced *recomputed all categories.* over a pass that wrote no
+macro at all.
+
+**The gate is at the table, not in the verbs.** `settings/Slash.lua` wraps each `COMMANDS` entry's
+handler once, in a loop over the table, immediately before publishing `KCM.COMMANDS`. A guard pasted
+into each body is one place per verb to forget, and the next verb somebody adds forgets it by
+default; wrapping here inverts that — a new verb is gated unless its name is added to the live set,
+which is the direction an omission should fail in. It also covers **both dispatch arms** for free,
+since `Sl:OnSlash` and `degradedDispatch` each look the verb up in this same table and call
+`entry[3]`, so a disabled addon answers identically whether LibKa0s loaded or not.
+
+**The live set, named once as data** (`ALWAYS_LIVE`). Twelve names are `slash-commands-§2`'s, and the
+reasoning is that a player must be able to read and repair settings, and to reach the panel, while
+the addon is off — which is precisely when they are most likely to need to — and `enable` above all,
+or the pair is one-way:
+
+| Live while disabled | Refuses while disabled |
+|---|---|
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`** | `resync`, `rewritemacros`, `bar`, `priority`, `stat`, `aio` |
+
+`dump` is this addon's thirteenth and it is a judgment rather than a quote from the rule.
+`core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and
+invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
+`debug` and `perf` are live for. Refusing it would take the diagnostic away at the one moment
+somebody is asking why the addon has gone quiet.
+
+The refusal reads `disabled — /cm enable turns it back on`, with the verb gold, and it is the one
+`/cm` string routed through `KCM.L`. It is **one line and nothing else**: no partial work, no side
+effect, no second line. The rule stays a **SHOULD** in the standard — a courtesy rather than a
+correctness property — and this addon takes it.
+
+The cases (`tests/test_slash.lua`) assert **both halves**, that the verb said so *and* that it did
+not act, because a case reading only the chat line passes over a verb that printed the refusal and
+then did the thing anyway — which, given the silent no-op above, would look exactly like the bug. One
+of them sweeps every entry in `KCM.COMMANDS`, so a verb added tomorrow is covered on the day it is
+declared.
+
 ## When the library is absent
 
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:80`) names the six verbs that actually route through the
+`LIB_BACKED_VERBS` (`settings/Slash.lua:137`) names the six verbs that actually route through the
 library — `help`, `list`, `get`, `set`, `reset` and `perf`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
@@ -164,7 +208,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:467`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:603`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the
@@ -181,7 +225,9 @@ a second formatter kept alive just in case is the divergence coming straight bac
 One row in `COMMANDS`. If it needs a body of any size, the body goes in `core/SlashCommands.lua` and
 is published on `KCM.SlashCommands.Verbs`; `settings/Slash.lua` stays "how `/cm` is parsed" and never
 grows a second opinion about it. If it is library-backed, add its name to `LIB_BACKED_VERBS` so the
-degraded notice stays true.
+degraded notice stays true. It is **gated by default**: a new verb refuses while the addon is
+disabled unless its name goes in `ALWAYS_LIVE` too, which is the safe direction for an omission and
+is why the gate wraps the table rather than living in each body.
 
 ## See also
 

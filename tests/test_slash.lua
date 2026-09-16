@@ -1133,3 +1133,117 @@ test("Slash: with LibKa0s absent the verbs say so rather than going inert", func
     local line = say(KCM, h.loader.mock, "enable")
     t.truthy(line:find("unavailable", 1, true) ~= nil, "it says so: " .. line)
 end)
+
+-- ---------------------------------------------------------------------------
+-- The disabled state: a feature verb refuses (slash-commands-§2)
+-- ---------------------------------------------------------------------------
+--
+-- EVERY CASE HERE ASSERTS BOTH HALVES -- that the verb said so AND that it did
+-- not act. A case that only reads the chat line passes over a verb that printed
+-- the refusal and then did the thing anyway, which is the one failure mode worth
+-- having these at all for: the no-op this rule replaces was already silent (the
+-- macro write pass early-returns on `enabled`), so a half-checked gate would look
+-- exactly like the bug.
+
+-- The refusal VERBATIM, not a substring of it. `/cm help` prints the `disable`
+-- row, whose description also names `/cm enable` and also ends "turns it back
+-- on", so a loose match calls the help index a refusal and the sweep below
+-- reports the live set as gated.
+local REFUSAL = "disabled \226\128\148 |cffffff00/cm enable|r turns it back on"
+
+test("Slash: a disabled addon refuses a feature verb and does not act on it", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+
+    local before = effectiveSet(KCM, "FOOD")[987654]
+    local line = say(KCM, mock, "priority food add 987654")
+    t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it names the verb that turns it back on: " .. line)
+    t.eq(effectiveSet(KCM, "FOOD")[987654], before, "and the item was NOT added")
+    -- One line, nothing else (slash-commands-§2): no partial work, no second line.
+    t.eq(select(2, line:gsub("\n", "")), 0, "one line and no more")
+end)
+
+test("Slash: a disabled addon refuses the macro-bar verb without touching the bar", function(t)
+    local KCM, mock = load()
+    local H = KCM.Settings.Helpers
+    H.SetAndRefresh("macroBar.enabled", false)
+    H.SetAndRefresh("enabled", false)
+
+    local line = say(KCM, mock, "bar on")
+    t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it refuses: " .. line)
+    t.eq(KCM.db.profile.macroBar.enabled, false, "and the bar stayed off")
+end)
+
+test("Slash: a disabled addon refuses resync rather than reporting a pass that wrote nothing",
+    function(t)
+        local KCM, mock = load()
+        -- The case for the rule, in one assertion. `macrosEnabled()` already gates
+        -- the macro write loop, so before this gate `/cm resync` ran the pipeline
+        -- and then announced "recomputed all categories." over a pass that wrote
+        -- no macro at all.
+        local ran = 0
+        local realRecompute = KCM.Pipeline.Recompute
+        KCM.Pipeline.Recompute = function(...) ran = ran + 1; return realRecompute(...) end
+        KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+
+        local line = say(KCM, mock, "resync")
+        KCM.Pipeline.Recompute = realRecompute
+        t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it refuses: " .. line)
+        t.eq(ran, 0, "and the pipeline never ran")
+        t.eq(line:find("recomputed", 1, true), nil, "nothing claims a recompute happened")
+    end)
+
+-- red under: a guard pasted into some verb bodies and not others, which is what
+-- the table-level wrap exists to make impossible. The list is DERIVED from
+-- KCM.COMMANDS rather than typed, so a verb added tomorrow is covered by this
+-- case on the day it is declared.
+test("Slash: every verb outside the live set refuses while disabled, and every live one answers",
+    function(t)
+        local KCM, mock = load()
+        -- slash-commands-§2's live set, verbatim, plus this addon's read-only
+        -- `dump` -- a diagnostic like `debug` and `perf`, writing nothing.
+        local LIVE = {
+            help = true, config = true, version = true, enable = true, disable = true,
+            debug = true, perf = true,
+            get = true, set = true, list = true, reset = true, resetall = true,
+            dump = true,
+        }
+        local refused, answered = {}, {}
+        for _, entry in ipairs(KCM.COMMANDS) do
+            KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+            local line = say(KCM, mock, entry[1])
+            local isRefusal = line:find(REFUSAL, 1, true) ~= nil
+            if isRefusal then refused[#refused + 1] = entry[1]
+            else answered[#answered + 1] = entry[1] end
+        end
+        for _, name in ipairs(refused) do
+            t.falsy(LIVE[name], "'" .. name .. "' is a feature verb and refuses")
+        end
+        for _, name in ipairs(answered) do
+            t.truthy(LIVE[name], "'" .. name .. "' is on the live list and still answers")
+        end
+        t.eq(#refused + #answered, #KCM.COMMANDS, "every verb was driven")
+        t.truthy(#refused > 0, "and the gate is actually on")
+    end)
+
+test("Slash: enable itself still works while disabled, or the pair is one-way", function(t)
+    local KCM = load()
+    local H = KCM.Settings.Helpers
+    H.SetAndRefresh("enabled", false)
+    KCM:OnSlashCommand("enable")
+    t.eq(H.Get("enabled"), true, "the one verb that must never refuse turned it back on")
+end)
+
+test("Slash: the refusal reaches the degraded dispatcher too", function(t)
+    -- Both arms look the verb up in the SAME COMMANDS table and call entry[3],
+    -- which is why the gate wraps the entries rather than sitting in either
+    -- dispatcher: a disabled addon answers identically whether LibKa0s loaded or
+    -- not. `enabled` has no schema row on this arm, so the write is a bare
+    -- Helpers.Set -- the read seam is the same one either way.
+    local KCM = h.loader.loadFullAddon(true)
+    KCM.Settings.Helpers.Set("enabled", false)
+    local before = effectiveSet(KCM, "FOOD")[987654]
+    local line = say(KCM, h.loader.mock, "priority food add 987654")
+    t.truthy(line:find(REFUSAL, 1, true) ~= nil, "it refuses there too: " .. line)
+    t.eq(effectiveSet(KCM, "FOOD")[987654], before, "and did not act")
+end)

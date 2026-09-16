@@ -226,11 +226,16 @@ Tests: one object on two surfaces, the rung, the visibility row, and the saved p
    checkbox followed — the row and the library write the same key.
 6. **The button is installation-wide, not profile-wide.** With it hidden, switch to another profile
    on the Profiles page. It stays hidden. Switch back. Still hidden.
-7. **And a profile reset does not bring it back.** With it still hidden, run
-   **Reset all settings** → Yes (or `/cm resetall`). Every profile setting returns to its default
-   and the button stays hidden — a button the player deliberately hid reappearing here is the
-   failure `launcher-§3` puts the table in the global store to prevent. (The page's own **Defaults**
-   button is a different act and DOES reset the row, which is correct: it is page-scoped.)
+7. **And NO reset brings it back** — the visibility is a per-installation display preference, like
+   the angle you dragged the button to, and `launcher-§3` requires it to survive **both** of this
+   addon's resets. With it still hidden:
+   - run **Reset all settings** → Yes (or `/cm resetall`). Every profile setting returns to its
+     default and the button stays hidden.
+   - then press the General page's own **Defaults** button, top right. Master scale, Master alpha,
+     General visibility and Lock frame all come back to their defaults — and **Minimap button stays
+     unticked**. Through 1.6.2 it did not: the page walk rewrote every row carrying a default, and
+     the button came back on the minimap at LibDBIcon's own default angle.
+   Then tick it again and confirm it returns to the angle from step 4 rather than to the default one.
 8. **If you run a broker display** (Titan Panel, ElvUI data texts, Bazooka), Ka0s Consumable Master
    appears in its plugin list wearing the same logo, and clicking it there does exactly what
    clicking the minimap button does — one object, two surfaces. There is deliberately **no**
@@ -464,6 +469,17 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 12. `/cm priority flask list s:1234` — spell sentinel via `s:<spellID>`. Confirms the opaque-numeric ID round-trips through the slash layer.
 13. `/cm stat list` — current spec. `/cm stat primary AGI` — sets primary. `/cm stat secondary CRIT,HASTE,MASTERY,VERSATILITY` — replaces the secondary list. `/cm stat reset` — drops override. `/cm stat list 7_264` — explicit spec key. `/cm stat list SHAMAN:ENHANCEMENT` — friendly form.
 14. `/cm aio hp_aio list` — assembled order. `/cm aio hp_aio toggle hs` — flip enabled. `/cm aio hp_aio up hp_pot` — within-section reorder. `/cm aio hp_aio reset` — restores defaults.
+14a. **A disabled addon refuses a feature verb** (`slash-commands-§2`). `/cm disable`, then
+    `/cm resync` — one line, `disabled — /cm enable turns it back on`, with the verb gold, and
+    **nothing else**: no *auto-discovery found N*, no *recomputed all categories*. Same for
+    `/cm bar on` (the bar does not appear), `/cm priority hp_pot add 12345` (`/cm enable`,
+    then `/cm priority hp_pot list` — 12345 is not there), `/cm stat primary AGI` and
+    `/cm aio hp_aio toggle hs`. While still disabled, confirm the rest of the surface answers
+    normally: `/cm help`, `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm list`,
+    `/cm get enabled`, `/cm set scale 1.1`, `/cm reset scale`, `/cm dump categories` — and
+    `/cm enable`, which must never refuse or the switch is one-way. A verb that prints the refusal
+    and then acts anyway is the failure this step exists for, which is why each line above says what
+    to look at as well as what to type.
 15. `/cm dump categories` — prints the category list with macro names + spec-awareness.
 16. `/cm dump statpriority` — current spec's primary + secondary.
 17. `/cm dump bags` — bag scanner output.
