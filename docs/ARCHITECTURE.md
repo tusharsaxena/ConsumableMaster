@@ -65,7 +65,7 @@ cases it did before.
 |---|---|
 | `tests/test_macrobar.lua` (2229) | `tests/test_macrobar.lua` (1456) — model, display, cooldowns, schema rows, click gating, the flyout's candidate list, master controls, the Defaults button |
 | | `tests/test_macrobar_layout.lua` (432) — the four pure-geometry sections: grid, label geometry, flyout placement, indicator clearance |
-| | `tests/test_macrobar_button.lua` (380) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, and the `options-ui-§15/§16/§17` rows they honor |
+| | `tests/test_macrobar_chrome.lua` (380) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, and the `options-ui-§15/§16/§17` rows they honor |
 | | `tests/macrobar_support.lua` — not a suite: the one fixture (`fcfg`) read on both sides of a seam, SHARED through a `rawget` guard rather than copied |
 | `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
 | | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (§13 strips, §18 reorder lists, §13 wrapped-strip geometry) |

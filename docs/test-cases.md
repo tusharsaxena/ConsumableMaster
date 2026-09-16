@@ -438,7 +438,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_button.lua (13)
+### test_macrobar_chrome.lua (13)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -1086,7 +1086,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 85 |
-| test_macrobar_button.lua | 13 |
+| test_macrobar_chrome.lua | 13 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
 | test_macromanager.lua | 49 |

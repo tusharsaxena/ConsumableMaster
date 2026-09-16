@@ -448,7 +448,7 @@ local SUITES = {
     "test_load",
     "test_locale",
     "test_macrobar",
-    "test_macrobar_button",
+    "test_macrobar_chrome",
     "test_macrobar_buttons",
     "test_macrobar_layout",
     "test_macromanager",

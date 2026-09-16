@@ -1,4 +1,4 @@
--- tests/test_macrobar_button.lua — the macro bar's chrome appliers
+-- tests/test_macrobar_chrome.lua — the macro bar's chrome appliers
 -- (MacroBarButton.ApplyStyle), the flyout's bind/apply pass, and the
 -- options-ui-§15/§16/§17 rows those appliers are what honors.
 --

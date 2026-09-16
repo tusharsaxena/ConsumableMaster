@@ -4,7 +4,7 @@
 -- tests/test_macrobar.lua was 2229 lines against layout-§1's 1500-line cap, and
 -- issue #32 named two cuts: the pure-geometry sections out to
 -- tests/test_macrobar_layout.lua and the chrome appliers plus the flyout's
--- bind/apply pass out to tests/test_macrobar_button.lua. `fcfg` — the flyout's
+-- bind/apply pass out to tests/test_macrobar_chrome.lua. `fcfg` — the flyout's
 -- config table, defaults merged under an override — is read on all three sides:
 -- by the geometry cases that left, by the click-gating case that stayed
 -- (MacroBarFlyout.Apply), and by the bind/apply pass that left the other way.

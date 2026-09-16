@@ -84,14 +84,15 @@ Current as of [`20260916-094429`](20260916-094429/) — **this run's measurement
 functions, **0** of them warned on; 6 file(s) in the 1000–1500 band and 2 over the 1500 cap
 (`layout-§1`).
 
-**Amended after the run, and the amendment is marked.** The two over-cap files were peeled on
+**Amended after the run, in the one cell that may be.** The two over-cap files were peeled on
 2026-09-16, after this bundle was frozen (issues
 [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) and
-[#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33)). Their two rows are rewritten
-below rather than deleted: a watch-list row that vanishes reads the same as one that was never
-there. The LOC in those two rows is `wc -l` at the peel commit, not this run's `lizard` output,
-and it is the only figure in this file that is not the run's own — said here because the rest
-of the section promises otherwise. Nothing in this repository is over the cap now;
+[#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33)). Only their **Disposition**
+cells were rewritten — `automated-tests-§4` makes that the single authored cell in this file, and
+leaves every other column the runner's own output. So the band and the LOC beside them still read
+what `lizard` measured at this run's commit, 2229 and 2028, and the Disposition says what has
+happened since. The rows are not deleted: a watch-list row that vanishes reads the same as one that
+was never there. Nothing in this repository is over the cap now;
 `docs/ARCHITECTURE.md` § *Files over the 1500-line cap* is the census that says so, and
 `tests/test_layout_cap.lua` holds it to the tracked set on every run.
 
@@ -114,8 +115,8 @@ None.
 | 1000–1500 (on notice) | `tests/test_schema.lua` | 1012 | **Newly crossed at [`20260916-094429`](20260916-094429/) — accepted: case count, not tangle.** 788 → 1012 this cycle. 744 NLOC across 71 functions at avg CCN 2.1. Re-check at 1300. |
 | 1000–1500 (on notice) | `tests/test_selector.lua` | 1011 | **Newly crossed at [`20260916-094429`](20260916-094429/) — accepted: case count, not tangle.** 829 → 1011 this cycle. 713 NLOC across 66 functions at avg CCN 1.4. Re-check at 1300. |
 | 1000–1500 (on notice) | `tests/test_slash.lua` | 1052 | **Newly crossed at [`20260916-094429`](20260916-094429/) — accepted: case count, not tangle.** 831 → 1052 this cycle. 839 NLOC across 109 functions at avg CCN 1.3, the lowest density in the band. Re-check at 1300. |
-| 1000–1500 (on notice) | `tests/test_macrobar.lua` | 1456 | **Peeled — no longer over the cap.** It was 2229 here and had been in breach since [`20260807-022923`](20260807-022923/), carried across five bundles. Issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) named two cuts and both landed: `tests/test_macrobar_layout.lua` (432) took the four pure-geometry sections, `tests/test_macrobar_button.lua` (380) took the chrome appliers plus the flyout's bind/apply pass, and `tests/macrobar_support.lua` holds the one fixture read on both sides of a seam. Every case moved whole — 137 macro-bar cases before, 137 after. Back on notice at 1456; re-check at 1500. |
-| 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1255 | **Peeled — no longer over the cap.** It was 2028 here, having crossed unremarked during this cycle (656 at the previous run's commit, 1528 by `M4-06`). Issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) named one cut and it landed: the three `options-ui` conformance blocks out to `tests/test_settingsui_optionsui.lua` (800). Every case moved whole — 54 settings-UI cases before, 54 after. Back on notice at 1255; re-check at 1500. |
+| > 1500 (over cap) | `tests/test_macrobar.lua` | 2229 | **Peeled on 2026-09-16, after this run: now 1456 and no longer over the cap.** It had been in breach since [`20260807-022923`](20260807-022923/), carried across five bundles. Issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) named two cuts and both landed: `tests/test_macrobar_layout.lua` (432) took the four pure-geometry sections, `tests/test_macrobar_chrome.lua` (380) took the chrome appliers plus the flyout's bind/apply pass, and `tests/macrobar_support.lua` holds the one fixture read on both sides of a seam. Every case moved whole — 137 macro-bar cases before, 137 after. Back on notice at 1456; the next run's own figures will say so. |
+| > 1500 (over cap) | `tests/test_settingsui.lua` | 2028 | **Peeled on 2026-09-16, after this run: now 1255 and no longer over the cap.** It crossed unremarked during this cycle (656 at the previous run's commit, 1528 by `M4-06`). Issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) named one cut and it landed: the three `options-ui` conformance blocks out to `tests/test_settingsui_optionsui.lua` (800). Every case moved whole — 54 settings-UI cases before, 54 after. Back on notice at 1255; the next run's own figures will say so. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
