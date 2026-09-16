@@ -8,11 +8,14 @@
 -- WHY IT EXISTS, in this repo specifically. `tests/test_settingsui.lua` crossed the cap at 1528 in
 -- `393102f`, three commits into the very remediation cycle that was meant to settle this, and
 -- nothing anywhere said so. The 2026-09-07 audit had measured it at 1461 and was right to file
--- nothing; `docs/automated-tests/RESULTS.md`'s band table still reads `tests/test_macrobar.lua`
--- at 1688 against 1904 today and does not know the second file exists at all. That is exactly the
+-- nothing; `docs/automated-tests/RESULTS.md`'s band table read `tests/test_macrobar.lua` at 1688
+-- against 1904 at the time and did not know the second file existed at all. That is exactly the
 -- state layout-§1 refuses — "the count sitting in a bundle manifest that no document reads" — and
 -- a census written once and never re-checked would become the same thing within a month. This is
 -- the thing that watches.
+--
+-- Both files were peeled in 2026-09 (issues #32 and #33) and the census is empty today, which
+-- is a state this gate now has to be able to report green — see CENSUS_EMPTY below.
 --
 -- WHAT IT DOES NOT ASSERT: the line figures printed in the census. They are dated measurements,
 -- and pinning them would redden the suite on every ordinary edit to a large file — a gate with a
@@ -31,6 +34,19 @@ local ROOT = _G.KCM_TEST_ROOT or "."
 local CAP = 1500
 local ARCHITECTURE = "/docs/ARCHITECTURE.md"
 local CENSUS_HEADING = "### Files over the 1500-line cap"
+
+--- The line the census carries INSTEAD of rows when nothing is over the cap.
+---
+--- This gate shipped with no green path for an empty census: the third case below failed on zero
+--- rows and told the reader to delete the section, but `censusRows` fails when the heading is
+--- missing, so taking that advice reddened the other two. Both cuts in issues #32 and #33 landed
+--- together and the table emptied, which is how the hole was found. The section stays — it is
+--- where the rule is written down, and it is what an audit reads before re-filing `layout-§1`
+--- — and it declares the empty state in one pinned sentence rather than just having no rows. A
+--- table that goes quiet and a table that says "nothing is over the cap" look identical on the
+--- page and are not the same claim; this line is the difference, and it is asserted BOTH ways:
+--- rows without the line, and the line alongside rows, are each a failure.
+local CENSUS_EMPTY = "**No authored file in this repository is over the cap.**"
 
 --- Split a NUL-delimited blob. `git ls-files -z` because a path may contain anything but NUL, and
 --- the line-oriented form quotes such a path instead of printing it — a quoted path would not
@@ -114,7 +130,7 @@ local function censusRows()
     fh:close()
 
     local text = body:gsub("\r\n", "\n")
-    local rows, inside, found = {}, false, false
+    local rows, inside, found, declaredEmpty = {}, false, false, false
     for line in (text .. "\n"):gmatch("([^\n]*)\n") do
         if line == CENSUS_HEADING then
             inside, found = true, true
@@ -124,6 +140,8 @@ local function censusRows()
             local path, _, disposition = line:match("^|%s*`([^`]+)`%s*|%s*(.-)%s*|%s*(.-)%s*|%s*$")
             if path then
                 rows[#rows + 1] = { path = path, disposition = disposition }
+            elseif line:find(CENSUS_EMPTY, 1, true) then
+                declaredEmpty = true
             end
         end
     end
@@ -133,7 +151,7 @@ local function censusRows()
             .. "The cap census is where every breach is remarked on and it must not be removed or "
             .. "renamed without moving CENSUS_HEADING here in the same change", 2)
     end
-    return rows
+    return rows, declaredEmpty
 end
 
 -- ---------------------------------------------------------------------------
@@ -184,11 +202,17 @@ test("layoutcap: no census row outlives the breach it records", function()
 end)
 
 test("layoutcap: every census row carries a disposition that can be followed", function()
-    local rows = censusRows()
-    if #rows == 0 then
-        fail("layout cap gate: the census table under '" .. CENSUS_HEADING .. "' has no rows. If "
-            .. "this repository really has no breach left, delete the section rather than leaving "
-            .. "an empty table behind", 2)
+    local rows, declaredEmpty = censusRows()
+    if #rows == 0 and not declaredEmpty then
+        fail("layout cap gate: the census under '" .. CENSUS_HEADING .. "' has no rows and does "
+            .. "not say why. An empty table is not a statement. If this repository really has no "
+            .. "breach left, write the line '" .. CENSUS_EMPTY .. "' into the section, which is "
+            .. "the claim a reader and an auditor can actually rely on", 2)
+    end
+    if #rows > 0 and declaredEmpty then
+        fail("layout cap gate: the census under '" .. CENSUS_HEADING .. "' carries rows AND the "
+            .. "line '" .. CENSUS_EMPTY .. "'. Those are contradictory claims about the same "
+            .. "fact — drop whichever one is stale", 2)
     end
 
     local unfollowable = {}

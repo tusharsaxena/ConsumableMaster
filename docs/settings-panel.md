@@ -29,8 +29,8 @@ cannot be clicked is that page's section label.
 The only exemptions are pages the host does not render through the flow engine at all, and there
 are two: the AceConfig-drawn **Profiles** sub-page (`settings/Profiles.lua`), which AceConfigDialog
 draws whole and which carries no schema rows, and the **landing page**, whose body is
-`Helpers.BuildAboutContent` and which declares no sections. `tests/test_settingsui.lua` asserts the
-Profiles page draws **no** strip, rather than merely skipping it.
+`Helpers.BuildAboutContent` and which declares no sections. `tests/test_settingsui_optionsui.lua`
+asserts the Profiles page draws **no** strip, rather than merely skipping it.
 
 The **Macros** page is why the strip exists here at all. Every macro category used to be its own
 `RegisterCanvasLayoutSubcategory` entry — fifteen rows in the AddOns sidebar for fifteen variations on
@@ -51,7 +51,7 @@ pins.
 anti-patterns #70). Both hand-drawn strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
 and the reserved chrome band and every wrapped row's offset are the same numbers for every value of
 the selection. The pitch is measured once, from the **unselected** tab art, which no click can
-change. That is the library's to get right; `tests/test_settingsui.lua` pins it on both pages under a
+change. That is the library's to get right; `tests/test_settingsui_optionsui.lua` pins it on both pages under a
 mock that answers a *different* height for the selected-state atlas, because a harness that answers
 one height for every atlas cannot fail the case.
 

@@ -350,47 +350,8 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (137)
+### test_macrobar.lua (85)
 
-- macrobar layout: one row of 13 reports 13 columns and one row
-- macrobar layout: first slot sits at the padding offset
-- macrobar layout: slots step by size + spacing along the row
-- macrobar layout: 13 slots at 7 per row wrap into two rows
-- macrobar layout: growth LEFT mirrors the columns
-- macrobar layout: growth UP mirrors the rows
-- macrobar layout: VERTICAL orientation fills columns first
-- macrobar layout: zero slots still reports a non-zero container
-- macrobar layout: missing config falls back to shipped defaults
-- macrobar layout: perRow below 1 is clamped rather than dividing by zero
-- macrobar label: inside anchors the label's own corner to the button's
-- macrobar label: outside flips the anchor across that edge
-- macrobar label: offsets pass through and CENTER never flips
-- macrobar label: an unknown position falls back to the shipped default
-- macrobar label: every declared label position resolves to an anchor
-- macrobar label: font size scales with the button and clamps to legible
-- macrobar label: every category supplies both a full and a short label
-- macrobar label: an unknown category degrades to its key
-- macrobar flyout: entry 1 sits one gap off the button
-- macrobar flyout: the gap is configurable and can be closed to zero
-- macrobar flyout: entries step by size + spacing away from the button
-- macrobar flyout: growing downward mirrors the offsets
-- macrobar flyout: horizontal sides stack along x instead of y
-- macrobar flyout: container is sized to the run of entries
-- macrobar flyout: scale shrinks entries independently of the button
-- macrobar flyout: an empty flyout still reports a usable frame size
-- macrobar flyout: padding insets the strip inside its panel
-- macrobar flyout: padding leaves entries centered on the cross axis
-- macrobar flyout: the indicator band sits inside the icon's edge
-- macrobar flyout: each side rotates the arrow to point away from the button
-- macrobar flyout: arrow size scales off the band and never vanishes
-- macrobar flyout: a side band swaps its span and thickness
-- macrobar flyout: band thickness is a ratio of the button, capped at half
-- macrobar flyout: every flyout side resolves geometry
-- macrobar flyout: a label sharing the band's edge is pushed clear
-- macrobar flyout: clearance follows the band to another edge
-- macrobar flyout: a label on a different edge is left alone
-- macrobar flyout: no clearance when the flyout is off or the label is outside
-- macrobar flyout: clearance scales with the band thickness
 - macrobar model: AllKeys covers every managed category
 - macrobar model: NormalizeOrder leaves a complete order untouched
 - macrobar model: NormalizeOrder drops unknown keys
@@ -468,6 +429,17 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: Close hides the strip and stands down in combat
 - macrobar flyout: Close tolerates a nil flyout
 - macrobar schema: the bar publishes its own bus message
+- macrobar master: Master scale and Master alpha MULTIPLY the bar's own
+- macrobar master: General visibility is INTERSECTED with the bar's combat mode
+- macrobar master: General visibility = never takes the bar off screen
+- macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
+- macrobar Defaults: the page reset is one [Set] line, written into the same table
+- macrobar Defaults: a batch that fails leaves the position where it was, and says so
+- macrobar: dragging one slot onto another stores the swapped order
+- Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
+
+### test_macrobar_button.lua (13)
+
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
 - macrobar button: ApplyStyle floors the edge thickness at one pixel
@@ -481,14 +453,6 @@ badge and any count quoted in the docs must agree with it.
 - macrobar label: the font FACE, FLAGS and SHADOW reach the FontString
 - macrobar label: the class-color companion repaints the label, alpha and all
 - macrobar button: an unresolvable class falls through to the stored swatch
-- macrobar master: Master scale and Master alpha MULTIPLY the bar's own
-- macrobar master: General visibility is INTERSECTED with the bar's combat mode
-- macrobar master: General visibility = never takes the bar off screen
-- macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
-- macrobar Defaults: the page reset is one [Set] line, written into the same table
-- macrobar Defaults: a batch that fails leaves the position where it was, and says so
-- macrobar: dragging one slot onto another stores the swapped order
-- Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
 ### test_macrobar_buttons.lua (8)
 
@@ -500,6 +464,48 @@ badge and any count quoted in the docs must agree with it.
 - Buttons: in combat a drag and a tick are refused, write nothing and repaint nothing
 - Buttons: each act re-applies the bar once, and the bar carries the new order and set
 - macrobar: the slot swap, the list's drag and its tick write through the schema helper
+
+### test_macrobar_layout.lua (39)
+
+- macrobar layout: one row of 13 reports 13 columns and one row
+- macrobar layout: first slot sits at the padding offset
+- macrobar layout: slots step by size + spacing along the row
+- macrobar layout: 13 slots at 7 per row wrap into two rows
+- macrobar layout: growth LEFT mirrors the columns
+- macrobar layout: growth UP mirrors the rows
+- macrobar layout: VERTICAL orientation fills columns first
+- macrobar layout: zero slots still reports a non-zero container
+- macrobar layout: missing config falls back to shipped defaults
+- macrobar layout: perRow below 1 is clamped rather than dividing by zero
+- macrobar label: inside anchors the label's own corner to the button's
+- macrobar label: outside flips the anchor across that edge
+- macrobar label: offsets pass through and CENTER never flips
+- macrobar label: an unknown position falls back to the shipped default
+- macrobar label: every declared label position resolves to an anchor
+- macrobar label: font size scales with the button and clamps to legible
+- macrobar label: every category supplies both a full and a short label
+- macrobar label: an unknown category degrades to its key
+- macrobar flyout: entry 1 sits one gap off the button
+- macrobar flyout: the gap is configurable and can be closed to zero
+- macrobar flyout: entries step by size + spacing away from the button
+- macrobar flyout: growing downward mirrors the offsets
+- macrobar flyout: horizontal sides stack along x instead of y
+- macrobar flyout: container is sized to the run of entries
+- macrobar flyout: scale shrinks entries independently of the button
+- macrobar flyout: an empty flyout still reports a usable frame size
+- macrobar flyout: padding insets the strip inside its panel
+- macrobar flyout: padding leaves entries centered on the cross axis
+- macrobar flyout: the indicator band sits inside the icon's edge
+- macrobar flyout: each side rotates the arrow to point away from the button
+- macrobar flyout: arrow size scales off the band and never vanishes
+- macrobar flyout: a side band swaps its span and thickness
+- macrobar flyout: band thickness is a ratio of the button, capped at half
+- macrobar flyout: every flyout side resolves geometry
+- macrobar flyout: a label sharing the band's edge is pushed clear
+- macrobar flyout: clearance follows the band to another edge
+- macrobar flyout: a label on a different edge is left alone
+- macrobar flyout: no clearance when the flyout is off or the label is outside
+- macrobar flyout: clearance scales with the band thickness
 
 ### test_macromanager.lua (49)
 
@@ -791,7 +797,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (54)
+### test_settingsui.lua (36)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -822,6 +828,16 @@ badge and any count quoted in the docs must agree with it.
 - Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets
 - Settings: a priority row's Remove button still calls Selector.Block
 - Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line
+- Settings UI: a first-open refresh burst arms one timer, not one per call
+- Settings UI: the rebuild waits out the quiet window before it lands
+- Settings UI: a storm that never goes quiet still rebuilds at the max wait
+- Settings UI: a timer that fires early rebuilds instead of re-arming forever
+- Settings: the Stat Priority Defaults button drops only the viewed spec's override
+- Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
+- Settings: every Stat Priority, composite and mouseover control writes through the schema helper
+
+### test_settingsui_optionsui.lua (18)
+
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
 - Settings: the Macros page reaches its strip with no categories to tab
@@ -840,13 +856,6 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the three maintenance verbs draw on their own tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
-- Settings UI: a first-open refresh burst arms one timer, not one per call
-- Settings UI: the rebuild waits out the quiet window before it lands
-- Settings UI: a storm that never goes quiet still rebuilds at the max wait
-- Settings UI: a timer that fires early rebuilds instead of re-arming forever
-- Settings: the Stat Priority Defaults button drops only the viewed spec's override
-- Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
-- Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
 ### test_slash.lua (91)
 
@@ -1076,8 +1085,10 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 137 |
+| test_macrobar.lua | 85 |
+| test_macrobar_button.lua | 13 |
 | test_macrobar_buttons.lua | 8 |
+| test_macrobar_layout.lua | 39 |
 | test_macromanager.lua | 49 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -1089,7 +1100,8 @@ badge and any count quoted in the docs must agree with it.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 54 |
+| test_settingsui.lua | 36 |
+| test_settingsui_optionsui.lua | 18 |
 | test_slash.lua | 91 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |

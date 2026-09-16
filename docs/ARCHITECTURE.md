@@ -36,43 +36,52 @@ does not allow is a breach nothing anywhere remarks on — "the count sitting in
 no document reads". This table is the remark, and it is why an audit **MUST NOT** re-file `layout-§1`
 against any file in it.
 
-Two files, measured 2026-09-16 with
+**Nothing is over the cap today.** Both breaches this section was written for were peeled in
+2026-09: `tests/test_macrobar.lua` (2229) on the two cuts issue
+[#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) named, and
+`tests/test_settingsui.lua` (2028) on the one cut issue
+[#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) named. Measured 2026-09-16 with
 
 ```
 git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
 ```
 
-| File | Lines (2026-09-16) | Disposition |
+| File | Lines | Disposition |
 |---|---|---|
-| `tests/test_macrobar.lua` | 2229 | Issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) — two cuts: the four pure-geometry sections out to `test_macrobar_layout.lua`, the chrome appliers and the flyout's bind/apply pass out to `test_macrobar_button.lua` |
-| `tests/test_settingsui.lua` | 2028 | Issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) — one cut at `:981`, the three `options-ui` conformance blocks out to `test_settingsui_optionsui.lua` |
 
-**Both breaches are test suites, and both take an issue rather than a deviation row.** That is a real
-difference from MultiMeters, which gave seven of its fifteen breaches a register row instead, and the
-reason is a fact about this repository rather than a difference of opinion: **no source file here is
-over the cap**. The largest are `settings/Panel.lua` at 1426, `settings/Category.lua` at 1400 and
-`settings/MacroBar.lua` at 1166, all on notice and none in breach. MultiMeters' register rows exist because a suite that mirrors an
-over-cap module has no seam of its own — its partition is whatever partition the module ends up peeled
-on, so peeling the suite first commits to a partition the module has not chosen. Neither suite here is
-waiting on anything. `tests/test_macrobar.lua` mirrors five files that are each between 228 and 763
-lines and none of which will be peeled; `tests/test_settingsui.lua` splits on a seam the standard's own
-section numbering draws. Each has a seam it can be cut on today, so each gets the terminal state that
-says so.
+**No authored file in this repository is over the cap.**
 
-**The line counts are dated because they drift, and nothing asserts them.** What
-`tests/test_layout_cap.lua` asserts is the *membership* of this table, in both directions: a file that
-crosses 1500 and is not listed here turns the suite red, and so does a row for a file that has fallen
-back under the cap or been deleted. A figure in this column is a measurement, not a claim about today.
+That sentence is load-bearing rather than decorative. `tests/test_layout_cap.lua` reads it: a census
+with no rows and no such line is a failure, because an empty table and a table that has been quietly
+emptied look identical on the page and are not the same claim. Rows alongside that line are a failure
+too. The section itself stays whether or not there is a breach — it is where the rule is written
+down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
-**Neither file is peeled this cycle.** The 2026-09-07 remediation plan rules out splitting any file
-(`03_SPEC.md` § C22 non-goals) — the ruling on what the cap binds landed in the same cycle, and peeling
-before the ruling would have been work done against a rule that was still moving. The deliverable was
-the disposition, and the disposition is this table.
+**What the peel did**, for the next reader who wonders where a case went. Both were test suites, and
+both moved cases WHOLE — not one assertion changed, and the harness registers exactly the same 901
+cases it did before.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-09-16): `settings/Panel.lua` (1426),
-`settings/Category.lua` (1400), `settings/MacroBar.lua` (1166), `tests/test_slash.lua` (1052),
-`tests/test_schema.lua` (1012) and `tests/test_selector.lua` (1011). They are named here so a later
-reader can tell the band was looked at rather than missed; none needs a disposition until it crosses.
+| Was | Is now |
+|---|---|
+| `tests/test_macrobar.lua` (2229) | `tests/test_macrobar.lua` (1456) — model, display, cooldowns, schema rows, click gating, the flyout's candidate list, master controls, the Defaults button |
+| | `tests/test_macrobar_layout.lua` (432) — the four pure-geometry sections: grid, label geometry, flyout placement, indicator clearance |
+| | `tests/test_macrobar_button.lua` (380) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, and the `options-ui-§15/§16/§17` rows they honor |
+| | `tests/macrobar_support.lua` — not a suite: the one fixture (`fcfg`) read on both sides of a seam, SHARED through a `rawget` guard rather than copied |
+| `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
+| | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (§13 strips, §18 reorder lists, §13 wrapped-strip geometry) |
+
+Two of the cuts moved off the line numbers the issues recorded, because both files grew after the
+issues were written. The macro bar's chrome block also had to take the three `options-ui-§15/§16/§17`
+cases that arrived after it, which use its `styleButton`/`firstCall` fixtures; the settings suite's
+cut is a middle slice rather than a tail, because two later blocks (the refresh debounce and the #35
+characterization cases) now sit below the conformance blocks. The seams themselves are the ones the
+issues named.
+
+**The 1000–1500 band is on notice, not in breach** (measured 2026-09-16): `tests/test_macrobar.lua`
+(1456), `settings/Panel.lua` (1426), `settings/Category.lua` (1400), `tests/test_settingsui.lua`
+(1255), `settings/MacroBar.lua` (1166), `tests/test_slash.lua` (1052), `tests/test_schema.lua` (1012)
+and `tests/test_selector.lua` (1011). They are named here so a later reader can tell the band was
+looked at rather than missed; none needs a disposition until it crosses.
 
 ## Module Map
 
