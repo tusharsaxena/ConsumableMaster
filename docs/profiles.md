@@ -122,7 +122,7 @@ One sender, the reaction above (`architecture-§4`). Three receivers, each on it
 | Receiver | What it does |
 |---|---|
 | `modules/MacroBar.lua` | `MacroBar.Update()`, the bar's whole re-apply: anchor, backdrop, grid, slot order, shown slots, lock, visibility and alpha. The pipeline's `MACROBAR_REFRESH` only repaints icons and counts, so without this the outgoing profile's bar stayed on screen until `/reload`. Update takes its disable path when the incoming profile has the bar off, and defers itself wholesale to regen in combat. |
-| `settings/Panel.lua` | `KCM.Options.Refresh()`, an immediate structural refresh of the settings page on screen, with every other page marked dirty. The debounced `PANEL_REFRESH` is a second or more late, and a page drawn from the outgoing profile holds controls that read and write it. |
+| `settings/OptionsShim.lua` | `KCM.Options.Refresh()`, an immediate structural refresh of the settings page on screen, with every other page marked dirty. The debounced `PANEL_REFRESH` is a second or more late, and a page drawn from the outgoing profile holds controls that read and write it. |
 | `settings/Profiles.lua` | Counts the event and asks for the page's own redraw (above). |
 
 ### The log line (`debug-logging-§10`)

@@ -660,6 +660,10 @@ local function loadCategorySettings()
     for _, f in ipairs(loader.PURE_LAYER) do files[#files + 1] = f end
     for _, f in ipairs(loader.SETTINGS_SEAM) do files[#files + 1] = f end
     files[#files + 1] = "settings/Category.lua"
+    -- And the Add-by-ID line, which is settings/CategoryAddByID.lua's since the
+    -- 1500-line peel. It loads after Category.lua, in the TOC's order, because
+    -- it takes that file's two published page helpers as file-scope locals.
+    files[#files + 1] = "settings/CategoryAddByID.lua"
     return loader.loadFiles(files)
 end
 

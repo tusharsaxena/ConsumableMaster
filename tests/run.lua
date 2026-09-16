@@ -216,10 +216,12 @@ local PURE_LAYER_OMITS = {
     ["core/SlashCommands.lua"]   = true,
     ["settings/OptionsSetup.lua"] = true,
     ["settings/Panel.lua"]       = true,
+    ["settings/OptionsShim.lua"] = true,
     ["settings/General.lua"]     = true,
     ["settings/MacroBar.lua"]    = true,
     ["settings/StatPriority.lua"] = true,
     ["settings/Category.lua"]    = true,
+    ["settings/CategoryAddByID.lua"] = true,
     ["settings/Slash.lua"]       = true,
     -- The frame layer: every one of these builds real widgets at load, which is
     -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
@@ -359,8 +361,14 @@ end
 --- COMPOSED in settings/General.lua (options-ui-§15) and the Macro Bar page has
 --- always declared its own fifty-odd rows, so a "settings schema" that stopped at
 --- Panel.lua is now an empty schema.
+--- settings/OptionsShim.lua rides with Panel.lua rather than being a third
+--- entry a suite could forget: the KCM.Options shim was Panel.lua's closing
+--- block until the 1500-line peel, and the suites that load this seam call
+--- O.Open, O.Refresh and O.RequestRefresh on the strength of having loaded the
+--- panel. Leaving it out would answer those with nil on exactly the arms that
+--- pin the degraded install.
 L.SETTINGS_SEAM = {
-    "settings/OptionsSetup.lua", "settings/Panel.lua",
+    "settings/OptionsSetup.lua", "settings/Panel.lua", "settings/OptionsShim.lua",
     "settings/General.lua", "settings/MacroBar.lua",
 }
 

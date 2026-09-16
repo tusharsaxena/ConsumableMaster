@@ -99,12 +99,24 @@ end
 -- secret predicate), so their plain triple is still readable. It gets wrapped in
 -- a duration object anyway so the frame layer has one path, and the raw numbers
 -- ride along for a client too old to have duration objects.
+-- The client's own reading of "is this timer running", in one place rather than
+-- in an `and` chain inside the caller. Every clause is a guard and every one of
+-- them earns its place: `enable` is 0 rather than false on a cooldown the client
+-- knows and is not counting, the triple comes back nil on an ID the client has
+-- never seen, and a zero start or a zero duration is how a finished cooldown
+-- reads. None of the four may be dropped -- a missing guard here shows a slot
+-- swirling forever over an item that is ready.
+local function cooldownIsRunning(start, duration, enable)
+    if not (enable and enable ~= 0) then return false end
+    if not (start and duration) then return false end
+    return start > 0 and duration > 0
+end
+
 local function itemCooldown(id)
     local getCD = (C_Item and C_Item.GetItemCooldown) or GetItemCooldown
     if not getCD then return false end
     local start, duration, enable = getCD(id)
-    local active = (enable and enable ~= 0 and start and duration
-        and start > 0 and duration > 0) and true or false
+    local active = cooldownIsRunning(start, duration, enable)
     local obj
     if active and C_DurationUtil and C_DurationUtil.CreateDuration then
         obj = C_DurationUtil.CreateDuration()

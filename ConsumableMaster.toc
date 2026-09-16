@@ -182,10 +182,28 @@ settings\OptionsSetup.lua
 # It also publishes the KCM.Options shim (Register/Refresh/RequestRefresh/Open)
 # so the core / pipeline callers keep working unchanged.
 settings\Panel.lua
+# settings/OptionsShim.lua — the RUN-time half of the same shim: O.Refresh,
+# O.RequestRefresh, O.Open, the refresh debounce behind them and the three bus
+# subscriptions that drive them. Peeled off Panel.lua at the 1500-line cap
+# (layout-§1). Immediately after Panel.lua and that is load-bearing in one
+# direction only: it takes KCM.Settings.Helpers, the optionsUI instance and
+# Panel.lua's two notice functions as file-scope locals, so it cannot load
+# before them. Nothing below reads it at load -- the page files reach
+# KCM.Options through call-time thunks -- so its only constraint is to come
+# after Panel.lua.
+settings\OptionsShim.lua
 settings\General.lua
 settings\MacroBar.lua
 settings\StatPriority.lua
 settings\Category.lua
+# settings/CategoryAddByID.lua — the Macros page's "Add item or spell by ID"
+# line, peeled off Category.lua at the 1500-line cap (layout-§1): the Type
+# dropdown, the two ID kinds, this addon's resolver over the library's IdInput
+# and O.AddByIDBusy. Immediately AFTER Category.lua and that is load-bearing:
+# it takes KCM.Settings.MacrosPage's two helpers as file-scope locals, which
+# Category.lua publishes at load. The other direction is call-time only --
+# Category.lua reaches KCM.Settings.AddByID.Render while it renders a tab.
+settings\CategoryAddByID.lua
 # The /cm dispatcher (CM-47). Last in this block because it is the one settings
 # file nothing else here reads: it consumes core\SlashCommands.lua's published
 # verb table and publishes KCM:OnSlashCommand, which AceConsole resolves by name

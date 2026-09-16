@@ -112,6 +112,53 @@ end
 -- once. The v3 step costs nothing on a re-run: it converts only where the retired
 -- `labelOutline` boolean is still there, and the conversion is what removes it, so
 -- a second pass finds nothing left to do.
+-- The PROFILE-scoped steps, walked in order on whichever profile is live.
+-- Answers the version the profile arrived at, which is what the report below
+-- needs and what nothing else can recover once the stamp has been written: a
+-- profile that was already current is indistinguishable from one this pass
+-- walked forward the moment `p.schemaVersion` is set.
+--
+-- Each step is gated on the stamp rather than on the one `from` the function
+-- entered with, so a profile that is several versions behind meets every step
+-- between where it is and where this build stands, in order.
+local function migrateProfile(p)
+    p.schemaVersion = p.schemaVersion or 1
+    local pFrom = p.schemaVersion
+
+    if p.schemaVersion < 2 then
+        D.MigrateMacroBarV2(p)
+        p.schemaVersion = 2
+    end
+
+    if p.schemaVersion < 3 then
+        D.MigrateLabelFlagsV3(p)
+        p.schemaVersion = 3
+    end
+
+    -- Future PROFILE migrations go here, e.g.:
+    --   if p.schemaVersion < 4 then ... ; p.schemaVersion = 4 end
+
+    p.schemaVersion = D.CURRENT_SCHEMA
+    return pFrom
+end
+
+-- What the run did, said once and only when a version actually moved: a login
+-- that migrates nothing says nothing, which is what keeps the console readable
+-- on every subsequent load. The profile line names the profile, because the
+-- whole defect this file was repaired for was not knowing WHICH profile a
+-- migration had touched.
+local function reportMigrations(db, accountFrom, accountTo, profileFrom)
+    if not (KCM.State and KCM.State.debug) then return end
+    if accountFrom ~= accountTo then
+        KCM.Debug("DB", "migrated account schema v%s -> v%s", accountFrom, accountTo)
+    end
+    if profileFrom and profileFrom ~= D.CURRENT_SCHEMA then
+        local key = db.GetCurrentProfile and db:GetCurrentProfile() or "?"
+        KCM.Debug("DB", "migrated profile '%s' schema v%s -> v%s",
+            key, profileFrom, D.CURRENT_SCHEMA)
+    end
+end
+
 function D.RunMigrations()
     local db = KCM.db
     if not (db and db.global) then return end
@@ -129,34 +176,9 @@ function D.RunMigrations()
     local p = db.profile
     local pFrom
     if type(p) == "table" then
-        p.schemaVersion = p.schemaVersion or 1
-        pFrom = p.schemaVersion
-
-        if p.schemaVersion < 2 then
-            D.MigrateMacroBarV2(p)
-            p.schemaVersion = 2
-        end
-
-        if p.schemaVersion < 3 then
-            D.MigrateLabelFlagsV3(p)
-            p.schemaVersion = 3
-        end
-
-        -- Future PROFILE migrations go here, e.g.:
-        --   if p.schemaVersion < 4 then ... ; p.schemaVersion = 4 end
-
-        p.schemaVersion = D.CURRENT_SCHEMA
+        pFrom = migrateProfile(p)
     end
 
     g.schemaVersion = D.CURRENT_SCHEMA
-    if KCM.State and KCM.State.debug then
-        if from ~= g.schemaVersion then
-            KCM.Debug("DB", "migrated account schema v%s -> v%s", from, g.schemaVersion)
-        end
-        if pFrom and pFrom ~= D.CURRENT_SCHEMA then
-            local key = db.GetCurrentProfile and db:GetCurrentProfile() or "?"
-            KCM.Debug("DB", "migrated profile '%s' schema v%s -> v%s",
-                key, pFrom, D.CURRENT_SCHEMA)
-        end
-    end
+    reportMigrations(db, from, g.schemaVersion, pFrom)
 end

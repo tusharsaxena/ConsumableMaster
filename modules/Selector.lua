@@ -258,6 +258,28 @@ local function levelBlocked(id)
     return (not ok) and reason ~= "pending"
 end
 
+-- Owned AND usable, for an ITEM id: the bags hold it and the tooltip does not
+-- level-gate it. Both clauses are guards and neither may be dropped -- an
+-- absent BagScanner means "own nothing" rather than "own everything", and the
+-- level gate is what keeps a rank the character cannot drink out of the pick.
+-- Named once here because the same pair is asked at every availability site
+-- below; BagScanner is resolved per call, exactly as each of those did, so a
+-- scanner swapped in mid-test is the one that answers.
+local function itemOwned(id)
+    local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
+    return (hasItem and hasItem(id) and not levelBlocked(id)) and true or false
+end
+
+-- The weapon affinity the tooltip cache carries for an enhancement, or "any"
+-- when it names none. "any" is the PERMISSIVE answer and is deliberate: a
+-- tooltip that has not hydrated yet reads exactly like one that declares no
+-- affinity, and offering a rank the cache has not read is the better failure
+-- than dropping it from the list with no word.
+local function affinityOf(id)
+    local tt = KCM.TooltipCache and KCM.TooltipCache.Get(id)
+    return (tt and tt.weaponAffinity) or "any"
+end
+
 -- Spell availability: the spellbook first, then a seed-declared class gate.
 --
 -- Some seeded abilities are not in the PLAYER's spellbook at all — Primal Rage
@@ -300,12 +322,10 @@ end
 function S.PickBestForSlot(catKey, slot, scoreCache)
     local affinity = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(slot)
     if not affinity then return nil end
-    local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
     for _, id in ipairs(S.GetEffectivePriority(catKey, nil, scoreCache)) do
         if not (KCM.ID and KCM.ID.IsSpell(id)) then
-            local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(id)
-            local aff = (tt and tt.weaponAffinity) or "any"
-            if (aff == "any" or aff == affinity) and hasItem and hasItem(id) and not levelBlocked(id) then
+            local aff = affinityOf(id)
+            if (aff == "any" or aff == affinity) and itemOwned(id) then
                 return id
             end
         end
@@ -336,23 +356,30 @@ local function isAvailable(id)
     if KCM.ID and KCM.ID.IsSpell(id) then
         return spellAvailable(id)
     end
-    local hasItem = KCM.BagScanner and KCM.BagScanner.HasItem
-    return (hasItem and hasItem(id) and not levelBlocked(id)) and true or false
+    return itemOwned(id)
 end
 
 -- Enhancements that fit either equipped weapon, in rank order without repeats.
-local function availableForHands(catKey, scoreCache)
-    local out, seen = {}, {}
+-- The affinities the two weapon slots ask for right now, as a set. A slot that
+-- holds nothing enhanceable contributes nothing, so an empty set means "no
+-- enhanceable weapon equipped" and the caller answers with an empty list rather
+-- than with everything.
+local function equippedAffinities()
     local affinities = {}
     for _, slot in ipairs({ 16, 17 }) do
         local aff = KCM.WeaponSlots and KCM.WeaponSlots.SlotAffinity(slot)
         if aff then affinities[aff] = true end
     end
+    return affinities
+end
+
+local function availableForHands(catKey, scoreCache)
+    local out, seen = {}, {}
+    local affinities = equippedAffinities()
     if not next(affinities) then return out end
     for _, id in ipairs(S.GetEffectivePriority(catKey, nil, scoreCache)) do
         if not (KCM.ID and KCM.ID.IsSpell(id)) and not seen[id] then
-            local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(id)
-            local aff = (tt and tt.weaponAffinity) or "any"
+            local aff = affinityOf(id)
             if (aff == "any" or affinities[aff]) and isAvailable(id) then
                 seen[id] = true
                 out[#out + 1] = id
@@ -599,6 +626,31 @@ local function sweepBucket(bucket, bagCounts, nowUnix, cutoff)
     return swept
 end
 
+-- One category ROOT, which is either a plain bucket or a per-spec fan-out. The
+-- two shapes are swept the same way and the caller does not need to know which
+-- it has; keeping the fan-out here is also what stops a spec-aware category
+-- from being counted as several touched categories below.
+local function sweepCategory(root, bagCounts, nowUnix, cutoff)
+    if not root.bySpec then
+        return sweepBucket(root, bagCounts, nowUnix, cutoff)
+    end
+    local swept = 0
+    for _, specBucket in pairs(root.bySpec) do
+        swept = swept + sweepBucket(specBucket, bagCounts, nowUnix, cutoff)
+    end
+    return swept
+end
+
+-- The sweep's one line, and only when it actually removed something. Behind
+-- KCM.State.debug as every other GC line is -- the flag is read here rather
+-- than inside KCM.Debug because a sweep over a large profile would otherwise
+-- format the message on every pass for a console nobody has open.
+local function reportSweep(totalSwept, touchedCats)
+    if totalSwept > 0 and KCM.State and KCM.State.debug then
+        KCM.Debug("GC", "swept %s entries across %s categories", totalSwept, touchedCats)
+    end
+end
+
 function S.SweepStaleDiscovered(nowUnix)
     if not (KCM.db and KCM.db.profile and KCM.db.profile.categories) then
         return 0, 0
@@ -608,22 +660,13 @@ function S.SweepStaleDiscovered(nowUnix)
     local bagCounts = (KCM.BagScanner and KCM.BagScanner.Scan and KCM.BagScanner.Scan()) or {}
     local totalSwept, touchedCats = 0, 0
     for _, root in pairs(KCM.db.profile.categories) do
-        local catSwept = 0
-        if root.bySpec then
-            for _, specBucket in pairs(root.bySpec) do
-                catSwept = catSwept + sweepBucket(specBucket, bagCounts, nowUnix, cutoff)
-            end
-        else
-            catSwept = catSwept + sweepBucket(root, bagCounts, nowUnix, cutoff)
-        end
+        local catSwept = sweepCategory(root, bagCounts, nowUnix, cutoff)
         if catSwept > 0 then
             totalSwept = totalSwept + catSwept
             touchedCats = touchedCats + 1
         end
     end
-    if totalSwept > 0 and KCM.State and KCM.State.debug then
-        KCM.Debug("GC", "swept %s entries across %s categories", totalSwept, touchedCats)
-    end
+    reportSweep(totalSwept, touchedCats)
     return totalSwept, touchedCats
 end
 

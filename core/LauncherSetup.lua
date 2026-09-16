@@ -136,8 +136,8 @@ KCM.Launcher = lib:New({
 
     -- RIGHT-click always, and left-click too on rung (c) -- which this addon is
     -- not on, but the library asks for it unconditionally and is right to.
-    -- Resolved at call time: settings/Panel.lua publishes KCM.Options long after
-    -- this file loads, and on a build with no panel at all the shim is absent
+    -- Resolved at call time: settings/OptionsShim.lua publishes KCM.Options.Open
+    -- long after this file loads, and on a build with no panel at all the shim is absent
     -- and the say() below is the honest answer.
     openSettings = function()
         if not (KCM.Options and KCM.Options.Open and KCM.Options.Open()) then

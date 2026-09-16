@@ -13,7 +13,9 @@ four are built from raw AceGUI widgets on a Blizzard canvas (`options-ui-§2`). 
 page registry, the widget makers, the two-column flow engine, the tab strip and the schema
 **composers** are all **LibKa0s-Options-1.0's**, wired in `settings/OptionsSetup.lua`;
 `settings/Panel.lua` owns registration and the shared header (title + atlas divider) built by
-`Helpers.CreatePanel`.
+`Helpers.CreatePanel`. The run-time `KCM.Options` surface — `Refresh`, `RequestRefresh`, `Open`, the
+refresh debounce and the options layer's three bus receivers — is `settings/OptionsShim.lua`'s, peeled
+off `Panel.lua` on 2026-09-16 at `layout-§1`'s 1500-line cap and loaded immediately after it.
 
 Each page module hands a **builder** to `RegisterTab`; `settings/Panel.lua` iterates the builders once
 `Blizzard_Settings` is ready, driven by its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap.
@@ -107,10 +109,12 @@ them. `tests/test_settingsui.lua` **measures** that gap on both arms rather than
 
 ### Combat gate
 
-Opening is refused in combat, not deferred (`options-ui-§2`). Both the `O.Open` slash path and the
-Blizzard AddOns-sidebar `OnShow` guard funnel through one helper so the refusal emits a single
-canonical gray notice through the shared secret-safe printer — never a protected category switch and
-never a silent no-op. A **tab click** is not gated: redrawing widgets inside an already-open panel was
+Opening is refused in combat, not deferred (`options-ui-§2`). The `O.Open` slash path
+(`settings/OptionsShim.lua`) reaches one helper — `sayCombatOpenBlocked`, defined in
+`settings/Panel.lua` and published on `KCM.Settings` for the shim — so the refusal emits a single
+canonical gray notice through the shared secret-safe printer, never a protected category switch and
+never a silent no-op. That is its only caller: the helper is published because the peel moved the
+caller into another file, not because it has two. A **tab click** is not gated: redrawing widgets inside an already-open panel was
 never a protected action (`options-ui-§13`).
 
 ## Page | Covers
@@ -502,8 +506,9 @@ not gaps:
   list and dropdown ([#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35)).
 - The **Add-by-ID line** takes free text, not a scalar. It is `LibKa0s-Options-1.0`'s `IdInput`
   (minor 16): an edit box, an **Add** button and a status line under both, drawn under the page's own
-  **Type** dropdown (Item / Spell). The widget never writes a path. `settings/Category.lua` hands it
-  a host kind whose `resolve` is `resolveAddByID`, which reads the dropdown at the moment of the add
+  **Type** dropdown (Item / Spell). The widget never writes a path. `settings/CategoryAddByID.lua` — the Macros page's
+  Add-by-ID line, peeled off `settings/Category.lua` on 2026-09-16 at `layout-§1`'s 1500-line cap —
+  hands it a host kind whose `resolve` is `resolveAddByID`, which reads the dropdown at the moment of the add
   and tries four things in order:
   1. digits (a bare number is unambiguous and must never reach a link matcher);
   2. the selected kind's own `fromLink` parser, so a **shift-clicked item or spell link** is

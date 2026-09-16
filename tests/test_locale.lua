@@ -251,7 +251,11 @@ local RESIDUE = {
     {"settings/Panel.lua", "expected a list", "VALIDATOR"},
     {"settings/Panel.lua", "expected a table", "VALIDATOR"},
     {"settings/Panel.lua", "settings tab '", "DIAGNOSTIC"},
-    {"settings/Panel.lua", "settings panel unavailable on this client; use /cm help.", "NOT YET ROUTED"},
+
+    -- settings/OptionsShim.lua — O.Open's last-resort line. It reads as
+    -- Panel.lua's, and was, until the KCM.Options shim was peeled off at the
+    -- 1500-line cap; the wording did not change with the file.
+    {"settings/OptionsShim.lua", "settings panel unavailable on this client; use /cm help.", "NOT YET ROUTED"},
 
     -- settings/General.lua
     {"settings/General.lua", "in combat — %s deferred until regen.", "FRAGMENT"},

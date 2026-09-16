@@ -12,10 +12,15 @@
 -- KCM.Settings.macroOrder (that page's strip).
 --
 -- Public surface preserved for the rest of the addon:
---   KCM.Options.Refresh / RequestRefresh / Open  (Core, Debug, SlashCommands,
---      Pipeline). Registration itself is driven by this file's own
---      PLAYER_LOGIN / ADDON_LOADED bootstrap, which calls registerPanel
---      directly; KCM.Settings.Register is the named alias for it.
+--   KCM.Options.Register  — the named alias for registerPanel, fired by this
+--      file's own PLAYER_LOGIN / ADDON_LOADED bootstrap at the foot.
+--      KCM.Options.Refresh / RequestRefresh / Open are the RUN-time half of
+--      that shim and are settings/OptionsShim.lua's, which the TOC loads
+--      immediately after this file: the schema-and-chrome half a page module
+--      calls while it BUILDS is this file, the shim the addon calls afterwards
+--      is that one. The cut is layout-§1's 1500-line cap; nothing else moved
+--      with it, and the two notices it still needs are published on
+--      KCM.Settings below rather than copied.
 --   KCM.Settings.Helpers + KCM.Settings.Schema  (SlashCommands /cm list/get/set)
 
 local _, NS = ...
@@ -85,21 +90,36 @@ KCM.Settings.macroOrder = KCM.Settings.macroOrder or {
 local Helpers = KCM.Settings.Helpers or {}
 KCM.Settings.Helpers = Helpers
 
+-- The shim TABLE is created here and filled in settings/OptionsShim.lua, which
+-- loads next. It is created on this side of the peel because Core, Debug and
+-- Pipeline all reach for KCM.Options, and a build that stopped after this file
+-- should answer them with an empty shim rather than a nil index. The `or {}`
+-- on both sides is what makes the order between the two harmless.
 KCM.Options = KCM.Options or {}
-local O = KCM.Options
 
 local PANEL_TITLE   = KCM.Settings.PANEL_TITLE
 -- PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
 -- separator all live in LibKa0s-Options-1.0's LAYOUT table now, carrying the
 -- same values they carried here.
 
--- Combat-lockdown open refusal (options-ui-§2): both the O.Open slash path and
--- the Blizzard AddOns-sidebar OnShow guard funnel through here so they emit the
--- one canonical gray notice via the shared secret-safe seam, never a protected
--- category-switch and never a silent no-op.
+-- Combat-lockdown open refusal (options-ui-§2): the O.Open slash path emits the
+-- one canonical gray notice through the shared secret-safe seam, never a
+-- protected category-switch and never a silent no-op.
+--
+-- ONE CALLER, IN ANOTHER FILE, which is the whole reason this is published on
+-- KCM.Settings rather than left a plain local: the 2026-09-16 peel moved O.Open
+-- to settings/OptionsShim.lua and the wording stayed here. Published rather than
+-- copied — a second copy is how one refusal starts reading differently from the
+-- other.
+--
+-- NOT the Defaults guard below. That one refuses a different act and says so in
+-- its own words ("Defaults is blocked until combat ends"), because what it is
+-- declining is a reset, not an open. A comment here claimed the two shared this
+-- wording and they never have.
 local function sayCombatOpenBlocked()
     KCM.Say("|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r")
 end
+KCM.Settings.SayCombatOpenBlocked = sayCombatOpenBlocked
 
 -- Vertical rhythm, matched to Ka0s KickCD's settings pages (the house
 -- reference). The one that was missing here is ROW_VSPACER: KickCD emits it
@@ -468,6 +488,12 @@ local function sayPanelUnavailable()
             "the list.")
     end
 end
+-- Published for settings/OptionsShim.lua's O.Open, which is the other seam that
+-- reaches for the panel on a degraded install. It takes THIS function rather
+-- than a copy because `announcedMissing` is the said-once flag: two copies would
+-- be two flags, and the notice would then be said once per seam instead of once
+-- per session.
+KCM.Settings.SayPanelUnavailable = sayPanelUnavailable
 
 -- ---------------------------------------------------------------------
 -- Tooltip helper
@@ -641,7 +667,7 @@ end
 -- `{ value =, text = }` array every caller of this function reads:
 --
 --   ordered array  { { value = "TOP", text = "Top" }, ... }        settings/MacroBar.lua's `enum`
---   key map        { ITEM = "Item", SPELL = "Spell" }              settings/Category.lua:86,
+--   key map        { ITEM = "Item", SPELL = "Spell" }              settings/CategoryAddByID.lua:61,
 --                                                                  settings/StatPriority.lua:74,
 --                                                                  and every composed row whose
 --                                                                  list is the library's, media
@@ -1109,13 +1135,10 @@ local function readAddOnNotes()
     return KCM.Meta("Notes") or ""
 end
 
-function Helpers.BuildAboutContent(ctx)
-    local scroll = ensureScroll(ctx)
-
-    -- Logo: SimpleGroup is full-width so AceGUI's List layout gives it a
-    -- known cell to live in; the texture inside is anchored TOPLEFT at
-    -- native pixel size so it renders left-aligned regardless of panel
-    -- width.
+-- The logo block. SimpleGroup is full-width so AceGUI's List layout gives it a
+-- known cell to live in; the texture inside is anchored TOPLEFT at native pixel
+-- size so it renders left-aligned regardless of panel width.
+local function aboutLogo(scroll)
     local logoGroup = AceGUI:Create("SimpleGroup")
     logoGroup:SetLayout(nil)
     logoGroup:SetFullWidth(true)
@@ -1126,9 +1149,13 @@ function Helpers.BuildAboutContent(ctx)
     logoTex:SetSize(LOGO_PIXELS, LOGO_PIXELS)
     logoTex:SetPoint("TOPLEFT", logoGroup.frame, "TOPLEFT", 0, 0)
     scroll:AddChild(logoGroup)
+end
 
-    addSpacer(scroll, 8)
-
+-- The addon's own Notes line, in the body font. Every `and` in the two font
+-- guards is a guard over an AceGUI internal: `label` is the widget's own
+-- fontstring and a widget skin is allowed not to have one, so a missing field
+-- leaves the default font rather than raising inside a settings page.
+local function aboutNotes(scroll)
     local desc = AceGUI:Create("Label")
     desc:SetFullWidth(true)
     desc:SetText(readAddOnNotes())
@@ -1139,9 +1166,17 @@ function Helpers.BuildAboutContent(ctx)
         desc.label:SetJustifyH("LEFT")
     end
     scroll:AddChild(desc)
+end
 
-    addSpacer(scroll, 12)
-
+-- The slash listing, heading and all.
+--
+-- Convergence #2 (LIBKA0S-13): one row formatter for the whole addon. These
+-- lines come back already rendered by lib.FormatRow, the same function
+-- /cm help's rows go through -- so the panel and the chat cannot drift
+-- apart again by an edit to one of them. The visible cost is the one every
+-- other adopter paid: the spacing either side of the em dash halves, the
+-- dash loses its white color span, and the description gains one.
+local function aboutSlashCommands(scroll)
     local heading = AceGUI:Create("Heading")
     heading:SetFullWidth(true)
     heading:SetHeight(Helpers.SECTION_HEADING_H)
@@ -1153,12 +1188,6 @@ function Helpers.BuildAboutContent(ctx)
 
     addSpacer(scroll, 6)
 
-    -- Convergence #2 (LIBKA0S-13): one row formatter for the whole addon. These
-    -- lines come back already rendered by lib.FormatRow, the same function
-    -- /cm help's rows go through -- so the panel and the chat cannot drift
-    -- apart again by an edit to one of them. The visible cost is the one every
-    -- other adopter paid: the spacing either side of the em dash halves, the
-    -- dash loses its white color span, and the description gains one.
     local rows = (KCM.SlashCommands and KCM.SlashCommands.GetLandingRows)
         and KCM.SlashCommands.GetLandingRows() or {}
     for _, line in ipairs(rows) do
@@ -1170,6 +1199,20 @@ function Helpers.BuildAboutContent(ctx)
         end
         scroll:AddChild(row)
     end
+end
+
+-- The parent canvas, in the order the page reads: logo, notes, slash listing.
+-- The three draw steps are named above rather than written out here, which is
+-- what keeps this function the page's TABLE OF CONTENTS -- and what took it off
+-- the complexity watch list: every guard below moved with the block it guards,
+-- and not one of them was dropped.
+function Helpers.BuildAboutContent(ctx)
+    local scroll = ensureScroll(ctx)
+    aboutLogo(scroll)
+    addSpacer(scroll, 8)
+    aboutNotes(scroll)
+    addSpacer(scroll, 12)
+    aboutSlashCommands(scroll)
 end
 
 -- ---------------------------------------------------------------------
@@ -1256,193 +1299,6 @@ local function registerPanel()
 end
 KCM.Settings.Register = registerPanel
 
--- ---------------------------------------------------------------------
--- KCM.Options shim — preserves the public API used by Core / Debug /
--- SlashCommands / Pipeline. Internals route through the new framework.
--- ---------------------------------------------------------------------
-
-function O.Refresh()
-    O._refreshPending = false
-    Helpers.RefreshAllPanels()
-end
-
--- Trailing-edge debounced refresh. Pipeline.Recompute fires this on every
--- recompute, which during a GET_ITEM_INFO_RECEIVED storm at first panel
--- open lands dozens of calls in quick succession. Debounce so the panel
--- rebuilds once at the tail of the burst, with a cap so the user always
--- sees the latest state within REFRESH_MAX_WAIT_SEC even if events never
--- fully stop.
---
--- ONE TIMER PER BURST, not one per call. The earlier shape scheduled a fresh
--- C_Timer.After with a fresh closure on every call and had all but the last
--- return immediately on a token compare, so the ~150-item first-open burst
--- (docs/data-flow.md's GIIR split) armed 150 timers and 150 closures to
--- perform one rebuild. tests/perf.lua's `refreshBurst` scenario measures it;
--- the count is the assertion there, and it went 150 -> 1.
---
--- The token is gone because the single armed timer is now what identifies the
--- live schedule: `_refreshArmed` is the whole of the mutual exclusion, and a
--- call that finds it set records its timestamp and returns. onRefreshDue then
--- does the work the discarded timers used to do — it wakes at the earliest
--- moment the burst COULD be over, finds it is not, and re-arms for the
--- remaining quiet time rather than being replaced by a successor.
---
--- REFRESH_MAX_WAIT_SEC is now a hard cap, which it was not. The old delay
--- arithmetic shrank the window as the burst aged but every arriving call still
--- invalidated the pending timer, so a storm whose calls landed closer together
--- than the 0.05s floor deferred the rebuild indefinitely — the cap bounded the
--- delay of one timer, never the wait as a whole. onRefreshDue refreshes
--- outright once REFRESH_MAX_WAIT_SEC has elapsed since the first call,
--- whatever the traffic, and armRefresh never schedules past that instant.
-local REFRESH_DEBOUNCE_SEC = 1.0
-local REFRESH_MAX_WAIT_SEC = 3.0
-
--- Forward-declared: onRefreshDue re-arms through it, and it schedules
--- onRefreshDue. One of the two has to be named before it exists.
-local armRefresh
-
--- Held while the Macros page's Add-by-ID box is in use (settings/Category.lua's
--- O.AddByIDBusy: it has the keys or holds text). This path's rebuilds are the
--- GET_ITEM_INFO_RECEIVED swaps of "?" for a name and the pipeline's repaints;
--- the line's own pre-warm and name lookup produce exactly those events, and a
--- rebuild releases the box, dropping a pending lookup and the typed text with
--- no word on the status line. So the request waits, asking again a quiet
--- second later as a fresh window (the cap restarts, or it would poll at the
--- 0.05s floor), and lands once the box is idle. A stalled timer is not held:
--- nothing could ever observe the box going idle through it.
-local function heldByEntry(now)
-    if not (O.AddByIDBusy and O.AddByIDBusy()) then return false end
-    O._refreshFirstAt, O._refreshLastAt = now, now
-    armRefresh(now, REFRESH_DEBOUNCE_SEC)
-    return true
-end
-
--- The one scheduled callback, hoisted to file scope so it is constructed once
--- at load rather than once per call: the old shape built one of these per
--- request and discarded 149 of every 150. Its state lives on O, where the
--- previous shape kept it too, so nothing here is per-schedule.
-local function onRefreshDue()
-    local armedAt, armedFor = O._refreshArmedAt, O._refreshArmedFor
-    O._refreshArmed, O._refreshArmedAt, O._refreshArmedFor = nil, nil, nil
-    if not O._refreshPending then
-        O._refreshFirstAt, O._refreshLastAt = nil, nil
-        return
-    end
-
-    local now    = GetTime()
-    local waited = now - (O._refreshFirstAt or now)
-    local quiet  = now - (O._refreshLastAt or now)
-
-    -- A timer that came back EARLY has not scheduled anything, and re-arming
-    -- against one recurses: each level asks for another window, gets it back
-    -- for free, and the only exits are a quiet second or the cap, neither of
-    -- which a clock that is not moving can ever reach. The stack goes first.
-    --
-    -- A live client cannot produce it. C_Timer.After lands on a LATER frame and
-    -- GetTime() is the frame clock, so a wake-up arrives a whole frame past the
-    -- delay even when the delay is zero. tests/wow_mock.lua's C_Timer.After runs
-    -- its callback INLINE, which is exactly a timer that ignored its delay, and
-    -- the guard belongs here rather than in the mock: a re-arm loop whose only
-    -- exit is a clock nobody in this function controls is worth refusing at the
-    -- source, and the condition is a property of the schedule rather than of the
-    -- harness. Refreshing is the honest answer when no quiet period can be
-    -- observed — the caller asked for a rebuild and gets one.
-    --
-    -- HALF the delay, not the whole of it, because the arithmetic does not
-    -- round-trip: a timer armed at 0.001 for 1.0 and woken at exactly 1.001
-    -- computes an elapsed 0.9999999999999999 in doubles, so a `< armedFor`
-    -- compare calls a punctual timer early. That is not hypothetical — it is
-    -- what this line did on its first run, and it turned the burst case red.
-    -- Half is clear of any rounding and still nowhere near a scheduler that ran
-    -- at all: the thing it must catch returns in zero time, not in 0.4 seconds.
-    local stalled = armedAt ~= nil and armedFor ~= nil
-        and (now - armedAt) < armedFor * 0.5
-
-    if not stalled and quiet < REFRESH_DEBOUNCE_SEC and waited < REFRESH_MAX_WAIT_SEC then
-        armRefresh(now, REFRESH_DEBOUNCE_SEC - quiet)
-        return
-    end
-
-    if not stalled and heldByEntry(now) then return end
-
-    O._refreshFirstAt, O._refreshLastAt = nil, nil
-    O.Refresh()
-end
-
--- `want` is the quiet the caller would like; what gets scheduled is whatever
--- fits before the cap, floored at 0.05s so a burst that arrives at the cap
--- still wakes rather than scheduling a zero-delay timer. What was ASKED for is
--- recorded alongside the instant, because onRefreshDue can only tell a real
--- wake-up from a timer that ignored its delay by comparing the two.
-armRefresh = function(now, want)
-    local room = REFRESH_MAX_WAIT_SEC - (now - (O._refreshFirstAt or now))
-    if want > room then want = math.max(0.05, room) end
-    O._refreshArmed, O._refreshArmedAt, O._refreshArmedFor = true, now, want
-    C_Timer.After(want, onRefreshDue)
-end
-
-function O.RequestRefresh()
-    local now = GetTime()
-    if not O._refreshFirstAt then O._refreshFirstAt = now end
-    O._refreshLastAt  = now
-    O._refreshPending = true
-    if O._refreshArmed then return end
-    armRefresh(now, REFRESH_DEBOUNCE_SEC)
-end
-
--- Expand the parent in the AddOns left tree so every sub-page is visible.
--- The expansion lives on the visual list-entry element, NOT on the
--- SettingsCategory data object — so we have to reach into
--- SettingsPanel:GetCategoryList():GetCategoryEntry(category). That path
--- is private Blizzard API and could shift across patches; the pcall
--- degrades gracefully to "panel opens but parent isn't unfolded" if any
--- intermediate call goes missing. Method-or-field fallback on
--- GetCategoryList covers minor API drift between client builds.
-local function expandMainCategory()
-    local main = KCM.Settings and KCM.Settings.main
-    if not (main and SettingsPanel) then return end
-    pcall(function()
-        local list = SettingsPanel.GetCategoryList
-            and SettingsPanel:GetCategoryList()
-            or SettingsPanel.CategoryList
-        if not (list and list.GetCategoryEntry) then return end
-        local entry = list:GetCategoryEntry(main)
-        if entry and entry.SetExpanded then
-            entry:SetExpanded(true)
-        end
-    end)
-end
-
-function O.Open()
-    -- There is no panel to open on a degraded install. Answering false is the
-    -- contract core/SlashCommands.lua already branches on, so `/cm config`
-    -- explains itself instead of silently doing nothing.
-    if libAbsent then
-        sayPanelUnavailable()
-        return false
-    end
-    -- Settings UI is protected during combat — opening will silently fail
-    -- mid-fight. Surface a chat notice instead so the user knows why.
-    if InCombatLockdown and InCombatLockdown() then
-        sayCombatOpenBlocked()
-        return false
-    end
-
-    local id = KCM._settingsCategoryID
-    if type(id) ~= "number" then id = tonumber(id) end
-    if Settings and Settings.OpenToCategory and id then
-        Settings.OpenToCategory(id)
-        -- Expand AFTER opening so SettingsPanel is realized and the
-        -- category-entry element exists in the visual tree. Re-expanding
-        -- on every open means a manual mid-session collapse doesn't stick
-        -- across the next /cm config.
-        expandMainCategory()
-        return true
-    end
-    KCM.Say("settings panel unavailable on this client; use /cm help.")
-    return false
-end
-
 -- Bootstrap: defer until Blizzard_Settings is ready.
 local bootstrap = CreateFrame("Frame")
 bootstrap:RegisterEvent("PLAYER_LOGIN")
@@ -1454,35 +1310,3 @@ bootstrap:SetScript("OnEvent", function(self, event, arg1)
         self:UnregisterAllEvents()
     end
 end)
-
--- ---------------------------------------------------------------------
--- Bus receivers (architecture-§4). The options layer owns the sole
--- options-layer subscriptions to PANEL_REFRESH (debounced rebuild of any open
--- page), PROFILE_CHANGED (an immediate one) and SPEC_CHANGED (retrack the Stat
--- Priority page to the new spec when the page is auto-tracking). Three
--- different messages on one target, so none can clobber another.
---
--- PROFILE_CHANGED is NOT left to the debounced PANEL_REFRESH the resync also
--- publishes. A page drawn from the outgoing profile holds controls that read and
--- write it -- a table a switch has just swapped out -- so for the second or more
--- the debounce waits, a click on one would write the wrong profile. The rebuild
--- is structural and scoped to the page on screen (every other one is marked
--- dirty), so it costs one page, once (options-ui-§11).
--- ---------------------------------------------------------------------
-if KCM.NewBusTarget and KCM.MSG then
-    local optionsTarget = KCM.NewBusTarget()
-    KCM._optionsBusTarget = optionsTarget
-    optionsTarget:RegisterMessage(KCM.MSG.PANEL_REFRESH, function()
-        if O.RequestRefresh then O.RequestRefresh()
-        elseif O.Refresh then O.Refresh() end
-    end)
-    optionsTarget:RegisterMessage(KCM.MSG.PROFILE_CHANGED, function()
-        if O.Refresh then O.Refresh() end
-    end)
-    optionsTarget:RegisterMessage(KCM.MSG.SPEC_CHANGED, function()
-        if O._viewedSpecAuto and KCM.SpecHelper and KCM.SpecHelper.GetCurrent then
-            local _, _, key = KCM.SpecHelper.GetCurrent()
-            if key then O._viewedSpec = key end
-        end
-    end)
-end

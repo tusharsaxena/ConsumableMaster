@@ -69,7 +69,7 @@ it or doing arithmetic on it is a hard error, so a gate over client data has to 
 `issecretvalue` is the client's own test. On a client that predates it, nothing is ever secret, which
 is why the fallback is `false` rather than `nil`: the caller is writing `if IsSecret(x) then` and a
 three-valued answer would only make it write the same `false` itself. Its single call site is
-`core/MacroDisplay.lua:127`, which bails out of the cooldown comparison rather than raising. The
+`core/MacroDisplay.lua:139`, which bails out of the cooldown comparison rather than raising. The
 behavior it protects against is cataloged in [midnight-quirks.md](./midnight-quirks.md).
 
 ## What is deliberately not here

@@ -197,19 +197,27 @@ local function seedIdRecord(kind, id, name, icon)
     if M.ids then M.ids.addIdRecord(kind, id, name, icon) end
 end
 
+-- classID/subClassID for GetItemInfoInstant — derived from subType when not
+-- given (real items keep them consistent); an explicit spec overrides, and a
+-- subType SUBTYPE_CLASS does not name falls back to 0/0 rather than to nil, so
+-- a caller that seeds a made-up subType still gets a record the parser reads.
+local function classIDsFor(spec)
+    local cls = SUBTYPE_CLASS[spec.subType]
+    return spec.classID or (cls and cls[1]) or 0,
+           spec.subClassID or (cls and cls[2]) or 0
+end
+
 function M.setItem(id, spec)
     spec = spec or {}
-    local cls = SUBTYPE_CLASS[spec.subType]
+    local classID, subClassID = classIDsFor(spec)
     M.items[id] = {
         name        = spec.name or ("Item " .. tostring(id)),
         subType     = spec.subType or "",
         quality     = spec.quality or 1,
         ilvl        = spec.ilvl or 1,
         tt          = spec.tt or {},
-        -- classID/subClassID for GetItemInfoInstant — derived from subType when
-        -- not given (real items keep them consistent); explicit spec overrides.
-        classID     = spec.classID or (cls and cls[1]) or 0,
-        subClassID  = spec.subClassID or (cls and cls[2]) or 0,
+        classID     = classID,
+        subClassID  = subClassID,
         -- pending marks a tooltip that has not hydrated yet — the pure-layer
         -- TooltipCache stub (tests/run.lua) surfaces this as
         -- IsUsableByPlayer's "pending" sentinel, so the load-race case is

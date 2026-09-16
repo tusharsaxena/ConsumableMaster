@@ -544,7 +544,7 @@ Tests: the profile-scoped migration gate in `core/Database.lua` and the `OnProfi
 
 ### 13a. Profiles page — every setting moves with the profile
 
-Tests: `settings/Profiles.lua`, the profile handler `KCM.RegisterProfileCallbacks` in `core/ConsumableMaster.lua`, the `PROFILE_CHANGED` receivers in `modules/MacroBar.lua` and `settings/Panel.lua`, and the fingerprint invalidation. `tests/test_profiles.lua` pins each against fakes. What only a live client proves is AceDBOptions' real controls driving the real AceDB, with the real bar and the real macros following.
+Tests: `settings/Profiles.lua`, the profile handler `KCM.RegisterProfileCallbacks` in `core/ConsumableMaster.lua`, the `PROFILE_CHANGED` receivers in `modules/MacroBar.lua` and `settings/OptionsShim.lua`, and the fingerprint invalidation. `tests/test_profiles.lua` pins each against fakes. What only a live client proves is AceDBOptions' real controls driving the real AceDB, with the real bar and the real macros following.
 
 **Work on a COPY of `WTF/Account/<ACCOUNT>/SavedVariables/ConsumableMaster.lua`.** Back it up before you start. You need two different foods in your bags for the macro checks.
 

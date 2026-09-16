@@ -226,6 +226,28 @@ end
 -- combat except ApplyAlpha (see the combat contract at the top).
 -- ---------------------------------------------------------------------------
 
+-- The backdrop table one config asks for. Every `~= false` here is a guard and
+-- means what it says: the rows default to ON, so a profile that has never been
+-- to the Macro Bar page (nil) draws the fill and the edge, and only an explicit
+-- false takes one away.
+--
+-- Border style comes from LibSharedMedia (same picker the buttons use), so the
+-- bar frame and its slots can be given a matching edge; a style the media
+-- library cannot answer for falls back to the plain texture rather than to no
+-- edge at all.
+local function backdropFor(c)
+    local edgeFile
+    if c.barBorder ~= false then
+        edgeFile = KCM.MacroBarButton and KCM.MacroBarButton.BorderTexture
+            and KCM.MacroBarButton.BorderTexture(c.barBorderStyle) or BACKDROP_TEX
+    end
+    return {
+        bgFile   = c.barBackdrop ~= false and BACKDROP_TEX or nil,
+        edgeFile = edgeFile,
+        edgeSize = math.max(1, tonumber(c.barBorderSize) or 4),
+    }
+end
+
 local function applyBackdrop()
     if not (bar and bar.SetBackdrop) then return end
     local c = cfg() or {}
@@ -233,18 +255,7 @@ local function applyBackdrop()
         bar:SetBackdrop(nil)
         return
     end
-    -- Border style comes from LibSharedMedia (same picker the buttons use), so
-    -- the bar frame and its slots can be given a matching edge.
-    local edgeFile
-    if c.barBorder ~= false then
-        edgeFile = KCM.MacroBarButton and KCM.MacroBarButton.BorderTexture
-            and KCM.MacroBarButton.BorderTexture(c.barBorderStyle) or BACKDROP_TEX
-    end
-    bar:SetBackdrop({
-        bgFile   = c.barBackdrop ~= false and BACKDROP_TEX or nil,
-        edgeFile = edgeFile,
-        edgeSize = math.max(1, tonumber(c.barBorderSize) or 4),
-    })
+    bar:SetBackdrop(backdropFor(c))
     if c.barBackdrop ~= false then
         bar:SetBackdropColor(color(c.barBackdropColor, c.useClassColorBarBackdrop,
             0, 0, 0, 0.5))
