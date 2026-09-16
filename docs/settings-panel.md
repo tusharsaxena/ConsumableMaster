@@ -197,7 +197,7 @@ a page-scoped **Defaults** button. This addon ships both, and only one of them w
 - **The General page's *Defaults* button did.** `settings/General.lua`'s `doResetGeneralPage` walks
   `masterRows` and rewrites every row carrying a `default`, and the composer emits this one with
   `default = true`. A player who had hidden the button got it back, at LibDBIcon's default angle,
-  from a click about the master controls. Fixed in 1.6.3.
+  from a click about the master controls. Carved out since `launcher-§3` stated the property.
 
 The exemption is one row flag, `neverReset`, stamped on the row by `settings/General.lua`'s
 `decorate` map and read through `settings/OptionsSetup.lua`'s `VetoedFromEveryReset` — the same file
