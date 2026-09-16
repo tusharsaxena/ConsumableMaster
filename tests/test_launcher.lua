@@ -229,17 +229,57 @@ test("Launcher: LibDBIcon writes into the same table the row reads", function(t)
     t.eq(H.Get("global.minimap.hide"), false, "the row reads the library's own write")
 end)
 
+-- ---------------------------------------------------------------------------
+-- Reset survival (launcher-§3)
+-- ---------------------------------------------------------------------------
+--
+-- A player's minimap-button choice is a PER-INSTALLATION DISPLAY PREFERENCE, in
+-- the same class as the position LibDBIcon keeps in the very same table, so it
+-- survives every reset the addon ships. That is a property of the setting rather
+-- than a consequence of where it is stored, which matters here because this addon
+-- runs TWO resets and the storage argument only ever covered one of them. Both
+-- are driven for real below and both assert on the STORE -- a case that asserted
+-- the row carries a veto flag would pass over a reset loop that never asked.
+
 test("Launcher: the global reset leaves a hidden button hidden", function(t)
     local KCM = loader.loadFullAddon()
     local H = KCM.Settings.Helpers
 
-    -- options-ui-§12's *Reset all settings* is a PROFILE reset by definition,
-    -- and launcher-§3 puts the table in the global store precisely so it cannot
-    -- reach past the settings it warned about into the frame furniture.
+    -- This reset never reached the row and still would not without the flag:
+    -- KCM.ResetAllToDefaults is the session sweep plus db:ResetProfile(), the
+    -- sweep writes only session-only rows and this one is stored, and ResetProfile
+    -- empties db.profile while the table lives in db.global.
     H.SetAndRefresh("global.minimap.hide", false)
     KCM.ResetAllToDefaults("test")
     t.eq(KCM.db.global.minimap.hide, true, "the button the player hid is still hidden")
     t.eq(KCM.db.profile.enabled, true, "while the profile did come back to defaults")
+end)
+
+-- red under: dropping the row's `neverReset` stamp (settings/General.lua's
+-- decorate map), or doResetGeneralPage walking `masterRows` on `default ~= nil`
+-- alone, as it did through 1.6.2.
+test("Launcher: the General page's Defaults button leaves a hidden button hidden", function(t)
+    local KCM = loader.loadFullAddon()
+    local H = KCM.Settings.Helpers
+    local icons = select(2, libs())
+
+    -- THE RESET THE STORAGE ARGUMENT NEVER COVERED. The page's Defaults button
+    -- walks every Master-controls row carrying a `default`, and the composer emits
+    -- the Minimap button row with `default = true` -- so a press un-hid a button
+    -- the player had deliberately hidden, profile boundary or no profile boundary.
+    KCM.Settings.builders["general"]({})
+    local defaults = H.instance.__panelFor("general").panel.defaultsOnClick
+
+    H.SetAndRefresh("global.minimap.hide", false)
+    KCM.db.profile.scale = 1.75          -- a neighbor the press MUST reach
+    defaults()
+
+    t.eq(KCM.db.global.minimap.hide, true, "the button the player hid is still hidden")
+    t.falsy(icons.__buttons[FOLDER].shown, "and LibDBIcon was never told to show it")
+    t.eq(H.Get("global.minimap.hide"), false, "the checkbox still reads unchecked")
+    -- The press has to have RUN, or nothing above it means anything: a Defaults
+    -- button that did no work at all would satisfy every line before this one.
+    t.eq(KCM.db.profile.scale, 1, "while the rest of the page did come back to defaults")
 end)
 
 -- ---------------------------------------------------------------------------

@@ -171,7 +171,7 @@ Three of the rows are **new addon-wide settings** and three moved:
 
 ### The Minimap button row — shown says one thing, the store says the other
 
-The row is `global.minimap.hide`, and three things about it are deliberate.
+The row is `global.minimap.hide`, and four things about it are deliberate.
 
 **Its store is LibDBIcon's OWN table, not a key beside it.** `db.global.minimap` is the table this
 addon hands straight to `LibDBIcon:Register`, and `hide` is the boolean LibDBIcon writes itself when
@@ -181,19 +181,38 @@ and the day they disagree the button and the checkbox disagree (anti-pattern #81
 
 **Its scope is GLOBAL, and that is the decision rather than where it landed.** A minimap button
 belongs to the installation, not to a profile. Switching profiles must not move the player's
-buttons, and *Reset all settings* — a **profile** reset by definition (`options-ui-§12`) — must not
-un-hide a button they deliberately hid. `settings/OptionsSetup.lua`'s `vetoedFromResetAll` keys the
-global reset's session sweep on `row.sessionOnly`, and this row is **stored**, not session, so the
-sweep skips it and `db:ResetProfile()` cannot reach `db.global`. Both halves are pinned by cases in
-`tests/test_launcher.lua`.
+buttons, and the global store is where LibDBIcon's own `minimapPos` has to live for exactly the same
+reason — which is why the two are one table.
+
+**It SURVIVES EVERY RESET, and that is a property of the setting rather than a consequence of the
+store.** Whether the button is shown is a per-installation display preference, in the same class as
+the position the player dragged it to, which sits in the very same table and which no reset touches.
+`launcher-§3` therefore requires it to survive **both** `options-ui-§12`'s *Reset all settings* **and**
+a page-scoped **Defaults** button. This addon ships both, and only one of them was already safe:
+
+- ***Reset all settings*** never reached it. `KCM.ResetAllToDefaults` is the session sweep plus
+  `db:ResetProfile()`; `settings/OptionsSetup.lua`'s `vetoedFromResetAll` keys the sweep on
+  `row.sessionOnly` and this row is **stored**, not session, so the sweep skips it — and
+  `db:ResetProfile()` cannot reach `db.global` at all.
+- **The General page's *Defaults* button did.** `settings/General.lua`'s `doResetGeneralPage` walks
+  `masterRows` and rewrites every row carrying a `default`, and the composer emits this one with
+  `default = true`. A player who had hidden the button got it back, at LibDBIcon's default angle,
+  from a click about the master controls. Fixed in 1.6.3.
+
+The exemption is one row flag, `neverReset`, stamped on the row by `settings/General.lua`'s
+`decorate` map and read through `settings/OptionsSetup.lua`'s `VetoedFromEveryReset` — the same file
+that names the global reset's veto, so there is one register rather than a second list per page.
+`vetoedFromResetAll` reads it first, so both doors ask one question. What it deliberately does not
+cover is `/cm reset global.minimap.hide`: that is the player naming the row out loud, which is the
+checkbox by another door. Every arm is pinned by cases in `tests/test_launcher.lua` that run the
+real reset and assert on the store.
 
 **Its label says SHOWN and its stored key says HIDDEN, so the row inverts.** That inversion lives in
 the addon's single write seam and nowhere else — `settings/Panel.lua`'s `GLOBAL_PATHS`, a second
 diversion table beside `SESSION_PATHS` (a second table rather than a wider one because the two
 differ exactly where the reset sweep reads them). The `set` writes `hide = not value` and then calls
 `KCM.Launcher:SetShown(value)`, so the button follows the checkbox immediately rather than at the
-next reload. The page's own **Defaults** button does reset this row, which is the page-scoped act it
-has always been and is not the profile reset the paragraph above is about.
+next reload.
 
 The button itself, and the broker plugin that is the same object, are
 [ARCHITECTURE.md → LibKa0s adoption](./ARCHITECTURE.md#libka0s-adoption)'s `Launcher-1.0` row. Its

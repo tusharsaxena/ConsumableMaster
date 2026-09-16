@@ -73,6 +73,48 @@ function Helpers.ColorDecode(c)
 end
 
 -- ---------------------------------------------------------------------
+-- The one row NO reset may reach
+-- ---------------------------------------------------------------------
+--
+-- launcher-§3 states this as a PROPERTY of the setting rather than deriving it
+-- from where the setting is stored. Whether the minimap button is SHOWN is a
+-- per-installation display preference, in the same class as the POSITION the
+-- player dragged it to -- LibDBIcon keeps both in the one `db.global.minimap`
+-- table, and nobody has ever wanted *reset my settings* to mean *and put the
+-- button back on my minimap, at the default angle*. So it survives BOTH
+-- options-ui-§12's *Reset all settings* AND a page-scoped **Defaults** button.
+--
+-- WHAT WAS ACTUALLY TRUE IN THIS ADDON BEFORE THE FLAG, because the argument the
+-- rule replaced held for one of the two resets and not for the other:
+--
+--   * *Reset all settings* NEVER reached the row, and would not reach it without
+--     this flag either. KCM.ResetAllToDefaults is `restoreSessionRows()` then
+--     `db:ResetProfile()` (core/ConsumableMaster.lua). The sweep writes only the
+--     rows `vetoedFromResetAll` lets through -- the session-only ones -- and the
+--     minimap row is STORED, not session; ResetProfile then empties db.profile,
+--     and this table lives in db.global.
+--   * The GENERAL PAGE'S **Defaults** BUTTON DID. settings/General.lua's
+--     doResetGeneralPage walks `masterRows` and rewrites every row carrying a
+--     `default`, and the composer emits the Minimap button row with
+--     `default = true` (libs/LibKa0s/OptionsCompose.lua). A player who had hidden
+--     the button got it back, at LibDBIcon's own default angle, from a click that
+--     said nothing about the minimap.
+--
+-- A ROW FLAG rather than a path literal here: the path is declared once, as
+-- settings/General.lua's `minimapPath`, and a second copy of that string in this
+-- file would be two files having to keep agreeing about it. General.lua stamps
+-- `neverReset` on the row through the same `decorate` map that stamps its
+-- onChange handlers.
+--
+-- WHAT THIS DELIBERATELY DOES NOT COVER is `/cm reset global.minimap.hide`. That
+-- is the player naming the one row out loud, which is the checkbox by another
+-- door -- not a reset that reached past the settings it warned about.
+local function vetoedFromEveryReset(row)
+    return row.neverReset == true
+end
+KCM.Settings.VetoedFromEveryReset = vetoedFromEveryReset
+
+-- ---------------------------------------------------------------------
 -- The one rule about what a global reset must not touch
 -- ---------------------------------------------------------------------
 --
@@ -91,6 +133,11 @@ end
 -- carry it. Two literal copies of this rule is one added page away from a reset
 -- that eats profiles.
 local function vetoedFromResetAll(row)
+    -- First, so the two vetoes are one register read from either door. It is
+    -- already implied here -- the minimap row is not session-only, so the line
+    -- below refuses it anyway -- and it is stated all the same, because the rule
+    -- it carries must not depend on that row's storage class staying what it is.
+    if vetoedFromEveryReset(row) then return true end
     if row.panel == "profiles" then return true end
     return not row.sessionOnly
 end

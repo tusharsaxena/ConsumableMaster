@@ -44,6 +44,17 @@ local H      = KCM.Settings.Helpers
 local PROFILE_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile) or {}
 local BAR_DEFAULTS     = PROFILE_DEFAULTS.macroBar or {}
 
+-- The minimap button's stored path, named ONCE. It is spelled in three places
+-- otherwise — the composer spec below, the `neverReset` stamp beside it and the
+-- page reset's carve-out — and settings/OptionsSetup.lua deliberately does not
+-- hold a fourth copy (its veto reads the row's flag, not its path).
+local MINIMAP_PATH = "global.minimap.hide"
+
+-- The row no reset may reach (launcher-§3). Resolved at load, which is safe:
+-- settings/OptionsSetup.lua publishes it above its library branch and the TOC
+-- loads that file immediately before settings/Panel.lua and this one.
+local neverReset = KCM.Settings.VetoedFromEveryReset
+
 local function inCombatNotice(label)
     KCM.Say("in combat — %s deferred until regen.", label)
 end
@@ -205,7 +216,7 @@ local masterRows, masterTail = H.MasterControls{
     -- composer so the two pair as `[Minimap button] [Test mode]`; this addon has
     -- no test-mode row (its preview switch is Lock frame, the options-ui-§15
     -- exemption), so the minimap row opens its own line here.
-    minimapPath = "global.minimap.hide",
+    minimapPath = MINIMAP_PATH,
     keys      = { locked = "macroBar.locked" },
     defaults  = {
         enabled    = PROFILE_DEFAULTS.enabled,
@@ -261,6 +272,15 @@ H.RegisterRows(masterRows, "general", "general", {
             end
         end,
     },
+    -- THE ONE ROW NO RESET MAY REACH (launcher-§3). The composer emits it with
+    -- `default = true` — SHOWN — because a fresh install shows the button, and
+    -- that default is what `/cm reset global.minimap.hide` restores when the
+    -- player asks for it by name. What the flag stops is a RESET reaching it:
+    -- the Defaults button below walks every row on this page carrying a default,
+    -- and without the stamp a player who had hidden the button got it back at
+    -- LibDBIcon's default angle from a click about the master controls. The
+    -- predicate is settings/OptionsSetup.lua's, beside the global reset's veto.
+    [MINIMAP_PATH] = { neverReset = true },
 })
 
 -- Top-right Defaults button (options-ui-§5) resets THIS PAGE, and its blast
@@ -271,10 +291,19 @@ H.RegisterRows(masterRows, "general", "general", {
 -- A bulk reset: one `[Set] reset General page: N rows` line, and each row's own
 -- onChange still runs (debug-logging-§10). The bracket closes BEFORE the console
 -- is disarmed below, so the line is not lost to it.
+--
+-- ONE ROW IS EXEMPT and it is the minimap button's (launcher-§3). Through 1.6.2
+-- this loop wrote it like any other: the composed row carries `default = true`,
+-- so a Defaults press un-hid a button the player had deliberately hidden and put
+-- it back at LibDBIcon's default angle. The exemption is the row's `neverReset`
+-- stamp, read through the same predicate settings/OptionsSetup.lua's global-reset
+-- veto reads, so there is one register rather than a second list here.
 local function doResetGeneralPage()
     H.Bulk("reset", "General page", function()
         for _, row in ipairs(masterRows) do
-            if row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+            if row.default ~= nil and not neverReset(row) then
+                H.SetAndRefresh(row.path, row.default)
+            end
         end
     end)
     -- The console back to its LOGIN state, which is more than the row's default:

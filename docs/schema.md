@@ -4,7 +4,7 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ## The AceDB tree (account-wide global, plus one tree per profile)
 
-`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). There are **two** `schemaVersion` stamps, one per scope, because a migration step belongs to whichever scope it writes: the account-wide **global** stamp is the marker `savedvariables-§1` asks for, and each profile carries its own, which is what gates the steps that write that profile. Only the global one is a shipped default — a profile's is written by `RunMigrations` the first time it walks that profile. Everything else is in the profile bar one — the minimap button's visibility, which `launcher-§3` fixes in the **global** store, and which is therefore the one setting a profile switch and the profile reset both leave alone — so the Profiles page ([profiles.md](./profiles.md)) switches, copies and resets every other setting the addon has:
+`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). There are **two** `schemaVersion` stamps, one per scope, because a migration step belongs to whichever scope it writes: the account-wide **global** stamp is the marker `savedvariables-§1` asks for, and each profile carries its own, which is what gates the steps that write that profile. Only the global one is a shipped default — a profile's is written by `RunMigrations` the first time it walks that profile. Everything else is in the profile bar one — the minimap button's visibility, which `launcher-§3` fixes in the **global** store and requires to survive **every** reset the addon ships — so a profile switch, *Reset all settings* and the General page's *Defaults* button all leave it alone (see [settings-panel.md](./settings-panel.md#the-minimap-button-row--shown-says-one-thing-the-store-says-the-other)) — so the Profiles page ([profiles.md](./profiles.md)) switches, copies and resets every other setting the addon has:
 
 ```
 db.global
@@ -12,9 +12,11 @@ db.global
 └── minimap                         -- LibDBIcon-1.0's OWN table, handed straight to
     ├── hide             boolean    -- :Register (launcher-§3). GLOBAL and not profile:
     │                                -- a minimap button belongs to the INSTALLATION, so a
-    │                                -- profile switch must not move it, and the profile
-    │                                -- reset behind *Reset all settings* must not un-hide
-    │                                -- it. The `Minimap button` row says SHOWN and this
+    │                                -- profile switch must not move it, and NO reset may
+    │                                -- un-hide it -- not *Reset all settings*, not the
+    │                                -- General page's Defaults button, which is carved
+    │                                -- out by the row's `neverReset` stamp
+    │                                -- (settings/General.lua). The row says SHOWN and this
     │                                -- key says HIDDEN; settings/Panel.lua's GLOBAL_PATHS
     │                                -- inverts at the single write seam.
     └── minimapPos       number     -- the angle the player dragged the button to.
