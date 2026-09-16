@@ -320,6 +320,23 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
+### test_launcher.lua (14)
+
+- Launcher: KCM:OnInitialize registers ONE object under the folder name
+- Launcher: the object is a launcher, wearing this addon's own logo
+- Launcher: the icon file the object names is on disk, at the TOC's path
+- Launcher: Register is idempotent — a second call builds no second button
+- Launcher: left-click toggles the macro bar's lock through the schema seam
+- Launcher: the left click holds no state — it reads the profile each time
+- Launcher: right-click opens the settings panel, and never the rung
+- Launcher: the Minimap button row stores LibDBIcon's own key, globally
+- Launcher: the row's get/set invert, and the button follows the checkbox
+- Launcher: LibDBIcon writes into the same table the row reads
+- Launcher: the global reset leaves a hidden button hidden
+- Launcher: a host with neither broker library does not raise
+- Launcher: the write seam owns the inversion, not the library
+- Launcher: no LibKa0s means no launcher at all, and no stub
+
 ### test_layout_cap.lua (3)
 
 - layoutcap: every authored file over 1500 lines is named in the ARCHITECTURE.md census
@@ -1081,6 +1098,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
+| test_launcher.lua | 14 |
 | test_layout_cap.lua | 3 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
@@ -1111,4 +1129,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **901** |
+| **Total** | **915** |

@@ -29,6 +29,26 @@ KCM.dbDefaults = {
         -- idempotent, so a genuinely fresh account passing through them is a
         -- no-op that just stamps the current version.
         schemaVersion = 1,
+        -- LibDBIcon-1.0's OWN table, and the whole of the minimap button's
+        -- stored state (launcher-§3). `hide` is the library's key -- it writes
+        -- it when the player uses the button's own menu, and it writes
+        -- `minimapPos` in beside it when they drag the button -- so there is
+        -- deliberately no second `show` key alongside it to disagree with.
+        --
+        -- GLOBAL, not profile, and that is the decision rather than where it
+        -- landed. A minimap button belongs to the INSTALLATION: switching
+        -- profiles must not move the player's buttons, and options-ui-§12's
+        -- *Reset all settings* is a profile reset by definition, so a
+        -- profile-scoped `hide` would come back false and a button the player
+        -- deliberately hid would reappear.
+        --
+        -- Declaring it here is what MATERIALIZES the table, which is the only
+        -- seeding it gets: a whole-section write over a path a schema row
+        -- addresses would be architecture-§5's business, and the row addresses
+        -- `global.minimap.hide`.
+        minimap = {
+            hide = false,     -- shipped SHOWN; the Master controls row says shown and inverts
+        },
     },
     profile = {
         enabled = true,    -- master enable; when false the recompute pipeline early-returns

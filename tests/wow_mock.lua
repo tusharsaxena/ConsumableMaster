@@ -570,6 +570,45 @@ function M.install(NS)
         -- its Opens, which is how a case tells a page that redrew from one that did
         -- not. Rebuilt per install, like every other entry in this table, so a count
         -- never carries from one case into the next.
+        -- The launcher's two libraries (launcher-§1). Both are vendored under
+        -- libs/ for real, but neither is a LibKa0s file, so the harness's
+        -- LibKa0s.xml-derived load list cannot reach them and without these the
+        -- suite would only ever measure LibKa0s-Launcher-1.0's own
+        -- no-LibDataBroker branch (testing-§9's "green, and testing nothing").
+        --
+        -- Modeled on the surfaces the library actually calls and nothing more:
+        -- NewDataObject / GetDataObjectByName on the broker, Register / Show /
+        -- Hide on the icon. NewDataObject answers NIL for a name already taken,
+        -- which is the real library's behavior and the branch the launcher's
+        -- "take the existing object" fallback exists for.
+        --
+        -- `__shown` is NOT a second copy of `hide`: it records what LibDBIcon was
+        -- TOLD, so a case can tell a button that followed the checkbox from one
+        -- that merely had its stored key rewritten.
+        ["LibDataBroker-1.1"] = {
+            __objects = {},
+            NewDataObject = function(self, name, tbl)
+                if self.__objects[name] then return nil end
+                self.__objects[name] = tbl
+                return tbl
+            end,
+            GetDataObjectByName = function(self, name) return self.__objects[name] end,
+        },
+        ["LibDBIcon-1.0"] = {
+            __buttons = {},
+            Register = function(self, name, obj, db)
+                self.__buttons[name] = { object = obj, db = db, shown = not (db and db.hide) }
+            end,
+            Show = function(self, name)
+                local b = self.__buttons[name]
+                if b then b.shown = true end
+            end,
+            Hide = function(self, name)
+                local b = self.__buttons[name]
+                if b then b.shown = false end
+            end,
+        },
+
         ["AceDBOptions-3.0"] = {
             GetOptionsTable = function(_, db)
                 return { type = "group", name = "Profiles", args = {}, __db = db }

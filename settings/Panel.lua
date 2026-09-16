@@ -186,9 +186,71 @@ local SESSION_PATHS = {
 }
 Helpers.SESSION_PATHS = SESSION_PATHS
 
+-- ---------------------------------------------------------------------
+-- Global-store paths -- STORED settings whose home is db.global, not db.profile
+-- ---------------------------------------------------------------------
+--
+-- One entry today, and it is the minimap button's visibility. Unlike
+-- SESSION_PATHS above these rows ARE persisted -- they simply persist somewhere
+-- Helpers.Resolve cannot reach, because Resolve's contract is "a db.profile
+-- parent and a key" and launcher-§3 fixes this table in the GLOBAL store: a
+-- minimap button belongs to the installation, so a profile switch must not move
+-- the player's buttons and options-ui-§12's *Reset all settings* -- a profile
+-- reset by definition -- must not un-hide one they deliberately hid.
+--
+-- A SECOND TABLE RATHER THAN A WIDER SESSION_PATHS, because the two differ in
+-- the one place it matters: settings/OptionsSetup.lua's `vetoedFromResetAll`
+-- keys the global reset's sweep on `row.sessionOnly`, and this row is not
+-- session-only. Folding it in beside the console would have been one table with
+-- two meanings, and the reset would be reading the wrong one.
+--
+-- THE INVERSION LIVES HERE, in the single write seam, exactly as launcher-§3
+-- says it should. The row's label says SHOWN; LibDBIcon's key says HIDDEN. That
+-- is the whole cost of storing the library's own key rather than a second
+-- boolean beside it -- LibDBIcon writes `hide` itself when the player uses the
+-- button's own menu, and a parallel `show` would be free to disagree with it
+-- (anti-pattern #81). The `set` calls the launcher afterwards so the button
+-- follows the checkbox immediately rather than at the next reload; the launcher
+-- writes `hide` a second time with the same value, which is deliberate on its
+-- side so a caller reaching it from elsewhere need not know the inversion.
+--
+-- The path is `global.minimap.hide` VERBATIM and unprefixed, for the same
+-- reason `state.debugConsole` is: the library's MasterControls composer takes
+-- `minimapPath` as given because the table lives outside the block's profile
+-- prefix.
+local function minimapTable()
+    return KCM.db and KCM.db.global and KCM.db.global.minimap
+end
+
+local GLOBAL_PATHS = {
+    ["global.minimap.hide"] = {
+        get = function()
+            local t = minimapTable()
+            -- Shown is the answer when there is no table yet: that is what a
+            -- fresh profile ships as, and it is what the button does.
+            return not (t and t.hide)
+        end,
+        set = function(v)
+            local t = minimapTable()
+            if not t then return false end
+            t.hide = not v
+            if KCM.Launcher then KCM.Launcher:SetShown(v and true or false) end
+            return true
+        end,
+    },
+}
+Helpers.GLOBAL_PATHS = GLOBAL_PATHS
+
+-- The one lookup both diversions answer to. Every seam below asks this rather
+-- than indexing either table, so a third store can only ever be added in one
+-- place.
+local function divertedPath(path)
+    return SESSION_PATHS[path] or GLOBAL_PATHS[path]
+end
+
 function Helpers.Get(path)
-    local session = SESSION_PATHS[path]
-    if session then return session.get() end
+    local diverted = divertedPath(path)
+    if diverted then return diverted.get() end
     local parent, key = Helpers.Resolve(path)
     if not parent then return nil end
     return parent[key]
@@ -237,13 +299,13 @@ local function sameValue(a, b)
 end
 
 function Helpers.Set(path, value)
-    local session = SESSION_PATHS[path]
+    local diverted = divertedPath(path)
     -- Read BEFORE the write, and only inside a bracket: nothing else needs it.
     local before
     if bulk then before = Helpers.Get(path) end
     local ok
-    if session then
-        ok = session.set(value) and true or false
+    if diverted then
+        ok = diverted.set(value) and true or false
     else
         local parent, key = Helpers.Resolve(path)
         if not parent then return false end
@@ -962,7 +1024,7 @@ function Helpers.SetManyAndRefresh(entries, opts)
                   .. tostring(reason or "value must not be nil"))
             return false
         end
-        if not (SESSION_PATHS[def.path] or Helpers.Resolve(def.path)) then return false end
+        if not (divertedPath(def.path) or Helpers.Resolve(def.path)) then return false end
         plan[i] = { def = def, value = coerced }
     end
     local function apply()

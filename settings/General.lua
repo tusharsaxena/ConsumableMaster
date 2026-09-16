@@ -195,6 +195,17 @@ local masterRows, masterTail = H.MasterControls{
     -- and lives outside the profile. settings/Panel.lua's SESSION_PATHS is what
     -- resolves it.
     debugConsolePath = "state.debugConsole",
+    -- Verbatim and unprefixed for the same reason, and for a different store:
+    -- the minimap button's table is LibDBIcon's own and launcher-§3 fixes it in
+    -- the GLOBAL store, outside this block's profile prefix. settings/Panel.lua's
+    -- GLOBAL_PATHS is what resolves it, and it is where the row's SHOWN/HIDDEN
+    -- inversion lives -- the row's label says shown, the stored key says hidden.
+    --
+    -- Emitting this row also moves *Test mode* off `startsLine` inside the
+    -- composer so the two pair as `[Minimap button] [Test mode]`; this addon has
+    -- no test-mode row (its preview switch is Lock frame, the options-ui-§15
+    -- exemption), so the minimap row opens its own line here.
+    minimapPath = "global.minimap.hide",
     keys      = { locked = "macroBar.locked" },
     defaults  = {
         enabled    = PROFILE_DEFAULTS.enabled,

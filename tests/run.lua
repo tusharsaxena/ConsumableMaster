@@ -443,6 +443,7 @@ local SUITES = {
     "test_harness",
     "test_id",
     "test_libka0s",
+    "test_launcher",
     "test_layout_cap",
     "test_lintconfig",
     "test_load",

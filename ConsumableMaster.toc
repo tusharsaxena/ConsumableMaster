@@ -3,13 +3,13 @@
 ## Notes: Auto-managed account-wide consumable macros.
 ## Author: add1kted2ka0s
 ## Version: 1.6.2
-## IconTexture: Interface\Icons\inv_cooking_100_roastduck
+## IconTexture: Interface\AddOns\ConsumableMaster\media\logos\consumablemaster.logo.128.tga
 # ConsumableMasterPerfDB is the perf harness's own ring of captures, kept
 # separate from the AceDB tree on purpose: LibKa0s-Perf writes the global
 # directly, so folding it into ConsumableMasterDB would stamp its keys onto
 # AceDB's root and trip AceDB's own discard branch on the next load.
 ## SavedVariables: ConsumableMasterDB, ConsumableMasterPerfDB
-## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0
 ## DefaultState: enabled
 ## Category-enUS: Combat
 ## X-License: MIT
@@ -37,6 +37,16 @@ libs\AceConfig-3.0\AceConfig-3.0.xml
 # LSM30_Border / LSM30_Font dropdowns (border-style picker on the Macro Bar
 # page). Depends on AceGUI + LibSharedMedia, so it loads after both.
 libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
+# The launcher's two libraries (launcher-§1). LibDataBroker-1.1 first and that
+# is load-bearing rather than tidy: LibDBIcon-1.0 resolves it with a NON-silent
+# LibStub at file load and calls error() when it answers nil, so the reverse
+# order takes the whole addon out. Both sit after CallbackHandler-1.0, which
+# LibDBIcon builds its callback registry from, and before LibKa0s: the launcher
+# major resolves both with LibStub(..., true) at Register time rather than at
+# load, so it would survive the other order -- but nothing is gained by making
+# the block depend on that.
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 # LibKa0s — the Ka0s-owned shared modules (Core, DebugLog, Slash, Options,
 # Perf). Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
 # through its own packaged XML, which is the file list. Depends on LibStub
@@ -87,6 +97,13 @@ core\EnvSetup.lua
 # The LibKa0s-Item-1.0 seam. Anywhere after the libs block and before
 # settings\Category.lua, which is its only caller.
 core\ItemSetup.lua
+# LauncherSetup builds the minimap button and the broker plugin from
+# LibKa0s-Launcher-1.0 as ONE object (launcher-§1). Position is
+# conventional -- it resolves the library at load and nothing else: the db,
+# KCM.Options.Open, KCM.Say and the macro bar's lock seam are all reached
+# through thunks at Register time, and Register itself runs from
+# KCM:OnInitialize, after AceDB has built db.global.minimap.
+core\LauncherSetup.lua
 core\State.lua
 # DebugLogSetup builds the on-screen console from LibKa0s-DebugLog-1.0
 # (debug-logging-§1 names the file and the folder). It sits after

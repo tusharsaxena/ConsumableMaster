@@ -45,6 +45,17 @@ function KCM:OnInitialize()
     -- the resync they run -- and reached as a FIELD so the call resolves at run
     -- time rather than needing the local in lexical scope up here.
     if KCM.RegisterProfileCallbacks then KCM.RegisterProfileCallbacks(self) end
+
+    -- The launcher, AFTER the db exists and the migrations have run
+    -- (launcher-§1). core/LauncherSetup.lua hands the library a THUNK for
+    -- `db.global.minimap` precisely so this is the moment the table is read:
+    -- AceDB built it three lines above and a table captured at file load would
+    -- be one this one replaced. Idempotent by the library's own contract, so a
+    -- second call from a login handler cannot draw a second button.
+    --
+    -- Nil on a degraded install -- core/LauncherSetup.lua publishes no stub,
+    -- exactly as core/PerfSetup.lua publishes none.
+    if KCM.Launcher then KCM.Launcher:Register() end
     self:RegisterChatCommand("cm", "OnSlashCommand")
     self:RegisterChatCommand("consumablemaster", "OnSlashCommand")
     -- Panel registration is driven by the PLAYER_LOGIN / ADDON_LOADED

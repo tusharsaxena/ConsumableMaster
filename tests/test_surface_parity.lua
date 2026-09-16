@@ -260,7 +260,7 @@ local OPTIONS_SEAM = {
     "BuildAboutContent", "Button", "ButtonPair", "CLASS_COLOR_NOTE",
     "ColorDecode", "ColorPair",
     "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
-    "FontGroup", "Get", "Grid", "Label", "MasterControls",
+    "FontGroup", "GLOBAL_PATHS", "Get", "Grid", "Label", "MasterControls",
     "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
     "RenderField", "RenderRows", "ResetScroll", "Resolve", "SECTION_HEADING_H",
     "SESSION_PATHS", "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "TabStrip",

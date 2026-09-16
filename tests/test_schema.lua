@@ -598,13 +598,23 @@ end)
 -- `macroBar.locked` is `Lock frame`. The setting MOVED tabs and did not move
 -- storage, which is the whole of "move, do not duplicate" — the Macro Bar page
 -- must not also declare it, and the next case proves it does not.
+--
+-- `global.minimap.hide` is `Minimap button`, and it is LAST because that is the
+-- canonical position: the composer emits it on the fourth line of the set, below
+-- Lock frame / Debug console, as column 1 of `[Minimap button] [Test mode]`. This
+-- addon declares no test mode — its preview switch is Lock frame, the
+-- options-ui-§15 exemption — so the row opens a line of its own. It is the one
+-- row in the block whose store is NOT the profile: launcher-§3 fixes LibDBIcon's
+-- own table in db.global, and it is NOT sessionOnly either, which is what keeps
+-- the global reset off it.
 local MASTER_ROWS = {
-    { "enabled",            "bool"   },
-    { "visibility",         "string" },
-    { "scale",              "number" },
-    { "alpha",              "number" },
-    { "macroBar.locked",    "bool"   },
-    { "state.debugConsole", "bool"   },
+    { "enabled",             "bool"   },
+    { "visibility",          "string" },
+    { "scale",               "number" },
+    { "alpha",               "number" },
+    { "macroBar.locked",     "bool"   },
+    { "state.debugConsole",  "bool"   },
+    { "global.minimap.hide", "bool"   },
 }
 
 -- red under: renaming the group, declaring any other general-page group ahead of
@@ -927,7 +937,8 @@ test("schema: stat priority, the composite sections, slot order and visibility, 
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 78, "the 68 rows there were, plus these ten")
+        t.eq(#KCM.Settings.Schema, 79,
+            "the 68 rows there were, plus these ten, plus the Minimap button row")
     end)
 
 test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)
