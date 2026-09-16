@@ -7,7 +7,7 @@
 -- Two siblings were peeled off this file for layout-§1's 1500-line cap, on the
 -- seams issue #32 named: tests/test_macrobar_layout.lua took the pure geometry
 -- (core/MacroBarLayout.lua's grid, labels, flyout placement and indicator
--- clearance) and tests/test_macrobar_button.lua took the chrome appliers and the
+-- clearance) and tests/test_macrobar_chrome.lua took the chrome appliers and the
 -- flyout's bind/apply pass. Every case moved whole; the three files together
 -- register exactly the cases this one did.
 --
