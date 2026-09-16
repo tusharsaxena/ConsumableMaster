@@ -320,10 +320,11 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_launcher.lua (14)
+### test_launcher.lua (16)
 
 - Launcher: KCM:OnInitialize registers ONE object under the folder name
 - Launcher: the object is a launcher, wearing this addon's own logo
+- Launcher: the broker label is the brand name in plain text
 - Launcher: the icon file the object names is on disk, at the TOC's path
 - Launcher: Register is idempotent — a second call builds no second button
 - Launcher: left-click toggles the macro bar's lock through the schema seam
@@ -333,6 +334,7 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: the row's get/set invert, and the button follows the checkbox
 - Launcher: LibDBIcon writes into the same table the row reads
 - Launcher: the global reset leaves a hidden button hidden
+- Launcher: the General page's Defaults button leaves a hidden button hidden
 - Launcher: a host with neither broker library does not raise
 - Launcher: the write seam owns the inversion, not the library
 - Launcher: no LibKa0s means no launcher at all, and no stub
@@ -874,7 +876,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
 
-### test_slash.lua (96)
+### test_slash.lua (102)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -972,6 +974,12 @@ badge and any count quoted in the docs must agree with it.
 - Slash: the dispatcher still answers while the addon is disabled
 - Slash: enable echoes the stored value in the canonical set shape
 - Slash: with LibKa0s absent the verbs say so rather than going inert
+- Slash: a disabled addon refuses a feature verb and does not act on it
+- Slash: a disabled addon refuses the macro-bar verb without touching the bar
+- Slash: a disabled addon refuses resync rather than reporting a pass that wrote nothing
+- Slash: every verb outside the live set refuses while disabled, and every live one answers
+- Slash: enable itself still works while disabled, or the pair is one-way
+- Slash: the refusal reaches the degraded dispatcher too
 
 ### test_slashsetup.lua (18)
 
@@ -1103,7 +1111,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_launcher.lua | 14 |
+| test_launcher.lua | 16 |
 | test_layout_cap.lua | 3 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
@@ -1125,7 +1133,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 18 |
-| test_slash.lua | 96 |
+| test_slash.lua | 102 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
@@ -1134,4 +1142,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **920** |
+| **Total** | **928** |
