@@ -36,15 +36,15 @@ does not allow is a breach nothing anywhere remarks on — "the count sitting in
 no document reads". This table is the remark, and it is why an audit **MUST NOT** re-file `layout-§1`
 against any file in it.
 
-Two files, measured 2026-09-14 with
+Two files, measured 2026-09-16 with
 
 ```
 git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
 ```
 
-| File | Lines (2026-09-14) | Disposition |
+| File | Lines (2026-09-16) | Disposition |
 |---|---|---|
-| `tests/test_macrobar.lua` | 2210 | Issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) — two cuts: the four pure-geometry sections out to `test_macrobar_layout.lua`, the chrome appliers and the flyout's bind/apply pass out to `test_macrobar_button.lua` |
+| `tests/test_macrobar.lua` | 2229 | Issue [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) — two cuts: the four pure-geometry sections out to `test_macrobar_layout.lua`, the chrome appliers and the flyout's bind/apply pass out to `test_macrobar_button.lua` |
 | `tests/test_settingsui.lua` | 2028 | Issue [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) — one cut at `:981`, the three `options-ui` conformance blocks out to `test_settingsui_optionsui.lua` |
 
 **Both breaches are test suites, and both take an issue rather than a deviation row.** That is a real
@@ -69,9 +69,9 @@ back under the cap or been deleted. A figure in this column is a measurement, no
 before the ruling would have been work done against a rule that was still moving. The deliverable was
 the disposition, and the disposition is this table.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-09-14): `settings/Panel.lua` (1426),
-`settings/Category.lua` (1400), `settings/MacroBar.lua` (1166), `tests/test_schema.lua` (1012),
-`tests/test_selector.lua` (1011) and `tests/test_slash.lua` (1010). They are named here so a later
+**The 1000–1500 band is on notice, not in breach** (measured 2026-09-16): `settings/Panel.lua` (1426),
+`settings/Category.lua` (1400), `settings/MacroBar.lua` (1166), `tests/test_slash.lua` (1052),
+`tests/test_schema.lua` (1012) and `tests/test_selector.lua` (1011). They are named here so a later
 reader can tell the band was looked at rather than missed; none needs a disposition until it crosses.
 
 ## Module Map
