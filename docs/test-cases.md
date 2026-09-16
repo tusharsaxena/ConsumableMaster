@@ -874,7 +874,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
 
-### test_slash.lua (91)
+### test_slash.lua (96)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -967,6 +967,11 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on an order keeps every unnamed key in its current stored order
 - /cm set on a flag map merges the pairs given over the stored map
 - every /cm stat and /cm aio write goes through the schema helper
+- Slash: enable / disable write the Enable row's own path
+- Slash: enable / disable hold no state of their own
+- Slash: the dispatcher still answers while the addon is disabled
+- Slash: enable echoes the stored value in the canonical set shape
+- Slash: with LibKa0s absent the verbs say so rather than going inert
 
 ### test_slashsetup.lua (18)
 
@@ -1120,7 +1125,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 18 |
-| test_slash.lua | 91 |
+| test_slash.lua | 96 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 4 |
@@ -1129,4 +1134,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **915** |
+| **Total** | **920** |

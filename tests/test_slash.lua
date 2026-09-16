@@ -1050,3 +1050,86 @@ test("every /cm stat and /cm aio write goes through the schema helper", function
         "categories.HP_AIO.orderOutOfCombat",
     }, "one helper write per verb, and the section reset writes its three rows")
 end)
+
+-- ---------------------------------------------------------------------------
+-- `/cm enable` and `/cm disable` — aliases, never a second switch
+-- ---------------------------------------------------------------------------
+
+test("Slash: enable / disable write the Enable row's own path", function(t)
+    local KCM = load()
+
+    local writes = {}
+    local H = KCM.Settings.Helpers
+    local realSet = H.SetAndRefresh
+    H.SetAndRefresh = function(path, value)
+        writes[#writes + 1] = path .. "=" .. tostring(value)
+        return realSet(path, value)
+    end
+
+    KCM:OnSlashCommand("disable")
+    t.eq(KCM.db.profile.enabled, false, "the addon is off")
+    KCM:OnSlashCommand("enable")
+    t.eq(KCM.db.profile.enabled, true, "and back on")
+    t.eqList(writes, { "enabled=false", "enabled=true" },
+        "both verbs wrote the Master controls row's path through its seam")
+
+    H.SetAndRefresh = realSet
+end)
+
+test("Slash: enable / disable hold no state of their own", function(t)
+    local KCM = load()
+    local H = KCM.Settings.Helpers
+
+    -- Flipped by the OTHER surface — the checkbox's seam — and the verbs must
+    -- read it rather than a copy, or the panel and the chat line answer
+    -- differently (slash-commands-§2).
+    H.SetAndRefresh("enabled", false)
+    t.eq(H.Get("enabled"), false, "the row reads off")
+    KCM:OnSlashCommand("enable")
+    t.eq(H.Get("enabled"), true, "and the verb moved that same row")
+    t.eq(KCM.enabled, nil, "there is no second flag on the namespace")
+end)
+
+test("Slash: the dispatcher still answers while the addon is disabled", function(t)
+    local KCM = load()
+    KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+
+    -- The switch must never be one-way (slash-commands-§2). Disabled means the
+    -- addon stands its features down — here, the macro write loop early-returns
+    -- — not that it drops its chat command or its COMMANDS table.
+    t.truthy(say(KCM, h.loader.mock, "version"):find("v", 1, true) ~= nil,
+        "version still answers")
+    t.truthy(say(KCM, h.loader.mock, "help"):find("enable", 1, true) ~= nil,
+        "help still lists the verb that turns it back on")
+    KCM:OnSlashCommand("enable")
+    t.eq(KCM.db.profile.enabled, true, "and enable turns it back on")
+end)
+
+test("Slash: enable echoes the stored value in the canonical set shape", function(t)
+    local KCM = load()
+    -- slash-commands-§5: a set reads back the STORED value after writing, through
+    -- the one formatter list / get / set / reset share, so `/cm enable` and
+    -- `/cm set enabled true` cannot print two different things for one write.
+    -- The verb's own line is the LAST one it prints: the row's onChange announces
+    -- the master switch first (settings/General.lua), exactly as it does when the
+    -- checkbox is clicked.
+    local function lastLine(line) return (say(KCM, h.loader.mock, line):match("[^\n]*$")) end
+    local viaVerb = lastLine("disable")
+    KCM.Settings.Helpers.SetAndRefresh("enabled", true)
+    local viaSet = lastLine("set enabled false")
+    t.truthy(viaVerb:find("enabled", 1, true) ~= nil, "the verb names the path: " .. viaVerb)
+    t.truthy(viaVerb:find("false", 1, true) ~= nil, "and the value it stored")
+    t.eq(viaVerb, viaSet, "the long name prints the very same line")
+end)
+
+test("Slash: with LibKa0s absent the verbs say so rather than going inert", function(t)
+    -- There is no `enabled` ROW on that build -- the Master controls block is the
+    -- library's composer and its degradation stub emits nothing -- so there is
+    -- nothing for the single write seam to validate against, and no panel
+    -- carrying the checkbox either. Writing round the seam would be the second
+    -- switch slash-commands-§2 forbids, so the verb reports instead. What it must
+    -- NOT do is answer nothing at all, which is what it did before this case.
+    local KCM = h.loader.loadFullAddon(true)
+    local line = say(KCM, h.loader.mock, "enable")
+    t.truthy(line:find("unavailable", 1, true) ~= nil, "it says so: " .. line)
+end)

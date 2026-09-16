@@ -59,6 +59,57 @@ local cliList, cliGet, cliSet, cliReset
 
 local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 
+-- ---------------------------------------------------------------------------
+-- `enable` / `disable` — ALIASES for the Enable row, never a second switch
+-- ---------------------------------------------------------------------------
+--
+-- slash-commands-§2 reserves both verbs across the collection and fixes what
+-- they mean: they write the SAME stored path the addon-wide `Enable Consumable
+-- Master` checkbox writes — the first row of General → Master controls
+-- (options-ui-§15) — through the SAME single write seam. They hold no state of
+-- their own: no second key, no session flag, no `KCM.enabled` local. That is the
+-- whole rule, and it is why this is four lines rather than a feature: the
+-- checkbox and the verbs cannot show the player two different answers, and the
+-- row's own onChange (settings/General.lua's `Master enable ON/OFF` line plus
+-- the off→on recompute) runs whichever surface was used.
+--
+-- THE WRITE IS THE HOST'S, not the library's CliSet, and the difference is the
+-- DISABLED state §2 is actually about. Routing it through `Sl:CliSet` would have
+-- made `enable` a LIB_BACKED_VERB alongside list / get / set / reset, and the
+-- degraded notice at the foot of this file would then be telling a player who
+-- had just disabled the addon that the verb which turns it back on is one of the
+-- unavailable ones. The write goes to the host seam instead; the canonical
+-- `path = value` echo (slash-commands-§5) is the library's, taken from the one
+-- shared formatter `list` / `get` / `set` / `reset` all use so `/cm enable`
+-- cannot drift from `/cm set enabled true`.
+--
+-- WHAT IS HONESTLY NOT COVERED, because the comment above used to claim it was:
+-- on a build with `libs/LibKa0s/` missing there is no `enabled` ROW -- the
+-- Master controls block is composed by the library and its degradation stub
+-- emits nothing (settings/OptionsSetup.lua) -- so there is no schema entry for
+-- the seam to validate against and no panel carrying the checkbox either. The
+-- verb says so on one line rather than writing round the seam: a second write
+-- path is exactly the "no state of their own" rule inverted, and it would be a
+-- path only a tampered install ever took.
+local ENABLED_PATH = "enabled"
+
+-- Bound beside cliGet on the live arm. Unreachable on the degraded one -- the
+-- guard below returns before it, because a build with no schema row is the same
+-- build with no Sl.
+local echoEnabled
+
+local function setEnabled(on)
+    local H = helpers()
+    if not (H and H.FindSchema and H.FindSchema(ENABLED_PATH)) then
+        return say("settings unavailable.")
+    end
+    -- SetAndRefresh reports its own refusal; a false here is not a second
+    -- failure to announce.
+    if H.SetAndRefresh(ENABLED_PATH, on and true or false) and echoEnabled then
+        echoEnabled()
+    end
+end
+
 -- Backwards-compat: `/cm rewrite` → `/cm rewritemacros`. The original handler
 -- accepted both spellings; this preserves that without bloating COMMANDS. Held
 -- as a file local rather than inline in the library descriptor because the
@@ -92,6 +143,10 @@ local COMMANDS = {
         end},
     {"version",       "Print addon version",
         function() say("v" .. addonVersion()) end},
+    {"enable",        "Turn the addon on — the same switch as the Enable checkbox",
+        function() setEnabled(true) end},
+    {"disable",       "Turn the addon off — `/cm enable` turns it back on",
+        function() setEnabled(false) end},
     {"perf",          "A/B performance capture — `/cm perf` opens the step panel",
         function(rest)
             -- Resolved at call time, exactly as `bar` does: on a build without
@@ -386,6 +441,11 @@ if slashLib then
     -- which also wipes the priority lists and the stat overrides — data the
     -- schema does not describe. `/cm resetall` keeps the host body.
     cliReset  = function(rest) Sl:CliReset(rest) end
+    -- The `set` shape read back from the STORE, which is what slash-commands-§5
+    -- asks a set to echo — CliGet renders the stored value through the one shared
+    -- formatter `list` / `get` / `set` / `reset` all use, so `/cm enable` cannot
+    -- drift from `/cm set enabled true`.
+    echoEnabled = function() Sl:CliGet(ENABLED_PATH) end
 else
     -- LibKa0s is vendored, so this is a tampered install rather than a
     -- supported state. The dispatcher is still not re-implemented here — see
