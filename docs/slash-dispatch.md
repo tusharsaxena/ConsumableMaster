@@ -15,7 +15,7 @@ Three files, and the split is deliberate:
 | File | Owns |
 |---|---|
 | `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. |
-| `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes five entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
+| `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes six entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
@@ -52,6 +52,7 @@ print them:
 | `get <path>` | library | One row's value. |
 | `set <path> <value>` | library | Type-aware parse, then `Helpers.SetAndRefresh`. |
 | `bar` | host | The macro-bar tree. |
+| `lock` / `unlock` | host | The macro bar's lock, through `V.RunLock` — the canonical spelling of what `bar lock` / `bar unlock` also do. |
 | `priority` | host | The per-category priority tree. |
 | `stat` | host | The per-spec stat tree. |
 | `aio` | host | The composite-category tree. |
@@ -89,7 +90,7 @@ read the same rows and cannot drift.
 | `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:445`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
 | `stat` | `STAT_COMMANDS` (`:596`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
 | `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:854`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `bar` | `BAR_COMMANDS` (`:873`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:374`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
@@ -110,20 +111,27 @@ category name reads as "show me this one". `/cm bar` with no sub-verb **toggles*
 `/cm debug` reads as a switch. `/cm dump <itemID>` is the same instinct spelled with a number: a
 numeric head routes to the `item` target rather than failing as an unknown target name.
 
-**`lock` / `unlock` live under `bar`, and that sub-tree is the whole surface this addon owes**
+**`lock` / `unlock` are top-level verbs, and `bar lock` / `bar unlock` are kept beside them**
 (`slash-commands-§8`). Both are reserved verbs across the collection and both mean *lock the addon's
-frames*; whether an addon registers them at all is a **MAY**. `/cm bar lock` and `/cm bar unlock`
-write `macroBar.locked` through `KCM.MacroBar.SetLocked` — the same `KCM.Schema:Set` seam the *Lock
-frame* checkbox and the launcher's left click take — so there is one value and one `onChange`, never
-a `KCM.locked` local beside them. `§8` names this addon's sub-tree form explicitly and rules it
-**fine as it stands**.
+frames*; whether an addon registers them at all is a **MAY**, and this addon now takes it. All four
+spellings share one body — `runLock` in `core/SlashCommands.lua`, published as `V.RunLock` — which
+writes `macroBar.locked` through `KCM.MacroBar.SetLocked`, the same `KCM.Schema:Set` seam the *Lock
+frame* checkbox and the launcher's left click take. So there is one value, one `onChange` and one
+confirmation line, never a `KCM.locked` local beside them and never a second implementation hiding
+behind the second spelling.
 
-Top-level `/cm lock` and `/cm unlock` **MAY** be added as aliases onto the sub-tree's act, and
-**are deliberately not**. The alias would be unambiguous here — this addon has exactly one lockable
-frame — so the option is genuinely open; declining it costs a player two words and buys the addon one
-fewer spelling of the same act. **A declined MAY is not a deviation and owes no register row**: the
-deviation register is for ratified departures from a MUST or a SHOULD, and filing declined options
-there would bury the real rows under noise. Both verbs are **feature verbs**, so they refuse while
+**This reverses an earlier decision, and the reasoning is worth keeping.** The top-level pair was
+declined on the grounds that it bought the addon one fewer spelling of the same act at a cost of two
+words to the player. That traded the wrong way round in practice. `/cm unlock` is what the rest of
+the collection answers to (`/pfe lock`, `/pfe unlock`); it is what the bar's own tooltip sends a
+player off to type; and `findCommand` matches EXACTLY, so the guess every other addon rewards landed
+on `unknown command` here — a player who typed it got no bar movement and no clue why. The sub-tree
+stays because it is the Macro Bar page's CLI parity and `/cm bar help` should still list everything
+the bar can be told to do. A MAY taken is no more a deviation than a MAY declined, and neither owes
+the register a row.
+
+The top-level form is the **canonical** one: it is what the bar's tooltips (`modules/MacroBar.lua`),
+the launcher's unlock reply and the README all name. Both are **feature verbs**, so they refuse while
 the addon is disabled: unlocking a frame that is not drawn is not a coherent request, and the refusal
 names the step the player actually needs.
 
@@ -204,7 +212,7 @@ one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
-| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`** | `resync`, `rewritemacros`, `bar`, `priority`, `stat`, `aio` |
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`** | `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
 
 `dump` is this addon's thirteenth and it is a judgment rather than a quote from the rule.
 `core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and

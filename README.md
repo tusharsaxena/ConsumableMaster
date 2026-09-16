@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-946%2F946_passing-green)
+![Tests](https://img.shields.io/badge/Tests-950%2F950_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -63,7 +63,7 @@ If a better pick turns up while you are in combat, the macro updates the moment 
 
 Install it with your addon manager, or drop the folder into `Interface/AddOns`, and log in. The macros are written for you on the way in: Consumable Master reads your bags, scores what it finds, and fills all fifteen. Drag them onto your action bars from the macro window, or from the small draggable icon under the title on any category tab in the settings, which is nearer to hand while you're already in there.
 
-You don't have to give up bar space for any of this. Consumable Master ships a bar of its own that holds its macros and nothing else, and it arrives unlocked so you can put it where you want before locking it down with `/cm bar lock`. Every button on that bar wears a shaded strip along one edge with a small arrow on it. Hover the strip and a flyout opens listing what you can use in that category right now, best-ranked nearest the button, so the second-best flask is a hover away rather than a bag dive. Long categories are trimmed to whatever you set Maximum flyout entries to. If none of that appeals, `/cm bar off`.
+You don't have to give up bar space for any of this. Consumable Master ships a bar of its own that holds its macros and nothing else, and it arrives unlocked so you can put it where you want before locking it down with `/cm lock`. Every button on that bar wears a shaded strip along one edge with a small arrow on it. Hover the strip and a flyout opens listing what you can use in that category right now, best-ranked nearest the button, so the second-best flask is a hover away rather than a bag dive. Long categories are trimmed to whatever you set Maximum flyout entries to. If none of that appeals, `/cm bar off`.
 
 You can overrule the ranking anywhere it gets something wrong. Each category has a tab on the Macros page showing its candidates in order: a green check on the ones you own, a yellow star on the one the macro is currently using. Grab a row by its drag handle and drop it higher to pin it above the score, or press × to block it so a later bag scan won't put it back. Every row carries a blue info button that explains why the item landed where it did, and the first time a ranking surprises you that button is the fastest way to find out you had pinned something two patches ago. Anything the addon has never heard of goes in through the add-by-ID box at the top of the tab: pick Item or Spell, then type the ID or the name, or shift-click the thing straight into the box.
 
@@ -71,7 +71,7 @@ Four categories move with your spec. Flask, Combat Potion, Stat Food and Weapon 
 
 Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which opens that page. `/cm help` prints the full command list.
 
-There is also a button on your minimap wearing the addon's logo. **Right-click it** to open the settings page from anywhere. **Left-click it** to unlock the macro bar, move it, and lock it again — the same switch as **Lock frame** in the settings and `/cm bar lock`. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
+There is also a button on your minimap wearing the addon's logo. **Right-click it** to open the settings page from anywhere. **Left-click it** to unlock the macro bar, move it, and lock it again — the same switch as **Lock frame** in the settings and `/cm lock`. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
 
 ## How picking & ranking works
 

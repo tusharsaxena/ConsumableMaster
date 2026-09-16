@@ -1052,6 +1052,52 @@ test("every /cm stat and /cm aio write goes through the schema helper", function
 end)
 
 -- ---------------------------------------------------------------------------
+-- `/cm lock` and `/cm unlock` — the macro bar's own verbs
+-- ---------------------------------------------------------------------------
+--
+-- The lock was reachable only as `/cm bar unlock`, and `/cm unlock` — which is
+-- what the collection's other addons answer to, and what a player types — fell
+-- through findCommand's exact match to "unknown command". These assert the
+-- STORED FLAG rather than the printed line, because a handler that says "macro
+-- bar unlocked" and writes nothing prints exactly the same thing.
+
+test("/cm unlock and /cm lock write the macro bar's stored lock flag", function(t)
+    local KCM = load()
+    KCM:OnSlashCommand("set macroBar.locked true")
+    t.eq(KCM.db.profile.macroBar.locked, true, "precondition: the bar starts locked")
+    KCM:OnSlashCommand("unlock")
+    t.eq(KCM.db.profile.macroBar.locked, false, "/cm unlock clears the flag")
+    KCM:OnSlashCommand("lock")
+    t.eq(KCM.db.profile.macroBar.locked, true, "/cm lock sets it again")
+end)
+
+test("/cm bar lock and /cm bar unlock land on the same stored flag", function(t)
+    local KCM = load()
+    KCM:OnSlashCommand("bar unlock")
+    t.eq(KCM.db.profile.macroBar.locked, false, "the sub-verb still unlocks")
+    KCM:OnSlashCommand("bar lock")
+    t.eq(KCM.db.profile.macroBar.locked, true, "the sub-verb still locks")
+end)
+
+test("/cm lock and /cm unlock write through the schema helper, not the table", function(t)
+    local KCM = load()
+    local paths = recordSets(KCM)
+    KCM:OnSlashCommand("unlock")
+    KCM:OnSlashCommand("lock")
+    KCM:OnSlashCommand("bar unlock")
+    t.eqList(paths, { "macroBar.locked", "macroBar.locked", "macroBar.locked" },
+        "every route is one helper write to the one row")
+end)
+
+test("/cm lock and /cm unlock are in the published command table", function(t)
+    local KCM = load()
+    local seen = {}
+    for _, entry in ipairs(KCM.COMMANDS) do seen[entry[1]] = true end
+    t.truthy(seen.lock, "lock is a verb /cm help renders")
+    t.truthy(seen.unlock, "unlock is a verb /cm help renders")
+end)
+
+-- ---------------------------------------------------------------------------
 -- `/cm enable` and `/cm disable` — aliases, never a second switch
 -- ---------------------------------------------------------------------------
 

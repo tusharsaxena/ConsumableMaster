@@ -244,6 +244,19 @@ local COMMANDS = {
         function(rest) cliSet(rest) end},
     {"bar",           "Macro bar — `/cm bar [on|off|lock|unlock|reset]` (bare toggles it)",
         function(rest) V.RunBar(rest) end},
+    -- THE CANONICAL SPELLING OF THE LOCK, and `/cm bar lock|unlock` is kept beside
+    -- it rather than retired: `/pfe lock` and `/pfe unlock` are what the rest of the
+    -- collection answers to, and `/cm unlock` is what a player reaches for after
+    -- reading the bar's tooltip. Both spellings share one body (V.RunLock), so this
+    -- is a second door onto the same room and not a second implementation.
+    --
+    -- Deliberately NOT in LIVE_VERBS below: they drive what the addon draws, so a
+    -- disabled addon refuses them on the dispatcher's one line instead of moving a
+    -- bar the player cannot see.
+    {"lock",          "Lock the macro bar in place",
+        function() V.RunLock(true) end},
+    {"unlock",        "Unlock the macro bar so it can be dragged",
+        function() V.RunLock(false) end},
     {"priority",      "Per-category priority list editor — try `/cm priority` for the list",
         function(rest) V.RunPriority(rest) end},
     {"stat",          "Per-spec stat priority editor — try `/cm stat` for the list",

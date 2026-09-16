@@ -184,7 +184,7 @@ KCM.Launcher = lib:New({
         local locked = not cfg.locked
         KCM.MacroBar.SetLocked(locked)
         KCM.Say(locked and "macro bar locked"
-                        or "macro bar unlocked \226\128\148 drag it, then /cm bar lock")
+                        or "macro bar unlocked \226\128\148 drag it, then /cm lock")
     end,
 
     -- Thunks, never bare: lib:New snapshots both. Same note as

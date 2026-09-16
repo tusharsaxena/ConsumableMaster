@@ -177,7 +177,7 @@ local function buildBar()
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(KCM.L["Consumable Master"], 1, 0.82, 0)
         local locked = (cfg() or {}).locked
-        GameTooltip:AddLine(locked and KCM.L["Locked. Unlock the bar to move it — /cm bar unlock."]
+        GameTooltip:AddLine(locked and KCM.L["Locked. Unlock the bar to move it — /cm unlock."]
             or KCM.L["Drag to move the bar."], 1, 1, 1, true)
         GameTooltip:Show()
     end)
@@ -209,8 +209,8 @@ local function buildBar()
         GameTooltip:AddLine(KCM.L["Only Consumable Master macros can sit on this bar."], 0.6, 0.6, 0.6, true)
         local locked = (cfg() or {}).locked
         GameTooltip:AddLine(locked
-            and KCM.L["Locked. Unlock the bar to drag this handle — /cm bar unlock."]
-            or KCM.L["Lock the bar to hide this handle — /cm bar lock."], 0.6, 0.6, 0.6, true)
+            and KCM.L["Locked. Unlock the bar to drag this handle — /cm unlock."]
+            or KCM.L["Lock the bar to hide this handle — /cm lock."], 0.6, 0.6, 0.6, true)
         GameTooltip:Show()
     end)
     help:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)

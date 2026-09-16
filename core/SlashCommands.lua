@@ -851,15 +851,34 @@ end
 -- the combat deferral); the finer-grained layout/appearance settings are
 -- reachable as schema paths via `/cm set macroBar.<field>`.
 
+-- THE ONE BODY BEHIND FOUR SPELLINGS. `/cm lock`, `/cm unlock`, `/cm bar lock`
+-- and `/cm bar unlock` all land here, so the two surfaces cannot drift in what
+-- they write or in what they say they wrote. The write itself goes through
+-- KCM.MacroBar.SetLocked -> Schema:Set, which is what keeps the Macro Bar
+-- page's checkbox and the combat deferral correct whichever one was typed.
+--
+-- The confirmation names the SHORT form, because that is the one the bar's own
+-- tooltips now tell the player to type (modules/MacroBar.lua).
+local function runLock(locked)
+    -- The same refusal runBar makes, because `/cm lock` reaches this without
+    -- passing through runBar's guard and would otherwise index a nil MacroBar.
+    if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then
+        return say("macro bar unavailable.")
+    end
+    KCM.MacroBar.SetLocked(locked)
+    say(locked and "macro bar locked"
+        or "macro bar unlocked \226\128\148 drag it, then /cm lock")
+end
+
 local BAR_COMMANDS = {
     {"on",     "Show the macro bar",
         function() KCM.MacroBar.SetEnabled(true);  say("macro bar |cff00ff00ON|r") end},
     {"off",    "Hide the macro bar",
         function() KCM.MacroBar.SetEnabled(false); say("macro bar |cffff5555OFF|r") end},
     {"lock",   "Lock the bar in place",
-        function() KCM.MacroBar.SetLocked(true);   say("macro bar locked") end},
+        function() runLock(true)  end},
     {"unlock", "Unlock the bar so it can be dragged",
-        function() KCM.MacroBar.SetLocked(false);  say("macro bar unlocked — drag it, then /cm bar lock") end},
+        function() runLock(false) end},
     {"reset",  "Move the bar back to the center of the screen",
         function() KCM.MacroBar.ResetPosition();   say("macro bar position reset") end},
 }
@@ -904,6 +923,7 @@ end
 
 KCM.SlashCommands.Verbs = {
     RunBar      = runBar,
+    RunLock     = runLock,
     RunPriority = runPriority,
     RunStat     = runStat,
     RunAIO      = runAIO,
