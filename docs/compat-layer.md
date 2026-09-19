@@ -50,7 +50,7 @@ one moment the fallback was supposed to save you.
 **The floor is a value the caller can act on, not a guess.** `GetSpellName` returns `nil` rather than
 `"Unknown"` or the spell ID as a string, because the call sites want different placeholders and one
 of them is not a placeholder at all: `modules/KCMItemRow.lua:85` substitutes `[Loading]` for a row
-label, and `modules/MacroBarFlyout.lua:329` must write `""` into a secure `spell` attribute, because
+label, and `modules/MacroBarFlyout.lua:337` must write `""` into a secure `spell` attribute, because
 `nil` there leaves the previous binding in place. A shared default would be wrong in one of the two. `GetNumSpecializationsForClassID` is the one that
 answers `0`, because its callers loop `1..n` and `nil` would be an arithmetic error where zero is a
 correct, terminating answer: a class whose spec count cannot be read has no per-spec editors to draw.
