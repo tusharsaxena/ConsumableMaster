@@ -158,7 +158,7 @@ local function buildBar()
     -- PickupMacro. The handle is a sibling grab point with no such conflict.
     --
     -- THE STRIP ITSELF IS THE LIBRARY'S NOW (LibKa0s-Widgets-1.0 `DragHandle`,
-    -- version 9.1). The dark fill and gold edge, the centered gold label, the
+    -- version 9.2). The dark fill and gold edge, the centered gold label, the
     -- help mark and its texture ladder, the two drag scripts, the three-band
     -- tooltip and the width arithmetic were all written out here and were the
     -- same widget AuraMaster drew over each of its containers. What this file

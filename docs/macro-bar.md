@@ -21,8 +21,10 @@ The split is deliberate: all the logic worth testing is in the three `core/`
 files, which `tests/test_macrobar.lua` and its two peeled siblings
 (`tests/test_macrobar_layout.lua` for `core/MacroBarLayout.lua`'s geometry,
 `tests/test_macrobar_chrome.lua` for the chrome appliers) exercise headlessly. The `modules/`
-files are a thin apply pass whose behavior can only be validated in-game
-(see [smoke-tests.md](./smoke-tests.md)).
+files are a thin apply pass whose behavior is otherwise validated in-game
+(see [smoke-tests.md](./smoke-tests.md)) — the one exception is the drag
+handle's two tooltips and its mark tint, which are plain Lua closures over the
+lock and are hovered headlessly in `tests/test_macrobar_chrome.lua`.
 
 `core/MacroDisplay.lua` is also used by `modules/KCMMacroDragIcon.lua` — the
 per-category drag icon in the settings panel — so icon/tooltip resolution can't

@@ -45,7 +45,7 @@
 local lib = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
 if not lib then return end
 
-local DRAG_MINOR = 1
+local DRAG_MINOR = 2
 -- Paired on the SHELL's minor as well as this file's own: a handle that attached to an older shell
 -- would publish `lib.DragHandle` beside a `lib.MODULES` the shell owns, and nothing would say the
 -- two came from different vendored copies.
@@ -141,10 +141,15 @@ local HELP_FALLBACK = "Interface\\FriendsFrame\\InformationIcon"
 -- catalog's art is built for (every icon is white with its shape in the alpha channel). The mark's
 -- alpha stays 1.
 --
--- AND IT BRIGHTENS ON HOVER, which the chevron has no need of because the whole dropdown is the
--- button. Here the mark is its own Button -- a right-click opens AuraMaster's Containers page --
--- so a mark dimmed at rest with no response to the cursor would read as decoration. Full white on
--- OnEnter, back to the resting tint on OnLeave.
+-- AND IT BRIGHTENS ON HOVER WHERE A CLICK IS WIRED, which the chevron has no need of because the
+-- whole dropdown is the button. Here the mark is its own Button -- a right-click opens AuraMaster's
+-- Containers page -- so a mark dimmed at rest with no response to the cursor would read as
+-- decoration. Full white on OnEnter, back to the resting tint on OnLeave.
+--
+-- BUT ONLY WHERE ONE IS. ConsumableMaster passes no `onRightClick`, and a mark that lit up under
+-- the cursor there would be promising a control nothing is behind -- the same defect from the
+-- other side. The over-tint is chosen from `spec.onRightClick` in dhBuildHelp, so the hover
+-- response and the click register or decline together.
 local HELP_TINT      = { 0.7, 0.7, 0.72 }
 local HELP_TINT_OVER = { 1, 1, 1 }
 
@@ -339,8 +344,15 @@ local function dhBuildHelp(handle, spec)
     dhTint(icon, HELP_TINT)
     help.icon = icon
   end
+  -- HOVER FEEDBACK FOLLOWS THE CLICK, and nothing else. The brighten is the line that says this
+  -- mark is a control; on a host that wired no click it was advertising an action that does not
+  -- exist. ConsumableMaster registers none -- dhSetClick above declines to register a click for
+  -- the same reason -- so its mark stays at the resting tint and is what it actually is there: the
+  -- anchor of a second tooltip. A host that passes `onRightClick` still gets the full-white
+  -- response the control earns.
+  local overTint = spec.onRightClick and HELP_TINT_OVER or HELP_TINT
   help:SetScript("OnEnter", function()
-    dhTint(help.icon, HELP_TINT_OVER)
+    dhTint(help.icon, overTint)
     dhShowTooltip(help, spec, spec.helpTooltip or spec.tooltip)
   end)
   help:SetScript("OnLeave", function()

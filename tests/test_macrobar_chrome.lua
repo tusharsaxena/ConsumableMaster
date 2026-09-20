@@ -1,6 +1,9 @@
 -- tests/test_macrobar_chrome.lua — the macro bar's chrome appliers
 -- (MacroBarButton.ApplyStyle), the flyout's bind/apply pass, and the
 -- options-ui-§15/§16/§17 rows those appliers are what honors.
+-- Since the drag-handle adoption it also carries the unlocked strip's own
+-- chrome: the two tooltips the strip and its help mark draw, and the mark's
+-- hover tint.
 --
 -- Peeled out of tests/test_macrobar.lua at the seam issue #32 named, which the
 -- cap census in docs/ARCHITECTURE.md carried. NOT the same suite as
@@ -14,7 +17,8 @@ local h = _G.KCM_TEST
 local test = h.test
 
 -- `fcfg` is shared rather than copied — tests/macrobar_support.lua says why.
-local fcfg = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/macrobar_support.lua").fcfg
+local support = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/macrobar_support.lua")
+local fcfg = support.fcfg
 
 -- ---------------------------------------------------------------------------
 -- Chrome appliers (MacroBarButton.ApplyStyle) and the flyout's bind/apply pass
@@ -378,3 +382,155 @@ test("macrobar button: an unresolvable class falls through to the stored swatch"
     t.near(fill[5], 0.7, 0.001, "…and the alpha, which always applies")
     LibStub("LibKa0s-Core-1.0").__ResetClassColor()
 end)
+
+-- ---------------------------------------------------------------------------
+-- The drag handle's two tooltips, and the mark's tint
+--
+-- The strip above the bar is `LibKa0s-Widgets-1.0`'s `DragHandle`, and this
+-- addon is the host whose TWO descriptors the widget's shape was drawn around:
+-- `tooltip` for the strip and `helpTooltip` for the mark, each with its own
+-- title, body and anchor (modules/MacroBar.lua:196-228). Nothing asserted a
+-- line of either, so the entire reason there are two rested on a hand check.
+--
+-- What is observed is what a hover puts on screen — the frame the tooltip is
+-- owned BY, the anchor it is owned AT, and its lines in order — rather than
+-- the shape of the table handed to the widget. A descriptor aimed at the wrong
+-- frame satisfies the second and fails the first.
+-- ---------------------------------------------------------------------------
+
+--- A GameTooltip that records which setter fired with which arguments. The
+--- shared frame stub answers every method with itself, so it can say a tooltip
+--- was built but not what it says or who owns it.
+local function recordingTooltip()
+    local gt = { calls = {} }
+    local function record(name)
+        return function(_, ...) gt.calls[#gt.calls + 1] = { name, ... } end
+    end
+    gt.SetOwner = record("SetOwner")
+    gt.SetText  = record("SetText")
+    gt.AddLine  = record("AddLine")
+    gt.Show     = record("Show")
+    return gt
+end
+
+--- Hover `frame` and read back the owner, the anchor and the lines the tooltip
+--- ended up with, title first. The widget reads its descriptor on every OnEnter,
+--- so each call is a fresh answer rather than a replay of the first.
+local function hover(frame)
+    _G.GameTooltip = recordingTooltip()
+    frame:GetScript("OnEnter")(frame)
+    local rec = { lines = {} }
+    for _, c in ipairs(_G.GameTooltip.calls) do
+        if c[1] == "SetOwner" then
+            rec.owner, rec.anchor = c[2], c[3]
+        elseif c[1] == "SetText" or c[1] == "AddLine" then
+            rec.lines[#rec.lines + 1] = c[2]
+        elseif c[1] == "Show" then
+            rec.shown = true
+        end
+    end
+    return rec
+end
+
+local function hasLine(rec, needle)
+    for _, l in ipairs(rec.lines) do if l == needle then return true end end
+    return false
+end
+
+local MARK_BODY   = "Drag a button onto another to swap them."
+local MARK_FOOTER = "Only Consumable Master macros can sit on this bar."
+local LOCKED_LINE = "Locked. Unlock the bar to drag this handle — /cm unlock."
+local UNLOCK_LINE = "Lock the bar to hide this handle — /cm lock."
+
+-- red under: dropping `tooltip` so the mark's descriptor is drawn for both
+-- frames, or owning by the cursor the way AuraMaster's copy is forced to.
+test("macrobar handle: the strip's tooltip is the addon's, drawn above the strip itself",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local rec = hover(handle)
+        t.eq(rec.lines[1], "Consumable Master", "the addon's name heads the strip's tooltip")
+        t.eq(rec.owner, handle, "owned by the strip, not by UIParent at the cursor")
+        t.eq(rec.anchor, "ANCHOR_TOP", "and anchored above it")
+        t.truthy(rec.shown, "the tooltip is actually shown")
+    end)
+
+-- red under: dropping `helpTooltip`, which would fall the mark back to the
+-- strip's descriptor — same title, same anchor, none of the long-form help.
+test("macrobar handle: the mark's tooltip is the bar's, drawn off the mark at its own anchor",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local help = handle.help
+        t.truthy(help, "the widget drew the help mark")
+        local rec = hover(help)
+        t.eq(rec.lines[1], "Macro bar", "the mark carries its own title")
+        t.eq(rec.owner, help, "owned by the mark rather than by the strip under it")
+        t.eq(rec.anchor, "ANCHOR_TOPRIGHT", "at the mark's anchor, not the strip's")
+        t.truthy(hasLine(rec, MARK_BODY), "…with the mark's own body")
+        t.truthy(hasLine(rec, MARK_FOOTER), "…and its own footer")
+    end)
+
+-- The two descriptors exist to be different; asserting each alone would pass a
+-- build where one quietly became the other.
+test("macrobar handle: the strip and the mark draw two distinct tooltips", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, _, handle = support.buildBar(KCM)
+    local strip = hover(handle)
+    local mark  = hover(handle.help)
+    t.ne(strip.lines[1], mark.lines[1], "two titles")
+    t.ne(strip.anchor, mark.anchor, "two anchors")
+    t.ne(strip.owner, mark.owner, "owned by the two different frames")
+    t.falsy(hasLine(strip, MARK_BODY), "the strip does not carry the mark's body")
+    t.truthy(#mark.lines > #strip.lines, "the mark is the long-form one of the pair")
+end)
+
+-- The lock can change between two hovers of the same strip, which is why both
+-- lock-dependent lines are written as FUNCTIONS in the descriptor. A plain
+-- string would be resolved once, at build, and then be wrong for the rest of
+-- the session.
+--
+-- red under: writing either line as a string computed when the handle is built.
+test("macrobar handle: the mark's lock line is re-read on every hover", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, _, handle = support.buildBar(KCM)
+    local help = handle.help
+
+    KCM.MacroBar.SetLocked(true)
+    local locked = hover(help)
+    KCM.MacroBar.SetLocked(false)
+    local unlocked = hover(help)
+
+    t.truthy(hasLine(locked, LOCKED_LINE), "locked, the footer says how to unlock")
+    t.falsy(hasLine(locked, UNLOCK_LINE), "and not the other way round")
+    t.truthy(hasLine(unlocked, UNLOCK_LINE), "unlocked, it says how to put the strip away")
+    t.falsy(hasLine(unlocked, LOCKED_LINE), "the first hover's line did not survive the second")
+end)
+
+-- The mark brightens under the cursor only where a right-click is wired, and
+-- nothing is wired here: `DragHandle` is handed no `onRightClick`, so the
+-- widget registers no click at all. At LibKa0s v1.48.0 the brighten was
+-- unconditional, so this addon's mark lit up and then did nothing — a control
+-- advertising itself and then declining. v1.48.1 chooses the over-tint from
+-- `spec.onRightClick`, and this is the host that case was found on.
+--
+-- red under: an unconditional HELP_TINT_OVER on OnEnter, or an `onRightClick`
+-- added here without the affordance that a click deserves.
+test("macrobar handle: the mark holds its resting gray, because no click is wired here",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local help = handle.help
+        -- The mock's CreateTexture hands the FRAME back, so the widget's icon IS
+        -- `help`; recording on it records every tint the mark takes.
+        local tints = {}
+        help.SetVertexColor = function(_, r, g, b) tints[#tints + 1] = { r, g, b } end
+
+        _G.GameTooltip = recordingTooltip()
+        help:GetScript("OnEnter")(help)
+        t.eq(#tints, 1, "the hover tinted the art once")
+        t.eqList(tints[1], { 0.7, 0.7, 0.72 }, "…to the resting gray, not to full white")
+
+        help:GetScript("OnLeave")(help)
+        t.eqList(tints[2], { 0.7, 0.7, 0.72 }, "and leaving it leaves the same tint behind")
+    end)
