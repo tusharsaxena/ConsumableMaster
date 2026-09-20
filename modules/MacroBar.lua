@@ -34,18 +34,25 @@ local MB = KCM.MacroBar
 -- no harness at all, and the bar must not care.
 local Perf = KCM.Perf
 
+-- The drag-handle widget, a LOAD-TIME upvalue for the same reason Perf is: the
+-- TOC's `# Libraries` section loads libs\LibKa0s\LibKa0s.xml long before this
+-- file, so the shell is registered by the time this runs, and a build without it
+-- answers nil once here rather than on every rebuild of the bar. Nil-tolerant on
+-- BOTH rungs -- the major may be absent, and a copy vendored before v1.48.0
+-- carries the shell with no `DragHandle` at all; see buildBar for what a build
+-- like that draws instead.
+local Widgets = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+
 local BAR_NAME       = "KCMMacroBar"
 local FADE_THROTTLE  = 0.1    -- seconds between mouse-over polls in fade mode
 local BACKDROP_TEX   = [[Interface\Buttons\WHITE8X8]]
-local HANDLE_H       = 18     -- unlocked drag-handle strip height
+-- The ONE handle number this file still owns: where the strip sits relative to
+-- the bar, which is this file's anchoring business and not the widget's. The
+-- strip's own height, its padding, its help-mark size and the last rung of that
+-- mark's texture ladder all moved into LibKa0s-Widgets-1.0's `DragHandle` and
+-- are `Widgets.DRAG_HANDLE`'s now -- the 18 this file spelled out is that table's
+-- `HEIGHT`, and the widget sets it on the strip itself.
 local HANDLE_GAP     = 2      -- gap between the handle and the bar's top edge
-local HANDLE_PAD     = 24     -- horizontal padding around the handle's label
-local HANDLE_HELP    = 14     -- help-icon edge, inside the handle's right end
--- The LAST rung of the help mark's ladder, not its first. LibKa0s ships a `help`
--- icon and KCM.Icon answers it; this Blizzard texture is what draws when the
--- library is missing or the catalog ever stops carrying that name. A ladder, not
--- a concatenated path: a wrong texture path draws nothing and raises nothing.
-local HELP_TEXTURE   = [[Interface\FriendsFrame\InformationIcon]]
 
 local bar                     -- container frame, nil until first build
 local buttons = {}            -- catKey -> button frame
@@ -146,75 +153,85 @@ local function buildBar()
     frame.moveHint:Hide()
 
     -- Drag handle. A labeled strip centered above the bar, shown only while
-    -- unlocked. It exists because a full bar leaves no bare container to grab —
+    -- unlocked. It exists because a full bar leaves no bare container to grab --
     -- every pixel inside is a button, and a button swallows the drag to run
     -- PickupMacro. The handle is a sibling grab point with no such conflict.
-    local handle = CreateFrame("Button", BAR_NAME .. "Handle", frame, "BackdropTemplate")
-    handle:SetPoint("BOTTOM", frame, "TOP", 0, HANDLE_GAP)
-    handle:SetHeight(HANDLE_H)
-    handle:SetBackdrop({
-        bgFile   = BACKDROP_TEX,
-        edgeFile = BACKDROP_TEX,
-        edgeSize = 1,
-    })
-    handle:SetBackdropColor(0, 0, 0, 0.75)
-    handle:SetBackdropBorderColor(1, 0.82, 0, 0.6)
-    handle:RegisterForDrag("LeftButton")
-    -- Dragging is the LOCK's business, not the handle's. The bar's own
-    -- OnDragStart asks the lock; the handle asks it too, so nothing that reaches
-    -- the handle on a locked bar can move it.
-    handle:SetScript("OnDragStart", function()
-        local c = cfg()
-        if not c or c.locked then return end
-        frame:StartMoving()
-    end)
-    handle:SetScript("OnDragStop", function()
-        frame:StopMovingOrSizing()
-        savePosition()
-    end)
-    handle:SetScript("OnEnter", function(self)
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(KCM.L["Consumable Master"], 1, 0.82, 0)
-        local locked = (cfg() or {}).locked
-        GameTooltip:AddLine(locked and KCM.L["Locked. Unlock the bar to move it — /cm unlock."]
-            or KCM.L["Drag to move the bar."], 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    handle:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-
-    handle.text = handle:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    handle.text:SetPoint("CENTER")
-    handle.text:SetText(KCM.L["Consumable Master"])
-    handle.text:SetTextColor(1, 0.82, 0)
-
-    -- Help icon rather than a second line of hint text. The bar can be one
-    -- button wide, so any prose long enough to explain both drag gestures would
-    -- either clip or force the handle wider than the bar it belongs to; a fixed
-    -- 14px icon costs the same at every width.
-    local help = CreateFrame("Button", nil, handle)
-    help:SetSize(HANDLE_HELP, HANDLE_HELP)
-    help:SetPoint("RIGHT", handle, "RIGHT", -4, 0)
-    help.icon = help:CreateTexture(nil, "OVERLAY")
-    help.icon:SetAllPoints(help)
-    help.icon:SetTexture(KCM.Icon and KCM.Icon("help") or HELP_TEXTURE)
-    help:SetScript("OnEnter", function(self)
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT")
-        GameTooltip:SetText(KCM.L["Macro bar"], 1, 0.82, 0)
-        GameTooltip:AddLine(KCM.L["Drag this handle to move the bar."], 1, 1, 1, true)
-        GameTooltip:AddLine(KCM.L["Drag a button onto another to swap them."], 1, 1, 1, true)
-        GameTooltip:AddLine(KCM.L["Drag a button off the bar to put its macro on an action bar."], 1, 1, 1, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(KCM.L["Only Consumable Master macros can sit on this bar."], 0.6, 0.6, 0.6, true)
-        local locked = (cfg() or {}).locked
-        GameTooltip:AddLine(locked
-            and KCM.L["Locked. Unlock the bar to drag this handle — /cm unlock."]
-            or KCM.L["Lock the bar to hide this handle — /cm lock."], 0.6, 0.6, 0.6, true)
-        GameTooltip:Show()
-    end)
-    help:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-    handle.help = help
+    --
+    -- THE STRIP ITSELF IS THE LIBRARY'S NOW (LibKa0s-Widgets-1.0 `DragHandle`,
+    -- version 9.1). The dark fill and gold edge, the centered gold label, the
+    -- help mark and its texture ladder, the two drag scripts, the three-band
+    -- tooltip and the width arithmetic were all written out here and were the
+    -- same widget AuraMaster drew over each of its containers. What this file
+    -- still owns is what it always should have: every string, where the strip
+    -- sits (HANDLE_GAP, below), when it shows (applyLock) and whether a drag is
+    -- allowed (`canDrag`, which asks the lock).
+    --
+    -- A BUILD WITHOUT THE WIDGET DRAWS NO STRIP, and that is the decision rather
+    -- than an oversight: a hand-built fallback here would be the second copy the
+    -- adoption exists to delete, and it would be the copy nobody looks at.
+    -- Nothing raises -- `bar.handle` stays nil and applyLock already guards on it
+    -- -- and neither of the other two ways to place the bar is touched: the bar
+    -- frame's own OnDragStart still moves it from any pixel the slots leave bare,
+    -- and `/cm set macroBar.point|x|y` still writes the position outright.
+    local handle = Widgets and Widgets.DragHandle and Widgets.DragHandle(frame, {
+        name      = BAR_NAME .. "Handle",
+        label     = KCM.L["Consumable Master"],
+        moveFrame = frame,
+        -- The last rung of the mark's ladder is the widget's own, and it is the
+        -- same Blizzard texture this file used to name: a nil here falls back
+        -- there rather than drawing nothing.
+        helpIcon  = KCM.Icon and KCM.Icon("help") or nil,
+        -- Dragging is the LOCK's business, not the handle's. The bar's own
+        -- OnDragStart asks the lock; the handle asks it too, so nothing that
+        -- reaches the handle on a locked bar can move it.
+        canDrag = function()
+            local c = cfg()
+            return not (not c or c.locked)
+        end,
+        onDragStop = savePosition,
+        -- The STRIP's tooltip: titled for the addon, anchored above the strip.
+        -- Its one body line is a FUNCTION rather than a string because it is
+        -- read on every hover, and the lock can change between two hovers of the
+        -- same strip.
+        tooltip = {
+            title  = KCM.L["Consumable Master"],
+            anchor = "ANCHOR_TOP",
+            body   = {
+                function()
+                    local locked = (cfg() or {}).locked
+                    return locked and KCM.L["Locked. Unlock the bar to move it — /cm unlock."]
+                        or KCM.L["Drag to move the bar."]
+                end,
+            },
+        },
+        -- The MARK's own, and the reason there are two descriptors rather than
+        -- one: a different title, a different body and a different anchor, off
+        -- the mark instead of off the strip. The blank spacer above the footer
+        -- is the widget's, drawn only when a footer line survives the hover.
+        helpTooltip = {
+            title  = KCM.L["Macro bar"],
+            anchor = "ANCHOR_TOPRIGHT",
+            body   = {
+                KCM.L["Drag this handle to move the bar."],
+                KCM.L["Drag a button onto another to swap them."],
+                KCM.L["Drag a button off the bar to put its macro on an action bar."],
+            },
+            footer = {
+                KCM.L["Only Consumable Master macros can sit on this bar."],
+                function()
+                    local locked = (cfg() or {}).locked
+                    return locked
+                        and KCM.L["Locked. Unlock the bar to drag this handle — /cm unlock."]
+                        or KCM.L["Lock the bar to hide this handle — /cm lock."]
+                end,
+            },
+        },
+    }) or nil
+    -- Where the strip sits is this file's, so the anchor is set here. The widget
+    -- is born hidden and with no width; applyLock gives it both.
+    if handle then
+        handle:SetPoint("BOTTOM", frame, "TOP", 0, HANDLE_GAP)
+    end
 
     frame.handle = handle
 
@@ -287,13 +304,17 @@ local function applyLock()
     bar:EnableMouse(unlocked)
     if unlocked then bar.moveHint:Show() else bar.moveHint:Hide() end
     -- Handle is at least as wide as its own label, and never narrower than the
-    -- bar, so a one-button bar still gets a grabbable strip.
+    -- bar, so a one-button bar still gets a grabbable strip. Both halves of that
+    -- sentence are `ApplyWidth`: the widget measures its own label in the face it
+    -- draws it in and adds the clearance the help mark needs on each side, and
+    -- the bar's width is the floor it is held to. Nil-tolerant -- a bar with no
+    -- width yet floors at nothing and the strip takes its natural width.
+    --
+    -- Called from HERE and not from the widget: geometry beside a protected
+    -- frame is this file's to schedule (see the combat contract at the top).
     local handle = bar.handle
     if handle then
-        -- Label + padding + the help icon's own footprint, so a narrow bar's
-        -- handle never crowds the two together.
-        local textW = (handle.text:GetStringWidth() or 0) + HANDLE_PAD + HANDLE_HELP * 2
-        handle:SetWidth(math.max(textW, bar:GetWidth() or textW))
+        handle:ApplyWidth(bar:GetWidth())
         handle:SetShown(unlocked)
     end
 end
