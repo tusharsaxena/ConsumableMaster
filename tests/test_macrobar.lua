@@ -21,7 +21,8 @@ local h = _G.KCM_TEST
 local test = h.test
 
 -- `fcfg` is shared rather than copied — tests/macrobar_support.lua says why.
-local fcfg = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/macrobar_support.lua").fcfg
+local support = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/macrobar_support.lua")
+local fcfg = support.fcfg
 
 -- ---------------------------------------------------------------------------
 -- Model
@@ -611,43 +612,11 @@ end)
 -- function" would not: `function() end` satisfies it, and a build whose
 -- ApplyLock is a no-op is exactly the bug.
 
--- The container is a file-local in modules/MacroBar.lua, built lazily by the
--- first MB.Update() — so the only way to reach the frame the user actually sees
--- is to watch CreateFrame across that first build. Returns a plain record of the
--- four things applyLock()/applyVisibility() drive, none of which the shared
--- frame stub keeps for itself.
-local function buildMacroBar(KCM)
-    local mock = h.loader.mock
-    local seen = {}
-    local realCreate = _G.CreateFrame
-    local frames = {}
-    _G.CreateFrame = function(kind, name, parent, template)
-        local f = realCreate(kind, name, parent, template)
-        if name then frames[name] = f end
-        if name == "KCMMacroBar" then
-            -- wow_mock's CreateTexture answers from the frame's own metatable and
-            -- hands the FRAME back, so `bar.moveHint` would BE `bar` and the gold
-            -- unlocked wash could not be told apart from the bar's own
-            -- visibility. Hand out a distinct object for this one frame.
-            f.CreateTexture = function()
-                local tex = mock.makeStub()
-                tex.Show = function() seen.hintShown = true end
-                tex.Hide = function() seen.hintShown = false end
-                return tex
-            end
-        end
-        return f
-    end
-    KCM.MacroBar.Update()
-    _G.CreateFrame = realCreate
-
-    local bar, handle = frames.KCMMacroBar, frames.KCMMacroBarHandle
-    bar.EnableMouse = function(_, on) seen.mouseEnabled = on and true or false end
-    bar.Show        = function() seen.barVisible = true end
-    bar.Hide        = function() seen.barVisible = false end
-    handle.SetShown = function(_, on) seen.handleShown = on and true or false end
-    return seen, bar, handle
-end
+-- The bar frame, its handle and the record of what the lock drives — built by
+-- watching CreateFrame across the first MB.Update(). Shared with
+-- tests/test_macrobar_chrome.lua, which hovers the handle's two tooltips, so
+-- it lives in tests/macrobar_support.lua beside `fcfg` rather than here.
+local buildMacroBar = support.buildBar
 
 test("macrobar schema: locking and unlocking reaches the bar frame, whichever surface asked",
     function(t)

@@ -478,7 +478,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (13)
+### test_macrobar_chrome.lua (18)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -493,6 +493,11 @@ badge and any count quoted in the docs must agree with it.
 - macrobar label: the font FACE, FLAGS and SHADOW reach the FontString
 - macrobar label: the class-color companion repaints the label, alpha and all
 - macrobar button: an unresolvable class falls through to the stored swatch
+- macrobar handle: the strip's tooltip is the addon's, drawn above the strip itself
+- macrobar handle: the mark's tooltip is the bar's, drawn off the mark at its own anchor
+- macrobar handle: the strip and the mark draw two distinct tooltips
+- macrobar handle: the mark's lock line is re-read on every hover
+- macrobar handle: the mark holds its resting gray, because no click is wired here
 
 ### test_macrobar_buttons.lua (8)
 
@@ -1143,7 +1148,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 85 |
-| test_macrobar_chrome.lua | 13 |
+| test_macrobar_chrome.lua | 18 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
 | test_macromanager.lua | 49 |
@@ -1168,4 +1173,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **950** |
+| **Total** | **955** |
