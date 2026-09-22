@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_addbyid.lua (16)
+### test_addbyid.lua (19)
 
 - Add-by-ID: typing lists the category's candidates, every rank of a shared name its own row
 - Add-by-ID: a name the client cannot look up resolves through the category's candidates
@@ -24,6 +24,9 @@ badge and any count quoted in the docs must agree with it.
 - Add-by-ID: a picked row is asked of this addon's resolver, which can refuse it
 - Add-by-ID: under Spell the rows show the spell's subtext, and a pick stores the sentinel
 - Add-by-ID: changing Type redraws the line, so its list is the new kind's
+- Add-by-ID: adding a spell the selector can never pick says so; an item says nothing
+- Add-by-ID: a spell the class gate opens goes quiet for that class alone
+- Category page: the ready icon reads the selector's rule, class gate and all
 
 ### test_bagscanner.lua (12)
 
@@ -1121,7 +1124,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_addbyid.lua | 16 |
+| test_addbyid.lua | 19 |
 | test_bagscanner.lua | 12 |
 | test_bulklog.lua | 14 |
 | test_bus.lua | 11 |
@@ -1173,4 +1176,4 @@ badge and any count quoted in the docs must agree with it.
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
 | test_eol.lua | 1 |
-| **Total** | **955** |
+| **Total** | **958** |
