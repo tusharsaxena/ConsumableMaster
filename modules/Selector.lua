@@ -300,6 +300,21 @@ local function spellAvailable(id)
     return classFile == gate
 end
 
+--- Can this spell be picked AT ALL by the player as they are now?
+---
+--- PUBLISHED, because the settings panel asks the same question and was answering it differently.
+--- `settings/Category.lua`'s `isOwned` decides the ready / not-ready icon on a priority row, and it
+--- read `IsPlayerSpell` alone -- so a CLASS_GATE'd seed was drawn NOT OWNED to the very player the
+--- gate exists for. Primal Rage is the case: seeded gated to HUNTER, and it lives in the pet's
+--- book, so `IsPlayerSpell` is false for a hunter who can cast it. The panel contradicted the
+--- addon's own behavior on the one entry the gate was written for.
+---
+--- One predicate, published rather than copied. A second copy in the settings file would be free to
+--- drift from this one exactly as it already had.
+function S.SpellAvailable(id)
+    return spellAvailable(id)
+end
+
 function S.PickBestForCategory(catKey, specKey, scoreCache)
     local priority = S.GetEffectivePriority(catKey, specKey, scoreCache)
     if #priority == 0 then return nil end

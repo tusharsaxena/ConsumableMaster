@@ -91,9 +91,21 @@ local PICK_ICON      = "|TInterface\\COMMON\\FavoritesIcon:20|t"
 -- The spell-name lookup that used to head this section went to
 -- settings/CategoryAddByID.lua with the block that was its only caller.
 
+--- Does the player have this entry right now -- the priority row's ready / not-ready icon.
+---
+--- A SPELL IS THE SELECTOR'S QUESTION, NOT THIS FILE'S. It read `IsPlayerSpell` alone, which is
+--- only half the selector's rule: `spellAvailable` also accepts a spell the seed data gates to the
+--- player's class (`KCM.SEED.CLASS_GATE`), and Primal Rage is exactly that -- gated to HUNTER and
+--- living in the pet's book, so `IsPlayerSpell` is false for the hunter who can cast it. The row
+--- said NOT OWNED while the selector happily picked it.
+---
+--- Asked of `KCM.Selector.SpellAvailable` so there is one answer. A local copy of the gate would be
+--- a second one, free to drift from the selector's as this file's already had.
 local function isOwned(id)
     if not id then return false end
     if KCM.ID and KCM.ID.IsSpell(id) then
+        local S = KCM.Selector
+        if S and S.SpellAvailable then return S.SpellAvailable(id) and true or false end
         local sid = KCM.ID.SpellID(id)
         return sid and IsPlayerSpell and IsPlayerSpell(sid) or false
     end

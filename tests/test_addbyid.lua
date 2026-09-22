@@ -592,3 +592,101 @@ test("Add-by-ID: changing Type redraws the line, so its list is the new kind's",
     t.eq(KCM.Options._addKind.HP_POT, "SPELL", "the choice is stored")
     t.eq(redrawn, 1, "and the page is drawn again")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The two answers a spell gets: at the add, and on the row afterwards
+-- ---------------------------------------------------------------------------
+--
+-- Both come out of the audit against Aura Master's add controls. The add box here accepts any
+-- spell id the client can name, learned or not, while `Selector` only ever picks one that passes
+-- `SpellAvailable` -- so an unlearned id gave a clean add and a category that behaved as though
+-- the entry were not there. And the priority row's ready icon asked `IsPlayerSpell` alone, which
+-- is half the selector's rule: a seed gated to the player's class (`SEED.CLASS_GATE`) was drawn
+-- NOT OWNED to the very player the gate exists for.
+
+--- Capture every chat line KCM.Say is handed, formatted.
+local function recordSay(KCM)
+    local said = {}
+    local real = KCM.Say
+    KCM.Say = function(fmt, ...)
+        said[#said + 1] = select("#", ...) > 0 and tostring(fmt):format(...) or tostring(fmt)
+        return real and nil
+    end
+    return said
+end
+
+test("Add-by-ID: adding a spell the selector can never pick says so; an item says nothing",
+    function(t)
+        -- red under: addResolvedID storing and staying silent, the state before the audit
+        local KCM = loadCategorySettings()
+        loader.mock.setSpell(272678, { name = "Primal Rage", known = false })
+        loader.mock.setItem(960050, { name = "Quiet Biscuit", subType = "Food & Drink" })
+        loader.mock.setPlayerClass("MAGE")
+        local line = renderLine(KCM, "HP_POT")
+        recordAdds(KCM)
+        local said = recordSay(KCM)
+
+        KCM.Options._addKind.HP_POT = "SPELL"
+        line.submit("272678")
+        t.eq(#said, 1, "the unlearned spell is added, and the player is told it cannot be picked")
+        t.truthy(said[1]:find("Primal Rage", 1, true), "named, not numbered ('" .. said[1] .. "')")
+
+        KCM.Options._addKind.HP_POT = "ITEM"
+        line.submit("960050")
+        t.eq(#said, 1, "an item the player is not carrying is the control's purpose: no line")
+    end)
+
+test("Add-by-ID: a spell the class gate opens goes quiet for that class alone", function(t)
+    -- red under: sayIfUnpickable asking IsPlayerSpell rather than Selector.SpellAvailable
+    local KCM = loadCategorySettings()
+    local pet = KCM.ID.AsSpell(272678)
+    loader.mock.setSpell(272678, { name = "Primal Rage", known = false })  -- pet spellbook
+    KCM.SEED.CLASS_GATE = { [pet] = "HUNTER" }
+    loader.mock.setPlayerClass("HUNTER")
+    local line = renderLine(KCM, "HP_POT")
+    recordAdds(KCM)
+    local said = recordSay(KCM)
+
+    KCM.Options._addKind.HP_POT = "SPELL"
+    line.submit("272678")
+    t.eq(#said, 0, "a hunter can cast it, so there is nothing to warn about")
+end)
+
+test("Category page: the ready icon reads the selector's rule, class gate and all", function(t)
+    -- red under: isOwned calling IsPlayerSpell itself -- NOT OWNED for the hunter who can cast it
+    local pet = 272678
+
+    local function ownedFor(classFile)
+        local KCM = loadCategorySettings()
+        local sentinel = KCM.ID.AsSpell(pet)
+        loader.mock.setSpell(pet, { name = "Primal Rage", known = false })
+        KCM.SEED.CLASS_GATE = { [sentinel] = "HUNTER" }
+        KCM.Selector.GetBucket("HP_POT").added[sentinel] = true
+        loader.mock.setPlayerClass(classFile)
+
+        local rows = {}
+        local AceGUI = LibStub("AceGUI-3.0")
+        local real = AceGUI.Create
+        AceGUI.Create = function(self, kind)
+            local w = real(self, kind)
+            if kind == "KCMItemRow" then
+                w.SetCustomData = function(_, data) rows[#rows + 1] = data end
+            end
+            return w
+        end
+        KCM.Settings.builders["macros"]({})
+        local ctx = KCM.Settings.Helpers.instance.__panelFor("macros")
+        KCM.Options.SetMacroTab("HP_POT")
+        ctx.panel.IsShown = function() return true end
+        KCM.Settings.Helpers.RefreshAllPanels()
+        AceGUI.Create = real
+
+        for _, data in ipairs(rows) do
+            if data.itemID == sentinel then return data.owned end
+        end
+        return nil, #rows
+    end
+
+    t.eq(ownedFor("HUNTER"), true, "the class the gate was written for has it")
+    t.eq(ownedFor("MAGE"), false, "nobody else does -- the same answer the selector gives")
+end)

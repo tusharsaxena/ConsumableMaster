@@ -271,12 +271,41 @@ end
 -- under either order. A spec-aware tab with no spec never gets here: its
 -- resolver refuses first, and it draws no suggestions. A picked suggestion
 -- arrives without the resolver, so the kind's existence check runs here too.
+--- Say so when the spell just added can never be picked.
+---
+--- THE ADD IS ACCEPTED EITHER WAY. A player may legitimately seed a spell they are about to learn,
+--- or one on a character they are configuring from another -- and the selector re-asks the question
+--- every time it picks, so an entry that cannot be used today works the moment it can. Refusing
+--- would make a correct configuration unreachable, which is the same rule Aura Master's cast-to-aura
+--- seam follows and for the same reason.
+---
+--- WHAT IT REPLACES IS SILENCE. The kind accepts any spell id the client can name -- every valid
+--- spellID in the game, learned or not -- while the selector only ever picks one that passes
+--- `Selector.SpellAvailable`. So a real but unlearned id gave a clean add, a correct name and icon
+--- in the list, and a category that behaved as though the entry were not there. The row's NOT OWNED
+--- icon was the only signal, and it is the same icon an item you merely are not carrying gets:
+--- temporary and expected for an item, permanent for a spell you will never learn.
+---
+--- ITEMS GET NOTHING HERE. Seeding an item you do not carry is the documented purpose of this
+--- control, so the same line over an item would be noise on the common case.
+local function sayIfUnpickable(id)
+    if not (KCM.ID and KCM.ID.IsSpell and KCM.ID.IsSpell(id)) then return end
+    local S = KCM.Selector
+    if not (S and S.SpellAvailable) then return end
+    if S.SpellAvailable(id) then return end
+    local name = KCM.ID.SpellID and C_Spell and C_Spell.GetSpellName
+        and C_Spell.GetSpellName(KCM.ID.SpellID(id))
+    KCM.Say(L["%s is added, but you cannot cast it, so it will never be picked."],
+        name or tostring(id))
+end
+
 local function addResolvedID(cat, specKey, id)
     local kind = addKindOf(cat)
     if type(id) ~= "number" or id <= 0 or not kind.exists(id) then return end
     local changed = KCM.Selector and KCM.Selector.AddItem
         and KCM.Selector.AddItem(cat.key, kind.store(id), specKey)
     if changed then
+        sayIfUnpickable(kind.store(id))
         C_Timer.After(0, function() afterMutation("options_add_item") end)
     end
 end
