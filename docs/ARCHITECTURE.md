@@ -25,88 +25,8 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 
 `ConsumableMaster.toc` is the load-order source of truth (dependency order, not alphabetical).
 
-### Files over the 1500-line cap
-
-`layout-§1` caps every **authored** `.lua` this repository tracks at 1500 lines — `tests/` included,
-with vendored code (`libs/`, `tests/_kit/`) the only carve-out that reaches anything here; nothing in
-this repo is generated non-shipping data, so the second carve-out has no instance. It gives a file
-over the cap three terminal states: peeled, an open issue naming the seam a peel would follow, or a
-ratified row in [Documented deviations](#documented-deviations) carrying a re-check trigger. What it
-does not allow is a breach nothing anywhere remarks on — "the count sitting in a bundle manifest that
-no document reads". This table is the remark, and it is why an audit **MUST NOT** re-file `layout-§1`
-against any file in it.
-
-**Nothing is over the cap today.** Both breaches this section was written for were peeled in
-2026-09: `tests/test_macrobar.lua` (2229) on the two cuts issue
-[#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) named, and
-`tests/test_settingsui.lua` (2028) on the one cut issue
-[#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) named. Measured 2026-09-16 with
-
-```
-git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
-```
-
-| File | Lines | Disposition |
-|---|---|---|
-
-**No authored file in this repository is over the cap.**
-
-That sentence is load-bearing rather than decorative. `tests/test_layout_cap.lua` reads it: a census
-with no rows and no such line is a failure, because an empty table and a table that has been quietly
-emptied look identical on the page and are not the same claim. Rows alongside that line are a failure
-too. The section itself stays whether or not there is a breach — it is where the rule is written
-down, and it is what an audit reads before re-filing `layout-§1` against anything here.
-
-**What the peel did**, for the next reader who wonders where a case went. Both were test suites, and
-both moved cases WHOLE — not one assertion changed, and the harness registers exactly the same
-cases it did before — the total did not move by one. (It has moved since, for unrelated reasons;
-`docs/test-cases.md` is the live count.)
-
-| Was | Is now |
-|---|---|
-| `tests/test_macrobar.lua` (2229) | `tests/test_macrobar.lua` (1425) — model, display, cooldowns, schema rows, click gating, the flyout's candidate list, master controls, the Defaults button |
-| | `tests/test_macrobar_layout.lua` (432) — the four pure-geometry sections: grid, label geometry, flyout placement, indicator clearance |
-| | `tests/test_macrobar_chrome.lua` (536) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, the `options-ui-§15/§16/§17` rows they honor, and the drag handle's two tooltips and mark tint |
-| | `tests/macrobar_support.lua` — not a suite: the fixtures (`fcfg`, `buildBar`) read on both sides of a seam, SHARED through a `rawget` guard rather than copied |
-| `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
-| | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (§13 strips, §18 reorder lists, §13 wrapped-strip geometry) |
-
-Two of the cuts moved off the line numbers the issues recorded, because both files grew after the
-issues were written. The macro bar's chrome block also had to take the three `options-ui-§15/§16/§17`
-cases that arrived after it, which use its `styleButton`/`firstCall` fixtures; the settings suite's
-cut is a middle slice rather than a tail, because two later blocks (the refresh debounce and the #35
-characterization cases) now sit below the conformance blocks. The seams themselves are the ones the
-issues named.
-
-**The 1000–1500 band is on notice, not in breach** (measured 2026-09-22, after the two peels below):
-`tests/test_macrobar.lua` (1425), `tests/test_slash.lua` (1322), `settings/Panel.lua` (1312),
-`tests/test_settingsui.lua` (1259), `settings/MacroBar.lua` (1166), `settings/Category.lua` (1141),
-`tests/test_schema.lua` (1023) and `tests/test_selector.lua` (1011). They are named here so a later
-reader can tell the band was looked at rather than missed; none needs a disposition until it
-crosses.
-
-**`settings/Panel.lua` was peeled on 2026-09-16 at 1488 lines**, twelve under the cap — close enough
-that the next ordinary edit would have breached it, and `docs/automated-tests/RESULTS.md` had carried
-it as *Accepted* across three consecutive releases, which `automated-tests-§4` refuses a fourth time.
-The cut is the seam the file's own section heading already drew: the schema-and-chrome half a page
-module calls while it BUILDS stayed, and the run-time `KCM.Options` shim — `Refresh`,
-`RequestRefresh`, `Open`, the refresh debounce and the three bus subscriptions that drive them — moved
-whole to `settings/OptionsShim.lua` (266), which the TOC loads immediately after it. Panel.lua is 1308.
-No behavior moved with it: not a comparison, a constant or a comment changed in the cut, and the two
-notice functions the shim still needs are published on `KCM.Settings` rather than copied, because one
-of them holds a said-once flag.
-
-**`settings/Category.lua` was peeled on the same day, at 1400 lines**, and for the same reason: three
-consecutive releases carrying it as *Accepted*, which `automated-tests-§4` refuses a fourth time. Its
-seam is the one the page actually has — everything else on the Macros page draws a list the addon
-already holds, and one block draws the control that puts something NEW into it. The Add-by-ID line,
-whole (the Type dropdown, the two ID kinds, this addon's resolver over `LibKa0s-Options-1.0`'s
-`IdInput`, the candidate set, the writer and `O.AddByIDBusy`), is `settings/CategoryAddByID.lua` (362)
-now; Category.lua is 1121. `makeDropdown` and `spellNameByID` went with it because the block was their
-only caller. The cut is two-way and deliberately thin: the new file takes exactly two of the page's
-helpers — `newRow` and `afterMutation` — off `KCM.Settings.MacrosPage`, published at load by
-Category.lua, and publishes one entry point back, `KCM.Settings.AddByID.Render`, which Category.lua
-calls at RENDER time, so neither file has a load-time dependency in the other direction.
+The over-cap census, *Files over the 1500-line cap*, sits under [Documented deviations](#documented-deviations),
+the parent `layout-§1` fixes for it.
 
 ## Module Map
 
@@ -492,3 +412,86 @@ opt-out wearing a table's clothes.
 | `preview-mode` | The macro bar shows no synthetic **placeholder** while unlocked, and has no preview verb to toggle | The rule's placeholder clause is a SHOULD, and it exists so a positionable display is never an invisible frame the user cannot aim. This bar cannot be that: every enabled slot draws a real button on every pass, and `core/MacroDisplay.lua`'s `MD.Texture` degrades pick icon → stored macro icon → `MD.FALLBACK_ICON` (`:26`), so a slot always has something to draw even with an empty bag and unhydrated item data. Unlocked is also already unmistakable without fake data — `modules/MacroBar.lua`'s `applyLock` shows a translucent gold wash over the whole frame and a labeled drag handle above it. A placeholder here would have to *replace* live, correct icons and counts with invented ones, and the bar's footprint is a function of the real slot count, so a preview would move the very thing being positioned. Bullet 3's MUST — clear the preview on re-lock or on the verb going off — has nothing to clear, because nothing is ever previewed. Audit finding `CM-67` | 2026-08-05 | The bar gaining any state in which a slot renders blank or the frame renders empty (a slot that draws nothing when a category has no candidate, an unlocked bar with every slot hidden), **or** a preview / test verb being added to `/cm` — either one re-arms the placeholder SHOULD and bullet 3's clear-on-re-lock MUST with it |
 
 **Retired on 2026-09-08.** The register carried a `toc-file-§5` row for the within-`core/` file sequence, filed as `CM-49` in `docs/audits/2026-08-04/`. The section has since said what its MUST binds: the **section-header** order is the rule, the file sequence inside a section is a reference implementation, and an addon whose bootstrap forces a different one states the reason in a comment in the TOC itself — at which point the ordering is *compliant* and "needs no deviation-register row" (`toc-file.md:129`). Those comments are at `ConsumableMaster.toc:51-57` and `:77-79` and have been since the row was written; the row was recording a departure from a rule that no longer exists to depart from, which is the graveyard `documentation-§3` forbids. `CM-71` in `docs/audits/2026-09-07/` is the finding that says so.
+
+### Files over the 1500-line cap
+
+`layout-§1` caps every **authored** `.lua` this repository tracks at 1500 lines — `tests/` included,
+with vendored code (`libs/`, `tests/_kit/`) the only carve-out that reaches anything here; nothing in
+this repo is generated non-shipping data, so the second carve-out has no instance. It gives a file
+over the cap three terminal states: peeled, an open issue naming the seam a peel would follow, or a
+ratified row in [Documented deviations](#documented-deviations) carrying a re-check trigger. What it
+does not allow is a breach nothing anywhere remarks on — "the count sitting in a bundle manifest that
+no document reads". This table is the remark, and it is why an audit **MUST NOT** re-file `layout-§1`
+against any file in it.
+
+**Nothing is over the cap today.** Both breaches this section was written for were peeled in
+2026-09: `tests/test_macrobar.lua` (2229) on the two cuts issue
+[#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) named, and
+`tests/test_settingsui.lua` (2028) on the one cut issue
+[#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) named. Measured 2026-09-16 with
+
+```
+git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
+```
+
+| File | Lines | Disposition |
+|---|---|---|
+
+**No authored file in this repository is over the cap.**
+
+That sentence is load-bearing rather than decorative. `tests/test_layout_cap.lua` reads it: a census
+with no rows and no such line is a failure, because an empty table and a table that has been quietly
+emptied look identical on the page and are not the same claim. Rows alongside that line are a failure
+too. The section itself stays whether or not there is a breach — it is where the rule is written
+down, and it is what an audit reads before re-filing `layout-§1` against anything here.
+
+**What the peel did**, for the next reader who wonders where a case went. Both were test suites, and
+both moved cases WHOLE — not one assertion changed, and the harness registers exactly the same
+cases it did before — the total did not move by one. (It has moved since, for unrelated reasons;
+`docs/test-cases.md` is the live count.)
+
+| Was | Is now |
+|---|---|
+| `tests/test_macrobar.lua` (2229) | `tests/test_macrobar.lua` (1425) — model, display, cooldowns, schema rows, click gating, the flyout's candidate list, master controls, the Defaults button |
+| | `tests/test_macrobar_layout.lua` (432) — the four pure-geometry sections: grid, label geometry, flyout placement, indicator clearance |
+| | `tests/test_macrobar_chrome.lua` (536) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, the `options-ui-§15/§16/§17` rows they honor, and the drag handle's two tooltips and mark tint |
+| | `tests/macrobar_support.lua` — not a suite: the fixtures (`fcfg`, `buildBar`) read on both sides of a seam, SHARED through a `rawget` guard rather than copied |
+| `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
+| | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (§13 strips, §18 reorder lists, §13 wrapped-strip geometry) |
+
+Two of the cuts moved off the line numbers the issues recorded, because both files grew after the
+issues were written. The macro bar's chrome block also had to take the three `options-ui-§15/§16/§17`
+cases that arrived after it, which use its `styleButton`/`firstCall` fixtures; the settings suite's
+cut is a middle slice rather than a tail, because two later blocks (the refresh debounce and the #35
+characterization cases) now sit below the conformance blocks. The seams themselves are the ones the
+issues named.
+
+**The 1000–1500 band is on notice, not in breach** (measured 2026-09-22, after the two peels below):
+`tests/test_macrobar.lua` (1425), `tests/test_slash.lua` (1322), `settings/Panel.lua` (1312),
+`tests/test_settingsui.lua` (1259), `settings/MacroBar.lua` (1166), `settings/Category.lua` (1141),
+`tests/test_schema.lua` (1023) and `tests/test_selector.lua` (1011). They are named here so a later
+reader can tell the band was looked at rather than missed; none needs a disposition until it
+crosses.
+
+**`settings/Panel.lua` was peeled on 2026-09-16 at 1488 lines**, twelve under the cap — close enough
+that the next ordinary edit would have breached it, and `docs/automated-tests/RESULTS.md` had carried
+it as *Accepted* across three consecutive releases, which `automated-tests-§4` refuses a fourth time.
+The cut is the seam the file's own section heading already drew: the schema-and-chrome half a page
+module calls while it BUILDS stayed, and the run-time `KCM.Options` shim — `Refresh`,
+`RequestRefresh`, `Open`, the refresh debounce and the three bus subscriptions that drive them — moved
+whole to `settings/OptionsShim.lua` (266), which the TOC loads immediately after it. Panel.lua is 1308.
+No behavior moved with it: not a comparison, a constant or a comment changed in the cut, and the two
+notice functions the shim still needs are published on `KCM.Settings` rather than copied, because one
+of them holds a said-once flag.
+
+**`settings/Category.lua` was peeled on the same day, at 1400 lines**, and for the same reason: three
+consecutive releases carrying it as *Accepted*, which `automated-tests-§4` refuses a fourth time. Its
+seam is the one the page actually has — everything else on the Macros page draws a list the addon
+already holds, and one block draws the control that puts something NEW into it. The Add-by-ID line,
+whole (the Type dropdown, the two ID kinds, this addon's resolver over `LibKa0s-Options-1.0`'s
+`IdInput`, the candidate set, the writer and `O.AddByIDBusy`), is `settings/CategoryAddByID.lua` (362)
+now; Category.lua is 1121. `makeDropdown` and `spellNameByID` went with it because the block was their
+only caller. The cut is two-way and deliberately thin: the new file takes exactly two of the page's
+helpers — `newRow` and `afterMutation` — off `KCM.Settings.MacrosPage`, published at load by
+Category.lua, and publishes one entry point back, `KCM.Settings.AddByID.Render`, which Category.lua
+calls at RENDER time, so neither file has a load-time dependency in the other direction.
