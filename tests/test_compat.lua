@@ -154,3 +154,120 @@ test("Compat.GetSpellName returns nil when nothing can resolve the id", function
     t.eq(KCM.Compat.GetSpellName(8103), nil,
         "callers pick their own placeholder rather than being handed a fake name")
 end)
+
+-- ---------------------------------------------------------------------------
+-- Characterization, written BEFORE core/Compat.lua moved onto
+-- LibKa0s-Compat-1.0 (docs/revendor/2026-09-23-v1.55.0/04_EXECUTION_PLAN.md). Each pins
+-- an output the host code produced, so the adoption has to reproduce it: return
+-- arity, the spec multi-return passed through untouched, and a guard that
+-- answers a real boolean.
+-- ---------------------------------------------------------------------------
+
+test("Compat.GetSpellName answers exactly one value on every rung and on a miss", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setSpell(8110, { name = "Arity" })
+    t.eq(select("#", KCM.Compat.GetSpellName(8110)), 1, "top rung: one value")
+    local savedName = _G.C_Spell.GetSpellName
+    _G.C_Spell.GetSpellName = nil
+    local mid = select("#", KCM.Compat.GetSpellName(8110))
+    _G.C_Spell.GetSpellName = savedName
+    t.eq(mid, 1, "middle rung: one value")
+    local savedSpell = _G.C_Spell
+    _G.C_Spell = nil
+    local legacy = select("#", KCM.Compat.GetSpellName(8110))
+    _G.C_Spell = savedSpell
+    t.eq(legacy, 1, "legacy rung: one value, never the global's rank or icon")
+    t.eq(select("#", KCM.Compat.GetSpellName(8111)), 1, "a miss is one nil")
+    t.eq(select("#", KCM.Compat.GetSpellName(nil)), 1, "a nil id is one nil")
+end)
+
+test("Compat.GetSpecializationInfo passes the rung's whole multi-return through", function(t)
+    local KCM = h.loader.loadPure()
+    _G.C_SpecializationInfo = {
+        GetSpecializationInfo = function(i)
+            return 1000 + i, "Modern", "desc", 136000, "DAMAGER", 4
+        end,
+    }
+    local out = { KCM.Compat.GetSpecializationInfo(2) }
+    local n = select("#", KCM.Compat.GetSpecializationInfo(2))
+    _G.C_SpecializationInfo = nil
+    t.eq(n, 6, "every value the client returned, no more and no fewer")
+    t.eqList(out, { 1002, "Modern", "desc", 136000, "DAMAGER", 4 }, "in the client's order")
+end)
+
+test("Compat.IsSecret normalizes the client's answer to a real boolean", function(t)
+    local KCM = h.loader.loadPure()
+    _G.issecretvalue = function(v) if v == "s" then return 1 end return nil end
+    local yes, no = KCM.Compat.IsSecret("s"), KCM.Compat.IsSecret("p")
+    _G.issecretvalue = nil
+    t.eq(yes, true, "a truthy non-boolean answer becomes true")
+    t.eq(no, false, "a nil answer becomes false, not nil")
+end)
+
+-- ---------------------------------------------------------------------------
+-- LibKa0s-Compat-1.0 (v1.55.0): what moving onto the major changed, on purpose
+-- ---------------------------------------------------------------------------
+
+-- red under: the host's own ladder, which compared every rung's answer with ""
+-- (the defect compat.md section 2.2 row 5 names). The fixture's secret is the
+-- plain string "" so the comparison the host made is observable: the host read
+-- it as "no answer yet" and fell through to the next rung, where a real 12.x
+-- client raises instead, in combat.
+test("Compat.GetSpellName returns a secret name untouched and ends the ladder", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setSpell(8120, { name = "Plain Name" })
+    local SECRET = ""
+    local savedName = _G.C_Spell.GetSpellName
+    _G.C_Spell.GetSpellName = function() return SECRET end
+    _G.issecretvalue = function(v) return v == SECRET end
+    local name = KCM.Compat.GetSpellName(8120)
+    _G.issecretvalue = nil
+    _G.C_Spell.GetSpellName = savedName
+    t.eq(name, SECRET, "the secret is the answer; the next rung is never asked")
+end)
+
+test("Compat.GetSpellName answers nil for an id outside the client's domain, asking no rung", function(t)
+    local KCM = h.loader.loadPure()
+    local calls = 0
+    local savedName = _G.C_Spell.GetSpellName
+    _G.C_Spell.GetSpellName = function() calls = calls + 1; return "Called" end
+    local tbl, bool = KCM.Compat.GetSpellName({}), KCM.Compat.GetSpellName(true)
+    _G.C_Spell.GetSpellName = savedName
+    t.eq(tbl, nil, "a table id answers nil")
+    t.eq(bool, nil, "a boolean id answers nil")
+    t.eq(calls, 0, "and the client was never called with either")
+end)
+
+-- The degraded load: libs/LibKa0s/ skipped for real (testing-§8), never
+-- the member stubbed. Readers answer the absent table (LibKa0s
+-- docs/api/Compat/version-1-docs.md, "The absent table"); the guard answers what
+-- the library answers under the same issecretvalue fixture; the two host-only
+-- class-ID readers are untouched by the library's absence.
+test("Compat degraded: readers answer nil, the guard still asks the client", function(t)
+    local live     = h.loader.loadPure()
+    local token    = {}
+    _G.issecretvalue = function(v) return v == token end
+    local liveHit, liveMiss = live.Compat.IsSecret(token), live.Compat.IsSecret(300)
+    _G.issecretvalue = nil
+
+    local KCM  = h.loader.loadPureDegraded()
+    local mock = h.loader.mock
+    mock.setSpell(8130, { name = "Would Resolve" })
+    local C = KCM.Compat
+    t.eq(C.GetSpecialization(), nil, "GetSpecialization: the absent value")
+    t.eq(select("#", C.GetSpecializationInfo(1)), 1, "GetSpecializationInfo: one value")
+    t.eq(C.GetSpecializationInfo(1), nil, "and it is nil")
+    t.eq(C.GetSpellName(8130), nil, "GetSpellName: nil, though the client would have answered")
+    t.eq(C.GetNumSpecializationsForClassID(7), 1, "the host-only spec count still reads the client")
+    t.eq((C.GetSpecializationInfoForClassID(7, 1)), 263, "and so does the host-only per-class reader")
+
+    t.eq(C.IsSecret(300), false, "the guard with no secrets system answers false")
+    _G.issecretvalue = function(v) return v == token end
+    local hit, miss = C.IsSecret(token), C.IsSecret(300)
+    _G.issecretvalue = nil
+    t.eq(hit, liveHit, "the guard arm agrees with the library on a secret")
+    t.eq(miss, liveMiss, "and on a plain value")
+    t.eq(hit, true, "which is true for the secret")
+end)

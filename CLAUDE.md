@@ -4,18 +4,21 @@
 
 ## Standards compliance (read first)
 
-This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
+This addon is built to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). All development here — features, refactors, doc changes — MUST conform to it. That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
 
-**Deviation rule (MUST).** If a change you are about to make would deviate from the standard — or you notice existing code that already deviates — **stop and flag it to the user**. Never silently diverge. Let the user decide whether it should be:
+**Deviation rule (MUST).** If a change you are about to make would deviate from the standard — or you notice existing code that already deviates — **stop and flag it to the user**. Do not silently deviate and do not silently "fix" to match. Let the user decide whether it should be:
 1. an **accepted deviation** — this addon intentionally differs; record it as a row in
    [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) → `## Documented deviations`, shaped
    `| Rule | What differs | Why | Decided | Re-check trigger |`, where Rule is the
    `filename-§N` reference. That register is the single home: the reasoning may live in the
    issue-audit GitHub issue or an audit bundle and the row cites it, but a deviation not in
    the register is not ratified; or
-2. a **change to the standard itself** — upstreamed to the [WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards) repo so every addon benefits.
+2. a **change to the standard itself** — the standard's definition should evolve; the update belongs
+   upstream in the [WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards) repo, after
+   which this addon conforms to the new rule.
 
-This applies to both new work and anything you discover in passing.
+This applies to both new work and anything you discover in passing. When in doubt, treat standard
+conformance as a hard requirement and ask.
 
 ## The `docs/` set — there is no `agent-context.md`
 
@@ -55,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.54.2 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.55.0 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
@@ -69,12 +72,14 @@ LibKa0s supplies the chat printer, the debug console, the slash dispatcher and s
 settings-panel shell, its row widgets and the schema composers behind the Master controls tab and the font / border / color blocks, the reorder drag behind the priority rows, a composite's two combat sections and the stat-priority list, the shipped art and font, the TOC-manifest reader behind
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
 harness, the minimap button and broker plugin behind `core/LauncherSetup.lua`, and the **latch** the
-disabled state and the perf harness's suspended arm are two named holds on. **Eleven** of its majors
-are consumed — `Widgets` joined them when the priority rows took the library's drag handle
+disabled state and the perf harness's suspended arm are two named holds on, plus the spec and spell
+ladders and the secret guard behind `KCM.Compat` and the stand-down record behind the bus. **Thirteen**
+of its majors are consumed — `Widgets` joined them when the priority rows took the library's drag handle
 (`settings/Category.lua`, `settings/StatPriority.lua`), `Launcher` joined at v1.39.0 with the
-launcher adoption, and `Lifecycle` at v1.41.0 with the stand-down
-([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)); `Pool` alone ships in the
-payload unused. It is vendored whole-folder
+launcher adoption, `Lifecycle` at v1.41.0 with the stand-down
+([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)), and `Compat` and `Bus` at
+v1.55.0; `Pool` and `Schema` ship in the payload unused (`Schema` deferred,
+[#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)). It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

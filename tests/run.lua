@@ -395,6 +395,17 @@ end
 
 local KCM_TEST = Kit.expose({ loader = L, T = T, mock = mock })
 
+-- Where Kit.assertSurfaceParity(stub, "<major>") looks a live major up. Kit.expose
+-- auto-wires `mock.LibStub` only when the mock carries one, and this addon's does
+-- not: tests/wow_mock.lua builds a fresh LibStub on every `mock.install` and
+-- publishes it as `_G.LibStub` alone. So the source is a callable that asks
+-- whichever LibStub the LAST build installed, at the moment of the call -- the
+-- by-name parity cases load their degraded arm first and their live arm last,
+-- and the live arm's registry is the one they mean.
+Kit.setSurfaceSource(function(name, silent)
+    return _G.LibStub and _G.LibStub(name, silent)
+end)
+
 -- Captured before any case installs the mock. `mock.install` replaces _G.print
 -- with the chat-output capture the suites assert on, and the kit's runner prints
 -- its PASS/FAIL/SKIP lines through the global — so the first case would silently
@@ -453,7 +464,6 @@ local SUITES = {
     "test_id",
     "test_libka0s",
     "test_launcher",
-    "test_layout_cap",
     "test_lintconfig",
     "test_load",
     "test_locale",
@@ -466,7 +476,6 @@ local SUITES = {
     "test_perfsetup",
     "test_pipeline",
     "test_profiles",
-    "test_prose",
     "test_ranker",
     "test_register",
     "test_runner_list",
@@ -482,12 +491,21 @@ local SUITES = {
     "test_vendor_sync",
     "test_weaponslots",
     "test_widgets",
-    -- The kit has shipped one suite of its own since revision 15: the working-tree
-    -- line-ending gate, over every path `git ls-files` reports. It lives where the rest
-    -- of the kit lives rather than being re-typed into nine repositories, so it is
-    -- declared with its own `dir`. Kit.assertSuiteInventory fails the run until it is
-    -- declared, so it cannot arrive with a re-vendor and then quietly run nothing.
-    { name = "test_eol", dir = ROOT .. "/tests/_kit/" },
+    -- The kit's own gates, each declared by the pair (basename, kit directory) in the
+    -- literal form testing-9 prescribes; kit revision 25 resolves the relative `dir`
+    -- against the runner's root, so an invocation by path still finds them. A bare
+    -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
+    -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive
+    -- with a re-vendor and then quietly run nothing. This repo wires the kit's copy of
+    -- each and keeps no hand-written one beside it: two gates over one rule is two
+    -- copies to keep whole (localization-5, layout-1).
+    --   test_eol        -- the working-tree line-ending gate (kit revision 15)
+    --   test_prose      -- the US-English prose gate (kit revision 24)
+    --   test_layout_cap -- the 1500-line cap gate over the census in
+    --                      docs/ARCHITECTURE.md (kit revision 25)
+    { name = "test_eol",        dir = "tests/_kit/" },
+    { name = "test_prose",      dir = "tests/_kit/" },
+    { name = "test_layout_cap", dir = "tests/_kit/" },
 }
 
 Kit.run({ dir = ROOT .. "/tests/", suites = SUITES })

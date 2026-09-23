@@ -69,6 +69,11 @@
 -- What the by-name form does buy is that it resolves the live half FOR REAL, so a
 -- stale seam name cannot be silently dropped. That half is taken, in `project`
 -- below — it is the part of the factory these four seams can actually use.
+--
+-- The two cases at the END of this file are the exception that proves the rule: KCM.Compat's
+-- wired members ARE LibKa0s-Compat-1.0's members, name for name, and core/Bus.lua's stub IS a
+-- stand-in for the LibKa0s-Bus-1.0 table, so both take the by-name form (tests/run.lua
+-- registers the surface source they need).
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -302,4 +307,46 @@ test("Parity: the LibKa0s-Options stub carries the whole live seam", function(t)
     local H = degraded.Settings.Helpers
     t.eq(type(H.RefreshAllPanels), "function", "RefreshAllPanels is callable degraded")
     t.eq(type(H.RefreshScalars), "function", "RefreshScalars is callable degraded")
+end)
+
+-- ── LibKa0s-Compat-1.0, at core/Compat.lua ─────────────────────────────────
+--
+-- The BY-NAME form, and the header's reason for the other four does not apply:
+-- KCM.Compat's wired members ARE the major's members, same names, one for one,
+-- so the kit resolves the live half itself (Kit.expose wired the mock's LibStub
+-- as the surface source; this runner registers none, so no runner edit).
+--
+-- The degraded arm is a real load with libs/LibKa0s/ skipped. `ignore` is the
+-- five members this addon does not wire, each because it has no caller here:
+--     git grep -n 'Compat\.\(CanAccess\|IsSafeKey\|GetSpellInfo\|GetSpellTexture\|GetSpellCooldown\)' -- core modules settings
+-- answers nothing. A member the major grows later is on neither list and fails
+-- here until this addon decides, which is the pressure the API document asks
+-- for (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires it").
+local COMPAT_NOT_WIRED = {
+    "CanAccess", "IsSafeKey", "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown",
+}
+
+test("Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires", function(t)
+    local degraded = h.loader.loadPureDegraded().Compat
+    local live     = h.loader.loadPure()
+    t.truthy(_G.LibStub("LibKa0s-Compat-1.0", true), "the live load registered the major")
+    h.assertSurfaceParity(degraded, "LibKa0s-Compat-1.0", COMPAT_NOT_WIRED)
+    t.eq(live.Compat.GetSpellName, _G.LibStub("LibKa0s-Compat-1.0").GetSpellName,
+        "and the live arm IS the library's member, not a host copy")
+end)
+
+-- ── LibKa0s-Bus-1.0, at core/Bus.lua ───────────────────────────────────────
+--
+-- By name, for the Compat case's reason: the stub core/Bus.lua takes with the
+-- major absent is a LIBRARY TABLE stand-in, `New` and `Catalog` exactly as the
+-- live major publishes them (LibKa0s docs/api/Bus/version-1-docs.md, "Worked
+-- example"). KCM._BusLib is whichever of the two the load resolved. No ignore
+-- list: this addon uses both members.
+test("Parity: the LibKa0s-Bus stub carries the major's whole surface", function(t)
+    local degraded = h.loader.loadPureDegraded()._BusLib
+    local live     = h.loader.loadPure()
+    t.truthy(degraded, "the degraded load published its stub")
+    t.ne(degraded, live._BusLib, "and it is not the live major")
+    t.eq(live._BusLib, _G.LibStub("LibKa0s-Bus-1.0"), "the live arm IS the library")
+    h.assertSurfaceParity(degraded, "LibKa0s-Bus-1.0")
 end)

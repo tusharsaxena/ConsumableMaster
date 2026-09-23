@@ -60,7 +60,7 @@ badge and any count quoted in the docs must agree with it.
 - bulk: the global reset inside an open bracket is still one line in all
 - bulk: a profile handler's line inside an open bracket is the one line, for a reset and a copy
 
-### test_bus.lua (11)
+### test_bus.lua (19)
 
 - bus, NewBusTarget, and message catalog are published
 - a target hears a message, then goes silent after unregister
@@ -73,6 +73,14 @@ badge and any count quoted in the docs must agree with it.
 - bus: the pipeline subscribes on its own target, never on KCM.bus
 - bus: RECOMPUTE with no reason still reaches the pipeline
 - bus: RECOMPUTE is inert while the pipeline entry point is missing
+- bus: StandDown drops every subscribed message and StandUp restores the same set
+- bus: a subscribe function runs once, on the target NewBusTarget returns
+- bus: RECOMPUTE still reaches the pipeline after a stand-down round trip
+- bus: a target built without a subscribe function is taken down and brought back
+- bus: a registration made while down is recorded and goes live only at stand-up
+- bus: a bare StandUp is refused while the latch still holds the addon down
+- bus: KCM.MSG is strict, so a mistyped key raises instead of going quiet
+- bus degraded: receivers still subscribe; the stand-down record is empty
 
 ### test_categories.lua (4)
 
@@ -100,7 +108,7 @@ badge and any count quoted in the docs must agree with it.
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 - classifier: keys on numeric subclass, not the localized subType
 
-### test_compat.lua (17)
+### test_compat.lua (23)
 
 - Compat.GetSpecialization returns the live spec index
 - Compat.GetSpecializationInfo maps an index to specID + name
@@ -119,6 +127,12 @@ badge and any count quoted in the docs must agree with it.
 - Compat.GetSpellName falls back to the C_Spell.GetSpellInfo shape
 - Compat.GetSpellName falls back to the deprecated global last
 - Compat.GetSpellName returns nil when nothing can resolve the id
+- Compat.GetSpellName answers exactly one value on every rung and on a miss
+- Compat.GetSpecializationInfo passes the rung's whole multi-return through
+- Compat.IsSecret normalizes the client's answer to a real boolean
+- Compat.GetSpellName returns a secret name untouched and ends the ladder
+- Compat.GetSpellName answers nil for an id outside the client's domain, asking no rung
+- Compat degraded: readers answer nil, the guard still asks the client
 
 ### test_constants.lua (12)
 
@@ -362,12 +376,6 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: a host with neither broker library does not raise
 - Launcher: the write seam owns the inversion, not the library
 - Launcher: no LibKa0s means no launcher at all, and no stub
-
-### test_layout_cap.lua (3)
-
-- layoutcap: every authored file over 1500 lines is named in the ARCHITECTURE.md census
-- layoutcap: no census row outlives the breach it records
-- layoutcap: every census row carries a disposition that can be followed
 
 ### test_lintconfig.lua (4)
 
@@ -686,11 +694,6 @@ badge and any count quoted in the docs must agree with it.
 - Profiles: a switch or copy rewrites a macro whose incoming fingerprint matches a body no longer live
 - Profiles: each profile act logs its one handler line, a switch included
 - Profiles: the open settings pages rebuild on the switch itself, not after the debounce
-
-### test_prose.lua (2)
-
-- prose: no authored file carries a British spelling from localization-§5's published list
-- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 
 ### test_ranker.lua (23)
 
@@ -1054,12 +1057,14 @@ badge and any count quoted in the docs must agree with it.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_surface_parity.lua (4)
+### test_surface_parity.lua (6)
 
 - Parity: the LibKa0s-Core stub carries the whole live seam
 - Parity: the LibKa0s-DebugLog stub carries the whole live seam
 - Parity: the LibKa0s-Slash stub carries the whole live seam
 - Parity: the LibKa0s-Options stub carries the whole live seam
+- Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires
+- Parity: the LibKa0s-Bus stub carries the major's whole surface
 
 ### test_tooltipcache.lua (23)
 
@@ -1116,9 +1121,44 @@ badge and any count quoted in the docs must agree with it.
 - Widgets: the score button lights no panel behind itself on hover
 - Widgets: the info glyph comes from the catalog, as LootHistory's does
 
-### test_eol.lua (1)
+### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
+- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+
+### test_prose.lua (15)
+
+- prose: no authored file carries a British spelling from localization-5's published list
+- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose self-test: the carve-out suppresses the named generated folder, and only it
+- prose self-test: a path the carve-out does not name is not covered by one that looks like it
+- prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
+- prose self-test: a TOC's file lines are read as paths, and its directives and comments are not
+- prose self-test: a .pkgmeta's ignore block is read, and the keys around it are not
+- prose self-test: an ignore entry covers a path exactly, by folder, and by wildcard
+- prose self-test: the carve-out admits a generated dump and refuses a file the TOC loads
+- prose self-test: a waiver-file exclusion meets the same two refusals as the carve-out
+- prose self-test: each list is refused on the matching rule its own scan uses
+- prose self-test: the scan and the refusals read the added exclusions through one reader
+- prose self-test: a narrowing is refused by what it suppresses, not by how it is written
+- prose self-test: the disclosure names what each entry suppressed, and says when it is bounded
+- prose self-test: a malformed waived is a failure, not a silence
+
+### test_layout_cap.lua (13)
+
+- layoutcap: every authored file over the 1500-line cap is named in the census
+- layoutcap: no census row outlives the breach it records
+- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: the census and the exempt set agree about which paths were exempted
+- layoutcap: an empty census is written as a result rather than left standing empty
+- layoutcap self-test: the parser reads the census nested under the register, and stops there
+- layoutcap self-test: a census outside its register, or at the wrong level, is not read
+- layoutcap self-test: an over-cap file missing from the census is reported, and an exempt one is not
+- layoutcap self-test: a census row that outlives its breach is reported
+- layoutcap self-test: an over-cap row that names no terminal state is reported
+- layoutcap self-test: the census and the exempt set are held to naming the same paths
+- layoutcap self-test: a census that states nothing is told apart from one that states none
+- layoutcap self-test: the exempt set takes folders as well as paths
 
 ## Totals
 
@@ -1127,10 +1167,10 @@ badge and any count quoted in the docs must agree with it.
 | test_addbyid.lua | 19 |
 | test_bagscanner.lua | 12 |
 | test_bulklog.lua | 14 |
-| test_bus.lua | 11 |
+| test_bus.lua | 19 |
 | test_categories.lua | 4 |
 | test_classifier.lua | 16 |
-| test_compat.lua | 17 |
+| test_compat.lua | 23 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
 | test_database.lua | 23 |
@@ -1146,7 +1186,6 @@ badge and any count quoted in the docs must agree with it.
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
 | test_launcher.lua | 16 |
-| test_layout_cap.lua | 3 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
@@ -1159,7 +1198,6 @@ badge and any count quoted in the docs must agree with it.
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
 | test_profiles.lua | 15 |
-| test_prose.lua | 2 |
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
@@ -1170,10 +1208,12 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 106 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
-| test_surface_parity.lua | 4 |
+| test_surface_parity.lua | 6 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
-| test_eol.lua | 1 |
-| **Total** | **958** |
+| test_eol.lua | 2 |
+| test_prose.lua | 15 |
+| test_layout_cap.lua | 13 |
+| **Total** | **998** |
