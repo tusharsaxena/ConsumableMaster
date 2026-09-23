@@ -4,7 +4,7 @@
 
 Tag `v1.55.0` -> `v1.56.0` (`514fc0a`), base taken from the `CLAUDE.md` provenance line and
 confirmed against the last payload commit (`34813a4`). Re-vendored in the RV-CM commit that carries
-this bundle. Fourteen files moved a LibStub minor, none was added or removed, and no `NEEDS_*`
+this bundle. Fifteen files moved a LibStub minor, none was added or removed, and no `NEEDS_*`
 floor rose (the per-file table is `01_DELTA.md` 3b/3c). Test kit revision 25 -> 26.
 
 No base correction: the v1.55.0 bundle states the right base (Step 0). No span bundle was written
