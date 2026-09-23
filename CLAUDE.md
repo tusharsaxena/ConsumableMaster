@@ -72,12 +72,14 @@ LibKa0s supplies the chat printer, the debug console, the slash dispatcher and s
 settings-panel shell, its row widgets and the schema composers behind the Master controls tab and the font / border / color blocks, the reorder drag behind the priority rows, a composite's two combat sections and the stat-priority list, the shipped art and font, the TOC-manifest reader behind
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
 harness, the minimap button and broker plugin behind `core/LauncherSetup.lua`, and the **latch** the
-disabled state and the perf harness's suspended arm are two named holds on. **Eleven** of its majors
-are consumed — `Widgets` joined them when the priority rows took the library's drag handle
+disabled state and the perf harness's suspended arm are two named holds on, plus the spec and spell
+ladders and the secret guard behind `KCM.Compat` and the stand-down record behind the bus. **Thirteen**
+of its majors are consumed — `Widgets` joined them when the priority rows took the library's drag handle
 (`settings/Category.lua`, `settings/StatPriority.lua`), `Launcher` joined at v1.39.0 with the
-launcher adoption, and `Lifecycle` at v1.41.0 with the stand-down
-([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)); `Pool` alone ships in the
-payload unused. It is vendored whole-folder
+launcher adoption, `Lifecycle` at v1.41.0 with the stand-down
+([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)), and `Compat` and `Bus` at
+v1.55.0; `Pool` and `Schema` ship in the payload unused (`Schema` deferred,
+[#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)). It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

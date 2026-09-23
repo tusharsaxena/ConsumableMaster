@@ -60,7 +60,7 @@ badge and any count quoted in the docs must agree with it.
 - bulk: the global reset inside an open bracket is still one line in all
 - bulk: a profile handler's line inside an open bracket is the one line, for a reset and a copy
 
-### test_bus.lua (11)
+### test_bus.lua (19)
 
 - bus, NewBusTarget, and message catalog are published
 - a target hears a message, then goes silent after unregister
@@ -73,6 +73,14 @@ badge and any count quoted in the docs must agree with it.
 - bus: the pipeline subscribes on its own target, never on KCM.bus
 - bus: RECOMPUTE with no reason still reaches the pipeline
 - bus: RECOMPUTE is inert while the pipeline entry point is missing
+- bus: StandDown drops every subscribed message and StandUp restores the same set
+- bus: a subscribe function runs once, on the target NewBusTarget returns
+- bus: RECOMPUTE still reaches the pipeline after a stand-down round trip
+- bus: a target built without a subscribe function is taken down and brought back
+- bus: a registration made while down is recorded and goes live only at stand-up
+- bus: a bare StandUp is refused while the latch still holds the addon down
+- bus: KCM.MSG is strict, so a mistyped key raises instead of going quiet
+- bus degraded: receivers still subscribe; the stand-down record is empty
 
 ### test_categories.lua (4)
 
@@ -100,7 +108,7 @@ badge and any count quoted in the docs must agree with it.
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 - classifier: keys on numeric subclass, not the localized subType
 
-### test_compat.lua (17)
+### test_compat.lua (23)
 
 - Compat.GetSpecialization returns the live spec index
 - Compat.GetSpecializationInfo maps an index to specID + name
@@ -119,6 +127,12 @@ badge and any count quoted in the docs must agree with it.
 - Compat.GetSpellName falls back to the C_Spell.GetSpellInfo shape
 - Compat.GetSpellName falls back to the deprecated global last
 - Compat.GetSpellName returns nil when nothing can resolve the id
+- Compat.GetSpellName answers exactly one value on every rung and on a miss
+- Compat.GetSpecializationInfo passes the rung's whole multi-return through
+- Compat.IsSecret normalizes the client's answer to a real boolean
+- Compat.GetSpellName returns a secret name untouched and ends the ladder
+- Compat.GetSpellName answers nil for an id outside the client's domain, asking no rung
+- Compat degraded: readers answer nil, the guard still asks the client
 
 ### test_constants.lua (12)
 
@@ -1043,12 +1057,14 @@ badge and any count quoted in the docs must agree with it.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_surface_parity.lua (4)
+### test_surface_parity.lua (6)
 
 - Parity: the LibKa0s-Core stub carries the whole live seam
 - Parity: the LibKa0s-DebugLog stub carries the whole live seam
 - Parity: the LibKa0s-Slash stub carries the whole live seam
 - Parity: the LibKa0s-Options stub carries the whole live seam
+- Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires
+- Parity: the LibKa0s-Bus stub carries the major's whole surface
 
 ### test_tooltipcache.lua (23)
 
@@ -1151,10 +1167,10 @@ badge and any count quoted in the docs must agree with it.
 | test_addbyid.lua | 19 |
 | test_bagscanner.lua | 12 |
 | test_bulklog.lua | 14 |
-| test_bus.lua | 11 |
+| test_bus.lua | 19 |
 | test_categories.lua | 4 |
 | test_classifier.lua | 16 |
-| test_compat.lua | 17 |
+| test_compat.lua | 23 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
 | test_database.lua | 23 |
@@ -1192,7 +1208,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash.lua | 106 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
-| test_surface_parity.lua | 4 |
+| test_surface_parity.lua | 6 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
@@ -1200,4 +1216,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **982** |
+| **Total** | **998** |
