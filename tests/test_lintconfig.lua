@@ -28,7 +28,7 @@
 -- IT FAILS RATHER THAN PASSES WHEN IT CANNOT LOOK. No `.luacheckrc`, an unreadable one, a chunk
 -- that will not compile or will not run, no `io.popen`, no git — every one of those is a failure,
 -- not a skip. A gate that goes quiet when it is blind reports success, which is worse than not
--- existing. Same bargain tests/test_prose.lua and tests/test_layout_cap.lua strike.
+-- existing. Same bargain tests/_kit/test_prose.lua and tests/_kit/test_layout_cap.lua strike.
 
 local h = _G.KCM_TEST
 local test, fail = h.test, h.fail

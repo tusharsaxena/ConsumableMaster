@@ -19,7 +19,7 @@
 --
 -- IT FAILS RATHER THAN PASSES WHEN IT CANNOT LOOK. An unreadable ARCHITECTURE.md, or a Conditional
 -- section this parser cannot find, is a failure and not a skip: a gate that goes quiet when it is
--- blind reports success. Same bargain tests/test_prose.lua and tests/_kit/test_eol.lua strike.
+-- blind reports success. Same bargain tests/_kit/test_prose.lua and tests/_kit/test_eol.lua strike.
 
 local h = _G.KCM_TEST
 local test, fail = h.test, h.fail

@@ -8,7 +8,7 @@
 
 local T = _G.KCM_TEST
 -- Every path in this suite is ROOT-relative, the convention tests/run.lua sets and
--- tests/test_layout_cap.lua follows: the runner can be invoked from anywhere.
+-- test_vendor_sync.lua follows: the runner can be invoked from anywhere.
 local ROOT = _G.KCM_TEST_ROOT or "."
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 

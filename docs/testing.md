@@ -143,17 +143,19 @@ merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/test_layout_cap.lua` compares two things: every authored `.lua` git tracks, and the
-census under *Files over the 1500-line cap* in [ARCHITECTURE.md](./ARCHITECTURE.md). It reads
-them in both directions, so a file that crosses the cap unremarked and a row left behind for a
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 25), which `layout-§1` makes
+the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
+census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
+[ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
+directions, so a file that crosses the cap unremarked and a row left behind for a
 file that has stopped breaching are each a red.
 
 `layout-§1` binds **every authored file the repository tracks**, `tests/` included; vendored
 code (`libs/`, `tests/_kit/`) is the only carve-out that reaches this repo. A red is cleared by
 giving the file one of the three terminal states the rule allows — peel it, open an issue naming
 the seam a peel would follow, or ratify a deviation row with a re-check trigger — and then adding
-its row to the census. It is not cleared by raising `CAP`, and it must not be cleared by dropping
-the suite from `SUITES`: `Kit.assertSuiteInventory` aborts the run on an undeclared suite file,
+its row to the census. It is not cleared by editing the vendored gate, and it must not be cleared
+by dropping the suite from `SUITES`: `Kit.assertSuiteInventory` aborts the run on an undeclared suite file,
 which is the point of having one.
 
 The line figures in the census are dated measurements and nothing asserts them, so an ordinary
@@ -161,7 +163,9 @@ edit to a large file does not redden this gate. Membership is the invariant, not
 
 ## The US-English prose gate
 
-`tests/test_prose.lua` reads every authored file git tracks — `.lua`, `.md`, `.toc` and
+`tests/_kit/test_prose.lua` — the kit's gate, wired in place of the hand-written copy this repo
+kept until test-kit revision 25, because a repo wires one or the other, never both — reads every
+authored file git tracks — `.lua`, `.md`, `.toc` and
 `.luacheckrc` — and reddens on a British spelling from the `BRITISH` list `localization-§5`
 publishes, after the `ALLOWED` US words that contain one of those substrings have been taken
 out as whole words.
@@ -176,7 +180,8 @@ Four exclusions, each named directory by directory or file by file inside the ga
 cannot grow by widening a pattern: vendored code (`libs/`, `tests/_kit/`); the frozen dated
 bundles under `docs/audits/`, `docs/automated-tests/`, `docs/perf-analysis/`, `docs/reviews/`
 and `docs/revendor/`; `locales/enGB.lua`, which is what a British locale file is for and which
-this addon does not ship; and the gate's own copy of the lists. `docs/superpowers/` is dated but
+this addon does not ship; and the gate's own file. A spelling this repo may not correct would go
+in an optional `tests/prose_waivers.lua`, per file and per word; there is none today. `docs/superpowers/` is dated but
 is authored prose people still read, so it stays in scope.
 
 The gate exists because the sweep alone did not hold. `M4-13` corrected 51 lines across 22 files

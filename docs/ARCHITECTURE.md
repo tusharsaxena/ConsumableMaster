@@ -434,12 +434,15 @@ against any file in it.
 git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
 ```
 
+and re-measured 2026-09-23 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
+`layoutcap:` cases; the largest authored file is `tests/test_macrobar.lua` at 1425 lines.
+
 | File | Lines | Disposition |
 |---|---|---|
 
 **No authored file in this repository is over the cap.**
 
-That sentence is load-bearing rather than decorative. `tests/test_layout_cap.lua` reads it: a census
+That sentence is load-bearing rather than decorative. `tests/_kit/test_layout_cap.lua` reads it: a census
 with no rows and no such line is a failure, because an empty table and a table that has been quietly
 emptied look identical on the page and are not the same claim. Rows alongside that line are a failure
 too. The section itself stays whether or not there is a breach — it is where the rule is written
