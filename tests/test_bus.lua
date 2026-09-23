@@ -127,7 +127,7 @@ end)
 
 -- ---------------------------------------------------------------------------
 -- Characterization, written BEFORE core/Bus.lua moved onto LibKa0s-Bus-1.0
--- (docs/revendor/2026-09-23/04_EXECUTION_PLAN.md). The output a stand-down
+-- (docs/revendor/2026-09-23-v1.55.0/04_EXECUTION_PLAN.md). The output a stand-down
 -- record produces is the REGISTRATION SET, so that is what is pinned, by name.
 -- ---------------------------------------------------------------------------
 

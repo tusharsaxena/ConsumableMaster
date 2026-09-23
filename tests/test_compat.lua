@@ -157,7 +157,7 @@ end)
 
 -- ---------------------------------------------------------------------------
 -- Characterization, written BEFORE core/Compat.lua moved onto
--- LibKa0s-Compat-1.0 (docs/revendor/2026-09-23/04_EXECUTION_PLAN.md). Each pins
+-- LibKa0s-Compat-1.0 (docs/revendor/2026-09-23-v1.55.0/04_EXECUTION_PLAN.md). Each pins
 -- an output the host code produced, so the adoption has to reproduce it: return
 -- arity, the spec multi-return passed through untouched, and a guard that
 -- answers a real boolean.
