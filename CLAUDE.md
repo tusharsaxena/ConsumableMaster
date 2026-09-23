@@ -4,18 +4,21 @@
 
 ## Standards compliance (read first)
 
-This addon conforms to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
+This addon is built to the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards)** (declared as `X-Standard` in `ConsumableMaster.toc`). All development here — features, refactors, doc changes — MUST conform to it. That repo is the source of truth for structure, naming, packaging, TOC layout, namespace/bus/compat patterns, and conventions. Frozen compliance audits live under `docs/audits/<date>/` (past code reviews under `docs/reviews/<date>/`).
 
-**Deviation rule (MUST).** If a change you are about to make would deviate from the standard — or you notice existing code that already deviates — **stop and flag it to the user**. Never silently diverge. Let the user decide whether it should be:
+**Deviation rule (MUST).** If a change you are about to make would deviate from the standard — or you notice existing code that already deviates — **stop and flag it to the user**. Do not silently deviate and do not silently "fix" to match. Let the user decide whether it should be:
 1. an **accepted deviation** — this addon intentionally differs; record it as a row in
    [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) → `## Documented deviations`, shaped
    `| Rule | What differs | Why | Decided | Re-check trigger |`, where Rule is the
    `filename-§N` reference. That register is the single home: the reasoning may live in the
    issue-audit GitHub issue or an audit bundle and the row cites it, but a deviation not in
    the register is not ratified; or
-2. a **change to the standard itself** — upstreamed to the [WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards) repo so every addon benefits.
+2. a **change to the standard itself** — the standard's definition should evolve; the update belongs
+   upstream in the [WowAddonStandards](https://github.com/tusharsaxena/WowAddonStandards) repo, after
+   which this addon conforms to the new rule.
 
-This applies to both new work and anything you discover in passing.
+This applies to both new work and anything you discover in passing. When in doubt, treat standard
+conformance as a hard requirement and ask.
 
 ## The `docs/` set — there is no `agent-context.md`
 
