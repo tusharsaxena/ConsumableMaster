@@ -77,7 +77,7 @@ scrolled to them.
 It is the **only** picker for that state, which is `§14`'s rule — a banner replaces a picker, it never
 mirrors one. The spec-aware tabs on the Macros page (Flask, Combat Potion, Stat Food, Weapon Enchant)
 therefore **state** the viewed spec as a sentence and offer no second picker of their own; two
-controls over one piece of session state is a synchronisation problem the design would have invented
+controls over one piece of session state is a synchronization problem the design would have invented
 and then owned forever.
 
 ### `Helpers` is a live view, not a snapshot
