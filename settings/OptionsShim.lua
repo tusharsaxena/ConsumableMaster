@@ -249,8 +249,8 @@ end
 -- dirty), so it costs one page, once (options-ui-§11).
 -- ---------------------------------------------------------------------
 --
--- THE THREE ARE HANDED IN AS A SUBSCRIBE FUNCTION (core/Bus.lua), not installed
--- here, because the stand-down has to be able to drop them and put them back.
+-- THE THREE SIT ON A TRACKED BUS TARGET (core/Bus.lua, LibKa0s-Bus-1.0), because
+-- the stand-down has to be able to drop them and put them back.
 -- The PANEL and its category registration SURVIVE the disabled state -- they are
 -- setup, not features (slash-commands-§7) -- but these three registrations are
 -- not the panel: they are the pipeline's route into it, and the pipeline is what

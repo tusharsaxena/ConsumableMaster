@@ -26,7 +26,7 @@
 --       icons and counts only, and a new profile needs the bar re-applied whole
 --       (anchor, grid, order, shown slots, lock, enabled).
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 
 local AceEvent = LibStub("AceEvent-3.0")
@@ -34,54 +34,103 @@ local AceEvent = LibStub("AceEvent-3.0")
 KCM.bus = KCM.bus or {}
 AceEvent:Embed(KCM.bus)
 
+-- THE STAND-DOWN RECORD IS LibKa0s-Bus-1.0's (LibKa0s v1.55.0). Every target
+-- KCM.NewBusTarget hands out is a TRACKED target: the library wraps its six
+-- register/unregister members and keeps a record of what it holds, so
+-- KCM.Bus.StandDown takes every registration down -- messages and events, on
+-- every target, whether or not it came with a subscribe function -- and
+-- KCM.Bus.StandUp replays the record as it is NOW. A registration made while
+-- the bus is down is recorded and goes live at the stand-up, so "a stood-down
+-- addon registers nothing" holds for every receiver rather than for the ones
+-- that remembered to hand in a function (slash-commands-§7).
+--
+-- With the major absent (a partial or missing libs/LibKa0s/, which
+-- core/CoreSetup.lua already announces) this file takes the untracked-target
+-- stub the Bus API document's "Worked example" prints and options-ui-§1 names:
+-- each receiver still gets a private AceEvent target, but nothing is recorded,
+-- so on that install a disable leaves the bus registrations live
+-- (docs/ARCHITECTURE.md, Known Limitations).
+local Bus = LibStub("LibKa0s-Bus-1.0", true)
+if not Bus then
+    Bus = {
+        New = function(_, d)
+            return {
+                name = d and d.name,
+                NewTarget = function()
+                    local ace = LibStub("AceEvent-3.0", true)
+                    if not ace then return nil end
+                    local t = {}
+                    ace:Embed(t)
+                    return t
+                end,
+                StandDown = function() return 0 end,
+                StandUp   = function() return 0, {} end,
+            }
+        end,
+        Catalog = function(_, messages) return messages end,
+    }
+end
+-- Published so tests/test_surface_parity.lua can hold the stub to the live
+-- surface; nothing in the addon reads it.
+KCM._BusLib = Bus
+
+-- The record asks the latch through a closure: core/LifecycleSetup.lua builds
+-- KCM.IsStoodDown, and this file runs before anything can call it. Inside the
+-- latch's own standUp callback the latch has already recorded the edge, so the
+-- replay proceeds; anywhere else while a hold is taken, a bare stand-up of the
+-- registrations is refused.
+KCM.busRecord = Bus:New({
+    name   = addonName,
+    isDown = function() return KCM.IsStoodDown ~= nil and KCM.IsStoodDown() end,
+})
+
 -- Each receiver owns its own embedded target so unregister is isolated and no
 -- two subscriptions ever share one table.
--- THE SUBSCRIBE FUNCTION IS THE STAND-DOWN SEAM (slash-commands-§7). A caller
--- hands in the function that installs its registrations rather than installing
--- them itself, and this file REMEMBERS it. That is what makes the bus half of
--- `disabled` reversible: KCM.Bus.StandDown drops every message registration the
--- addon owns -- actually unregistered, not gated -- and KCM.Bus.StandUp replays
--- each subscribe function to rebuild them from the settings AS THEY ARE NOW.
--- A receiver that registered its own messages inline would be the one survivor
--- of every stand-down, and nothing would say so.
 --
--- The argument is optional so a caller with nothing to replay (a bare target a
--- test builds) still gets one; such a target is not recorded.
-local subscriptions = {}
-
+-- The subscribe function is optional and kept for the call sites that already
+-- hand one in: it runs once, now, on the new target. It is no longer what makes
+-- the stand-down reversible -- the record is -- so a receiver that registers on
+-- its target later, inline, is taken down and brought back like any other.
 function KCM.NewBusTarget(subscribe)
-    local t = {}
-    AceEvent:Embed(t)
-    if type(subscribe) == "function" then
-        subscriptions[#subscriptions + 1] = { target = t, subscribe = subscribe }
-        subscribe(t)
-    end
+    local t = KCM.busRecord:NewTarget()
+    if type(subscribe) == "function" and t then subscribe(t) end
     return t
 end
 
 KCM.Bus = KCM.Bus or {}
 
---- Drop every message registration the addon owns. Called from the latch's
---- standDown (core/LifecycleSetup.lua), never directly, and never gated: an
---- early-returning handler is a draw gate, not a stand-down (anti-pattern #85).
+--- Drop every registration the addon's bus targets hold. Called from the
+--- latch's standDown (core/LifecycleSetup.lua), never directly, and never gated:
+--- an early-returning handler is a draw gate, not a stand-down (anti-pattern
+--- #85). Answers the number of recorded registrations it took down.
 function KCM.Bus.StandDown()
-    for _, rec in ipairs(subscriptions) do
-        if rec.target.UnregisterAllMessages then rec.target:UnregisterAllMessages() end
-    end
+    return KCM.busRecord:StandDown()
 end
 
---- Re-install them, in the order they were declared at load.
+--- Re-install them from the record as it is now, in creation order. An entry
+--- the client refuses on the replay is dropped and named on the debug console
+--- rather than raised, so the rest of the latch's standUp still runs. Answers
+--- the number of registrations made live.
 function KCM.Bus.StandUp()
-    for _, rec in ipairs(subscriptions) do rec.subscribe(rec.target) end
+    local replayed, rejected = KCM.busRecord:StandUp()
+    if rejected and #rejected > 0 and KCM.Debug then
+        KCM.Debug("Bus", "rejected on stand-up: %s", table.concat(rejected, ", "))
+    end
+    return replayed
 end
 
-KCM.MSG = {
+-- The declare-once table (architecture-§4), validated at load by the library's
+-- Catalog: every wire name carries the Ka0s_ConsumableMaster_ prefix and a
+-- PascalCase event, and no two keys share one. What comes back is STRICT: reading
+-- a key that is not declared raises at the call site, for a publisher as well as
+-- a subscriber.
+KCM.MSG = Bus.Catalog(addonName, {
     RECOMPUTE         = "Ka0s_ConsumableMaster_Recompute",
     PANEL_REFRESH     = "Ka0s_ConsumableMaster_PanelRefresh",
     SPEC_CHANGED      = "Ka0s_ConsumableMaster_SpecChanged",
     MACROBAR_REFRESH  = "Ka0s_ConsumableMaster_MacroBarRefresh",
     PROFILE_CHANGED   = "Ka0s_ConsumableMaster_ProfileChanged",
-}
+})
 
 -- The pipeline owns the ONLY subscription to RECOMPUTE and forwards it to the
 -- frame-coalescing entry point. Registered at load so it is live before the

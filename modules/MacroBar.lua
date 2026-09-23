@@ -579,8 +579,9 @@ end
 -- takes the disable path when the incoming profile has the bar off, and defers
 -- itself wholesale to regen in combat, exactly as for any other caller.
 -- ---------------------------------------------------------------------------
--- Handed in as a SUBSCRIBE FUNCTION (core/Bus.lua) so the latch can drop both
--- registrations on the way down and replay them on the way back up. The bar is
+-- Registered on a TRACKED bus target (core/Bus.lua, LibKa0s-Bus-1.0) so the
+-- latch drops both registrations on the way down and replays them on the way
+-- back up. The bar is
 -- the one thing this addon draws, so these are feature registrations in the
 -- plainest sense (slash-commands-§7).
 if KCM.NewBusTarget and KCM.MSG and KCM.MSG.MACROBAR_REFRESH then
