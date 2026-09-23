@@ -34,7 +34,7 @@ local KCM = NS
 KCM.Categories = KCM.Categories or {}
 
 -- Build a category's empty-state macro body from the shared KCM.PREFIX so
--- there is no inline chat-tag literal here (standard section 7.4).
+-- there is no inline chat-tag literal here (slash-commands-§4).
 local function emptyMacro(msg)
     return ("/run print('%s %s')"):format(KCM.PREFIX, msg)
 end
