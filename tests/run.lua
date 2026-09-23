@@ -395,6 +395,17 @@ end
 
 local KCM_TEST = Kit.expose({ loader = L, T = T, mock = mock })
 
+-- Where Kit.assertSurfaceParity(stub, "<major>") looks a live major up. Kit.expose
+-- auto-wires `mock.LibStub` only when the mock carries one, and this addon's does
+-- not: tests/wow_mock.lua builds a fresh LibStub on every `mock.install` and
+-- publishes it as `_G.LibStub` alone. So the source is a callable that asks
+-- whichever LibStub the LAST build installed, at the moment of the call -- the
+-- by-name parity cases load their degraded arm first and their live arm last,
+-- and the live arm's registry is the one they mean.
+Kit.setSurfaceSource(function(name, silent)
+    return _G.LibStub and _G.LibStub(name, silent)
+end)
+
 -- Captured before any case installs the mock. `mock.install` replaces _G.print
 -- with the chat-output capture the suites assert on, and the kit's runner prints
 -- its PASS/FAIL/SKIP lines through the global — so the first case would silently

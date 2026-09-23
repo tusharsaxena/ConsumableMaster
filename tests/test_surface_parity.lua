@@ -69,6 +69,10 @@
 -- What the by-name form does buy is that it resolves the live half FOR REAL, so a
 -- stale seam name cannot be silently dropped. That half is taken, in `project`
 -- below — it is the part of the factory these four seams can actually use.
+--
+-- The case at the END of this file is the exception that proves the rule: KCM.Compat's
+-- wired members ARE LibKa0s-Compat-1.0's members, name for name, so it takes the by-name
+-- form (tests/run.lua registers the surface source it needs).
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -302,4 +306,30 @@ test("Parity: the LibKa0s-Options stub carries the whole live seam", function(t)
     local H = degraded.Settings.Helpers
     t.eq(type(H.RefreshAllPanels), "function", "RefreshAllPanels is callable degraded")
     t.eq(type(H.RefreshScalars), "function", "RefreshScalars is callable degraded")
+end)
+
+-- ── LibKa0s-Compat-1.0, at core/Compat.lua ─────────────────────────────────
+--
+-- The BY-NAME form, and the header's reason for the other four does not apply:
+-- KCM.Compat's wired members ARE the major's members, same names, one for one,
+-- so the kit resolves the live half itself (Kit.expose wired the mock's LibStub
+-- as the surface source; this runner registers none, so no runner edit).
+--
+-- The degraded arm is a real load with libs/LibKa0s/ skipped. `ignore` is the
+-- five members this addon does not wire, each because it has no caller here:
+--     git grep -n 'Compat\.\(CanAccess\|IsSafeKey\|GetSpellInfo\|GetSpellTexture\|GetSpellCooldown\)' -- core modules settings
+-- answers nothing. A member the major grows later is on neither list and fails
+-- here until this addon decides, which is the pressure the API document asks
+-- for (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires it").
+local COMPAT_NOT_WIRED = {
+    "CanAccess", "IsSafeKey", "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown",
+}
+
+test("Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires", function(t)
+    local degraded = h.loader.loadPureDegraded().Compat
+    local live     = h.loader.loadPure()
+    t.truthy(_G.LibStub("LibKa0s-Compat-1.0", true), "the live load registered the major")
+    h.assertSurfaceParity(degraded, "LibKa0s-Compat-1.0", COMPAT_NOT_WIRED)
+    t.eq(live.Compat.GetSpellName, _G.LibStub("LibKa0s-Compat-1.0").GetSpellName,
+        "and the live arm IS the library's member, not a host copy")
 end)
