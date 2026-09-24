@@ -381,44 +381,17 @@ function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
         tostring(reason), tostring(rewrote), tostring(total), tostring(skipped))
 end
 
--- Wipe every user customization and restore from dbDefaults — category
--- buckets, stat-priority overrides, and the master enable flag. The profile
--- reset empties macroState with everything else; the resync below re-issues
--- every macro, which rebuilds each fingerprint, so live macros stay valid.
--- Shared by the Options panel's
--- "Reset all priorities" execute and the /cm reset StaticPopup — both
--- paths land here to keep semantics identical regardless of entry point.
---
--- After the DB wipe we drive a full resync (not just a RequestRecompute):
--- tooltip cache invalidation, auto-discovery pass, then an immediate
--- Recompute. The cache invalidation clears any stale `pending` entries
--- from the prior session, auto-discovery re-fills the `discovered` set
--- which we just wiped, and Recompute rewrites every macro body.
---
--- Why Recompute (immediate) and not RequestRecompute (next-frame): the user
--- just clicked "reset" and expects the panel and macros to refresh now. The
--- combat-guard contract is upheld transitively — Recompute → MacroManager,
--- and MacroManager.SetMacro / SetCompositeMacro are the only protected-API
--- callers and they early-out on InCombatLockdown(), enqueuing the write for
--- PLAYER_REGEN_ENABLED to flush. If a future module ever calls a protected
--- API outside MacroManager, this path becomes a taint hazard and the choice
--- of immediate-vs-deferred recompute would need to be re-evaluated.
---
--- Returns true if the DB was mutated; callers that want user feedback
--- should print their own confirmation message.
--- The DB half of the reset: every persisted customization back to its shipped
--- value. CopyTable, never an alias — aliasing dbDefaults would let a later user
--- edit corrupt the defaults for the rest of the session.
--- `restoreProfileDefaults` USED TO LIVE HERE, naming three profile keys by hand:
+-- A hand-written reset USED TO LIVE HERE, naming three profile keys by hand:
 -- categories, statPriority and the master enable. That was the whole profile as
 -- this addon knew it when the function was written, and it is the shape that
 -- quietly stops being true -- anything a later version stores beside them
 -- survived a reset that took everything around it.
 --
--- The reset is `db:ResetProfile()` now (options-ui-§12). AceDB empties the profile
--- IN PLACE, so anything holding KCM.db.profile keeps the live table, and merges
--- KCM.dbDefaults.profile back over it -- which restores those three and everything
--- else, without a list here to keep current.
+-- The reset is `db:ResetProfile()` now, inside KCM.ResetAllToDefaults below
+-- (options-ui-§12). AceDB empties the profile IN PLACE, so anything holding
+-- KCM.db.profile keeps the live table, and merges KCM.dbDefaults.profile back
+-- over it -- which restores those three and everything else, without a list
+-- here to keep current.
 
 -- The resync half. Order matters: invalidate → discover → recompute, so
 -- discovery sees a cleared cache and recompute sees the refreshed discovered

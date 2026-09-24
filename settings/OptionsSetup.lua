@@ -156,13 +156,10 @@ KCM.Settings.VetoedFromResetAll = vetoedFromResetAll
 -- button-pair inset, the scroll insets, the 20px gutter, the thumb tints, the
 -- breadcrumb atlas) and they are identical, so nothing moves on screen.
 --
--- Adopted in PARTS, deliberately. The schema-row widget makers in
--- settings/Panel.lua are NOT the library's: its dropdown reads `values` as a key
--- map where ours is an ordered array of { value =, text = }, its color picker
--- defaults hasAlpha to false where ours defaults it to true (all seven pickers
--- would lose their alpha slider), and its slider commits on mouse-up where ours
--- commits live — which is the whole point of the Macro Bar page's drag preview.
--- Recorded in closed issue #22 (LIBKA0S-04).
+-- The schema-row widget makers are the library's too, since LIBKA0S-04 (issue
+-- #22). What this addon's own makers once knew and the library cannot guess --
+-- the positional color shape, the live slider commit -- is handed to it on the
+-- instance below, not kept in a second set of makers.
 
 local optionsLib = LibStub and LibStub("LibKa0s-Options-1.0", true)
 local UI

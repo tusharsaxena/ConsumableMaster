@@ -22,8 +22,8 @@
 local _, NS = ...
 local KCM = NS
 
--- Same secret-safe seam as the verb file (core/Constants.lua): the [CM] tag is
--- unconditional and a combat "secret" can never raise mid-line.
+-- Same secret-safe seam as the verb file (KCM.Say, defined in
+-- core/CoreSetup.lua): the [CM] tag is unconditional and a combat "secret" can never raise mid-line.
 local say = KCM.Say
 
 -- The locale seam (localization-§1) is no longer reached from this file. The one
@@ -285,24 +285,14 @@ local COMMANDS = {
 -- The disabled state: a feature verb refuses, ONCE, in one place
 -- ---------------------------------------------------------------------------
 --
--- slash-commands-§2 SHOULDs it and now says it precisely enough to implement: a
--- verb that DRIVES THE ADDON'S FEATURES answers, while `enabled` is false, on ONE
--- tagged line naming `/cm enable`, and does nothing else. Acting is the wrong
--- answer twice over -- the player asked for something the addon is currently
--- standing down from doing, and a silent no-op leaves them with no clue why
--- nothing happened. This addon's no-op really is silent: `macrosEnabled()` gates
--- the macro write pass (core/ConsumableMaster.lua), so `/cm resync` while
--- disabled already printed "recomputed all categories." over a pass that wrote
--- nothing.
+-- slash-commands-§2: a verb that DRIVES THE ADDON'S FEATURES answers, while
+-- `enabled` is false, on ONE tagged line naming `/cm enable`, and does nothing
+-- else -- acting, or a silent no-op, both leave the player with no clue why.
 --
--- THE GATE IS AT THE TABLE, NOT IN THE VERBS, and that is the whole design. A
--- guard pasted into each of the six bodies is six places to forget, and the
--- seventh verb somebody adds forgets it by DEFAULT. Wrapping here inverts that:
--- a new verb is gated unless its name is added to the live set below, which is
--- the direction an omission should fail in. It also covers BOTH dispatch arms for
--- free -- Sl:OnSlash and degradedDispatch each look the verb up in this same
--- table and call entry[3] -- so a disabled addon answers identically whether
--- LibKa0s loaded or not.
+-- The gate is LibKa0s-Slash-1.0's (see "THE GATE IS THE LIBRARY'S NOW" below),
+-- so a verb is gated unless its name is in the live set below, which is the
+-- direction an omission should fail in. It covers the library's OnSlash only:
+-- degradedDispatch, the library-absent arm at the foot of this file, has no gate.
 --
 -- THE LIVE SET, NAMED ONCE AS DATA. slash-commands-§2 fixes twelve of these, and
 -- the reasoning is that a player must be able to READ AND REPAIR SETTINGS and to

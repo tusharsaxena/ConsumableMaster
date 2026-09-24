@@ -389,7 +389,7 @@ end)
 -- The strip above the bar is `LibKa0s-Widgets-1.0`'s `DragHandle`, and this
 -- addon is the host whose TWO descriptors the widget's shape was drawn around:
 -- `tooltip` for the strip and `helpTooltip` for the mark, each with its own
--- title, body and anchor (modules/MacroBar.lua:196-228). Nothing asserted a
+-- title, body and anchor (modules/MacroBar.lua:197-229). Nothing asserted a
 -- line of either, so the entire reason there are two rested on a hand check.
 --
 -- What is observed is what a hover puts on screen — the frame the tooltip is

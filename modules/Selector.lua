@@ -2,7 +2,7 @@
 -- item picking. Pure over (KCM.SEED, KCM.db.profile.categories, bag state,
 -- optional ranking ctx). No Blizzard protected APIs; safe to call in combat.
 --
--- Backing data model (see TECHNICAL_DESIGN §4):
+-- Backing data model (see docs/ARCHITECTURE.md and defaults/Profile.lua):
 --   seed[cat]      : flat array of itemIDs in KCM.SEED[catKey]
 --   added[cat]     : set  KCM.db.profile.categories[cat].added[itemID] = true
 --   blocked[cat]   : set  KCM.db.profile.categories[cat].blocked[itemID] = true
@@ -601,7 +601,7 @@ function S.MarkDiscovered(catKey, itemID, specKey, nowUnix)
 end
 
 -- TTL garbage collection for `discovered` entries. Called by PEW and the stand-up
--- after auto-discovery, before the recompute (Pipeline.DiscoverAndSweep). Items still
+-- after auto-discovery, before the recompute (Pipeline.DiscoverAndSweep, core/ConsumableMaster.lua). Items still
 -- in bags have their timestamp bumped to now; otherwise entries older than
 -- DISCOVERED_TTL_SEC are deleted. `added` and `blocked` are user-intentional
 -- and never touched here.

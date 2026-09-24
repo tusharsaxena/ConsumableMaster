@@ -170,9 +170,10 @@ local function buildBar()
     -- than an oversight: a hand-built fallback here would be the second copy the
     -- adoption exists to delete, and it would be the copy nobody looks at.
     -- Nothing raises -- `bar.handle` stays nil and applyLock already guards on it
-    -- -- and neither of the other two ways to place the bar is touched: the bar
-    -- frame's own OnDragStart still moves it from any pixel the slots leave bare,
-    -- and `/cm set macroBar.point|x|y` still writes the position outright.
+    -- -- and the bar can still be placed: the bar frame's own OnDragStart still
+    -- moves it from any pixel the slots leave bare, and a reset (`/cm bar reset`,
+    -- the General page's Reset position) still puts back the default. `/cm set`
+    -- cannot reach the position: point, relPoint, x and y have no schema row.
     local handle = Widgets and Widgets.DragHandle and Widgets.DragHandle(frame, {
         name      = BAR_NAME .. "Handle",
         label     = KCM.L["Consumable Master"],

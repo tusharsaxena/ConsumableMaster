@@ -59,7 +59,7 @@ KCM.dbDefaults = {
         },
     },
     profile = {
-        enabled = true,    -- master enable; when false the recompute pipeline early-returns
+        enabled = true,    -- master enable; when false the addon stands down (core/LifecycleSetup.lua) and a recompute writes no macros
         -- NB: the debug flag is session-only (KCM.State.debug), never persisted.
         --
         -- The three ADDON-WIDE master controls (options-ui-§15). They are not the
@@ -112,14 +112,17 @@ KCM.dbDefaults = {
         -- The CM-only macro bar (modules/MacroBar.lua). On and UNLOCKED out of
         -- the box so the feature is discoverable — a bar the user never sees is
         -- a bar they never configure, and unlocked means the drag handle is
-        -- right there to place it. Turning it off tears the frames down (they
-        -- are never created again until re-enabled), so opting out costs
-        -- nothing. Existing profiles get the same treatment once, via the
+        -- right there to place it. Turning it off hides the frames and takes
+        -- their visibility and flyout drivers and the fade tick off (the frames
+        -- are kept and shown again on re-enable), so opting out costs nothing
+        -- per frame. Existing profiles get the same treatment once, via the
         -- schema-v2 step in core/Database.lua.
         --
-        -- Every scalar here has a matching KCM.Settings.Schema row, which is
-        -- what gives it a widget on the Macro Bar tab AND
-        -- `/cm get|set macroBar.<field>` for free.
+        -- Every scalar here EXCEPT point, relPoint, x and y has a matching
+        -- KCM.Settings.Schema row, which is what gives it a widget on the Macro
+        -- Bar tab AND `/cm get|set macroBar.<field>` for free. The four anchor
+        -- fields have no row: only a drag or a reset (`/cm bar reset`, Reset
+        -- position) writes them.
         macroBar = {
             enabled  = true,
             locked   = false,
