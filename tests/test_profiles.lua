@@ -546,3 +546,32 @@ test("AceDB fake: DeleteProfile of the active profile raises AceDB's own message
     KCM.db:DeleteProfile("Alt")
     t.eq(KCM.db.profiles.Alt, nil, "an inactive profile is deleted")
 end)
+
+-- ---------------------------------------------------------------------------
+-- /cm reset on a color row (ConsumableMaster-R-02)
+-- ---------------------------------------------------------------------------
+
+-- A color row's `default` IS the dbDefaults table, and the reset sends it through
+-- SetAndRefresh. Storing it as-is aliases the shipped default into the profile.
+--
+-- red under: return value unchanged from VALIDATORS.color
+test("/cm reset: resetting a color row stores a copy, not the dbDefaults table", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM:OnSlashCommand("reset macroBar.barBackdropColor")
+    local stored = KCM.db.profile.macroBar.barBackdropColor
+    t.truthy(stored ~= KCM.dbDefaults.profile.macroBar.barBackdropColor,
+        "the stored color is its own table")
+    t.eq(#stored, 4, "and it carries all four channels")
+end)
+
+-- The aliased table is emptied in place when the switch strips the outgoing
+-- profile, which blanks the shipped default for every profile after it.
+--
+-- red under: return value unchanged from VALIDATORS.color
+test("/cm reset: a profile switch after a color reset leaves the shipped default intact", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM:OnSlashCommand("reset macroBar.barBackdropColor")
+    KCM.db:SetProfile("Other")
+    t.eq(#KCM.dbDefaults.profile.macroBar.barBackdropColor, 4,
+        "the default color keeps its four channels")
+end)

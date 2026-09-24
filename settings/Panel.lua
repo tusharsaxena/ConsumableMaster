@@ -917,9 +917,16 @@ local VALIDATORS = {
         return value
     end,
 
+    -- Always a fresh table, for the same reason as `order` below: a color row's
+    -- `default` IS the dbDefaults table, and the reset's applyDefault
+    -- (settings/Slash.lua) sends it through SetAndRefresh. Stored as-is it aliases
+    -- the shipped default, and AceDB's removeDefaults on a later SetProfile nils
+    -- its channels in place -- every profile after that reads an empty color.
     color = function(_, value)
         if type(value) ~= "table" then return nil, "expected color table" end
-        return value
+        local out = {}
+        for k, v in pairs(value) do out[k] = v end
+        return out
     end,
 
     -- A WHOLE-VALUE list over a fixed member set (architecture-§5): the bar's slot

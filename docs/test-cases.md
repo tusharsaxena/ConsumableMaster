@@ -677,7 +677,7 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
 
-### test_profiles.lua (19)
+### test_profiles.lua (21)
 
 - Profiles: the page is the last in the sidebar and its file loads last
 - Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
@@ -698,6 +698,8 @@ badge and any count quoted in the docs must agree with it.
 - AceDB fake: the shipped default table survives a switch
 - AceDB fake: CopyProfile onto the active profile raises AceDB's own message
 - AceDB fake: DeleteProfile of the active profile raises AceDB's own message
+- /cm reset: resetting a color row stores a copy, not the dbDefaults table
+- /cm reset: a profile switch after a color reset leaves the shipped default intact
 
 ### test_ranker.lua (23)
 
@@ -1201,7 +1203,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
-| test_profiles.lua | 19 |
+| test_profiles.lua | 21 |
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
@@ -1220,4 +1222,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1002** |
+| **Total** | **1004** |
