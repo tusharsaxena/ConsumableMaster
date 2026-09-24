@@ -411,7 +411,7 @@ test("Disabled 7c: a feature verb refuses on exactly one line, and reaches no se
     local out = dispatch(KCM, "bar on")
     t.truthy(out:find(refusal, 1, true) ~= nil, "it is the collection's line: " .. out)
     t.eq(select(2, out:gsub("\n", "")), 0, "exactly one line")
-    -- The addon takes §2's SHOULD, so this suite PINS that choice: an addon that
+    -- The addon takes slash-commands-§2's SHOULD, so this suite PINS that choice: an addon that
     -- declined it would assert its feature verbs act normally instead, and either
     -- is conformant. What must not happen is the choice drifting in silence.
     t.eq(storedState(KCM), before, "and no write seam was reached")

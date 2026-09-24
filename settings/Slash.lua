@@ -89,7 +89,7 @@ local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 -- `enabled = <bool>` echo below is the verbs' one reply.
 --
 -- THE WRITE IS THE HOST'S, not the library's CliSet, and the difference is the
--- DISABLED state §2 is actually about. Routing it through `Sl:CliSet` would have
+-- DISABLED state slash-commands-§2 is actually about. Routing it through `Sl:CliSet` would have
 -- made `enable` a LIB_BACKED_VERB alongside list / get / set / reset, and the
 -- degraded notice at the foot of this file would then be telling a player who
 -- had just disabled the addon that the verb which turns it back on is one of the
@@ -493,7 +493,7 @@ if slashLib then
         aliases      = ALIASES,
         version      = addonVersion,
 
-        -- THE DISABLED GATE (Slash minor 13, slash-commands-§2 and §7). Three
+        -- THE DISABLED GATE (Slash minor 13, slash-commands-§2 and slash-commands-§7). Three
         -- fields, and the library does the rest: the twelve reserved verbs and
         -- the bare `/cm` answer normally while the addon is off -- a player must
         -- be able to read and repair settings and to REACH THE PANEL then, which

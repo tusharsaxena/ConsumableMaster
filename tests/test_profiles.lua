@@ -110,7 +110,7 @@ test("Profiles: a pooled, hidden SimpleGroup is shown before AceConfigDialog fil
 end)
 
 -- options-ui-§11: an open panel reflects live state after a profile switch. And
--- §11's re-render rule: only when the thing that invalidates the layout changed.
+-- options-ui-§11's re-render rule: only when the thing that invalidates the layout changed.
 --
 -- red under: no PROFILE_CHANGED listener on the page (the list goes stale), or a
 -- renderer that re-Opens on every structural refresh (the pipeline's debounced

@@ -1,6 +1,6 @@
 -- tests/test_macrobar_chrome.lua — the macro bar's chrome appliers
 -- (MacroBarButton.ApplyStyle), the flyout's bind/apply pass, and the
--- options-ui-§15/§16/§17 rows those appliers are what honors.
+-- options-ui-§15/options-ui-§16/options-ui-§17 rows those appliers are what honors.
 -- Since the drag-handle adoption it also carries the unlocked strip's own
 -- chrome: the two tooltips the strip and its help mark draw, and the mark's
 -- hover tint.
@@ -274,7 +274,7 @@ test("macrobar flyout: Apply declines in combat", function(t)
 end)
 
 -- ---------------------------------------------------------------------------
--- options-ui-§15 / §16 / §17 — the settings that were ADDED, and the code that
+-- options-ui-§15 / options-ui-§16 / options-ui-§17 — the settings that were ADDED, and the code that
 -- honors them
 -- ---------------------------------------------------------------------------
 --

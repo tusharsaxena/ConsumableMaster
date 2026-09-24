@@ -514,13 +514,13 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-9 prescribes; kit revision 25 resolves the relative `dir`
+    -- literal form testing-§9 prescribes; kit revision 25 resolves the relative `dir`
     -- against the runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive
     -- with a re-vendor and then quietly run nothing. This repo wires the kit's copy of
     -- each and keeps no hand-written one beside it: two gates over one rule is two
-    -- copies to keep whole (localization-5, layout-1).
+    -- copies to keep whole (localization-§5, layout-§1).
     --   test_eol        -- the working-tree line-ending gate (kit revision 15)
     --   test_prose      -- the US-English prose gate (kit revision 24)
     --   test_layout_cap -- the 1500-line cap gate over the census in

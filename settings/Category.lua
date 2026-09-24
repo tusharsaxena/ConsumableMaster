@@ -665,7 +665,7 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
         -- the whole row. Naming the handle's SLOT -- which this used to do -- drew the library's
         -- fill and 1px edge around the 30px gutter and left the row itself with no background at
         -- all, so this list looked nothing like the same control on the Stat Priority page or on
-        -- MultiMeters' Columns tab (options-ui-§8, §18: one row, learned once).
+        -- MultiMeters' Columns tab (options-ui-§8, options-ui-§18: one row, learned once).
         list:AddRow(row.frame, {
             ghostText = ghostTextOf(itemRow),
             height    = ROW_H,

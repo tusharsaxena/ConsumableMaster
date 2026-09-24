@@ -4,7 +4,7 @@
 -- halves: the zero-cost gate (nothing is formatted while debug is off), the
 -- console-vs-chat routing (DebugLog when loaded, KCM.Say during early boot),
 -- and the secret-safe formatting it inherits from KCM.SafeToString
--- (debug-logging-§4/§5).
+-- (debug-logging-§4/debug-logging-§5).
 --
 -- The suites load the pure layer PLUS State + Debug but deliberately WITHOUT
 -- core/DebugLogSetup.lua, so the early-boot fallback path is the default and the

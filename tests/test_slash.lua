@@ -1410,7 +1410,7 @@ test("Slash: with LibKa0s absent there is no refusal to print, and the verb acts
     -- which is precisely the drift the one-place rule exists to stop, and it would
     -- be a copy that only ever ran on a tampered install.
     --
-    -- Nothing is owed. The feature-verb refusal is §2's SHOULD, an addon that
+    -- Nothing is owed. The feature-verb refusal is slash-commands-§2's SHOULD, an addon that
     -- declines it is not deviating and owes no register row, and this build has
     -- already told the player on its own line that half the surface is missing.
     -- The stand-down is a MUST and is NOT what is skipped here: that arm has no

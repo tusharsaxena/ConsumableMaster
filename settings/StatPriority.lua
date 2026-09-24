@@ -30,7 +30,7 @@
 --      and a gesture that cannot be saved is worse than no gesture.
 --
 -- THE ROW IS MULTIMETERS-SHAPED, and that is the point of it. Every draggable
--- list in the collection is meant to read the same (options-ui-§8, §18): the
+-- list in the collection is meant to read the same (options-ui-§8, options-ui-§18): the
 -- library draws a bounded box behind the whole row and a player learns one row
 -- once. This page drew its rows as AceGUI widgets in a Flow group and named the
 -- handle's 30px SLOT as the box's parent, so the library boxed the gutter and the

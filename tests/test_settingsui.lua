@@ -10,7 +10,7 @@
 --
 -- The three options-ui CONFORMANCE blocks were peeled out to
 -- tests/test_settingsui_optionsui.lua for layout-§1's 1500-line cap, on the seam
--- issue #33 named: §13's every-page-draws-a-strip, §18's reorder lists, and §13's
+-- issue #33 named: options-ui-§13's every-page-draws-a-strip, options-ui-§18's reorder lists, and options-ui-§13's
 -- selection-independent wrapped-strip geometry (the last since deleted by CM-20 as
 -- a duplicate of the library's own pin). What is left here is the half that goes
 -- red when THIS ADDON's settings wiring breaks.

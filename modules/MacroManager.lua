@@ -643,7 +643,7 @@ end
 -- Also drops the combat-deferral queue since those entries reference stale
 -- state expectations.
 --
--- Clearing learned data is a data mutation (debug-logging-§8, and §10 since
+-- Clearing learned data is a data mutation (debug-logging-§8, and debug-logging-§10 since
 -- v2.44.0), so it leaves one [Macro] line saying how much it forgot. The
 -- counting sits behind the debug gate, so debug-off costs nothing.
 -- ---------------------------------------------------------------------------

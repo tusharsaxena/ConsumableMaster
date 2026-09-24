@@ -2,8 +2,8 @@
 -- settings suite: the three blocks that fail when a CLAUSE OF THE STANDARD stops
 -- holding, rather than when this addon's own wiring breaks.
 --
--- §13, EVERY page draws a strip. §18, the reorder lists. §15, the Master
--- controls tab. (§13's wrapped-strip geometry was a third block until CM-20
+-- options-ui-§13, EVERY page draws a strip. options-ui-§18, the reorder lists. options-ui-§15, the Master
+-- controls tab. (options-ui-§13's wrapped-strip geometry was a third block until CM-20
 -- deleted it as a duplicate of the library's own pin; see where it stood.)
 --
 -- Peeled out of tests/test_settingsui.lua at the seam issue #33 named, which the
@@ -69,7 +69,7 @@ local function renderEveryPage(KCM)
     return drawn
 end
 
--- The §13 exemption, as it applies to KCM.Settings.order: the one page in it that
+-- The options-ui-§13 exemption, as it applies to KCM.Settings.order: the one page in it that
 -- the host does not draw through the flow engine.
 local STRIP_EXEMPT = { profiles = true }
 
@@ -376,7 +376,7 @@ test("Settings: the Stat Priority secondaries are one bounded reorder list", fun
     t.eq(#made[1].rows, 4, "all four stats are rows; two of them are inert")
 end)
 
--- The secondary rows are MultiMeters-shaped (options-ui-§8, §18): a bounded box
+-- The secondary rows are MultiMeters-shaped (options-ui-§8, options-ui-§18): a bounded box
 -- behind the WHOLE row, and a stride wider than the box so consecutive rows do
 -- not touch.
 --
@@ -522,7 +522,7 @@ end)
 -- duplicated LibKa0s' own tests/test_options_tabs.lua case "a wrapped strip's
 -- geometry is IDENTICAL for every value of the selection" (testing-§8). What stays
 -- here is host-specific: which tabs each page draws, in what order, under what
--- first key (the §13 block above, and tests/test_settingsui.lua's tabbed-page
+-- first key (the options-ui-§13 block above, and tests/test_settingsui.lua's tabbed-page
 -- cases).
 
 -- ---------------------------------------------------------------------------
@@ -687,9 +687,9 @@ test("Settings: the panel's Reset all settings raises the same popup as /cm rese
 -- destructive-ish acts hanging off its bottom are three things a player did not
 -- come for.
 --
--- Permitted where the canonical set is not: §15 forbids reordering, renaming or
+-- Permitted where the canonical set is not: options-ui-§15 forbids reordering, renaming or
 -- splitting THAT set across tabs, and these three were never in it. Master
--- controls stays first, which §15 does require.
+-- controls stays first, which options-ui-§15 does require.
 --
 -- Read off the mock AceGUI's creation log rather than a stub, because these
 -- three are HOST-drawn — see the note above.

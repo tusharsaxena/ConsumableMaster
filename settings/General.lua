@@ -379,7 +379,7 @@ end
 -- everybody opens, so hanging three destructive-ish acts off the bottom of it
 -- means the rows a player came for are no longer the whole of what they see.
 --
--- Permitted, and worth saying why, because §15 is strict about this page: it
+-- Permitted, and worth saying why, because options-ui-§15 is strict about this page: it
 -- forbids reordering, renaming or splitting the CANONICAL SET across tabs, and
 -- these three were never part of it. Master controls stays the first tab and
 -- still carries the canonical rows and nothing else.
@@ -405,7 +405,7 @@ local function drawMaintenance(ctx)
     })
 end
 
--- Master controls FIRST, and that is §15's requirement rather than a habit: every addon's General
+-- Master controls FIRST, and that is options-ui-§15's requirement rather than a habit: every addon's General
 -- page must open on it, under exactly that name. It is first because it is the page's first (and
 -- only) schema group and the host tab carries no `before`, so the library appends Maintenance.
 local AFTER_GROUP = { ["Master controls"] = masterTail }

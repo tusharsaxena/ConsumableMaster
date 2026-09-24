@@ -80,7 +80,7 @@ function KCM:OnInitialize()
     -- No boot summary is emitted here: the debug flag is session-only and off at
     -- login, so a load-time line would be gated off and never render. The
     -- lifecycle summary rides the DebugLog.SetEnabled seam instead, as the [Init]
-    -- line emitted on debug-enable (debug-logging-§5/§8).
+    -- line emitted on debug-enable (debug-logging-§5/debug-logging-§8).
 end
 
 -- ---------------------------------------------------------------------------
@@ -375,7 +375,7 @@ end
 
 KCM.Pipeline.DiscoverAndSweep = discoverAndSweep
 
--- Pure recompute-summary formatter (debug-logging-§8/§9, unit-tested).
+-- Pure recompute-summary formatter (debug-logging-§8/debug-logging-§9, unit-tested).
 function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
     return ("reason=%s rewrote %s/%s (skipped %s)"):format(
         tostring(reason), tostring(rewrote), tostring(total), tostring(skipped))

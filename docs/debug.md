@@ -33,7 +33,7 @@ window's frame globals are the library's — `ConsumableMasterDebugCopyWindow` a
 
 Functional-area tags in use today:
 
-- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/§8). The addon supplies the line's content (`initSummary`); the library owns when it is emitted
+- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/debug-logging-§8). The addon supplies the line's content (`initSummary`); the library owns when it is emitted
 - `DB` — schema migration, only logged when one actually runs
 - `Scan` — auto-discovery pass summary (reason in content)
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)

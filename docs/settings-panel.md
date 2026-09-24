@@ -90,7 +90,7 @@ scroll, naming what the page is editing (`options-ui-§14`). It was a `Selection
 scroll before, which put the control that governs the dropdowns below it out of sight the moment you
 scrolled to them.
 
-It is the **only** picker for that state, which is `§14`'s rule — a banner replaces a picker, it never
+It is the **only** picker for that state, which is `options-ui-§14`'s rule — a banner replaces a picker, it never
 mirrors one. The spec-aware tabs on the Macros page (Flask, Combat Potion, Stat Food, Weapon Enchant)
 therefore **state** the viewed spec as a sentence and offer no second picker of their own; two
 controls over one piece of session state is a synchronization problem the design would have invented
@@ -141,11 +141,11 @@ own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities; a host tab with no rows). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
+| **General** | 2 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities; a host tab with no rows). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
 | **Macro Bar** | 8 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
-| **Profiles** | none (`§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
+| **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
 
@@ -263,7 +263,7 @@ stat-priority override and leaves everything else standing, behind its own, narr
 The button that used to sit on this page said the second and did the first.
 
 **The global reset is two halves, not one.** `KCM.ResetAllToDefaults` restores every **session-only**
-schema row by hand *first*, then calls `db:ResetProfile()`. The sweep is a `§12` MUST and it is the
+schema row by hand *first*, then calls `db:ResetProfile()`. The sweep is an `options-ui-§12` MUST and it is the
 half a profile reset by construction cannot do: a session-only row's storage is its own `set()`
 (stamped in `settings/General.lua`), not the db, so `Debug console` survived a reset that took everything around it.
 It is written off the `sessionOnly` **flag** rather than off that one path, so a second such row is
@@ -275,7 +275,7 @@ so the button and `/cm resetall` cannot drift.
 
 Which rows the sweep writes is **one predicate's** call, `KCM.Settings.VetoedFromResetAll`
 (`settings/OptionsSetup.lua`): it refuses the Profiles page's rows (`options-ui-§3`) and every
-profile-resident row (`§12`), which leaves the session rows. The same function is the library
+profile-resident row (`options-ui-§12`), which leaves the session rows. The same function is the library
 descriptor's `skipRestoreAll`, so the rule is named once and shared rather than restated.
 
 **The tooltip comes from the descriptor, not from this page.** The button is the composer's, and
@@ -384,7 +384,7 @@ One tab, **Priority**, under the spec banner.
   below the boundary, because its position among the others is not stored and offering a gesture that
   cannot be saved is worse than offering none.
 
-  **The row is MultiMeters-shaped**, and that is the point of it (`options-ui-§8`, `§18`): every
+  **The row is MultiMeters-shaped**, and that is the point of it (`options-ui-§8`, `options-ui-§18`): every
   draggable list in the collection is meant to read the same, so a player learns one row once. The
   row is
 
@@ -616,7 +616,7 @@ not gaps:
   there is no tab left to name each block with (`options-ui-§7`).
 - **Tab strips** come from `H.TabStrip(ctx, { tabs, value, onSelect })` (`options-ui-§13`), or on the
   General page from `H.RenderTabbedSchema(ctx, "general", afterGroup, nil, { tabs = … })`, and the page
-  banner from `H.PageBanner(ctx, { label, list, order, value, onSelect })` (`§14`). Both are the
+  banner from `H.PageBanner(ctx, { label, list, order, value, onSelect })` (`options-ui-§14`). Both are the
   library's, both live in the page's chrome band above the scroll, and the banner is drawn first
   because it reserves the share of the band the strip then places itself under.
 - **Action buttons** use `H.ButtonPair` / `H.Button`, and a destructive one is confirm-gated through a
