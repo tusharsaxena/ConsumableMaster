@@ -859,13 +859,15 @@ end
 
 -- THE LIBRARY-ABSENT LINE (options-ui-§1 route (b), slash-commands-§1; CM-18).
 --
--- On a build with libs/LibKa0s/ missing, the macro bar's `enabled` and `locked`
--- rows and the Master controls `enabled` row are composed rows, and the
--- composers' degradation stub answers {} -- so the seam refuses the write, and
--- there is no Lifecycle latch to obey a stored switch this session anyway. A
--- verb that wrote one of them used to print its success line regardless ("macro
--- bar ON" over a refused write). It now says the one library-absent line for
--- the verb it was, and never acknowledges a write that did not land.
+-- On a build with libs/LibKa0s/ missing, `macroBar.locked` and the Master
+-- controls `enabled` row are composed rows, and the composers' degradation stub
+-- answers {} -- so the seam refuses the write, and there is no Lifecycle latch
+-- to obey a stored switch this session anyway. (`macroBar.enabled` is
+-- hand-declared in settings/MacroBar.lua, so `/cm bar on|off` still lands and
+-- says so.) A verb that wrote a composed row used to print its success line
+-- regardless ("macro bar locked" over a refused lock). It now says the one
+-- library-absent line for the verb it was, and never acknowledges a write that
+-- did not land.
 --
 -- Library-absent is read off the flag settings/OptionsSetup.lua publishes:
 -- KCM.Settings.optionsUI is nil exactly when LibKa0s-Options did not load. It is
