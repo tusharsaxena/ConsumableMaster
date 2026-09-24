@@ -111,7 +111,7 @@ if not lib then
     -- not — withholding the instance is exactly what re-arms that fallback.
     -- AddLine is withheld for the matching reason: its one production caller is
     -- the descriptor's `log` sink in core/PerfSetup.lua, inside a table that
-    -- file only ever builds when the LibKa0s Perf major loaded (`core/PerfSetup.lua:46` returns
+    -- file only ever builds when the LibKa0s Perf major loaded (`core/PerfSetup.lua:53` returns
     -- otherwise), so a no-op here would swallow diagnostics rather than degrade
     -- anything. Same for Clear / ShowCopy / RefreshHeader / UpdateScrollBar /
     -- UpdateStatus / the formatters: no consumer outside this file, so there is

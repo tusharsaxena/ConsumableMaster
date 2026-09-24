@@ -25,7 +25,7 @@ tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:143`) is an ordered list of positional triples
+`COMMANDS` (`settings/Slash.lua:157`) is an ordered list of positional triples
 `{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:354` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
@@ -95,7 +95,7 @@ read the same rows and cannot drift.
 
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
-| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:445`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
+| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:451`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
 | `stat` | `STAT_COMMANDS` (`:596`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
 | `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
 | `bar` | `BAR_COMMANDS` (`:873`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
@@ -167,7 +167,7 @@ Ka0s Consumable Master v1.6.2 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:382`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:386`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:

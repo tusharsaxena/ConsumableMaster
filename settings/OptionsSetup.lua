@@ -52,7 +52,7 @@ KCM.Settings.PANEL_TITLE = PANEL_TITLE
 --
 -- WHY THIS SURFACE CANNOT TAKE THE NIL the decoder answers for an absent
 -- channel: the library passes what colorDecode returns to the AceGUI picker's
--- SetColor (libs/LibKa0s/OptionsWidgets.lua:1658-1660), and SetColor passes its
+-- SetColor (libs/LibKa0s/OptionsWidgets.lua:1446-1453), and SetColor passes its
 -- four arguments straight into Texture:SetVertexColor
 -- (libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua:149), which RAISES on a
 -- nil. A swatch cannot draw "absent", so it draws something — but it no longer

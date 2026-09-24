@@ -206,7 +206,7 @@ end
 --                   them (LIBKA0S-09, issue #16). Routing a string nothing
 --                   renders is noise.
 --   CLI SURFACE     A `/cm` verb description or reply. `/cm` prints these
---                   seventeen verbs and core/SlashCommands.lua's five
+--                   twenty-one verbs and core/SlashCommands.lua's five
 --                   sub-command tables through one lib.FormatRow, and four
 --                   fifths of that listing lives outside the scanned surface.
 --                   Routing this fifth alone would split one help listing

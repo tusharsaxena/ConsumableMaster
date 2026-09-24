@@ -361,7 +361,7 @@ KCM.COMMANDS = COMMANDS
 -- LibKa0s-Slash-1.0 — the dispatcher
 -- ---------------------------------------------------------------------
 --
--- Everything above is this addon's: seventeen verbs, five sub-command tables
+-- Everything above is this addon's: twenty-one verbs, five sub-command tables
 -- with three different handler arities, the dump targets, and the schema CLI.
 -- What the library takes is the part that is the same in every Ka0s addon —
 -- trim, split, lowercase the verb only, apply the alias, find the entry, call

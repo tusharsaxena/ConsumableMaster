@@ -128,7 +128,7 @@ local CORE_SEAM = {
     "SafeRegisterEvent", "SafeToString", "Say", "SwatchColor",
 }
 
--- Live-only ON PURPOSE, argued at core/CoreSetup.lua:171-188 and pinned by
+-- Live-only ON PURPOSE, argued at core/CoreSetup.lua:192-209 and pinned by
 -- tests/test_coresetup.lua:200-207. KCM.MakeCloseButton has NO caller in this
 -- addon today: it exists so a future modal or copy window draws the shared
 -- close mark without anyone remembering that lib.MakeCloseButton wants the

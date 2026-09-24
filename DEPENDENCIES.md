@@ -49,7 +49,7 @@ Then open a new shell (`pipx ensurepath` edits your profile) and run the verific
 | **lizard** | **Any recent.** Same reasoning — the invocation uses only stock flags. Record whatever version you used in the report header. | Feeds the `complexity` suite of `tests/_kit/run-automated-tests.sh`, recorded in every run bundle (`automated-tests`). | `sudo apt install -y pipx && pipx ensurepath && pipx install lizard` | `lizard --version` |
 | **git** | Any recent. | Beyond version control, one suite **executes `git`**: `tests/test_vendor_sync.lua` delegates to the vendored kit, whose `tests/_kit/vendor_sync.lua:195` runs `git -C "<sibling>" …` to compare `libs/LibKa0s/` and `tests/_kit/` against the LibKa0s tag this repo's `CLAUDE.md` claims. | `sudo apt install -y git` | `git --version` |
 | **A sibling `LibKa0s` checkout** (not software) | matching the tag the `Bundles [LibKa0s](…)` line in `CLAUDE.md` names | `tests/_kit/vendor_sync.lua:184` resolves `SIBLING = opts.sibling or (ROOT .. DEFAULT_SIBLING)` (the `/../LibKa0s` default at `:72`). Absent, the two vendor-sync cases **report a `skip` carrying their reason rather than failing** — `siblingTag()` calls `T.skip("<sibling> checkout absent — the vendored payload was NOT compared")` when the sibling has no `HEAD:LibKa0s/Core.lua` (`:296`), which is the one sanctioned quiet case. The suite is still green without the checkout, but the vendored-payload check is then not actually running, and a `skip` is not a pass. | `git clone https://github.com/tusharsaxena/LibKa0s ../LibKa0s` | `ls ../LibKa0s/LibKa0s` |
-| **POSIX `ls`** | any | Directory listing shells out rather than depending on LuaFileSystem: `tests/_kit/framework.lua:515` (`collect(('ls -A "%s" 2>/dev/null'):format(dir))`, with a `dir /b` cmd.exe fallback on the next line). Present on any Ubuntu; listed because it is a real, non-obvious runtime requirement of the harness. | preinstalled (coreutils) | `ls --version` |
+| **POSIX `ls`** | any | Directory listing shells out rather than depending on LuaFileSystem: `tests/_kit/framework.lua:444` (`collect(('ls -A "%s" 2>/dev/null'):format(dir))`, with a `dir /b` cmd.exe fallback on the next line). Present on any Ubuntu; listed because it is a real, non-obvious runtime requirement of the harness. | preinstalled (coreutils) | `ls --version` |
 | **`diff`** | any | The vendored-copy check in `docs/testing.md:26-29` is four `diff -r` invocations, run after any re-vendor and before any release. | preinstalled (diffutils) | `diff --version` |
 | **`luac`** (optional) | 5.1 | Single-file syntax check, `docs/testing.md:17`. Ships with the `lua5.1` package. | included with `lua5.1` | `luac -v` |
 
@@ -72,7 +72,7 @@ system-managed user site directory, which is the situation PEP 668 exists to pre
 
 ### Not required, despite appearances
 
-- **LuaFileSystem (`lfs`).** Deliberately avoided — `tests/_kit/framework.lua:503-516` shells out to
+- **LuaFileSystem (`lfs`).** Deliberately avoided — `tests/_kit/framework.lua:428-445` shells out to
   `ls -A` (with a `dir /b` fallback) specifically so `lfs` is not a dependency. Do not add it.
 - **Any Lua later than 5.1.** "5.2 will probably work" is false here: `lua5.1` is named literally
   in two test cases (above) and `.luacheckrc` pins `std = "lua51"`.

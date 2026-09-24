@@ -169,7 +169,7 @@ end)
 -- reaches a slot is already a STRING -- and a combat-protected value reaches it
 -- as the "<secret>" sentinel, which string.format rejects for a numeric slot.
 -- The library sink pcalls the format and degrades to a joined line
--- (libs/LibKa0s/DebugLog.lua:640-655, which names this exact mistake); the
+-- (libs/LibKa0s/DebugLog.lua:659-677, which names this exact mistake); the
 -- chat fallback three functions above in core/Debug.lua does not pcall, so on
 -- early boot and on a degraded install the raise lands on the path the sink
 -- exists to protect.
