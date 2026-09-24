@@ -124,7 +124,7 @@ numeric head routes to the `item` target rather than failing as an unknown targe
 frames*; whether an addon registers them at all is a **MAY**, and this addon now takes it. All four
 spellings share one body — `runLock` in `core/SlashCommands.lua`, published as `V.RunLock` — which
 writes `macroBar.locked` through `KCM.MacroBar.SetLocked`, the same `KCM.Schema:Set` seam the *Lock
-frame* checkbox and the launcher's left click take. So there is one value, one `apply` and one
+frame* checkbox and the launcher menu's *Locked* entry take. So there is one value, one `apply` and one
 confirmation line, never a `KCM.locked` local beside them and never a second implementation hiding
 behind the second spelling.
 
@@ -231,8 +231,9 @@ somebody is asking why the addon has gone quiet.
 The refusal reads `Ka0s Consumable Master is disabled — enable it with /cm enable`, with the command
 gold. **The wording is the collection's, not this addon's**: `slash-commands-§7` fixes one shape for
 all eleven addons, `cli:DisabledLine()` builds it, and it MUST NOT be re-spelled per addon, per verb
-or per call site — which is why it no longer goes through `KCM.L` and why the launcher's left click
-calls the same member rather than writing the line again. It is **one line and nothing else**: no
+or per call site — which is why it no longer goes through `KCM.L`. (The launcher no longer prints it
+at all: since LibKa0s v1.58.0 its left click opens the panel in either state and its menu grays the
+feature entries rather than refusing, `launcher-§2`.) It is **one line and nothing else**: no
 partial work, no side effect, no second line. The rule stays a **SHOULD** in the standard — a
 courtesy rather than a correctness property — and this addon takes it.
 

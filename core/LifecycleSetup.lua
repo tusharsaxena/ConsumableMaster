@@ -146,10 +146,11 @@ end
 --- whole.
 ---
 --- Almost everything asks KCM.IsStoodDown, because almost everything cares only
---- whether the addon is inert. The launcher's left click is the exception
---- slash-commands-§7 writes out by name: it refuses while the addon is DISABLED,
---- and a perf capture's suspended arm is not that -- it is a diagnostic the player
---- started and did not switch anything off for.
+--- whether the addon is inert. The launcher is the exception slash-commands-§7
+--- writes out by name: its options menu grays every entry but *Enabled* while
+--- the addon is DISABLED (core/LauncherSetup.lua's isEnabled), and a perf
+--- capture's suspended arm is not that -- it is a diagnostic the player started
+--- and did not switch anything off for.
 function KCM.IsAddonDisabled()
     return (KCM.Lifecycle and KCM.Lifecycle:IsHeld(lib.HOLD_DISABLED)) and true or false
 end

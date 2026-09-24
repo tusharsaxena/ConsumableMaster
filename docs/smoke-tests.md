@@ -207,27 +207,32 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 
 ### 7c. The launcher — the minimap button and the broker plugin (`launcher-§1`)
 
-Tests: one object on two surfaces, the rung, the visibility row, the saved position, and the status tooltip.
+Tests: one object on two surfaces, the two buttons (left opens settings, right opens the options menu), the visibility row, the saved position, and the status tooltip.
 
 1. Log in. A round button wearing **this addon's own logo** sits on the minimap ring — not a
    Blizzard cooking icon and not a blank square. A blank square is the failure this step exists
    for: a missing or wrongly formatted `media/logos/consumablemaster.logo.128.tga` draws nothing
    and raises nothing. The same art is on the addon's row in the **AddOns** list, because
    `## IconTexture` names the same file.
-2. **Left-click it.** The macro bar **unlocks**: the gold wash appears over its extent and the drag
-   handle appears above it — this addon's rung is (b), and unlocking IS its preview. Open
-   General → Master controls: **Lock frame** is now unticked. Left-click the button again and the
-   box ticks back. The checkbox and the button must never disagree: they are one write seam.
-   `/cm lock` is the third door onto the same state, and `/cm bar lock` the fourth.
-3. **Right-click it.** The settings panel opens, exactly as `/cm config` does. Right-click must do
-   this on every Ka0s addon whatever its left button does, and must never touch the lock.
+2. **Left-click it.** The settings panel opens, exactly as `/cm config` does, and nothing else
+   happens: the lock does not move (LibKa0s v1.58.0, `launcher-§2` as of the standard's v2.67.0 —
+   left-click opens settings on every Ka0s addon).
+3. **Right-click it.** The client's own context menu opens under the button, titled
+   `Ka0s Consumable Master`, with exactly **two** checkboxes, in this order: **Enabled** (ticked)
+   and **Locked** (ticked while the bar is locked). No *Test mode* and no *Show window*: this addon
+   has neither. Click **Locked**: the menu closes, the macro bar **unlocks** — the gold wash
+   appears over its extent and the drag handle above it — and chat prints the line `/cm unlock`
+   prints. Open General → Master controls: **Lock frame** is now unticked. Right-click again: the
+   **Locked** box is now unticked; click it and the bar locks and the row ticks back. The menu, the
+   checkbox, `/cm lock` and `/cm bar lock` are four doors onto one write seam and must never
+   disagree. Then click **Enabled**: the addon switches off with `/cm disable`'s own line, and the
+   next right-click shows **Enabled** unticked and **Locked (enable the addon first)** grayed — it
+   cannot be clicked. Click **Enabled** again and the addon comes back up.
 4. **Drag the button** a third of the way round the ring, `/reload`, and confirm it is still where
    you left it. LibDBIcon keys that angle by the addon's folder name, so a button that snaps back
    to the default angle means the two registrations are not using the same name.
 5. Untick **Minimap button** on Master controls. The button disappears **immediately**, not at the
-   next reload. Tick it and it comes back at the angle from step 4. Now hide it through the
-   button's OWN right-click menu if your client offers one, reopen the panel, and confirm the
-   checkbox followed — the row and the library write the same key. From chat:
+   next reload. Tick it and it comes back at the angle from step 4. From chat:
    `/cm get global.minimap.shown` answers `true` with the button visible;
    `/cm set global.minimap.shown false` hides it, and it stays hidden after `/reload`.
    `/cm get global.minimap.hide` answers *Setting not found* — the path reads *shown* now, while
@@ -248,13 +253,13 @@ Tests: one object on two surfaces, the rung, the visibility row, the saved posit
    appears in its plugin list wearing the same logo, and clicking it there does exactly what
    clicking the minimap button does — one object, two surfaces. There is deliberately **no**
    setting that hides it from a display; the display has its own.
-9. **Hover it** (LibKa0s v1.57.0, `launcher-§1`). The tooltip reads, top to bottom:
+9. **Hover it** (LibKa0s v1.58.0, `launcher-§1`). The tooltip reads, top to bottom:
    `Ka0s Consumable Master  v<the TOC version>`, `Enabled: Yes` in green, `Locked: No` in red
-   (or `Yes` in green), `Left-click: Lock frame` (or `Unlock frame` while the bar is locked), and
-   `Right-click: Open settings`. There is **no** `Test mode` line: this addon has none. Left-click,
-   move off and hover again: the Locked line and the label have both flipped. Then `/cm disable`
-   and hover: the tooltip still shows, `Enabled: No` in red, the Locked line unchanged, and
-   `Left-click: disabled — /cm enable`. `/cm enable` restores it.
+   (or `Yes` in green), `Left-click: Open settings`, and `Right-click: Options menu`. There is
+   **no** `Test mode` line: this addon has none. Toggle **Locked** from the right-click menu, move
+   off and hover again: the Locked line has flipped. Then `/cm disable` and hover: the tooltip
+   still shows, `Enabled: No` in red, the Locked line unchanged, and the same two click hints.
+   `/cm enable` restores it.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
 
@@ -538,10 +543,11 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
     settings panel** — that is the case that settled the reversal, so a refusal there is the
     regression. A typo (`/cm resyncc`) gets `unknown command` and the index, **not** the refusal.
 14c. **The launcher while disabled** (`launcher-§2`). Still disabled, **left**-click the minimap
-    button: one refusal line, the bar does not appear, and **nothing is written** — re-check
-    `Lock frame` on the General page, which must not have moved. **Right**-click it: the settings
-    panel opens, exactly as it does when the addon is running. The button itself stays on the
-    minimap in either state.
+    button: the settings panel opens, exactly as it does when the addon is running, with no refusal
+    line. **Right**-click it: the options menu shows **Enabled** unticked and live, and
+    **Locked (enable the addon first)** grayed. Clicking the grayed entry does nothing — the bar
+    does not appear and **nothing is written**; re-check `Lock frame` on the General page, which
+    must not have moved. The button itself stays on the minimap in either state.
 15. `/cm dump categories` — prints the category list with macro names + spec-awareness.
 16. `/cm dump statpriority` — current spec's primary + secondary.
 17. `/cm dump bags` — bag scanner output.
@@ -560,9 +566,9 @@ Tests: `modules/MacroBar.lua` + `modules/MacroBarButton.lua` + `settings/MacroBa
 2. **Disable / re-enable.** Uncheck **Enable macro bar** (or `/cm bar off`) → the bar disappears. Re-check it → it comes back with its layout and position intact.
 3. **Click.** Click a slot out of combat → the consumable is used, exactly as clicking the macro on a normal bar. No taint error, no "Interface action failed because of an AddOn" message. Repeat in combat. Then do it under **both** values of the cast-on-key-down setting: `/console ActionButtonUseKeyDown 1` → `/reload` → click a slot **and** a flyout entry → both fire; `/console ActionButtonUseKeyDown 0` → `/reload` → both fire again. A click that does nothing at all, with no error, under `1` is the pre-1.6.1 defect: the button's `useOnKeyDown` pin is missing ([macro-bar.md](./macro-bar.md#buttons)).
 4. **Move.** Uncheck **Lock frame** (General → Master controls) → the bar tints gold *and* a **Consumable Master** handle strip appears centered above it. Drag the handle → the bar follows; `/reload` → it comes back where you left it. Hovering the handle shows a one-line tooltip; hovering the **help mark** at its right end — the collection's shared art now, a plain light glyph rather than Blizzard's blue `InformationIcon` — shows the full drag-gesture list. On a narrow bar (set **Buttons per row** to 1) the icon must not crowd the label. Re-check **Lock frame** → the tint and the handle both go, and clicks pass through the gaps between buttons. Confirm dragging a *button* still picks up the macro rather than moving the bar (that conflict is the handle's whole reason for existing).
-4a. **The lock's four doors.** `/cm unlock` — the bar tints gold and the handle appears, and **Lock frame** in General → Master controls unticks itself. `/cm lock` puts all three back. Repeat with `/cm bar unlock` / `/cm bar lock` and confirm they do the identical thing and print the identical line, then with the minimap button's left click and the checkbox itself. All four are one write seam; any two of them disagreeing is the defect. Finally hover the bar's handle while it is locked: the tooltip must name **`/cm unlock`**, the short form, not `/cm bar unlock`.
+4a. **The lock's four doors.** `/cm unlock` — the bar tints gold and the handle appears, and **Lock frame** in General → Master controls unticks itself. `/cm lock` puts all three back. Repeat with `/cm bar unlock` / `/cm bar lock` and confirm they do the identical thing and print the identical line, then with the minimap button's right-click menu (**Locked**) and the checkbox itself. All four are one write seam; any two of them disagreeing is the defect. Finally hover the bar's handle while it is locked: the tooltip must name **`/cm unlock`**, the short form, not `/cm bar unlock`.
 4b. **Refused while the addon is off.** `/cm disable`, then `/cm unlock`. It must answer with the one disabled line naming `/cm enable` and leave the stored lock alone — not unlock a bar that is not being drawn. `/cm enable` puts it back.
-4c. **Unlocking a switched-off bar says so.** `/cm bar off`, then `/cm unlock`: it unlocks (Lock frame unticks) and the line reads `macro bar unlocked (the bar is off — /cm bar on to show it)`, never "drag it". `/cm lock`, then left-click the minimap button: the identical line. `/cm bar on` shows the bar already unlocked. Then `/cm disable` and left-click again: the one disabled line only, and nothing unlocks.
+4c. **Unlocking a switched-off bar says so.** `/cm bar off`, then `/cm unlock`: it unlocks (Lock frame unticks) and the line reads `macro bar unlocked (the bar is off — /cm bar on to show it)`, never "drag it". `/cm lock`, then right-click the minimap button and click **Locked**: the identical line. `/cm bar on` shows the bar already unlocked. Then `/cm disable` and right-click again: **Locked** is grayed (`enable the addon first`), clicking it does nothing, and nothing unlocks.
 5. **Layout.** Set **Buttons per row** to 7 → two rows. Flip **Orientation** to Vertical → two columns. Flip **Horizontal growth** to Left and **Vertical growth** to Up → the first slot moves to the opposite corner and the bar grows the other way. Drag **Button size**, **Button spacing**, **Bar padding** and **Bar scale** → geometry tracks live with no visual tearing.
 6. **Bar + button appearance.** Toggle each background/border checkbox and change each color → the bar backdrop, the bar frame and the button borders all respond. Pick a different **Bar border style** / **Button border style** from the LibSharedMedia dropdown → the edge texture changes and the closed dropdown shows the new name (no 42px gap next to it — that's the library's Border fixup, `lib.__PatchLSM30Border()`, called from `settings/OptionsSetup.lua`). **This step checks it with ConsumableMaster alone, which is exactly the check that stayed green through the defect [step 19](#libka0s-seam-pass) exists for** — run 19 too whenever this one matters. Raise **border thickness** to 16 → thick edges; then raise **Button border offset** → the border moves off the icon instead of covering it. Turn **Button border** off → a flat, borderless icon grid. Drag **Icon zoom** to 40% → icons crop symmetrically. Turn **Show stack count** off → counts vanish, and they are not sliced by a thick border when on. Turn **Show tooltips** off → hovering shows nothing.
 6a. **Labels.** Turn on **Show button labels** → each button gets its category name inside its top edge. Walk **Label position** through all nine values and flip **Label placement** between Inside and Outside at each → the label lands where the names say, and the text alignment follows the edge. Set **Label text** to *Always full* → long names (Healing Potion, Weapon Enchant) overflow; back to *Auto* → they drop to the short form while short ones (Food, Flask) stay full; *Always short* → all abbreviated. Drag **Button size** with labels on → the font scales with the button. Check **Label offset X / Y**, and the *Font* block: pick a different **Font** from the LibSharedMedia list (on the **first** open after a login every row draws its name in its own face; blank rows on that first open that fill in on the second mean the vendored LibKa0s font preload, Options minor 17, is not running), walk **Font flags** through all five values (*None* really removes the outline), tick **Font shadow** and confirm a soft drop shadow appears — then untick it and confirm the shadow is CLEARED rather than left behind. **Font color** plus **Use class color**: with the box ticked the labels take your class color and the swatch's opacity still applies.

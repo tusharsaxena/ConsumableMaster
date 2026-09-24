@@ -177,6 +177,16 @@ files["tests/wow_mock.lua"] = {
     ignore = { "212/self", "212/%.%.%." },
 }
 
+-- The same obligation for the menu fake, which is LibKa0s v1.58.0's own tests/mock_menu.lua with
+-- its body copied unchanged (the file's header says why): the client calls a menu description's
+-- methods with method sugar, so `root:CreateTitle`, `element:SetEnabled` and the recording
+-- `menu:Texts()` family take the receiver whether they read it or not, and the element methods,
+-- defined inside CreateCheckbox, shadow CreateCheckbox's own `self` in doing so. The library's lint
+-- config does not report these (its top-level ignore carries both); here they are named.
+files["tests/mock_menu.lua"] = {
+    ignore = { "212/self", "432/self" },
+}
+
 -- The Selector.AddItem this suite substitutes at :789 has to take the same two arguments the real
 -- one does; the assertion it is written for only records the second.
 files["tests/test_settingsui.lua"] = {

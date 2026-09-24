@@ -283,7 +283,7 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 7b: the bare /cm opens the settings panel
 - Disabled 7c: a feature verb refuses on exactly one line, and reaches no seam
 - Disabled 7d: the refusal line is the collection's shape, not a re-spelling
-- Disabled 8: left-click is refused and writes nothing; right-click opens the panel
+- Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing
 - Disabled 9: re-enabling rebuilds exactly the set it took down
 - Disabled 9b: a setting changed while disabled is honored on the way back up
 - Disabled 9c: an item looted while disabled is discovered on the way back up
@@ -372,18 +372,21 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_launcher.lua (26)
+### test_launcher.lua (28)
 
 - Launcher: KCM:OnInitialize registers ONE object under the folder name
 - Launcher: the object is a launcher, wearing this addon's own logo
 - Launcher: the broker label is the brand name in plain text
 - Launcher: the icon file the object names is on disk, at the TOC's path
 - Launcher: Register is idempotent — a second call builds no second button
-- Launcher: left-click toggles the macro bar's lock through the schema seam
-- Launcher: the left click holds no state — it reads the profile each time
-- Launcher: left-click unlock on a switched-off bar reuses RunLock's wording
-- Launcher: a disabled left click never reaches RunLock
-- Launcher: right-click opens the settings panel, and never the rung
+- Launcher: left-click opens the settings panel, in either state, and nothing else
+- Launcher: right-click opens the options menu -- Enabled, then Locked, and no more
+- Launcher: each open reads the states afresh
+- Launcher: the Locked entry runs /cm lock's handler through the schema seam
+- Launcher: Locked on a switched-off bar says what /cm unlock says
+- Launcher: the Enabled entry runs /cm disable's and /cm enable's handler
+- Launcher: while disabled, Locked is grayed and Enabled switches the addon back on
+- Launcher: with no MenuUtil, right-click opens the settings panel
 - Launcher: the Minimap button row stores LibDBIcon's own key, globally
 - Launcher: the row's get/set invert, and the button follows the checkbox
 - Launcher: LibDBIcon writes into the same table the row reads
@@ -395,11 +398,10 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: a host with neither broker library does not raise
 - Launcher: the write seam owns the inversion, not the library
 - Launcher: no LibKa0s means no launcher at all, and no stub
-- Launcher: the descriptor answers the tooltip's questions and no others
+- Launcher: the descriptor answers the tooltip's and the menu's questions and no others
 - Launcher: the tooltip, enabled and unlocked, in the collection's one shape
 - Launcher: the tooltip reads the lock on every show, never a cached copy
-- Launcher: the tooltip still draws while disabled, and says how to re-enable
-- Launcher: the left-click label goes through the addon's locale
+- Launcher: the tooltip still draws while disabled, with the same two hints
 
 ### test_lintconfig.lua (4)
 
@@ -1269,7 +1271,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_launcher.lua | 26 |
+| test_launcher.lua | 28 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
@@ -1302,4 +1304,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1076** |
+| **Total** | **1078** |

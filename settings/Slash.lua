@@ -132,6 +132,12 @@ local function setEnabled(on)
     end
 end
 
+-- Published beside the verbs core/SlashCommands.lua owns, for ONE other caller:
+-- the launcher menu's *Enabled* entry (core/LauncherSetup.lua's setEnabled,
+-- launcher-§2), which is `/cm enable` / `/cm disable` with a mouse and so runs
+-- this body rather than a second copy of the write and the echo.
+V.SetEnabled = setEnabled
+
 -- Backwards-compat: `/cm rewrite` → `/cm rewritemacros`. The original handler
 -- accepted both spellings; this preserves that without bloating COMMANDS. Held
 -- as a file local rather than inline in the library descriptor because the
@@ -347,7 +353,8 @@ end
 -- `disabled — /cm enable turns it back on`. slash-commands-§7 fixes one shape
 -- collection-wide, built by `cli:DisabledLine()` from the brand name, and says it
 -- MUST NOT be re-spelled per addon, per verb or per call site. So the line is the
--- library's, here and at the launcher's left click (core/LauncherSetup.lua).
+-- library's. (The launcher stopped printing it at LibKa0s v1.58.0: its menu grays
+-- the feature entries while disabled instead of refusing, launcher-§2.)
 --
 -- The `L` seam went with the string, which is the right answer rather than a loss:
 -- the line is the collection's, not this addon's, and the library's own note says

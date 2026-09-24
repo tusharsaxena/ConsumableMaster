@@ -242,24 +242,35 @@ next reload.
 
 The button itself, and the broker plugin that is the same object, are
 [module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption)'s `Launcher-1.0` row. Its
-**left click** toggles **Lock frame** — the same seam this checkbox drives — and its right click
-opens this panel.
+**left click** opens this panel, in either state, and its **right click** opens the options menu
+(`launcher-§2`, `LibKa0s-Launcher-1.0` minor 4), whose entries are this addon's two toggles:
+
+```
+Ka0s Consumable Master
+[x] Enabled     isEnabled + setEnabled   /cm enable | disable's own handler (Verbs.SetEnabled)
+[ ] Locked      isLocked  + toggleLock   /cm lock | unlock's own handler (Verbs.RunLock) — the
+                                         same seam the Lock frame checkbox drives
+```
+
+No *Test mode* (the unlocked bar is the preview) and no *Show window* (no standalone window). While
+the addon is disabled, **Locked** reads `Locked (enable the addon first)` and is grayed; a click
+on it reaches no handler. **Enabled** stays live.
 
 **Hovering the button shows the status tooltip, and the library draws it** (`launcher-§1`,
-`LibKa0s-Launcher-1.0` minor 3), including while the addon is disabled. This addon only answers its
+`LibKa0s-Launcher-1.0` minor 3, hints fixed at minor 4), including while the addon is disabled. This addon only answers its
 questions, each asked on every hover:
 
 ```
 Ka0s Consumable Master  v<the TOC's ## Version>
-Enabled: Yes|No                          the disabled hold, as the left click's gate reads it
+Enabled: Yes|No                          the disabled hold, as the menu's gray reads it
 Locked: Yes|No                           macroBar.locked — the Lock frame row's own value
-Left-click: Lock frame | Unlock frame    what the click will do; disabled — /cm enable while disabled
-Right-click: Open settings
+Left-click: Open settings
+Right-click: Options menu
 ```
 
 There is **no Test mode line**: the unlocked bar is this addon's preview (the `options-ui-§15`
 exemption above), so it passes `isLocked` and not `isTestMode`, and it passes no `onTooltipShow`,
-having no line of its own to add. The two left-click labels go through `KCM.L`.
+having no line of its own to add. The hints are the library's, the same on every Ka0s addon.
 
 **The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
 govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and

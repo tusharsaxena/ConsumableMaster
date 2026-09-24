@@ -896,8 +896,8 @@ end
 -- The confirmation names the SHORT form, because that is the one the bar's own
 -- tooltips now tell the player to type (modules/MacroBar.lua).
 --
--- The launcher's left click (core/LauncherSetup.lua) is a fifth spelling and
--- calls this too, through KCM.SlashCommands.Verbs.RunLock.
+-- The launcher menu's *Locked* entry (core/LauncherSetup.lua's toggleLock) is
+-- a fifth spelling and calls this too, through KCM.SlashCommands.Verbs.RunLock.
 --
 -- `verb` is the spelling the player typed, for the library-absent line only;
 -- the launcher and the top-level verbs pass nothing and get the short form.

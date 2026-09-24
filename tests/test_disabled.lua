@@ -437,10 +437,9 @@ end)
 -- 8. The launcher
 -- ---------------------------------------------------------------------------
 
-test("Disabled 8: left-click is refused and writes nothing; right-click opens the panel",
+test("Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing",
     function(t)
         local KCM, H = build()
-        local refusal = KCM.SlashCommands.instance:DisabledLine()
         local opened = 0
         KCM.Options.Open = function() opened = opened + 1; return true end
         H.SetAndRefresh("enabled", false)
@@ -450,18 +449,29 @@ test("Disabled 8: left-click is refused and writes nothing; right-click opens th
         resetPrinted()
         object.OnClick(object, "LeftButton")
 
-        -- Rung (b): the left click drives the macro bar's lock, which IS this
-        -- addon's preview switch, and a preview switch is a feature (launcher-§2).
+        -- launcher-§2 as of v2.67.0 (LibKa0s-Launcher-1.0 minor 4): the left
+        -- button opens the panel in EITHER state -- the panel is setup, not a
+        -- feature, and it is where the addon is switched back on. No refusal.
+        t.eq(opened, 1, "left-click opened the settings panel")
+        t.eq(printed(), "", "and printed no refusal")
         t.eq(storedState(KCM), before, "the click wrote no SavedVariables")
-        local out = printed()
-        t.truthy(out:find(refusal, 1, true) ~= nil, "one refusal line: " .. out)
-        t.eq(select(2, out:gsub("\n", "")), 0, "and exactly one")
-        t.eq(opened, 0, "the left button did not open the panel either")
 
-        -- Right-click is UNCHANGED in either state: the panel is setup, not a
-        -- feature, and it is the route that replaces what the left button lost.
-        object.OnClick(object, "RightButton")
-        t.eq(opened, 1, "right-click opened the settings panel")
+        -- The right button's menu: the macro bar's lock drives what this addon
+        -- draws, a feature, so its entry is grayed and a click forced through
+        -- anyway reaches no handler and writes nothing (slash-commands-§7).
+        local menu = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/mock_menu.lua")(_G)
+        local ok, err = pcall(function()
+            object.OnClick(object, "RightButton")
+            local m = menu.last
+            t.truthy(m, "right-click opened the options menu")
+            t.falsy(m:Find("Locked").enabled, "Locked is grayed while disabled")
+            t.truthy(m:Find("Enabled").enabled, "Enabled stays live")
+            m:ForceClick("Locked")
+            t.eq(storedState(KCM), before, "the grayed entry wrote no SavedVariables")
+            t.eq(printed(), "", "and said nothing")
+        end)
+        menu.remove()
+        if not ok then error(err, 0) end
     end)
 
 -- ---------------------------------------------------------------------------

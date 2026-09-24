@@ -3,7 +3,7 @@
 --
 -- WHAT EARNS THIS FILE is that almost everything it can catch is silent in game.
 -- A launcher whose icon path names a file that is not there draws NOTHING and
--- raises nothing. A left click wired to a second copy of the lock flag looks
+-- raises nothing. A menu entry wired to a second copy of the lock flag looks
 -- right until somebody opens the settings panel beside it. A minimap row whose
 -- get/set forget to invert shows a checked box over a hidden button, and the
 -- first thing the player does about it makes it worse. None of that is an error
@@ -136,122 +136,216 @@ test("Launcher: Register is idempotent — a second call builds no second button
 end)
 
 -- ---------------------------------------------------------------------------
--- The rung — (b) lock / unlock, driven through the EXISTING seam
+-- The two buttons (launcher-§2, LibKa0s-Launcher-1.0 minor 4)
 -- ---------------------------------------------------------------------------
+--
+-- LEFT opens the settings panel, in either state. RIGHT opens the options menu:
+-- the client's own context menu, which the library builds out of the pairs the
+-- descriptor passes. This addon has two -- *Enabled* and *Locked* (the macro
+-- bar), which is the row the standard's ADDONS.md records for it -- and no test
+-- mode and no primary window, so no *Test mode* and no *Show window*.
+--
+-- THE MENU IS THE LIBRARY'S FAKE (tests/mock_menu.lua, copied from LibKa0s
+-- v1.58.0). It goes into `_G`, where the loader's environment resolves client
+-- globals, and comes back out after every case: mock.install() does not reset
+-- `MenuUtil`, and a leftover would change the right click of every later case.
 
-test("Launcher: left-click toggles the macro bar's lock through the schema seam", function(t)
+local MENU_FILE = (_G.KCM_TEST_ROOT or ".") .. "/tests/mock_menu.lua"
+
+local function withMenu(body)
+    local menu = dofile(MENU_FILE)(_G)
+    local ok, err = pcall(body, menu)
+    menu.remove()
+    if not ok then error(err, 0) end
+end
+
+-- Right-click the button, as LibDBIcon dispatches it, and answer the menu that opened.
+local function rightClick(object, menu)
+    local before = menu.opens
+    object.OnClick({}, "RightButton")
+    return menu.opens > before and menu.last or nil
+end
+
+-- red under: a left click still wired to the retired rung (the lock), or one
+-- that asks the addon's state before it opens the panel.
+test("Launcher: left-click opens the settings panel, in either state, and nothing else", function(t)
     local KCM = loader.loadFullAddon()
     local object = KCM.Launcher:Object()
-
-    -- The proof that this is rung (b) and not a second copy of the flag: the
-    -- click has to reach KCM.Schema:Set, which is the write path the Master
-    -- controls checkbox and `/cm bar lock` already take (CM-R-05). Wrapped
-    -- rather than replaced, so the real write still lands and the row's
-    -- onChange still runs.
-    local writes = {}
-    local realSet = KCM.Schema.Set
-    KCM.Schema.Set = function(self, path, value)
-        writes[#writes + 1] = path .. "=" .. tostring(value)
-        return realSet(self, path, value)
-    end
-
-    KCM.db.profile.macroBar.locked = false
-    object.OnClick(nil, "LeftButton")
-    t.truthy(KCM.db.profile.macroBar.locked, "an unlocked bar locks")
-    object.OnClick(nil, "LeftButton")
-    t.falsy(KCM.db.profile.macroBar.locked, "and a locked bar unlocks")
-
-    t.eqList(writes, { "macroBar.locked=true", "macroBar.locked=false" },
-        "both clicks went through the single write seam, and wrote nothing else")
-
-    KCM.Schema.Set = realSet
-end)
-
-test("Launcher: the left click holds no state — it reads the profile each time", function(t)
-    local KCM = loader.loadFullAddon()
-    local object = KCM.Launcher:Object()
-
-    -- Changed behind the launcher's back, exactly as the checkbox or
-    -- `/cm bar lock` would change it. A launcher caching the flag would answer
-    -- from its own copy and the next click would go the wrong way.
-    KCM.db.profile.macroBar.locked = false
-    object.OnClick(nil, "LeftButton")
-    t.truthy(KCM.db.profile.macroBar.locked)
-    KCM.Schema:Set("macroBar.locked", false)
-    object.OnClick(nil, "LeftButton")
-    t.truthy(KCM.db.profile.macroBar.locked, "the click read the CURRENT value, not a cached one")
-end)
-
--- The left click is `/cm lock` / `/cm unlock` with a mouse, so it runs THE SAME
--- body (KCM.SlashCommands.Verbs.RunLock) rather than a second copy of the write
--- and the wording. The copy it used to carry told a player whose bar was
--- switched off to "drag it" (ConsumableMaster-R-11).
-test("Launcher: left-click unlock on a switched-off bar reuses RunLock's wording", function(t)
-    local KCM = loader.loadFullAddon()
-    local object = KCM.Launcher:Object()
-    local V = KCM.SlashCommands.Verbs
-    local realRun, calls = V.RunLock, {}
-    V.RunLock = function(locked) calls[#calls + 1] = locked; return realRun(locked) end
-
-    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", false)
-    KCM.Settings.Helpers.SetAndRefresh("macroBar.locked", true)
-    mock.output = {}
-    object.OnClick(nil, "LeftButton")
-    local out = table.concat(mock.output, "\n")
-
-    t.eqList(calls, { false }, "the click ran the slash verb's body, asking for unlocked")
-    t.eq(KCM.db.profile.macroBar.locked, false, "and the write landed")
-    t.truthy(out:find("macro bar unlocked (the bar is off \226\128\148 /cm bar on to show it)",
-        1, true) ~= nil, "the line says the bar is off: " .. out)
-    t.truthy(out:find("drag it", 1, true) == nil, "and asks for no drag: " .. out)
-    V.RunLock = realRun
-end)
-
--- The disabled refusal is the LIBRARY'S gate now (LibKa0s-Launcher-1.0 minor 2,
--- descriptor isEnabled / disabledLine): a disabled addon's left click never
--- reaches the host's onClick, so it cannot reach RunLock either.
-test("Launcher: a disabled left click never reaches RunLock", function(t)
-    local KCM = loader.loadFullAddon()
-    local object = KCM.Launcher:Object()
-    local V = KCM.SlashCommands.Verbs
-    local realRun, calls = V.RunLock, 0
-    V.RunLock = function(...) calls = calls + 1; return realRun(...) end
-
-    KCM.Settings.Helpers.SetAndRefresh("enabled", false)
-    mock.output = {}
-    object.OnClick(nil, "LeftButton")
-    local out = table.concat(mock.output, "\n")
-
-    t.eq(calls, 0, "the gate stopped the click before the host's action")
-    local line = KCM.SlashCommands.instance:DisabledLine()
-    local _, n = out:gsub(line:gsub("%p", "%%%0"), "")
-    t.eq(n, 1, "and the dispatcher's disabled line printed exactly once: " .. out)
-    V.RunLock = realRun
-end)
-
-test("Launcher: right-click opens the settings panel, and never the rung", function(t)
-    local KCM = loader.loadFullAddon()
-    local object = KCM.Launcher:Object()
-
     -- KCM.Options.Open is the addon's published panel seam and what the
-    -- descriptor's openSettings calls; wrapping it is how the case sees the
-    -- call land without the headless client having a settings panel to open.
+    -- descriptor's openSettings calls. Answering true stands in for a panel the
+    -- headless client cannot draw, so a stray line below is the click's own.
     local opens = 0
-    local realOpen = KCM.Options.Open
-    KCM.Options.Open = function(...) opens = opens + 1; return realOpen(...) end
+    KCM.Options.Open = function() opens = opens + 1; return true end
 
-    KCM.db.profile.macroBar.locked = false
-    object.OnClick(nil, "RightButton")
+    KCM.Schema:Set("macroBar.locked", false)
+    object.OnClick({}, "LeftButton")
     t.eq(opens, 1, "the panel was asked to open")
     t.falsy(KCM.db.profile.macroBar.locked, "and the lock was not touched")
 
-    -- Left-click is the rung here, so it must NOT also open the panel: an addon
-    -- on rung (a) or (b) whose left click opens settings has skipped the rule,
-    -- since the panel is already on the right button (anti-pattern #81).
-    object.OnClick(nil, "LeftButton")
-    t.eq(opens, 1, "the left click spent itself on the lock instead")
+    -- The panel is setup, not a feature, and it is where a disabled addon is
+    -- switched back on: no refusal line, the same panel.
+    KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+    mock.output = {}
+    object.OnClick({}, "LeftButton")
+    t.eq(opens, 2, "a disabled addon's left click opens the panel too")
+    t.eq(table.concat(mock.output, "\n"), "", "and prints no refusal")
+end)
 
-    KCM.Options.Open = realOpen
+-- red under: a descriptor passing a toggle for a state this addon does not
+-- have (test mode, a window), or one missing half of a pair it does have.
+test("Launcher: right-click opens the options menu -- Enabled, then Locked, and no more", function(t)
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local owner = {}
+        KCM.Launcher:Object().OnClick(owner, "RightButton")
+        local m = menu.last
+        t.truthy(m, "the client's context menu opened")
+        t.eq(m.owner, owner, "anchored to the clicked button")
+        t.eqList(m.titles, { "Ka0s Consumable Master" }, "titled with the brand name")
+        t.eqList(m:Texts(), { "Enabled", "Locked" },
+            "the two toggles this addon has, in the standard's order (ADDONS.md)")
+    end)
+end)
+
+-- red under: `isLocked` or `isEnabled` read once and cached by the host.
+test("Launcher: each open reads the states afresh", function(t)
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local object = KCM.Launcher:Object()
+
+        KCM.Schema:Set("macroBar.locked", true)
+        local m = rightClick(object, menu)
+        t.truthy(m:Checked("Enabled"), "Enabled draws checked")
+        t.truthy(m:Checked("Locked"), "Locked draws checked on a locked bar")
+
+        -- Changed behind the menu's back, as `/cm unlock` or the checkbox would.
+        KCM.Schema:Set("macroBar.locked", false)
+        m = rightClick(object, menu)
+        t.falsy(m:Checked("Locked"), "the next open reads the unlock")
+    end)
+end)
+
+-- The Locked entry is `/cm lock` / `/cm unlock` with a mouse, so it runs THE
+-- SAME body (KCM.SlashCommands.Verbs.RunLock), which writes through
+-- KCM.MacroBar.SetLocked -> KCM.Schema:Set (CM-R-05). A second copy of the write
+-- is what the old onClick was careful not to be, and the menu keeps that.
+-- red under: `toggleLock` writing `macroBar.locked` itself.
+test("Launcher: the Locked entry runs /cm lock's handler through the schema seam", function(t)
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local object = KCM.Launcher:Object()
+        local V = KCM.SlashCommands.Verbs
+        local realRun, calls = V.RunLock, {}
+        V.RunLock = function(locked, ...) calls[#calls + 1] = locked; return realRun(locked, ...) end
+        local writes, realSet = {}, KCM.Schema.Set
+        KCM.Schema.Set = function(self, path, value)
+            writes[#writes + 1] = path .. "=" .. tostring(value)
+            return realSet(self, path, value)
+        end
+
+        KCM.db.profile.macroBar.locked = false
+        t.eq(rightClick(object, menu):Click("Locked"), menu.RESPONSE.Close, "a click closes the menu")
+        t.truthy(KCM.db.profile.macroBar.locked, "an unlocked bar locks")
+        rightClick(object, menu):Click("Locked")
+        t.falsy(KCM.db.profile.macroBar.locked, "and a locked bar unlocks")
+
+        t.eqList(calls, { true, false }, "both clicks ran the slash verb's body")
+        t.eqList(writes, { "macroBar.locked=true", "macroBar.locked=false" },
+            "through the single write seam, and wrote nothing else")
+        KCM.Schema.Set, V.RunLock = realSet, realRun
+    end)
+end)
+
+-- The wording is RunLock's too: a player whose bar is switched off is told so
+-- rather than asked to "drag it" (ConsumableMaster-R-11).
+test("Launcher: Locked on a switched-off bar says what /cm unlock says", function(t)
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local object = KCM.Launcher:Object()
+        local H = KCM.Settings.Helpers
+        H.SetAndRefresh("macroBar.enabled", false)
+        H.SetAndRefresh("macroBar.locked", true)
+
+        mock.output = {}
+        rightClick(object, menu):Click("Locked")
+        local viaMenu = table.concat(mock.output, "\n")
+        t.eq(KCM.db.profile.macroBar.locked, false, "the write landed")
+
+        H.SetAndRefresh("macroBar.locked", true)
+        mock.output = {}
+        KCM:OnSlashCommand("unlock")
+        t.eq(viaMenu, table.concat(mock.output, "\n"), "the menu and the verb said the same line")
+        t.truthy(viaMenu:find("the bar is off", 1, true) ~= nil, "which says the bar is off: " .. viaMenu)
+    end)
+end)
+
+-- The Enabled entry is `/cm enable` / `/cm disable` with a mouse: the SAME
+-- handler (settings/Slash.lua's setEnabled, published as Verbs.SetEnabled),
+-- which writes the `enabled` row through the seam and echoes it.
+-- red under: `setEnabled` writing the row, or calling the Lifecycle latch, itself.
+test("Launcher: the Enabled entry runs /cm disable's and /cm enable's handler", function(t)
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local object = KCM.Launcher:Object()
+        local V = KCM.SlashCommands.Verbs
+        t.eq(type(V.SetEnabled), "function", "the verbs' handler is published")
+        local realSet, calls = V.SetEnabled, {}
+        V.SetEnabled = function(on) calls[#calls + 1] = on; return realSet(on) end
+
+        mock.output = {}
+        rightClick(object, menu):Click("Enabled")
+        local viaMenu = table.concat(mock.output, "\n")
+        t.eqList(calls, { false }, "an enabled addon's click asks for disabled")
+        t.eq(KCM.db.profile.enabled, false, "and the addon is off")
+        t.truthy(KCM.IsAddonDisabled(), "with the disabled hold taken")
+
+        rightClick(object, menu):Click("Enabled")
+        t.eqList(calls, { false, true }, "and the next click turns it back on")
+        t.eq(KCM.db.profile.enabled, true)
+
+        V.SetEnabled = realSet
+        mock.output = {}
+        KCM:OnSlashCommand("disable")
+        t.eq(viaMenu, table.concat(mock.output, "\n"), "the menu and /cm disable said the same line")
+    end)
+end)
+
+-- red under: `isEnabled` reading the whole latch (a perf capture's arm) rather
+-- than the disabled hold, or a host gate of its own.
+test("Launcher: while disabled, Locked is grayed and Enabled switches the addon back on", function(t)
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local object = KCM.Launcher:Object()
+        KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+        KCM.db.profile.macroBar.locked = true
+
+        local m = rightClick(object, menu)
+        t.eqList(m:Texts(), { "Enabled", "Locked (enable the addon first)" }, "the note is in the label")
+        t.falsy(m:Checked("Enabled"), "Enabled draws unchecked")
+        t.truthy(m:Find("Enabled").enabled, "and stays live")
+        t.falsy(m:Find("Locked").enabled, "Locked is grayed")
+        t.eq(m:Click("Locked"), nil, "a grayed entry cannot be clicked")
+        m:ForceClick("Locked")
+        t.truthy(KCM.db.profile.macroBar.locked, "and one forced through anyway writes nothing")
+
+        m:Click("Enabled")
+        t.eq(KCM.db.profile.enabled, true, "Enabled turned the addon back on")
+        t.truthy(rightClick(object, menu):Find("Locked").enabled, "and the next open un-grays Locked")
+    end)
+end)
+
+-- Where the client has no context-menu API, the right click falls back to the
+-- panel, which holds every toggle the menu would have.
+test("Launcher: with no MenuUtil, right-click opens the settings panel", function(t)
+    local KCM = loader.loadFullAddon()
+    t.eq(_G.MenuUtil, nil, "no menu API in this case's environment")
+    local opens = 0
+    local realOpen = KCM.Options.Open
+    KCM.Options.Open = function(...) opens = opens + 1; return realOpen(...) end
+    KCM.db.profile.macroBar.locked = false
+    KCM.Launcher:Object().OnClick({}, "RightButton")
+    t.eq(opens, 1, "the panel was asked to open")
+    t.falsy(KCM.db.profile.macroBar.locked, "and no toggle ran")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -521,9 +615,10 @@ local function tocVersion()
 end
 
 -- red under: a descriptor with no `version`, a `version` that is a captured
--- constant rather than the TOC-first reader, an `isTestMode` for a test mode
--- this addon does not have, or an `onTooltipShow` drawing lines of its own.
-test("Launcher: the descriptor answers the tooltip's questions and no others", function(t)
+-- constant rather than the TOC-first reader, an `isTestMode` / `toggleTestMode`
+-- or window pair for a state this addon does not have, an `onTooltipShow`
+-- drawing lines of its own, or a field minor 4 retired still being passed.
+test("Launcher: the descriptor answers the tooltip's and the menu's questions and no others", function(t)
     local seen
     local KCM = loader.loadFiles(loader.tocFiles(), false, function()
         local lib = LibStub("LibKa0s-Launcher-1.0")
@@ -535,11 +630,21 @@ test("Launcher: the descriptor answers the tooltip's questions and no others", f
 
     t.eq(type(seen.version), "function", "version is asked on every show")
     t.eq(seen.version(), KCM.Version(), "through KCM.Version, the TOC-first reader")
+    t.eq(type(seen.isEnabled), "function", "the disabled hold is asked on every show and open")
+    t.eq(type(seen.setEnabled), "function", "and /cm enable|disable's handler switches it")
     t.eq(type(seen.isLocked), "function", "the macro bar's lock is this addon's lock")
+    t.eq(type(seen.toggleLock), "function", "and /cm lock|unlock's handler toggles it")
     t.eq(seen.isTestMode, nil, "no test mode: the preview switch IS the lock (options-ui-§15)")
-    t.eq(type(seen.leftClickLabel), "function", "the rung-(b) label follows the lock")
+    t.eq(seen.toggleTestMode, nil, "so no Test mode entry either")
+    t.eq(seen.isWindowShown, nil, "no primary window: the macro bar is the lock's, not a window")
+    t.eq(seen.toggleWindow, nil, "so no Show window entry")
     t.eq(seen.onTooltipShow, nil, "no host lines: the library draws the whole block")
-    t.eq(seen.slash, nil, "the disabled hint's command comes out of disabledLine()")
+    -- Retired at minor 4 and ignored if passed: carrying them is dead
+    -- configuration (launcher-§5).
+    t.eq(seen.onClick, nil, "no onClick: the left button opens the panel on every addon")
+    t.eq(seen.leftClickLabel, nil, "no leftClickLabel: the hint is fixed")
+    t.eq(seen.disabledLine, nil, "no disabledLine: there is no refusal to print")
+    t.eq(seen.slash, nil, "no slash: there is no disabled hint to name it in")
 end)
 
 test("Launcher: the tooltip, enabled and unlocked, in the collection's one shape", function(t)
@@ -553,36 +658,34 @@ test("Launcher: the tooltip, enabled and unlocked, in the collection's one shape
         "Ka0s Consumable Master  v" .. v,
         "Enabled: Yes",
         "Locked: No",
-        "Left-click: Lock frame",
-        "Right-click: Open settings",
-    }, "title, status, the lock, then the two click hints -- and no Test mode line")
+        "Left-click: Open settings",
+        "Right-click: Options menu",
+    }, "title, status, the lock, then the two fixed click hints -- and no Test mode line")
 end)
 
--- red under: `isLocked` or `leftClickLabel` reading a value captured at load,
--- or a label that names the state rather than what the click will do.
+-- red under: `isLocked` reading a value captured at load.
 test("Launcher: the tooltip reads the lock on every show, never a cached copy", function(t)
-    local KCM = loader.loadFullAddon()
-    local object = KCM.Launcher:Object()
+    withMenu(function(menu)
+        local KCM = loader.loadFullAddon()
+        local object = KCM.Launcher:Object()
 
-    KCM.Schema:Set("macroBar.locked", true)
-    local raw, lines = hover(KCM)
-    t.eq(lines[3], "Locked: Yes", "locked through the schema seam reads Yes")
-    t.truthy(raw[3]:find("|cFF00FF00", 1, true) ~= nil, "in green")
-    t.eq(lines[4], "Left-click: Unlock frame", "and the left click offers the unlock")
+        KCM.Schema:Set("macroBar.locked", true)
+        local raw, lines = hover(KCM)
+        t.eq(lines[3], "Locked: Yes", "locked through the schema seam reads Yes")
+        t.truthy(raw[3]:find("|cFF00FF00", 1, true) ~= nil, "in green")
 
-    -- The minimap's own click, then a second hover of the SAME object.
-    object.OnClick(nil, "LeftButton")
-    t.falsy(KCM.db.profile.macroBar.locked, "the click unlocked the bar")
-    raw, lines = hover(KCM)
-    t.eq(lines[3], "Locked: No", "and the very next hover says so")
-    t.truthy(raw[3]:find("|cFFFF0000", 1, true) ~= nil, "in red")
-    t.eq(lines[4], "Left-click: Lock frame", "offering the lock back")
+        -- The button's own menu, then a second hover of the SAME object.
+        rightClick(object, menu):Click("Locked")
+        t.falsy(KCM.db.profile.macroBar.locked, "the menu unlocked the bar")
+        raw, lines = hover(KCM)
+        t.eq(lines[3], "Locked: No", "and the very next hover says so")
+        t.truthy(raw[3]:find("|cFFFF0000", 1, true) ~= nil, "in red")
+    end)
 end)
 
--- red under: a tooltip suppressed while disabled, an `isEnabled` reading the
--- whole latch (the perf arm) instead of the disabled hold, or a hint that still
--- offers the lock the click will refuse.
-test("Launcher: the tooltip still draws while disabled, and says how to re-enable", function(t)
+-- red under: a tooltip suppressed while disabled, or an `isEnabled` reading the
+-- whole latch (the perf arm) instead of the disabled hold.
+test("Launcher: the tooltip still draws while disabled, with the same two hints", function(t)
     local KCM = loader.loadFullAddon()
     KCM.Settings.Helpers.SetAndRefresh("enabled", false)
     local raw, lines = hover(KCM)
@@ -591,22 +694,10 @@ test("Launcher: the tooltip still draws while disabled, and says how to re-enabl
     t.eq(lines[2], "Enabled: No", "Enabled reads No")
     t.truthy(raw[2]:find("|cFFFF0000", 1, true) ~= nil, "in red")
     t.eq(lines[3], "Locked: No", "the lock line is still there")
-    t.eq(lines[4], "Left-click: disabled \226\128\148 /cm enable",
-        "the left hint mirrors the refusal and names the command")
-    t.eq(lines[5], "Right-click: Open settings", "the right button never changes")
+    t.eq(lines[4], "Left-click: Open settings", "the left button still opens the panel")
+    t.eq(lines[5], "Right-click: Options menu", "and the right one the menu")
 
     KCM.Settings.Helpers.SetAndRefresh("enabled", true)
     lines = select(2, hover(KCM))
     t.eq(lines[2], "Enabled: Yes", "re-enabling is read on the next show")
-    t.eq(lines[4], "Left-click: Lock frame", "and the rung's label comes back")
-end)
-
--- red under: the label typed as an English literal in the descriptor.
-test("Launcher: the left-click label goes through the addon's locale", function(t)
-    local KCM = loader.loadFullAddon()
-    KCM.Schema:Set("macroBar.locked", false)
-    rawset(KCM.L, "Lock frame", "Verrouiller")
-    local lines = select(2, hover(KCM))
-    t.eq(lines[4], "Left-click: Verrouiller", "KCM.L answered the label")
-    rawset(KCM.L, "Lock frame", nil)
 end)

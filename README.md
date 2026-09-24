@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1076%2F1076_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1078%2F1078_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -67,7 +67,7 @@ Four categories move with your spec. Flask, Combat Potion, Stat Food and Weapon 
 
 Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which opens that page. `/cm help` prints the full command list.
 
-There is also a button on your minimap wearing the addon's logo. **Right-click it** to open the settings page from anywhere. **Left-click it** to unlock the macro bar, move it, and lock it again — the same switch as **Lock frame** in the settings and `/cm lock`. **Hover it** to see whether the addon is enabled and the bar is locked, and what each click will do; the tooltip shows even while the addon is switched off. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
+There is also a button on your minimap wearing the addon's logo. **Left-click it** to open the settings page from anywhere. **Right-click it** for a small menu with two checkboxes: **Enabled** switches the whole addon on or off (the same as `/cm enable` / `/cm disable`), and **Locked** unlocks the macro bar so you can move it, then locks it again (the same switch as **Lock frame** in the settings and `/cm lock`). While the addon is switched off, **Locked** is grayed out until you turn it back on. **Hover it** to see whether the addon is enabled and the bar is locked; the tooltip shows even while the addon is switched off. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
 
 ## How picking & ranking works
 
