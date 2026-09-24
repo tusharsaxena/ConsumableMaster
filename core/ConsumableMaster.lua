@@ -210,12 +210,15 @@ function P.Recompute(reason)
     -- cooldown bracket is, and for the same reason: Note() records whether or
     -- not a capture is open.
     local perfT0 = (Perf and Perf.on) and debugprofilestop() or nil
-    -- Master enable gates only the macro write loop. The panel refresh
-    -- below still runs so that opening the panel while the addon is off
-    -- hydrates priority-list rows from item-info events (otherwise rows
-    -- whose data hadn't loaded sit on `[Loading]` until re-enable). Macros
-    -- keep their last-written body until the off→on transition kicks a
-    -- recompute via the toggle's onChange in settings/Panel.lua.
+    -- Master enable gates only the macro write loop; the panel refresh below
+    -- runs whenever a recompute does. While the addon is disabled no recompute
+    -- arrives, though: the stand-down drops GET_ITEM_INFO_RECEIVED
+    -- (UnregisterAllEvents, core/LifecycleSetup.lua) and the options bus
+    -- target's PANEL_REFRESH (settings/OptionsShim.lua). So item rows in a
+    -- panel opened in a fresh session while disabled stay `[Loading]` until
+    -- re-enable (docs/ARCHITECTURE.md, Known Limitations). Macros keep their
+    -- last-written body until standUp's RequestRecompute
+    -- (core/LifecycleSetup.lua) runs on the off->on transition.
     if macrosEnabled() then
         local rewrote, skipped, total = runMacroPass(reason)
         if isDebugOn() then
