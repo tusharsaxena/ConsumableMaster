@@ -250,6 +250,40 @@ test("Settings UI: a panel comes from the library's registry, breadcrumb and all
     t.truthy(ctx.panelKey == "macrobar", "…and the addon's own key alongside the library's")
 end)
 
+-- The About logo is a texture path, and a texture path is absolute from
+-- `Interface\AddOns\`: a folder name typed into it resolves to nothing on an
+-- install whose folder is spelled any other way, and the page shows a blank
+-- square. The mock's CreateTexture hands back the frame itself, so the path is
+-- read off the SimpleGroup's frame the logo draws into.
+test("Settings UI: the About logo path follows the folder name", function(t)
+    local KCM = loader.loadWithSchema()
+    -- The whole addon cannot be built under another folder name headlessly:
+    -- the Bus catalog refuses event keys that do not carry the name, which is
+    -- its own rule working. So the rename is applied to the one file this case
+    -- is about, re-run on the same namespace the way the client runs it.
+    KCM.name = "ConsumableMasterRenamed"
+    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/Panel.lua"))
+    chunk(KCM.name, KCM)
+    local path
+    local AceGUI = LibStub("AceGUI-3.0")
+    local realCreate = AceGUI.Create
+    AceGUI.Create = function(self, kind, ...)
+        local w = realCreate(self, kind, ...)
+        if kind == "SimpleGroup" then
+            w.frame.SetTexture = function(_, p) path = path or p end
+        end
+        return w
+    end
+    local H = KCM.Settings.Helpers
+    local ok, err = pcall(H.BuildAboutContent,
+        H.CreatePanel("KCMAboutPanel", "Ka0s Consumable Master", { isMain = true }))
+    AceGUI.Create = realCreate
+    assert(ok, err)
+    t.truthy(type(path) == "string", "the About page drew a logo texture")
+    t.truthy(path:find("ConsumableMasterRenamed\\media\\logos\\consumablemasterrenamed.logo.tga", 1, true),
+        "the logo path is built from the folder name, got " .. tostring(path))
+end)
+
 test("Settings UI: the library's user-visible strings resolve to prose, not to their own keys",
     function(t)
         local KCM  = loader.loadWithSchema()

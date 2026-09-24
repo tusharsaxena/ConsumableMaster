@@ -124,7 +124,16 @@ KCM.Options = KCM.Options or {}
 -- site is reachable on a build without the library — nothing registers a panel
 -- there — so there is no nil arm to guard.
 
-local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumablemaster.logo.tga]]
+-- Built from the folder name rather than typed, the same derivation
+-- core/LauncherSetup.lua uses for the launcher icon (its ICON, built from
+-- `addonName`): a texture path is absolute from `Interface\AddOns\`, so the
+-- folder half has to be the name the client loaded, and layout-§4 lowercases
+-- the file half. This is consistency with that file, not a layout-§4
+-- deviation being corrected -- the literal spelled the same path. This file
+-- opens `local _, NS = ...`, so the name is read off NS.name, which
+-- core/Namespace.lua sets from the vararg.
+local LOGO_TEXTURE = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.tga")
+    :format(KCM.name, KCM.name:lower())
 local LOGO_PIXELS  = 300
 
 -- ---------------------------------------------------------------------

@@ -894,7 +894,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (41)
+### test_settingsui.lua (42)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -906,6 +906,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: the scroll container comes from the library
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
+- Settings UI: the About logo path follows the folder name
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
@@ -1282,7 +1283,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 41 |
+| test_settingsui.lua | 42 |
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 113 |
 | test_slash_degraded.lua | 12 |
@@ -1296,4 +1297,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1070** |
+| **Total** | **1071** |
