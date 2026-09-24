@@ -467,6 +467,7 @@ test("MacroManager.FlushPending replays a per-hand weapon-enchant body", functio
     t.eq(KCM.MacroManager.FlushPending(), 1, "one queued write applied")
 
     local body = mock.macros["KCM_WPN_ENCH"] and mock.macros["KCM_WPN_ENCH"].body or ""
+    t.truthy(body:find("/use item:944001", 1, true), "the main-hand item survived the flush")
     t.truthy(body:find("/use 16", 1, true), "and so did the main-hand slot line")
     t.truthy(body:find("/use item:944002", 1, true), "the off-hand item survived the flush")
     t.truthy(body:find("/use 17", 1, true), "and so did the off-hand slot line")
@@ -509,6 +510,7 @@ test("MacroManager: /cm rewritemacros in combat keeps the WPN_ENCH body", functi
     _G.C_TooltipInfo.GetItemByID = savedTooltip
 
     local body = mock.macros["KCM_WPN_ENCH"] and mock.macros["KCM_WPN_ENCH"].body or ""
+    t.truthy(body:find("/use item:944011", 1, true), "the main-hand whetstone survived the regen flush")
     t.truthy(body:find("/use 16", 1, true), "and so did the main-hand slot line")
     t.truthy(body:find("/use item:944012", 1, true), "the off-hand weightstone survived the regen flush")
     t.truthy(body:find("/use 17", 1, true), "and so did the off-hand slot line")
