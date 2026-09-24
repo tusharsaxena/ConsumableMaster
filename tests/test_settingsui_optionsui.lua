@@ -711,6 +711,57 @@ test("Settings: the Reset all settings tooltip names Profiles → Reset Profile"
         "the tooltip names the equivalence and the blast radius")
 end)
 
+-- CM-11 (ConsumableMaster-R-08): one global reset act, one popup. The panel
+-- door used to raise its own KCM_RESET_ALL, whose handler carried the combat
+-- guard and the repaint the slash door's KCM_CONFIRM_RESET lacked. Both now live
+-- in KCM.ResetAllToDefaults and both doors raise the same dialog.
+--
+-- red under: onResetAll raising any other popup, or KCM_RESET_ALL coming back.
+test("Settings: the panel's Reset all settings raises the same popup as /cm resetall",
+    function(t)
+        local KCM = loader.loadFullAddon()
+        local UI  = KCM.Settings.Helpers.instance
+
+        local buttons = {}
+        local realAceGUI = UI.AceGUI
+        UI.AceGUI = setmetatable({
+            Create = function(_, kind)
+                local w = loader.mock.makeAceWidget()
+                if kind == "Button" then
+                    local callbacks = {}
+                    w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+                    buttons[#buttons + 1] = { widget = w, callbacks = callbacks }
+                end
+                return w
+            end,
+            RegisterWidgetType = function() end,
+            RegisterLayout     = function() end,
+            GetWidgetVersion   = function() return 0 end,
+        }, { __index = function() return function() end end })
+
+        KCM.Settings.builders.general({})
+        local ctx = UI.__panelFor("general")
+        ctx.panel.IsShown = function() return true end
+        ctx.activeTab = "Master controls"
+        KCM.Settings.Helpers.RefreshAllPanels()
+        UI.AceGUI = realAceGUI
+
+        local reset
+        for _, b in ipairs(buttons) do
+            if rawget(b.widget, "__text") == "Reset all settings" then reset = b end
+        end
+        t.truthy(reset and reset.callbacks.OnClick, "the button is drawn with a click handler")
+
+        local shown
+        local saved = _G.StaticPopup_Show
+        _G.StaticPopup_Show = function(which) shown = which end
+        local ok, err = pcall(reset.callbacks.OnClick)
+        _G.StaticPopup_Show = saved
+        t.truthy(ok, tostring(err))
+        t.eq(shown, "KCM_CONFIRM_RESET", "the panel door raises the slash door's popup")
+        t.eq(StaticPopupDialogs["KCM_RESET_ALL"], nil, "and the duplicate popup is gone")
+    end)
+
 -- The Maintenance TAB is back, by the owner's call on 2026-09-09. It was folded
 -- into Master controls as a subsection on the reasoning that a whole tab over
 -- three monthly buttons cost a click; from inside the panel the trade reads the

@@ -47,7 +47,7 @@ print them:
 | `resync` | host | Invalidate the tooltip cache, run auto-discovery, recompute every category. |
 | `rewritemacros` (alias `rewrite`) | host | Invalidate macro state and rewrite every body and icon. |
 | `reset <path>` | library | Reset **one** schema row to its default. |
-| `resetall` | host | The confirm-gated global wipe, via `StaticPopup_Show("KCM_CONFIRM_RESET")`. |
+| `resetall` | host | The confirm-gated whole-profile reset, via `StaticPopup_Show("KCM_CONFIRM_RESET")` — the same popup the General page's *Reset all settings* raises. |
 | `list` | library | Every schema row and its value, grouped by the row's `panel`. |
 | `get <path>` | library | One row's value. |
 | `set <path> <value>` | library | Type-aware parse, then `Helpers.SetAndRefresh`. |
@@ -78,6 +78,14 @@ quietly become a one-row reset and never learn the verb changed meaning.
 the library's `resetall` walks the schema rows, and this addon's global reset is
 `KCM.ResetAllToDefaults`, which also wipes the priority lists and the stat overrides — data the
 schema does not describe.
+
+**One act, one popup, both doors.** `KCM_CONFIRM_RESET` (`core/SlashCommands.lua`) is the only
+global-reset confirmation: `/cm resetall` and the General page's *Reset all settings* both raise it
+by name. Everything a door used to add on its own is inside `KCM.ResetAllToDefaults` now — it refuses
+under `InCombatLockdown` before any write (`false, "combat"`), answers `false, "db"` before the
+database exists, and repaints every open panel on success. The popup's `OnAccept` switches on that
+second return: *Reset complete — defaults restored.*, *in combat — reset deferred until regen.* (the
+General page's own combat wording), or *Reset failed (DB not ready).*
 
 ## The sub-command trees
 

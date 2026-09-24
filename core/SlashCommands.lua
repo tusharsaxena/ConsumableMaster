@@ -28,31 +28,37 @@ local L = KCM.L
 local say = KCM.Say
 
 
--- Shared confirmation popup for /cm resetall. preferredIndex = 3 dodges the
--- taint cascade that affects popup slots 1/2 when other addons have used
--- them earlier in the session (a well-known Ace3 footgun around any
--- StaticPopup that mutates SavedVariables).
+-- THE global-reset confirmation, and the only one (ConsumableMaster-R-08): the
+-- Master controls tab's [Reset all settings] (settings/General.lua's onResetAll)
+-- and `/cm resetall` (settings/Slash.lua) both raise it by name. The panel used to
+-- carry a duplicate popup of its own, whose handler added the combat guard and the
+-- repaint this one lacked; both now live inside KCM.ResetAllToDefaults, so one
+-- dialog and one act serve both doors. preferredIndex = 3 dodges the taint
+-- cascade that affects popup slots 1/2 when other addons have used them earlier
+-- in the session (a well-known Ace3 footgun around any StaticPopup that mutates
+-- SavedVariables).
 --
 -- It hangs off the global StaticPopupDialogs at file scope and is reached by
 -- name through StaticPopup_Show, so which VERB raises it is the only thing
 -- that ever moved: `/cm reset` used to, `/cm resetall` does now (LIBKA0S-12, issue #27).
--- The dialog, its wording and its body are untouched by that swap — the
--- destructive path keeps the confirmation it has always had.
+local RESET_REPLY = {
+    combat = "in combat — reset deferred until regen.",
+    db     = "Reset failed (DB not ready).",
+}
+
 StaticPopupDialogs["KCM_CONFIRM_RESET"] = {
-    -- Same wording as the Options panel's KCM_RESET_ALL so both global-reset
-    -- entry points describe identical scope (they share KCM.ResetAllToDefaults).
-    -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim, and the same string
-    -- settings/General.lua's popup carries -- one act, one wording, whichever door
-    -- the player came through.
+    -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim -- one act, one
+    -- wording, whichever door the player came through.
     text = L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded — your other profiles are not affected."],
     button1 = YES,
     button2 = NO,
+    -- The reply switches on the act's second return: the combat line is the
+    -- General page's inCombatNotice wording, so a refused reset reads the same
+    -- as every other Maintenance verb refused under lockdown.
     OnAccept = function()
-        if KCM.ResetAllToDefaults and KCM.ResetAllToDefaults("slash_resetall") then
-            say("Reset complete — defaults restored.")
-        else
-            say("Reset failed (DB not ready).")
-        end
+        local ok, why = false, "db"
+        if KCM.ResetAllToDefaults then ok, why = KCM.ResetAllToDefaults("confirm_reset") end
+        say(ok and "Reset complete — defaults restored." or RESET_REPLY[why] or RESET_REPLY.db)
     end,
     timeout      = 0,
     whileDead    = true,

@@ -235,7 +235,12 @@ the two **compose** — the scales and the opacities multiply, and the two visib
 Conflating them would make one of the two sliders do nothing at one end of the other's range.
 
 **The two resets are different acts.** *Reset all settings* is the profile reset — the same act
-`Profiles → Reset Profile` performs, behind the collection's one wording. *Reset all priorities*, in
+`Profiles → Reset Profile` performs, behind the collection's one wording. It raises
+`KCM_CONFIRM_RESET` (`core/SlashCommands.lua`), the same popup `/cm resetall` raises; there is no
+second global-reset popup, and the combat refusal and the repaint are `KCM.ResetAllToDefaults`' own,
+so neither door adds anything the other lacks ([slash-dispatch.md](./slash-dispatch.md)). The
+*Reset all priorities* tooltip points at it by tab: *use Reset all settings on the Master controls
+tab*. *Reset all priorities*, in
 the **Maintenance** tab, clears every category's added / blocked / pinned items and every spec's
 stat-priority override and leaves everything else standing, behind its own, narrower confirmation.
 The button that used to sit on this page said the second and did the first.
@@ -248,7 +253,8 @@ It is written off the `sessionOnly` **flag** rather than off that one path, so a
 covered the day it is declared — which is also why the composed row is given an explicit
 `debugConsole = false` default in `settings/General.lua`: three separate resets key on
 `default ~= nil` before they will touch a row, and `OptionsCompose` emits that row without one.
-Both halves live behind the one function so the button and `/cm resetall` cannot drift.
+Both halves, the combat refusal ahead of them and the repaint after, live behind the one function
+so the button and `/cm resetall` cannot drift.
 
 Which rows the sweep writes is **one predicate's** call, `KCM.Settings.VetoedFromResetAll`
 (`settings/OptionsSetup.lua`): it refuses the Profiles page's rows (`options-ui-§3`) and every
@@ -263,7 +269,7 @@ is: `resetProfile`, which is the same `db:ResetProfile()` `KCM.ResetAllToDefault
 reads *Restore every setting in this addon to its default.*, which overstates a reset that leaves the
 other profiles alone. The library's `RestoreAllDefaults` is the only other reader of `resetProfile`,
 and nothing in this addon calls it, so the two fields change the tooltip and nothing else. The
-button still runs `KCM_RESET_ALL` and the popup still runs `KCM.ResetAllToDefaults`.
+button still raises `KCM_CONFIRM_RESET` and the popup still runs `KCM.ResetAllToDefaults`.
 
 ### The Macros strip, in tab order
 
@@ -596,7 +602,7 @@ not gaps:
   library's, both live in the page's chrome band above the scroll, and the banner is drawn first
   because it reserves the share of the band the strip then places itself under.
 - **Action buttons** use `H.ButtonPair` / `H.Button`, and a destructive one is confirm-gated through a
-  `StaticPopup` — *Reset all settings* raises `KCM_RESET_ALL` and *Reset all priorities* raises
+  `StaticPopup` — *Reset all settings* raises `KCM_CONFIRM_RESET` and *Reset all priorities* raises
   `KCM_RESET_PRIORITIES`, rather than either acting on click.
 - User-visible strings route through `L[…]` (`localization-§1`), and `tests/test_locale.lua` is what
   holds that: it lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any

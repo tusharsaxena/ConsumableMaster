@@ -290,7 +290,7 @@ local RESIDUE = {
     {"settings/Slash.lua", "rewrote all macros (body + icon). If action bar icons still look stale, /reload to force the bars to refresh.",
      "CLI SURFACE"},
     {"settings/Slash.lua", "Reset ONE setting to its default — `/cm reset <path>`", "CLI SURFACE"},
-    {"settings/Slash.lua", "Reset every priority list and stat override to defaults (asks first)", "CLI SURFACE"},
+    {"settings/Slash.lua", "Reset this profile to the addon's defaults — every setting and list (asks first)", "CLI SURFACE"},
     {"settings/Slash.lua", "StaticPopup unavailable.", "CLI SURFACE"},
     {"settings/Slash.lua", "List every schema setting and its current value", "CLI SURFACE"},
     {"settings/Slash.lua", "Print a setting's current value — `/cm get <path>`", "CLI SURFACE"},

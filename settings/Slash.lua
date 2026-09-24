@@ -229,7 +229,7 @@ local COMMANDS = {
     -- overridden below to name `resetall` explicitly.
     {"reset",         "Reset ONE setting to its default — `/cm reset <path>`",
         function(rest) cliReset(rest) end},
-    {"resetall",      "Reset every priority list and stat override to defaults (asks first)",
+    {"resetall",      "Reset this profile to the addon's defaults — every setting and list (asks first)",
         function()
             if StaticPopup_Show then
                 StaticPopup_Show("KCM_CONFIRM_RESET")

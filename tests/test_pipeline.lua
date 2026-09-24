@@ -294,10 +294,36 @@ test("ResetAllToDefaults reports whether it mutated anything", function(t)
     t.eq(KCM.ResetAllToDefaults("test"), true, "a real reset reports true")
     local saved = KCM.db
     KCM.db = nil
-    local result = KCM.ResetAllToDefaults("test")
+    local result, why = KCM.ResetAllToDefaults("test")
     KCM.db = saved
     t.eq(result, false, "with no DB there is nothing to reset")
+    t.eq(why, "db", "…and the refusal names the DB as the reason")
 end)
+
+-- CM-11 (ConsumableMaster-R-08): the combat refusal and the repaint belong to
+-- the ACT, not to one door, so `/cm resetall` and the panel's Reset all settings
+-- cannot diverge on either.
+--
+-- red under: the refusal or the RefreshAllPanels call moving back to a door.
+test("ResetAllToDefaults refuses in combat before any write, and repaints on success",
+    function(t)
+        local KCM, mock = h.loader.loadFullAddon(), h.loader.mock
+        local repaints = 0
+        KCM.Settings.Helpers.RefreshAllPanels = function() repaints = repaints + 1 end
+        KCM.Selector.AddItem("FOOD", 950011)
+
+        mock.setCombat(true)
+        local ok, why = KCM.ResetAllToDefaults("test")
+        mock.setCombat(false)
+        t.eq(ok, false, "a reset under lockdown is refused")
+        t.eq(why, "combat", "…and says combat is why")
+        t.truthy(KCM.Selector.GetBucket("FOOD").added[950011], "nothing was written")
+        t.eq(repaints, 0, "and nothing was repainted")
+
+        t.eq(KCM.ResetAllToDefaults("test"), true, "out of combat it resets")
+        t.eq(KCM.Selector.GetBucket("FOOD").added[950011], nil, "the added item is gone")
+        t.truthy(repaints >= 1, "and every open panel was repainted")
+    end)
 
 test("ResetAllToDefaults keeps the addon on when the defaults have no enabled key", function(t)
     -- The fail-safe is the READER's, not the reset's: `macrosEnabled` is

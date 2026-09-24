@@ -26,6 +26,9 @@
 -- THE TWO RESETS ARE DIFFERENT ACTS and are deliberately on different tabs.
 -- [Reset all settings] is options-ui-§12's global reset — a profile reset, the
 -- same act as Profiles → Reset Profile, behind the collection's one wording.
+-- It raises core/SlashCommands.lua's KCM_CONFIRM_RESET, the popup `/cm resetall`
+-- raises, and the combat refusal and repaint are KCM.ResetAllToDefaults' own, so
+-- this door adds nothing of its own (ConsumableMaster-R-08).
 -- [Reset all priorities] is targeted: it clears the added / blocked / pinned
 -- items and the stat-priority overrides and leaves every other setting standing.
 -- The button that used to sit here said the second and did the first.
@@ -98,25 +101,6 @@ local function doForceRewriteMacros()
     H.RefreshAllPanels()
 end
 
--- The GLOBAL reset (options-ui-§12): the session-only rows restored by hand, then
--- a profile reset — the same act AceDBOptions' own Reset Profile performs. BOTH
--- halves are KCM.ResetAllToDefaults', not this button's, because `/cm resetall`
--- is the same act through another door and the two must not drift. The resync is
--- in neither half: it happens on the OnProfileReset callback, which is the one
--- path a profile SWITCH takes too.
-local function doResetAll()
-    -- Combat-guarded to match the Maintenance subsection's siblings; the
-    -- DB wipe itself is combat-safe (MacroManager defers macro writes to
-    -- regen), but blocking here keeps the page's behavior uniform.
-    if InCombatLockdown and InCombatLockdown() then
-        return inCombatNotice("reset")
-    end
-    if KCM.ResetAllToDefaults then
-        KCM.ResetAllToDefaults("options_reset")
-    end
-    H.RefreshAllPanels()
-end
-
 -- The TARGETED reset the old "Reset all priorities" button claimed and did not
 -- do: every category's added / blocked / pinned items and every spec's stat
 -- priority override, and nothing else — the macro bar's appearance, the master
@@ -142,21 +126,6 @@ local function doResetAllPriorities()
     resyncPipeline("options_reset_priorities")
 end
 KCM.ResetAllPriorities = doResetAllPriorities
-
-StaticPopupDialogs["KCM_RESET_ALL"] = {
-    -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on
-    -- purpose: the old text enumerated this addon's own nouns, which is exactly
-    -- what eight addons each did differently. What it used to promise about
-    -- macros surviving is still true and is now the tooltip's job, not the
-    -- confirmation's -- a popup that lists reassurances buries the warning.
-    text         = L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded — your other profiles are not affected."],
-    button1      = L["Yes"],
-    button2      = L["No"],
-    timeout      = 0,
-    whileDead    = true,
-    hideOnEscape = true,
-    OnAccept     = function() doResetAll() end,
-}
 
 -- A SECOND popup, because it warns about a genuinely narrower act. Sharing the
 -- global reset's text would be the same lie the shared BUTTON was: a player told
@@ -239,7 +208,7 @@ local masterRows, masterTail = H.MasterControls{
             KCM.Say("macro bar position reset.")
         end
     end,
-    onResetAll = function() StaticPopup_Show("KCM_RESET_ALL") end,
+    onResetAll = function() StaticPopup_Show("KCM_CONFIRM_RESET") end,
 }
 
 H.RegisterRows(masterRows, "general", "general", {
@@ -362,7 +331,7 @@ local function drawMaintenance(ctx)
         })
     H.Button(ctx, {
         text    = L["Reset all priorities"],
-        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings above."],
+        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings on the Master controls tab."],
         onClick = function() StaticPopup_Show("KCM_RESET_PRIORITIES") end,
     })
 end

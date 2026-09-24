@@ -649,7 +649,7 @@ badge and any count quoted in the docs must agree with it.
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
-### test_pipeline.lua (30)
+### test_pipeline.lua (31)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
@@ -675,6 +675,7 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults empties macro state and the resync rebuilds each macro's fingerprint
 - ResetAllToDefaults rediscovers what is still in bags
 - ResetAllToDefaults reports whether it mutated anything
+- ResetAllToDefaults refuses in combat before any write, and repaints on success
 - ResetAllToDefaults keeps the addon on when the defaults have no enabled key
 - ResetAllToDefaults runs invalidate then discover then recompute, in that order
 - ResetAllToDefaults copies the defaults rather than aliasing them
@@ -898,7 +899,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_settingsui_optionsui.lua (21)
+### test_settingsui_optionsui.lua (22)
 
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
@@ -915,6 +916,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
 - Settings: the Reset all settings tooltip names Profiles → Reset Profile
+- Settings: the panel's Reset all settings raises the same popup as /cm resetall
 - Settings: the three maintenance verbs draw on their own tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
@@ -922,7 +924,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (112)
+### test_slash.lua (114)
 
 - /cm set toggles a bool setting through the schema
 - /cm disable prints exactly one line, the enabled echo
@@ -945,6 +947,8 @@ badge and any count quoted in the docs must agree with it.
 - /cm help and the About panel read the same command table
 - /cm resetall asks for confirmation instead of wiping immediately
 - /cm resetall's confirmation still performs the full wipe when accepted
+- /cm resetall confirmed in combat refuses and writes nothing
+- /cm resetall help names a whole-profile reset
 - /cm reset <path> restores exactly that row and leaves its neighbors alone
 - /cm config reports when the settings panel cannot be opened
 - /cm priority with no category prints the sub-verbs and known categories
@@ -1216,7 +1220,7 @@ badge and any count quoted in the docs must agree with it.
 | test_macromanager.lua | 51 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
-| test_pipeline.lua | 30 |
+| test_pipeline.lua | 31 |
 | test_profiles.lua | 21 |
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
@@ -1224,8 +1228,8 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
-| test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 112 |
+| test_settingsui_optionsui.lua | 22 |
+| test_slash.lua | 114 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 6 |
@@ -1236,4 +1240,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1018** |
+| **Total** | **1022** |

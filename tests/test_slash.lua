@@ -271,6 +271,44 @@ test("/cm resetall's confirmation still performs the full wipe when accepted", f
         "…and the user is told: " .. table.concat(mock.output, "\n"))
 end)
 
+-- CM-11 (ConsumableMaster-R-08). The combat refusal used to live on the panel
+-- door only (settings/General.lua's doResetAll), so the slash door reset the
+-- profile mid-fight. It now lives inside KCM.ResetAllToDefaults, which both
+-- doors reach through this one popup.
+--
+-- red under: dropping the InCombatLockdown refusal from ResetAllToDefaults, or
+-- an OnAccept that does not tell the 'combat' answer from 'db'.
+test("/cm resetall confirmed in combat refuses and writes nothing", function(t)
+    local KCM, mock = load()
+    KCM.Selector.AddItem("FOOD", 960001)
+    KCM.db.profile.enabled = false
+    mock.setCombat(true)
+    mock.output = {}
+    StaticPopupDialogs["KCM_CONFIRM_RESET"].OnAccept()
+    mock.setCombat(false)
+    t.truthy(KCM.Selector.GetBucket("FOOD").added[960001], "the added item survives")
+    t.eq(KCM.db.profile.enabled, false, "and so does the non-default master switch")
+    local text = table.concat(mock.output, "\n")
+    t.truthy(text:find("in combat — reset deferred until regen.", 1, true),
+        "the player is told why: " .. text)
+    t.falsy(text:find("Reset complete", 1, true), "and is not told it happened")
+    t.falsy(text:find("DB not ready", 1, true), "nor that the DB was the reason")
+end)
+
+-- The help row names the act the verb runs: db:ResetProfile() on the whole
+-- profile, not the priority-only wipe Reset all priorities performs.
+test("/cm resetall help names a whole-profile reset", function(t)
+    local KCM = load()
+    local row
+    for _, entry in ipairs(KCM.COMMANDS) do
+        if entry[1] == "resetall" then row = entry end
+    end
+    t.truthy(row, "resetall is a registered verb")
+    t.eq(row and row[2],
+        "Reset this profile to the addon's defaults — every setting and list (asks first)",
+        "the help text describes the whole-profile reset")
+end)
+
 test("/cm reset <path> restores exactly that row and leaves its neighbors alone", function(t)
     local KCM, mock = load()
     -- Surgical, not global. Two rows are moved off their defaults and only one

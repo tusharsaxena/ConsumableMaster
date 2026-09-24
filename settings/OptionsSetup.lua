@@ -286,7 +286,7 @@ if optionsLib and AceGUI then
         -- KCM.db at CALL time because the db does not exist when this file loads.
         -- It changes nothing else: the library's only other reader of it is
         -- RestoreAllDefaults, which this addon never calls, so the button still
-        -- raises KCM_RESET_ALL and the popup still runs KCM.ResetAllToDefaults.
+        -- raises KCM_CONFIRM_RESET and the popup still runs KCM.ResetAllToDefaults.
         resetProfile = function() KCM.db:ResetProfile() end,
         profilesPage = true,
     })

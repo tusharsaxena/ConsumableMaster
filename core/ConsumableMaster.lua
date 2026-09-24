@@ -569,27 +569,45 @@ end
 --- which is the path a profile SWITCH takes too. Calling it here as well would run
 --- the pipeline twice for one action.
 ---
---- THE SESSION SWEEP RUNS FIRST, and it lives HERE rather than at either door so the
---- two doors cannot diverge: the Master controls tab's [Reset all settings] and
---- `/cm resetall` are one act, and the addon's own note in settings/General.lua that
---- "every execute path is shared with the slash commands" is only true while the
---- whole act is behind this one function. First, not last, for the reason the
---- library's own `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
+--- THE WHOLE ACT LIVES HERE, not at either door, so the two doors cannot diverge:
+--- the Master controls tab's [Reset all settings] and `/cm resetall` both raise
+--- core/SlashCommands.lua's KCM_CONFIRM_RESET, whose OnAccept is the only caller,
+--- and everything a door used to add on its own is in this function instead
+--- (ConsumableMaster-R-08): the combat refusal, the session sweep, the profile
+--- reset and the repaint. A door that wants to differ has nothing left to differ in.
+---
+--- REFUSED IN COMBAT, BEFORE ANY WRITE. The DB wipe itself is combat-safe
+--- (MacroManager defers macro writes to regen), but the General page's Maintenance
+--- verbs all refuse under lockdown, and a reset that half-lands mid-fight -- the
+--- profile gone, the macros still showing the old picks until regen -- is harder
+--- to read than one that did not happen. The popup's OnAccept prints the page's
+--- `in combat — reset deferred until regen.` line off the 'combat' answer.
+---
+--- THE SESSION SWEEP RUNS FIRST. First, not last, for the reason the library's own
+--- `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
 --- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
 --- would be writing into a panel that had already been drawn from the old value.
+--- The closing H.RefreshAllPanels() is the repaint the panel door used to run on
+--- its own; here it covers the slash door too, and any page the profile callback's
+--- rebuild did not reach.
 ---
 --- ONE LOG LINE for the whole act (debug-logging-§10): the OnProfileReset
 --- handler's `[Set] reset profile '<name>' to defaults`. Both halves run inside
 --- Helpers.MuteSetLog, so the session sweep's own write logs no row, and no line
 --- is added here. `reason` is the caller's audit tag and is no longer logged.
+---
+--- Returns true on success, or false plus why: 'combat' under lockdown, 'db' when
+--- the database is not ready yet.
 function KCM.ResetAllToDefaults(reason)
-    if not (KCM.db and KCM.db.ResetProfile) then return false end
+    if InCombatLockdown and InCombatLockdown() then return false, "combat" end
+    if not (KCM.db and KCM.db.ResetProfile) then return false, "db" end
     local function act()
         restoreSessionRows()
         KCM.db:ResetProfile()
     end
     local H = KCM.Settings and KCM.Settings.Helpers
     if H and H.MuteSetLog then H.MuteSetLog(act) else act() end
+    if H and H.RefreshAllPanels then H.RefreshAllPanels() end
     return true
 end
 
