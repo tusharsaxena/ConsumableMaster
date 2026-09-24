@@ -311,10 +311,25 @@ test("Disabled 6b: the harness WOULD have caught a survivor", function(t)
     -- the case above is also true of a harness that had lost the ability to
     -- dispatch at all. Firing UNCONDITIONALLY at the addon proves it had not.
     local KCM, H = build()
+    -- The kit reaches a handler whose registration is gone through `__events`,
+    -- or failing that through the method NAMED for the event (AceEvent's
+    -- default). KCM names its own ("OnPlayerEnteringWorld"), and unregister
+    -- clears that name from `__events`, so a bare fire at KCM answers 0. The
+    -- handler map is therefore taken while the addon is up and fired at a view
+    -- of KCM that still holds it: the handler is KCM's own, only the
+    -- registration is gone, which is exactly what a survivor would look like.
+    local registered = {}
+    for e, handler in pairs(rawget(KCM, "__events")) do registered[e] = handler end
+    t.eq(registered.PLAYER_ENTERING_WORLD, "OnPlayerEnteringWorld", "the handler KCM registered")
     H.SetAndRefresh("enabled", false)
     resetPrinted()
-    local ran = mock.base.__fireUnconditional(KCM, "PLAYER_ENTERING_WORLD")
-    t.truthy((ran or 0) > 0 or true, "the unconditional dispatch is available")
+    local reached, real = 0, KCM.OnPlayerEnteringWorld
+    KCM.OnPlayerEnteringWorld = function(...) reached = reached + 1; return real(...) end
+    local view = setmetatable({ __events = registered }, { __index = KCM })
+    local ran = mock.base.__fireUnconditional(view, "PLAYER_ENTERING_WORLD")
+    KCM.OnPlayerEnteringWorld = real
+    t.truthy((ran or 0) > 0, "the unconditional dispatch reaches OnPlayerEnteringWorld")
+    t.eq(reached, 1, "and it was KCM's own handler that ran")
     -- And the live set really is the thing __fire reads: with the addon back up,
     -- the same call reaches a handler.
     H.SetAndRefresh("enabled", true)
@@ -396,11 +411,10 @@ test("Disabled 7c: a feature verb refuses on exactly one line, and reaches no se
     local out = dispatch(KCM, "bar on")
     t.truthy(out:find(refusal, 1, true) ~= nil, "it is the collection's line: " .. out)
     t.eq(select(2, out:gsub("\n", "")), 0, "exactly one line")
-    t.eq(storedState(KCM), before, "and no write seam was reached")
     -- The addon takes §2's SHOULD, so this suite PINS that choice: an addon that
     -- declined it would assert its feature verbs act normally instead, and either
     -- is conformant. What must not happen is the choice drifting in silence.
-    t.truthy(true, "this addon refuses its feature verbs")
+    t.eq(storedState(KCM), before, "and no write seam was reached")
 end)
 
 test("Disabled 7d: the refusal line is the collection's shape, not a re-spelling", function(t)
