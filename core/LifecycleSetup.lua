@@ -154,7 +154,7 @@ function KCM.IsAddonDisabled()
     return (KCM.Lifecycle and KCM.Lifecycle:IsHeld(lib.HOLD_DISABLED)) and true or false
 end
 
---- The `enabled` row's onChange, `/cm enable`, `/cm disable` and the load-time
+--- The `enabled` row's apply, `/cm enable`, `/cm disable` and the load-time
 --- read all land here (slash-commands-§2's "no state of their own"). One call,
 --- written once in the library's shape rather than as a branch each surface
 --- writes for itself.

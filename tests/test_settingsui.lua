@@ -342,7 +342,8 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         -- gap rather than leaving it to be discovered.
         --
         -- red under: making Helpers.Set return true without writing, or having
-        -- Helpers.Resolve hand back a throwaway table on the degraded arm.
+        -- the stub's resolveRoot walk hand back a throwaway table on the
+        -- degraded arm.
         local H = KCM.Settings.Helpers
         t.truthy(#KCM.Settings.Schema > 0, "the schema still loads")
         local row = H.FindSchema("macroBar.buttonSize")
@@ -1211,11 +1212,9 @@ test("Settings: a composite's Enabled checkbox stores a real boolean for its sub
         "unticking one sub-category writes its flag and no other")
 end)
 
+-- Every path the write seam is asked to write (tests/run.lua's spy).
 local function recordSets(KCM)
-    local H = KCM.Settings.Helpers
-    local paths, real = {}, H.Set
-    H.Set = function(path, value) paths[#paths + 1] = path; return real(path, value) end
-    return paths
+    return (h.loader.spySeamWrites(KCM))
 end
 
 -- red under: any of these controls writing its field directly again.

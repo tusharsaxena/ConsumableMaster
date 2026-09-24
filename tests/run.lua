@@ -383,6 +383,26 @@ function L.loadWithSchemaDegraded()
     return L.loadWithSchema(true)
 end
 
+-- Record every path the settings write seam is asked to write, in order: the
+-- LibKa0s-Schema-1.0 instance settings/Panel.lua publishes as
+-- KCM.Settings.Helpers.schema, whose Set and SetMany the doors (SetAndRefresh,
+-- SetManyAndRefresh, KCM.Schema) look up at call time. A batch records each of
+-- its entries. Answers the list and a restorer.
+function L.spySeamWrites(KCM)
+    local S = KCM.Settings.Helpers.schema
+    local set, many = S.Set, S.SetMany
+    local paths = {}
+    S.Set = function(path, ...)
+        paths[#paths + 1] = path
+        return set(path, ...)
+    end
+    S.SetMany = function(entries, ...)
+        for _, e in ipairs(entries or {}) do paths[#paths + 1] = e.path end
+        return many(entries, ...)
+    end
+    return paths, function() S.Set, S.SetMany = set, many end
+end
+
 -- ---------------------------------------------------------------------------
 -- The test global
 -- ---------------------------------------------------------------------------

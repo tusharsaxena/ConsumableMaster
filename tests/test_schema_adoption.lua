@@ -16,7 +16,7 @@
 local h = _G.KCM_TEST
 local test = h.test
 
-local REACTOR = "onChange"
+local REACTOR = "apply"
 
 local function output()
     return table.concat(h.loader.mock.output or {}, "\n")
@@ -173,9 +173,8 @@ test("adoption: /cm resetall logs the profile handler's line and nothing else", 
     StaticPopupDialogs["KCM_CONFIRM_RESET"].OnAccept()
     KCM.State.debug = false
 
-    local lines = setLines(D)
-    t.eq(#lines, 1, "exactly one [Set] line")
-    t.truthy((lines[1] or ""):find("^reset profile 'Default' to defaults"), "and it is the handler's")
+    t.eqList(setLines(D), { "reset profile 'Default' to defaults: 1 rows" },
+        "exactly one [Set] line, the handler's, counting the row the reset moved")
     t.eq(KCM.db.profile.macroBar.buttonSize, 36, "the reset landed")
 end)
 
@@ -240,17 +239,70 @@ test("adoption: a raising reaction is reported and the write persists", function
 end)
 
 -- (k) red under: a degraded build (libs/LibKa0s/ absent) whose seam refuses the
--- rows it still has, so a host verb or the global reset stops writing.
+-- rows it still has, so a host verb or the global reset stops writing -- or
+-- whose seam still logs, where the stub is log-silent by design.
 test("adoption: the degraded build still writes through a host verb and the global reset", function(t)
     local KCM = h.loader.loadFullAddon(true)
     t.falsy(KCM.Settings.Helpers.instance, "the library is absent on this arm")
+    t.eq(KCM.Settings.Helpers.schema.SetMany ~= nil, true, "the seam is the stub")
+    KCM.State.debug = true
+    h.loader.mock.output = {}
 
     KCM:OnSlashCommand("bar off")
     t.eq(KCM.db.profile.macroBar.enabled, false, "`/cm bar off` wrote its row")
     KCM:OnSlashCommand("bar on")
     t.eq(KCM.db.profile.macroBar.enabled, true, "and `/cm bar on` wrote it back")
+    KCM.State.debug = false
+    t.falsy(output():find("[Set]", 1, true), "and neither write printed a [Set] line")
 
     KCM.db.profile.macroBar.buttonSize = 99
     t.eq(KCM.ResetAllToDefaults("test"), true, "the global reset runs")
     t.eq(KCM.db.profile.macroBar.buttonSize, 36, "and lands")
+end)
+
+-- ---------------------------------------------------------------------------
+-- What the adoption changed on purpose
+-- ---------------------------------------------------------------------------
+
+-- The library writes the [Set] line BEFORE the row reacts (LibKa0s-Schema-1.0's
+-- pipeline, step 9 before 10), where the host seam logged after. A reaction that
+-- itself logs now reads after the write it reacts to.
+--
+-- red under: a seam that reacts before it logs.
+test("adoption: the [Set] line is written before the row's apply runs", function(t)
+    local KCM, H, D = loadLogged()
+    local seen
+    H.FindSchema("macroBar.buttonSize")[REACTOR] = function()
+        seen = D:FindLine("[Set] macroBar.buttonSize = 40") and true or false
+    end
+    arm(KCM, D)
+    H.SetAndRefresh("macroBar.buttonSize", 40)
+    KCM.State.debug = false
+    t.eq(seen, true, "the line was already in the console when the apply ran")
+end)
+
+-- (l) A row's `normalize` refusal (`nil, why`) is the library's INVALID, and the
+-- CLI prints it ONCE: settings/Slash.lua hands the Slash descriptor the seam's
+-- own Set, whose `false, err, why` CliSet renders (Slash minor 15), rather than
+-- SetAndRefresh, which printed a host line of its own and answered nothing.
+--
+-- red under: the descriptor's `set` bound to SetAndRefresh again -- two lines,
+-- the second echoing a value that never landed.
+test("adoption: a normalize refusal reaches /cm set as one INVALID line", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local H = KCM.Settings.Helpers
+    local row = H.FindSchema("macroBar.buttonSize")
+    local before = KCM.db.profile.macroBar.buttonSize
+    row.normalize = function() return nil, "not a size this bar can draw" end
+    h.loader.mock.output = {}
+
+    KCM:OnSlashCommand("set macroBar.buttonSize 30")
+    local out = output()
+
+    local n = 0
+    for _ in out:gmatch("Invalid value for macroBar%.buttonSize") do n = n + 1 end
+    t.eq(n, 1, "the library's INVALID line, once: " .. out)
+    t.falsy(out:find("invalid value for macroBar.buttonSize", 1, true), "and no host line beside it")
+    t.truthy(out:find("not a size this bar can draw", 1, true), "carrying the row's reason")
+    t.eq(KCM.db.profile.macroBar.buttonSize, before, "and nothing was stored")
 end)

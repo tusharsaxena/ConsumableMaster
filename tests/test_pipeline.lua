@@ -380,8 +380,8 @@ end)
 -- ---------------------------------------------------------------------------
 --
 -- A profile reset by construction cannot reach a row whose storage is its own
--- `set()`. `state.debugConsole` is that row: settings/Panel.lua's SESSION_PATHS
--- answers it out of the console's own visibility, not out of db.profile, so
+-- `set()`. `state.debugConsole` is that row: its get/set (settings/General.lua)
+-- answer it out of the console's own visibility, not out of db.profile, so
 -- `db:ResetProfile()` leaves it exactly as it found it and a console the player
 -- opened outlives a reset that took everything around it. options-ui-§12 makes restoring
 -- those rows by hand a MUST, and restoreSessionRows is where it happens.
@@ -404,7 +404,7 @@ test("ResetAllToDefaults restores the session-only rows a profile reset cannot r
         -- headless frame stub cannot answer: its IsShown is a chaining no-op that
         -- reports truthy forever once a frame exists, so reading the row back
         -- through the real console would pass whatever the sweep did. The double
-        -- is resolved by settings/Panel.lua's SESSION_PATHS at CALL time, so it is
+        -- is reached by the row's own get/set at CALL time, so it is
         -- the same seam a live client takes. Unknown members answer a no-op, so a
         -- debug line emitted during the reset cannot raise through it.
         local shown = false
@@ -438,10 +438,13 @@ test("ResetAllToDefaults sweeps the session rows before it resets the profile", 
     local KCM = h.loader.loadFullAddon()
     local order = {}
 
-    local realSet = KCM.Settings.Helpers.Set
-    KCM.Settings.Helpers.Set = function(path, value)
-        if path == "state.debugConsole" then order[#order + 1] = "sweep" end
-        return realSet(path, value)
+    -- The session row's own store: the sweep writes it through the seam's
+    -- ApplyDefault, which reaches the row's `set` whichever door it came by.
+    local row = KCM.Settings.Helpers.FindSchema("state.debugConsole")
+    local realSet = row.set
+    row.set = function(value)
+        order[#order + 1] = "sweep"
+        return realSet(value)
     end
     local realReset = KCM.db.ResetProfile
     KCM.db.ResetProfile = function(...)
@@ -451,8 +454,8 @@ test("ResetAllToDefaults sweeps the session rows before it resets the profile", 
 
     KCM.ResetAllToDefaults("test")
 
-    KCM.Settings.Helpers.Set = realSet
-    KCM.db.ResetProfile      = realReset
+    row.set             = realSet
+    KCM.db.ResetProfile = realReset
     t.eqList(order, { "sweep", "resetProfile" },
         "the session rows are restored first, then the profile is wiped")
 end)

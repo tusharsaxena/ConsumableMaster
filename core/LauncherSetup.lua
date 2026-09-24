@@ -39,7 +39,7 @@
 -- no copy of it. `MB.SetLocked` is the write path both `/cm bar lock|unlock` and
 -- the Master-controls *Lock frame* checkbox already take (CM-R-05,
 -- modules/MacroBar.lua's writeFlag): it routes `macroBar.locked` through
--- KCM.Schema:Set, so validation, the row's onChange (MB.ApplyLock) and the open
+-- KCM.Schema:Set, so validation, the row's apply (MB.ApplyLock) and the open
 -- page's in-place re-sync happen exactly once no matter who called. A launcher
 -- that assigned `c.locked` here instead would be the second write path that
 -- change removed, and the checkbox would show the old state until the page was
@@ -62,9 +62,9 @@
 -- ---------------------------------------------------------------------------
 --
 -- The row says SHOWN and LibDBIcon's key says HIDDEN, so something has to
--- invert -- and it is the host's single write seam that does it, in
--- settings/Panel.lua's GLOBAL_PATHS entry for `global.minimap.hide`
--- (options-ui-§1). It calls `KCM.Launcher:SetShown(value)` afterwards so the
+-- invert -- and it is the `global.minimap.hide` row's own store that does it,
+-- the get/set settings/General.lua stamps on the row, which the single write
+-- seam calls (options-ui-§1). It calls `KCM.Launcher:SetShown(value)` afterwards so the
 -- button follows the checkbox immediately rather than at the next reload. This
 -- file offers the verb and knows nothing about the row.
 --

@@ -45,14 +45,14 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_bulklog.lua (14)
 
-- bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every onChange runs
+- bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every apply runs
 - bulk: a raising act still logs its line with the rows so far, marked stopped, re-raises, and unmutes
 - bulk: a bracket inside a bracket folds into it, with one line for the outer act
 - bulk: SetManyAndRefresh's opts.bulk is the same one line, and a refused batch logs nothing
 - bulk: the Macro Bar page's Defaults on a page already at defaults logs 0 rows
-- bulk: the General page's Defaults is one [Set] line and runs each row's onChange
+- bulk: the General page's Defaults is one [Set] line and runs each row's apply
 - bulk: the composite category reset is one [Set] line, and its reactor runs
-- bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs
+- bulk: /cm aio <key> reset is one [Set] line, and the rows' shared apply runs
 - bulk: the global reset is one [Set] line from the profile handler, the session row muted
 - bulk: a profile copy is one [Set] line from the handler, and a switch is a [Profile] line
 - bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes
@@ -760,7 +760,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (55)
+### test_schema.lua (54)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -770,11 +770,10 @@ badge and any count quoted in the docs must agree with it.
 - schema: Set round-trips a bool setting through Helpers
 - schema: unknown paths resolve to nil/false
 - schema: [Set] logs exactly one line at the write seam, gated by debug
-- schema: Resolve splits a dotted path into its parent table and key
-- schema: Resolve walks nested tables
-- schema: Resolve refuses a path that runs through a non-table
-- schema: Resolve returns nothing for an empty path or a missing DB
+- schema: Get reads a nested path out of db.profile, row or not
+- schema: Get answers nil through a non-table, for an empty path, or with no DB
 - schema: Set can write a nested path, not just a top-level one
+- schema: Set refuses a path no row declares, even one under a real table
 - schema: every row declares a panel that exists in the tab order
 - schema: every row carries a label and a tooltip for the panel to render
 - schema: every row's default matches the seeded profile value
@@ -783,7 +782,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: ValidateSchemaValue enforces each declared type
 - schema: ValidateSchemaValue passes a row with no recognized type straight through
 - schema: ValidateSchemaValue clamps a number to its declared range
-- schema: SetAndRefresh writes the value and fires the row's onChange
+- schema: SetAndRefresh writes the value and runs the row's apply
 - schema: SetAndRefresh refuses a value of the wrong type
 - schema: SetAndRefresh refuses an explicit nil rather than deleting the key
 - schema: SetAndRefresh refuses a path that is not in the schema
@@ -809,7 +808,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: every row on every page carries a group
 - schema: every color row is followed by its class-color companion
 - schema: every mixed tab breaks its blocks up with subsection headings
-- schema: SetManyAndRefresh writes every row, each distinct onChange once, one refresh
+- schema: SetManyAndRefresh writes every row, each distinct apply once, one refresh
 - schema: SetManyAndRefresh refuses the whole batch when one value is invalid
 - schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset
 - schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows
@@ -818,7 +817,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: statPriority keeps well-formed overrides and repairs their lists
 - schema: no runtime file writes a whole-value row's field around the helper
 
-### test_schema_adoption.lua (11)
+### test_schema_adoption.lua (13)
 
 - adoption: SetAndRefresh stores a number clamped to its row's range
 - adoption: an enum refusal prints the allowed values and stores nothing
@@ -831,6 +830,8 @@ badge and any count quoted in the docs must agree with it.
 - adoption: the minimap row inverts onto its global key and survives both resets
 - adoption: a raising reaction is reported and the write persists
 - adoption: the degraded build still writes through a host verb and the global reset
+- adoption: the [Set] line is written before the row's apply runs
+- adoption: a normalize refusal reaches /cm set as one INVALID line
 
 ### test_selector.lua (55)
 
@@ -1111,7 +1112,7 @@ badge and any count quoted in the docs must agree with it.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_surface_parity.lua (6)
+### test_surface_parity.lua (8)
 
 - Parity: the LibKa0s-Core stub carries the whole live seam
 - Parity: the LibKa0s-DebugLog stub carries the whole live seam
@@ -1119,6 +1120,8 @@ badge and any count quoted in the docs must agree with it.
 - Parity: the LibKa0s-Options stub carries the whole live seam
 - Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires
 - Parity: the LibKa0s-Bus stub carries the major's whole surface
+- Parity: the LibKa0s-Schema stub instance carries the whole live instance
+- Parity: KCM.SchemaStub carries the LibKa0s-Schema-1.0 library surface
 
 ### test_tooltipcache.lua (23)
 
@@ -1255,15 +1258,15 @@ badge and any count quoted in the docs must agree with it.
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 55 |
-| test_schema_adoption.lua | 11 |
+| test_schema.lua | 54 |
+| test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 22 |
 | test_slash.lua | 114 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
-| test_surface_parity.lua | 6 |
+| test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
@@ -1271,4 +1274,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1049** |
+| **Total** | **1052** |

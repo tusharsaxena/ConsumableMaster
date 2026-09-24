@@ -124,7 +124,7 @@ numeric head routes to the `item` target rather than failing as an unknown targe
 frames*; whether an addon registers them at all is a **MAY**, and this addon now takes it. All four
 spellings share one body — `runLock` in `core/SlashCommands.lua`, published as `V.RunLock` — which
 writes `macroBar.locked` through `KCM.MacroBar.SetLocked`, the same `KCM.Schema:Set` seam the *Lock
-frame* checkbox and the launcher's left click take. So there is one value, one `onChange` and one
+frame* checkbox and the launcher's left click take. So there is one value, one `apply` and one
 confirmation line, never a `KCM.locked` local beside them and never a second implementation hiding
 behind the second spelling.
 

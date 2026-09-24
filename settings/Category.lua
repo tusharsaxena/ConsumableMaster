@@ -168,7 +168,7 @@ end
 --
 -- Generated from KCM.Categories.LIST, like the tab strip, so a composite or a
 -- targeted category added there gets its rows without a line here. Every row
--- shares ONE onChange, so a batch across a composite's three rows recomputes once.
+-- shares ONE apply, so a batch across a composite's three rows recomputes once.
 local CATEGORY_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile
     and KCM.dbDefaults.profile.categories) or {}
 
@@ -188,8 +188,8 @@ local function categoryRow(cat, field, spec)
     spec.section  = "macros"
     spec.group    = cat.key
     spec.default  = CATEGORY_DEFAULTS[cat.key] and CATEGORY_DEFAULTS[cat.key][field]
-    spec.onChange = recomputeAfterRow
-    KCM.Settings.Schema[#KCM.Settings.Schema + 1] = spec
+    spec.apply    = recomputeAfterRow
+    H.AddRow(spec)
 end
 
 -- Both sections' sub-categories: the keys a composite's `enabled` map may carry.

@@ -104,7 +104,7 @@ end
 -- settings/General.lua's `minimapPath`, and a second copy of that string in this
 -- file would be two files having to keep agreeing about it. General.lua stamps
 -- `neverReset` on the row through the same `decorate` map that stamps its
--- onChange handlers.
+-- apply handlers.
 --
 -- WHAT THIS DELIBERATELY DOES NOT COVER is `/cm reset global.minimap.hide`. That
 -- is the player naming the one row out loud, which is the checkbox by another

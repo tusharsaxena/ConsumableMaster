@@ -18,8 +18,8 @@ db.global
     │                                -- General page's Defaults button, which is carved
     │                                -- out by the row's `neverReset` stamp
     │                                -- (settings/General.lua). The row says SHOWN and this
-    │                                -- key says HIDDEN; settings/Panel.lua's GLOBAL_PATHS
-    │                                -- inverts at the single write seam.
+    │                                -- key says HIDDEN; the row's own get/set
+    │                                -- (settings/General.lua) inverts, under the seam.
     └── minimapPos       number     -- the angle the player dragged the button to.
                                     -- LibDBIcon's own write; no schema row addresses
                                     -- it (architecture-§5).
@@ -253,6 +253,65 @@ TTL is the only gate. A classifier re-check on stale entries was considered and 
 ### Manual trigger
 
 There isn't one. `/cm resync` does a full rescan but **does not** include a GC sweep — the sweep runs only at login (`PLAYER_ENTERING_WORLD`) and on the stand-up after a re-enable, both through `Pipeline.DiscoverAndSweep`. If demand emerges, a `/cm gc` variant is trivial to add.
+
+## The write seam
+
+Every schema row is written through **one** seam (`architecture-§5`): `LibKa0s-Schema-1.0`'s
+instance, built in `settings/Panel.lua` and published as `KCM.Settings.Helpers.schema`
+([ConsumableMaster#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)). The
+library owns the machinery (the path walk, the row index, the pipeline, the batch, the bulk
+bracket and the reset count). The addon owns the rows, their type rules and what a write sets
+off. Its doors are unchanged. `KCM.Schema:Set` / `:SetMany`, `Helpers.SetAndRefresh` /
+`SetManyAndRefresh`, every panel widget and every host verb reach it.
+
+**The pipeline, in order** (the library's contract, `docs/api/Schema/version-2-docs.md` in
+LibKa0s):
+
+1. A path no row declares is **refused** (`Setting not found`), never stored.
+2. `validate(value)`: the row's type rule refuses a wrong type or an enum value outside the
+   row's list (`allowed values: …`).
+3. `normalize(value)` answers what is stored. A number is clamped to `min` / `max`. A color, an
+   order and a map are rebuilt as a fresh table: an order is repaired to its member set, and a
+   flag map keeps only its members' booleans. `nil, why` refuses. Stat priority's map carries its
+   own `normalize`, which is kept.
+4. The store is `db.profile` (the descriptor's `resolveRoot`), and a table value is **copied** in.
+   A row with its own `get` / `set` stores there instead: `state.debugConsole` (session-only, the
+   console window itself) and `global.minimap.hide` (in `db.global`, where the SHOWN ↔ HIDDEN
+   inversion lives, `launcher-§3`). Both stores are stamped on the row in `settings/General.lua`.
+5. The `[Set] <path> = <value>` line, when debug is on, **before** any reaction.
+6. `announce`: the row's **`apply`**, then the in-place `RefreshScalars`.
+
+The type rules are `TYPE_RULES` in `settings/Panel.lua`, split `validate` / `normalize` by type.
+`bool`, `string` and enum rows are validate-only. `Helpers.AddRows` / `AddRow` /
+`RegisterRows` stamp them onto each row, closed over it, and index the row. A row added any
+other way is not writable.
+
+**`apply`, not `onChange`.** A row's reaction (the bar's re-apply, the recompute, the latch) is
+the host field `apply`, and `announce` runs it through the `onChange for <path> failed: …`
+reporter. A raising reaction is reported and never propagated, because the value has already
+landed. Schema's own `row.onChange` would propagate, so no row declares one.
+
+**`SetMany`, all or nothing.** `Helpers.SetManyAndRefresh(entries, opts)` is the library's
+`SetMany`. Every entry is validated and normalized before the first store, so one bad value
+writes none. The batch's `announceBatch` then runs, once, either the caller's `opts.onChange` or
+each **distinct** row `apply` in first-seen order, followed by one refresh
+(`RefreshAllPanels` when `opts.structural`, otherwise `RefreshScalars`). A sixty-row page reset
+is still one `applyBar`. `opts.bulk = { act, scope }` makes the batch one bracket, so it logs one
+`[Set] <act> <scope>: N rows` line (`debug-logging-§10`).
+
+**The bracket and the reset count.** `Helpers.Bulk(act, scope, fn)` is the library's `BulkRun`.
+`Helpers.MuteSetLog(fn)` is the same bracket marked as a profile reset, so it logs nothing. A
+sweep inside a bracket never resets a row flagged `neverReset` (the minimap button,
+`launcher-§3`), because such rows form the descriptor's `resetExempt`. `KCM.ResetAllToDefaults`
+wraps `db:ResetProfile()` in `ResetCounted`, and the `OnProfileReset` handler's
+`ConsumeResetCount` both silences any open bracket and hands the line its count.
+
+**The degraded build.** With LibKa0s absent the seam is `settings/SchemaStub.lua`
+(`KCM.SchemaStub`), the library's documented degradation stub. It is write-completing and
+log-silent. Reads, writes, `normalize`, the reaction, the announce and the sweep veto all work,
+so `/cm bar on|off`, `/cm enable` and the global reset keep writing. No `[Set]` line, bracket
+line or reset count is written. `tests/test_surface_parity.lua` pins its instance surface against
+a live instance and its library surface against the major by name.
 
 ## Reset path
 

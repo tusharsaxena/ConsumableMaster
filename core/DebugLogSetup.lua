@@ -98,7 +98,7 @@ if not lib then
     -- announce a window the user never asked to see, repeatedly. The row itself
     -- does not route through this seam: it is a schema row now
     -- (`state.debugConsole`, composed by MasterControls) resolved by
-    -- settings/Panel.lua's `SESSION_PATHS`, which reaches for KCM.DebugLog
+    -- the row's own get/set (settings/General.lua), which reaches for KCM.DebugLog
     -- at call time and answers false when this degraded path is the one loaded.
     function DL.Show() notice() end
     function DL.Toggle_Window() notice() end

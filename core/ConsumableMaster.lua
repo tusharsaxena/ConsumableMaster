@@ -476,21 +476,25 @@ function KCM.RegisterProfileCallbacks(target)
     -- The one log line a profile-wide act gets (debug-logging-§10): AceDB replaced
     -- the whole profile, which is not a batch through the helper, so the HANDLER
     -- logs it, worded by the event. Its line is the whole act, so it silences any
-    -- Helpers.Bulk bracket open around it: one line in total, never this one plus
-    -- an `outer: N rows`. A reset and a copy replace the profile's rows and carry
+    -- bulk bracket open around it -- the seam's ConsumeResetCount marks the open
+    -- bracket as a profile reset -- one line in total, never this one plus an
+    -- `outer: N rows`. A reset and a copy replace the profile's rows and carry
     -- the [Set] tag; a switch rewrites no rows and takes the `[Profile]` trace
     -- MultiMeters and KickCD carry.
     --
-    -- No row count on the reset: N means the rows the reset actually changed,
-    -- which needs their values from before it. AceDB has already replaced the
-    -- profile when OnProfileReset fires, and AceDBOptions' Reset Profile button
-    -- gives no earlier hook to take them from.
+    -- The reset's row count is there when KCM.ResetAllToDefaults drove it: that
+    -- wraps db:ResetProfile() in the seam's ResetCounted, which counts the rows
+    -- off their defaults BEFORE AceDB replaces the profile. AceDBOptions' own
+    -- Reset Profile button gives no earlier hook, so its line carries no count.
     local function trace(event, d, key)
         local H = KCM.Settings and KCM.Settings.Helpers
-        if H and H.SilenceOpenBulk then H.SilenceOpenBulk() end
+        local S = H and H.schema
+        local count = S and S.ConsumeResetCount()
         if not isDebugOn() then return end
         local name = d and d.GetCurrentProfile and d:GetCurrentProfile()
-        if event == "OnProfileReset" then
+        if event == "OnProfileReset" and count then
+            KCM.Debug("Set", "reset profile '%s' to defaults: %s rows", tostring(name), tostring(count))
+        elseif event == "OnProfileReset" then
             KCM.Debug("Set", "reset profile '%s' to defaults", tostring(name))
         elseif event == "OnProfileCopied" then
             KCM.Debug("Set", "copied profile '%s' → '%s'", tostring(key), tostring(name))
@@ -534,7 +538,7 @@ end
 ---
 --- options-ui-§12 makes this half of the global reset a MUST, and it is the half a
 --- profile reset by construction cannot do: a session-only row's storage is its own
---- `set()` (settings/Panel.lua's SESSION_PATHS), not the db, so `db:ResetProfile()`
+--- `set()` (settings/General.lua's debug console row), not the db, so `db:ResetProfile()`
 --- cannot reach it and the row outlives a reset that took everything around it. The
 --- debug console's visibility is the addon's only such row today, and the sweep is
 --- written off the `sessionOnly` FLAG rather than off that one path so a second one
@@ -553,14 +557,19 @@ end
 --- stub's own reset loop" means.
 local function restoreSessionRows()
     local S = KCM.Settings
-    local H = S and S.Helpers
+    local seam = S and S.Helpers and S.Helpers.schema
     local vetoed = S and S.VetoedFromResetAll
-    if not (H and H.Set and S.Schema and vetoed) then return end
-    for _, row in ipairs(S.Schema) do
-        if not vetoed(row) and row.default ~= nil then
-            H.Set(row.path, row.default)
-        end
+    if not (seam and vetoed) then return end
+    for _, row in ipairs(seam.AllRows()) do
+        if not vetoed(row) then seam.ApplyDefault(row) end
     end
+end
+
+-- The rows a profile reset reaches, for the seam's changed-row count: every row
+-- carrying a default except the ones no reset may touch (the minimap button's,
+-- which lives in db.global). The seam already skips the sessionOnly rows.
+local function countedByProfileReset(row)
+    return not (row.default == nil or row.neverReset)
 end
 
 --- Reset the ACTIVE PROFILE to the shipped defaults, and the same act as
@@ -595,7 +604,8 @@ end
 --- rebuild did not reach.
 ---
 --- ONE LOG LINE for the whole act (debug-logging-§10): the OnProfileReset
---- handler's `[Set] reset profile '<name>' to defaults`. Both halves run inside
+--- handler's `[Set] reset profile '<name>' to defaults: N rows`, N counted by the
+--- seam's ResetCounted before the profile is replaced. Both halves run inside
 --- Helpers.MuteSetLog, so the session sweep's own write logs no row, and no line
 --- is added here. `reason` is the caller's audit tag and is no longer logged.
 ---
@@ -604,11 +614,16 @@ end
 function KCM.ResetAllToDefaults(reason)
     if InCombatLockdown and InCombatLockdown() then return false, "combat" end
     if not (KCM.db and KCM.db.ResetProfile) then return false, "db" end
+    local H = KCM.Settings and KCM.Settings.Helpers
+    local seam = H and H.schema
     local function act()
         restoreSessionRows()
-        KCM.db:ResetProfile()
+        if seam then
+            seam.ResetCounted(function() KCM.db:ResetProfile() end, countedByProfileReset)
+        else
+            KCM.db:ResetProfile()
+        end
     end
-    local H = KCM.Settings and KCM.Settings.Helpers
     if H and H.MuteSetLog then H.MuteSetLog(act) else act() end
     if H and H.RefreshAllPanels then H.RefreshAllPanels() end
     return true

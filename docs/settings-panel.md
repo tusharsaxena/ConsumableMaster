@@ -173,7 +173,7 @@ Four of the rows are **new** and three moved:
 | Master scale | `scale` | **new**, addon-wide |
 | Master alpha | `alpha` | **new**, addon-wide |
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
-| Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
+| Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, stored by the row's own `get` / `set` |
 | Minimap button | `global.minimap.hide` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session |
 | *Reset position* | — | moved from Macro Bar → General |
 | *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
@@ -217,9 +217,8 @@ checkbox by another door. Every arm is pinned by cases in `tests/test_launcher.l
 real reset and assert on the store.
 
 **Its label says SHOWN and its stored key says HIDDEN, so the row inverts.** That inversion lives in
-the addon's single write seam and nowhere else — `settings/Panel.lua`'s `GLOBAL_PATHS`, a second
-diversion table beside `SESSION_PATHS` (a second table rather than a wider one because the two
-differ exactly where the reset sweep reads them). The `set` writes `hide = not value` and then calls
+the row's own store and nowhere else — the `get` / `set` `settings/General.lua` stamps on the
+row, which the single write seam calls. The `set` writes `hide = not value` and then calls
 `KCM.Launcher:SetShown(value)`, so the button follows the checkbox immediately rather than at the
 next reload.
 
@@ -248,7 +247,7 @@ The button that used to sit on this page said the second and did the first.
 **The global reset is two halves, not one.** `KCM.ResetAllToDefaults` restores every **session-only**
 schema row by hand *first*, then calls `db:ResetProfile()`. The sweep is a `§12` MUST and it is the
 half a profile reset by construction cannot do: a session-only row's storage is its own `set()`
-(`SESSION_PATHS`), not the db, so `Debug console` survived a reset that took everything around it.
+(stamped in `settings/General.lua`), not the db, so `Debug console` survived a reset that took everything around it.
 It is written off the `sessionOnly` **flag** rather than off that one path, so a second such row is
 covered the day it is declared — which is also why the composed row is given an explicit
 `debugConsole = false` default in `settings/General.lua`: three separate resets key on
@@ -501,7 +500,7 @@ its rows from one call — so read it off `#KCM.Settings.Schema`, which is what 
 row gains all three surfaces at once — never write a parallel mutator for a path that already has one.
 
 Composed rows are spliced in by `Helpers.RegisterRows`, which stamps the fields the composers cannot
-know: `panel`, `section`, this addon's `onChange`, and the ordered `{ value =, text = }` media lists
+know: `panel`, `section`, this addon's `apply`, and the ordered `{ value =, text = }` media lists
 it declares where the library declares a hash.
 
 **Bespoke controls** are everything a `{ path, type }` row cannot describe, and they are deliberate,
@@ -580,8 +579,8 @@ not gaps:
   AceGUI's pool. Since v1.35.0 it clears both before `onAdd` and touches neither after a clean one,
   so the wait is no longer load-bearing. It is kept as the order that is safe under either behavior.
 - The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and
-  `settings/Panel.lua`'s `SESSION_PATHS` resolves its `state.debugConsole` path to the console
-  window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare
+  the row's own `get` / `set` (stamped in `settings/General.lua`) map its `state.debugConsole` path
+  to the console window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare
   `/cm debug` (`debug-logging-§5`); logging is armed separately, via the in-window `Debug: ON/OFF`
   toggle or `/cm debug on|off`. `KCM.State.debug` is session-only and never persisted, so it still has
   no path to declare.

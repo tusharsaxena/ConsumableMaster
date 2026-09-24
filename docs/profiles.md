@@ -134,12 +134,12 @@ One sender, the reaction above (`architecture-§4`). Three receivers, each on it
 
 A profile act is not a batch through the schema helper: AceDB replaces the whole profile. So the
 handler logs it once, worded by the event, and silences any `Helpers.Bulk` bracket open around it
-(`Helpers.SilenceOpenBulk`). The result is one line in total, never the handler's line plus an
+(the write seam's `ConsumeResetCount` marks the open bracket as a profile reset). The result is one line in total, never the handler's line plus an
 `outer: N rows` line.
 
 | Event | Line |
 |---|---|
-| *Reset* | `[Set] reset profile '<name>' to defaults` |
+| *Reset* | `[Set] reset profile '<name>' to defaults: N rows` (N only when `KCM.ResetAllToDefaults` drove it, counted before the reset) |
 | *Copied* | `[Set] copied profile '<source>' → '<active>'` |
 | *Changed* | `[Profile] switched to '<name>'` |
 

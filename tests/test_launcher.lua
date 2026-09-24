@@ -390,18 +390,20 @@ test("Launcher: a host with neither broker library does not raise", function(t)
 end)
 
 test("Launcher: the write seam owns the inversion, not the library", function(t)
-    -- THE ONLY ARM ON WHICH THE HOST'S INVERSION IS OBSERVABLE ALONE, and that
-    -- is worth spelling out: Lb:SetShown writes `hide = not shown` a second time
-    -- with the same value, deliberately, so a caller reaching the launcher from
-    -- somewhere else need not know the inversion. On the live arm that masks a
-    -- seam that forgot to invert -- the store ends up right either way. With no
-    -- LibKa0s there is no launcher to cover for it.
-    local KCM = loader.loadFullAddon(true)
-    t.eq(KCM.Launcher, nil, "no launcher to cover for the seam")
+    -- THE LAUNCHER IS TAKEN AWAY, and that is worth spelling out: Lb:SetShown
+    -- writes `hide = not shown` a second time with the same value, deliberately,
+    -- so a caller reaching the launcher from somewhere else need not know the
+    -- inversion. Left in place it would mask a row store that forgot to invert --
+    -- the key ends up right either way. The row's set calls it only when it is
+    -- there, so without it the inversion is observable alone.
+    --
+    -- The live arm, not the degraded one: the row is composed (MasterControls),
+    -- so a load without LibKa0s has no row, and the seam refuses a path no row
+    -- declares -- which is also nothing a degraded build can reach, since the
+    -- panel and `/cm set` are both absent there.
+    local KCM = loader.loadFullAddon()
+    KCM.Launcher = nil
 
-    -- Helpers.Set rather than SetAndRefresh: the composed row does not exist on
-    -- this arm (the degradation stub emits no rows), so there is no schema entry
-    -- to validate against. The diversion under test is the same one either way.
     local H = KCM.Settings.Helpers
     KCM.db.global.minimap.hide = false
     t.truthy(H.Set("global.minimap.hide", false), "the row's set still lands")

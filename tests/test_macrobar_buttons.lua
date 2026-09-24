@@ -236,11 +236,11 @@ test("Buttons: in combat a drag and a tick are refused, write nothing and repain
     local ctx = openButtons(KCM)
     local H = KCM.Settings.Helpers
 
-    local updates, refreshes, writes = 0, 0, 0
+    local updates, refreshes = 0, 0
     KCM.MacroBar.Update = function() updates = updates + 1 end
-    local realRefresh, realSet = H.RefreshAllPanels, H.Set
+    local realRefresh = H.RefreshAllPanels
     H.RefreshAllPanels = function(...) refreshes = refreshes + 1; return realRefresh(...) end
-    H.Set = function(...) writes = writes + 1; return realSet(...) end
+    local written, restoreSeam = h.loader.spySeamWrites(KCM)
     local realCombat = _G.InCombatLockdown
     _G.InCombatLockdown = function() return true end
     local said = #h.loader.mock.output
@@ -249,9 +249,10 @@ test("Buttons: in combat a drag and a tick are refused, write nothing and repain
     rowFor(ctx, "FOOD").kcmGlyph:_run("OnClick")
 
     _G.InCombatLockdown = realCombat
-    H.RefreshAllPanels, H.Set = realRefresh, realSet
+    H.RefreshAllPanels = realRefresh
+    restoreSeam()
     t.falsy(moved, "the drag reports it did not apply")
-    t.eq(writes, 0, "nothing was written")
+    t.eq(#written, 0, "nothing was written")
     t.eq(refreshes, 0, "nothing was repainted")
     t.eq(updates, 0, "the bar was not re-applied")
     t.eqList(KCM.db.profile.macroBar.order, shipped(KCM), "the order is as it was")
@@ -302,15 +303,13 @@ end)
 test("macrobar: the slot swap, the list's drag and its tick write through the schema helper", function(t)
     local KCM = h.loader.loadFullAddon()
     local lists = captureLists()
-    local H = KCM.Settings.Helpers
-    local paths, realSet = {}, H.Set
-    H.Set = function(path, value) paths[#paths + 1] = path; return realSet(path, value) end
+    local paths, restore = h.loader.spySeamWrites(KCM)
 
     KCM.MacroBar.SwapSlots("FOOD", "DRINK")
     local ctx = openButtons(KCM)
     lists[#lists].opts.onMove(1, 2)
     rowFor(ctx, "HS").kcmGlyph:_run("OnClick")
-    H.Set = realSet
+    restore()
 
     t.eqList(paths, { "macroBar.order", "macroBar.order", "macroBar.shown", "macroBar.order" },
         "a swap and a drag are one whole-order write each, a tick the map and then the order")

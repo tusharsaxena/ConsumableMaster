@@ -58,6 +58,12 @@ local function helpers()
     return KCM.Settings and KCM.Settings.Helpers
 end
 
+-- The LibKa0s-Schema-1.0 instance settings/Panel.lua builds (or its stub).
+local function schema()
+    local H = helpers()
+    return H and H.schema
+end
+
 -- Bound at the foot of this file, once the Slash instance exists.
 local cliList, cliGet, cliSet, cliReset
 
@@ -78,7 +84,7 @@ local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 -- their own: no second key, no session flag, no `KCM.enabled` local. That is the
 -- whole rule, and it is why this is four lines rather than a feature: the
 -- checkbox and the verbs cannot show the player two different answers, and the
--- row's own onChange (settings/General.lua's KCM.OnEnabledChanged call) runs
+-- row's own apply (settings/General.lua's KCM.OnEnabledChanged call) runs
 -- whichever surface was used. That row says nothing itself (CM-R-12): the
 -- `enabled = <bool>` echo below is the verbs' one reply.
 --
@@ -519,18 +525,26 @@ if slashLib then
         L            = SLASH_STRINGS,
 
         -- The schema half. Every one of these resolves through KCM.Settings at
-        -- CALL time: settings/Panel.lua loads long after this file, and the
-        -- rows themselves are appended by the four page files after that.
+        -- CALL time, so the rows the page files append after settings/Panel.lua
+        -- built the seam are all there by the first command.
+        --
+        -- `set` is the seam's own Set, not SetAndRefresh: it answers
+        -- `false, err, why` on a refusal (Slash minor 15), so CliSet prints the
+        -- library's INVALID line and the reason ONCE, and the host prints no
+        -- second line of its own. `applyDefault` is the seam's ApplyDefault,
+        -- whose exact `false` for a row with no default is the NO_DEFAULT line.
         get          = function(path) local H = helpers(); return H and H.Get(path) end,
         set          = function(path, value)
-            local H = helpers()
-            if H then H.SetAndRefresh(path, value) end
+            local S = schema()
+            if not S then return false end
+            return S.Set(path, value)
         end,
-        findRow      = function(path) local H = helpers(); return H and H.FindSchema(path) end,
+        findRow      = function(path) local S = schema(); return S and S.FindRow(path) end,
         allRows      = function() return (KCM.Settings and KCM.Settings.Schema) or {} end,
         applyDefault = function(row)
-            local H = helpers()
-            if H and row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+            local S = schema()
+            if not S then return false end
+            return S.ApplyDefault(row)
         end,
         -- Rows carry `panel`, not the library's default `page`.
         groupKey     = function(row) return row.panel or "?" end,

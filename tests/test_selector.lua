@@ -822,9 +822,7 @@ test("Selector.MoveCompositeRef writes one section, spliced, through the schema 
     local KCM = h.loader.loadFullAddon()
     local S   = KCM.Selector
     local cfg = KCM.db.profile.categories.HP_AIO
-    local H   = KCM.Settings.Helpers
-    local paths, realSet = {}, H.Set
-    H.Set = function(path, value) paths[#paths + 1] = path; return realSet(path, value) end
+    local paths = h.loader.spySeamWrites(KCM)
 
     t.eq(S.MoveCompositeRef("HP_AIO", "orderInCombat", 1, 2), true, "reports the change")
     t.eqList(cfg.orderInCombat, { "HP_POT", "HS" }, "the named section reordered")

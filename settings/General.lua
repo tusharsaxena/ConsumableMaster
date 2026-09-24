@@ -53,6 +53,10 @@ local BAR_DEFAULTS     = PROFILE_DEFAULTS.macroBar or {}
 -- hold a fourth copy (its veto reads the row's flag, not its path).
 local MINIMAP_PATH = "global.minimap.hide"
 
+-- The debug console row's path, named once for the same reason: the composer
+-- spec and the store stamped on the row below.
+local DEBUG_CONSOLE_PATH = "state.debugConsole"
+
 -- The row no reset may reach (launcher-§3). Resolved at load, which is safe:
 -- settings/OptionsSetup.lua publishes it above its library branch and the TOC
 -- loads that file immediately before settings/Panel.lua and this one.
@@ -172,14 +176,14 @@ local masterRows, masterTail = H.MasterControls{
     page      = "general",
     addonName = "Consumable Master",
     -- Verbatim and unprefixed, because the console's visibility is SESSION state
-    -- and lives outside the profile. settings/Panel.lua's SESSION_PATHS is what
-    -- resolves it.
-    debugConsolePath = "state.debugConsole",
+    -- and lives outside the profile. The row's own get/set, stamped below, is
+    -- what stores it.
+    debugConsolePath = DEBUG_CONSOLE_PATH,
     -- Verbatim and unprefixed for the same reason, and for a different store:
     -- the minimap button's table is LibDBIcon's own and launcher-§3 fixes it in
-    -- the GLOBAL store, outside this block's profile prefix. settings/Panel.lua's
-    -- GLOBAL_PATHS is what resolves it, and it is where the row's SHOWN/HIDDEN
-    -- inversion lives -- the row's label says shown, the stored key says hidden.
+    -- the GLOBAL store, outside this block's profile prefix. The row's own
+    -- get/set, stamped below, is what stores it, and it is where the row's
+    -- SHOWN/HIDDEN inversion lives -- the label says shown, the key says hidden.
     --
     -- Emitting this row also moves *Test mode* off `startsLine` inside the
     -- composer so the two pair as `[Minimap button] [Test mode]`; this addon has
@@ -211,9 +215,71 @@ local masterRows, masterTail = H.MasterControls{
     onResetAll = function() StaticPopup_Show("KCM_CONFIRM_RESET") end,
 }
 
+-- The debug console's visibility (options-ui-§15). SESSION state: a console
+-- left open is not a setting the next character inherits (debug-logging), so
+-- the row is `sessionOnly` and its store is the console itself. It never arms
+-- LOGGING (KCM.State.debug), which stays the separate flag it has always been
+-- (debug-logging-§5); this is the show/hide a bare `/cm debug` performs.
+local debugConsoleRow = {
+    sessionOnly = true,
+    get = function()
+        local DL = KCM.DebugLog
+        return (DL and DL.IsWindowShown and DL.IsWindowShown()) and true or false
+    end,
+    set = function(v)
+        local DL = KCM.DebugLog
+        if not DL then return end
+        if v then
+            if DL.Show then DL.Show() end
+        elseif DL.Hide then
+            DL.Hide()
+        end
+    end,
+}
+
+-- The minimap button's visibility: STORED, but in db.global rather than the
+-- profile, because launcher-§3 fixes LibDBIcon's table in the global store -- a
+-- button belongs to the installation, so a profile switch must not move it and
+-- the global reset (a profile reset by definition) must not un-hide it.
+--
+-- THE INVERSION LIVES HERE, in the row's own store, exactly as launcher-§3 says
+-- it should. The label says SHOWN; LibDBIcon's key says HIDDEN. That is the
+-- cost of storing the library's own key rather than a second boolean beside it
+-- -- LibDBIcon writes `hide` itself from the button's own menu, and a parallel
+-- `show` would be free to disagree with it (anti-pattern #81). The `set` calls
+-- the launcher afterwards so the button follows the checkbox at once.
+local function minimapTable()
+    return KCM.db and KCM.db.global and KCM.db.global.minimap
+end
+
+local minimapRow = {
+    -- THE ONE ROW NO RESET MAY REACH (launcher-§3). The composer emits it with
+    -- `default = true` -- SHOWN -- because a fresh install shows the button, and
+    -- that default is what `/cm reset global.minimap.hide` restores when the
+    -- player asks for it by name. What the flag stops is a RESET reaching it:
+    -- the Defaults button below walks every row on this page carrying a default,
+    -- and without the stamp a player who had hidden the button got it back at
+    -- LibDBIcon's default angle from a click about the master controls. The
+    -- predicate is settings/OptionsSetup.lua's, beside the global reset's veto,
+    -- and settings/Panel.lua hands the same flag to the seam's resetExempt.
+    neverReset = true,
+    -- Shown is the answer when there is no table yet: that is what a fresh
+    -- install ships as, and it is what the button does.
+    get = function()
+        local t = minimapTable()
+        return not (t and t.hide)
+    end,
+    set = function(v)
+        local t = minimapTable()
+        if not t then return end
+        t.hide = not v
+        if KCM.Launcher then KCM.Launcher:SetShown(v and true or false) end
+    end,
+}
+
 H.RegisterRows(masterRows, "general", "general", {
     enabled = {
-        onChange = function(v)
+        apply = function(v)
             -- THE ONE REACTION, AND IT IS THE LATCH'S (slash-commands-§7).
             -- This row is the addon-wide switch, so `/cm enable`, `/cm disable`,
             -- `/cm set enabled true` and the checkbox all arrive here, and from
@@ -229,28 +295,21 @@ H.RegisterRows(masterRows, "general", "general", {
     -- The three addon-wide display rows all reach the same apply pass: the macro
     -- bar is the only thing this addon draws, and Update is idempotent and
     -- self-defers in combat.
-    visibility = { onChange = applyBar },
-    scale      = { onChange = applyBar },
-    alpha      = { onChange = applyBar },
+    visibility = { apply = applyBar },
+    scale      = { apply = applyBar },
+    alpha      = { apply = applyBar },
     -- Apply-only, exactly as it was on the Macro Bar page: the write has already
-    -- landed by the time an onChange runs, and Schema:Set is still the single
+    -- landed by the time an apply runs, and Schema:Set is still the single
     -- write path both `/cm bar lock` and this checkbox take (CM-R-05).
     ["macroBar.locked"] = {
-        onChange = function()
+        apply = function()
             if KCM.MacroBar and KCM.MacroBar.ApplyLock then
                 KCM.MacroBar.ApplyLock()
             end
         end,
     },
-    -- THE ONE ROW NO RESET MAY REACH (launcher-§3). The composer emits it with
-    -- `default = true` — SHOWN — because a fresh install shows the button, and
-    -- that default is what `/cm reset global.minimap.hide` restores when the
-    -- player asks for it by name. What the flag stops is a RESET reaching it:
-    -- the Defaults button below walks every row on this page carrying a default,
-    -- and without the stamp a player who had hidden the button got it back at
-    -- LibDBIcon's default angle from a click about the master controls. The
-    -- predicate is settings/OptionsSetup.lua's, beside the global reset's veto.
-    [MINIMAP_PATH] = { neverReset = true },
+    [DEBUG_CONSOLE_PATH] = debugConsoleRow,
+    [MINIMAP_PATH] = minimapRow,
 })
 
 -- Top-right Defaults button (options-ui-§5) resets THIS PAGE, and its blast
@@ -259,7 +318,7 @@ H.RegisterRows(masterRows, "general", "general", {
 -- covered without anyone remembering to add it here.
 --
 -- A bulk reset: one `[Set] reset General page: N rows` line, and each row's own
--- onChange still runs (debug-logging-§10). The bracket closes BEFORE the console
+-- apply still runs (debug-logging-§10). The bracket closes BEFORE the console
 -- is disarmed below, so the line is not lost to it.
 --
 -- ONE ROW IS EXEMPT and it is the minimap button's (launcher-§3). Through 1.6.2

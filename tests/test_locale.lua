@@ -244,10 +244,17 @@ local RESIDUE = {
     {"settings/Panel.lua", "allowed values: ", "VALIDATOR"},
     {"settings/Panel.lua", "expected color table", "VALIDATOR"},
     {"settings/Panel.lua", "invalid value for ", "DIAGNOSTIC"},
-    {"settings/Panel.lua", "value must not be nil", "VALIDATOR"},
     {"settings/Panel.lua", "expected true or false for ", "VALIDATOR"},
     {"settings/Panel.lua", "expected a list", "VALIDATOR"},
     {"settings/Panel.lua", "expected a table", "VALIDATOR"},
+
+    -- settings/SchemaStub.lua — the degraded write seam's refusals, handed back
+    -- to the caller as the library's would be (LibKa0s-Schema-1.0's stub
+    -- "carries no STRINGS; its refusals are the host's own words").
+    {"settings/SchemaStub.lua", ": invalid value for ", "DIAGNOSTIC"},
+    {"settings/SchemaStub.lua", ": no setting ", "DIAGNOSTIC"},
+    {"settings/SchemaStub.lua", ": nowhere to store ", "DIAGNOSTIC"},
+    {"settings/SchemaStub.lua", ": LibKa0s-Schema-1.0 is missing, so the schema was not checked", "DIAGNOSTIC"},
 
     -- settings/OptionsShim.lua — O.Open's last-resort line. It reads as
     -- Panel.lua's, and was, until the KCM.Options shim was peeled off at the

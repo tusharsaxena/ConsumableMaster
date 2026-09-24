@@ -3,13 +3,14 @@
 -- A reset of a page or a section rewrites a set of rows wholesale, and the rule
 -- logs it as one `[Set] <act> <scope>: N rows` line, N being the rows the act
 -- actually changed. No row it writes logs its own `[Set]` line. Validation and
--- each row's onChange still run. A profile reset is not a batch through the
+-- each row's apply still run. A profile reset is not a batch through the
 -- helper at all: the OnProfileReset handler logs it once, and the session rows
 -- the global reset sweeps first stay muted.
 --
--- The seam is settings/Panel.lua's Helpers.Bulk (and SetManyAndRefresh's
--- `opts.bulk`, which is the same bracket), plus Helpers.MuteSetLog for the global
--- reset, whose one line is the profile handler's.
+-- The seam is LibKa0s-Schema-1.0's bracket behind settings/Panel.lua's
+-- Helpers.Bulk (and SetManyAndRefresh's `opts.bulk`, which is the same bracket),
+-- plus Helpers.MuteSetLog for the global reset, whose one line is the profile
+-- handler's, carrying the row count the seam took before the reset.
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -43,16 +44,16 @@ local function arm(KCM, D)
     D:Clear()
 end
 
--- Swap each named row's onChange for a recorder; answers the log and a restorer.
-local function recordOnChange(H, paths)
+-- Swap each named row's apply for a recorder; answers the log and a restorer.
+local function recordApply(H, paths)
     local fired, saved = {}, {}
     for i, p in ipairs(paths) do
         local def = H.FindSchema(p)
-        saved[i] = { def = def, fn = def.onChange }
-        def.onChange = function() fired[#fired + 1] = p end
+        saved[i] = { def = def, fn = def.apply }
+        def.apply = function() fired[#fired + 1] = p end
     end
     return fired, function()
-        for _, s in ipairs(saved) do s.def.onChange = s.fn end
+        for _, s in ipairs(saved) do s.def.apply = s.fn end
     end
 end
 
@@ -73,25 +74,24 @@ end
 
 -- red under: Helpers.Set logging its per-row line while a bracket is open, or
 -- counting a row that was already at the value written.
-test("bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every onChange runs",
+test("bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every apply runs",
     function(t)
         local KCM, H, D = loadLogged()
         KCM.db.profile.scale, KCM.db.profile.alpha = 1.5, 0.5
-        local fired, restore = recordOnChange(H, { "scale", "alpha" })
+        local fired, restore = recordApply(H, { "scale", "alpha" })
         arm(KCM, D)
 
-        local n = H.Bulk("reset", "test rows", function()
+        H.Bulk("reset", "test rows", function()
             H.SetAndRefresh("scale", 1.25)
             H.SetAndRefresh("alpha", 0.5)
         end)
         KCM.State.debug = false
         restore()
 
-        t.eq(n, 1, "Bulk answers the rows it changed")
         t.eqList(setLines(D), { "reset test rows: 1 rows" },
             "one [Set] line, and alpha, already at 0.5, is not counted")
         t.eq(KCM.db.profile.scale, 1.25, "the row was written")
-        t.eqList(fired, { "scale", "alpha" }, "each row's onChange still ran, the unchanged one too")
+        t.eqList(fired, { "scale", "alpha" }, "each row's apply still ran, the unchanged one too")
     end)
 
 -- red under: a bracket whose close is skipped when the act raises -- the mute
@@ -182,7 +182,7 @@ test("bulk: the Macro Bar page's Defaults on a page already at defaults logs 0 r
 
 -- red under: doResetGeneralPage walking its rows outside H.Bulk (six [Set]
 -- lines), or logging after DebugLog.SetEnabled(false) has disarmed the console.
-test("bulk: the General page's Defaults is one [Set] line and runs each row's onChange",
+test("bulk: the General page's Defaults is one [Set] line and runs each row's apply",
     function(t)
         local KCM, H, D = loadLogged()
         KCM.Settings.builders["general"]({})
@@ -192,11 +192,12 @@ test("bulk: the General page's Defaults is one [Set] line and runs each row's on
 
         local paths = {}
         for _, def in ipairs(KCM.Settings.Schema) do
-            if def.panel == "general" and def.default ~= nil and def.onChange then
+            if def.panel == "general" and def.default ~= nil and def.apply then
                 paths[#paths + 1] = def.path
             end
         end
-        local fired, restore = recordOnChange(H, paths)
+        t.truthy(#paths >= 4, "the General page's rows carry their apply")
+        local fired, restore = recordApply(H, paths)
 
         KCM.db.profile.scale, KCM.db.profile.alpha = 1.5, 0.5
         console.shown = true
@@ -207,7 +208,7 @@ test("bulk: the General page's Defaults is one [Set] line and runs each row's on
         t.eqList(setLines(D), { "reset General page: 3 rows" },
             "scale, alpha and the open console: three rows changed, one line")
         t.eq(console.shown, false, "the session row was written with the rest")
-        t.eqList(fired, paths, "every row's onChange ran once, in row order")
+        t.eqList(fired, paths, "every row's apply ran once, in row order")
     end)
 
 -- red under: resetCompositeCategory without opts.bulk, or keeping its extra
@@ -232,33 +233,33 @@ test("bulk: the composite category reset is one [Set] line, and its reactor runs
     end)
 
 -- red under: aioReset calling SetMany without opts.bulk.
-test("bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs",
+test("bulk: /cm aio <key> reset is one [Set] line, and the rows' shared apply runs",
     function(t)
         local KCM, H, D = loadLogged()
         local cfg = KCM.db.profile.categories.HP_AIO
         cfg.enabled       = { HS = false }
         cfg.orderInCombat = {}
-        -- The three rows share ONE onChange, and the batch runs each distinct one
+        -- The three rows share ONE apply, and the batch runs each distinct one
         -- once, so the recorder must be one function too.
         local defs = {
             H.FindSchema("categories.HP_AIO.enabled"),
             H.FindSchema("categories.HP_AIO.orderInCombat"),
             H.FindSchema("categories.HP_AIO.orderOutOfCombat"),
         }
-        local shared = defs[1].onChange
-        t.truthy(shared and defs[2].onChange == shared and defs[3].onChange == shared,
-            "the three rows share one onChange")
+        local shared = defs[1].apply
+        t.truthy(shared and defs[2].apply == shared and defs[3].apply == shared,
+            "the three rows share one apply")
         local fired = 0
         local recorder = function(...) fired = fired + 1; return shared(...) end
-        for _, def in ipairs(defs) do def.onChange = recorder end
+        for _, def in ipairs(defs) do def.apply = recorder end
 
         arm(KCM, D)
         KCM:OnSlashCommand("aio hp_aio reset")
         KCM.State.debug = false
-        for _, def in ipairs(defs) do def.onChange = shared end
+        for _, def in ipairs(defs) do def.apply = shared end
 
         t.eqList(setLines(D), { "reset category HP_AIO: 2 rows" }, "one line, counting the two rows it changed")
-        t.eq(fired, 1, "and the shared onChange still ran, once for the batch")
+        t.eq(fired, 1, "and the shared apply still ran, once for the batch")
     end)
 
 -- red under: restoreSessionRows writing outside the mute (a
@@ -275,7 +276,8 @@ test("bulk: the global reset is one [Set] line from the profile handler, the ses
         KCM.ResetAllToDefaults("test")
         KCM.State.debug = false
 
-        t.eqList(setLines(D), { "reset profile 'Default' to defaults" }, "exactly one [Set] line")
+        t.eqList(setLines(D), { "reset profile 'Default' to defaults: 1 rows" },
+            "exactly one [Set] line, counting the one row the reset moved")
         t.falsy(hasLine(D, "[Prio] reset all"), "and no second line for the same act")
         t.eq(console.shown, false, "the session row was still restored")
         t.eq(KCM.db.profile.macroBar.buttonSize, 36, "and the profile reset")
@@ -378,7 +380,8 @@ test("bulk: the global reset inside an open bracket is still one line in all", f
         KCM.ResetAllToDefaults("test")
     end)
     KCM.State.debug = false
-    t.eqList(setLines(D), { "reset profile 'Default' to defaults" }, "the handler's line and nothing else")
+    t.eqList(setLines(D), { "reset profile 'Default' to defaults: 1 rows" },
+        "the handler's line and nothing else, counting the scale write it undid")
 end)
 
 -- A profile reset or copy that AceDB runs inside an open bracket, not through

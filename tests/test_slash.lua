@@ -994,11 +994,9 @@ end)
 -- #35: the list-shaped settings are rows, so /cm get|set|list|reset reach them
 -- ---------------------------------------------------------------------------
 
+-- Every path the write seam is asked to write (tests/run.lua's spy).
 local function recordSets(KCM)
-    local H = KCM.Settings.Helpers
-    local paths, real = {}, H.Set
-    H.Set = function(path, value) paths[#paths + 1] = path; return real(path, value) end
-    return paths
+    return (h.loader.spySeamWrites(KCM))
 end
 
 test("/cm get and list render the list-shaped rows as text, never a table address", function(t)

@@ -788,7 +788,7 @@ local function aioReset(cat)
     local cfg = compositeCfg(cat)
     if not cfg then return say("no DB bucket for " .. cat.key) end
     -- The three rows as ONE batch through the helper: each validator stores a
-    -- copy of its default, and the rows' shared onChange recomputes once. A bulk
+    -- copy of its default, and the rows' shared apply recomputes once. A bulk
     -- reset, logged as the Macros page's Reset category logs it: one
     -- `[Set] reset category <KEY>: N rows` line (debug-logging-§10).
     local entries = {}

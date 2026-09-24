@@ -308,7 +308,7 @@ local function renderStatPriority(value)
     return table.concat(parts, "; ")
 end
 
-KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
+H.AddRow({
     path      = "statPriority",
     type      = "map",
     panel     = "statpriority",
@@ -321,12 +321,12 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     render    = renderStatPriority,
     cliHint   = "/cm stat",
     -- New stats re-rank every spec-aware category, so the picks are recomputed.
-    onChange  = function()
+    apply     = function()
         if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
             KCM.Pipeline.RequestRecompute("options_stat_priority")
         end
     end,
-}
+})
 
 --- Store one new secondary ORDER. Everything the list can do -- a drag and an
 --- Include toggle alike -- ends here, as ONE write.
