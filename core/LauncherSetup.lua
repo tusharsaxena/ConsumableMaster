@@ -152,39 +152,39 @@ KCM.Launcher = lib:New({
         end
     end,
 
+    -- REFUSED WHILE THE ADDON IS DISABLED (launcher-§2, slash-commands-§7), and
+    -- refused by the LIBRARY: LibKa0s-Launcher-1.0 minor 2 gates the left click
+    -- on these two fields, so a disabled addon's click never reaches onClick.
+    -- This is a rung-(b) left click: it drives the preview switch, which is a
+    -- FEATURE, so it prints the one refusal line and does nothing else -- in
+    -- particular it writes no SavedVariables, which is the thing a minimap
+    -- button with no disabled gate does every single time it is clicked.
+    -- Unlocking a bar that is not drawn is not a coherent request anyway.
+    --
+    -- The DISABLED hold, not the latch as a whole: a perf capture's suspended
+    -- arm is a diagnostic the player started, not a switch they threw.
+    isEnabled = function()
+        return not (KCM.IsAddonDisabled and KCM.IsAddonDisabled())
+    end,
+    -- THE LINE IS THE DISPATCHER'S, never re-spelled here: one wording,
+    -- collection-wide, built once by cli:DisabledLine() (slash-commands-§7).
+    -- The right click is UNCHANGED in either state -- the library never gates
+    -- it: it opens the settings panel, which is setup rather than a feature, and
+    -- it is one of the two routes a player uses to switch the addon back on.
+    disabledLine = function()
+        local Sl = KCM.SlashCommands and KCM.SlashCommands.instance
+        return Sl and Sl:DisabledLine()
+    end,
+
     -- THE LEFT CLICK, AND ITS PRESENCE IS THE RUNG (launcher-§2). Toggles the
-    -- macro bar's lock through the same seam the checkbox and `/cm bar lock`
-    -- take; it reads the CURRENT value out of the profile rather than keeping
-    -- one, so three surfaces cannot disagree.
+    -- macro bar's lock by running `/cm lock` / `/cm unlock`'s own body
+    -- (KCM.SlashCommands.Verbs.RunLock), so the write seam and the wording are
+    -- one copy, not two. It reads the CURRENT value out of the profile rather
+    -- than keeping one, so the surfaces cannot disagree.
     onClick = function()
-        -- REFUSED WHILE THE ADDON IS DISABLED (launcher-§2, slash-commands-§7).
-        -- This is a rung-(b) left click: it drives the preview switch, which is a
-        -- FEATURE, so it prints the one refusal line and does nothing else -- in
-        -- particular it writes no SavedVariables, which is the thing a minimap
-        -- button with no disabled gate does every single time it is clicked.
-        -- Unlocking a bar that is not drawn is not a coherent request anyway.
-        --
-        -- THE LINE IS THE DISPATCHER'S, never re-spelled here: one wording,
-        -- collection-wide, built once by cli:DisabledLine() (slash-commands-§7).
-        -- The right click is UNCHANGED in either state -- it opens the settings
-        -- panel, which is setup rather than a feature, and it is one of the two
-        -- routes a player uses to switch the addon back on by hand.
-        --
-        -- The DISABLED hold, not the latch as a whole: a perf capture's suspended
-        -- arm is a diagnostic the player started, not a switch they threw.
-        if KCM.IsAddonDisabled and KCM.IsAddonDisabled() then
-            local Sl = KCM.SlashCommands and KCM.SlashCommands.instance
-            if Sl then KCM.Say(Sl:DisabledLine()) end
-            return
-        end
         local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
-        if not (cfg and KCM.MacroBar and KCM.MacroBar.SetLocked) then
-            return KCM.Say("macro bar unavailable.")
-        end
-        local locked = not cfg.locked
-        KCM.MacroBar.SetLocked(locked)
-        KCM.Say(locked and "macro bar locked"
-                        or "macro bar unlocked \226\128\148 drag it, then /cm lock")
+        if not cfg then return KCM.Say("macro bar unavailable.") end
+        KCM.SlashCommands.Verbs.RunLock(not cfg.locked)
     end,
 
     -- Thunks, never bare: lib:New snapshots both. Same note as

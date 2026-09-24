@@ -359,7 +359,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_launcher.lua (16)
+### test_launcher.lua (18)
 
 - Launcher: KCM:OnInitialize registers ONE object under the folder name
 - Launcher: the object is a launcher, wearing this addon's own logo
@@ -368,6 +368,8 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: Register is idempotent — a second call builds no second button
 - Launcher: left-click toggles the macro bar's lock through the schema seam
 - Launcher: the left click holds no state — it reads the profile each time
+- Launcher: left-click unlock on a switched-off bar reuses RunLock's wording
+- Launcher: a disabled left click never reaches RunLock
 - Launcher: right-click opens the settings panel, and never the rung
 - Launcher: the Minimap button row stores LibDBIcon's own key, globally
 - Launcher: the row's get/set invert, and the button follows the checkbox
@@ -920,7 +922,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (107)
+### test_slash.lua (110)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -1015,6 +1017,9 @@ badge and any count quoted in the docs must agree with it.
 - every /cm stat and /cm aio write goes through the schema helper
 - /cm unlock and /cm lock write the macro bar's stored lock flag
 - /cm bar lock and /cm bar unlock land on the same stored flag
+- /cm unlock on a switched-off bar says the bar is off
+- /cm bar unlock on a switched-off bar says the same line
+- /cm unlock on a shown bar keeps the drag wording
 - bare /cm bar toggles the stored flag during a perf hold
 - /cm lock and /cm unlock write through the schema helper, not the table
 - /cm lock and /cm unlock are in the published command table
@@ -1198,7 +1203,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_launcher.lua | 16 |
+| test_launcher.lua | 18 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
@@ -1218,7 +1223,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 107 |
+| test_slash.lua | 110 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 6 |
@@ -1229,4 +1234,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1011** |
+| **Total** | **1016** |

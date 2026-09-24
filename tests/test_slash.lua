@@ -1079,6 +1079,41 @@ test("/cm bar lock and /cm bar unlock land on the same stored flag", function(t)
     t.eq(KCM.db.profile.macroBar.locked, true, "the sub-verb still locks")
 end)
 
+-- Unlocking a bar that is switched OFF still writes the flag -- the player may be
+-- about to turn it on and wants it draggable when it appears -- but "drag it" is
+-- a promise about a bar they cannot see. So the line says the bar is off and how
+-- to show it, and both spellings share the one body, so they say the same thing
+-- (ConsumableMaster-R-11).
+local OFF_UNLOCK = "macro bar unlocked (the bar is off \226\128\148 /cm bar on to show it)"
+
+test("/cm unlock on a switched-off bar says the bar is off", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", false)
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.locked", true)
+    local line = say(KCM, mock, "unlock")
+    t.eq(KCM.db.profile.macroBar.locked, false, "the write still lands")
+    t.truthy(line:find(OFF_UNLOCK, 1, true) ~= nil, "and it says the bar is off: " .. line)
+    t.truthy(line:find("drag it", 1, true) == nil, "and never asks for a drag: " .. line)
+end)
+
+test("/cm bar unlock on a switched-off bar says the same line", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", false)
+    local line = say(KCM, mock, "bar unlock")
+    t.eq(KCM.db.profile.macroBar.locked, false, "the sub-verb still unlocks")
+    t.truthy(line:find(OFF_UNLOCK, 1, true) ~= nil, "one body, one wording: " .. line)
+end)
+
+test("/cm unlock on a shown bar keeps the drag wording", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", true)
+    local line = say(KCM, mock, "unlock")
+    t.truthy(line:find("macro bar unlocked \226\128\148 drag it, then /cm lock", 1, true) ~= nil,
+        "a visible bar is still told to drag: " .. line)
+    line = say(KCM, mock, "lock")
+    t.truthy(line:find("macro bar locked", 1, true) ~= nil, "and lock is unchanged: " .. line)
+end)
+
 -- A bare `/cm bar` is the player's own switch, so it flips the STORED flag. It
 -- used to flip MacroBarModel.IsEnabled(), which also answers false under any
 -- stand-down hold -- a perf capture's suspended arm included -- so during a

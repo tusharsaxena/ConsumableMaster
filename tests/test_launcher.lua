@@ -182,6 +182,53 @@ test("Launcher: the left click holds no state — it reads the profile each time
     t.truthy(KCM.db.profile.macroBar.locked, "the click read the CURRENT value, not a cached one")
 end)
 
+-- The left click is `/cm lock` / `/cm unlock` with a mouse, so it runs THE SAME
+-- body (KCM.SlashCommands.Verbs.RunLock) rather than a second copy of the write
+-- and the wording. The copy it used to carry told a player whose bar was
+-- switched off to "drag it" (ConsumableMaster-R-11).
+test("Launcher: left-click unlock on a switched-off bar reuses RunLock's wording", function(t)
+    local KCM = loader.loadFullAddon()
+    local object = KCM.Launcher:Object()
+    local V = KCM.SlashCommands.Verbs
+    local realRun, calls = V.RunLock, {}
+    V.RunLock = function(locked) calls[#calls + 1] = locked; return realRun(locked) end
+
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", false)
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.locked", true)
+    mock.output = {}
+    object.OnClick(nil, "LeftButton")
+    local out = table.concat(mock.output, "\n")
+
+    t.eqList(calls, { false }, "the click ran the slash verb's body, asking for unlocked")
+    t.eq(KCM.db.profile.macroBar.locked, false, "and the write landed")
+    t.truthy(out:find("macro bar unlocked (the bar is off \226\128\148 /cm bar on to show it)",
+        1, true) ~= nil, "the line says the bar is off: " .. out)
+    t.truthy(out:find("drag it", 1, true) == nil, "and asks for no drag: " .. out)
+    V.RunLock = realRun
+end)
+
+-- The disabled refusal is the LIBRARY'S gate now (LibKa0s-Launcher-1.0 minor 2,
+-- descriptor isEnabled / disabledLine): a disabled addon's left click never
+-- reaches the host's onClick, so it cannot reach RunLock either.
+test("Launcher: a disabled left click never reaches RunLock", function(t)
+    local KCM = loader.loadFullAddon()
+    local object = KCM.Launcher:Object()
+    local V = KCM.SlashCommands.Verbs
+    local realRun, calls = V.RunLock, 0
+    V.RunLock = function(...) calls = calls + 1; return realRun(...) end
+
+    KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+    mock.output = {}
+    object.OnClick(nil, "LeftButton")
+    local out = table.concat(mock.output, "\n")
+
+    t.eq(calls, 0, "the gate stopped the click before the host's action")
+    local line = KCM.SlashCommands.instance:DisabledLine()
+    local _, n = out:gsub(line:gsub("%p", "%%%0"), "")
+    t.eq(n, 1, "and the dispatcher's disabled line printed exactly once: " .. out)
+    V.RunLock = realRun
+end)
+
 test("Launcher: right-click opens the settings panel, and never the rung", function(t)
     local KCM = loader.loadFullAddon()
     local object = KCM.Launcher:Object()

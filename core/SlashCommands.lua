@@ -859,6 +859,9 @@ end
 --
 -- The confirmation names the SHORT form, because that is the one the bar's own
 -- tooltips now tell the player to type (modules/MacroBar.lua).
+--
+-- The launcher's left click (core/LauncherSetup.lua) is a fifth spelling and
+-- calls this too, through KCM.SlashCommands.Verbs.RunLock.
 local function runLock(locked)
     -- The same refusal runBar makes, because `/cm lock` reaches this without
     -- passing through runBar's guard and would otherwise index a nil MacroBar.
@@ -866,8 +869,14 @@ local function runLock(locked)
         return say("macro bar unavailable.")
     end
     KCM.MacroBar.SetLocked(locked)
-    say(locked and "macro bar locked"
-        or "macro bar unlocked \226\128\148 drag it, then /cm lock")
+    if locked then return say("macro bar locked") end
+    -- A switched-off bar still takes the write -- it is draggable the moment it
+    -- is turned on -- but "drag it" would promise a bar the player cannot see.
+    -- The STORED flag, not IsEnabled(), for the reason bare `/cm bar` gives below.
+    if KCM.MacroBarModel.Config().enabled == false then
+        return say("macro bar unlocked (the bar is off \226\128\148 /cm bar on to show it)")
+    end
+    say("macro bar unlocked \226\128\148 drag it, then /cm lock")
 end
 
 local BAR_COMMANDS = {
