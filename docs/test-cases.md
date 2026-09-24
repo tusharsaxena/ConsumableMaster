@@ -563,7 +563,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: no clearance when the flyout is off or the label is outside
 - macrobar flyout: clearance scales with the band thickness
 
-### test_macromanager.lua (49)
+### test_macromanager.lua (51)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -598,6 +598,8 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.FlushPending re-queues a write if combat resumes mid-flush
 - MacroManager: a queued write that already matches the live macro is dropped
 - MacroManager: a re-queued write keeps its retry count for the combat window
+- MacroManager.FlushPending replays a per-hand weapon-enchant body
+- MacroManager: /cm rewritemacros in combat keeps the WPN_ENCH body
 - MacroManager.InvalidateState forces the next pass to rewrite every body
 - MacroManager.InvalidateState drops queued combat writes
 - MacroManager.InvalidateState traces what it cleared, and only with debug on
@@ -1199,7 +1201,7 @@ badge and any count quoted in the docs must agree with it.
 | test_macrobar_chrome.lua | 18 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
-| test_macromanager.lua | 49 |
+| test_macromanager.lua | 51 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
@@ -1222,4 +1224,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1004** |
+| **Total** | **1006** |

@@ -164,7 +164,7 @@ PLAYER_REGEN_ENABLED:
 
 No protected API is called during combat. Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper are pure and combat-safe. Only `MacroManager.SetMacro` / `SetCompositeMacro` reach `EditMacro` / `CreateMacro`, and they early-out on `InCombatLockdown()`. The combat gate is `InCombatLockdown()` itself — no separate flag.
 
-`pendingUpdates[macroName]` carries `{ body, itemID, catKey, attempts }` for single picks or `{ body, itemID=nil, catKey, cat, attempts }` for composites — composite entries carry `cat` so `FlushPending` can dispatch back to `SetCompositeMacro`. Last-write-wins: if the body changes again before `PLAYER_REGEN_ENABLED`, only the final version is applied. See [macro-manager.md](./macro-manager.md#flush-retry).
+`pendingUpdates[macroName]` carries `{ body, itemID, catKey, attempts }` for single picks or `{ body, itemID=nil, catKey, cat, attempts }` for composites — composite entries carry `cat` so `FlushPending` can dispatch back to `SetCompositeMacro`; every other entry replays its queued `body` through `commitMacro` rather than being rebuilt, so a per-hand weapon-enchant body keeps its `/use 16` and `/use 17` lines. Last-write-wins: if the body changes again before `PLAYER_REGEN_ENABLED`, only the final version is applied. See [macro-manager.md](./macro-manager.md#flush-retry).
 
 ## First-run / defaults seeding
 

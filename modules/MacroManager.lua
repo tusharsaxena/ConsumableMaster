@@ -408,6 +408,12 @@ end
 -- Queue a write for PLAYER_REGEN_ENABLED. `attempts` is preserved across
 -- re-queues during a single combat window so a bad EditMacro doesn't reset its
 -- retry counter on every new pipeline run before the flush fires.
+--
+-- `body` is the post-oversize body and `iconItemID` the post-oversize icon item
+-- (nil when the body fell back to empty-state), because FlushPending REPLAYS
+-- this body through commitMacro rather than rebuilding it: a per-hand
+-- weapon-enchant body is two /use item + /use <slot> pairs, which no
+-- single-item rebuild from `itemID` can reproduce (ConsumableMaster-R-01).
 local function queueForCombat(macroName, body, iconItemID, catKey, opts, pending)
     pendingUpdates[macroName] = {
         body     = body,
@@ -438,8 +444,9 @@ end
 --                on a deferred entry — FlushPending dispatches on
 --                `entry.cat.composite`, so this field is what routes a queued
 --                composite write back through SetCompositeMacro instead of
---                SetMacro. A single-category write leaves it nil, which is
---                exactly the distinction FlushPending reads.
+--                replaying its queued body here. A single-category write
+--                leaves it nil, which is exactly the distinction FlushPending
+--                reads.
 --   active       whether `body` is the built body rather than the empty-state
 --                one. Only composites care; it feeds resolveIcon.
 --   resolveIcon  icon override, called with the post-oversize `active`. A
@@ -472,7 +479,7 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
     end
 
     if InCombatLockdown and InCombatLockdown() then
-        return queueForCombat(macroName, body, iconItemID, catKey, opts, pending)
+        return queueForCombat(macroName, body, effectiveItemID, catKey, opts, pending)
     end
 
     local result, err = doEdit(macroName, icon, body, catKey)
@@ -579,7 +586,13 @@ end
 -- ---------------------------------------------------------------------------
 -- FlushPending — called from PLAYER_REGEN_ENABLED handler.
 -- ---------------------------------------------------------------------------
--- Replays every queued body. Each entry carries `attempts`; after
+-- Replays every queued body. A composite is re-run through SetCompositeMacro
+-- (its picks are re-read, the icon is a sentinel); every other entry replays
+-- the exact body it queued through commitMacro, the one write tail, not a
+-- rebuild through SetMacro. SetMacro only knows the single-item shape, so a
+-- rebuild turned a deferred per-hand weapon-enchant body into one /use item
+-- line and dropped /use 16 and /use 17 (ConsumableMaster-R-01).
+-- Each entry carries `attempts`; after
 -- MAX_FLUSH_ATTEMPTS failed writes we give up on that macro and emit a
 -- one-time chat error so the user can diagnose. Bounding retries prevents a
 -- persistently-failing macro from re-queueing forever on every combat cycle.
@@ -598,7 +611,7 @@ function M.FlushPending()
         if entry.cat and entry.cat.composite then
             ok, result = pcall(M.SetCompositeMacro, entry.cat, nil)
         else
-            ok, result = pcall(M.SetMacro, name, entry.itemID, entry.catKey)
+            ok, result = pcall(commitMacro, name, entry.body, entry.itemID, entry.catKey)
         end
         if not ok or result == "error" then
             entry.attempts = (entry.attempts or 0) + 1

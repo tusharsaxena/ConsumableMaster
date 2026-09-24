@@ -445,6 +445,75 @@ test("MacroManager: a re-queued write keeps its retry count for the combat windo
     t.truthy(gaveUp, "the retry counter survived the re-queue instead of restarting")
 end)
 
+-- REPLAY, NOT REBUILD (ConsumableMaster-R-01). A per-hand weapon-enchant body is
+-- two /use item + /use <slot> pairs, not a single-item body, so the flush must
+-- write the body that was queued rather than asking SetMacro to rebuild one
+-- from the stored icon item. Before the fix a deferred KCM_WPN_ENCH came back
+-- out of combat as "#showtooltip\n/use item:<mh>", with both slot lines gone.
+--
+-- red under: FlushPending routing non-composites through M.SetMacro
+test("MacroManager.FlushPending replays a per-hand weapon-enchant body", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local cat = KCM.Categories.Get("WPN_ENCH")
+    mock.setItem(944001, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any" } })
+    mock.setItem(944002, { subType = "Other", tt = { isWeaponEnhance = true, weaponAffinity = "any" } })
+    mock.setBag(944001, 1)
+    mock.setBag(944002, 1)
+
+    mock.setCombat(true)
+    t.eq(KCM.MacroManager.SetWeaponEnchantMacro(cat, 944001, 944002), "deferred",
+        "the per-hand write queues behind combat")
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 1, "one queued write applied")
+
+    local body = mock.macros["KCM_WPN_ENCH"] and mock.macros["KCM_WPN_ENCH"].body or ""
+    t.truthy(body:find("/use 16", 1, true), "and so did the main-hand slot line")
+    t.truthy(body:find("/use item:944002", 1, true), "the off-hand item survived the flush")
+    t.truthy(body:find("/use 17", 1, true), "and so did the off-hand slot line")
+end)
+
+-- The reachable path the finding named: /cm rewritemacros is allowed in
+-- combat, so every macro it recomputes is deferred and replayed on regen.
+--
+-- red under: FlushPending routing non-composites through M.SetMacro
+test("MacroManager: /cm rewritemacros in combat keeps the WPN_ENCH body", function(t)
+    local KCM, mock = h.loader.loadFullAddon(), h.loader.mock
+    -- A sword in the main hand takes the whetstone, a mace in the off hand the
+    -- weightstone, so the two hands pick two different items. The full addon
+    -- runs the real tooltip parser, so the affinity comes from tooltip text.
+    mock.setItem(944011, { name = "Test Whetstone",   subType = "Other" })
+    mock.setItem(944012, { name = "Test Weightstone", subType = "Other" })
+    local tooltips = {
+        [944011] = "Use: Sharpen your bladed weapon, increasing Attack Power by 10 for 1 hour.",
+        [944012] = "Use: Weight your blunt weapon, increasing Attack Power by 15 for 1 hour.",
+    }
+    local savedTooltip = _G.C_TooltipInfo.GetItemByID
+    _G.C_TooltipInfo.GetItemByID = function(id)
+        if not tooltips[id] then return nil end
+        return { lines = { { leftText = "Item " .. id }, { leftText = tooltips[id] } } }
+    end
+    KCM.Selector.AddItem("WPN_ENCH", 944011)
+    KCM.Selector.AddItem("WPN_ENCH", 944012)
+    mock.setBag(944011, 1)
+    mock.setBag(944012, 1)
+    mock.setItem(944100, { subType = "One-Handed Swords", classID = 2, subClassID = 7 })
+    mock.setItem(944101, { subType = "One-Handed Maces",  classID = 2, subClassID = 4 })
+    mock.setEquipped(16, 944100)
+    mock.setEquipped(17, 944101)
+
+    mock.setCombat(true)
+    KCM:OnSlashCommand("rewritemacros")
+    t.eq(mock.macros["KCM_WPN_ENCH"], nil, "nothing was written during combat")
+    mock.setCombat(false)
+    KCM:OnRegenEnabled()
+    _G.C_TooltipInfo.GetItemByID = savedTooltip
+
+    local body = mock.macros["KCM_WPN_ENCH"] and mock.macros["KCM_WPN_ENCH"].body or ""
+    t.truthy(body:find("/use 16", 1, true), "and so did the main-hand slot line")
+    t.truthy(body:find("/use item:944012", 1, true), "the off-hand weightstone survived the regen flush")
+    t.truthy(body:find("/use 17", 1, true), "and so did the off-hand slot line")
+end)
+
 -- ---------------------------------------------------------------------------
 -- InvalidateState
 -- ---------------------------------------------------------------------------
