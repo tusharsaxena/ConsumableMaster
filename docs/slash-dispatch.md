@@ -26,7 +26,7 @@ tiptoe around.
 ## The `COMMANDS` table
 
 `COMMANDS` (`settings/Slash.lua:157`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:354` so the verb set has one source
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:358` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
@@ -96,9 +96,9 @@ read the same rows and cannot drift.
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
 | `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:451`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (`:596`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
-| `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:873`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `stat` | `STAT_COMMANDS` (`:602`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `aio` | `AIO_COMMANDS` (`:807`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
+| `bar` | `BAR_COMMANDS` (`:930`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:392`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
