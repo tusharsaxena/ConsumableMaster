@@ -416,5 +416,11 @@ down, and it is what an audit reads before re-filing `layout-§1` against anythi
 `settings/MacroBar.lua` (1169), `settings/Panel.lua` (1166), `settings/Category.lua` (1142),
 `tests/test_schema.lua` (1023) and `tests/test_selector.lua` (1009). They are named here so a later
 reader can tell the band was looked at rather than missed; none needs a disposition until it
-crosses. How the four 2026-09 peels were cut, and where each moved case went, is
+crosses, with two exceptions. `settings/Panel.lua` and `settings/Category.lua` were carried as
+Accepted on the automated-test watch list at 1.6.0, 1.6.1 and 1.6.2, and `automated-tests-§4`
+refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1166) peels
+its About page renderer into `settings/About.lua`
+([#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)), and `settings/Category.lua`
+(1142) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
+([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)). How the four 2026-09 peels were cut, and where each moved case went, is
 [module-map.md → Peel history](./module-map.md#peel-history), beside issues #32 and #33.
