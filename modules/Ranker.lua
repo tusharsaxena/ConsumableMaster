@@ -75,25 +75,27 @@ local PRIMARY_WEIGHT = 1000
 -- Item-info helpers
 -- ---------------------------------------------------------------------------
 
--- `scoreCache.fields[id]` memoizes a single GetItemInfo + TooltipCache.Get
--- result across every scorer call that touches the same itemID within one
--- Pipeline.Recompute pass. Callers that pass `scoreCache = nil` get the
--- original uncached path — keeps /cm dump, Explain, and panel renders
--- behavior-identical.
+-- `scoreCache.fields[id]` memoizes a single KCM.Compat.GetItemInfo +
+-- TooltipCache.Get result across every scorer call that touches the same
+-- itemID within one Pipeline.Recompute pass. Callers that pass
+-- `scoreCache = nil` get the original uncached path — keeps /cm dump, Explain,
+-- and panel renders behavior-identical.
+--
+-- Returns quality, ilvl, tt: the only item fields a scorer reads. The localized
+-- item sub-type display string is deliberately not fetched (localization-§4).
 local function itemFields(itemID, scoreCache)
     if scoreCache and scoreCache.fields and scoreCache.fields[itemID] then
         local f = scoreCache.fields[itemID]
-        return f.quality, f.ilvl, f.subType, f.tt
+        return f.quality, f.ilvl, f.tt
     end
-    local _, _, quality, ilvl, _, _, subType = GetItemInfo(itemID)
+    local _, _, quality, ilvl = KCM.Compat.GetItemInfo(itemID)
     quality = quality or 0
     ilvl    = ilvl or 0
-    subType = subType or ""
     local tt = (KCM.TooltipCache and KCM.TooltipCache.Get(itemID)) or {}
     if scoreCache and scoreCache.fields then
-        scoreCache.fields[itemID] = { quality = quality, ilvl = ilvl, subType = subType, tt = tt }
+        scoreCache.fields[itemID] = { quality = quality, ilvl = ilvl, tt = tt }
     end
-    return quality, ilvl, subType, tt
+    return quality, ilvl, tt
 end
 
 -- Weight of a single stat given the active spec's priority.
@@ -232,7 +234,7 @@ end
 
 local scorers = {
     FOOD = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return (tt.healValue or 0)
              + (tt.healValueAvg or 0)
              + (tt.healPct or 0) * PCT_WEIGHT
@@ -241,7 +243,7 @@ local scorers = {
              + quality * QUALITY_WEIGHT
     end,
     DRINK = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return (tt.manaValue or 0)
              + (tt.manaValueAvg or 0)
              + (tt.manaPct or 0) * PCT_WEIGHT
@@ -250,7 +252,7 @@ local scorers = {
              + quality * QUALITY_WEIGHT
     end,
     HP_POT = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         local bonus = qualifiesForImmediateBonus(tt, "HP", ctx) and IMMEDIATE_POT_BONUS or 0
         return (tt.healValueAvg or 0)
              + (tt.healValue or 0)
@@ -259,7 +261,7 @@ local scorers = {
              + quality * QUALITY_WEIGHT
     end,
     MP_POT = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         local bonus = qualifiesForImmediateBonus(tt, "MP", ctx) and IMMEDIATE_POT_BONUS or 0
         return (tt.manaValueAvg or 0)
              + (tt.manaValue or 0)
@@ -272,25 +274,25 @@ local scorers = {
         return (HEALTHSTONE_PREFERENCE[itemID] or 0) + ilvl
     end,
     STAT_FOOD = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return scoreByStatPriority(tt, ctx and ctx.specPriority)
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
     CMBT_POT = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return scoreByStatPriority(tt, ctx and ctx.specPriority)
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
     FLASK = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return scoreByStatPriority(tt, ctx and ctx.specPriority)
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
     WPN_ENCH = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return scoreByStatPriority(tt, ctx and ctx.specPriority)
              + ilvl
              + quality * QUALITY_WEIGHT
@@ -300,7 +302,7 @@ local scorers = {
         return ilvl + quality * QUALITY_WEIGHT
     end,
     AUG_RUNE = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         local reusable = KCM.Classifier and KCM.Classifier.IsReusableAugRune(itemID)
         return augAmount(tt) * AUG_STAT_WEIGHT
              + (reusable and REUSABLE_BONUS or 0)
@@ -311,7 +313,7 @@ local scorers = {
     -- the drums against each other. A higher affect-cap means a more current
     -- drum; an uncapped item sorts above all of them.
     BLOODLUST = function(itemID, ctx, scoreCache)
-        local quality, ilvl, _, tt = itemFields(itemID, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return (tt.maxLevel or UNCAPPED_LEVEL) * CAP_WEIGHT
              + ilvl
              + quality * QUALITY_WEIGHT
@@ -579,7 +581,7 @@ function R.Explain(catKey, itemID, ctx)
 
     -- Read before the dispatch, as the ladder did: itemFields warms the tooltip cache, and an
     -- unrecognized category must not change whether that happens.
-    local quality, ilvl, _, tt = itemFields(itemID)
+    local quality, ilvl, tt = itemFields(itemID)
 
     local explain = EXPLAINERS[catKey]
     if not explain then return result end

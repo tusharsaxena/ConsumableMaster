@@ -811,13 +811,16 @@ function M.install(NS)
     end
     _G.GetClassInfo = function(classID) return "Class" .. tostring(classID) end
 
-    -- Item / spell legacy globals
-    _G.GetItemInfo = function(id)
+    -- Item / spell legacy globals. C_Item.GetItemInfo below is the same
+    -- function, so KCM.Compat.GetItemInfo's first rung and its fallback answer
+    -- identically and a test can remove either one to reach the other.
+    local function getItemInfo(id)
         local it = M.items[id]
         if not it then return nil end
         -- name, link, quality, ilvl, reqLevel, class, subType, ...
         return it.name, "link", it.quality, it.ilvl, 0, "Consumable", it.subType
     end
+    _G.GetItemInfo = getItemInfo
     _G.GetSpellInfo = function(spellID)
         local s = M.spells[spellID]
         return s and s.name or nil
@@ -913,6 +916,7 @@ function M.install(NS)
             -- itemID, itemType, itemSubType, equipLoc, icon, classID, subClassID
             return id, "Consumable", it.subType, "", 0, it.classID, it.subClassID
         end,
+        GetItemInfo = getItemInfo,
         GetItemCount = function(id) return M.bags[id] or 0 end,
         GetItemNameByID = function(id) return M.items[id] and M.items[id].name or nil end,
         GetItemIconByID = function(id) return M.items[id] and ("icon:" .. id) or nil end,

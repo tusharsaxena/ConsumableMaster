@@ -98,7 +98,7 @@ A bad scorer in one category can no longer break the other fourteen macros. The 
 
 `scoreCache` is a single Lua table created at the top of `Pipeline.Recompute` and threaded through `RecomputeOne` → `PickBestForCategory` → `SortCandidates` → `Score`. It memoizes:
 
-- `scoreCache.fields[id]` — the `GetItemInfo` + `TooltipCache.Get` lookup. Shared across categories so an item appearing in multiple candidate sets isn't re-parsed.
+- `scoreCache.fields[id]` — the `KCM.Compat.GetItemInfo` (quality, item level) + `TooltipCache.Get` lookup. Shared across categories so an item appearing in multiple candidate sets isn't re-parsed.
 - `scoreCache[catKey][id]` — the per-category score. Spell entries short-circuit and don't populate this; item scores are full Ranker output.
 
 The same `scoreCache` is also handed to `MacroManager.SetCompositeMacro`, which calls `Selector.PickBestForCategory(refKey, nil, scoreCache)` for each enabled sub-cat. Items that appear in both a single-pick category's macro write and a composite's reference resolution share the cache hit.

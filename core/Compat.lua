@@ -1,10 +1,11 @@
--- Compat.lua — a single seam over the spec + spell client APIs.
+-- Compat.lua — a single seam over the spec, spell and item client APIs.
 --
--- Midnight is mid-migration from the flat GetSpecialization* / GetSpellInfo
--- globals to the C_SpecializationInfo / C_Spell namespaces. Rather than scatter
--- "modern first, legacy fallback" chains across SpecHelper, SlashCommands,
--- MacroManager, the widgets, and the settings tabs, every caller goes through
--- KCM.Compat so a future rename is one edit here (compat).
+-- Midnight is mid-migration from the flat GetSpecialization* / GetSpellInfo /
+-- GetItemInfo globals to the C_SpecializationInfo / C_Spell / C_Item
+-- namespaces. Rather than scatter "modern first, legacy fallback" chains across
+-- SpecHelper, SlashCommands, MacroManager, the Ranker, the tooltip cache, the
+-- widgets, and the settings tabs, every caller goes through KCM.Compat so a
+-- future rename is one edit here (compat).
 --
 -- Loaded right after Constants so all downstream modules can rely on it.
 --
@@ -13,7 +14,7 @@
 -- move -- every caller and every test still reaches KCM.Compat.X -- only the
 -- definitions did. The two class-ID spec readers below have one consumer in the
 -- collection, this addon, so they stay host code (the major takes a member only
--- when two addons agreed on it).
+-- when two addons agreed on it). GetItemInfo, at the bottom, is host code too.
 --
 -- With the major absent (a partial or missing libs/LibKa0s/, which
 -- core/CoreSetup.lua already announces) each wired member takes the arm the
@@ -80,3 +81,17 @@ end
 -- A secret name is returned untouched and never compared with "". Returns nil
 -- when unresolvable so callers can pick their own placeholder.
 Compat.GetSpellName = CompatLib and CompatLib.GetSpellName or absent
+
+-- Item info for an itemID, link or name: every return the client gives.
+--
+-- The flat GetItemInfo global is deprecated in favor of C_Item.GetItemInfo;
+-- whether a 12.x patch still ships it is unverified, so the namespaced call is
+-- tried first and the global is only a guarded fallback (anti-pattern #10).
+-- Read at call time, not captured at load, so neither rung is pinned to what
+-- the client carried when this file ran. Returns nil when the client has
+-- neither, or when the item's data has not streamed in yet.
+function Compat.GetItemInfo(item)
+    if C_Item and C_Item.GetItemInfo then return C_Item.GetItemInfo(item) end
+    if GetItemInfo then return GetItemInfo(item) end
+    return nil
+end

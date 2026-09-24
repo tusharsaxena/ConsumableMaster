@@ -11,9 +11,10 @@
 local h = _G.KCM_TEST
 local test = h.test
 
--- Load Namespace + the real parser onto a fresh mocked namespace.
+-- Load Namespace + the real parser onto a fresh mocked namespace, with Compat
+-- ahead of it for the item-info read Get() makes through KCM.Compat.GetItemInfo.
 local function newTC()
-    local KCM  = h.loader.loadFiles({ "Namespace.lua", "TooltipCache.lua" })
+    local KCM  = h.loader.loadFiles({ "Namespace.lua", "Compat.lua", "TooltipCache.lua" })
     return KCM.TooltipCache, h.loader.mock
 end
 

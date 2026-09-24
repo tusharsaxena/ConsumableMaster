@@ -45,7 +45,7 @@ function W.SlotAffinity(slot)
     if C_Item and C_Item.GetItemInfoInstant then
         local _; _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
     else
-        local _; _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = GetItemInfo(itemID)
+        local _; _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = KCM.Compat.GetItemInfo(itemID)
     end
     -- Only actual weapons are enhanceable; a Shield / Held-in-off-hand is Armor,
     -- whose subclass numbers collide with weapon subclasses (Armor 6 = Shield

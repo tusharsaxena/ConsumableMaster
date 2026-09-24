@@ -82,13 +82,12 @@ read_globals = {
     -- C_CurveUtil + Enum.LuaCurveType are the GCD-suppress step curve
     -- (modules/MacroBarButton.lua), same secret-safe pattern.
     "issecretvalue", "C_DurationUtil", "C_CurveUtil", "Enum",
-    -- Spell / item. Of these, only GetSpellInfo goes through core/Compat.lua —
-    -- it is the deprecated last fallback inside Compat.GetSpellName, behind
-    -- C_Spell.GetSpellName and C_Spell.GetSpellInfo. The item globals are NOT
-    -- wrapped: GetItemInfo, GetItemInfoInstant and GetItemCount are live retail
-    -- globals, not deprecated ones, so `compat`'s routing rule does not reach
-    -- them and callers read them directly (see docs/ARCHITECTURE.md's deviation
-    -- register for the two direct GetItemInfo call sites).
+    -- Spell / item. GetSpellInfo and GetItemInfo are read only inside
+    -- core/Compat.lua: GetSpellInfo is the deprecated last fallback inside
+    -- Compat.GetSpellName, behind C_Spell.GetSpellName and C_Spell.GetSpellInfo,
+    -- and GetItemInfo is Compat.GetItemInfo's guarded fallback behind
+    -- C_Item.GetItemInfo. GetItemCount is NOT wrapped: its direct read sites are
+    -- listed in docs/ARCHITECTURE.md's deviation register (the `compat` row).
     "GetSpellInfo", "GetSpellCooldown", "GetItemInfo", "GetItemInfoInstant",
     "GetItemCount",
     -- Macro APIs. Only the PROTECTED writers (CreateMacro/EditMacro/DeleteMacro)

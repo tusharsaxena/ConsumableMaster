@@ -108,7 +108,7 @@ badge and any count quoted in the docs must agree with it.
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 - classifier: keys on numeric subclass, not the localized subType
 
-### test_compat.lua (23)
+### test_compat.lua (26)
 
 - Compat.GetSpecialization returns the live spec index
 - Compat.GetSpecializationInfo maps an index to specID + name
@@ -133,6 +133,9 @@ badge and any count quoted in the docs must agree with it.
 - Compat.GetSpellName returns a secret name untouched and ends the ladder
 - Compat.GetSpellName answers nil for an id outside the client's domain, asking no rung
 - Compat degraded: readers answer nil, the guard still asks the client
+- Compat.GetItemInfo prefers C_Item
+- Compat.GetItemInfo falls back to the global when C_Item.GetItemInfo is absent
+- Compat.GetItemInfo answers nil with neither
 
 ### test_constants.lua (12)
 
@@ -707,7 +710,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm reset: resetting a color row stores a copy, not the dbDefaults table
 - /cm reset: a profile switch after a color reset leaves the shipped default intact
 
-### test_ranker.lua (23)
+### test_ranker.lua (26)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -732,6 +735,9 @@ badge and any count quoted in the docs must agree with it.
 - Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
 - Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
 - Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
+- Ranker: three seeded items score the same uncached, cache-cold and cache-warm
+- Ranker: the per-pass field cache carries quality, ilvl and tt, and no subType
+- Ranker: item fields come through KCM.Compat.GetItemInfo, not the bare global
 
 ### test_register.lua (1)
 
@@ -1194,7 +1200,7 @@ badge and any count quoted in the docs must agree with it.
 | test_bus.lua | 19 |
 | test_categories.lua | 4 |
 | test_classifier.lua | 16 |
-| test_compat.lua | 23 |
+| test_compat.lua | 26 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
 | test_database.lua | 23 |
@@ -1222,7 +1228,7 @@ badge and any count quoted in the docs must agree with it.
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 31 |
 | test_profiles.lua | 21 |
-| test_ranker.lua | 23 |
+| test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 55 |
@@ -1240,4 +1246,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1022** |
+| **Total** | **1028** |

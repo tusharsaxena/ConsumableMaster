@@ -166,7 +166,7 @@ local function classOf(itemID)
         local _, _, _, _, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
         return classID, subClassID
     end
-    local _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = GetItemInfo(itemID)
+    local _, _, _, _, _, _, _, _, _, _, _, classID, subClassID = KCM.Compat.GetItemInfo(itemID)
     return classID, subClassID
 end
 
