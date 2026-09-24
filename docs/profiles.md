@@ -144,10 +144,12 @@ handler logs it once, worded by the event, and silences any `Helpers.Bulk` brack
 | *Changed* | `[Profile] switched to '<name>'` |
 
 A reset and a copy replace the profile's rows, so they carry the `[Set]` tag. A switch rewrites no
-rows and takes the `[Profile]` trace MultiMeters and KickCD carry. The reset line has no row count.
-N would be the rows the reset actually changed, which needs their values from before it. AceDB has
-already replaced the profile when `OnProfileReset` fires, and AceDBOptions' Reset Profile button
-gives no earlier hook. A switch or copy is followed by the forced rewrite's own
+rows and takes the `[Profile]` trace MultiMeters and KickCD carry. N is the rows the reset actually
+changed, which needs their values from before it. AceDB has already replaced the profile when
+`OnProfileReset` fires, so `KCM.ResetAllToDefaults` (General > **Reset all settings**) wraps
+`db:ResetProfile()` in the seam's `ResetCounted`, which counts the rows off their defaults first and
+hands the count to the handler. AceDBOptions' own Reset Profile button gives no earlier hook, so its
+line carries no count: `[Set] reset profile '<name>' to defaults`. A switch or copy is followed by the forced rewrite's own
 `[Macro] forced rewrite: cleared …` line and the resync's `[Scan]` and `[Calc]` lines, which
 report what the act caused rather than restating the act.
 

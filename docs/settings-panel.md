@@ -489,8 +489,8 @@ Two different paths, and the difference is what a row shape can express.
 **Schema-backed controls** are rows in `KCM.Settings.Schema` — an ordered array published by
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
-whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` →
-`SetAndRefresh` seam. There are **79**: 64 `macroBar.*` rows on the Macro Bar page, 7 in the
+whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the
+`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **79**: 64 `macroBar.*` rows on the Macro Bar page, 7 in the
 General page's Master controls block, 7 on the Macros page and 1 on the Stat Priority page. Ten
 of them are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
 `map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section

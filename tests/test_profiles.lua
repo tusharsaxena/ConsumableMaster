@@ -554,7 +554,7 @@ end)
 -- A color row's `default` IS the dbDefaults table, and the reset sends it through
 -- SetAndRefresh. Storing it as-is aliases the shipped default into the profile.
 --
--- red under: return value unchanged from VALIDATORS.color
+-- red under: return value unchanged from TYPE_RULES.color's normalize
 test("/cm reset: resetting a color row stores a copy, not the dbDefaults table", function(t)
     local KCM = h.loader.loadFullAddon()
     KCM:OnSlashCommand("reset macroBar.barBackdropColor")
@@ -567,7 +567,7 @@ end)
 -- The aliased table is emptied in place when the switch strips the outgoing
 -- profile, which blanks the shipped default for every profile after it.
 --
--- red under: return value unchanged from VALIDATORS.color
+-- red under: return value unchanged from TYPE_RULES.color's normalize
 test("/cm reset: a profile switch after a color reset leaves the shipped default intact", function(t)
     local KCM = h.loader.loadFullAddon()
     KCM:OnSlashCommand("reset macroBar.barBackdropColor")

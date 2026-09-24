@@ -10,7 +10,7 @@
 --   * HERE — the library instance: the panel factory, the lazy Defaults button,
 --     the scroll container, the always-visible scrollbar patch, the row makers,
 --     and the codecs/thunks that teach the library this addon's conventions.
---   * settings/Panel.lua — the addon's own half: the schema rows, Resolve /
+--   * settings/Panel.lua — the addon's own half: the schema rows,
 --     Get / Set / FindSchema / ValidateSchema, the SetAndRefresh write seam, the
 --     wrappers that shadow a library member, and the registration bootstrap.
 --

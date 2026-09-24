@@ -196,8 +196,8 @@ settings/         Settings UI framework + one module per page.
 │                        always-visible scrollbar gutter, plus tooltip / spacer
 │                        / section / session-checkbox — reached through thin
 │                        Helpers.* forwarders onto Helpers.instance. The schema
-│                        half stays here: Settings.Schema, the Resolve →
-│                        SetAndRefresh write seam, Grid / Button / ButtonPair /
+│                        half stays here: Settings.Schema, the SetAndRefresh
+│                        → Helpers.schema write seam, Grid / Button / ButtonPair /
 │                        Label, EnumValues, the page order and
 │                        KCM.Options.Register. RenderField, the four row widget
 │                        MAKERS, SetRenderer and both refresh tiers are the

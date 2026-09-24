@@ -332,7 +332,7 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         -- CM-R-04: this claim used to be carried by two READS —
         -- `#Schema > 0` and `FindSchema(...)` — and a read cannot go red
         -- over a broken write. The write half is exercised here, through the
-        -- settings path the panel itself uses (Resolve → Set), and the
+        -- settings path the panel itself uses (Helpers.Set → the schema seam), and the
         -- assertion is on what LANDED IN THE PROFILE rather than on what the
         -- call returned: a Set that reports true and stores nothing is exactly
         -- the failure the old pair could not see.

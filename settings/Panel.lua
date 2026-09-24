@@ -273,7 +273,7 @@ local _validPanels = {
 -- pages declare the whole-value rows behind their own controls (architecture-§5).
 local _validSections = { general = true, macrobar = true, macros = true, statpriority = true }
 -- `order` and `map` are the WHOLE-VALUE rows (architecture-§5): a list over a
--- fixed member set, and a keyed map. See VALIDATORS below.
+-- fixed member set, and a keyed map. See TYPE_RULES below.
 local _validTypes    = { bool = true, number = true, string = true, color = true,
                          order = true, map = true }
 
