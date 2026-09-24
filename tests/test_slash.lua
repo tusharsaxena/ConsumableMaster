@@ -1283,18 +1283,6 @@ test("Slash: enable echoes the stored value in the canonical set shape", functio
     t.eq(viaVerb, viaSet, "the long name prints the very same line")
 end)
 
-test("Slash: with LibKa0s absent the verbs say so rather than going inert", function(t)
-    -- There is no `enabled` ROW on that build -- the Master controls block is the
-    -- library's composer and its degradation stub emits nothing -- so there is
-    -- nothing for the single write seam to validate against, and no panel
-    -- carrying the checkbox either. Writing round the seam would be the second
-    -- switch slash-commands-§2 forbids, so the verb reports instead. What it must
-    -- NOT do is answer nothing at all, which is what it did before this case.
-    local KCM = h.loader.loadFullAddon(true)
-    local line = say(KCM, h.loader.mock, "enable")
-    t.truthy(line:find("unavailable", 1, true) ~= nil, "it says so: " .. line)
-end)
-
 -- ---------------------------------------------------------------------------
 -- The disabled state: a feature verb refuses (slash-commands-§2)
 -- ---------------------------------------------------------------------------

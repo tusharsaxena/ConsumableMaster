@@ -955,7 +955,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (114)
+### test_slash.lua (113)
 
 - /cm set toggles a bool setting through the schema
 - /cm disable prints exactly one line, the enabled echo
@@ -1064,13 +1064,27 @@ badge and any count quoted in the docs must agree with it.
 - Slash: enable / disable hold no state of their own
 - Slash: the dispatcher still answers while the addon is disabled
 - Slash: enable echoes the stored value in the canonical set shape
-- Slash: with LibKa0s absent the verbs say so rather than going inert
 - Slash: a disabled addon refuses a feature verb and does not act on it
 - Slash: a disabled addon refuses the macro-bar verb without touching the bar
 - Slash: a disabled addon refuses resync rather than reporting a pass that wrote nothing
 - Slash: every verb outside the live set refuses while disabled, and every live one answers
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
+
+### test_slash_degraded.lua (12)
+
+- Slash: the library-absent line is WS-02's sentence, through the locale
+- Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm disable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar on lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar off lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar lands on the hand-declared row and says so once
+- Slash: /cm bar on over a refused write never says ON
+- Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
 
 ### test_slashsetup.lua (18)
 
@@ -1263,7 +1277,8 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 22 |
-| test_slash.lua | 114 |
+| test_slash.lua | 113 |
+| test_slash_degraded.lua | 12 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
@@ -1274,4 +1289,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1052** |
+| **Total** | **1063** |

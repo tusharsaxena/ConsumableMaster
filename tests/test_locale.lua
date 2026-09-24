@@ -284,7 +284,6 @@ local RESIDUE = {
     {"settings/Slash.lua", "Print addon version", "CLI SURFACE"},
     {"settings/Slash.lua", "Turn the addon on — the same switch as the Enable checkbox", "CLI SURFACE"},
     {"settings/Slash.lua", "Turn the addon off — `/cm enable` turns it back on", "CLI SURFACE"},
-    {"settings/Slash.lua", "settings unavailable.", "CLI SURFACE"},
     {"settings/Slash.lua", "A/B performance capture — `/cm perf` opens the step panel", "CLI SURFACE"},
     {"settings/Slash.lua", "perf capture unavailable.", "CLI SURFACE"},
     {"settings/Slash.lua", "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`", "CLI SURFACE"},

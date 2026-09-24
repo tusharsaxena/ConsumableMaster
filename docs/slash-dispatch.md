@@ -254,7 +254,7 @@ verbs, the bare `/cm`, and the shape of the refusal line itself.
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:139`) names the six verbs that actually route through the
+`LIB_BACKED_VERBS` (`settings/Slash.lua:153`) names the six verbs that actually route through the
 library — `help`, `list`, `get`, `set`, `reset` and `perf`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
@@ -264,7 +264,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:653`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:675`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the
@@ -281,6 +281,18 @@ declines it is not deviating and owes no register row, and this build has alread
 its own line that half the surface is missing. The **stand-down** is a MUST and is not what is
 skipped here — that arm has no `LibKa0s-Lifecycle-1.0` either, so a build with no library keeps the
 old stored-flag behavior in full, which is the tampered install's problem and not a supported state.
+
+**The composed-row verbs refuse on one library-absent line** (`options-ui-§1` route (b), CM-18).
+`enable`, `disable`, `lock`, `unlock`, `bar lock` and `bar unlock` write rows the library's composers
+build (`enabled`, `macroBar.locked`), and on this build those rows do not exist and there is no
+stand-down latch to honor a stored switch. Each one prints
+`/cm <verb> is unavailable: the LibKa0s library did not load.`, the standard's sentence through the
+locale (`KCM.SlashCommands.SayLibraryAbsent`, `core/SlashCommands.lua`), writes nothing and raises
+nothing. Taking route (b) for `enable`/`disable` is a recorded deviation
+([ARCHITECTURE.md](./ARCHITECTURE.md#documented-deviations)). `bar`, `bar on` and `bar off` write the
+hand-declared `macroBar.enabled` row, so they keep working here; like every macro-bar verb they print
+their success line only when `KCM.MacroBar.SetEnabled` / `SetLocked` answered true, so no write the
+seam refused is ever reported as done. `tests/test_slash_degraded.lua` pins all of it.
 
 `GetLandingRows` returns an **empty** list in that state rather than a host-formatted fallback: with
 LibKa0s missing the settings panel is never registered, so there is no About page to render into, and

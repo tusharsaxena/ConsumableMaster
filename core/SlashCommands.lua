@@ -857,6 +857,34 @@ end
 -- the combat deferral); the finer-grained layout/appearance settings are
 -- reachable as schema paths via `/cm set macroBar.<field>`.
 
+-- THE LIBRARY-ABSENT LINE (options-ui-§1 route (b), slash-commands-§1; CM-18).
+--
+-- On a build with libs/LibKa0s/ missing, the macro bar's `enabled` and `locked`
+-- rows and the Master controls `enabled` row are composed rows, and the
+-- composers' degradation stub answers {} -- so the seam refuses the write, and
+-- there is no Lifecycle latch to obey a stored switch this session anyway. A
+-- verb that wrote one of them used to print its success line regardless ("macro
+-- bar ON" over a refused write). It now says the one library-absent line for
+-- the verb it was, and never acknowledges a write that did not land.
+--
+-- Library-absent is read off the flag settings/OptionsSetup.lua publishes:
+-- KCM.Settings.optionsUI is nil exactly when LibKa0s-Options did not load. It is
+-- read at CALL time -- settings/ loads after core/.
+local LIBRARY_ABSENT = L["%s is unavailable: the LibKa0s library did not load."]
+
+function KCM.SlashCommands.SayLibraryAbsent(verb)
+    return say(LIBRARY_ABSENT:format("/cm " .. verb))
+end
+
+-- A refused macro-bar write. The library-absent build gets its line; any other
+-- refusal was already reported by the seam (Helpers.SetAndRefresh prints the
+-- reason), so a second line here would be the double reply CM-R-12 removed.
+local function refusedWrite(verb)
+    if KCM.Settings and KCM.Settings.optionsUI == nil then
+        return KCM.SlashCommands.SayLibraryAbsent(verb)
+    end
+end
+
 -- THE ONE BODY BEHIND FOUR SPELLINGS. `/cm lock`, `/cm unlock`, `/cm bar lock`
 -- and `/cm bar unlock` all land here, so the two surfaces cannot drift in what
 -- they write or in what they say they wrote. The write itself goes through
@@ -868,13 +896,18 @@ end
 --
 -- The launcher's left click (core/LauncherSetup.lua) is a fifth spelling and
 -- calls this too, through KCM.SlashCommands.Verbs.RunLock.
-local function runLock(locked)
+--
+-- `verb` is the spelling the player typed, for the library-absent line only;
+-- the launcher and the top-level verbs pass nothing and get the short form.
+local function runLock(locked, verb)
     -- The same refusal runBar makes, because `/cm lock` reaches this without
     -- passing through runBar's guard and would otherwise index a nil MacroBar.
     if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then
         return say("macro bar unavailable.")
     end
-    KCM.MacroBar.SetLocked(locked)
+    if not KCM.MacroBar.SetLocked(locked) then
+        return refusedWrite(verb or (locked and "lock" or "unlock"))
+    end
     if locked then return say("macro bar locked") end
     -- A switched-off bar still takes the write -- it is draggable the moment it
     -- is turned on -- but "drag it" would promise a bar the player cannot see.
@@ -885,15 +918,22 @@ local function runLock(locked)
     say("macro bar unlocked \226\128\148 drag it, then /cm lock")
 end
 
+-- The success line only when the write LANDED: SetEnabled answers the seam's
+-- verdict (modules/MacroBar.lua writeFlag).
+local function setBarShown(on, verb)
+    if not KCM.MacroBar.SetEnabled(on) then return refusedWrite(verb) end
+    say("macro bar " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
+end
+
 local BAR_COMMANDS = {
     {"on",     "Show the macro bar",
-        function() KCM.MacroBar.SetEnabled(true);  say("macro bar |cff00ff00ON|r") end},
+        function() setBarShown(true, "bar on")   end},
     {"off",    "Hide the macro bar",
-        function() KCM.MacroBar.SetEnabled(false); say("macro bar |cffff5555OFF|r") end},
+        function() setBarShown(false, "bar off") end},
     {"lock",   "Lock the bar in place",
-        function() runLock(true)  end},
+        function() runLock(true, "bar lock")    end},
     {"unlock", "Unlock the bar so it can be dragged",
-        function() runLock(false) end},
+        function() runLock(false, "bar unlock") end},
     {"reset",  "Move the bar back to the center of the screen",
         function() KCM.MacroBar.ResetPosition();   say("macro bar position reset") end},
 }
@@ -921,9 +961,7 @@ local function runBar(rest)
     -- bare `/cm bar` during a capture write true. The toggle is the player's
     -- own switch, and the hold is not theirs to flip.
     if sub == "" then
-        local on = not (KCM.MacroBarModel.Config() or {}).enabled
-        KCM.MacroBar.SetEnabled(on)
-        return say("macro bar " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
+        return setBarShown(not (KCM.MacroBarModel.Config() or {}).enabled, "bar")
     end
     if sub == "help" then return barHelp() end
     local entry = findCommand(BAR_COMMANDS, sub)

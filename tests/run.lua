@@ -505,6 +505,7 @@ local SUITES = {
     "test_settingsui",
     "test_settingsui_optionsui",
     "test_slash",
+    "test_slash_degraded",
     "test_slashsetup",
     "test_spechelper",
     "test_surface_parity",

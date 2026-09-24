@@ -98,15 +98,22 @@ local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 -- shared formatter `list` / `get` / `set` / `reset` all use so `/cm enable`
 -- cannot drift from `/cm set enabled true`.
 --
--- WHAT IS HONESTLY NOT COVERED, because the comment above used to claim it was:
--- on a build with `libs/LibKa0s/` missing there is no `enabled` ROW -- the
--- Master controls block is composed by the library and its degradation stub
--- emits nothing (settings/OptionsSetup.lua) -- so there is no schema entry for
--- the seam to validate against and no panel carrying the checkbox either. The
--- verb says so on one line rather than writing round the seam: a second write
--- path is exactly the "no state of their own" rule inverted, and it would be a
--- path only a tampered install ever took.
+-- THE LIBRARY-ABSENT BUILD TAKES ROUTE (b) (options-ui-§1, WS-02; CM-18). On a
+-- build with `libs/LibKa0s/` missing there is no `enabled` ROW -- the Master
+-- controls block is composed by the library and its degradation stub emits
+-- nothing (settings/OptionsSetup.lua) -- and there is no Lifecycle latch either
+-- (core/LifecycleSetup.lua returns early), so a stored `enabled` would not be
+-- obeyed this session. Route (a), a `writeThrough` path on the seam, would store
+-- the switch and acknowledge it, which is acknowledging a switch nothing honors.
+-- So the verb refuses on the one library-absent line, `/cm enable is
+-- unavailable: the LibKa0s library did not load.`, writes nothing and raises
+-- nothing. options-ui-§1 SHOULDs route (a) for this pair, so taking (b) is a
+-- recorded deviation (docs/ARCHITECTURE.md, Documented deviations).
 local ENABLED_PATH = "enabled"
+
+-- The line's one owner is core/SlashCommands.lua, which says it for the macro
+-- bar's composed-row verbs too.
+local refuseLibraryAbsent = KCM.SlashCommands.SayLibraryAbsent
 
 -- Bound beside cliGet on the live arm. Unreachable on the degraded one -- the
 -- guard below returns before it, because a build with no schema row is the same
@@ -116,7 +123,7 @@ local echoEnabled
 local function setEnabled(on)
     local H = helpers()
     if not (H and H.FindSchema and H.FindSchema(ENABLED_PATH)) then
-        return say("settings unavailable.")
+        return refuseLibraryAbsent(on and "enable" or "disable")
     end
     -- SetAndRefresh reports its own refusal; a false here is not a second
     -- failure to announce.

@@ -19,7 +19,9 @@
 -- anyway.
 --
 -- `writeThrough` is honored because the library honors it, but this addon hands
--- the seam no list yet (CM-18). tests/test_surface_parity.lua pins this stub's
+-- the seam no list: its composed-row verbs take options-ui-§1 route (b) and
+-- refuse on the library-absent line instead (CM-18, settings/Slash.lua and
+-- docs/ARCHITECTURE.md's deviation row). tests/test_surface_parity.lua pins this stub's
 -- surface against a live instance and its library half against the major by
 -- name, so a member the major grows fails there first.
 
