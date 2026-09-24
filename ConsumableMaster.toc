@@ -47,14 +47,15 @@ libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 # the block depend on that.
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
-# LibKa0s — the Ka0s-owned shared modules (Core, DebugLog, Slash, Options,
-# Perf). Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
+# LibKa0s — the Ka0s-owned shared library: fifteen majors, and the file list is
+# LibKa0s.xml. Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
 # through its own packaged XML, which is the file list. Depends on LibStub
 # alone, but it sits last in the block so nothing above it can be reordered
 # behind it.
 libs\LibKa0s\LibKa0s.xml
 
 # Locales
+# Position within this group is conventional, not load-bearing.
 locales\enUS.lua
 
 # Core
@@ -74,11 +75,11 @@ core\Namespace.lua
 # bus, KCM:OnEnable's list, the macro bar, the printer -- is a call-time thunk.
 core\LifecycleSetup.lua
 # PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. It sits here,
-# second, because performance-§1 requires it BEFORE any file that takes
+# after core\LifecycleSetup.lua, because performance-§1 requires it BEFORE any file that takes
 # `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua and
 # modules\MacroBar.lua both do. Its only load-time read is KCM.VERSION, which is
 # why that constant lives in core\Namespace.lua; the run log, the printer, the
-# suspend/resume pair and the macro bar are all reached through thunks at call
+# Lifecycle `perf` hold and the macro bar are all reached through thunks at call
 # time, so loading before them costs nothing.
 core\PerfSetup.lua
 # MediaSetup publishes the LibKa0s-Media-1.0 seam (KCM.Icon / KCM.MediaFont) and
@@ -164,6 +165,7 @@ defaults\Defaults_Bloodlust.lua
 defaults\Defaults_BattleRez.lua
 
 # Modules
+# Position within this group is conventional, not load-bearing.
 modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
@@ -203,6 +205,7 @@ settings\Panel.lua
 # KCM.Options through call-time thunks -- so its only constraint is to come
 # after Panel.lua.
 settings\OptionsShim.lua
+# The four page files: position within this group is conventional, not load-bearing.
 settings\General.lua
 settings\MacroBar.lua
 settings\StatPriority.lua
