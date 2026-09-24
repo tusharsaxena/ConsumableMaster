@@ -74,13 +74,15 @@ core\Namespace.lua
 # the instance has to exist first. Everything it reaches outward through -- the
 # bus, KCM:OnEnable's list, the macro bar, the printer -- is a call-time thunk.
 core\LifecycleSetup.lua
-# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. It sits here,
-# after core\LifecycleSetup.lua, because performance-§1 requires it BEFORE any file that takes
-# `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua and
-# modules\MacroBar.lua both do. Its only load-time read is KCM.VERSION, which is
-# why that constant lives in core\Namespace.lua; the run log, the printer, the
-# Lifecycle `perf` hold and the macro bar are all reached through thunks at call
-# time, so loading before them costs nothing.
+# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. Both sides of
+# its position are load-bearing. performance-§1 requires it BEFORE any file that
+# takes `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua
+# and modules\MacroBar.lua both do. And it must come AFTER core\LifecycleSetup.lua,
+# because it reads two things at load: KCM.VERSION (hence that constant lives in
+# core\Namespace.lua) and the KCM.Lifecycle instance it passes as
+# descriptor.lifecycle, without which it returns before building the probe. The
+# run log, the printer, the `perf` hold itself and the macro bar are all reached
+# through thunks at call time, so loading before them costs nothing.
 core\PerfSetup.lua
 # MediaSetup publishes the LibKa0s-Media-1.0 seam (KCM.Icon / KCM.MediaFont) and
 # makes the one LibSharedMedia registration for the shipped face. THE POSITION IS

@@ -1,13 +1,14 @@
 -- core/PerfSetup.lua — the addon's half of LibKa0s-Perf-1.0.
 --
--- It lives in core/ and sits immediately after core/Namespace.lua in the TOC.
+-- It lives in core/ and sits right after core/LifecycleSetup.lua in the TOC.
 -- performance-§1 names `core/PerfSetup.lua` and requires it be positioned
 -- BEFORE any file taking `local Perf = NS.Perf` as a load-time upvalue —
--- core/ConsumableMaster.lua and modules/MacroBar.lua both do. The only thing it
--- needs at load is KCM.VERSION, which is why that constant lives in
--- core/Namespace.lua. Every other host member it touches (KCM.DebugLog,
--- KCM.Say, KCM.OnEnable, KCM.MacroBar) is reached through a thunk, at call
--- time, so loading this early costs nothing.
+-- core/ConsumableMaster.lua and modules/MacroBar.lua both do. It reads two
+-- things at load: KCM.VERSION, which is why that constant lives in
+-- core/Namespace.lua, and KCM.Lifecycle, which is why it loads after
+-- core/LifecycleSetup.lua (see the guard below). Every other host member it
+-- touches (KCM.DebugLog, KCM.Say, KCM.OnEnable, KCM.MacroBar) is reached
+-- through a thunk, at call time, so loading this early costs nothing.
 --
 -- An A/B capture harness, not a profiler. The protocol is: pull once with the
 -- addon live, pull again with it suspended, and report the difference in
