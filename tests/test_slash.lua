@@ -30,6 +30,30 @@ test("/cm set toggles a bool setting through the schema", function(t)
     t.eq(KCM.db.profile.enabled, true, "enabled set to true via schema")
 end)
 
+-- CM-R-12: the Enable row's onChange used to say its own ON|OFF line
+-- on top of the verb's canonical `enabled = <bool>` echo, so both verbs printed
+-- two lines. The echo is the one reply; the row says nothing, like every other.
+local function linesOf(KCM, mock, line)
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    return mock.output
+end
+
+test("/cm disable prints exactly one line, the enabled echo", function(t)
+    local KCM, mock = load()
+    local out = linesOf(KCM, mock, "disable")
+    t.eq(#out, 1, "one line, not the row's say plus the echo: " .. table.concat(out, " | "))
+    t.truthy(tostring(out[1]):find("enabled", 1, true), "the line is the enabled echo")
+end)
+
+test("/cm enable prints exactly one line, the enabled echo", function(t)
+    local KCM, mock = load()
+    KCM:OnSlashCommand("disable")
+    local out = linesOf(KCM, mock, "enable")
+    t.eq(#out, 1, "one line, not the row's say plus the echo: " .. table.concat(out, " | "))
+    t.truthy(tostring(out[1]):find("enabled", 1, true), "the line is the enabled echo")
+end)
+
 test("/cm priority add then remove edits the FOOD candidate set", function(t)
     local KCM = load()
     KCM:OnSlashCommand("priority food add 987654")

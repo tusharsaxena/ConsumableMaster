@@ -78,8 +78,9 @@ local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 -- their own: no second key, no session flag, no `KCM.enabled` local. That is the
 -- whole rule, and it is why this is four lines rather than a feature: the
 -- checkbox and the verbs cannot show the player two different answers, and the
--- row's own onChange (settings/General.lua's `Master enable ON/OFF` line plus
--- the off→on recompute) runs whichever surface was used.
+-- row's own onChange (settings/General.lua's KCM.OnEnabledChanged call) runs
+-- whichever surface was used. That row says nothing itself (CM-R-12): the
+-- `enabled = <bool>` echo below is the verbs' one reply.
 --
 -- THE WRITE IS THE HOST'S, not the library's CliSet, and the difference is the
 -- DISABLED state §2 is actually about. Routing it through `Sl:CliSet` would have

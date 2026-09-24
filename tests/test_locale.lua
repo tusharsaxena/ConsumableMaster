@@ -261,7 +261,6 @@ local RESIDUE = {
      "NOT YET ROUTED"},
     {"settings/General.lua", "Consumable Master", "LIB DESCRIPTOR"},
     {"settings/General.lua", "macro bar position reset.", "NOT YET ROUTED"},
-    {"settings/General.lua", "Master enable ", "SPLIT COLOR"},
     {"settings/General.lua", "General page", "DEBUG SCOPE"},
 
     -- settings/MacroBar.lua

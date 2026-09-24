@@ -922,9 +922,11 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (110)
+### test_slash.lua (112)
 
 - /cm set toggles a bool setting through the schema
+- /cm disable prints exactly one line, the enabled echo
+- /cm enable prints exactly one line, the enabled echo
 - /cm priority add then remove edits the FOOD candidate set
 - /cm priority add accepts a spell sentinel (s:ID)
 - /cm stat primary sets the current spec's primary stat
@@ -1223,7 +1225,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 110 |
+| test_slash.lua | 112 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 6 |
@@ -1234,4 +1236,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1016** |
+| **Total** | **1018** |

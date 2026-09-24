@@ -245,8 +245,6 @@ local masterRows, masterTail = H.MasterControls{
 H.RegisterRows(masterRows, "general", "general", {
     enabled = {
         onChange = function(v)
-            local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-            KCM.Say("Master enable " .. state)
             -- THE ONE REACTION, AND IT IS THE LATCH'S (slash-commands-§7).
             -- This row is the addon-wide switch, so `/cm enable`, `/cm disable`,
             -- `/cm set enabled true` and the checkbox all arrive here, and from
