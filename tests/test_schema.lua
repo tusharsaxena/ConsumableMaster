@@ -600,7 +600,7 @@ end)
 -- storage, which is the whole of "move, do not duplicate" — the Macro Bar page
 -- must not also declare it, and the next case proves it does not.
 --
--- `global.minimap.hide` is `Minimap button`, and it is LAST because that is the
+-- `global.minimap.shown` is `Minimap button`, and it is LAST because that is the
 -- canonical position: the composer emits it on the fourth line of the set, below
 -- Lock frame / Debug console, as column 1 of `[Minimap button] [Test mode]`. This
 -- addon declares no test mode — its preview switch is Lock frame, the
@@ -609,13 +609,13 @@ end)
 -- own table in db.global, and it is NOT sessionOnly either, which is what keeps
 -- the global reset off it.
 local MASTER_ROWS = {
-    { "enabled",             "bool"   },
-    { "visibility",          "string" },
-    { "scale",               "number" },
-    { "alpha",               "number" },
-    { "macroBar.locked",     "bool"   },
-    { "state.debugConsole",  "bool"   },
-    { "global.minimap.hide", "bool"   },
+    { "enabled",              "bool"   },
+    { "visibility",           "string" },
+    { "scale",                "number" },
+    { "alpha",                "number" },
+    { "macroBar.locked",      "bool"   },
+    { "state.debugConsole",   "bool"   },
+    { "global.minimap.shown", "bool"   },
 }
 
 -- red under: renaming the group, declaring any other general-page group ahead of

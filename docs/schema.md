@@ -276,8 +276,8 @@ LibKa0s):
    own `normalize`, which is kept.
 4. The store is `db.profile` (the descriptor's `resolveRoot`), and a table value is **copied** in.
    A row with its own `get` / `set` stores there instead: `state.debugConsole` (session-only, the
-   console window itself) and `global.minimap.hide` (in `db.global`, where the SHOWN ↔ HIDDEN
-   inversion lives, `launcher-§3`). Both stores are stamped on the row in `settings/General.lua`.
+   console window itself) and `global.minimap.shown` (in `db.global`, where the SHOWN ↔ HIDDEN
+   inversion lives, `launcher-§3`: the path says *shown*, the stored key is still LibDBIcon's `hide`). Both stores are stamped on the row in `settings/General.lua`.
 5. The `[Set] <path> = <value>` line, when debug is on, **before** any reaction.
 6. `announce`: the row's **`apply`**, then the in-place `RefreshScalars`.
 

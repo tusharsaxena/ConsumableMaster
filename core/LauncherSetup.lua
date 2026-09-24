@@ -62,7 +62,7 @@
 -- ---------------------------------------------------------------------------
 --
 -- The row says SHOWN and LibDBIcon's key says HIDDEN, so something has to
--- invert -- and it is the `global.minimap.hide` row's own store that does it,
+-- invert -- and it is the `global.minimap.shown` row's own store that does it,
 -- the get/set settings/General.lua stamps on the row, which the single write
 -- seam calls (options-ui-§1). It calls `KCM.Launcher:SetShown(value)` afterwards so the
 -- button follows the checkbox immediately rather than at the next reload. This

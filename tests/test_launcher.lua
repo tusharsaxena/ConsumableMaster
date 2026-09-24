@@ -260,7 +260,7 @@ end)
 
 test("Launcher: the Minimap button row stores LibDBIcon's own key, globally", function(t)
     local KCM = loader.loadFullAddon()
-    local row = KCM.Settings.Helpers.FindSchema("global.minimap.hide")
+    local row = KCM.Settings.Helpers.FindSchema("global.minimap.shown")
 
     t.truthy(row, "the composer emitted the row")
     t.eq(row.label, "Minimap button", "under the canonical label")
@@ -280,14 +280,14 @@ test("Launcher: the row's get/set invert, and the button follows the checkbox", 
     local H = KCM.Settings.Helpers
     local icons = select(2, libs())
 
-    t.eq(H.Get("global.minimap.hide"), true, "the row reads SHOWN while hide is false")
+    t.eq(H.Get("global.minimap.shown"), true, "the row reads SHOWN while hide is false")
 
-    H.SetAndRefresh("global.minimap.hide", false)
+    H.SetAndRefresh("global.minimap.shown", false)
     t.eq(KCM.db.global.minimap.hide, true, "unchecking the row HIDES the button")
     t.falsy(icons.__buttons[FOLDER].shown, "and LibDBIcon was told to hide it now")
-    t.eq(H.Get("global.minimap.hide"), false, "the row reads back unchecked")
+    t.eq(H.Get("global.minimap.shown"), false, "the row reads back unchecked")
 
-    H.SetAndRefresh("global.minimap.hide", true)
+    H.SetAndRefresh("global.minimap.shown", true)
     t.eq(KCM.db.global.minimap.hide, false, "checking it shows the button again")
     t.truthy(icons.__buttons[FOLDER].shown, "and LibDBIcon was told to show it")
     t.truthy(KCM.Launcher:IsShown(), "the launcher agrees with the store")
@@ -304,7 +304,65 @@ test("Launcher: LibDBIcon writes into the same table the row reads", function(t)
     t.eq(icons.__buttons[FOLDER].db, KCM.db.global.minimap,
         "LibDBIcon holds the very table the schema row addresses")
     icons.__buttons[FOLDER].db.hide = true
-    t.eq(H.Get("global.minimap.hide"), false, "the row reads the library's own write")
+    t.eq(H.Get("global.minimap.shown"), false, "the row reads the library's own write")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The CLI path reads in the row's own sense (WS-06): `global.minimap.shown`
+-- ---------------------------------------------------------------------------
+--
+-- The path is the row's name and says SHOWN, like its label; the STORE is still
+-- LibDBIcon's `hide` key, so no SavedVariables change rides with the rename. The
+-- old `...minimap.hide` path is simply no row any more.
+
+local function say(KCM, line)
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    return table.concat(mock.output, "\n")
+end
+
+-- red under: MINIMAP_PATH spelled in the stored key's sense (`...minimap.hide`).
+test("Launcher: /cm get global.minimap.shown answers true while hide is false", function(t)
+    local KCM = loader.loadFullAddon()
+    t.eq(KCM.db.global.minimap.hide, false, "a fresh install ships un-hidden")
+    local text = say(KCM, "get global.minimap.shown")
+    t.truthy(text:lower():find("global.minimap.shown|r = |cfffffffftrue", 1, true),
+        "the shown path reads true: " .. text)
+end)
+
+-- red under: MINIMAP_PATH spelled in the stored key's sense (`...minimap.hide`).
+test("Launcher: /cm set global.minimap.shown false writes hide = true", function(t)
+    local KCM = loader.loadFullAddon()
+    local icons = select(2, libs())
+    say(KCM, "set global.minimap.shown false")
+    t.eq(KCM.db.global.minimap.hide, true, "the store is still LibDBIcon's HIDDEN key")
+    t.falsy(icons.__buttons[FOLDER].shown, "and the button went away")
+end)
+
+-- red under: a `shown` key written beside `hide`, or the stored key renamed.
+test("Launcher: a legacy hide = true store reads as not shown and keeps its angle", function(t)
+    local KCM = loader.loadFullAddon()
+    local H = KCM.Settings.Helpers
+    local icons = select(2, libs())
+    -- The shape a pre-rename SavedVariables carries, written into the very
+    -- table LibDBIcon holds: no migration, no `shown` key, the angle beside it.
+    local store = KCM.db.global.minimap
+    store.hide, store.minimapPos = true, 200
+
+    t.eq(H.Get("global.minimap.shown"), false, "hide = true reads as not shown")
+    t.truthy(say(KCM, "get global.minimap.shown"):lower():find("|cfffffffffalse", 1, true),
+        "and /cm get says false")
+    t.falsy(KCM.Launcher:IsShown(), "the button stays hidden")
+
+    H.SetAndRefresh("global.minimap.shown", false)
+    t.eq(store.hide, true, "setting it hidden again keeps hide = true")
+    t.falsy(icons.__buttons[FOLDER].shown, "and the button hidden")
+    t.eq(store.minimapPos, 200, "the dragged angle is untouched")
+    t.eq(rawget(store, "shown"), nil, "and no `shown` key is ever written")
+    H.SetAndRefresh("global.minimap.shown", true)
+    t.eq(store.hide, false, "showing it flips the library's own key")
+    t.eq(rawget(store, "shown"), nil, "still no `shown` key")
+    t.eq(store.minimapPos, 200, "and still the same angle")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -327,7 +385,7 @@ test("Launcher: the global reset leaves a hidden button hidden", function(t)
     -- KCM.ResetAllToDefaults is the session sweep plus db:ResetProfile(), the
     -- sweep writes only session-only rows and this one is stored, and ResetProfile
     -- empties db.profile while the table lives in db.global.
-    H.SetAndRefresh("global.minimap.hide", false)
+    H.SetAndRefresh("global.minimap.shown", false)
     KCM.ResetAllToDefaults("test")
     t.eq(KCM.db.global.minimap.hide, true, "the button the player hid is still hidden")
     t.eq(KCM.db.profile.enabled, true, "while the profile did come back to defaults")
@@ -348,13 +406,13 @@ test("Launcher: the General page's Defaults button leaves a hidden button hidden
     KCM.Settings.builders["general"]({})
     local defaults = H.instance.__panelFor("general").panel.defaultsOnClick
 
-    H.SetAndRefresh("global.minimap.hide", false)
+    H.SetAndRefresh("global.minimap.shown", false)
     KCM.db.profile.scale = 1.75          -- a neighbor the press MUST reach
     defaults()
 
     t.eq(KCM.db.global.minimap.hide, true, "the button the player hid is still hidden")
     t.falsy(icons.__buttons[FOLDER].shown, "and LibDBIcon was never told to show it")
-    t.eq(H.Get("global.minimap.hide"), false, "the checkbox still reads unchecked")
+    t.eq(H.Get("global.minimap.shown"), false, "the checkbox still reads unchecked")
     -- The press has to have RUN, or nothing above it means anything: a Defaults
     -- button that did no work at all would satisfy every line before this one.
     t.eq(KCM.db.profile.scale, 1, "while the rest of the page did come back to defaults")
@@ -385,7 +443,7 @@ test("Launcher: a host with neither broker library does not raise", function(t)
     t.falsy(KCM.Launcher:IsShown(), "IsShown still reads the stored key")
     -- The row's set must still land its write: the button is gone, the setting
     -- is not.
-    t.truthy(KCM.Settings.Helpers.SetAndRefresh("global.minimap.hide", true))
+    t.truthy(KCM.Settings.Helpers.SetAndRefresh("global.minimap.shown", true))
     t.eq(KCM.db.global.minimap.hide, false, "the store followed the checkbox anyway")
 end)
 
@@ -406,9 +464,9 @@ test("Launcher: the write seam owns the inversion, not the library", function(t)
 
     local H = KCM.Settings.Helpers
     KCM.db.global.minimap.hide = false
-    t.truthy(H.Set("global.minimap.hide", false), "the row's set still lands")
+    t.truthy(H.Set("global.minimap.shown", false), "the row's set still lands")
     t.eq(KCM.db.global.minimap.hide, true, "unchecking SHOWN writes hide = true")
-    t.truthy(H.Set("global.minimap.hide", true))
+    t.truthy(H.Set("global.minimap.shown", true))
     t.eq(KCM.db.global.minimap.hide, false, "and checking it writes hide = false")
 end)
 

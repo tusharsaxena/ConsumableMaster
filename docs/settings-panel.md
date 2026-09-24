@@ -174,13 +174,21 @@ Four of the rows are **new** and three moved:
 | Master alpha | `alpha` | **new**, addon-wide |
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
 | Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, stored by the row's own `get` / `set` |
-| Minimap button | `global.minimap.hide` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session |
+| Minimap button | `global.minimap.shown` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session; the path says *shown*, the stored key is still LibDBIcon's `hide` |
 | *Reset position* | — | moved from Macro Bar → General |
 | *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
 
 ### The Minimap button row — shown says one thing, the store says the other
 
-The row is `global.minimap.hide`, and four things about it are deliberate.
+The row is `global.minimap.shown`, and five things about it are deliberate.
+
+**Its path reads in the row's own sense; its store key does not move.** The path is what
+`/cm get` / `/cm set` / `/cm reset` name, and it says *shown* like the label and like the answer
+(`true` means the button is on the minimap). The store is still LibDBIcon's
+`db.global.minimap.hide`: the row's `get` / `set` invert onto it, so the rename moved no
+SavedVariables, needs no migration and no schema-version bump, and no `shown` key is ever written
+beside `hide` (anti-pattern #81). Before the rename the path ended in `.hide`; that path
+is no row any more and answers *Setting not found*.
 
 **Its store is LibDBIcon's OWN table, not a key beside it.** `db.global.minimap` is the table this
 addon hands straight to `LibDBIcon:Register`, and `hide` is the boolean LibDBIcon writes itself when
@@ -212,7 +220,7 @@ The exemption is one row flag, `neverReset`, stamped on the row by `settings/Gen
 `decorate` map and read through `settings/OptionsSetup.lua`'s `VetoedFromEveryReset` — the same file
 that names the global reset's veto, so there is one register rather than a second list per page.
 `vetoedFromResetAll` reads it first, so both doors ask one question. What it deliberately does not
-cover is `/cm reset global.minimap.hide`: that is the player naming the row out loud, which is the
+cover is `/cm reset global.minimap.shown`: that is the player naming the row out loud, which is the
 checkbox by another door. Every arm is pinned by cases in `tests/test_launcher.lua` that run the
 real reset and assert on the store.
 

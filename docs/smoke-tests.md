@@ -227,7 +227,11 @@ Tests: one object on two surfaces, the rung, the visibility row, and the saved p
 5. Untick **Minimap button** on Master controls. The button disappears **immediately**, not at the
    next reload. Tick it and it comes back at the angle from step 4. Now hide it through the
    button's OWN right-click menu if your client offers one, reopen the panel, and confirm the
-   checkbox followed — the row and the library write the same key.
+   checkbox followed — the row and the library write the same key. From chat:
+   `/cm get global.minimap.shown` answers `true` with the button visible;
+   `/cm set global.minimap.shown false` hides it, and it stays hidden after `/reload`.
+   `/cm get global.minimap.hide` answers *Setting not found* — the path reads *shown* now, while
+   the stored key is still LibDBIcon's `hide`.
 6. **The button is installation-wide, not profile-wide.** With it hidden, switch to another profile
    on the Profiles page. It stays hidden. Switch back. Still hidden.
 7. **And NO reset brings it back** — the visibility is a per-installation display preference, like

@@ -51,7 +51,14 @@ local BAR_DEFAULTS     = PROFILE_DEFAULTS.macroBar or {}
 -- otherwise — the composer spec below, the `neverReset` stamp beside it and the
 -- page reset's carve-out — and settings/OptionsSetup.lua deliberately does not
 -- hold a fourth copy (its veto reads the row's flag, not its path).
-local MINIMAP_PATH = "global.minimap.hide"
+--
+-- The PATH reads in the row's own sense -- SHOWN, like its label and like the
+-- `/cm get` answer -- while the STORE stays LibDBIcon's `db.global.minimap.hide`
+-- (WS-06). The path names the row, not the key: the row's get/set below invert
+-- onto `hide`, so no SavedVariables moved with the rename and no `shown` key is
+-- ever written beside it (anti-pattern #81). The old path, ending in `.hide`, is
+-- no row any more and answers "Setting not found".
+local MINIMAP_PATH = "global.minimap.shown"
 
 -- The debug console row's path, named once for the same reason: the composer
 -- spec and the store stamped on the row below.
@@ -255,7 +262,7 @@ end
 local minimapRow = {
     -- THE ONE ROW NO RESET MAY REACH (launcher-§3). The composer emits it with
     -- `default = true` -- SHOWN -- because a fresh install shows the button, and
-    -- that default is what `/cm reset global.minimap.hide` restores when the
+    -- that default is what `/cm reset global.minimap.shown` restores when the
     -- player asks for it by name. What the flag stops is a RESET reaching it:
     -- the Defaults button below walks every row on this page carrying a default,
     -- and without the stamp a player who had hidden the button got it back at

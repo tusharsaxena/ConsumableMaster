@@ -372,7 +372,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_launcher.lua (18)
+### test_launcher.lua (21)
 
 - Launcher: KCM:OnInitialize registers ONE object under the folder name
 - Launcher: the object is a launcher, wearing this addon's own logo
@@ -387,6 +387,9 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: the Minimap button row stores LibDBIcon's own key, globally
 - Launcher: the row's get/set invert, and the button follows the checkbox
 - Launcher: LibDBIcon writes into the same table the row reads
+- Launcher: /cm get global.minimap.shown answers true while hide is false
+- Launcher: /cm set global.minimap.shown false writes hide = true
+- Launcher: a legacy hide = true store reads as not shown and keeps its angle
 - Launcher: the global reset leaves a hidden button hidden
 - Launcher: the General page's Defaults button leaves a hidden button hidden
 - Launcher: a host with neither broker library does not raise
@@ -1256,7 +1259,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_launcher.lua | 18 |
+| test_launcher.lua | 21 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
@@ -1289,4 +1292,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1063** |
+| **Total** | **1066** |

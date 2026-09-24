@@ -151,7 +151,8 @@ local LOGO_PIXELS  = 300
 -- THE STORES THAT ARE NOT THE PROFILE are rows now, each carrying its own
 -- get/set, both stamped in settings/General.lua's decorate map: the debug
 -- console's visibility (`state.debugConsole`, sessionOnly) and the minimap
--- button's (`global.minimap.hide`, the SHOWN/HIDDEN inversion in its set).
+-- button's (`global.minimap.shown`, the SHOWN/HIDDEN inversion in its get/set
+-- onto LibDBIcon's `db.global.minimap.hide`, which is still the stored key).
 -- `resolveRoot` therefore only ever answers the profile.
 local SchemaLib = LibStub and LibStub("LibKa0s-Schema-1.0", true) or KCM.SchemaStub
 
@@ -219,7 +220,7 @@ end
 
 -- The rows no SWEEP may reset (launcher-§3): filled as rows carrying
 -- `neverReset` register. The library reads it at call time and honors it only
--- inside a bracket, so `/cm reset global.minimap.hide` still works by name.
+-- inside a bracket, so `/cm reset global.minimap.shown` still works by name.
 local resetExempt = {}
 
 local S = SchemaLib:New({

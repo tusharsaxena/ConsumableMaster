@@ -208,9 +208,9 @@ test("adoption: the minimap row inverts onto its global key and survives both re
     local KCM = h.loader.loadFullAddon()
     local H = KCM.Settings.Helpers
 
-    t.eq(H.SetAndRefresh("global.minimap.hide", false), true, "hiding lands")
+    t.eq(H.SetAndRefresh("global.minimap.shown", false), true, "hiding lands")
     t.eq(KCM.db.global.minimap.hide, true, "stored as the library's HIDDEN key")
-    t.eq(H.Get("global.minimap.hide"), false, "and read back as not shown")
+    t.eq(H.Get("global.minimap.shown"), false, "and read back as not shown")
 
     pageReset(KCM, H, "general")()
     t.eq(KCM.db.global.minimap.hide, true, "the General page's Defaults does not reach it")

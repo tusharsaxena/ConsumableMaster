@@ -106,7 +106,7 @@ end
 -- `neverReset` on the row through the same `decorate` map that stamps its
 -- apply handlers.
 --
--- WHAT THIS DELIBERATELY DOES NOT COVER is `/cm reset global.minimap.hide`. That
+-- WHAT THIS DELIBERATELY DOES NOT COVER is `/cm reset global.minimap.shown`. That
 -- is the player naming the one row out loud, which is the checkbox by another
 -- door -- not a reset that reached past the settings it warned about.
 local function vetoedFromEveryReset(row)

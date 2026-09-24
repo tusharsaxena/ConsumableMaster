@@ -50,9 +50,10 @@ KCM.dbDefaults = {
         -- deliberately hid would reappear.
         --
         -- Declaring it here is what MATERIALIZES the table, which is the only
-        -- seeding it gets: a whole-section write over a path a schema row
-        -- addresses would be architecture-§5's business, and the row addresses
-        -- `global.minimap.hide`.
+        -- seeding it gets: a whole-section write over a table a schema row
+        -- stores into would be architecture-§5's business, and the
+        -- `global.minimap.shown` row stores into this one -- its path says
+        -- SHOWN, its get/set invert onto this `hide` key, which never moves.
         minimap = {
             hide = false,     -- shipped SHOWN; the Master controls row says shown and inverts
         },
