@@ -167,7 +167,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 - CoreSetup: the shared color decoder answers nil for a channel that is not stored
 
-### test_database.lua (23)
+### test_database.lua (26)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -178,6 +178,9 @@ badge and any count quoted in the docs must agree with it.
 - Database.RunMigrations leaves unrelated global keys untouched
 - Database.RunMigrations leaves unrelated profile settings untouched
 - Database.RunMigrations stamps the schema in both scopes
+- Database: defaults declare global.schemaVersion = 0
+- Database: a raising profile step leaves the profile stamp at the last completed version and the account stamp unmoved
+- Database: every step is idempotent against a fresh default profile
 - Database.RunMigrations is a safe no-op before the DB exists
 - Database v2: a profile that predates the macro bar gets it on and unlocked
 - Database v2: an off/locked bar from an earlier build of the feature is turned on
@@ -1210,7 +1213,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 26 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
-| test_database.lua | 23 |
+| test_database.lua | 26 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 19 |
 | test_docmap.lua | 1 |
@@ -1253,4 +1256,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1035** |
+| **Total** | **1038** |

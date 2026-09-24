@@ -26,7 +26,11 @@ Everything the player can set lives in `db.profile`, so a profile carries all of
 
 Three things are deliberately **not** in a profile, and none of them moves when one does:
 
-- `global.schemaVersion`, the account-wide migration marker.
+- `global.schemaVersion`, the account-wide migration marker. Its shipped default is `0`, never a
+  real version: AceDB strips a stored value equal to its default at logout, and backfills a declared
+  default onto a legacy account that stored none, so a real version there could erase the stamp or
+  make a pre-runner account read as migrated (`savedvariables-§1`). `RunMigrations` walks it to the
+  current version.
 - `ConsumableMasterPerfDB`, the perf capture ring. It is a SavedVariable of its own, outside AceDB
   entirely (`ConsumableMaster.toc:11`).
 - The debug console's visibility and the session logging flag. Both are session state.
@@ -86,7 +90,8 @@ It runs five steps, in this order:
 1. **The act's one log line** (below).
 2. **The migrations** (`KCM.Database.RunMigrations`), for an incoming profile an older build wrote.
    Each profile carries its own `schemaVersion`, so a profile arriving for the first time under this
-   build is walked forward on arrival ([schema.md](schema.md#migrations)).
+   build is walked forward on arrival ([schema.md](schema.md#migrations)). That is how the
+   profile-scoped steps reach every profile rather than only the one live at the upgrade login.
 3. **On a switch or a copy, the macro fingerprints are forgotten** (`MacroManager.InvalidateState`).
 4. **The resync** (`afterReset`): tooltip cache invalidated, the bags re-read, and every category
    recomputed and its macro rewritten against the incoming profile.

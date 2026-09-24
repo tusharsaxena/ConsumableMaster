@@ -87,6 +87,85 @@ test("Database.RunMigrations stamps the schema in both scopes", function(t)
         "and the profile carries its own, which is what gates the steps that write it")
 end)
 
+-- ---------------------------------------------------------------------------
+-- Who owns the stamp (savedvariables-§1, as ruled at v2.65.0)
+-- ---------------------------------------------------------------------------
+--
+-- The shipped default is 0, never a real version. AceDB's removeDefaults strips
+-- a stored value equal to its default at logout, so a default equal to a version
+-- the runner writes can erase that stamp; and AceDB backfills a declared default
+-- onto a legacy account that stored none, so a default of a real version makes an
+-- account from before the runner read as already walked. 0 has neither problem.
+--
+-- red under: `schemaVersion = 1` in defaults/Profile.lua -- "expected 0, got 1".
+test("Database: defaults declare global.schemaVersion = 0", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.dbDefaults.global.schemaVersion, 0,
+        "the pre-migration floor, not a version any step reaches")
+end)
+
+-- The runner advances a stamp only past a step that RETURNED. A raising step
+-- leaves the profile stamp at the last completed version, so the next load
+-- retries it, and the account stamp -- written only after the whole walk -- does
+-- not move at all.
+--
+-- red under: stamping `p.schemaVersion = 3` ahead of the v3 step call, or moving
+-- the account stamp above the profile walk.
+test("Database: a raising profile step leaves the profile stamp at the last completed version and the account stamp unmoved", function(t)
+    local KCM = h.loader.loadPure()
+    local D = KCM.Database
+    KCM.db.global = { schemaVersion = 1 }
+    KCM.db.profile.schemaVersion = 1
+    local real = D.MigrateLabelFlagsV3
+    D.MigrateLabelFlagsV3 = function() error("v3 step failed") end
+    local ok = pcall(D.RunMigrations)
+    D.MigrateLabelFlagsV3 = real
+    t.falsy(ok, "the raising step's error propagates out of the runner")
+    t.eq(KCM.db.profile.schemaVersion, 2, "the v2 step returned, so the stamp sits at 2")
+    t.eq(KCM.db.global.schemaVersion, 1, "the account stamp is unmoved")
+end)
+
+-- Returns the path of the first difference between two values, or nil.
+local function firstDifference(a, b, path)
+    path = path or "profile"
+    if type(a) ~= "table" or type(b) ~= "table" then
+        if a ~= b then return path end
+        return nil
+    end
+    for k, v in pairs(a) do
+        local d = firstDifference(v, b[k], path .. "." .. tostring(k))
+        if d then return d end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then return path .. "." .. tostring(k) end
+    end
+    return nil
+end
+
+-- savedvariables-§1: every step is idempotent against a fresh default profile.
+-- A profile created after the stamp advanced passes through every step, twice,
+-- and comes out exactly as it went in.
+--
+-- red under: a v2 step that seeds anything the defaults do not already say, or a
+-- v3 step that rewrites `labelFlags` with no retired boolean present.
+test("Database: every step is idempotent against a fresh default profile", function(t)
+    local KCM = h.loader.loadPure()
+    local D = KCM.Database
+    local function copy(v)
+        if type(v) ~= "table" then return v end
+        local out = {}
+        for k, x in pairs(v) do out[k] = copy(x) end
+        return out
+    end
+    local fresh = copy(KCM.dbDefaults.profile)
+    for _ = 1, 2 do
+        D.MigrateMacroBarV2(fresh)
+        D.MigrateLabelFlagsV3(fresh)
+    end
+    t.eq(firstDifference(fresh, KCM.dbDefaults.profile), nil,
+        "two passes of every step leave a fresh default profile unchanged")
+end)
+
 test("Database.RunMigrations is a safe no-op before the DB exists", function(t)
     local KCM = h.loader.loadPure()
     local saved = KCM.db

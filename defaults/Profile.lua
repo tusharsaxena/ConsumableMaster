@@ -23,12 +23,19 @@ KCM.dbDefaults = {
     -- Schema shape is account-wide, so its version lives in `global`, not
     -- `profile` (savedvariables-§1). Database.RunMigrations reads it.
     global = {
-        -- Deliberately the ORIGINAL version, not Database.CURRENT_SCHEMA (which
-        -- isn't loaded yet anyway): an account with no stored version is treated
-        -- as pre-migration, and RunMigrations walks it forward. Every step is
+        -- 0, the pre-migration floor, and never a version the runner reaches
+        -- (savedvariables-§1). Two AceDB behaviors rule out a real version here.
+        -- removeDefaults strips a stored value equal to its default at logout, so
+        -- a default equal to a stamp the runner writes would erase that stamp and
+        -- mask the next migration. And AceDB backfills a declared default onto a
+        -- legacy store that has no stamp at all, so a real version here would make
+        -- an account from before the runner read as already walked. 0 has neither
+        -- problem: any stamp the runner writes differs from it and persists, and
+        -- an account with no stamp reads 0 and runs every step. Every step is
         -- idempotent, so a genuinely fresh account passing through them is a
-        -- no-op that just stamps the current version.
-        schemaVersion = 1,
+        -- no-op that just stamps Database.CURRENT_SCHEMA. It never moves when
+        -- CURRENT_SCHEMA does.
+        schemaVersion = 0,
         -- LibDBIcon-1.0's OWN table, and the whole of the minimap button's
         -- stored state (launcher-§3). `hide` is the library's key -- it writes
         -- it when the player uses the button's own menu, and it writes
