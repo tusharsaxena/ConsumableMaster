@@ -818,6 +818,20 @@ badge and any count quoted in the docs must agree with it.
 - schema: statPriority keeps well-formed overrides and repairs their lists
 - schema: no runtime file writes a whole-value row's field around the helper
 
+### test_schema_adoption.lua (11)
+
+- adoption: SetAndRefresh stores a number clamped to its row's range
+- adoption: an enum refusal prints the allowed values and stores nothing
+- adoption: an unknown path is refused and stores nothing
+- adoption: a color, an order and a map are each stored as a copy
+- adoption: the Macro Bar page's Defaults applies the bar once and logs one line of N rows
+- adoption: a composite category reset logs one line and recomputes once
+- adoption: /cm resetall logs the profile handler's line and nothing else
+- adoption: the debug console row shows and hides the window and lives outside the profile
+- adoption: the minimap row inverts onto its global key and survives both resets
+- adoption: a raising reaction is reported and the write persists
+- adoption: the degraded build still writes through a host verb and the global reset
+
 ### test_selector.lua (55)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
@@ -1242,6 +1256,7 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 55 |
+| test_schema_adoption.lua | 11 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 22 |
@@ -1256,4 +1271,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1038** |
+| **Total** | **1049** |

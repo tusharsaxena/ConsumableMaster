@@ -480,6 +480,7 @@ local SUITES = {
     "test_register",
     "test_runner_list",
     "test_schema",
+    "test_schema_adoption",
     "test_selector",
     "test_settingsui",
     "test_settingsui_optionsui",
