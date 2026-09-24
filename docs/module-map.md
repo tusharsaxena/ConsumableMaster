@@ -599,6 +599,106 @@ local F = KCM.Foo
 - Never make the local shadow the namespace (`local KCM = {}` would break everything downstream).
 - Expose the public API on `F` (or `KCM.Foo` directly). Keep helpers `local` to the file.
 
+## LibKa0s adoption
+
+Moved here from [ARCHITECTURE.md](./ARCHITECTURE.md#libka0s-adoption), which keeps the summary.
+
+Each major is adopted by the same shape: one host **setup file** resolves what only the addon can
+know, builds ONE instance via `lib:New(descriptor)`, publishes the addon's existing **flat,
+dot-callable** names as thin forwarders onto that instance, publishes the instance itself as
+`.instance` for identity assertions, and carries a degradation stub for a missing library.
+
+| Major | Host half | What the addon keeps |
+|---|---|---|
+| `Core-1.0` | `core/CoreSetup.lua` | `KCM.PREFIX` (read live via a prefix *function*, never captured), the `print` sink the harness listens on, and `KCM.SwatchColor` — the one wrapper over `lib.RGBA` + `lib.ResolveColor` that teaches the library this addon's positional `{ r, g, b, a }` shape and each surface's own four-channel fallback (`options-ui-§17`) |
+| `DebugLog-1.0` | `core/DebugLogSetup.lua` | the shipped font, `KCM.State.debug` as the flag's single home, the `[Init]` content, the panel repaints |
+| `Slash-1.0` | `settings/Slash.lua` | the `COMMANDS` table and the `STRINGS` overrides that keep this addon's shipped wording (both passed in, never owned). The verb bodies and their `*_COMMANDS` namespaces stay in `core/SlashCommands.lua`, the `/cm dump` targets in `core/SlashDump.lua`, and the `KCM_CONFIRM_RESET` popup with the verbs (CM-47). |
+| `Options-1.0` | `settings/OptionsSetup.lua` (the seam) + `settings/Panel.lua` (the addon's half) | the schema rows and the `SetAndRefresh` / `SetManyAndRefresh` doors (the write seam behind them is `Schema-1.0`'s, the next row), `Grid` / `Button` / `ButtonPair` / `Label`, `EnumValues` (`LSMValues` was host-owned beside it until `M4-C1`; it is the library's outright now), `RegisterRows` (which stamps `panel`, `section` and this addon's `apply` onto a composed block, then the type rules), the page order (`KCM.Settings.order`, five pages, Profiles last) and the Macros strip's tab order (`KCM.Settings.macroOrder`, fifteen categories), the `KCM.Options` shim — `Register` here, and the run-time `Refresh` / `RequestRefresh` / `Open` plus the refresh debounce in `settings/OptionsShim.lua`, peeled off at the 1500-line cap; `Register` and `Open` delegate to the library's `CreateOptionsPanel` (fed through `RegisterOptionsPage` in the page order, with the descriptor's `buildMain` and `validate`) and `OpenOptionsPanel`, which own the category, its combat park and replay, the open's combat refusal and the sidebar expand — and the two reset vetoes `KCM.Settings.VetoedFromResetAll` — which the seam publishes and hands to the library as its descriptor's `skipRestoreAll` (`options-ui-§3`) — and `KCM.Settings.VetoedFromEveryReset`, the one-row carve-out `launcher-§3` requires: it reads a row's `neverReset` stamp, the global veto asks it first, and `settings/General.lua`'s page `Defaults` walk asks it too, so a player's minimap-button choice survives **both** resets. The tab strip (`options-ui-§13`) and the tabbed page `RenderTabbedSchema` behind the General page (its descriptor `rowsForPage` answers the rows whose `panel` is the page key), the page banner (`§14`), the row engine `RenderRows`, the id line `IdInput` behind a category tab's Add-by-ID (minor 16; this addon hands it a host kind whose `resolve` calls the library's `ResolveId` for names, the category's `Selector.BuildCandidateSet` IDs, plus the items in the bags under Type=Item, as `candidates` for those names and the as-you-type suggestions, and names its ids' library kind as `base` — `"item"` or `"spell"` per Type — so the rows wear the tier icon, quality color or subtext while this addon's resolver still decides what is added; it keeps its own rows) and the four **composers** — `MasterControls`, `ColorPair`, `BorderGroup`, `FontGroup` (`options-ui-§15`–`§17`) — are the library's, called by the page files |
+| `Schema-1.0` | `settings/Panel.lua` (the instance, published as `Helpers.schema`) + `settings/SchemaStub.lua` (the degradation stub, `KCM.SchemaStub`) | the rows and their `TYPE_RULES` (each type split into `validate` and `normalize`, stamped onto the row by `AddRows` / `RegisterRows`), the descriptor's `resolveRoot` (`db.profile`), `announce` / `announceBatch` (a row's host `apply` run through the `onChange for <path> failed` reporter, then one refresh; a batch runs the caller's reactor or each distinct `apply` once), the `[Set]` formatter, `resetExempt` built from the `neverReset` rows, and the two rows with a store of their own (`state.debugConsole`, `global.minimap.shown`, stamped in `settings/General.lua`; the minimap row's path says *shown* while its store key is still LibDBIcon's `db.global.minimap.hide`, which its get/set invert onto, anti-pattern #81). The library owns the path walk, the index, the pipeline, `SetMany`, the bulk bracket and the profile reset's count. Adopted at v1.56.0 ([#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)): an unknown path is refused rather than stored, a table value is copied into the store, and the `[Set]` line is written before the reaction ([schema.md](./schema.md#the-write-seam)) |
+| `Lifecycle-1.0` | `core/LifecycleSetup.lua` | what "inert" MEANS for this addon — the `standDown` / `standUp` pair — and nothing else. The library owns no frames, no events, no settings and no storage; what it knows is whether the hold set is empty. The two holds are `disabled` (from the stored `enabled` path) and `perf` (taken by `Perf-1.0` itself, never by the host). There is no `:StandUp()` member and its absence is the point |
+| `Perf-1.0` | `core/PerfSetup.lua` | `/cm` as the taught command, `ConsumableMasterPerfDB` as the capture ring, and the three sinks. The `suspend`/`resume` pair it used to carry moved to `Lifecycle-1.0`'s latch at Perf minor 12, which requires `descriptor.lifecycle` — a second teardown path beside the disable arm is the anti-pattern, not an implementation detail |
+| `Media-1.0` | `core/MediaSetup.lua` | this addon's folder name (a vendored library cannot work out which folder it was copied into) and the one `Media.RegisterLSM` call, made at file load. Publishes `KCM.Icon` / `KCM.MediaFont`; its TOC position is load-bearing, because `core/DebugLogSetup.lua` resolves the console font eagerly |
+| `Env-1.0` | `core/EnvSetup.lua` | `addonName` again, and the degradation path — an install without LibKa0s repeats the two `C_AddOns` ladders this seam replaced. Publishes `KCM.Meta(field)` and `KCM.Version()` (`/cm version`, the About page's notes) |
+| `Compat-1.0` | `core/Compat.lua` | the call surface `KCM.Compat.X`, which did not move: four members are the library's (`GetSpecialization`, `GetSpecializationInfo`, `GetSpellName`, `IsSecret`) and three stay host code because the major does not carry them (`GetNumSpecializationsForClassID`, `GetSpecializationInfoForClassID`, `GetItemInfo`), documented in [compat-layer.md](./compat-layer.md). No instance: the major is stateless. With it absent each wired reader answers `nil` (the API document's *reader arm*) and `IsSecret` re-implements its one-rung body (the *guard arm*, a commented, deliberate duplication, `options-ui-§1`). Adopted at v1.55.0 |
+| `Bus-1.0` | `core/Bus.lua` | the publisher `KCM.bus`, the seam names `KCM.NewBusTarget(subscribe)` / `KCM.Bus.StandDown` / `KCM.Bus.StandUp` / `KCM.MSG` (their bodies delegate to one record, `KCM.busRecord`, whose `isDown` asks `KCM.IsStoodDown` through a closure), the position of the bus in the latch's sequence (first on the way down, first on the way up, `core/LifecycleSetup.lua`), and the one debug line naming any registration the replay rejected. Degrades to the untracked-target stub (`options-ui-§1`). Adopted at v1.55.0 |
+| `Widgets-1.0` | none — `settings/Category.lua` and `settings/StatPriority.lua` each resolve the major at the call site | exactly one member, `ReorderList`, behind **three** lists: a single category's priority rows, each of a composite's two combat-state sections, and the Stat Priority page's secondary stats. There is no setup file and no instance: the widget is a plain constructor with no addon-wide state to teach it, so a page asks `LibStub` in silent mode on each render. With the major absent no handle and no row box are drawn and the lists lose their in-panel reordering entirely — `/cm priority <cat> up\|down` is what still moves a priority row. Each page cancels every controller it built at the TOP of its render, before the first widget exists (`options-ui-§18`); the Category seam holds a LIST because a composite page builds two |
+| `Item-1.0` | `core/ItemSetup.lua` | exactly one of the major's four members, `ItemIDFromLink`, behind the Add-by-ID line's pasted-link path (`settings/CategoryAddByID.lua:157`). `QualityFromLink` / `QualityLabel` / `LoadItem` are pointedly not taken, and `core/TooltipCache.lua` stays this addon's own policy. The degradation stub is the same primitive in three lines, so a pasted link never works on one install and not another |
+| `Launcher-1.0` | `core/LauncherSetup.lua` | the addon's FOLDER name (used for BOTH registrations — LibDBIcon keys the button's saved position by it), the 128 logo path built from that name, the broker **label** — `Ka0s Consumable Master`, the brand name in plain text, deliberately neither the TOC `## Title` (a Title may carry color escapes and one in the collection does) nor the folder name, and wired to neither (`launcher-§1`) — a THUNK answering `db.global.minimap` (never the table itself — a table captured at file load is one AceDB later replaces), `openSettings` → `KCM.Options.Open`, the minor-2 disabled gate — `isEnabled` (the DISABLED hold only) and `disabledLine` (the dispatcher's `DisabledLine()`) — and the RUNG: `onClick` runs `/cm lock` / `/cm unlock`'s own body, `KCM.SlashCommands.Verbs.RunLock(not cfg.locked)`, so the write goes through `KCM.MacroBar.SetLocked`, i.e. the same `KCM.Schema:Set("macroBar.locked", …)` seam the Master controls checkbox and `/cm bar lock` take, and the confirmation line is the verb's, including its "the bar is off" wording for a switched-off bar. The library owns the click dispatch, so right-click → settings panel is satisfied on both surfaces by construction. No degradation stub — `core/PerfSetup.lua`'s convention: an absent major is an absent feature, and both callers (`KCM:OnInitialize`'s `Register`, the schema row's `set`) branch on nil |
+
+Three rules here are load-bearing rather than stylistic:
+
+1. **Never bind a printer or a prefix by value.** Every `lib:New` snapshots its descriptor once, so a
+   captured `KCM.Say` freezes the load-time function object and every later swap — including the
+   suite's — goes unseen. Pass a thunk.
+2. **A degradation stub's OMISSIONS are its contract.** `core/DebugLogSetup.lua` publishes no
+   `instance` precisely because that absence re-arms `core/Debug.lua`'s chat fallback — the emitter
+   at `core/Debug.lua:39-40` probes `DL and DL.instance`, not any named method. It publishes no
+   `AddLine` either, so a stub can never silently swallow `core/PerfSetup.lua`'s ungated perf log. `settings/Panel.lua` registers no Blizzard
+   category at all, because one opening onto an empty canvas would leave the user unable to tell a
+   broken install from a broken addon. `KCM.LIBKA0S_MISSING` (set in `core/CoreSetup.lua`) is the one
+   shared cause clause; each seam appends only its own "so *what* is unavailable".
+3. **Adoption is per-part, and declining is normal.** Where the library disagrees with the addon it is
+   recorded as a `LIBKA0S-*` issue in this repo's GitHub issues rather than worked around
+   or silently taken. The three long-running declines — the slash dispatcher ([LIBKA0S-01](https://github.com/tusharsaxena/ConsumableMaster/issues/20)), the options
+   row makers ([LIBKA0S-04](https://github.com/tusharsaxena/ConsumableMaster/issues/22)) and the options page registry ([LIBKA0S-05](https://github.com/tusharsaxena/ConsumableMaster/issues/24)) — have all since been adopted,
+   two of them only after the blockers were fixed upstream and re-vendored; what is still declined is
+   `Sl:CliResetAll` ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)), because this addon's global reset also wipes `categories`,
+   the item-list registry, which no row describes. Never patch the vendored copy: a fix belongs
+   upstream, then re-vendored. `core/LSMPatch.lua` used to be cited here as the precedent for
+   third-party fixups living in `core/` rather than in `libs/`; it was the wrong precedent and it is
+   gone. A fixup that writes to a **process-global** registry — AceGUI's widget types — is a LibKa0s
+   concern, because a per-addon copy of it is one registration per addon and only the last one
+   counts. It is `lib.__PatchLSM30Border()` now. A fixup with no reach beyond this addon would still
+   belong in `core/`.
+
+## Peel history
+
+Moved here from [ARCHITECTURE.md → Files over the 1500-line cap](./ARCHITECTURE.md#files-over-the-1500-line-cap), which keeps the census and the band on notice. The two test-suite peels are the cuts issues [#32](https://github.com/tusharsaxena/ConsumableMaster/issues/32) and [#33](https://github.com/tusharsaxena/ConsumableMaster/issues/33) named. The line counts below are the figures on the day of each cut, not today's.
+
+**What the peel did**, for the next reader who wonders where a case went. Both were test suites, and
+both moved cases WHOLE — not one assertion changed, and the harness registers exactly the same
+cases it did before — the total did not move by one. (It has moved since, for unrelated reasons;
+`docs/test-cases.md` is the live count.)
+
+| Was | Is now |
+|---|---|
+| `tests/test_macrobar.lua` (2229) | `tests/test_macrobar.lua` (1425) — model, display, cooldowns, schema rows, click gating, the flyout's candidate list, master controls, the Defaults button |
+| | `tests/test_macrobar_layout.lua` (432) — the four pure-geometry sections: grid, label geometry, flyout placement, indicator clearance |
+| | `tests/test_macrobar_chrome.lua` (536) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, the `options-ui-§15/§16/§17` rows they honor, and the drag handle's two tooltips and mark tint |
+| | `tests/macrobar_support.lua` — not a suite: the fixtures (`fcfg`, `buildBar`) read on both sides of a seam, SHARED through a `rawget` guard rather than copied |
+| `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
+| | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (§13 strips, §18 reorder lists, §13 wrapped-strip geometry) |
+
+Two of the cuts moved off the line numbers the issues recorded, because both files grew after the
+issues were written. The macro bar's chrome block also had to take the three `options-ui-§15/§16/§17`
+cases that arrived after it, which use its `styleButton`/`firstCall` fixtures; the settings suite's
+cut is a middle slice rather than a tail, because two later blocks (the refresh debounce and the #35
+characterization cases) now sit below the conformance blocks. The seams themselves are the ones the
+issues named.
+
+**`settings/Panel.lua` was peeled on 2026-09-16 at 1488 lines**, twelve under the cap — close enough
+that the next ordinary edit would have breached it, and `docs/automated-tests/RESULTS.md` had carried
+it as *Accepted* across three consecutive releases, which `automated-tests-§4` refuses a fourth time.
+The cut is the seam the file's own section heading already drew: the schema-and-chrome half a page
+module calls while it BUILDS stayed, and the run-time `KCM.Options` shim — `Refresh`,
+`RequestRefresh`, `Open`, the refresh debounce and the three bus subscriptions that drive them — moved
+whole to `settings/OptionsShim.lua` (266), which the TOC loads immediately after it. Panel.lua is 1308.
+No behavior moved with it: not a comparison, a constant or a comment changed in the cut, and the two
+notice functions the shim still needs are published on `KCM.Settings` rather than copied, because one
+of them holds a said-once flag.
+
+**`settings/Category.lua` was peeled on the same day, at 1400 lines**, and for the same reason: three
+consecutive releases carrying it as *Accepted*, which `automated-tests-§4` refuses a fourth time. Its
+seam is the one the page actually has — everything else on the Macros page draws a list the addon
+already holds, and one block draws the control that puts something NEW into it. The Add-by-ID line,
+whole (the Type dropdown, the two ID kinds, this addon's resolver over `LibKa0s-Options-1.0`'s
+`IdInput`, the candidate set, the writer and `O.AddByIDBusy`), is `settings/CategoryAddByID.lua` (362)
+now; Category.lua is 1121. `makeDropdown` and `spellNameByID` went with it because the block was their
+only caller. The cut is two-way and deliberately thin: the new file takes exactly two of the page's
+helpers — `newRow` and `afterMutation` — off `KCM.Settings.MacrosPage`, published at load by
+Category.lua, and publishes one entry point back, `KCM.Settings.AddByID.Render`, which Category.lua
+calls at RENDER time, so neither file has a load-time dependency in the other direction.
+
 ## Load order
 
 `ConsumableMaster.toc` is the source of truth. It is sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`, and order within a section is dependency order, not alphabetical:
@@ -719,6 +819,6 @@ Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)
 - `README.md` — user-facing. Its `## Version History` table is this addon's only release history (`documentation-§1` forbids a root `CHANGELOG.md`).
 - `CLAUDE.md` — stub (standard link + hard rules + gate + pointer into `docs/`).
 - `DEPENDENCIES.md` — what to install to build, run, test or release this addon, with a verification command per tool (`documentation-§7`). Answers *what to install*; `docs/testing.md` answers *how to verify*.
-- `docs/ARCHITECTURE.md` — design overview + invariants + message-bus catalog + LibKa0s adoption + doc index.
+- `docs/ARCHITECTURE.md` — design overview + invariants + message-bus catalog + LibKa0s adoption summary + doc index + deviation register.
 - `docs/*.md` — topic chunks (this file is one of them). `docs/test-cases.md` and `docs/automated-tests/RESULTS.md` are **generated** — never hand-edit either.
 </content>

@@ -7,7 +7,7 @@ test can swap either rung and a client that lacks one falls through to the next.
 
 Four members (`GetSpecialization`, `GetSpecializationInfo`, `GetSpellName`, `IsSecret`) are
 `LibKa0s-Compat-1.0`'s, bound onto `KCM.Compat` by name. The library documents them, and so does
-[ARCHITECTURE.md → LibKa0s adoption](./ARCHITECTURE.md#libka0s-adoption). This page covers only the three shims the
+[module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption). This page covers only the three shims the
 addon owns itself.
 
 | Shim | Wraps | Answers | Callers |

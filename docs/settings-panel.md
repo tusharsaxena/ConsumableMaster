@@ -241,7 +241,7 @@ row, which the single write seam calls. The `set` writes `hide = not value` and 
 next reload.
 
 The button itself, and the broker plugin that is the same object, are
-[ARCHITECTURE.md → LibKa0s adoption](./ARCHITECTURE.md#libka0s-adoption)'s `Launcher-1.0` row. Its
+[module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption)'s `Launcher-1.0` row. Its
 **left click** toggles **Lock frame** — the same seam this checkbox drives — and its right click
 opens this panel.
 
