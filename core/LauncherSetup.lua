@@ -176,6 +176,38 @@ KCM.Launcher = lib:New({
         return Sl and Sl:DisabledLine()
     end,
 
+    -- THE STATUS TOOLTIP (launcher-§1, LibKa0s-Launcher-1.0 minor 3). The
+    -- LIBRARY draws it, on every hover and while the addon is disabled too, in
+    -- the collection's one shape: `<label>  v<version>`, `Enabled`, the states
+    -- passed below, then the two click hints. These fields only answer its
+    -- questions, each asked on every show and never cached. There is no
+    -- `onTooltipShow`: this addon has no line of its own to add, and a title or
+    -- a click hint drawn here would be a second copy (anti-pattern #89).
+    --
+    -- The version is the TOC's `## Version` (KCM.Version: TOC first, the
+    -- in-code constant only where the manifest cannot be read).
+    version = function() return KCM.Version and KCM.Version() end,
+    -- THE LOCK IS THE ONLY STATE PASSED, because it is the only one this addon
+    -- has: the macro bar's `macroBar.locked`, the very value the Master-controls
+    -- *Lock frame* row reads, out of the live profile. There is NO `isTestMode`:
+    -- the unlocked bar IS the preview here (the options-ui-§15 exemption the
+    -- General page's composer notes), so a *Test mode* line would describe a
+    -- switch the player cannot find.
+    isLocked = function()
+        local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+        return cfg and cfg.locked and true or false
+    end,
+    -- What the rung-(b) left click WILL do, so it follows the lock: a locked bar
+    -- offers the unlock and an unlocked one the lock. Worded after the
+    -- Master-controls row the click drives, and through the addon's locale. The
+    -- disabled hint is the library's, read out of disabledLine() above.
+    leftClickLabel = function()
+        local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+        local L = KCM.L or {}
+        if cfg and cfg.locked then return L["Unlock frame"] end
+        return L["Lock frame"]
+    end,
+
     -- THE LEFT CLICK, AND ITS PRESENCE IS THE RUNG (launcher-§2). Toggles the
     -- macro bar's lock by running `/cm lock` / `/cm unlock`'s own body
     -- (KCM.SlashCommands.Verbs.RunLock), so the write seam and the wording are

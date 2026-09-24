@@ -207,7 +207,7 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 
 ### 7c. The launcher — the minimap button and the broker plugin (`launcher-§1`)
 
-Tests: one object on two surfaces, the rung, the visibility row, and the saved position.
+Tests: one object on two surfaces, the rung, the visibility row, the saved position, and the status tooltip.
 
 1. Log in. A round button wearing **this addon's own logo** sits on the minimap ring — not a
    Blizzard cooking icon and not a blank square. A blank square is the failure this step exists
@@ -248,6 +248,13 @@ Tests: one object on two surfaces, the rung, the visibility row, and the saved p
    appears in its plugin list wearing the same logo, and clicking it there does exactly what
    clicking the minimap button does — one object, two surfaces. There is deliberately **no**
    setting that hides it from a display; the display has its own.
+9. **Hover it** (LibKa0s v1.57.0, `launcher-§1`). The tooltip reads, top to bottom:
+   `Ka0s Consumable Master  v<the TOC version>`, `Enabled: Yes` in green, `Locked: No` in red
+   (or `Yes` in green), `Left-click: Lock frame` (or `Unlock frame` while the bar is locked), and
+   `Right-click: Open settings`. There is **no** `Test mode` line: this addon has none. Left-click,
+   move off and hover again: the Locked line and the label have both flipped. Then `/cm disable`
+   and hover: the tooltip still shows, `Enabled: No` in red, the Locked line unchanged, and
+   `Left-click: disabled — /cm enable`. `/cm enable` restores it.
 
 ### 7a. Settings panel — refresh performance + Defaults button styling
 

@@ -477,3 +477,136 @@ test("Launcher: no LibKa0s means no launcher at all, and no stub", function(t)
     local KCM = loader.loadFullAddon(true)
     t.eq(KCM.Launcher, nil, "KCM.Launcher is absent, not a facade")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The status tooltip (launcher-§1, LibKa0s-Launcher-1.0 minor 3)
+-- ---------------------------------------------------------------------------
+--
+-- THE LIBRARY DRAWS IT; this addon only answers its questions. So the cases pin
+-- the two halves separately: the DESCRIPTOR (captured by wrapping lib:New in the
+-- loader's mutate window, after the vendored library and before the addon), and
+-- the LINES the object's own OnTooltipShow draws into a recording tooltip. The
+-- descriptor half is what catches a field passed for a state this addon does not
+-- have -- there is no test mode here, so an `isTestMode` would draw a line about
+-- a switch the player cannot find.
+
+-- A tooltip that records what it is told, and the same lines with the status
+-- colors taken off, so a case can read the words and check the colors apart.
+local function recordingTooltip()
+    local tt = { lines = {} }
+    function tt:AddLine(s) self.lines[#self.lines + 1] = s end
+    return tt
+end
+
+local function plain(lines)
+    local out = {}
+    for i, s in ipairs(lines) do
+        out[i] = (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+    end
+    return out
+end
+
+local function hover(KCM)
+    local tt = recordingTooltip()
+    KCM.Launcher:Object().OnTooltipShow(tt)
+    return tt.lines, plain(tt.lines)
+end
+
+-- The TOC's `## Version`, read off disk: the one source the title must agree with.
+local function tocVersion()
+    local fh = io.open((_G.KCM_TEST_ROOT or ".") .. "/ConsumableMaster.toc", "r")
+    local body = fh and fh:read("*a") or ""
+    if fh then fh:close() end
+    return body:match("## Version:%s*([^\r\n]+)")
+end
+
+-- red under: a descriptor with no `version`, a `version` that is a captured
+-- constant rather than the TOC-first reader, an `isTestMode` for a test mode
+-- this addon does not have, or an `onTooltipShow` drawing lines of its own.
+test("Launcher: the descriptor answers the tooltip's questions and no others", function(t)
+    local seen
+    local KCM = loader.loadFiles(loader.tocFiles(), false, function()
+        local lib = LibStub("LibKa0s-Launcher-1.0")
+        local realNew = lib.New
+        lib.New = function(self, d) seen = d; return realNew(self, d) end
+    end)
+    t.truthy(seen, "core/LauncherSetup.lua built its launcher through lib:New")
+    t.truthy(KCM.Launcher, "and published it")
+
+    t.eq(type(seen.version), "function", "version is asked on every show")
+    t.eq(seen.version(), KCM.Version(), "through KCM.Version, the TOC-first reader")
+    t.eq(type(seen.isLocked), "function", "the macro bar's lock is this addon's lock")
+    t.eq(seen.isTestMode, nil, "no test mode: the preview switch IS the lock (options-ui-§15)")
+    t.eq(type(seen.leftClickLabel), "function", "the rung-(b) label follows the lock")
+    t.eq(seen.onTooltipShow, nil, "no host lines: the library draws the whole block")
+    t.eq(seen.slash, nil, "the disabled hint's command comes out of disabledLine()")
+end)
+
+test("Launcher: the tooltip, enabled and unlocked, in the collection's one shape", function(t)
+    local KCM = loader.loadFullAddon()
+    KCM.Schema:Set("macroBar.locked", false)
+    local _, lines = hover(KCM)
+
+    local v = tocVersion()
+    t.truthy(v, "the TOC carries a ## Version")
+    t.eqList(lines, {
+        "Ka0s Consumable Master  v" .. v,
+        "Enabled: Yes",
+        "Locked: No",
+        "Left-click: Lock frame",
+        "Right-click: Open settings",
+    }, "title, status, the lock, then the two click hints -- and no Test mode line")
+end)
+
+-- red under: `isLocked` or `leftClickLabel` reading a value captured at load,
+-- or a label that names the state rather than what the click will do.
+test("Launcher: the tooltip reads the lock on every show, never a cached copy", function(t)
+    local KCM = loader.loadFullAddon()
+    local object = KCM.Launcher:Object()
+
+    KCM.Schema:Set("macroBar.locked", true)
+    local raw, lines = hover(KCM)
+    t.eq(lines[3], "Locked: Yes", "locked through the schema seam reads Yes")
+    t.truthy(raw[3]:find("|cFF00FF00", 1, true) ~= nil, "in green")
+    t.eq(lines[4], "Left-click: Unlock frame", "and the left click offers the unlock")
+
+    -- The minimap's own click, then a second hover of the SAME object.
+    object.OnClick(nil, "LeftButton")
+    t.falsy(KCM.db.profile.macroBar.locked, "the click unlocked the bar")
+    raw, lines = hover(KCM)
+    t.eq(lines[3], "Locked: No", "and the very next hover says so")
+    t.truthy(raw[3]:find("|cFFFF0000", 1, true) ~= nil, "in red")
+    t.eq(lines[4], "Left-click: Lock frame", "offering the lock back")
+end)
+
+-- red under: a tooltip suppressed while disabled, an `isEnabled` reading the
+-- whole latch (the perf arm) instead of the disabled hold, or a hint that still
+-- offers the lock the click will refuse.
+test("Launcher: the tooltip still draws while disabled, and says how to re-enable", function(t)
+    local KCM = loader.loadFullAddon()
+    KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+    local raw, lines = hover(KCM)
+
+    t.eq(#lines, 5, "the whole block, not an empty tooltip")
+    t.eq(lines[2], "Enabled: No", "Enabled reads No")
+    t.truthy(raw[2]:find("|cFFFF0000", 1, true) ~= nil, "in red")
+    t.eq(lines[3], "Locked: No", "the lock line is still there")
+    t.eq(lines[4], "Left-click: disabled \226\128\148 /cm enable",
+        "the left hint mirrors the refusal and names the command")
+    t.eq(lines[5], "Right-click: Open settings", "the right button never changes")
+
+    KCM.Settings.Helpers.SetAndRefresh("enabled", true)
+    lines = select(2, hover(KCM))
+    t.eq(lines[2], "Enabled: Yes", "re-enabling is read on the next show")
+    t.eq(lines[4], "Left-click: Lock frame", "and the rung's label comes back")
+end)
+
+-- red under: the label typed as an English literal in the descriptor.
+test("Launcher: the left-click label goes through the addon's locale", function(t)
+    local KCM = loader.loadFullAddon()
+    KCM.Schema:Set("macroBar.locked", false)
+    rawset(KCM.L, "Lock frame", "Verrouiller")
+    local lines = select(2, hover(KCM))
+    t.eq(lines[4], "Left-click: Verrouiller", "KCM.L answered the label")
+    rawset(KCM.L, "Lock frame", nil)
+end)

@@ -372,7 +372,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_launcher.lua (21)
+### test_launcher.lua (26)
 
 - Launcher: KCM:OnInitialize registers ONE object under the folder name
 - Launcher: the object is a launcher, wearing this addon's own logo
@@ -395,6 +395,11 @@ badge and any count quoted in the docs must agree with it.
 - Launcher: a host with neither broker library does not raise
 - Launcher: the write seam owns the inversion, not the library
 - Launcher: no LibKa0s means no launcher at all, and no stub
+- Launcher: the descriptor answers the tooltip's questions and no others
+- Launcher: the tooltip, enabled and unlocked, in the collection's one shape
+- Launcher: the tooltip reads the lock on every show, never a cached copy
+- Launcher: the tooltip still draws while disabled, and says how to re-enable
+- Launcher: the left-click label goes through the addon's locale
 
 ### test_lintconfig.lua (4)
 
@@ -1264,7 +1269,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_launcher.lua | 21 |
+| test_launcher.lua | 26 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
@@ -1297,4 +1302,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1071** |
+| **Total** | **1076** |

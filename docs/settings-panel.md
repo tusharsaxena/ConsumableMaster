@@ -245,6 +245,22 @@ The button itself, and the broker plugin that is the same object, are
 **left click** toggles **Lock frame** — the same seam this checkbox drives — and its right click
 opens this panel.
 
+**Hovering the button shows the status tooltip, and the library draws it** (`launcher-§1`,
+`LibKa0s-Launcher-1.0` minor 3), including while the addon is disabled. This addon only answers its
+questions, each asked on every hover:
+
+```
+Ka0s Consumable Master  v<the TOC's ## Version>
+Enabled: Yes|No                          the disabled hold, as the left click's gate reads it
+Locked: Yes|No                           macroBar.locked — the Lock frame row's own value
+Left-click: Lock frame | Unlock frame    what the click will do; disabled — /cm enable while disabled
+Right-click: Open settings
+```
+
+There is **no Test mode line**: the unlocked bar is this addon's preview (the `options-ui-§15`
+exemption above), so it passes `isLocked` and not `isTestMode`, and it passes no `onTooltipShow`,
+having no line of its own to add. The two left-click labels go through `KCM.L`.
+
 **The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
 govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and
 the two **compose** — the scales and the opacities multiply, and the two visibilities are
