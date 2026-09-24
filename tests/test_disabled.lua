@@ -490,6 +490,37 @@ test("Disabled 9b: a setting changed while disabled is honored on the way back u
     t.falsy(KCM.MacroBarModel.IsEnabled(), "and the ladder agrees")
 end)
 
+-- red under: standUp without DiscoverAndSweep. The stand-down took
+-- BAG_UPDATE_DELAYED off, and PLAYER_ENTERING_WORLD does not fire again on a
+-- re-enable, so without the stand-up's own discovery pass an item looted while
+-- disabled is no candidate until the next bag update happens to arrive.
+test("Disabled 9c: an item looted while disabled is discovered on the way back up", function(t)
+    local KCM, H = build()
+    local LOOTED = 910090
+    local function isCandidate()
+        for _, id in ipairs(KCM.Selector.GetEffectivePriority("FOOD")) do
+            if id == LOOTED then return true end
+        end
+        return false
+    end
+    H.SetAndRefresh("enabled", false)
+
+    mock.setItem(LOOTED, { subType = "Food & Drink", tt = { healValue = 500 } })
+    mock.setBag(LOOTED, 1)
+    -- The full addon runs the real tooltip parser, which the mock feeds no
+    -- lines; answer for this one item from its `tt`, as the pure layer's
+    -- TooltipCache stub (tests/run.lua) does for every item.
+    local realGet = KCM.TooltipCache.Get
+    KCM.TooltipCache.Get = function(id)
+        if id ~= LOOTED then return realGet(id) end
+        return { healValue = 500, itemName = mock.items[id].name }
+    end
+    t.falsy(isCandidate(), "not a FOOD candidate while disabled")
+
+    H.SetAndRefresh("enabled", true)   -- and no BAG_UPDATE_DELAYED is fired
+    t.truthy(isCandidate(), "the stand-up's discovery pass made it a FOOD candidate")
+end)
+
 -- ---------------------------------------------------------------------------
 -- 10. The latch — two holds, and releasing one must not resurrect the addon
 -- ---------------------------------------------------------------------------

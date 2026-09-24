@@ -113,6 +113,12 @@ local function standUp()
     -- the teardown does not copy it.
     if KCM.OnEnable then KCM:OnEnable() end
     if KCM.MacroBar and KCM.MacroBar.Update then KCM.MacroBar.Update() end
+    -- Login's discovery pass and stale sweep: BAG_UPDATE_DELAYED was off while
+    -- down and PLAYER_ENTERING_WORLD does not fire again, so an item looted
+    -- while disabled is found here or not until the next bag update.
+    if KCM.Pipeline and KCM.Pipeline.DiscoverAndSweep then
+        KCM.Pipeline.DiscoverAndSweep("stand_up")
+    end
     if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
         KCM.Pipeline.RequestRecompute("stand_up")
     end

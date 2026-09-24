@@ -600,8 +600,8 @@ function S.MarkDiscovered(catKey, itemID, specKey, nowUnix)
     return false
 end
 
--- TTL garbage collection for `discovered` entries. Called from PEW after
--- auto-discovery and before the first recompute (see Core.lua). Items still
+-- TTL garbage collection for `discovered` entries. Called by PEW and the stand-up
+-- after auto-discovery, before the recompute (Pipeline.DiscoverAndSweep). Items still
 -- in bags have their timestamp bumped to now; otherwise entries older than
 -- DISCOVERED_TTL_SEC are deleted. `added` and `blocked` are user-intentional
 -- and never touched here.

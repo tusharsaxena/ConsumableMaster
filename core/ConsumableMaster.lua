@@ -358,6 +358,20 @@ end
 -- Expose for manual invocation from /cm resync and tests.
 KCM.Pipeline.RunAutoDiscovery = runAutoDiscovery
 
+-- Discovery, then the stale-discovered sweep: login's pass, shared with the
+-- stand-up (core/LifecycleSetup.lua) because PLAYER_ENTERING_WORLD does not
+-- fire again on a re-enable and bags looted while disabled must still count.
+-- The sweep runs after discovery so freshly-bumped timestamps survive it, and
+-- before the caller's recompute so the first pick sees the cleaned set.
+local function discoverAndSweep(reason)
+    runAutoDiscovery(reason)
+    if KCM.Selector and KCM.Selector.SweepStaleDiscovered then
+        KCM.Selector.SweepStaleDiscovered(time())
+    end
+end
+
+KCM.Pipeline.DiscoverAndSweep = discoverAndSweep
+
 -- Pure recompute-summary formatter (debug-logging-§8/§9, unit-tested).
 function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
     return ("reason=%s rewrote %s/%s (skipped %s)"):format(
@@ -580,14 +594,8 @@ function KCM.ResetAllToDefaults(reason)
 end
 
 function KCM:OnPlayerEnteringWorld()
-    -- Fires on login and /reload. Discover + recompute everything.
-    -- Sweep runs after discovery so bumped timestamps are seen by the sweep
-    -- and before recompute so the cleaned-up discovered set feeds the first
-    -- pick.
-    runAutoDiscovery("player_entering_world")
-    if KCM.Selector and KCM.Selector.SweepStaleDiscovered then
-        KCM.Selector.SweepStaleDiscovered(time())
-    end
+    -- Fires on login and /reload. Discover + sweep, then recompute everything.
+    discoverAndSweep("player_entering_world")
     requestRecompute("player_entering_world")
     -- Build / re-show the optional macro bar. A no-op when it's disabled, which
     -- is the default, so nothing is created for users who never enable it.

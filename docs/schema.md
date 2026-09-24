@@ -225,7 +225,7 @@ In v1.0.0, `discovered[id] = true` accumulated forever. One-shot consumables loo
 
 ### Sweep trigger
 
-`PLAYER_ENTERING_WORLD`, after auto-discovery and before the first recompute. Pseudo-code:
+`PLAYER_ENTERING_WORLD`, and the stand-up after a re-enable, each after auto-discovery and before the recompute (`Pipeline.DiscoverAndSweep`). Pseudo-code:
 
 ```
 SweepStaleDiscovered(nowUnix):
@@ -251,7 +251,7 @@ TTL is the only gate. A classifier re-check on stale entries was considered and 
 
 ### Manual trigger
 
-There isn't one. `/cm resync` does a full rescan but **does not** include a GC sweep — that's an explicit PEW-only policy. If demand emerges, a `/cm gc` variant is trivial to add.
+There isn't one. `/cm resync` does a full rescan but **does not** include a GC sweep — the sweep runs only at login (`PLAYER_ENTERING_WORLD`) and on the stand-up after a re-enable, both through `Pipeline.DiscoverAndSweep`. If demand emerges, a `/cm gc` variant is trivial to add.
 
 ## Reset path
 

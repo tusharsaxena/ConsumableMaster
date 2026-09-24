@@ -263,7 +263,7 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
-### test_disabled.lua (18)
+### test_disabled.lua (19)
 
 - Disabled 1: enabled, the addon registers a non-empty set
 - Disabled 3: the registration set is EMPTY, by count and by name
@@ -279,6 +279,7 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 8: left-click is refused and writes nothing; right-click opens the panel
 - Disabled 9: re-enabling rebuilds exactly the set it took down
 - Disabled 9b: a setting changed while disabled is honored on the way back up
+- Disabled 9c: an item looted while disabled is discovered on the way back up
 - Disabled 10: releasing perf does not stand up an addon disable still holds
 - Disabled 10b: the same, with the holds taken in the other order
 - Disabled 10c: the perf harness takes its hold on this very latch
@@ -1189,7 +1190,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 18 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
-| test_disabled.lua | 18 |
+| test_disabled.lua | 19 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 20 |
@@ -1227,4 +1228,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1009** |
+| **Total** | **1010** |

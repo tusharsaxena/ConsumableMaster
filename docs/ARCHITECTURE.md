@@ -160,19 +160,19 @@ The verb table, the five sub-command tables and their three handler arities, the
 
 ## Event Subscriptions
 
-Every client event this addon listens to is registered in one place — `KCM:OnEnable` in `core/ConsumableMaster.lua` — through AceEvent. No module body subscribes on its own, so the whole surface is readable at a glance. That single list is also what the stand-down tears down and what the stand-up rebuilds: `standDown` drops the lot with `KCM:UnregisterAllEvents()` and `standUp` **calls** `OnEnable` rather than copying its list, so the two can never name different sets ([the disabled state](#the-disabled-state-is-total)). `OnEnable` itself refuses to run while a hold is taken, so a player who logs in with the addon off registers nothing at all.
+Every client event this addon listens to is registered in one place — `KCM:OnEnable` in `core/ConsumableMaster.lua` — through AceEvent. No module body subscribes on its own, so the whole surface is readable at a glance. That single list is also what the stand-down tears down and what the stand-up rebuilds: `standDown` drops the lot with `KCM:UnregisterAllEvents()` and `standUp` **calls** `OnEnable` rather than copying its list, so the two can never name different sets ([the disabled state](#the-disabled-state-is-total)). `standUp` then runs login's discovery pass and stale sweep, `KCM.Pipeline.DiscoverAndSweep("stand_up")`, before its recompute: `PLAYER_ENTERING_WORLD` does not fire again on a re-enable, and a consumable looted while the addon was down has to be a candidate on the way back up, not at the next `BAG_UPDATE_DELAYED`. `OnEnable` itself refuses to run while a hold is taken, so a player who logs in with the addon off registers nothing at all.
 
 | Event | Handler | Purpose |
 |---|---|---|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:582`) | Login and `/reload`: auto-discovery, then the discovered-set sweep, then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
-| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:608`) | Bag contents moved; re-run discovery and request a coalesced recompute |
-| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:613`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:623`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle. A settings-category registration parked in combat is `LibKa0s-Options-1.0`'s to replay, on its own frame |
-| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:659`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
-| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:680`) | A spell-backed candidate became known after the spell book hydrated; recompute |
-| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:688`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
-| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:602`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
-| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:602`) | The same repaint, from the item-cooldown side |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:596`) | Login and `/reload`: auto-discovery, then the discovered-set sweep (the two are `discoverAndSweep`, which the stand-up shares), then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
+| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:616`) | Bag contents moved; re-run discovery and request a coalesced recompute |
+| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:621`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:631`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle. A settings-category registration parked in combat is `LibKa0s-Options-1.0`'s to replay, on its own frame |
+| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:660`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
+| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:681`) | A spell-backed candidate became known after the spell book hydrated; recompute |
+| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:689`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
+| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:610`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
+| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:610`) | The same repaint, from the item-cooldown side |
 
 Internal control flow that crosses a feature boundary does **not** ride a client event — it rides the closed bus above.
 
