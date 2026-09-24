@@ -677,7 +677,7 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
 
-### test_profiles.lua (15)
+### test_profiles.lua (19)
 
 - Profiles: the page is the last in the sidebar and its file loads last
 - Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
@@ -694,6 +694,10 @@ badge and any count quoted in the docs must agree with it.
 - Profiles: a switch or copy rewrites a macro whose incoming fingerprint matches a body no longer live
 - Profiles: each profile act logs its one handler line, a switch included
 - Profiles: the open settings pages rebuild on the switch itself, not after the debounce
+- AceDB fake: a profile switch strips at-default values from the outgoing profile
+- AceDB fake: the shipped default table survives a switch
+- AceDB fake: CopyProfile onto the active profile raises AceDB's own message
+- AceDB fake: DeleteProfile of the active profile raises AceDB's own message
 
 ### test_ranker.lua (23)
 
@@ -1124,12 +1128,12 @@ badge and any count quoted in the docs must agree with it.
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
-- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
 
 ### test_prose.lua (15)
 
-- prose: no authored file carries a British spelling from localization-5's published list
-- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 - prose self-test: the carve-out suppresses the named generated folder, and only it
 - prose self-test: a path the carve-out does not name is not covered by one that looks like it
 - prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
@@ -1148,7 +1152,7 @@ badge and any count quoted in the docs must agree with it.
 
 - layoutcap: every authored file over the 1500-line cap is named in the census
 - layoutcap: no census row outlives the breach it records
-- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
 - layoutcap: the census and the exempt set agree about which paths were exempted
 - layoutcap: an empty census is written as a result rather than left standing empty
 - layoutcap self-test: the parser reads the census nested under the register, and stops there
@@ -1197,7 +1201,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 30 |
-| test_profiles.lua | 15 |
+| test_profiles.lua | 19 |
 | test_ranker.lua | 23 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
@@ -1216,4 +1220,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **998** |
+| **Total** | **1002** |
