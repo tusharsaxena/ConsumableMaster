@@ -445,6 +445,42 @@ adoption is only correct if a drag feels identical in both, and neither addon ca
 2. MultiMeters' list has a divide and this one does not. Drag a shown column below the rule there:
    the line must **stop** at it. Drag the bottom row here: it simply stays put, with no divide to
    stop at.
+3. **LibKa0s v1.56.0: the drag polls on the library's ghost frame, and the drop line is pooled
+   per drag** (`LibKa0s-Widgets-1.0` minor 10, `LibKa0s-R-12`). Not yet run: no client was available
+   when v1.56.0 was re-vendored, and nothing below may be reported as passing until someone has
+   actually looked at it. Through minor 9 the drag's `OnUpdate` was set on the row frame this addon
+   hands `AddRow` and cleared with nil at the drop, and the insertion line was built once and cached
+   on the AceGUI-pooled container, so it could ride into the next page that container served. The
+   headless suite cannot see a frame's script survive a real drag or a line left painted on a
+   recycled container, so this step walks every `ReorderList` this addon draws:
+   - **Macros, a single category** (`settings/Category.lua`, the priority list, §9 step 7): open
+     **Healing Potion** and drag a row three places.
+   - **Macros, a composite** (`settings/Category.lua`, the section order, §10 step 4): open
+     **AIO Health** and drag HP_POT above HS in In Combat.
+   - **Stat Priority** (`settings/StatPriority.lua`, the secondary-stat list, §8 step 5): drag Haste
+     to the top.
+   - **Macro Bar → Buttons** (`settings/MacroBar.lua`, the slot order, §11a step 8a): drag a shown
+     row two places down.
+
+   On **each** of the four, check all of these:
+   1. The insertion line appears while you drag, in the list's own color: gold on all four, since
+      no page here passes a `lineColor`.
+   2. The drop commits: the list re-reads in the new order, and the write happens once (the `[Set]`
+      or `[Prio]` debug line the cited section names).
+   3. **A cancel mid-drag leaves nothing.** Start a drag and, with the button still held, press
+      **Escape** to close the Settings window. Reopen it on the same page: no insertion line, no
+      carried copy under the cursor, no stray handle, and the order is the one from before the
+      drag. Repeat with a **tab switch** mid-drag (another tab on the strip, or another page in the
+      sidebar), then come back.
+   4. **The row's own hover still works after a drag.** Hover the dragged row's control that has
+      its own tooltip: the info button on a Macros row, the tick on a Stat Priority or Buttons row.
+      The tooltip shows. That is the check that the host row frame's scripts were left alone,
+      because the poll no longer runs on it.
+
+   Then **two pages in turn**: drag on Stat Priority, switch to Macro Bar → Buttons and drag there,
+   then back to Stat Priority and drag again. Each drag draws exactly one line, under the list being
+   dragged, and nothing is left painted on the page you left. A line on the wrong page, or two at
+   once, is the pooled line being shared between lists.
 
 ### 10. Settings panel — Macros, a composite (HP_AIO / MP_AIO)
 
@@ -707,6 +743,7 @@ Rename it back and `/reload`.
 | `settings/Profiles.lua`, `KCM.MSG.PROFILE_CHANGED` or any of its receivers, `KCM.Settings.VetoedFromResetAll`, or the vendored AceConfig / AceDBOptions | §13a in full, plus §7 step 10a |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
 | `registerPanel`'s hand-off to `CreateOptionsPanel`, or the library's combat park and replay | §6a |
+| `LibKa0s-Widgets-1.0`'s `ReorderList`, or a page that draws one (proves the LibKa0s v1.56.0 payload: the drag on the ghost frame, the pooled drop line) | §9a step 3, on all four lists |
 | Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
