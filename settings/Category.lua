@@ -1103,6 +1103,7 @@ end
 -- Select a tab from outside the strip. Answers false for an unknown category
 -- and for a page that has not been built, so a caller can tell "no such
 -- category" from "done".
+-- Kept as a deliberate test seam: only the suites call it (ConsumableMaster-R-16).
 function O.SetMacroTab(catKey)
     local ctx = O._macrosCtx
     if not (ctx and catKey and KCM.Categories.Get(catKey)) then return false end

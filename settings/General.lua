@@ -360,12 +360,15 @@ end
 -- The tab strip (options-ui-§13)
 -- ---------------------------------------------------------------------
 --
--- Hand-drawn rather than handed to RenderTabbedSchema. The tab's ROWS are
--- rendered by the library's row engine (RenderRows, with the group heading
--- suppressed because the tab already carries the name), so the rows, their order,
--- their pairing and the closing button pair are all the library's; what the
--- library cannot derive is the Maintenance tab beside them, which declares
--- no rows at all -- its three controls are acts, not settings.
+-- Drawn by the library's RenderTabbedSchema (LibKa0s-Options-1.0, OptionsTabs
+-- minor 4). The strip is partitioned from this page's schema rows by `group`, so
+-- Master controls -- the one group they declare -- is the first tab, its rows go
+-- through the row engine with the heading suppressed (the tab carries the name),
+-- and the closing button pair is that group's afterGroup hook. The Maintenance
+-- tab is a HOST tab (`opts.tabs`): it declares no rows at all, because its three
+-- controls are acts rather than settings, so the library places it after the
+-- schema tab and calls drawMaintenance to fill it. A tab click is the library's
+-- own ClearScroll-and-re-render; nothing on this page holds a widget across it.
 
 -- The three targeted verbs, on their OWN TAB beside Master controls.
 --
@@ -402,49 +405,19 @@ local function drawMaintenance(ctx)
     })
 end
 
-local function drawMaster(ctx)
-    H.RenderRows(ctx, masterRows, { ["Master controls"] = masterTail }, nil,
-        { noHeadings = true })
-end
-
 -- Master controls FIRST, and that is §15's requirement rather than a habit: every addon's General
--- page must open on it, under exactly that name.
-local TABS = {
-    { group = "Master controls", label = L["Master controls"], draw = drawMaster },
-    { group = "Maintenance",     label = L["Maintenance"],     draw = drawMaintenance },
+-- page must open on it, under exactly that name. It is first because it is the page's first (and
+-- only) schema group and the host tab carries no `before`, so the library appends Maintenance.
+local AFTER_GROUP = { ["Master controls"] = masterTail }
+local TAB_OPTS = {
+    tabs = {
+        { key = "Maintenance", label = L["Maintenance"], render = drawMaintenance },
+    },
 }
-KCM.Settings.GENERAL_TABS = TABS
-
-local function activeTab(ctx)
-    for _, tab in ipairs(TABS) do
-        if tab.group == ctx.activeTab then return tab end
-    end
-    ctx.activeTab = TABS[1].group
-    return TABS[1]
-end
 
 local function render(ctx)
     H.ResetScroll(ctx)
-    local scroll = H.EnsureScroll(ctx)
-
-    local tab = activeTab(ctx)
-    local strip = {}
-    for i, entry in ipairs(TABS) do
-        strip[i] = { key = entry.group, label = entry.label }
-    end
-    H.TabStrip(ctx, {
-        tabs     = strip,
-        value    = ctx.activeTab,
-        onSelect = function(key)
-            if key == ctx.activeTab then return end
-            ctx.activeTab = key
-            render(ctx)
-        end,
-    })
-
-    tab.draw(ctx)
-
-    if scroll.DoLayout then scroll:DoLayout() end
+    H.RenderTabbedSchema(ctx, "general", AFTER_GROUP, nil, TAB_OPTS)
 end
 
 local function Build(mainCategory)

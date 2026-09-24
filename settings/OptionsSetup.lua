@@ -267,6 +267,19 @@ if optionsLib and AceGUI then
         get = function(path) return Helpers.Get(path) end,
         set = function(path, value) Helpers.SetAndRefresh(path, value) end,
 
+        -- One page's rows in declaration order, which is what the library's
+        -- RenderTabbedSchema partitions into tabs (the General page's strip).
+        -- `panel` is the page key here: it is the field ValidateSchema checks, and
+        -- the only one a hand-written row carries as well as a composed one. The
+        -- schema is read at CALL time, since settings/Panel.lua creates it later.
+        rowsForPage = function(pageKey)
+            local out = {}
+            for _, row in ipairs(KCM.Settings.Schema or {}) do
+                if row.panel == pageKey then out[#out + 1] = row end
+            end
+            return out
+        end,
+
         -- The veto above, by reference (options-ui-§3). This addon's global reset
         -- is its own KCM.ResetAllToDefaults rather than the library's
         -- RestoreAllDefaults, so the library never walks with it today; it is

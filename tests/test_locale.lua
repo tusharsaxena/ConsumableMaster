@@ -267,6 +267,9 @@ local RESIDUE = {
     {"settings/General.lua", "rewrote all macros. If action bar icons still look stale, /reload to force the bars to refresh.",
      "NOT YET ROUTED"},
     {"settings/General.lua", "Consumable Master", "LIB DESCRIPTOR"},
+    -- The afterGroup key: the MasterControls composer's own group name, which
+    -- RenderTabbedSchema also draws as the tab's label (options-ui-§15's fixed name).
+    {"settings/General.lua", "Master controls", "LIB DESCRIPTOR"},
     {"settings/General.lua", "macro bar position reset.", "NOT YET ROUTED"},
     {"settings/General.lua", "General page", "DEBUG SCOPE"},
 

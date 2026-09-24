@@ -894,7 +894,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (36)
+### test_settingsui.lua (41)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -913,6 +913,11 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: with the library absent a schema WRITE completes and reports success
 - Settings UI: the degraded stub completes every page-file load, composed rows aside
 - Settings UI: Helpers reads the library's members off the instance, not off a copy
+- Settings: the General page's strip is Master controls, then Maintenance
+- Settings: the Master controls tab draws the page's canonical rows and their tail
+- Settings: the Maintenance tab draws its three verbs and no schema row
+- Settings: the Macro Bar page keeps its eight tabs in order
+- Settings: every Macro Bar tab draws exactly its group's schema rows
 - Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
@@ -933,7 +938,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_settingsui_optionsui.lua (22)
+### test_settingsui_optionsui.lua (21)
 
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
@@ -947,7 +952,6 @@ badge and any count quoted in the docs must agree with it.
 - Settings: every draggable row on the Macros page is boxed full-width and spaced
 - Settings: clicking a secondary stat's glyph toggles whether it is ranked
 - Settings: the secondary split is stored order first, then the rest
-- Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
 - Settings: the Reset all settings tooltip names Profiles → Reset Profile
 - Settings: the panel's Reset all settings raises the same popup as /cm resetall
@@ -1278,8 +1282,8 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 36 |
-| test_settingsui_optionsui.lua | 22 |
+| test_settingsui.lua | 41 |
+| test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 113 |
 | test_slash_degraded.lua | 12 |
 | test_slashsetup.lua | 18 |
@@ -1292,4 +1296,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1066** |
+| **Total** | **1070** |

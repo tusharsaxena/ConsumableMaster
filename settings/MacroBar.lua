@@ -1062,6 +1062,12 @@ end
 -- two surfaces coexist on this page, each with its own backdrop and border, so
 -- there the word is doing real work.
 --
+-- THE STRIP IS BUILT HERE, NOT BY RenderTabbedSchema, and deliberately (issue
+-- #41). That call's tab click clears the scroll and re-renders itself with no
+-- host hook ahead of the clear, so cancelReorder could not run before
+-- ResetScroll on a switch away from the Buttons tab -- the one ordering this page
+-- cannot give up. Re-check if the library grows such a hook.
+--
 -- EVERY SCHEMA-BACKED TAB DRAWS THROUGH THE LIBRARY'S ROW ENGINE. Declaration
 -- order IS the layout — the pairing, the `startsLine` flushes and the subsection
 -- headings are all read off the rows — so there is no second, hand-written

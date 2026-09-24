@@ -2,8 +2,9 @@
 -- settings suite: the three blocks that fail when a CLAUSE OF THE STANDARD stops
 -- holding, rather than when this addon's own wiring breaks.
 --
--- §13, EVERY page draws a strip. §18, the reorder lists. §13 again, a wrapped
--- strip's geometry MUST NOT depend on the selection.
+-- §13, EVERY page draws a strip. §18, the reorder lists. §15, the Master
+-- controls tab. (§13's wrapped-strip geometry was a third block until CM-20
+-- deleted it as a duplicate of the library's own pin; see where it stood.)
 --
 -- Peeled out of tests/test_settingsui.lua at the seam issue #33 named, which the
 -- cap census in docs/ARCHITECTURE.md carried. The partition is also the one a
@@ -11,9 +12,9 @@
 -- addon's settings wiring breaks, and this file goes red when a standard clause
 -- does. Those are two different people's problems on two different days.
 --
--- All four of the block's fixtures — renderEveryPage, recordControllers,
--- showMacroTab, withAtlasHeights — moved with it, because each is defined and
--- read only inside it. Every case moved whole: not one assertion changed.
+-- The blocks' fixtures — renderEveryPage, recordControllers, showMacroTab (and
+-- withAtlasHeights, deleted with its case by CM-20) — moved with them, because
+-- each is defined and read only inside them. Every case moved whole.
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -511,112 +512,29 @@ test("Settings: the secondary split is stored order first, then the rest", funct
 end)
 
 -- ---------------------------------------------------------------------------
--- options-ui-§13 — a wrapped strip's geometry MUST NOT depend on the selection
+-- options-ui-§13 — a wrapped strip's geometry: the LIBRARY's pin, not this one
 -- ---------------------------------------------------------------------------
 --
--- R4c, reproduced on this addon's two hand-drawn strips: the Macros page wraps to
--- three rows at fifteen tabs and the Macro Bar page to two at eight. The strip
--- used to record its row pitch from the FIRST tab it drew, whichever that was —
--- and the selected tab is cut from `Options_Tab_Active_*` while the rest come
--- from `Options_Tab_*`, two atlas families the client does not draw at the same
--- height. So selecting tab 1 packed the rows by one number and selecting any
--- other packed them by another, and the content panel moved under the player.
---
--- THE HARNESS HAS TO BE ABLE TO SEE IT (testing-§12). A mock that answers one
--- height for every atlas cannot fail this case, so the probe texture below
--- answers a DIFFERENT height for the selected-state art — which is the only thing
--- that makes the assertion mean anything.
---
--- red under: reading the pitch back off a tab that was just drawn (whatever its
--- state), or measuring the label under the selected font before the width is
--- taken.
-local function withAtlasHeights(fn)
-    local realCreate = _G.CreateFrame
-    _G.CreateFrame = function(kind, name, parent, template)
-        local f = realCreate(kind, name, parent, template)
-        f.CreateTexture = function()
-            local tex = loader.mock.makeStub()
-            local height = 0
-            tex.SetAtlas = function(_, atlas)
-                height = tostring(atlas):find("Active", 1, true) and 33 or 28
-                return tex
-            end
-            tex.GetHeight = function() return height end
-            return tex
-        end
-        return f
-    end
-    local ok, err = pcall(fn)
-    _G.CreateFrame = realCreate
-    if not ok then error(err, 0) end
-end
+-- The selection-invariance case that stood here (a wrapped strip reserves the
+-- same band whichever tab is selected, R4c) was deleted by CM-20. Every strip
+-- this addon shows is drawn by the library -- O.TabStrip on the Macros, Stat
+-- Priority and Macro Bar pages, RenderTabbedSchema on General -- so it
+-- duplicated LibKa0s' own tests/test_options_tabs.lua case "a wrapped strip's
+-- geometry is IDENTICAL for every value of the selection" (testing-§8). What stays
+-- here is host-specific: which tabs each page draws, in what order, under what
+-- first key (the §13 block above, and tests/test_settingsui.lua's tabbed-page
+-- cases).
 
-test("Settings: a wrapped strip reserves the same band whichever tab is selected",
-    function(t)
-        local KCM = loader.loadFullAddon()
-        local UI  = KCM.Settings.Helpers.instance
-        local Widgets = LibStub("LibKa0s-Options-1.0")
-        -- The measurement is cached for the session, and it must be taken under
-        -- the mock that can tell the two atlas families apart.
-        UI.__resetTabArtHeight()
-
-        local bands = {}
-        local realChrome = UI.SetChromeHeight
-        UI.SetChromeHeight = function(ctx, height)
-            bands[#bands + 1] = height
-            return realChrome(ctx, height)
-        end
-
-        withAtlasHeights(function()
-            -- THE HARNESS FIDELITY CHECK, and the case means nothing without it
-            -- (testing-§12). The measurement has to come back as the INACTIVE
-            -- art's 28 -- not the selected state's 33, and not the TAB_H fallback
-            -- a mock that cannot measure anything would produce.
-            t.eq(UI.__tabArtHeight(), 28,
-                "the strip measured the unselected art, which no click can change")
-            t.ne(UI.__tabArtHeight(), UI.TAB_H,
-                "…and the harness really can tell the two atlas families apart")
-
-            for _, page in ipairs({ "macros", "macrobar" }) do
-                KCM.Settings.builders[page]({})
-                local ctx = UI.__panelFor(page)
-                ctx.panel.IsShown = function() return true end
-
-                -- The FIRST tab, then the second: the two states the defect told
-                -- apart. Each render records the band it reserved.
-                bands = {}
-                local tabs = (page == "macros") and KCM.Options.MacroTabs()
-                    or KCM.Settings.MACROBAR_TABS
-                local firstKey  = tabs[1].key or tabs[1].group
-                local secondKey = tabs[2].key or tabs[2].group
-
-                ctx.activeTab = firstKey
-                KCM.Settings.Helpers.RefreshAllPanels()
-                local bandFirst = bands[#bands]
-
-                bands = {}
-                ctx.activeTab = secondKey
-                KCM.Settings.Helpers.RefreshAllPanels()
-                local bandSecond = bands[#bands]
-
-                t.truthy(type(bandFirst) == "number" and bandFirst > 0,
-                    page .. " reserved a band for its strip")
-                t.eq(bandSecond, bandFirst,
-                    page .. ": the reserved band is identical for both selections")
-            end
-        end)
-
-        UI.SetChromeHeight = realChrome
-        UI.__resetTabArtHeight()
-        t.truthy(Widgets, "the strip under test is the library's")
-    end)
+-- ---------------------------------------------------------------------------
+-- options-ui-§15 — the Master controls tab
+-- ---------------------------------------------------------------------------
 
 -- The Master controls tab's closing BUTTON PAIR is the composer's second return
 -- value, wired as that group's `afterGroup`. The group name IS the hook key, so
 -- renaming the group detaches the hook and NOTHING errors — which is exactly why
 -- it is asserted on the drawn buttons rather than on the wiring.
 --
--- red under: dropping the `{ ["Master controls"] = masterTail }` argument, or
+-- red under: dropping the `{ ["Master controls"] = masterTail }` AFTER_GROUP, or
 -- renaming the group on either side of it.
 test("Settings: the Master controls tab closes with the two reset buttons", function(t)
     local KCM = loader.loadFullAddon()
@@ -649,7 +567,7 @@ test("Settings: the Master controls tab closes with the two reset buttons", func
     for _, text in ipairs(texts) do seen[text] = true end
     t.truthy(seen["Reset position"], "the pair's left half is Reset position")
     t.truthy(seen["Reset all settings"], "and its right half is the global reset")
-    -- The Maintenance subsection's three buttons are NOT visible from here, and
+    -- The Maintenance tab's three buttons are NOT visible from here, and
     -- that is a property of this harness rather than of the page: they are drawn
     -- by settings/Panel.lua's own Button / ButtonPair, which hold AceGUI as a
     -- file-local captured at load, so swapping UI.AceGUI cannot see them. The
@@ -777,7 +695,7 @@ test("Settings: the panel's Reset all settings raises the same popup as /cm rese
 -- three are HOST-drawn — see the note above.
 --
 -- red under: folding the three back under Master controls, dropping the
--- Maintenance tab from TABS, or renaming a button.
+-- Maintenance host tab from TAB_OPTS, or renaming a button.
 test("Settings: the three maintenance verbs draw on their own tab", function(t)
     local KCM = loader.loadFullAddon()
     local AceGUI = LibStub("AceGUI-3.0")

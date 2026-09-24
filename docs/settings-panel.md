@@ -55,13 +55,23 @@ name a section the rows do not have. It also means a group's rows must be **cont
 under a group the page has already left draws that tab a second time — which `tests/test_schema.lua`
 pins.
 
+**Who draws each strip.** The **General** page hands its whole strip to the library's
+`RenderTabbedSchema` (LibKa0s-Options-1.0, OptionsTabs minor 4): the page's schema rows declare one
+group, **Master controls**, which becomes the first tab, and **Maintenance** is a *host tab* passed in
+`opts.tabs`, placed after it and filled by `drawMaintenance`. The other three pages build their strip
+with `H.TabStrip` themselves, and [#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)
+records why: Macros and Stat Priority have no schema rows for the library to partition, and every
+reorder list (the Macro Bar's Buttons tab among them) must be released *before* the scroll is cleared,
+which `RenderTabbedSchema`'s own tab click gives the host no hook to do.
+
 **The strip's geometry does not depend on which tab is selected** (`options-ui-§13`,
-anti-patterns #70). Both hand-drawn strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
+anti-patterns #70). The strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
 and the reserved chrome band and every wrapped row's offset are the same numbers for every value of
 the selection. The pitch is measured once, from the **unselected** tab art, which no click can
-change. That is the library's to get right; `tests/test_settingsui_optionsui.lua` pins it on both pages under a
-mock that answers a *different* height for the selected-state atlas, because a harness that answers
-one height for every atlas cannot fail the case.
+change. Every strip is the library's `O.TabStrip`, so that is the library's to get right, and its own
+suite pins it (`tests/test_options_tabs.lua`, under a mock that answers a *different* height for the
+selected-state atlas). This addon's copy of that case was deleted as a duplicate (CM-20, `testing-§8`);
+what stays here is which tabs each page draws, in what order.
 
 **A page never loses its strip for some state.** The Stat Priority page used to return before drawing
 anything when no spec could be resolved; the strip is drawn first now and the empty state is content
@@ -131,10 +141,10 @@ own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs | **Master controls** (the canonical set, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
+| **General** | 2 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities; a host tab with no rows). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
+| **Macro Bar** | 8 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
 | **Profiles** | none (`§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -604,7 +614,8 @@ not gaps:
   tab strip replaces the group heading it used to draw — a heading under a tab of the same name says
   the same thing twice — but a **`subgroup`** heading inside a mixed tab is *not* suppressed, because
   there is no tab left to name each block with (`options-ui-§7`).
-- **Tab strips** come from `H.TabStrip(ctx, { tabs, value, onSelect })` (`options-ui-§13`) and the page
+- **Tab strips** come from `H.TabStrip(ctx, { tabs, value, onSelect })` (`options-ui-§13`), or on the
+  General page from `H.RenderTabbedSchema(ctx, "general", afterGroup, nil, { tabs = … })`, and the page
   banner from `H.PageBanner(ctx, { label, list, order, value, onSelect })` (`§14`). Both are the
   library's, both live in the page's chrome band above the scroll, and the banner is drawn first
   because it reserves the share of the band the strip then places itself under.
