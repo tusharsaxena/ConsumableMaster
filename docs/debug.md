@@ -77,6 +77,7 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 | `statpriority` | Current spec's stat priority (primary + ordered secondary), with classID / specID / specKey. |
 | `bags` | `BagScanner.Scan()` output as `itemID = count`. |
 | `item <id>` | Parsed tooltip fields for the item plus the raw tooltip lines (pattern-debugging view). Shows `pending: tooltip data not yet loaded` if the data hasn't hydrated yet. |
+| `events` | Every client event in `KCM.EVENTS` with its handler and its state: `registered`, `rejected` (the client refused the name; it is in `KCM.RejectedEvents`), or `off (addon disabled)` while a hold has the addon stood down. |
 | `pick <catKey>` | The effective priority list with per-entry Ranker scores, an `[owned]` tag for entries you actually have, and a `<-- pick` marker on the winner. Composite catKeys (`hp_aio` / `mp_aio`) print the configured order, per-sub-cat picks, and the assembled macro body. |
 
 `<catKey>` is case-insensitive (`flask`, `FLASK`, `hp_aio` all work).

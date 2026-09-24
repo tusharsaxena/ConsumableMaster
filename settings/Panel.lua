@@ -1269,8 +1269,10 @@ KCM.Settings.Register = registerPanel
 -- handed the request over, the library owns the park and the replay, so this
 -- frame has nothing left to listen for.
 local bootstrap = CreateFrame("Frame")
-bootstrap:RegisterEvent("PLAYER_LOGIN")
-bootstrap:RegisterEvent("ADDON_LOADED")
+-- Through KCM.SafeRegisterEvent like every other registration here
+-- (events-frames-taint-§1); a frame ignores the nil handler.
+KCM.SafeRegisterEvent(bootstrap, "PLAYER_LOGIN", nil, KCM.RejectedEvents)
+KCM.SafeRegisterEvent(bootstrap, "ADDON_LOADED", nil, KCM.RejectedEvents)
 bootstrap:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 ~= "Blizzard_Settings" then return end
     if registerPanel() then

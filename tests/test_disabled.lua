@@ -155,15 +155,15 @@ test("Disabled 1: enabled, the addon registers a non-empty set", function(t)
 
     local names = {}
     for _, r in ipairs(R_on) do names[r] = true end
-    -- The nine KCM:OnEnable declares, by name, so a list that quietly shrinks is
-    -- a failure here rather than a smaller set silently passing step 3.
-    for _, e in ipairs({
-        "event:PLAYER_ENTERING_WORLD", "event:BAG_UPDATE_DELAYED",
-        "event:PLAYER_SPECIALIZATION_CHANGED", "event:PLAYER_REGEN_ENABLED",
-        "event:GET_ITEM_INFO_RECEIVED", "event:LEARNED_SPELL_IN_SKILL_LINE",
-        "event:PLAYER_EQUIPMENT_CHANGED", "event:SPELL_UPDATE_COOLDOWN",
-        "event:BAG_UPDATE_COOLDOWN",
-    }) do t.truthy(names[e], e .. " is registered while enabled") end
+    -- Every name KCM.EVENTS declares, derived from the list OnEnable walks, so a
+    -- pair added there is checked here unasked. The count is pinned too, so a
+    -- list that quietly shrinks is a failure here rather than a smaller set
+    -- silently passing step 3.
+    t.eq(#KCM.EVENTS, 9, "KCM.EVENTS declares the nine client events")
+    for _, pair in ipairs(KCM.EVENTS) do
+        local e = "event:" .. pair[1]
+        t.truthy(names[e], e .. " is registered while enabled")
+    end
     -- And the bus, which is the half a teardown built only on UnregisterAllEvents
     -- would leave behind.
     t.truthy(names["message:Ka0s_ConsumableMaster_Recompute"], "the pipeline is subscribed")

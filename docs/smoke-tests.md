@@ -500,6 +500,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 17. `/cm dump bags` — bag scanner output.
 18. `/cm dump item 12345` — parsed tooltip + raw lines.
 19. `/cm dump pick <catKey>` — covered above. Composite keys (`hp_aio`, `mp_aio`) print the assembled body.
+19b. `/cm dump events` — nine client events, every one `registered`, and `0 rejected` in the header line. Then `/cm debug on` and `/reload`: the `[Init]` line carries no `rejected events:` clause.
 
 ### 11a. Macro bar
 

@@ -172,8 +172,15 @@ local D = lib:New({
         if not (KCM.db and KCM.db.global) then return nil end
         local s = KCM.SafeToString or tostring
         local profileKey = KCM.db.GetCurrentProfile and KCM.db:GetCurrentProfile() or "?"
-        return ("%s v%s, schema v%s, profile '%s'"):format(
+        local line = ("%s v%s, schema v%s, profile '%s'"):format(
             "Consumable Master", s(KCM.VERSION), s(KCM.db.global.schemaVersion), s(profileKey))
+        -- The event names the client refused (events-frames-taint-§1), named
+        -- only when there are any: on a live client the clause is absent.
+        local rejected = KCM.RejectedEvents
+        if type(rejected) == "table" and #rejected > 0 then
+            line = line .. ", rejected events: " .. table.concat(rejected, ", ")
+        end
+        return line
     end,
 
     -- Fires on both OnShow and OnHide. Mandatory, not decorative: Escape and the

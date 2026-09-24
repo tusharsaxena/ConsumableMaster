@@ -125,7 +125,7 @@ end
 -- degraded arm has none, on purpose — see CORE_LIVE_ONLY.
 local CORE_SEAM = {
     "LIBKA0S_MISSING", "ColorDecode", "IsConcatSafe", "MakeCloseButton",
-    "SafeToString", "Say", "SwatchColor",
+    "SafeRegisterEvent", "SafeToString", "Say", "SwatchColor",
 }
 
 -- Live-only ON PURPOSE, argued at core/CoreSetup.lua:171-188 and pinned by

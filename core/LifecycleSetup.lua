@@ -96,7 +96,7 @@ local function standDown()
     -- NOT be attempted under lockdown, so the stand-down is held pending and
     -- completed on regen. KCM:OnRegenEnabled releases it the moment it fires.
     if inCombat() then
-        KCM:RegisterEvent("PLAYER_REGEN_ENABLED", "OnRegenEnabled")
+        KCM.SafeRegisterEvent(KCM, "PLAYER_REGEN_ENABLED", "OnRegenEnabled", KCM.RejectedEvents)
     end
 end
 

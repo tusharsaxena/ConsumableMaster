@@ -715,25 +715,43 @@ function KCM:OnEquipmentChanged(event, slotID)
     end
 end
 
--- THE REGISTRATION LIST, and the one place it is written down. The latch's
--- `standUp` CALLS this rather than copying it, and `standDown` drops the lot
--- with UnregisterAllEvents, so the two can never name different sets.
---
+-- THE REGISTRATION LIST, and the one place it is written down: { event, handler
+-- method } pairs, in registration order. KCM:OnEnable walks it, the latch's
+-- `standUp` CALLS OnEnable rather than copying it, and `standDown` drops the lot
+-- with UnregisterAllEvents, so the two can never name different sets. `/cm dump
+-- events` renders from it too.
+KCM.EVENTS = {
+    { "PLAYER_ENTERING_WORLD",         "OnPlayerEnteringWorld" },
+    { "BAG_UPDATE_DELAYED",            "OnBagUpdateDelayed" },
+    { "PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged" },
+    { "PLAYER_REGEN_ENABLED",          "OnRegenEnabled" },
+    { "GET_ITEM_INFO_RECEIVED",        "OnItemInfoReceived" },
+    { "LEARNED_SPELL_IN_SKILL_LINE",   "OnLearnedSpell" },
+    { "PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged" },
+    { "SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate" },
+    { "BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate" },
+}
+
+-- The names the client refused, each once, for the whole session. The addon's
+-- ONE rejected list (events-frames-taint-§1): every KCM.SafeRegisterEvent call
+-- site passes it, and the [Init] debug summary and `/cm dump events` read it.
+KCM.RejectedEvents = KCM.RejectedEvents or {}
+
 -- IT REFUSES TO RUN WHILE A HOLD IS TAKEN, and that is not a draw gate: it is
 -- the door, not a handler. AceAddon calls OnEnable after OnInitialize, which is
 -- where the `disabled` hold is taken from the stored path, so a player who logs
 -- in with the addon off registers NOTHING — rather than registering nine events
 -- and having them torn down a frame later, which is a race the perf harness can
 -- land in the middle of.
+--
+-- ONE RETIRED NAME CAN NO LONGER DEAFEN THE REST. The client raises on an event
+-- name it does not know, and a bare self:RegisterEvent raised out of this loop at
+-- that name, so every event after it went unregistered. Through
+-- KCM.SafeRegisterEvent a refused name is recorded in KCM.RejectedEvents and
+-- skipped; the trade is written up in docs/midnight-quirks.md.
 function KCM:OnEnable()
     if KCM.IsStoodDown and KCM.IsStoodDown() then return end
-    self:RegisterEvent("PLAYER_ENTERING_WORLD",         "OnPlayerEnteringWorld")
-    self:RegisterEvent("BAG_UPDATE_DELAYED",            "OnBagUpdateDelayed")
-    self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged")
-    self:RegisterEvent("PLAYER_REGEN_ENABLED",          "OnRegenEnabled")
-    self:RegisterEvent("GET_ITEM_INFO_RECEIVED",        "OnItemInfoReceived")
-    self:RegisterEvent("LEARNED_SPELL_IN_SKILL_LINE",   "OnLearnedSpell")
-    self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged")
-    self:RegisterEvent("SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate")
-    self:RegisterEvent("BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate")
+    for _, e in ipairs(KCM.EVENTS) do
+        KCM.SafeRegisterEvent(self, e[1], e[2], KCM.RejectedEvents)
+    end
 end

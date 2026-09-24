@@ -170,6 +170,31 @@ test("DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks", f
     KCM.State.debug = false
 end)
 
+-- events-frames-taint-§1: the rejected-names list is player-reachable. The
+-- [Init] summary names it when it has anything in it, and says nothing when it
+-- is empty, which is every live 12.1 session.
+test("DebugLog: [Init] names rejected events only when there are any", function(t)
+    local KCM, DL = load()
+    local D = DL.instance
+    local realSay = KCM.Say
+    KCM.Say = function() end
+
+    D:Clear()
+    DL.SetEnabled(true)
+    t.falsy(D:FindLine("rejected events"), "an empty list adds no clause")
+    DL.SetEnabled(false)
+
+    KCM.RejectedEvents = { "OLD_EVENT_A", "OLD_EVENT_B" }
+    D:Clear()
+    DL.SetEnabled(true)
+    t.truthy(D:FindLine("rejected events: OLD_EVENT_A, OLD_EVENT_B"),
+        "a non-empty list is named in the [Init] line")
+    DL.SetEnabled(false)
+
+    KCM.Say = realSay
+    KCM.State.debug = false
+end)
+
 -- Window visibility is a SEPARATE concern from the enabled flag (debug-logging-§5):
 -- the options-panel [Debug console] checkbox drives Show/Hide via IsWindowShown and
 -- must never move KCM.State.debug. (The mocked frame's IsShown always reads truthy,

@@ -210,7 +210,7 @@ badge and any count quoted in the docs must agree with it.
 - Debug: the sink publishes no Toggle of its own
 - Debug: no call site formats through a numeric placeholder
 
-### test_debuglog.lua (18)
+### test_debuglog.lua (19)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -220,6 +220,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the Debug sink is gated, and formats into the console buffer
 - DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
 - DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
+- DebugLog: [Init] names rejected events only when there are any
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
 - DebugLog: the console IS the library's instance, not a host lookalike
@@ -304,10 +305,16 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: a SPELL link is not mistaken for an item
 - ItemSetup: the degraded stub answers exactly what the library does
 
-### test_events.lua (20)
+### test_events.lua (26)
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
+- a retired event name leaves the other eight bound
+- a retired event name leaves the other eight bound on a client with no C_EventUtils
+- IsEventValid answering false rejects without calling RegisterEvent
+- a stand-down and stand-up does not record a rejected name twice
+- the degraded Core stub's SafeRegisterEvent records a raising name
+- /cm dump events lists every event and names the rejected one
 - PLAYER_ENTERING_WORLD discovers, sweeps, then recomputes in that order
 - PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
 - BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
@@ -1205,13 +1212,13 @@ badge and any count quoted in the docs must agree with it.
 | test_coresetup.lua | 12 |
 | test_database.lua | 23 |
 | test_debug.lua | 14 |
-| test_debuglog.lua | 18 |
+| test_debuglog.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 19 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
-| test_events.lua | 20 |
+| test_events.lua | 26 |
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
@@ -1246,4 +1253,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1028** |
+| **Total** | **1035** |
