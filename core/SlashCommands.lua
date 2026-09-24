@@ -900,8 +900,13 @@ local function runBar(rest)
     end
     local sub = lowerFirst(rest)
     -- Bare `/cm bar` toggles, matching how `/cm debug` reads as a switch.
+    -- It flips the STORED flag, not IsEnabled(): IsEnabled answers false under
+    -- any stand-down hold, a perf capture's suspended arm included
+    -- (core/MacroBarModel.lua BM.IsEnabled), so reading it here would make every
+    -- bare `/cm bar` during a capture write true. The toggle is the player's
+    -- own switch, and the hold is not theirs to flip.
     if sub == "" then
-        local on = not KCM.MacroBarModel.IsEnabled()
+        local on = not (KCM.MacroBarModel.Config() or {}).enabled
         KCM.MacroBar.SetEnabled(on)
         return say("macro bar " .. (on and "|cff00ff00ON|r" or "|cffff5555OFF|r"))
     end

@@ -920,7 +920,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (106)
+### test_slash.lua (107)
 
 - /cm set toggles a bool setting through the schema
 - /cm priority add then remove edits the FOOD candidate set
@@ -1015,6 +1015,7 @@ badge and any count quoted in the docs must agree with it.
 - every /cm stat and /cm aio write goes through the schema helper
 - /cm unlock and /cm lock write the macro bar's stored lock flag
 - /cm bar lock and /cm bar unlock land on the same stored flag
+- bare /cm bar toggles the stored flag during a perf hold
 - /cm lock and /cm unlock write through the schema helper, not the table
 - /cm lock and /cm unlock are in the published command table
 - Slash: enable / disable write the Enable row's own path
@@ -1217,7 +1218,7 @@ badge and any count quoted in the docs must agree with it.
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
 | test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 106 |
+| test_slash.lua | 107 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 6 |
@@ -1228,4 +1229,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1010** |
+| **Total** | **1011** |

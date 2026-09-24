@@ -1079,6 +1079,26 @@ test("/cm bar lock and /cm bar unlock land on the same stored flag", function(t)
     t.eq(KCM.db.profile.macroBar.locked, true, "the sub-verb still locks")
 end)
 
+-- A bare `/cm bar` is the player's own switch, so it flips the STORED flag. It
+-- used to flip MacroBarModel.IsEnabled(), which also answers false under any
+-- stand-down hold -- a perf capture's suspended arm included -- so during a
+-- capture a bar that was on read as off and every bare `/cm bar` wrote true.
+test("bare /cm bar toggles the stored flag during a perf hold", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", true)
+    KCM.Perf.Suspend()
+    t.falsy(KCM.MacroBarModel.IsEnabled(), "precondition: the hold makes IsEnabled answer false")
+
+    local line = say(KCM, mock, "bar")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "the first bare /cm bar turns the stored flag off")
+    t.truthy(line:find("OFF", 1, true) ~= nil, "and says OFF: " .. line)
+
+    line = say(KCM, mock, "bar")
+    t.eq(KCM.db.profile.macroBar.enabled, true, "the second turns it back on")
+    t.truthy(line:find("ON", 1, true) ~= nil, "and says ON: " .. line)
+    KCM.Perf.Resume()
+end)
+
 test("/cm lock and /cm unlock write through the schema helper, not the table", function(t)
     local KCM = load()
     local paths = recordSets(KCM)
