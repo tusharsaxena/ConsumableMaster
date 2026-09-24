@@ -206,6 +206,21 @@ end)
 -- 4. Nothing is still going to wake up
 -- ---------------------------------------------------------------------------
 
+--- Every frame the mock still holds a `kcmCombat` attribute driver on, as a
+--- set. These are the flyout containers: modules/MacroBarFlyout.lua registers
+--- one per slot so its secure snippets can read combat state, and the secure
+--- driver manager keeps evaluating it for as long as it is registered.
+local function combatDriverFrames()
+    local out, n = {}, 0
+    for frame, attrs in pairs(mock.attributeDrivers) do
+        if attrs.kcmCombat ~= nil then
+            out[frame] = attrs.kcmCombat
+            n = n + 1
+        end
+    end
+    return out, n
+end
+
 test("Disabled 4: no OnUpdate and no state driver is left armed", function(t)
     local _, H, frames = build()
     -- The fade tick is this addon's OnUpdate, and it only exists while the bar
@@ -215,12 +230,22 @@ test("Disabled 4: no OnUpdate and no state driver is left armed", function(t)
     local bar = frames.KCMMacroBar
     t.truthy(bar, "the bar frame was built")
     t.truthy(bar:GetScript("OnUpdate") ~= nil, "and its fade tick is armed while enabled")
+    -- A non-empty baseline, or the "none left" assertion below passes over a
+    -- bar whose flyouts were never built.
+    local armed, n_on = combatDriverFrames()
+    t.truthy(n_on > 0, "the flyouts' kcmCombat attribute drivers are armed while enabled")
+    for _, value in pairs(armed) do
+        t.eq(value, "[combat] 1; 0", "each flyout driver carries the combat conditional")
+    end
 
     H.SetAndRefresh("enabled", false)
 
     t.eq(bar:GetScript("OnUpdate"), nil, "the fade tick is cleared, not left to find a hidden bar")
     local drivers = mock.stateDrivers[bar]
     t.falsy(drivers and drivers.visibility, "the secure visibility driver is unregistered")
+    -- red under: drop FO.StandDown from MB.Update's disable branch
+    local _, n_off = combatDriverFrames()
+    t.eq(n_off, 0, "no flyout attribute driver is left registered (was " .. n_on .. ")")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -432,10 +457,20 @@ test("Disabled 8: left-click is refused and writes nothing; right-click opens th
 test("Disabled 9: re-enabling rebuilds exactly the set it took down", function(t)
     local _, H = build()
     local R_on = registrations()
+    local armed, n_on = combatDriverFrames()
+    t.truthy(n_on > 0, "the flyout attribute drivers are armed before the disable")
     H.SetAndRefresh("enabled", false)
     t.eq(count(registrations()), 0, "down")
+    t.eq(select(2, combatDriverFrames()), 0, "and the flyout attribute drivers with it")
     H.SetAndRefresh("enabled", true)
     t.eqList(registrations(), R_on, "and back up with the same registration set")
+    -- The same frames, re-armed: the flyouts are kept across the stand-down,
+    -- not rebuilt, so identity is the right comparison here.
+    local rearmed, n_back = combatDriverFrames()
+    t.eq(n_back, n_on, "every flyout attribute driver is re-armed")
+    for frame, value in pairs(armed) do
+        t.eq(rearmed[frame], value, "on the same flyout frame, with the same conditional")
+    end
 end)
 
 test("Disabled 9b: a setting changed while disabled is honored on the way back up", function(t)

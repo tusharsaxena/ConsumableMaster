@@ -226,7 +226,11 @@ attributes because a restricted-environment snippet can read nothing else:
   no `InCombatLockdown`, and it matters here: the idle poll is insecure and cannot
   hide mid-fight, so if the snippet also declined, the strip would sit open for the
   rest of the fight. In combat it therefore closes on leave regardless of the
-  delay.
+  delay. The driver is a secure-side subscription the client keeps evaluating,
+  so it does not outlive the addon: `MacroBar.Update`'s disable branch calls
+  `FO.StandDown()`, which unregisters it on every built flyout, and the enable
+  path calls `FO.StandUp()` to re-arm the same frames (`slash-commands-§7`). The
+  frames are kept across the stand-down; nothing is rebuilt.
 
 Everything that hides from Lua funnels through `FO.Close` / `FO.IdleTick`, which
 decline while `InCombatLockdown()` is true rather than attempting a hide the client

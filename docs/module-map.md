@@ -542,6 +542,7 @@ KCM.MacroBarFlyout.RefreshCooldowns(button) / RefreshCooldown(entry)
 KCM.MacroBarFlyout.ApplyBackdrop(flyout, cfg)      -- paints flyout.bg, not the handler
 KCM.MacroBarFlyout.Close(flyout)                   -- click path; declines in combat
 KCM.MacroBarFlyout.IdleTick(flyout, elapsed, delay)-- hover-aware idle countdown
+KCM.MacroBarFlyout.StandDown() / StandUp()         -- kcmCombat drivers off / on (MB.Update)
 KCM.MacroBarFlyout.MAX_ENTRIES                     -- pool ceiling
 ```
 

@@ -453,6 +453,9 @@ function MB.Update()
     if not (KCM.MacroBarModel.IsEnabled and KCM.MacroBarModel.IsEnabled()) then
         if bar then
             if UnregisterStateDriver then UnregisterStateDriver(bar, "visibility") end
+            -- The flyouts' `kcmCombat` attribute drivers are secure-side
+            -- subscriptions too; the frames are kept, the drivers come off.
+            if KCM.MacroBarFlyout then KCM.MacroBarFlyout.StandDown() end
             -- The fade tick is an OnUpdate, and an OnUpdate left on a frame is a
             -- timer that is still going to wake up. Cleared rather than left
             -- armed to find a hidden bar.
@@ -467,6 +470,9 @@ function MB.Update()
     applyLayout()
     applyLock()
     applyVisibility()
+    -- Re-arm what the disable branch took off. Idempotent on a bar that never
+    -- stood down: re-registering a driver replaces it.
+    if KCM.MacroBarFlyout then KCM.MacroBarFlyout.StandUp() end
     applyAlpha()
     MB.Refresh()
     return true
