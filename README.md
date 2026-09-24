@@ -32,10 +32,6 @@ Loot something better, change spec, reload, or drop out of combat, and each macr
 
 If a better pick turns up while you are in combat, the macro updates the moment you leave. WoW does not allow macro changes mid-fight.
 
-## What's new in 1.6.2
-
-- Fixed the AIO Health and AIO Mana tooltips on the macro bar showing the macro's text instead of the item or spell it will use
-
 ## Screenshots
 
 **_Stat Priority Selector (Per Spec)_**
