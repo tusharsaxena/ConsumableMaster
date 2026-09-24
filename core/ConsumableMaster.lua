@@ -644,16 +644,9 @@ function KCM:OnRegenEnabled()
     if KCM.MacroBar and KCM.MacroBar.FlushPending then
         KCM.MacroBar.FlushPending()
     end
-    -- A settings-category registration refused under lockdown parked itself
-    -- rather than tainting the Settings window (settings/Panel.lua's
-    -- registerPanel). This handler is the addon's only listener that knows
-    -- combat just ended, so the replay belongs here rather than on a second
-    -- PLAYER_REGEN_ENABLED frame owned by the options layer. It is a no-op on
-    -- every ordinary regen: nothing parks the flag unless a login, a /reload
-    -- or a force-load of Blizzard_Settings happened mid-fight.
-    if KCM.Settings and KCM.Settings.registerPending and KCM.Settings.Register then
-        KCM.Settings.Register()
-    end
+    -- No settings replay here: a category registration refused under lockdown
+    -- is parked by LibKa0s-Options-1.0 and replayed on its own frame, whatever
+    -- the stand-down state (settings/Panel.lua's registerPanel).
 end
 
 function KCM:OnItemInfoReceived(event, itemID, success)

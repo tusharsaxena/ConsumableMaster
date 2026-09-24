@@ -19,7 +19,7 @@
 --      immediately after this file: the schema-and-chrome half a page module
 --      calls while it BUILDS is this file, the shim the addon calls afterwards
 --      is that one. The cut is layout-§1's 1500-line cap; nothing else moved
---      with it, and the two notices it still needs are published on
+--      with it, and the one notice it still needs is published on
 --      KCM.Settings below rather than copied.
 --   KCM.Settings.Helpers + KCM.Settings.Schema  (SlashCommands /cm list/get/set)
 
@@ -34,9 +34,7 @@ local AceGUI = LibStub("AceGUI-3.0", true)
 KCM.Settings         = KCM.Settings         or {}
 KCM.Settings.Schema  = KCM.Settings.Schema  or {}
 KCM.Settings.builders= KCM.Settings.builders or {}
-KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
-KCM.Settings.main    = nil
 
 -- Canonical PAGE order — the five sub-pages in the AddOns sidebar, in the order
 -- a player meets them: the master switch and the maintenance actions, the macro
@@ -97,29 +95,10 @@ KCM.Settings.Helpers = Helpers
 -- on both sides is what makes the order between the two harmless.
 KCM.Options = KCM.Options or {}
 
-local PANEL_TITLE   = KCM.Settings.PANEL_TITLE
--- PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
+-- The panel title (KCM.Settings.PANEL_TITLE) is the library descriptor's
+-- parentTitle now, settings/OptionsSetup.lua. PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
 -- separator all live in LibKa0s-Options-1.0's LAYOUT table now, carrying the
 -- same values they carried here.
-
--- Combat-lockdown open refusal (options-ui-§2): the O.Open slash path emits the
--- one canonical gray notice through the shared secret-safe seam, never a
--- protected category-switch and never a silent no-op.
---
--- ONE CALLER, IN ANOTHER FILE, which is the whole reason this is published on
--- KCM.Settings rather than left a plain local: the 2026-09-16 peel moved O.Open
--- to settings/OptionsShim.lua and the wording stayed here. Published rather than
--- copied — a second copy is how one refusal starts reading differently from the
--- other.
---
--- NOT the Defaults guard below. That one refuses a different act and says so in
--- its own words ("Defaults is blocked until combat ends"), because what it is
--- declining is a reset, not an open. A comment here claimed the two shared this
--- wording and they never have.
-local function sayCombatOpenBlocked()
-    KCM.Say("|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r")
-end
-KCM.Settings.SayCombatOpenBlocked = sayCombatOpenBlocked
 
 -- Vertical rhythm, matched to Ka0s KickCD's settings pages (the house
 -- reference). The one that was missing here is ROW_VSPACER: KickCD emits it
@@ -1226,19 +1205,35 @@ end
 -- Tab + main-category registration
 -- ---------------------------------------------------------------------
 
+-- The library's page registry, fed in KCM.Settings.order, once. Guarded by a
+-- flag because registerPanel is reached more than once (PLAYER_LOGIN, then
+-- ADDON_LOADED("Blizzard_Settings"), or a second bootstrap event before the
+-- Settings API exists), and a page queued twice would be built twice.
+local pagesQueued = false
+
 function KCM.Settings.RegisterTab(key, builder)
     if type(key) ~= "string" or type(builder) ~= "function" then return end
     KCM.Settings.builders[key] = builder
-    if KCM.Settings.main and not KCM.Settings.sub[key] then
-        local ok, sub = pcall(builder, KCM.Settings.main)
-        if ok and sub then
-            KCM.Settings.sub[key] = sub
-        end
-    end
+    -- A page registered after the queue was fed goes straight to the library,
+    -- which builds it at once if the panel already exists.
+    if pagesQueued and UI then UI.RegisterOptionsPage(key, key, builder) end
 end
 
+-- Hand the whole options surface to LibKa0s-Options-1.0's CreateOptionsPanel:
+-- the main canvas (the descriptor's buildMain, settings/OptionsSetup.lua), the
+-- schema validation (its validate) and every page builder, in sidebar order.
+--
+-- Settings.RegisterAddOnCategory is protected, and an in-combat /reload or a
+-- mid-pull force-load of Blizzard_Settings reaches this. The library parks the
+-- registration under lockdown and replays it on its own PLAYER_REGEN_ENABLED
+-- frame, whatever this addon's stand-down state: the category and its Enable
+-- checkbox are setup that survives a disable (slash-commands-§7). The host
+-- park this replaced replayed from OnRegenEnabled, after its stood-down
+-- return, and lost the category for the session (ConsumableMaster-R-03).
+--
+-- Answers true once the request is the library's, which is what lets the
+-- bootstrap below let go of its events.
 local function registerPanel()
-    if KCM.Settings.main then return end
     -- With LibKa0s absent the panel is not registered AT ALL, rather than
     -- registered onto an empty canvas. Every page body is built out of the
     -- library's chrome, so a category that opened onto nothing would leave the
@@ -1250,70 +1245,35 @@ local function registerPanel()
     -- only ever reached from here.
     if libAbsent then
         sayPanelUnavailable()
-        return
+        return false
     end
     if not (Settings and Settings.RegisterCanvasLayoutCategory
             and Settings.RegisterAddOnCategory) then
-        return
+        return false
     end
 
-    -- Settings.RegisterAddOnCategory is protected. This function runs off the
-    -- PLAYER_LOGIN / ADDON_LOADED bootstrap at the foot of the file, which
-    -- normally lands out of combat — but an in-combat /reload reaches it, and
-    -- so does another addon calling C_AddOns.LoadAddOn("Blizzard_Settings")
-    -- mid-pull. Registering under lockdown taints the Settings window for the
-    -- rest of the session, and nothing is lost by waiting: the panel cannot be
-    -- opened in combat anyway (O.Open refuses below), so a category that
-    -- appears on regen is a category the user could not have reached sooner.
-    --
-    -- The replay is the addon's EXISTING PLAYER_REGEN_ENABLED handler
-    -- (core/ConsumableMaster.lua's OnRegenEnabled), not a second event
-    -- registration of this file's own: one deferred call does not justify a
-    -- parallel copy of a handler that already runs at exactly this moment, and
-    -- two frames listening for the same event is how the two halves drift.
-    if InCombatLockdown and InCombatLockdown() then
-        KCM.Settings.registerPending = true
-        return
-    end
-    KCM.Settings.registerPending = nil
-
-    Helpers.ValidateSchema()
-
-    local mainCtx = Helpers.CreatePanel("KCMMainPanel", PANEL_TITLE, { isMain = true })
-    Helpers.SetRenderer(mainCtx, Helpers.BuildAboutContent)
-
-    local main = Settings.RegisterCanvasLayoutCategory(mainCtx.panel, PANEL_TITLE)
-    Settings.RegisterAddOnCategory(main)
-    KCM.Settings.main = main
-
-    -- /cm config (and KCM.Options.Open) lands on the parent — the About
-    -- splash with logo + tagline + slash help. Sub-pages are forced
-    -- expanded in the AddOns sidebar (see O.Open) so all panels are one
-    -- click away from the landing page.
-    KCM._settingsCategoryID = main:GetID()
-
-    for _, key in ipairs(KCM.Settings.order) do
-        local fn = KCM.Settings.builders[key]
-        if type(fn) == "function" and not KCM.Settings.sub[key] then
-            local ok, sub = pcall(fn, main)
-            if ok and sub then
-                KCM.Settings.sub[key] = sub
-            elseif not ok then
-                KCM.Say("settings tab '" .. key .. "' failed: " .. tostring(sub))
-            end
+    if not pagesQueued then
+        pagesQueued = true
+        for _, key in ipairs(KCM.Settings.order) do
+            local fn = KCM.Settings.builders[key]
+            if type(fn) == "function" then UI.RegisterOptionsPage(key, key, fn) end
         end
     end
+    -- Idempotent, and parks itself in combat: a second call is a no-op.
+    UI.CreateOptionsPanel()
+    return true
 end
 KCM.Settings.Register = registerPanel
 
--- Bootstrap: defer until Blizzard_Settings is ready.
+-- Bootstrap: defer until Blizzard_Settings is ready. Once registerPanel has
+-- handed the request over, the library owns the park and the replay, so this
+-- frame has nothing left to listen for.
 local bootstrap = CreateFrame("Frame")
 bootstrap:RegisterEvent("PLAYER_LOGIN")
 bootstrap:RegisterEvent("ADDON_LOADED")
 bootstrap:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 ~= "Blizzard_Settings" then return end
-    registerPanel()
-    if KCM.Settings.main then
+    if registerPanel() then
         self:UnregisterAllEvents()
     end
 end)

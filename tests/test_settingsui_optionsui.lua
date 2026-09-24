@@ -755,46 +755,149 @@ end)
 -- ADDON_LOADED("Blizzard_Settings"), and neither normally lands mid-fight —
 -- but another addon calling C_AddOns.LoadAddOn("Blizzard_Settings") during a
 -- pull does, and so does an in-combat /reload. One tainted category poisons
--- the Settings window for the rest of the session, so the gate is cheap
--- insurance rather than a reaction to a reproduction.
+-- the Settings window for the rest of the session.
 --
--- These two cases are the headless half. The taint itself is invisible here —
--- no mock raises "Interface action failed because of an AddOn" — so what is
--- pinned is the observable half: nothing is registered under lockdown, the
--- attempt survives as a parked flag, and the addon's ONE regen handler is what
--- replays it. docs/smoke-tests.md § 6a owns the in-client half.
---
--- red under: dropping the InCombatLockdown early-out in registerPanel, or
--- moving the replay onto a second PLAYER_REGEN_ENABLED registration of its own.
+-- The park and its replay are LibKa0s-Options-1.0's (minor 24): registerPanel
+-- hands the request to UI.CreateOptionsPanel, which under lockdown registers
+-- nothing and replays itself on a library-private PLAYER_REGEN_ENABLED frame.
+-- These cases are the headless half. The taint itself is invisible here — no
+-- mock raises "Interface action failed because of an AddOn" — so what is pinned
+-- is the observable half: nothing registers under lockdown, the end of combat
+-- registers it exactly once, and it does so whatever the addon's stand-down
+-- state. docs/smoke-tests.md § 6a owns the in-client half.
+
+--- A `Settings` whose category calls answer and are counted. The mock's own
+--- answers nil from every member, which a real registration cannot get past.
+local function countRegistrations()
+    local seen = { addon = 0 }
+    rawset(_G.Settings, "RegisterCanvasLayoutCategory", function()
+        return { GetID = function() return 7 end }
+    end)
+    rawset(_G.Settings, "RegisterAddOnCategory", function() seen.addon = seen.addon + 1 end)
+    return seen
+end
+
+--- Record which frames created from here on are registered for which events.
+--- The repo's frame stub swallows RegisterEvent, so without this "fire the event
+--- at every frame listening for it" has no listener set to read.
+local function trackFrames()
+    local tracked = {}
+    local realCreate = _G.CreateFrame
+    _G.CreateFrame = function(...)
+        local f = realCreate(...)
+        local events = {}
+        rawset(f, "__events", events)
+        rawset(f, "RegisterEvent", function(self, e) events[e] = true; return self end)
+        rawset(f, "UnregisterEvent", function(self, e) events[e] = nil; return self end)
+        rawset(f, "UnregisterAllEvents", function(self)
+            for k in pairs(events) do events[k] = nil end
+            return self
+        end)
+        tracked[#tracked + 1] = f
+        return f
+    end
+    return tracked
+end
+
+--- PLAYER_REGEN_ENABLED, fired at every listener there is: the addon's own
+--- AceEvent registrations (the kit's live set) and every tracked frame still
+--- registered for it.
+local function fireRegen(tracked)
+    loader.mock.base.__fire("PLAYER_REGEN_ENABLED")
+    for _, f in ipairs(tracked) do
+        if f.__events.PLAYER_REGEN_ENABLED then f:_run("OnEvent", "PLAYER_REGEN_ENABLED") end
+    end
+end
+
+--- An enabled addon (OnEnable run, as tests/test_disabled.lua's build does),
+--- counting category registrations and tracking frames.
+local function enabledAddon()
+    local KCM = loader.loadFullAddon()
+    KCM:OnEnable()
+    local tracked = trackFrames()
+    return KCM, countRegistrations(), tracked
+end
+
+-- red under: dropping the library's InCombatLockdown park, or a host that
+-- re-parks (a second queued replay) on a second Register in the same combat.
 test("Settings: registering the category in combat is refused and parked", function(t)
-    local KCM = loader.loadWithSchema()
+    local KCM, seen = enabledAddon()
     loader.mock.setCombat(true)
     KCM.Settings.Register()
+    KCM.Settings.Register()
     loader.mock.setCombat(false)
-    t.eq(KCM.Settings.main, nil, "no Blizzard category is registered under lockdown")
-    t.truthy(KCM.Settings.registerPending, "the refused attempt is parked for regen to replay")
+    t.eq(seen.addon, 0, "no Blizzard category is registered under lockdown")
+    local lib = LibStub("LibKa0s-Options-1.0")
+    t.eq(#lib.__parkedPanels, 1, "one parked replay: a second Register while parked is a no-op")
 end)
 
+-- red under: a replay that re-arms itself, or a park that never listens for regen.
 test("Settings: leaving combat replays the parked registration, and only then", function(t)
-    local KCM = loader.loadWithSchema()
+    local KCM, seen, tracked = enabledAddon()
     loader.mock.setCombat(true)
     KCM.Settings.Register()
     loader.mock.setCombat(false)
+    t.eq(seen.addon, 0, "nothing before regen")
 
-    -- Count the replay rather than letting it run: the mock's Blizzard
-    -- `Settings` global answers every call with a no-op returning nil, so a
-    -- real registerPanel() body cannot complete headlessly (see the Battle Rez
-    -- note above). The seam under test is the wiring, not the body.
-    local real = KCM.Settings.Register
-    local calls = 0
-    KCM.Settings.Register = function() calls = calls + 1 end
+    fireRegen(tracked)
+    t.eq(seen.addon, 1, "the end of combat registers the category once")
 
-    KCM:OnRegenEnabled()
-    t.eq(calls, 1, "the addon's existing regen handler replays it — no second event frame")
-
-    KCM.Settings.registerPending = nil
-    KCM:OnRegenEnabled()
-    t.eq(calls, 1, "and a regen with nothing parked does not re-enter registration")
-
-    KCM.Settings.Register = real
+    fireRegen(tracked)
+    t.eq(seen.addon, 1, "and a second regen does not re-enter registration")
 end)
+
+-- ConsumableMaster-R-03: slash-commands-§7 names the settings-category
+-- registration as SETUP that survives a stand-down. The host's own replay lived
+-- at the end of OnRegenEnabled, after the stood-down early return, so a park
+-- taken while disabled was lost for the session, with the Enable checkbox in it.
+--
+-- red under: the replay living only in the host's OnRegenEnabled
+test("Settings: a registration parked while the addon is stood down still registers on regen",
+    function(t)
+        local KCM, seen, tracked = enabledAddon()
+        KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+        loader.mock.setCombat(true)
+        KCM.Settings.Register()
+        loader.mock.setCombat(false)
+        fireRegen(tracked)
+        t.eq(seen.addon, 1, "the category registers although the addon is disabled")
+    end)
+
+-- The same, with the stand-down itself taken IN combat: the addon then holds its
+-- one sanctioned PLAYER_REGEN_ENABLED registration, and its handler returns on
+-- the stood-down branch.
+--
+-- red under: the replay living only in the host's OnRegenEnabled
+test("Settings: a registration parked by a stand-down in combat still registers on regen",
+    function(t)
+        local KCM, seen, tracked = enabledAddon()
+        loader.mock.setCombat(true)
+        KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+        KCM.Settings.Register()
+        loader.mock.setCombat(false)
+        fireRegen(tracked)
+        t.eq(seen.addon, 1, "the category registers although the addon stood down mid-fight")
+    end)
+
+-- options-ui-§2: opening is refused outright in combat, in the library's words,
+-- once. The gate is UI.OpenOptionsPanel's; KCM.Options.Open only reports it.
+--
+-- red under: a host notice printed beside the library's, or a host that
+-- answers the refusal with 'settings panel unavailable'.
+test("Settings: /cm config in combat answers false and prints the library's refusal once",
+    function(t)
+        local KCM = enabledAddon()
+        KCM.Settings.Register()
+        local refused = LibStub("LibKa0s-Options-1.0").STRINGS.COMBAT_REFUSED
+        loader.mock.output = {}
+        loader.mock.setCombat(true)
+        local answer = KCM.Options.Open()
+        loader.mock.setCombat(false)
+        t.eq(answer, false, "the open is refused")
+        local hits, other = 0, 0
+        for _, line in ipairs(loader.mock.output) do
+            if line:find(refused, 1, true) then hits = hits + 1 else other = other + 1 end
+        end
+        t.eq(hits, 1, "the library's COMBAT_REFUSED line, exactly once")
+        t.eq(other, 0, "and nothing else is said")
+    end)

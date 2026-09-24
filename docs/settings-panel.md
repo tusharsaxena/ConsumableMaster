@@ -17,8 +17,14 @@ page registry, the widget makers, the two-column flow engine, the tab strip and 
 refresh debounce and the options layer's three bus receivers — is `settings/OptionsShim.lua`'s, peeled
 off `Panel.lua` on 2026-09-16 at `layout-§1`'s 1500-line cap and loaded immediately after it.
 
-Each page module hands a **builder** to `RegisterTab`; `settings/Panel.lua` iterates the builders once
-`Blizzard_Settings` is ready, driven by its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap.
+Each page module hands a **builder** to `RegisterTab`. Once `Blizzard_Settings` is ready, driven by
+its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap, `settings/Panel.lua`'s `registerPanel` queues
+them with the library's `RegisterOptionsPage` in `KCM.Settings.order` and calls
+`UI.CreateOptionsPanel()`, which registers the main canvas (the descriptor's `buildMain`, the About
+page) after running the descriptor's `validate`, then builds every page. In combat the library
+registers nothing: it parks the request and replays it once on its own `PLAYER_REGEN_ENABLED` frame,
+whatever the addon's stand-down state, so a disabled addon still gets its category and its Enable
+checkbox. The bootstrap lets go of its events as soon as the request is the library's.
 
 ### Every page draws a strip
 
@@ -110,11 +116,10 @@ them. `tests/test_settingsui.lua` **measures** that gap on both arms rather than
 ### Combat gate
 
 Opening is refused in combat, not deferred (`options-ui-§2`). The `O.Open` slash path
-(`settings/OptionsShim.lua`) reaches one helper — `sayCombatOpenBlocked`, defined in
-`settings/Panel.lua` and published on `KCM.Settings` for the shim — so the refusal emits a single
-canonical gray notice through the shared secret-safe printer, never a protected category switch and
-never a silent no-op. That is its only caller: the helper is published because the peel moved the
-caller into another file, not because it has two. A **tab click** is not gated: redrawing widgets inside an already-open panel was
+(`settings/OptionsShim.lua`) calls the library's `OpenOptionsPanel`, which prints its one canonical
+gray `COMBAT_REFUSED` line through the descriptor's printer and answers `false`, never a protected
+category switch and never a silent no-op; `O.Open` answers `false` in turn and says nothing more. Out
+of combat the library opens the category and expands the parent in the sidebar. A **tab click** is not gated: redrawing widgets inside an already-open panel was
 never a protected action (`options-ui-§13`).
 
 ## Page | Covers

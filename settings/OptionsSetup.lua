@@ -223,10 +223,18 @@ if optionsLib and AceGUI then
         -- A thunk, not `KCM.Say` bare: the library snapshots the printer at
         -- :New, so a captured value would freeze the load-time function object.
         -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
-        -- print. Inert in the adopted scope — both lines that reach it live in
-        -- the panel-registry half we do not use — but passed so a later step
-        -- cannot leak an untagged line.
+        -- print. It carries the library's own lines through the addon's tag:
+        -- a page builder that failed, a missing AceGUI, and the combat refusal
+        -- OpenOptionsPanel prints for /cm config mid-fight.
         print = function(line) KCM.Say(line) end,
+
+        -- The panel registry is the library's (CreateOptionsPanel, reached from
+        -- settings/Panel.lua's registerPanel), so the main canvas and the
+        -- schema check it runs first are declared here. Both are thunks:
+        -- settings/Panel.lua, which defines what they call, loads after this
+        -- file.
+        buildMain = function(ctx) return Helpers.BuildAboutContent(ctx) end,
+        validate  = function() Helpers.ValidateSchema() end,
 
         -- The row makers are the library's now (LIBKA0S-04, issue #22), so it needs the
         -- two things this addon's own makers knew and it could not guess.
@@ -282,10 +290,6 @@ if optionsLib and AceGUI then
         resetProfile = function() KCM.db:ResetProfile() end,
         profilesPage = true,
     })
-
-    -- Restated because the library resolves AceGUI once at :New and re-resolves
-    -- it only inside its own CreateOptionsPanel, which this addon never calls.
-    UI.AceGUI = AceGUI
 
     -- THE binding, replacing the hand-written re-export list. Every member the
     -- library publishes — AttachTooltip, EnsureScroll, PatchAlwaysShowScrollbar,

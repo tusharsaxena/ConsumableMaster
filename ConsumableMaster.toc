@@ -194,7 +194,7 @@ settings\Panel.lua
 # subscriptions that drive them. Peeled off Panel.lua at the 1500-line cap
 # (layout-§1). Immediately after Panel.lua and that is load-bearing in one
 # direction only: it takes KCM.Settings.Helpers, the optionsUI instance and
-# Panel.lua's two notice functions as file-scope locals, so it cannot load
+# Panel.lua's panel-unavailable notice as file-scope locals, so it cannot load
 # before them. Nothing below reads it at load -- the page files reach
 # KCM.Options through call-time thunks -- so its only constraint is to come
 # after Panel.lua.

@@ -228,8 +228,6 @@ end
 --                   developer diagnostics docs/debug.md governs, never chat.
 local RESIDUE = {
     -- settings/Panel.lua
-    {"settings/Panel.lua", "|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r",
-     "NOT YET ROUTED"},
     {"settings/Panel.lua", "|cffff0000schema error|r: ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "<no path>", "DIAGNOSTIC"},
     {"settings/Panel.lua", "row is not a table", "DIAGNOSTIC"},
@@ -250,7 +248,6 @@ local RESIDUE = {
     {"settings/Panel.lua", "expected true or false for ", "VALIDATOR"},
     {"settings/Panel.lua", "expected a list", "VALIDATOR"},
     {"settings/Panel.lua", "expected a table", "VALIDATOR"},
-    {"settings/Panel.lua", "settings tab '", "DIAGNOSTIC"},
 
     -- settings/OptionsShim.lua — O.Open's last-resort line. It reads as
     -- Panel.lua's, and was, until the KCM.Options shim was peeled off at the

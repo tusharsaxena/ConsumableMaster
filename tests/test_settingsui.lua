@@ -360,8 +360,10 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         H.Set(row.path, before)
 
         mock.output = {}
+        local registered = 0
+        rawset(_G.Settings, "RegisterAddOnCategory", function() registered = registered + 1 end)
         KCM.Settings.Register()
-        t.eq(KCM.Settings.main, nil, "no Blizzard category is registered")
+        t.eq(registered, 0, "no Blizzard category is registered")
         t.eq(KCM.Options.Open(), false, "/cm config answers false rather than doing nothing")
 
         local notices = 0

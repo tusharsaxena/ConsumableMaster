@@ -895,7 +895,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_settingsui_optionsui.lua (18)
+### test_settingsui_optionsui.lua (21)
 
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
@@ -915,6 +915,9 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the three maintenance verbs draw on their own tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
+- Settings: a registration parked while the addon is stood down still registers on regen
+- Settings: a registration parked by a stand-down in combat still registers on regen
+- Settings: /cm config in combat answers false and prints the library's refusal once
 
 ### test_slash.lua (106)
 
@@ -1212,7 +1215,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 55 |
 | test_selector.lua | 55 |
 | test_settingsui.lua | 36 |
-| test_settingsui_optionsui.lua | 18 |
+| test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 106 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
@@ -1224,4 +1227,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1006** |
+| **Total** | **1009** |

@@ -168,7 +168,7 @@ Tests: macro writes that hit combat queue, flush on regen, retry counter respect
 
 ### 6a. Combat deferral — the settings category
 
-Tests: the `InCombatLockdown()` gate on `registerPanel` (`settings/Panel.lua`) and its replay from `OnRegenEnabled` (`core/ConsumableMaster.lua`). `Settings.RegisterAddOnCategory` is protected, so registering under lockdown taints Blizzard's Settings window for the rest of the session. The headless suite pins the observable half — nothing registers in combat, regen replays it — but the taint error itself exists only in a live client, and the absence of that error is the entire assertion here.
+Tests: the combat park `registerPanel` (`settings/Panel.lua`) gets from `LibKa0s-Options-1.0`'s `CreateOptionsPanel`, and the library's replay on its own `PLAYER_REGEN_ENABLED` frame, which runs whatever the addon's stand-down state. `Settings.RegisterAddOnCategory` is protected, so registering under lockdown taints Blizzard's Settings window for the rest of the session. The headless suite pins the observable half — nothing registers in combat, regen replays it once, enabled or disabled — but the taint error itself exists only in a live client, and the absence of that error is the entire assertion here.
 
 **No reproduction is needed to justify this section.** The ordinary bootstrap (`PLAYER_LOGIN`, `ADDON_LOADED` for `Blizzard_Settings`) does not normally land mid-fight; an in-combat `/reload` does, and so does another addon force-loading `Blizzard_Settings` during a pull.
 
@@ -176,9 +176,10 @@ Tests: the `InCombatLockdown()` gate on `registerPanel` (`settings/Panel.lua`) a
 2. Pull a target dummy and stay on it.
 3. `/reload` while in combat, and keep swinging so you come back mid-fight.
 4. Watch chat and the error frame through the reload and for ten seconds after. Optionally open Blizzard's Settings window directly (`/cm config` will refuse with the gray in-combat notice, which is §7's check, not this one): ConsumableMaster should be **absent** from the AddOns list at this point.
-5. Drop combat. Open **Settings → AddOns**.
+5. Drop combat. Open **Settings → AddOns**, then run `/cm config` and confirm it opens the category with the parent expanded.
+6. Run it again **disabled**: `/cm disable`, pull the dummy, `/reload` in combat, drop combat. The category and its **Enable Consumable Master** checkbox are in the list. While in combat, `/cm config` prints the library's gray refusal line once.
 
-**Pass** — no "Interface action failed because of an AddOn" at any point, and the category is in the list once combat ends. **Fail** — the taint error appears, or the category never comes back, which means the parked flag was set and nothing replayed it.
+**Pass** — no "Interface action failed because of an AddOn" at any point, and the category is in the list once combat ends, in both runs. **Fail** — the taint error appears, or the category never comes back, which means the library parked the registration and nothing replayed it.
 
 ### 7. Settings panel — landing + General page
 
@@ -698,7 +699,7 @@ Rename it back and `/reload`.
 | `core/Database.lua` migrations / the profile hooks in `core/ConsumableMaster.lua` | §11a step 1a + §13 + §13a |
 | `settings/Profiles.lua`, `KCM.MSG.PROFILE_CHANGED` or any of its receivers, `KCM.Settings.VetoedFromResetAll`, or the vendored AceConfig / AceDBOptions | §13a in full, plus §7 step 10a |
 | Settings UI framework (`settings/Panel.lua`) | §7 + §7a + spot-check §8, §9, §10 |
-| `registerPanel`'s combat gate, or `OnRegenEnabled`'s replay of it | §6a |
+| `registerPanel`'s hand-off to `CreateOptionsPanel`, or the library's combat park and replay | §6a |
 | Anything under `libs/LibKa0s/`, or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/Panel.lua`, `core/PerfSetup.lua`) | [LibKa0s seam pass](#libka0s-seam-pass) |
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
