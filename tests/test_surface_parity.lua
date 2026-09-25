@@ -163,15 +163,16 @@ end)
 --
 -- Member list produced by:
 --     grep -n '^function DL\.\|^DL\.' core/DebugLogSetup.lua
--- which is the live surface (:181-:211). The degraded branch (:57-:104)
--- publishes seven of them.
+-- which is the live surface (:229-:260). The degraded branch (:61-:135)
+-- publishes eight of them.
 local DEBUGLOG_SEAM = {
     "AddLine", "IsEnabled", "Show", "Hide", "Clear", "ShowCopy", "RefreshHeader",
     "UpdateScrollBar", "UpdateStatus", "Toggle_Window", "IsWindowShown",
     "SetEnabled", "Toggle", "FormatPlain", "FormatColored", "instance",
+    "RunDiagnostics",
 }
 
--- Live-only ON PURPOSE, each argued at core/DebugLogSetup.lua:102-114:
+-- Live-only ON PURPOSE, each argued at core/DebugLogSetup.lua:123-133:
 --   * `instance` is WITHHELD, and that is the load-bearing one: core/Debug.lua's
 --     emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
 --     whether a console exists and falls back to the chat frame when it does not.

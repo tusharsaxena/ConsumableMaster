@@ -213,7 +213,7 @@ badge and any count quoted in the docs must agree with it.
 - Debug: the sink publishes no Toggle of its own
 - Debug: no call site formats through a numeric placeholder
 
-### test_debuglog.lua (19)
+### test_debuglog.lua (21)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -231,6 +231,8 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the console's own strings resolve to prose, not to their own keys
 - DebugLog: the flag lives in KCM.State, not in the library
 - DebugLog: with the library absent the console degrades and chat still answers
+- DebugLog: with the library absent RunDiagnostics says one line and floods nothing
+- DebugLog: RunDiagnostics forwards to the library instance and answers its count
 - DebugLogSetup: the descriptor passes addonName BESIDE name, not instead of it
 - DebugLogSetup: the folder name the descriptor carries names art that exists
 - DebugLogSetup: the console's font comes out of the payload, with a real client fallback
@@ -1246,6 +1248,10 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
+### test_diagnostics_contract.lua (1)
+
+- diagnostics contract: debug-logging-§14 (skipped: Kit.diagnostics is not set in the runner, so this repo's dispatcher is not wired to the shared contract yet. Every Ka0s addon owes debug-logging-§14's report; wire Kit.diagnostics once the report exists)
+
 ## Totals
 
 | Suite | Cases |
@@ -1261,7 +1267,7 @@ badge and any count quoted in the docs must agree with it.
 | test_coresetup.lua | 12 |
 | test_database.lua | 26 |
 | test_debug.lua | 14 |
-| test_debuglog.lua | 19 |
+| test_debuglog.lua | 21 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 19 |
@@ -1304,4 +1310,5 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **1078** |
+| test_diagnostics_contract.lua | 1 |
+| **Total** | **1081** |

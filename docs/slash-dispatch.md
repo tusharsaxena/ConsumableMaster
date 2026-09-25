@@ -167,7 +167,7 @@ Ka0s Consumable Master v1.6.2 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:393`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:395`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -212,17 +212,22 @@ and nothing else. `isEnabled` is asked at dispatch time and never cached, so the
 beside the library's would have to agree with it about which verbs are live and about how the
 refusal is worded, which is the drift the shared dispatcher exists to end.
 
-**The live set is `liveVerbs`, named once as data**, and it **WIDENS** the library's twelve by one —
-it must never be used to narrow them. The twelve are `slash-commands-§2`'s, and the reasoning is that
+**The live set is `liveVerbs`, named once as data**, and it **WIDENS** the library's thirteen by one —
+it must never be used to narrow them. The thirteen are `slash-commands-§2`'s, and the reasoning is that
 a player must be able to read and repair settings, and to reach the panel, while the addon is off —
 which is precisely when they are most likely to need to — and `enable` above all, or the pair is
 one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
-| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`** | `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`** | `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
 
-`dump` is this addon's thirteenth and it is a judgment rather than a quote from the rule.
+`diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
+`debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the
+word is in this addon's array by hand. The verb itself is not declared yet; until it is, the entry
+changes nothing a player can see.
+
+`dump` is this addon's fourteenth and it is a judgment rather than a quote from the rule.
 `core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and
 invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
 `debug` and `perf` are live for. Refusing it would take the diagnostic away at the one moment
@@ -265,7 +270,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:672`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:674`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the

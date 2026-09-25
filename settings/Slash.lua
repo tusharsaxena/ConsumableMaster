@@ -300,14 +300,16 @@ local COMMANDS = {
 -- direction an omission should fail in. It covers the library's OnSlash only:
 -- degradedDispatch, the library-absent arm at the foot of this file, has no gate.
 --
--- THE LIVE SET, NAMED ONCE AS DATA. slash-commands-§2 fixes twelve of these, and
+-- THE LIVE SET, NAMED ONCE AS DATA. slash-commands-§2 fixes thirteen of these, and
 -- the reasoning is that a player must be able to READ AND REPAIR SETTINGS and to
 -- REACH THE PANEL while the addon is off -- which is precisely when they are most
--- likely to need to -- and `enable` above all, or the pair is one-way. `debug`
--- and `perf` are diagnostics rather than features: the usual reason to reach for
--- either is that the addon is misbehaving.
+-- likely to need to -- and `enable` above all, or the pair is one-way. `debug`,
+-- `perf` and `diagnostics` are diagnostics rather than features: the usual reason
+-- to reach for any of them is that the addon is misbehaving. `diagnostics` joined
+-- the set with Slash minor 16 (LibKa0s v1.60.0, debug-logging-§14); a literal
+-- array does not inherit the library's default, so it is added here by hand.
 --
--- `dump` IS THIS ADDON'S THIRTEENTH, and it is a judgment rather than a quote.
+-- `dump` IS THIS ADDON'S FOURTEENTH, and it is a judgment rather than a quote.
 -- It is read-only by construction -- core/SlashDump.lua's five targets print what
 -- they find and write nothing, recompute nothing and invalidate nothing -- so it
 -- does not drive a feature; it reports on one, which is what `debug` and `perf`
@@ -324,7 +326,7 @@ local COMMANDS = {
 -- panel exactly as it does when the addon is running.
 local LIVE_VERBS = {
     "help", "config", "version", "enable", "disable", "debug",
-    "perf", "get", "set", "list", "reset", "resetall",
+    "perf", "diagnostics", "get", "set", "list", "reset", "resetall",
     "dump",
 }
 
@@ -519,7 +521,7 @@ if slashLib then
         -- as a literal in both places and pinned against each other by
         -- tests/test_disabled.lua, rather than one file reaching into the other.
         brandName    = "Ka0s Consumable Master",
-        -- WIDENS the library's twelve by this addon's read-only `dump`; it must
+        -- WIDENS the library's thirteen by this addon's read-only `dump`; it must
         -- never narrow them. See LIVE_VERBS above.
         liveVerbs    = LIVE_VERBS,
         -- A thunk, not `say` bare: the library snapshots the printer at :New.

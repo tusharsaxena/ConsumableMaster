@@ -143,7 +143,7 @@ merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 26, vendored from LibKa0s v1.56.0; wired since revision 25), which `layout-§1` makes
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 27, vendored from LibKa0s v1.60.0; wired since revision 25), which `layout-§1` makes
 the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
 census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
 [ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
