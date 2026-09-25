@@ -591,7 +591,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: no clearance when the flyout is off or the label is outside
 - macrobar flyout: clearance scales with the band thickness
 
-### test_macromanager.lua (51)
+### test_macromanager.lua (53)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -644,6 +644,8 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.SetCompositeMacro defers in combat and replays as a composite
 - MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
 - Named state: modules/MacroManager.lua is the only runtime writer of macroState
+- MacroManager.PendingSnapshot copies the combat queue, sorted by macro name
+- MacroManager.WriteTracking reports oversized categories and given-up macros
 
 ### test_mediasetup.lua (12)
 
@@ -1154,7 +1156,7 @@ badge and any count quoted in the docs must agree with it.
 - Parity: the LibKa0s-Schema stub instance carries the whole live instance
 - Parity: KCM.SchemaStub carries the LibKa0s-Schema-1.0 library surface
 
-### test_tooltipcache.lua (23)
+### test_tooltipcache.lua (24)
 
 - TooltipCache: parses combined flat 'health and mana' into both values
 - TooltipCache: parses health-only food with no manaValue
@@ -1179,6 +1181,7 @@ badge and any count quoted in the docs must agree with it.
 - TooltipCache: 'over N sec' feeds the over-fields, never buffDurationSec
 - TooltipCache: 'over' applies to the seconds form only
 - TooltipCache: a cooldown note is stripped and a bare cooldown line skipped
+- TooltipCache.Snapshot counts entries and lists pending ids without fetching
 
 ### test_vendor_sync.lua (3)
 
@@ -1285,7 +1288,7 @@ badge and any count quoted in the docs must agree with it.
 | test_macrobar_chrome.lua | 18 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
-| test_macromanager.lua | 51 |
+| test_macromanager.lua | 53 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 31 |
@@ -1303,7 +1306,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
-| test_tooltipcache.lua | 23 |
+| test_tooltipcache.lua | 24 |
 | test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
 | test_widgets.lua | 8 |
@@ -1311,4 +1314,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 1 |
-| **Total** | **1081** |
+| **Total** | **1084** |

@@ -809,3 +809,73 @@ test("Named state: modules/MacroManager.lua is the only runtime writer of macroS
     end
     t.eq(#offenders, 0, "macroState written outside MacroManager: " .. table.concat(offenders, ", "))
 end)
+
+-- ---------------------------------------------------------------------------
+-- Read-only accessors for the diagnostics report (DX-CM)
+-- ---------------------------------------------------------------------------
+-- The queue, the oversize gate and the give-up record are file-local, so the
+-- report reads them through these copies and can never mutate the write path.
+
+test("MacroManager.PendingSnapshot copies the combat queue, sorted by macro name", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    t.eq(#KCM.MacroManager.PendingSnapshot(), 0, "an empty queue reads as an empty list")
+    ownFood(mock, 944001)
+    ownFood(mock, 944002)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_HP_POT", 944002, "HP_POT")
+    KCM.MacroManager.SetMacro("KCM_FOOD", 944001, "FOOD")
+
+    local snap = KCM.MacroManager.PendingSnapshot()
+    t.eq(#snap, 2, "one row per queued macro")
+    t.eq(snap[1].name, "KCM_FOOD", "rows sorted by macro name")
+    t.eq(snap[2].name, "KCM_HP_POT", "rows sorted by macro name")
+    t.eq(snap[1].catKey, "FOOD", "the row names the category")
+    t.eq(snap[1].itemID, 944001, "and the icon item the queued body carries")
+    t.eq(snap[1].attempts, 0, "no failed flush yet")
+    t.eq(snap[1].composite, false, "a single-category write is not a composite")
+    t.eq(snap[1].bytes, string.len("#showtooltip\n/use item:944001"), "the queued body's size, not the body")
+    t.eq(snap[1].body, nil, "the body itself stays out of the snapshot")
+
+    snap[1].attempts = 99
+    snap[3] = { name = "KCM_FAKE" }
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 2, "editing the copy changed nothing in the real queue")
+    t.eq(#KCM.MacroManager.PendingSnapshot(), 0, "and the drained queue reads empty")
+end)
+
+test("MacroManager.WriteTracking reports oversized categories and given-up macros", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local track = KCM.MacroManager.WriteTracking()
+    t.eq(#track.oversized, 0, "nothing oversized at load")
+    t.eq(#track.gaveUp, 0, "nothing given up at load")
+
+    ownFood(mock, 944010)
+    local realBuild = KCM.MacroManager.BuildBody
+    KCM.MacroManager.BuildBody = function() return string.rep("x", 300) end
+    KCM.MacroManager.SetMacro("KCM_FOOD", 944010, "FOOD")
+    KCM.MacroManager.BuildBody = realBuild
+
+    ownFood(mock, 944011)
+    mock.setCombat(true)
+    KCM.MacroManager.SetMacro("KCM_HP_POT", 944011, "HP_POT")
+    mock.setCombat(false)
+    local savedCreate = _G.CreateMacro
+    _G.CreateMacro = function() end
+    for _ = 1, 3 do KCM.MacroManager.FlushPending() end
+    _G.CreateMacro = savedCreate
+
+    track = KCM.MacroManager.WriteTracking()
+    t.eq(#track.oversized, 1, "one oversized category")
+    t.eq(track.oversized[1], "FOOD", "named by its category key")
+    t.eq(#track.gaveUp, 1, "one macro given up on")
+    t.eq(track.gaveUp[1].name, "KCM_HP_POT", "named by its macro")
+    t.eq(track.gaveUp[1].attempts, 3, "with the attempts it took")
+
+    track.oversized[1] = "MUTATED"
+    t.eq(KCM.MacroManager.WriteTracking().oversized[1], "FOOD", "the lists are copies")
+
+    KCM.MacroManager.InvalidateState()
+    track = KCM.MacroManager.WriteTracking()
+    t.eq(#track.oversized, 0, "a forced rewrite forgets the oversize gate")
+    t.eq(#track.gaveUp, 0, "and the give-up record")
+end)

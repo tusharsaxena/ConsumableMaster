@@ -596,6 +596,9 @@ end
 -- MAX_FLUSH_ATTEMPTS failed writes we give up on that macro and emit a
 -- one-time chat error so the user can diagnose. Bounding retries prevents a
 -- persistently-failing macro from re-queueing forever on every combat cycle.
+-- The give-up is recorded in `gaveUp[macroName] = attempts` for the
+-- diagnostics report; InvalidateState clears it with the oversize gate.
+local gaveUp = {}
 
 function M.FlushPending()
     if InCombatLockdown and InCombatLockdown() then
@@ -617,6 +620,7 @@ function M.FlushPending()
             entry.attempts = (entry.attempts or 0) + 1
             if entry.attempts >= MAX_FLUSH_ATTEMPTS then
                 KCM.Say("gave up on %s after %s failed writes — check /cm debug output.", name, entry.attempts)
+                gaveUp[name] = entry.attempts
                 if KCM.State and KCM.State.debug then
                     KCM.Debug("Macro", "dropped %s after %s attempts (last err=%s)",
                         name, entry.attempts, tostring(result))
@@ -665,4 +669,44 @@ function M.InvalidateState()
     end
     pendingUpdates = {}
     alreadyWarnedOversized = {}
+    gaveUp = {}
+end
+
+-- ---------------------------------------------------------------------------
+-- Read-only accessors for the diagnostics report (debug-logging-§14, DX-CM)
+-- ---------------------------------------------------------------------------
+-- The queue, the oversize gate and the give-up record are file-local. These
+-- hand out fresh copies, sorted so the report reads the same way every time,
+-- and never the tables themselves, so a report cannot mutate the write path.
+-- A queued body is reported by its size, not its text.
+
+local function sortedKeys(t)
+    local keys = {}
+    for k in pairs(t) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    return keys
+end
+
+function M.PendingSnapshot()
+    local rows = {}
+    for _, name in ipairs(sortedKeys(pendingUpdates)) do
+        local entry = pendingUpdates[name]
+        rows[#rows + 1] = {
+            name      = name,
+            catKey    = entry.catKey,
+            itemID    = entry.itemID,
+            attempts  = entry.attempts or 0,
+            composite = entry.cat ~= nil,
+            bytes     = entry.body and string.len(entry.body) or 0,
+        }
+    end
+    return rows
+end
+
+function M.WriteTracking()
+    local given = {}
+    for _, name in ipairs(sortedKeys(gaveUp)) do
+        given[#given + 1] = { name = name, attempts = gaveUp[name] }
+    end
+    return { oversized = sortedKeys(alreadyWarnedOversized), gaveUp = given }
 end

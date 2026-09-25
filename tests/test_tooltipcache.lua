@@ -371,3 +371,29 @@ test("TooltipCache: a cooldown note is stripped and a bare cooldown line skipped
     })
     t.falsy(bare.buffDurationSec, "a standalone cooldown line contributes no duration")
 end)
+
+-- ---- Snapshot: the read-only accessor the diagnostics report uses (DX-CM) -
+-- Counts plus the pending ids, read straight off the cache: taking one must
+-- never fetch a tooltip, or the report would change the state it describes.
+test("TooltipCache.Snapshot counts entries and lists pending ids without fetching", function(t)
+    local TC, mock = newTC()
+    local snap = TC.Snapshot()
+    t.eq(snap.total, 0, "an empty cache has no entries")
+    t.eq(snap.pending, 0, "and nothing pending")
+    t.eq(#snap.pendingIds, 0, "and no pending ids")
+
+    parse(TC, mock, 1101, { "Use: Restores 90,000 health over 20 sec." })
+    _G.C_TooltipInfo.GetItemByID = function() return nil end
+    TC.Get(1203)
+    TC.Get(1202)
+
+    local fetched = 0
+    _G.C_TooltipInfo.GetItemByID = function() fetched = fetched + 1 return nil end
+    snap = TC.Snapshot()
+    t.eq(fetched, 0, "taking a snapshot fetches nothing")
+    t.eq(snap.total, 3, "every cached entry counted")
+    t.eq(snap.pending, 2, "the two unloaded ids are pending")
+    t.eq(snap.unsupported, 0, "the tooltip API is present")
+    t.eq(snap.pendingIds[1], 1202, "pending ids sorted ascending")
+    t.eq(snap.pendingIds[2], 1203, "pending ids sorted ascending")
+end)
