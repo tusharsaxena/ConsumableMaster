@@ -26,6 +26,9 @@
 -- THE TWO RESETS ARE DIFFERENT ACTS and are deliberately on different tabs.
 -- [Reset all settings] is options-ui-§12's global reset — a profile reset, the
 -- same act as Profiles → Reset Profile, behind the collection's one wording.
+-- It raises core/SlashCommands.lua's KCM_CONFIRM_RESET, the popup `/cm resetall`
+-- raises, and the combat refusal and repaint are KCM.ResetAllToDefaults' own, so
+-- this door adds nothing of its own (ConsumableMaster-R-08).
 -- [Reset all priorities] is targeted: it clears the added / blocked / pinned
 -- items and the stat-priority overrides and leaves every other setting standing.
 -- The button that used to sit here said the second and did the first.
@@ -48,7 +51,18 @@ local BAR_DEFAULTS     = PROFILE_DEFAULTS.macroBar or {}
 -- otherwise — the composer spec below, the `neverReset` stamp beside it and the
 -- page reset's carve-out — and settings/OptionsSetup.lua deliberately does not
 -- hold a fourth copy (its veto reads the row's flag, not its path).
-local MINIMAP_PATH = "global.minimap.hide"
+--
+-- The PATH reads in the row's own sense -- SHOWN, like its label and like the
+-- `/cm get` answer -- while the STORE stays LibDBIcon's `db.global.minimap.hide`
+-- (WS-06). The path names the row, not the key: the row's get/set below invert
+-- onto `hide`, so no SavedVariables moved with the rename and no `shown` key is
+-- ever written beside it (anti-pattern #81). The old path, ending in `.hide`, is
+-- no row any more and answers "Setting not found".
+local MINIMAP_PATH = "global.minimap.shown"
+
+-- The debug console row's path, named once for the same reason: the composer
+-- spec and the store stamped on the row below.
+local DEBUG_CONSOLE_PATH = "state.debugConsole"
 
 -- The row no reset may reach (launcher-§3). Resolved at load, which is safe:
 -- settings/OptionsSetup.lua publishes it above its library branch and the TOC
@@ -98,25 +112,6 @@ local function doForceRewriteMacros()
     H.RefreshAllPanels()
 end
 
--- The GLOBAL reset (options-ui-§12): the session-only rows restored by hand, then
--- a profile reset — the same act AceDBOptions' own Reset Profile performs. BOTH
--- halves are KCM.ResetAllToDefaults', not this button's, because `/cm resetall`
--- is the same act through another door and the two must not drift. The resync is
--- in neither half: it happens on the OnProfileReset callback, which is the one
--- path a profile SWITCH takes too.
-local function doResetAll()
-    -- Combat-guarded to match the Maintenance subsection's siblings; the
-    -- DB wipe itself is combat-safe (MacroManager defers macro writes to
-    -- regen), but blocking here keeps the page's behavior uniform.
-    if InCombatLockdown and InCombatLockdown() then
-        return inCombatNotice("reset")
-    end
-    if KCM.ResetAllToDefaults then
-        KCM.ResetAllToDefaults("options_reset")
-    end
-    H.RefreshAllPanels()
-end
-
 -- The TARGETED reset the old "Reset all priorities" button claimed and did not
 -- do: every category's added / blocked / pinned items and every spec's stat
 -- priority override, and nothing else — the macro bar's appearance, the master
@@ -142,21 +137,6 @@ local function doResetAllPriorities()
     resyncPipeline("options_reset_priorities")
 end
 KCM.ResetAllPriorities = doResetAllPriorities
-
-StaticPopupDialogs["KCM_RESET_ALL"] = {
-    -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on
-    -- purpose: the old text enumerated this addon's own nouns, which is exactly
-    -- what eight addons each did differently. What it used to promise about
-    -- macros surviving is still true and is now the tooltip's job, not the
-    -- confirmation's -- a popup that lists reassurances buries the warning.
-    text         = L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded — your other profiles are not affected."],
-    button1      = L["Yes"],
-    button2      = L["No"],
-    timeout      = 0,
-    whileDead    = true,
-    hideOnEscape = true,
-    OnAccept     = function() doResetAll() end,
-}
 
 -- A SECOND popup, because it warns about a genuinely narrower act. Sharing the
 -- global reset's text would be the same lie the shared BUTTON was: a player told
@@ -203,14 +183,14 @@ local masterRows, masterTail = H.MasterControls{
     page      = "general",
     addonName = "Consumable Master",
     -- Verbatim and unprefixed, because the console's visibility is SESSION state
-    -- and lives outside the profile. settings/Panel.lua's SESSION_PATHS is what
-    -- resolves it.
-    debugConsolePath = "state.debugConsole",
+    -- and lives outside the profile. The row's own get/set, stamped below, is
+    -- what stores it.
+    debugConsolePath = DEBUG_CONSOLE_PATH,
     -- Verbatim and unprefixed for the same reason, and for a different store:
     -- the minimap button's table is LibDBIcon's own and launcher-§3 fixes it in
-    -- the GLOBAL store, outside this block's profile prefix. settings/Panel.lua's
-    -- GLOBAL_PATHS is what resolves it, and it is where the row's SHOWN/HIDDEN
-    -- inversion lives -- the row's label says shown, the stored key says hidden.
+    -- the GLOBAL store, outside this block's profile prefix. The row's own
+    -- get/set, stamped below, is what stores it, and it is where the row's
+    -- SHOWN/HIDDEN inversion lives -- the label says shown, the key says hidden.
     --
     -- Emitting this row also moves *Test mode* off `startsLine` inside the
     -- composer so the two pair as `[Minimap button] [Test mode]`; this addon has
@@ -239,14 +219,74 @@ local masterRows, masterTail = H.MasterControls{
             KCM.Say("macro bar position reset.")
         end
     end,
-    onResetAll = function() StaticPopup_Show("KCM_RESET_ALL") end,
+    onResetAll = function() StaticPopup_Show("KCM_CONFIRM_RESET") end,
+}
+
+-- The debug console's visibility (options-ui-§15). SESSION state: a console
+-- left open is not a setting the next character inherits (debug-logging), so
+-- the row is `sessionOnly` and its store is the console itself. It never arms
+-- LOGGING (KCM.State.debug), which stays the separate flag it has always been
+-- (debug-logging-§5); this is the show/hide a bare `/cm debug` performs.
+local debugConsoleRow = {
+    sessionOnly = true,
+    get = function()
+        local DL = KCM.DebugLog
+        return (DL and DL.IsWindowShown and DL.IsWindowShown()) and true or false
+    end,
+    set = function(v)
+        local DL = KCM.DebugLog
+        if not DL then return end
+        if v then
+            if DL.Show then DL.Show() end
+        elseif DL.Hide then
+            DL.Hide()
+        end
+    end,
+}
+
+-- The minimap button's visibility: STORED, but in db.global rather than the
+-- profile, because launcher-§3 fixes LibDBIcon's table in the global store -- a
+-- button belongs to the installation, so a profile switch must not move it and
+-- the global reset (a profile reset by definition) must not un-hide it.
+--
+-- THE INVERSION LIVES HERE, in the row's own store, exactly as launcher-§3 says
+-- it should. The label says SHOWN; LibDBIcon's key says HIDDEN. That is the
+-- cost of storing the library's own key rather than a second boolean beside it
+-- -- LibDBIcon writes `hide` itself from the button's own menu, and a parallel
+-- `show` would be free to disagree with it (anti-pattern #81). The `set` calls
+-- the launcher afterwards so the button follows the checkbox at once.
+local function minimapTable()
+    return KCM.db and KCM.db.global and KCM.db.global.minimap
+end
+
+local minimapRow = {
+    -- THE ONE ROW NO RESET MAY REACH (launcher-§3). The composer emits it with
+    -- `default = true` -- SHOWN -- because a fresh install shows the button, and
+    -- that default is what `/cm reset global.minimap.shown` restores when the
+    -- player asks for it by name. What the flag stops is a RESET reaching it:
+    -- the Defaults button below walks every row on this page carrying a default,
+    -- and without the stamp a player who had hidden the button got it back at
+    -- LibDBIcon's default angle from a click about the master controls. The
+    -- predicate is settings/OptionsSetup.lua's, beside the global reset's veto,
+    -- and settings/Panel.lua hands the same flag to the seam's resetExempt.
+    neverReset = true,
+    -- Shown is the answer when there is no table yet: that is what a fresh
+    -- install ships as, and it is what the button does.
+    get = function()
+        local t = minimapTable()
+        return not (t and t.hide)
+    end,
+    set = function(v)
+        local t = minimapTable()
+        if not t then return end
+        t.hide = not v
+        if KCM.Launcher then KCM.Launcher:SetShown(v and true or false) end
+    end,
 }
 
 H.RegisterRows(masterRows, "general", "general", {
     enabled = {
-        onChange = function(v)
-            local state = v and "|cff00ff00ON|r" or "|cffff5555OFF|r"
-            KCM.Say("Master enable " .. state)
+        apply = function(v)
             -- THE ONE REACTION, AND IT IS THE LATCH'S (slash-commands-§7).
             -- This row is the addon-wide switch, so `/cm enable`, `/cm disable`,
             -- `/cm set enabled true` and the checkbox all arrive here, and from
@@ -262,28 +302,21 @@ H.RegisterRows(masterRows, "general", "general", {
     -- The three addon-wide display rows all reach the same apply pass: the macro
     -- bar is the only thing this addon draws, and Update is idempotent and
     -- self-defers in combat.
-    visibility = { onChange = applyBar },
-    scale      = { onChange = applyBar },
-    alpha      = { onChange = applyBar },
+    visibility = { apply = applyBar },
+    scale      = { apply = applyBar },
+    alpha      = { apply = applyBar },
     -- Apply-only, exactly as it was on the Macro Bar page: the write has already
-    -- landed by the time an onChange runs, and Schema:Set is still the single
+    -- landed by the time an apply runs, and Schema:Set is still the single
     -- write path both `/cm bar lock` and this checkbox take (CM-R-05).
     ["macroBar.locked"] = {
-        onChange = function()
+        apply = function()
             if KCM.MacroBar and KCM.MacroBar.ApplyLock then
                 KCM.MacroBar.ApplyLock()
             end
         end,
     },
-    -- THE ONE ROW NO RESET MAY REACH (launcher-§3). The composer emits it with
-    -- `default = true` — SHOWN — because a fresh install shows the button, and
-    -- that default is what `/cm reset global.minimap.hide` restores when the
-    -- player asks for it by name. What the flag stops is a RESET reaching it:
-    -- the Defaults button below walks every row on this page carrying a default,
-    -- and without the stamp a player who had hidden the button got it back at
-    -- LibDBIcon's default angle from a click about the master controls. The
-    -- predicate is settings/OptionsSetup.lua's, beside the global reset's veto.
-    [MINIMAP_PATH] = { neverReset = true },
+    [DEBUG_CONSOLE_PATH] = debugConsoleRow,
+    [MINIMAP_PATH] = minimapRow,
 })
 
 -- Top-right Defaults button (options-ui-§5) resets THIS PAGE, and its blast
@@ -292,7 +325,7 @@ H.RegisterRows(masterRows, "general", "general", {
 -- covered without anyone remembering to add it here.
 --
 -- A bulk reset: one `[Set] reset General page: N rows` line, and each row's own
--- onChange still runs (debug-logging-§10). The bracket closes BEFORE the console
+-- apply still runs (debug-logging-§10). The bracket closes BEFORE the console
 -- is disarmed below, so the line is not lost to it.
 --
 -- ONE ROW IS EXEMPT and it is the minimap button's (launcher-§3). Through 1.6.2
@@ -327,12 +360,15 @@ end
 -- The tab strip (options-ui-§13)
 -- ---------------------------------------------------------------------
 --
--- Hand-drawn rather than handed to RenderTabbedSchema. The tab's ROWS are
--- rendered by the library's row engine (RenderRows, with the group heading
--- suppressed because the tab already carries the name), so the rows, their order,
--- their pairing and the closing button pair are all the library's; what the
--- library cannot derive is the Maintenance tab beside them, which declares
--- no rows at all -- its three controls are acts, not settings.
+-- Drawn by the library's RenderTabbedSchema (LibKa0s-Options-1.0, OptionsTabs
+-- minor 4). The strip is partitioned from this page's schema rows by `group`, so
+-- Master controls -- the one group they declare -- is the first tab, its rows go
+-- through the row engine with the heading suppressed (the tab carries the name),
+-- and the closing button pair is that group's afterGroup hook. The Maintenance
+-- tab is a HOST tab (`opts.tabs`): it declares no rows at all, because its three
+-- controls are acts rather than settings, so the library places it after the
+-- schema tab and calls drawMaintenance to fill it. A tab click is the library's
+-- own ClearScroll-and-re-render; nothing on this page holds a widget across it.
 
 -- The three targeted verbs, on their OWN TAB beside Master controls.
 --
@@ -343,7 +379,7 @@ end
 -- everybody opens, so hanging three destructive-ish acts off the bottom of it
 -- means the rows a player came for are no longer the whole of what they see.
 --
--- Permitted, and worth saying why, because §15 is strict about this page: it
+-- Permitted, and worth saying why, because options-ui-§15 is strict about this page: it
 -- forbids reordering, renaming or splitting the CANONICAL SET across tabs, and
 -- these three were never part of it. Master controls stays the first tab and
 -- still carries the canonical rows and nothing else.
@@ -364,54 +400,24 @@ local function drawMaintenance(ctx)
         })
     H.Button(ctx, {
         text    = L["Reset all priorities"],
-        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings above."],
+        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings on the Master controls tab."],
         onClick = function() StaticPopup_Show("KCM_RESET_PRIORITIES") end,
     })
 end
 
-local function drawMaster(ctx)
-    H.RenderRows(ctx, masterRows, { ["Master controls"] = masterTail }, nil,
-        { noHeadings = true })
-end
-
--- Master controls FIRST, and that is §15's requirement rather than a habit: every addon's General
--- page must open on it, under exactly that name.
-local TABS = {
-    { group = "Master controls", label = L["Master controls"], draw = drawMaster },
-    { group = "Maintenance",     label = L["Maintenance"],     draw = drawMaintenance },
+-- Master controls FIRST, and that is options-ui-§15's requirement rather than a habit: every addon's General
+-- page must open on it, under exactly that name. It is first because it is the page's first (and
+-- only) schema group and the host tab carries no `before`, so the library appends Maintenance.
+local AFTER_GROUP = { ["Master controls"] = masterTail }
+local TAB_OPTS = {
+    tabs = {
+        { key = "Maintenance", label = L["Maintenance"], render = drawMaintenance },
+    },
 }
-KCM.Settings.GENERAL_TABS = TABS
-
-local function activeTab(ctx)
-    for _, tab in ipairs(TABS) do
-        if tab.group == ctx.activeTab then return tab end
-    end
-    ctx.activeTab = TABS[1].group
-    return TABS[1]
-end
 
 local function render(ctx)
     H.ResetScroll(ctx)
-    local scroll = H.EnsureScroll(ctx)
-
-    local tab = activeTab(ctx)
-    local strip = {}
-    for i, entry in ipairs(TABS) do
-        strip[i] = { key = entry.group, label = entry.label }
-    end
-    H.TabStrip(ctx, {
-        tabs     = strip,
-        value    = ctx.activeTab,
-        onSelect = function(key)
-            if key == ctx.activeTab then return end
-            ctx.activeTab = key
-            render(ctx)
-        end,
-    })
-
-    tab.draw(ctx)
-
-    if scroll.DoLayout then scroll:DoLayout() end
+    H.RenderTabbedSchema(ctx, "general", AFTER_GROUP, nil, TAB_OPTS)
 end
 
 local function Build(mainCategory)

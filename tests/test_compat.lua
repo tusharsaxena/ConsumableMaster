@@ -1,4 +1,4 @@
--- test_compat.lua — the spec + spell client-API seam (KCM.Compat).
+-- test_compat.lua — the spec, spell and item client-API seam (KCM.Compat).
 --
 -- The mock provides only the legacy globals (no C_SpecializationInfo), so these
 -- exercise Compat's fallback chain down to GetSpecialization* / GetSpellInfo.
@@ -270,4 +270,43 @@ test("Compat degraded: readers answer nil, the guard still asks the client", fun
     t.eq(hit, liveHit, "the guard arm agrees with the library on a secret")
     t.eq(miss, liveMiss, "and on a plain value")
     t.eq(hit, true, "which is true for the secret")
+end)
+
+-- ---- Item info: C_Item first, the deprecated global as a guarded fallback ----
+-- Read at call time, so a spy swapped onto either namespace is seen.
+
+test("Compat.GetItemInfo prefers C_Item", function(t)
+    local KCM = h.loader.loadPure()
+    local cCalls, gCalls = 0, 0
+    local savedC, savedG = _G.C_Item.GetItemInfo, _G.GetItemInfo
+    _G.C_Item.GetItemInfo = function(id) cCalls = cCalls + 1; return "C" .. id, "link", 4, 600 end
+    _G.GetItemInfo = function() gCalls = gCalls + 1; return "global" end
+    local name, _, quality, ilvl = KCM.Compat.GetItemInfo(42)
+    _G.C_Item.GetItemInfo, _G.GetItemInfo = savedC, savedG
+    t.eq(name, "C42", "the C_Item answer")
+    t.eq(quality, 4, "every return is passed through (quality)")
+    t.eq(ilvl, 600, "every return is passed through (ilvl)")
+    t.eq(cCalls, 1, "C_Item.GetItemInfo was called")
+    t.eq(gCalls, 0, "the global was not")
+end)
+
+test("Compat.GetItemInfo falls back to the global when C_Item.GetItemInfo is absent", function(t)
+    local KCM = h.loader.loadPure()
+    local savedC, savedG = _G.C_Item.GetItemInfo, _G.GetItemInfo
+    _G.C_Item.GetItemInfo = nil
+    _G.GetItemInfo = function(id) return "G" .. id, "link", 2, 10 end
+    local name, _, quality = KCM.Compat.GetItemInfo(7)
+    _G.C_Item.GetItemInfo, _G.GetItemInfo = savedC, savedG
+    t.eq(name, "G7", "the global's answer")
+    t.eq(quality, 2, "with its returns intact")
+end)
+
+test("Compat.GetItemInfo answers nil with neither", function(t)
+    local KCM = h.loader.loadPure()
+    local savedC, savedG = _G.C_Item, _G.GetItemInfo
+    _G.C_Item, _G.GetItemInfo = nil, nil
+    local ok, res = pcall(KCM.Compat.GetItemInfo, 7)
+    _G.C_Item, _G.GetItemInfo = savedC, savedG
+    t.truthy(ok, "no error without either API: " .. tostring(res))
+    t.eq(res, nil, "answers nil")
 end)

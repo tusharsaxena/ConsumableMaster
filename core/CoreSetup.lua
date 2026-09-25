@@ -112,11 +112,32 @@ if not lib then
         end
         print(KCM.PREFIX .. " " .. line)
     end
+
+    -- The one-rung body the Core version-8 Degradation note prescribes: the
+    -- pcall and the rejected-list append, no front gate. It is the path for a
+    -- missing library, not a second implementation, and the pcall alone is what
+    -- keeps one retired name from taking the rest of the block down.
+    function KCM.SafeRegisterEvent(target, event, handler, rejected)
+        local ok = pcall(target.RegisterEvent, target, event, handler)
+        if not ok and type(rejected) == "table" then
+            for i = 1, #rejected do
+                if rejected[i] == event then return false end
+            end
+            rejected[#rejected + 1] = event
+        end
+        return ok
+    end
     return
 end
 
 KCM.IsConcatSafe = lib.IsConcatSafe
 KCM.SafeToString = lib.SafeToString
+
+-- Every event registration in this addon goes through here
+-- (events-frames-taint-§1): the library's front gate (C_EventUtils.IsEventValid,
+-- else its probe frame) and a pcall, with a refused name appended once to the
+-- caller's list rather than raised. Bound bare; the signature is the library's.
+KCM.SafeRegisterEvent = lib.SafeRegisterEvent
 
 -- ONE class-color resolver for the whole addon (options-ui-§17). Every color this
 -- addon paints is chrome on a bar the PLAYER owns -- it tracks no unit and reads

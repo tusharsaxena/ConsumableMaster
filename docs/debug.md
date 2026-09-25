@@ -33,7 +33,7 @@ window's frame globals are the library's — `ConsumableMasterDebugCopyWindow` a
 
 Functional-area tags in use today:
 
-- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/§8). The addon supplies the line's content (`initSummary`); the library owns when it is emitted
+- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/debug-logging-§8). The addon supplies the line's content (`initSummary`); the library owns when it is emitted
 - `DB` — schema migration, only logged when one actually runs
 - `Scan` — auto-discovery pass summary (reason in content)
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)
@@ -44,16 +44,16 @@ Functional-area tags in use today:
 - `Prio` — priority-list mutations (add/block/move) and the registry resets (`ResetBucket` / `ResetAllBuckets`)
 - `Bar` — macro-bar events worth noticing, today just a flyout truncated by `macroBar.flyoutMax` (never a silent cap)
 
-Every settings change logs once as `[Set] <path> = <value>` at `Helpers.Set`; repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
+Every settings change logs once as `[Set] <path> = <value>` at the write seam (`LibKa0s-Schema-1.0`'s `Set`, before the row's `apply` runs); repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
 
-A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `Helpers.Bulk(act, scope, fn)` (or `Helpers.SetManyAndRefresh(entries, { bulk = { act, scope } })`), `Helpers.Set` still validates, writes and runs each row's onChange, but it only tallies the rows whose value changed. When the act closes it logs `[Set] <act> <scope>: N rows`. A nested bracket folds into the outer one. A raising act still logs its one line, ending ` (stopped by an error)`, before the error propagates: `[Set] reset Macro Bar page: N rows (stopped by an error)`. A profile handler's line silences any bracket open around it (`Helpers.SilenceOpenBulk`), so a profile reset or copy run inside one is still one line in total. The acts:
+A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `Helpers.Bulk(act, scope, fn)` (or `Helpers.SetManyAndRefresh(entries, { bulk = { act, scope } })`), every write still validates, stores and runs each row's `apply`, but the seam only tallies the rows whose value changed. When the act closes it logs `[Set] <act> <scope>: N rows`. A nested bracket folds into the outer one. A raising act still logs its one line, ending ` (stopped by an error)`, before the error propagates: `[Set] reset Macro Bar page: N rows (stopped by an error)`. A profile handler's line silences any bracket open around it (the seam's `ConsumeResetCount`), so a profile reset or copy run inside one is still one line in total. The acts:
 
 | Act | Line |
 |---|---|
 | Macro Bar page **Defaults** | `[Set] reset Macro Bar page: N rows` |
 | General page **Defaults** | `[Set] reset General page: N rows` |
 | Macros page **Reset category** on a composite, and `/cm aio <key> reset` | `[Set] reset category <KEY>: N rows` |
-| **Reset all settings** / `/cm resetall` (`KCM.ResetAllToDefaults`) | `[Set] reset profile '<name>' to defaults`, from the `OnProfileReset` handler; the session sweep runs under `Helpers.MuteSetLog` |
+| **Reset all settings** / `/cm resetall` (`KCM.ResetAllToDefaults`) | `[Set] reset profile '<name>' to defaults: N rows`, from the `OnProfileReset` handler, N counted by the seam's `ResetCounted` before the reset; the session sweep runs under `Helpers.MuteSetLog` |
 | An AceDB profile copy | `[Set] copied profile 'A' → 'B'`, from the `OnProfileCopied` handler |
 | An AceDB profile switch | `[Profile] switched to '<name>'`, from the `OnProfileChanged` handler. It is not a `[Set]` line, but it silences an open bracket the same way |
 
@@ -77,6 +77,7 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 | `statpriority` | Current spec's stat priority (primary + ordered secondary), with classID / specID / specKey. |
 | `bags` | `BagScanner.Scan()` output as `itemID = count`. |
 | `item <id>` | Parsed tooltip fields for the item plus the raw tooltip lines (pattern-debugging view). Shows `pending: tooltip data not yet loaded` if the data hasn't hydrated yet. |
+| `events` | Every client event in `KCM.EVENTS` with its handler and its state: `registered`, `rejected` (the client refused the name; it is in `KCM.RejectedEvents`), or `off (addon disabled)` while a hold has the addon stood down. |
 | `pick <catKey>` | The effective priority list with per-entry Ranker scores, an `[owned]` tag for entries you actually have, and a `<-- pick` marker on the winner. Composite catKeys (`hp_aio` / `mp_aio`) print the configured order, per-sub-cat picks, and the assembled macro body. |
 
 `<catKey>` is case-insensitive (`flask`, `FLASK`, `hp_aio` all work).
@@ -133,20 +134,20 @@ Scalar settings live as rows in `KCM.Settings.Schema` (the array is created in `
 | `/cm set <path> <value>` | Type-validated write through `KCM.Schema:Set`; same code path as the panel widget. A whole-value `order` row takes comma-separated keys (`/cm set macroBar.order DRINK,FOOD`): the keys named lead, and every other key keeps its stored order behind them. A flag map takes `KEY=on\|off` pairs (`/cm set macroBar.shown FOOD=off`), merged over the stored map, so a key the pairs do not name keeps its flag. |
 | `/cm reset <path>` | ONE row back to its `default`. Not the global wipe — that is `/cm resetall`, which keeps the host body and its confirm popup ([LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)). |
 
-`KCM.Schema:Set(path, value)` is the unified validate → write → onChange → refresh seam — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row. Row shape:
+`KCM.Schema:Set(path, value)` is the unified validate → normalize → store → apply → refresh seam (`LibKa0s-Schema-1.0`, [schema.md](./schema.md#the-write-seam)) — panel widgets and `/cm set` both route through it. Adding a new scalar = one schema row, appended through `Helpers.AddRow` (which stamps the type rules and indexes it). Row shape:
 
 ```lua
-Schema[#Schema + 1] = {
+H.AddRow({
     panel    = "general", section = "general", group = "Master controls",
     path     = "enabled", type    = "bool",
     label    = "Enable Consumable Master",
     tooltip  = "Master toggle. When off, the recompute pipeline is a no-op.",
     default  = KCM.dbDefaults.profile.enabled,   -- default sourced from dbDefaults
-    onChange = function(v) ... end,    -- optional
-}
+    apply    = function(v) ... end,    -- optional; reported, never raised
+})
 ```
 
-`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **79** rows are wired today: the 64 `macroBar.*` rows registered by `settings/MacroBar.lua` (the slot order and visibility among them), the 7 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`, `global.minimap.hide`), the 7 `settings/Category.lua` generates (each composite's flags and two section orders, and `categories.BATTLE_REZ.mouseover`), and `statPriority` from `settings/StatPriority.lua`. `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `onChange` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, resolved by `settings/Panel.lua`'s `SESSION_PATHS` rather than by the profile.
+`Helpers.ValidateSchema()` lints rows at register-time and prints malformed entries to chat without blocking registration. **79** rows are wired today: the 64 `macroBar.*` rows registered by `settings/MacroBar.lua` (the slot order and visibility among them), the 7 the General page's composed **Master controls** block contributes (`enabled`, `visibility`, `scale`, `alpha`, `macroBar.locked`, `state.debugConsole`, `global.minimap.shown`), the 7 `settings/Category.lua` generates (each composite's flags and two section orders, and `categories.BATTLE_REZ.mouseover`), and `statPriority` from `settings/StatPriority.lua`. `enabled` is the master toggle — `Pipeline.Recompute` skips its macro write loop when off but still fires the panel refresh so `[Loading]` rows hydrate, and the row's `apply` kicks `RequestRecompute` on the off→on transition so macros refresh immediately. The count is not greppable, because a composed block declares its rows from one call; read it off `#KCM.Settings.Schema`, which is what the suite does. Debug **logging** is still not a schema row — it is the session-only `KCM.State.debug` flag driven by `/cm debug on|off`; the `state.debugConsole` row above is a different thing, the console *window's* visibility, stored by the row's own `get` / `set` (`settings/General.lua`) rather than in the profile.
 
 ## List-shaped state — verb namespaces
 

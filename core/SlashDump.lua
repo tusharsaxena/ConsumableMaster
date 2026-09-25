@@ -369,9 +369,27 @@ DUMP_TARGETS.pick = {
     end,
 }
 
+-- The client events KCM:OnEnable registers, each with its state: `rejected`
+-- when the client refused the name (KCM.RejectedEvents,
+-- events-frames-taint-§1), `off` while a hold has the addon stood down, else
+-- `registered`. Renders from KCM.EVENTS, so a new pair appears here unasked.
+DUMP_TARGETS.events = {
+    summary = "client events and whether each registered",
+    run = function()
+        local rejected = {}
+        for _, name in ipairs(KCM.RejectedEvents or {}) do rejected[name] = true end
+        local down = KCM.IsStoodDown and KCM.IsStoodDown()
+        say(("%d client events, %d rejected"):format(#(KCM.EVENTS or {}), #(KCM.RejectedEvents or {})))
+        for _, pair in ipairs(KCM.EVENTS or {}) do
+            local state = rejected[pair[1]] and "rejected" or (down and "off (addon disabled)" or "registered")
+            say(("  %s  %s  -> %s"):format(pair[1], state, pair[2]))
+        end
+    end,
+}
+
 -- Ordered keys so help output is stable. Add new dump names here in the
 -- order you want them shown.
-local DUMP_ORDER = { "categories", "statpriority", "bags", "item", "pick" }
+local DUMP_ORDER = { "categories", "statpriority", "bags", "item", "pick", "events" }
 
 local function printDumpLines(prefix)
     for _, name in ipairs(DUMP_ORDER) do

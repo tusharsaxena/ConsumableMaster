@@ -98,7 +98,7 @@ if not lib then
     -- announce a window the user never asked to see, repeatedly. The row itself
     -- does not route through this seam: it is a schema row now
     -- (`state.debugConsole`, composed by MasterControls) resolved by
-    -- settings/Panel.lua's `SESSION_PATHS`, which reaches for KCM.DebugLog
+    -- the row's own get/set (settings/General.lua), which reaches for KCM.DebugLog
     -- at call time and answers false when this degraded path is the one loaded.
     function DL.Show() notice() end
     function DL.Toggle_Window() notice() end
@@ -111,7 +111,7 @@ if not lib then
     -- not — withholding the instance is exactly what re-arms that fallback.
     -- AddLine is withheld for the matching reason: its one production caller is
     -- the descriptor's `log` sink in core/PerfSetup.lua, inside a table that
-    -- file only ever builds when the LibKa0s Perf major loaded (`core/PerfSetup.lua:46` returns
+    -- file only ever builds when the LibKa0s Perf major loaded (`core/PerfSetup.lua:53` returns
     -- otherwise), so a no-op here would swallow diagnostics rather than degrade
     -- anything. Same for Clear / ShowCopy / RefreshHeader / UpdateScrollBar /
     -- UpdateStatus / the formatters: no consumer outside this file, so there is
@@ -172,8 +172,15 @@ local D = lib:New({
         if not (KCM.db and KCM.db.global) then return nil end
         local s = KCM.SafeToString or tostring
         local profileKey = KCM.db.GetCurrentProfile and KCM.db:GetCurrentProfile() or "?"
-        return ("%s v%s, schema v%s, profile '%s'"):format(
+        local line = ("%s v%s, schema v%s, profile '%s'"):format(
             "Consumable Master", s(KCM.VERSION), s(KCM.db.global.schemaVersion), s(profileKey))
+        -- The event names the client refused (events-frames-taint-§1), named
+        -- only when there are any: on a live client the clause is absent.
+        local rejected = KCM.RejectedEvents
+        if type(rejected) == "table" and #rejected > 0 then
+            line = line .. ", rejected events: " .. table.concat(rejected, ", ")
+        end
+        return line
     end,
 
     -- Fires on both OnShow and OnHide. Mandatory, not decorative: Escape and the

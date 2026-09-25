@@ -391,3 +391,64 @@ test("Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)", f
     t.eq(R.Score("FLASK", 500001, { specPriority = spec }, nil), 20000 + 1 + 400,
         "FLASK score = CRIT contribution + ilvl + quality; PRIMARY adds nothing")
 end)
+
+-- ---- Item fields: the Compat seam and the (quality, ilvl, tt) shape ----------
+-- itemFields reads through KCM.Compat.GetItemInfo and hands back three values;
+-- the localized subType it once fetched and cached was read by no scorer.
+
+-- Characterization over three seeded items: the uncached path, a cold per-pass
+-- cache and a warm one must agree, and Explain must report the scorer's score.
+test("Ranker: three seeded items score the same uncached, cache-cold and cache-warm", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(2201, { subType = "Food & Drink", quality = 3, ilvl = 40,
+        tt = { healValue = 1200, isConjured = true } })
+    mock.setItem(2202, { subType = "Food & Drink", quality = 2, ilvl = 25,
+        tt = { manaValue = 900 } })
+    mock.setItem(2203, { subType = "Other", quality = 4, ilvl = 610, tt = {} })
+    local cases = {
+        { "FOOD",   2201, 1200 + CONJURED_BONUS + 40 + 300 },
+        { "DRINK",  2202, 900 + 25 + 200 },
+        { "VANTUS", 2203, 610 + 400 },
+    }
+    local scoreCache = { fields = {} }
+    for _, c in ipairs(cases) do
+        local cat, id, want = c[1], c[2], c[3]
+        t.eq(R.Score(cat, id, nil, nil), want, cat .. " uncached score")
+        t.eq(R.Score(cat, id, nil, scoreCache), want, cat .. " cache-cold score")
+        t.eq(R.Score(cat, id, nil, scoreCache), want, cat .. " cache-warm score")
+        t.eq(R.Explain(cat, id, nil).score, want, cat .. " Explain score")
+    end
+end)
+
+test("Ranker: the per-pass field cache carries quality, ilvl and tt, and no subType", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setItem(2204, { subType = "Food & Drink", quality = 2, ilvl = 12, tt = { healValue = 5 } })
+    local scoreCache = { fields = {} }
+    KCM.Ranker.Score("FOOD", 2204, nil, scoreCache)
+    local f = scoreCache.fields[2204]
+    t.truthy(f, "the item's fields were memoized")
+    t.eq(f.quality, 2, "quality cached")
+    t.eq(f.ilvl, 12, "ilvl cached")
+    t.eq(f.tt.healValue, 5, "tooltip cached")
+    t.eq(f.subType, nil, "the unread subType is not cached")
+end)
+
+test("Ranker: item fields come through KCM.Compat.GetItemInfo, not the bare global", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.setItem(2205, { subType = "Other", quality = 3, ilvl = 77, tt = {} })
+    local seen
+    local saved = KCM.Compat.GetItemInfo
+    KCM.Compat.GetItemInfo = function(id) seen = id; return saved(id) end
+    local savedGlobal = _G.GetItemInfo
+    _G.GetItemInfo = nil
+    local ok, score = pcall(KCM.Ranker.Score, "VANTUS", 2205, nil, nil)
+    _G.GetItemInfo = savedGlobal
+    KCM.Compat.GetItemInfo = saved
+    t.truthy(ok, "scoring survives a client with no GetItemInfo global: " .. tostring(score))
+    t.eq(score, 77 + 300, "and scores off the C_Item answer")
+    t.eq(seen, 2205, "through the Compat seam")
+end)

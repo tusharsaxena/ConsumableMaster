@@ -17,7 +17,7 @@
 -- against the shim the addon calls at RUN time. Every line below moved WHOLE —
 -- not a comparison, a constant or a comment changed in the cut.
 --
--- The three things it reads back from settings/Panel.lua rather than deciding
+-- The two things it reads back from settings/Panel.lua rather than deciding
 -- for itself:
 --   * `libAbsent`, derived here the same way Panel.lua derives it — from the
 --     instance, not from a second flag, so "the library answered" and "the panel
@@ -25,9 +25,8 @@
 --   * `sayPanelUnavailable`, which holds a said-once flag. A second copy of that
 --     function would be a second flag, and the degraded install would then get
 --     the notice twice; tests/test_settingsui.lua counts it and expects one.
---   * `sayCombatOpenBlocked`. THIS FILE HOLDS ITS ONLY CALLER — the peel moved
---     O.Open out and left the wording behind — so it is published rather than
---     copied: one wording, one home (options-ui-§2).
+-- The combat refusal on open is not one of them: it is LibKa0s-Options-1.0's
+-- OpenOptionsPanel, in the library's words (options-ui-§2).
 
 local _, NS = ...
 local KCM = NS
@@ -40,12 +39,12 @@ local O = KCM.Options
 -- Same derivation as settings/Panel.lua's, off the instance settings/
 -- OptionsSetup.lua published: with LibKa0s absent no panel was registered, so
 -- O.Open has nothing to open and says so.
-local libAbsent = not KCM.Settings.optionsUI
+local UI = KCM.Settings.optionsUI
+local libAbsent = not UI
 
--- Both notices are Panel.lua's — see the file header above for why they are
--- borrowed rather than copied.
-local sayPanelUnavailable  = KCM.Settings.SayPanelUnavailable
-local sayCombatOpenBlocked = KCM.Settings.SayCombatOpenBlocked
+-- Panel.lua's notice — see the file header above for why it is borrowed
+-- rather than copied.
+local sayPanelUnavailable = KCM.Settings.SayPanelUnavailable
 
 -- ---------------------------------------------------------------------
 -- KCM.Options shim — preserves the public API used by Core / Debug /
@@ -181,29 +180,13 @@ function O.RequestRefresh()
     armRefresh(now, REFRESH_DEBOUNCE_SEC)
 end
 
--- Expand the parent in the AddOns left tree so every sub-page is visible.
--- The expansion lives on the visual list-entry element, NOT on the
--- SettingsCategory data object — so we have to reach into
--- SettingsPanel:GetCategoryList():GetCategoryEntry(category). That path
--- is private Blizzard API and could shift across patches; the pcall
--- degrades gracefully to "panel opens but parent isn't unfolded" if any
--- intermediate call goes missing. Method-or-field fallback on
--- GetCategoryList covers minor API drift between client builds.
-local function expandMainCategory()
-    local main = KCM.Settings and KCM.Settings.main
-    if not (main and SettingsPanel) then return end
-    pcall(function()
-        local list = SettingsPanel.GetCategoryList
-            and SettingsPanel:GetCategoryList()
-            or SettingsPanel.CategoryList
-        if not (list and list.GetCategoryEntry) then return end
-        local entry = list:GetCategoryEntry(main)
-        if entry and entry.SetExpanded then
-            entry:SetExpanded(true)
-        end
-    end)
-end
-
+-- The open is LibKa0s-Options-1.0's OpenOptionsPanel: it refuses in combat and
+-- prints its own COMBAT_REFUSED line (options-ui-§2), opens the category the
+-- library registered, and expands the parent in the AddOns tree so every
+-- sub-page is one click away. It answers true when it opened, false when it
+-- refused in combat, and nil when there is no category to open yet (none
+-- registered, one still parked for the end of combat, or no
+-- Settings.OpenToCategory on this client).
 function O.Open()
     -- There is no panel to open on a degraded install. Answering false is the
     -- contract core/SlashCommands.lua already branches on, so `/cm config`
@@ -212,24 +195,10 @@ function O.Open()
         sayPanelUnavailable()
         return false
     end
-    -- Settings UI is protected during combat — opening will silently fail
-    -- mid-fight. Surface a chat notice instead so the user knows why.
-    if InCombatLockdown and InCombatLockdown() then
-        sayCombatOpenBlocked()
-        return false
-    end
-
-    local id = KCM._settingsCategoryID
-    if type(id) ~= "number" then id = tonumber(id) end
-    if Settings and Settings.OpenToCategory and id then
-        Settings.OpenToCategory(id)
-        -- Expand AFTER opening so SettingsPanel is realized and the
-        -- category-entry element exists in the visual tree. Re-expanding
-        -- on every open means a manual mid-session collapse doesn't stick
-        -- across the next /cm config.
-        expandMainCategory()
-        return true
-    end
+    local opened = UI.OpenOptionsPanel()
+    if opened then return true end
+    -- false: refused in combat, and the library has already said so.
+    if opened == false then return false end
     KCM.Say("settings panel unavailable on this client; use /cm help.")
     return false
 end

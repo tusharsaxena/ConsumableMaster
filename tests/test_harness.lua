@@ -66,15 +66,16 @@ test("Harness: LibSharedMedia serves the fonts and borders the settings pages re
 end)
 
 test("Harness: a string-method bus registration calls the target's method", function(t)
+    local PING = "Ka0s_ConsumableMaster_HarnessPing"
     local KCM = h.loader.loadPure()
     local target = KCM.NewBusTarget()
     local got
     function target:OnHarnessPing(message, arg) got = { self, message, arg } end
-    target:RegisterMessage("Ka0s_ConsumableMaster_HarnessPing", "OnHarnessPing")
-    KCM.bus:SendMessage("Ka0s_ConsumableMaster_HarnessPing", 5)
+    target:RegisterMessage(PING, "OnHarnessPing")
+    KCM.bus:SendMessage(PING, 5)
     t.truthy(got, "the method ran")
     t.eq(got[1], target, "as a method on its own target")
-    t.eq(got[2], "Ka0s_ConsumableMaster_HarnessPing", "with the message first")
+    t.eq(got[2], PING, "with the message first")
     t.eq(got[3], 5, "then the payload")
 end)
 

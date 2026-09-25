@@ -62,6 +62,115 @@ test("OnEnable registers no event without a matching handler method", function(t
 end)
 
 -- ---------------------------------------------------------------------------
+-- One retired name costs only itself (events-frames-taint-§1)
+-- ---------------------------------------------------------------------------
+--
+-- red under: bare self:RegisterEvent in OnEnable. The client raises on an
+-- unknown name, and a bare call raises out of OnEnable at the sixth line, so the
+-- three events after it never register and the addon is deaf to its cooldowns.
+
+local RETIRED = "LEARNED_SPELL_IN_SKILL_LINE"
+
+-- The event names registered on KCM, as a set, off the kit's registration record.
+local function registeredOn(mock, target)
+    local set = {}
+    for _, r in ipairs(mock.base.__registrations()) do
+        if r.kind == "event" and r.target == target then set[r.event] = true end
+    end
+    return set
+end
+
+-- Load, retire one name, optionally take C_EventUtils away (an older client),
+-- and enable. Answers KCM, the mock and whether OnEnable raised.
+local function enableWithRetired(dropEventUtils, degraded)
+    local KCM  = degraded and h.loader.loadPureDegraded() or h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.base.__badEvents = { [RETIRED] = true }
+    if dropEventUtils then _G.C_EventUtils = nil end
+    local ok, err = pcall(KCM.OnEnable, KCM)
+    return KCM, mock, ok, err
+end
+
+local function assertOthersBound(t, KCM, mock, ok, err, label)
+    t.truthy(ok, label .. ": OnEnable raised nothing (" .. tostring(err) .. ")")
+    local bound = registeredOn(mock, KCM)
+    for _, pair in ipairs(KCM.EVENTS or {}) do
+        if pair[1] ~= RETIRED then
+            t.truthy(bound[pair[1]], label .. ": " .. pair[1] .. " is still registered")
+        end
+    end
+    t.eqList(KCM.RejectedEvents or {}, { RETIRED }, label .. ": the retired name is recorded once")
+end
+
+test("a retired event name leaves the other eight bound", function(t)
+    local KCM, mock, ok, err = enableWithRetired(false)
+    t.eq(#(KCM.EVENTS or {}), 9, "KCM.EVENTS holds the nine pairs")
+    assertOthersBound(t, KCM, mock, ok, err, "IsEventValid present")
+    t.falsy(registeredOn(mock, KCM)[RETIRED], "the retired name is not registered")
+end)
+
+test("a retired event name leaves the other eight bound on a client with no C_EventUtils", function(t)
+    local KCM, mock, ok, err = enableWithRetired(true)
+    assertOthersBound(t, KCM, mock, ok, err, "C_EventUtils nil")
+end)
+
+test("IsEventValid answering false rejects without calling RegisterEvent", function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    mock.base.__badEvents = { [RETIRED] = true }
+    local asked = {}
+    local real = KCM.RegisterEvent
+    KCM.RegisterEvent = function(self, event, ...)
+        asked[event] = true
+        return real(self, event, ...)
+    end
+    pcall(KCM.OnEnable, KCM)
+    t.falsy(asked[RETIRED], "RegisterEvent is never called for the refused name")
+    t.truthy(asked.BAG_UPDATE_COOLDOWN, "and the last name in the list still is")
+    t.eqList(KCM.RejectedEvents or {}, { RETIRED }, "the refusal is recorded")
+end)
+
+test("a stand-down and stand-up does not record a rejected name twice", function(t)
+    local KCM, mock = enableWithRetired(false)
+    KCM:UnregisterAllEvents()
+    pcall(KCM.OnEnable, KCM)
+    t.eqList(KCM.RejectedEvents or {}, { RETIRED }, "still one entry after the second OnEnable")
+    t.truthy(registeredOn(mock, KCM).BAG_UPDATE_COOLDOWN, "and the rest came back")
+end)
+
+test("the degraded Core stub's SafeRegisterEvent records a raising name", function(t)
+    local KCM = h.loader.loadPureDegraded()
+    t.eq(type(KCM.SafeRegisterEvent), "function", "the stub publishes SafeRegisterEvent")
+    if type(KCM.SafeRegisterEvent) ~= "function" then return end
+    local rejected = {}
+    local target = { RegisterEvent = function(_, event) error("unknown event " .. event) end }
+    t.eq(KCM.SafeRegisterEvent(target, "NOPE", nil, rejected), false, "a raise answers false")
+    KCM.SafeRegisterEvent(target, "NOPE", nil, rejected)
+    t.eqList(rejected, { "NOPE" }, "appended once, not per call")
+    local fine = { RegisterEvent = function() end }
+    t.eq(KCM.SafeRegisterEvent(fine, "OK", nil, rejected), true, "a clean call answers true")
+
+    -- And OnEnable on the degraded load: the pcall rung alone keeps the block up.
+    local K2, mock, ok, err = enableWithRetired(true, true)
+    assertOthersBound(t, K2, mock, ok, err, "degraded")
+end)
+
+test("/cm dump events lists every event and names the rejected one", function(t)
+    local KCM  = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    mock.base.__badEvents = { [RETIRED] = true }
+    pcall(KCM.OnEnable, KCM)
+    mock.output = {}
+    KCM:OnSlashCommand("dump events")
+    local text = table.concat(mock.output, "\n")
+    for _, pair in ipairs(KCM.EVENTS or {}) do
+        t.truthy(text:find(pair[1], 1, true), pair[1] .. " is listed")
+    end
+    t.truthy(text:find(RETIRED .. "  rejected", 1, true), "the retired name reads rejected")
+    t.truthy(text:find("BAG_UPDATE_COOLDOWN  registered", 1, true), "a live one reads registered")
+end)
+
+-- ---------------------------------------------------------------------------
 -- Login / bag / spec
 -- ---------------------------------------------------------------------------
 

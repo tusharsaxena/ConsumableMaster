@@ -383,6 +383,26 @@ function L.loadWithSchemaDegraded()
     return L.loadWithSchema(true)
 end
 
+-- Record every path the settings write seam is asked to write, in order: the
+-- LibKa0s-Schema-1.0 instance settings/Panel.lua publishes as
+-- KCM.Settings.Helpers.schema, whose Set and SetMany the doors (SetAndRefresh,
+-- SetManyAndRefresh, KCM.Schema) look up at call time. A batch records each of
+-- its entries. Answers the list and a restorer.
+function L.spySeamWrites(KCM)
+    local S = KCM.Settings.Helpers.schema
+    local set, many = S.Set, S.SetMany
+    local paths = {}
+    S.Set = function(path, ...)
+        paths[#paths + 1] = path
+        return set(path, ...)
+    end
+    S.SetMany = function(entries, ...)
+        for _, e in ipairs(entries or {}) do paths[#paths + 1] = e.path end
+        return many(entries, ...)
+    end
+    return paths, function() S.Set, S.SetMany = set, many end
+end
+
 -- ---------------------------------------------------------------------------
 -- The test global
 -- ---------------------------------------------------------------------------
@@ -480,10 +500,12 @@ local SUITES = {
     "test_register",
     "test_runner_list",
     "test_schema",
+    "test_schema_adoption",
     "test_selector",
     "test_settingsui",
     "test_settingsui_optionsui",
     "test_slash",
+    "test_slash_degraded",
     "test_slashsetup",
     "test_spechelper",
     "test_surface_parity",
@@ -492,13 +514,14 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-9 prescribes; kit revision 25 resolves the relative `dir`
-    -- against the runner's root, so an invocation by path still finds them. A bare
+    -- literal form testing-§9 prescribes; the kit (revision 26, as vendored from
+    -- LibKa0s v1.56.0; since revision 25) resolves the relative `dir` against the
+    -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive
     -- with a re-vendor and then quietly run nothing. This repo wires the kit's copy of
     -- each and keeps no hand-written one beside it: two gates over one rule is two
-    -- copies to keep whole (localization-5, layout-1).
+    -- copies to keep whole (localization-§5, layout-§1).
     --   test_eol        -- the working-tree line-ending gate (kit revision 15)
     --   test_prose      -- the US-English prose gate (kit revision 24)
     --   test_layout_cap -- the 1500-line cap gate over the census in

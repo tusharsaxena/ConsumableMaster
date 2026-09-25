@@ -96,7 +96,7 @@ local function standDown()
     -- NOT be attempted under lockdown, so the stand-down is held pending and
     -- completed on regen. KCM:OnRegenEnabled releases it the moment it fires.
     if inCombat() then
-        KCM:RegisterEvent("PLAYER_REGEN_ENABLED", "OnRegenEnabled")
+        KCM.SafeRegisterEvent(KCM, "PLAYER_REGEN_ENABLED", "OnRegenEnabled", KCM.RejectedEvents)
     end
 end
 
@@ -113,6 +113,12 @@ local function standUp()
     -- the teardown does not copy it.
     if KCM.OnEnable then KCM:OnEnable() end
     if KCM.MacroBar and KCM.MacroBar.Update then KCM.MacroBar.Update() end
+    -- Login's discovery pass and stale sweep: BAG_UPDATE_DELAYED was off while
+    -- down and PLAYER_ENTERING_WORLD does not fire again, so an item looted
+    -- while disabled is found here or not until the next bag update.
+    if KCM.Pipeline and KCM.Pipeline.DiscoverAndSweep then
+        KCM.Pipeline.DiscoverAndSweep("stand_up")
+    end
     if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
         KCM.Pipeline.RequestRecompute("stand_up")
     end
@@ -140,15 +146,16 @@ end
 --- whole.
 ---
 --- Almost everything asks KCM.IsStoodDown, because almost everything cares only
---- whether the addon is inert. The launcher's left click is the exception
---- slash-commands-§7 writes out by name: it refuses while the addon is DISABLED,
---- and a perf capture's suspended arm is not that -- it is a diagnostic the player
---- started and did not switch anything off for.
+--- whether the addon is inert. The launcher is the exception slash-commands-§7
+--- writes out by name: its options menu grays every entry but *Enabled* while
+--- the addon is DISABLED (core/LauncherSetup.lua's isEnabled), and a perf
+--- capture's suspended arm is not that -- it is a diagnostic the player started
+--- and did not switch anything off for.
 function KCM.IsAddonDisabled()
     return (KCM.Lifecycle and KCM.Lifecycle:IsHeld(lib.HOLD_DISABLED)) and true or false
 end
 
---- The `enabled` row's onChange, `/cm enable`, `/cm disable` and the load-time
+--- The `enabled` row's apply, `/cm enable`, `/cm disable` and the load-time
 --- read all land here (slash-commands-§2's "no state of their own"). One call,
 --- written once in the library's shape rather than as a branch each surface
 --- writes for itself.

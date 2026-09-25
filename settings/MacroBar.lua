@@ -46,7 +46,7 @@ local BAR_DEFAULTS = KCM.dbDefaults and KCM.dbDefaults.profile
     and KCM.dbDefaults.profile.macroBar or {}
 
 -- Re-apply the whole bar after any setting changes. MacroBar.Update is
--- idempotent and self-defers in combat, so every row can share one onChange.
+-- idempotent and self-defers in combat, so every row can share one apply.
 local function applyBar()
     if KCM.MacroBar and KCM.MacroBar.Update then KCM.MacroBar.Update() end
 end
@@ -87,8 +87,8 @@ local function row(spec)
     spec.panel    = "macrobar"
     spec.section  = "macrobar"
     spec.default  = BAR_DEFAULTS[field]
-    spec.onChange = spec.onChange or applyBar
-    KCM.Settings.Schema[#KCM.Settings.Schema + 1] = spec
+    spec.apply    = spec.apply or applyBar
+    H.AddRow(spec)
     collect(spec)
     return spec
 end
@@ -98,12 +98,9 @@ end
 -- order, so a composed block and a hand-written row are indistinguishable to the
 -- renderer below.
 local function block(rows, decorate)
-    for _, r in ipairs(rows) do
-        r.onChange = r.onChange or applyBar
-    end
     H.RegisterRows(rows, "macrobar", "macrobar", decorate)
     for _, r in ipairs(rows) do
-        r.onChange = r.onChange or applyBar
+        r.apply = r.apply or applyBar
         collect(r)
     end
     return rows
@@ -124,11 +121,11 @@ row{
     label = L["Enable macro bar"],
     tooltip = L["Show a dedicated bar holding your ConsumableMaster macros. Only CM macros can occupy it. On by default; turning it off hides the bar and stops all its work until you turn it back on."],
     -- Apply-only, and deliberately so (CM-R-05): the write has already landed
-    -- by the time an onChange runs. MB.ApplyEnabled re-reads the flag and
+    -- by the time an apply runs. MB.ApplyEnabled re-reads the flag and
     -- reconciles the frames, and it owns the in-combat "will appear/hide when
     -- combat ends" notice — which is why `/cm bar on|off` routes back through
     -- Schema:Set to this same row rather than applying on its own.
-    onChange = function()
+    apply = function()
         if KCM.MacroBar and KCM.MacroBar.ApplyEnabled then
             KCM.MacroBar.ApplyEnabled()
         end
@@ -612,7 +609,7 @@ row{
 -- ---------------------------------------------------------------------------
 
 -- Through the schema helper: `macroBar.order` is a row, its validator stores a
--- copy of the shipped order, and its onChange re-applies the bar.
+-- copy of the shipped order, and its apply re-applies the bar.
 local function doResetOrder()
     if not (KCM.Schema and KCM.Schema:Set("macroBar.order", BAR_DEFAULTS.order or {})) then return end
     H.RefreshAllPanels()
@@ -682,7 +679,7 @@ end
 --     shown group, which is where a button you just put back belongs. It writes
 --     `macroBar.shown` and then `macroBar.order` as ONE batch: two `[Set]` lines,
 --     because a toggle is not a bulk copy or reset (debug-logging-§10), one bar
---     re-apply (the two rows share their onChange) and one page rebuild.
+--     re-apply (the two rows share their apply) and one page rebuild.
 --
 -- `boundary` is the shown count, so a drag cannot cross the rule: crossing it
 -- would be a visibility change made by a gesture that means "move".
@@ -1064,6 +1061,12 @@ end
 -- already uses (Button appearance). "Bar appearance" and "Button appearance" KEEP their qualifiers:
 -- two surfaces coexist on this page, each with its own backdrop and border, so
 -- there the word is doing real work.
+--
+-- THE STRIP IS BUILT HERE, NOT BY RenderTabbedSchema, and deliberately (issue
+-- #41). That call's tab click clears the scroll and re-renders itself with no
+-- host hook ahead of the clear, so cancelReorder could not run before
+-- ResetScroll on a switch away from the Buttons tab -- the one ordering this page
+-- cannot give up. Re-check if the library grows such a hook.
 --
 -- EVERY SCHEMA-BACKED TAB DRAWS THROUGH THE LIBRARY'S ROW ENGINE. Declaration
 -- order IS the layout — the pairing, the `startsLine` flushes and the subsection

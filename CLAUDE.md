@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.55.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.58.0 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
@@ -73,13 +73,14 @@ settings-panel shell, its row widgets and the schema composers behind the Master
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
 harness, the minimap button and broker plugin behind `core/LauncherSetup.lua`, and the **latch** the
 disabled state and the perf harness's suspended arm are two named holds on, plus the spec and spell
-ladders and the secret guard behind `KCM.Compat` and the stand-down record behind the bus. **Thirteen**
+ladders and the secret guard behind `KCM.Compat`, the stand-down record behind the bus, and the settings
+write seam every schema row is written through. **Fourteen**
 of its majors are consumed — `Widgets` joined them when the priority rows took the library's drag handle
 (`settings/Category.lua`, `settings/StatPriority.lua`), `Launcher` joined at v1.39.0 with the
 launcher adoption, `Lifecycle` at v1.41.0 with the stand-down
 ([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)), and `Compat` and `Bus` at
-v1.55.0; `Pool` and `Schema` ship in the payload unused (`Schema` deferred,
-[#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)). It is vendored whole-folder
+v1.55.0, and `Schema` at v1.56.0 with the write seam
+([#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)); `Pool` ships in the payload unused. It is vendored whole-folder
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs

@@ -10,10 +10,10 @@
 --
 -- The three options-ui CONFORMANCE blocks were peeled out to
 -- tests/test_settingsui_optionsui.lua for layout-§1's 1500-line cap, on the seam
--- issue #33 named: §13's every-page-draws-a-strip, §18's reorder lists, and §13's
--- selection-independent wrapped-strip geometry. What is left here is the half
--- that goes red when THIS ADDON's settings wiring breaks. Every case moved
--- whole; the two files together register exactly the cases this one did.
+-- issue #33 named: options-ui-§13's every-page-draws-a-strip, options-ui-§18's reorder lists, and options-ui-§13's
+-- selection-independent wrapped-strip geometry (the last since deleted by CM-20 as
+-- a duplicate of the library's own pin). What is left here is the half that goes
+-- red when THIS ADDON's settings wiring breaks.
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -250,6 +250,40 @@ test("Settings UI: a panel comes from the library's registry, breadcrumb and all
     t.truthy(ctx.panelKey == "macrobar", "…and the addon's own key alongside the library's")
 end)
 
+-- The About logo is a texture path, and a texture path is absolute from
+-- `Interface\AddOns\`: a folder name typed into it resolves to nothing on an
+-- install whose folder is spelled any other way, and the page shows a blank
+-- square. The mock's CreateTexture hands back the frame itself, so the path is
+-- read off the SimpleGroup's frame the logo draws into.
+test("Settings UI: the About logo path follows the folder name", function(t)
+    local KCM = loader.loadWithSchema()
+    -- The whole addon cannot be built under another folder name headlessly:
+    -- the Bus catalog refuses event keys that do not carry the name, which is
+    -- its own rule working. So the rename is applied to the one file this case
+    -- is about, re-run on the same namespace the way the client runs it.
+    KCM.name = "ConsumableMasterRenamed"
+    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/Panel.lua"))
+    chunk(KCM.name, KCM)
+    local path
+    local AceGUI = LibStub("AceGUI-3.0")
+    local realCreate = AceGUI.Create
+    AceGUI.Create = function(self, kind, ...)
+        local w = realCreate(self, kind, ...)
+        if kind == "SimpleGroup" then
+            w.frame.SetTexture = function(_, p) path = path or p end
+        end
+        return w
+    end
+    local H = KCM.Settings.Helpers
+    local ok, err = pcall(H.BuildAboutContent,
+        H.CreatePanel("KCMAboutPanel", "Ka0s Consumable Master", { isMain = true }))
+    AceGUI.Create = realCreate
+    assert(ok, err)
+    t.truthy(type(path) == "string", "the About page drew a logo texture")
+    t.truthy(path:find("ConsumableMasterRenamed\\media\\logos\\consumablemasterrenamed.logo.tga", 1, true),
+        "the logo path is built from the folder name, got " .. tostring(path))
+end)
+
 test("Settings UI: the library's user-visible strings resolve to prose, not to their own keys",
     function(t)
         local KCM  = loader.loadWithSchema()
@@ -332,7 +366,7 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         -- CM-R-04: this claim used to be carried by two READS —
         -- `#Schema > 0` and `FindSchema(...)` — and a read cannot go red
         -- over a broken write. The write half is exercised here, through the
-        -- settings path the panel itself uses (Resolve → Set), and the
+        -- settings path the panel itself uses (Helpers.Set → the schema seam), and the
         -- assertion is on what LANDED IN THE PROFILE rather than on what the
         -- call returned: a Set that reports true and stores nothing is exactly
         -- the failure the old pair could not see.
@@ -342,7 +376,8 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         -- gap rather than leaving it to be discovered.
         --
         -- red under: making Helpers.Set return true without writing, or having
-        -- Helpers.Resolve hand back a throwaway table on the degraded arm.
+        -- the stub's resolveRoot walk hand back a throwaway table on the
+        -- degraded arm.
         local H = KCM.Settings.Helpers
         t.truthy(#KCM.Settings.Schema > 0, "the schema still loads")
         local row = H.FindSchema("macroBar.buttonSize")
@@ -360,8 +395,10 @@ test("Settings UI: with the library absent no panel is registered, and it says w
         H.Set(row.path, before)
 
         mock.output = {}
+        local registered = 0
+        rawset(_G.Settings, "RegisterAddOnCategory", function() registered = registered + 1 end)
         KCM.Settings.Register()
-        t.eq(KCM.Settings.main, nil, "no Blizzard category is registered")
+        t.eq(registered, 0, "no Blizzard category is registered")
         t.eq(KCM.Options.Open(), false, "/cm config answers false rather than doing nothing")
 
         local notices = 0
@@ -536,6 +573,131 @@ test("Settings UI: Helpers reads the library's members off the instance, not off
             t.eq(type(UI[name]), "function", name .. " is a member the library really publishes")
         end
     end)
+
+-- ── the two tabbed schema pages: what each tab draws (options-ui-§13) ──────
+--
+-- Pinned on what the page DRAWS -- the strip's keys and the rows handed to the
+-- row engine -- rather than on a tab table the page publishes, so the cases hold
+-- whether the strip is hand-built here or drawn by the library's
+-- RenderTabbedSchema (the General page's since CM-20). The expected rows are
+-- derived from the SCHEMA by panel and group, never from the page's own bucket.
+-- Both spies sit on the instance, which is the table the page's H.RenderRows and
+-- the library's own O.RenderRows both resolve to.
+
+--- Build `page`, select `tab`, render once. Answers the drawn strip's keys, one
+--- entry per RenderRows call ({ paths, afterGroup }), and the ctx.
+local function renderPageTab(KCM, page, tab)
+    local UI = KCM.Settings.Helpers.instance
+    local strip, rendered = nil, {}
+    local realStrip, realRows = UI.TabStrip, UI.RenderRows
+    UI.TabStrip = function(ctx, spec) strip = spec; return realStrip(ctx, spec) end
+    local depth = 0
+    UI.RenderRows = function(ctx, rows, afterGroup, ...)
+        -- The outermost call only: the engine re-enters itself for a nested block.
+        if depth == 0 then
+            local paths = {}
+            for i, row in ipairs(rows) do paths[i] = row.path end
+            rendered[#rendered + 1] = { paths = paths, afterGroup = afterGroup }
+        end
+        depth = depth + 1
+        local ok, err = pcall(realRows, ctx, rows, afterGroup, ...)
+        depth = depth - 1
+        if not ok then error(err, 0) end
+    end
+    -- Built once per load; off screen again afterwards, or the next call's refresh
+    -- re-renders this page too and records it under the next tab.
+    if not UI.__panelFor(page) then KCM.Settings.builders[page]({}) end
+    local ctx = UI.__panelFor(page)
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = tab
+    local ok, err = pcall(KCM.Settings.Helpers.RefreshAllPanels)
+    ctx.panel.IsShown = function() return false end
+    UI.TabStrip, UI.RenderRows = realStrip, realRows
+    if not ok then error(err, 0) end
+    local keys = {}
+    for i, entry in ipairs(strip and strip.tabs or {}) do keys[i] = entry.key end
+    return keys, rendered, ctx
+end
+
+--- The schema's paths on `panel`, optionally narrowed to one `group`, in order.
+local function schemaPaths(KCM, panel, group)
+    local out = {}
+    for _, row in ipairs(KCM.Settings.Schema) do
+        if row.panel == panel and (group == nil or row.group == group) then
+            out[#out + 1] = row.path
+        end
+    end
+    return out
+end
+
+-- red under: a tab added, dropped or moved ahead of Master controls.
+test("Settings: the General page's strip is Master controls, then Maintenance", function(t)
+    local KCM = loader.loadFullAddon()
+    local keys = renderPageTab(KCM, "general", "Master controls")
+    t.eqList(keys, { "Master controls", "Maintenance" }, "the General page's two tabs, in order")
+end)
+
+-- red under: a Master controls tab that draws a row the schema does not put on
+-- the page, drops one, or loses the closing button pair's afterGroup hook.
+test("Settings: the Master controls tab draws the page's canonical rows and their tail",
+    function(t)
+        local KCM = loader.loadFullAddon()
+        local _, rendered = renderPageTab(KCM, "general", "Master controls")
+        t.eq(#rendered, 1, "one pass of the row engine")
+        local want = schemaPaths(KCM, "general")
+        t.truthy(#want > 0, "the canonical block is on the page (" .. #want .. " rows)")
+        t.eqList(rendered[1] and rendered[1].paths or {}, want,
+            "every General row, in declaration order")
+        local tail = rendered[1] and rendered[1].afterGroup
+        t.eq(type(tail and tail["Master controls"]), "function",
+            "the reset pair is hooked after the Master controls group")
+    end)
+
+-- red under: a Maintenance tab that draws a schema row, or loses a verb.
+test("Settings: the Maintenance tab draws its three verbs and no schema row", function(t)
+    local KCM = loader.loadFullAddon()
+    local AceGUI = LibStub("AceGUI-3.0")
+    local before = #AceGUI.__created
+    local keys, rendered, ctx = renderPageTab(KCM, "general", "Maintenance")
+    t.eq(ctx.activeTab, "Maintenance", "the selection held")
+    t.eq(#keys, 2, "under the same strip")
+    t.eq(#rendered, 0, "no row reaches the row engine")
+    local seen = {}
+    for i = before + 1, #AceGUI.__created do
+        local w = AceGUI.__created[i]
+        if w.__text then seen[w.__text] = true end
+    end
+    for _, verb in ipairs({ "Force resync", "Force rewrite macros", "Reset all priorities" }) do
+        t.truthy(seen[KCM.L[verb]], verb .. " is drawn")
+    end
+end)
+
+-- red under: a Macro Bar tab renamed, dropped or reordered.
+test("Settings: the Macro Bar page keeps its eight tabs in order", function(t)
+    local KCM = loader.loadFullAddon()
+    local keys = renderPageTab(KCM, "macrobar", "General")
+    t.eqList(keys, {
+        "General", "Layout", "Bar appearance", "Button appearance",
+        "Labels", "Flyout", "Visibility", "Buttons",
+    }, "the Macro Bar strip")
+end)
+
+-- red under: a tab drawing another group's rows, or its own out of declaration
+-- order; or the Buttons tab handing its whole-value rows to the row engine.
+test("Settings: every Macro Bar tab draws exactly its group's schema rows", function(t)
+    local KCM = loader.loadFullAddon()
+    local groups = { "General", "Layout", "Bar appearance", "Button appearance",
+        "Labels", "Flyout", "Visibility" }
+    for _, group in ipairs(groups) do
+        local _, rendered = renderPageTab(KCM, "macrobar", group)
+        local want = schemaPaths(KCM, "macrobar", group)
+        t.truthy(#want > 0, group .. " has rows")
+        t.eq(#rendered, 1, group .. ": one pass of the row engine")
+        t.eqList(rendered[1] and rendered[1].paths or {}, want, group .. ": its rows, in order")
+    end
+    local _, rendered = renderPageTab(KCM, "macrobar", "Buttons")
+    t.eq(#rendered, 0, "Buttons is the draggable list, not rows")
+end)
 
 -- ── the Battle Rez mouseover toggle (settings/Category.lua) ────────────────
 --
@@ -1209,11 +1371,9 @@ test("Settings: a composite's Enabled checkbox stores a real boolean for its sub
         "unticking one sub-category writes its flag and no other")
 end)
 
+-- Every path the write seam is asked to write (tests/run.lua's spy).
 local function recordSets(KCM)
-    local H = KCM.Settings.Helpers
-    local paths, real = {}, H.Set
-    H.Set = function(path, value) paths[#paths + 1] = path; return real(path, value) end
-    return paths
+    return (h.loader.spySeamWrites(KCM))
 end
 
 -- red under: any of these controls writing its field directly again.

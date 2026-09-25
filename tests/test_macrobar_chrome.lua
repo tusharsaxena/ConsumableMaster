@@ -1,6 +1,6 @@
 -- tests/test_macrobar_chrome.lua — the macro bar's chrome appliers
 -- (MacroBarButton.ApplyStyle), the flyout's bind/apply pass, and the
--- options-ui-§15/§16/§17 rows those appliers are what honors.
+-- options-ui-§15/options-ui-§16/options-ui-§17 rows those appliers are what honors.
 -- Since the drag-handle adoption it also carries the unlocked strip's own
 -- chrome: the two tooltips the strip and its help mark draw, and the mark's
 -- hover tint.
@@ -274,7 +274,7 @@ test("macrobar flyout: Apply declines in combat", function(t)
 end)
 
 -- ---------------------------------------------------------------------------
--- options-ui-§15 / §16 / §17 — the settings that were ADDED, and the code that
+-- options-ui-§15 / options-ui-§16 / options-ui-§17 — the settings that were ADDED, and the code that
 -- honors them
 -- ---------------------------------------------------------------------------
 --
@@ -389,7 +389,7 @@ end)
 -- The strip above the bar is `LibKa0s-Widgets-1.0`'s `DragHandle`, and this
 -- addon is the host whose TWO descriptors the widget's shape was drawn around:
 -- `tooltip` for the strip and `helpTooltip` for the mark, each with its own
--- title, body and anchor (modules/MacroBar.lua:196-228). Nothing asserted a
+-- title, body and anchor (modules/MacroBar.lua:197-229). Nothing asserted a
 -- line of either, so the entire reason there are two rested on a hand check.
 --
 -- What is observed is what a hover puts on screen — the frame the tooltip is

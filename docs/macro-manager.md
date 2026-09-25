@@ -135,7 +135,7 @@ SetMacro(name, id, catKey):
         clear pendingUpdates[name] if redundant
         return "unchanged"
     if InCombatLockdown():
-        pendingUpdates[name] = { body, itemID, catKey, attempts = pending.attempts or 0 }
+        pendingUpdates[name] = { body, itemID = effectiveItemID, catKey, attempts = pending.attempts or 0 }
         return "deferred"
     result = doEdit(name, icon, body, catKey)   -- CreateMacro if new, else EditMacro
     persist macroState[name] = { lastItemID = id, lastBody = body, lastIcon = icon, lastCat = catKey }
@@ -170,7 +170,7 @@ FlushPending():
         if entry.cat and entry.cat.composite:
             ok, result = pcall(SetCompositeMacro, entry.cat, nil)
         else:
-            ok, result = pcall(SetMacro, name, entry.itemID, entry.catKey)
+            ok, result = pcall(commitMacro, name, entry.body, entry.itemID, entry.catKey)
         if ok and result not in {"error", "deferred"}:
             applied += 1
         elif result == "deferred":
@@ -184,6 +184,8 @@ FlushPending():
     pendingUpdates = still
     return applied
 ```
+
+A single-category entry **replays the body it queued** through `commitMacro`, the one write tail; it is not rebuilt through `SetMacro`. `SetMacro` only knows the single-item shape, so a rebuild turned a deferred per-hand `KCM_WPN_ENCH` body (two `/use item` + `/use 16` / `/use 17` pairs) into one `/use item` line (ConsumableMaster-R-01). The queued `itemID` is the post-oversize icon item, so a replayed empty-state body carries a nil icon item exactly as the live write would. A composite is re-run through `SetCompositeMacro`, which re-reads its picks.
 
 Bounded to **3 attempts** before giving up, with a one-time chat notice. Prevents an infinite re-queue loop across regen cycles when something — usually a Blizzard bug or another addon tainting the macro APIs — persistently rejects the write.
 

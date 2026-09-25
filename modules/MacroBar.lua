@@ -170,9 +170,10 @@ local function buildBar()
     -- than an oversight: a hand-built fallback here would be the second copy the
     -- adoption exists to delete, and it would be the copy nobody looks at.
     -- Nothing raises -- `bar.handle` stays nil and applyLock already guards on it
-    -- -- and neither of the other two ways to place the bar is touched: the bar
-    -- frame's own OnDragStart still moves it from any pixel the slots leave bare,
-    -- and `/cm set macroBar.point|x|y` still writes the position outright.
+    -- -- and the bar can still be placed: the bar frame's own OnDragStart still
+    -- moves it from any pixel the slots leave bare, and a reset (`/cm bar reset`,
+    -- the General page's Reset position) still puts back the default. `/cm set`
+    -- cannot reach the position: point, relPoint, x and y have no schema row.
     local handle = Widgets and Widgets.DragHandle and Widgets.DragHandle(frame, {
         name      = BAR_NAME .. "Handle",
         label     = KCM.L["Consumable Master"],
@@ -453,6 +454,9 @@ function MB.Update()
     if not (KCM.MacroBarModel.IsEnabled and KCM.MacroBarModel.IsEnabled()) then
         if bar then
             if UnregisterStateDriver then UnregisterStateDriver(bar, "visibility") end
+            -- The flyouts' `kcmCombat` attribute drivers are secure-side
+            -- subscriptions too; the frames are kept, the drivers come off.
+            if KCM.MacroBarFlyout then KCM.MacroBarFlyout.StandDown() end
             -- The fade tick is an OnUpdate, and an OnUpdate left on a frame is a
             -- timer that is still going to wake up. Cleared rather than left
             -- armed to find a hidden bar.
@@ -467,6 +471,9 @@ function MB.Update()
     applyLayout()
     applyLock()
     applyVisibility()
+    -- Re-arm what the disable branch took off. Idempotent on a bar that never
+    -- stood down: re-registering a driver replaces it.
+    if KCM.MacroBarFlyout then KCM.MacroBarFlyout.StandUp() end
     applyAlpha()
     MB.Refresh()
     return true

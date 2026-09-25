@@ -125,10 +125,10 @@ end
 -- degraded arm has none, on purpose — see CORE_LIVE_ONLY.
 local CORE_SEAM = {
     "LIBKA0S_MISSING", "ColorDecode", "IsConcatSafe", "MakeCloseButton",
-    "SafeToString", "Say", "SwatchColor",
+    "SafeRegisterEvent", "SafeToString", "Say", "SwatchColor",
 }
 
--- Live-only ON PURPOSE, argued at core/CoreSetup.lua:171-188 and pinned by
+-- Live-only ON PURPOSE, argued at core/CoreSetup.lua:192-209 and pinned by
 -- tests/test_coresetup.lua:200-207. KCM.MakeCloseButton has NO caller in this
 -- addon today: it exists so a future modal or copy window draws the shared
 -- close mark without anyone remembering that lib.MakeCloseButton wants the
@@ -261,15 +261,15 @@ end)
 -- it, and a degraded install has no instance to resolve to, so listing it would
 -- demand a stub for a member no page reads.
 local OPTIONS_SEAM = {
-    "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BorderGroup",
-    "BuildAboutContent", "Button", "ButtonPair", "CLASS_COLOR_NOTE",
+    "AddRow", "AddRows", "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BorderGroup",
+    "BuildAboutContent", "Bulk", "Button", "ButtonPair", "CLASS_COLOR_NOTE",
     "ColorDecode", "ColorPair",
     "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
-    "FontGroup", "GLOBAL_PATHS", "Get", "Grid", "Label", "MasterControls",
+    "FontGroup", "Get", "Grid", "Label", "MasterControls", "MuteSetLog",
     "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
-    "RenderField", "RenderRows", "ResetScroll", "Resolve", "SECTION_HEADING_H",
-    "SESSION_PATHS", "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "TabStrip",
-    "ValidateSchema", "ValidateSchemaValue", "instance",
+    "RenderField", "RenderRows", "ResetScroll", "SECTION_HEADING_H",
+    "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "TabStrip",
+    "ValidateSchema", "ValidateSchemaValue", "instance", "schema",
 }
 
 -- Live-only ON PURPOSE. With the library absent the panel is not registered AT
@@ -349,4 +349,35 @@ test("Parity: the LibKa0s-Bus stub carries the major's whole surface", function(
     t.ne(degraded, live._BusLib, "and it is not the live major")
     t.eq(live._BusLib, _G.LibStub("LibKa0s-Bus-1.0"), "the live arm IS the library")
     h.assertSurfaceParity(degraded, "LibKa0s-Bus-1.0")
+end)
+
+-- ── LibKa0s-Schema-1.0, at settings/Panel.lua + settings/SchemaStub.lua ─────
+--
+-- Two cases, because the Schema major has two surfaces and the stub mirrors
+-- both (LibKa0s docs/api/Schema/version-2-docs.md, "Pinning it"):
+--
+--   * the INSTANCE. Not in the major's members-2.json, which lists lib-level
+--     members only, so it is pinned with the two-table form: the live instance
+--     settings/Panel.lua publishes as Helpers.schema against the one the SAME
+--     file builds from KCM.SchemaStub on a load without LibKa0s. No ignore
+--     list: the stub carries every member, `SetMany` included.
+--   * the LIBRARY. KCM.SchemaStub stands in for the LibKa0s-Schema-1.0 table
+--     itself -- the path primitives and `New` -- so it takes the by-name form.
+--     STRINGS is live-only on purpose: the stub's refusals are the host's own
+--     words, not a copy of the library's constants.
+test("Parity: the LibKa0s-Schema stub instance carries the whole live instance", function(t)
+    local degraded = h.loader.loadWithSchemaDegraded()
+    local live     = h.loader.loadWithSchema()
+    local stub, inst = degraded.Settings.Helpers.schema, live.Settings.Helpers.schema
+    t.truthy(stub and inst, "both arms built a seam")
+    t.ne(stub.Set, inst.Set, "and they are not the same seam")
+    h.assertSurfaceParity(inst, stub, "schema instance vs host stub")
+end)
+
+test("Parity: KCM.SchemaStub carries the LibKa0s-Schema-1.0 library surface", function(t)
+    local degraded = h.loader.loadWithSchemaDegraded()
+    local live     = h.loader.loadWithSchema()
+    t.truthy(_G.LibStub("LibKa0s-Schema-1.0", true), "the live load registered the major")
+    t.truthy(live.SchemaStub, "the stub is published on the live arm too")
+    h.assertSurfaceParity(degraded.SchemaStub, "LibKa0s-Schema-1.0", { "STRINGS" })
 end)

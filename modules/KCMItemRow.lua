@@ -92,10 +92,8 @@ local function itemDisplayName(itemID)
         local n = C_Item.GetItemNameByID(itemID)
         if n then return n end
     end
-    if _G.GetItemInfo then
-        local n = _G.GetItemInfo(itemID)
-        if n then return n end
-    end
+    local n = KCM.Compat.GetItemInfo(itemID)
+    if n then return n end
     return "[Loading]"
 end
 
@@ -135,8 +133,8 @@ end
 -- DF/TWW/Midnight). Tries Crafted first (for crafted consumables) then
 -- Reagent (for reagent-typed consumables).
 local function craftingQualityAtlas(itemID)
-    if not itemID or not _G.GetItemInfo then return nil end
-    local _, link = _G.GetItemInfo(itemID)
+    if not itemID then return nil end
+    local _, link = KCM.Compat.GetItemInfo(itemID)
     if not link then return nil end
     local tsi = C_TradeSkillUI
     if not tsi then return nil end

@@ -2,8 +2,9 @@
 -- settings suite: the three blocks that fail when a CLAUSE OF THE STANDARD stops
 -- holding, rather than when this addon's own wiring breaks.
 --
--- §13, EVERY page draws a strip. §18, the reorder lists. §13 again, a wrapped
--- strip's geometry MUST NOT depend on the selection.
+-- options-ui-§13, EVERY page draws a strip. options-ui-§18, the reorder lists. options-ui-§15, the Master
+-- controls tab. (options-ui-§13's wrapped-strip geometry was a third block until CM-20
+-- deleted it as a duplicate of the library's own pin; see where it stood.)
 --
 -- Peeled out of tests/test_settingsui.lua at the seam issue #33 named, which the
 -- cap census in docs/ARCHITECTURE.md carried. The partition is also the one a
@@ -11,9 +12,9 @@
 -- addon's settings wiring breaks, and this file goes red when a standard clause
 -- does. Those are two different people's problems on two different days.
 --
--- All four of the block's fixtures — renderEveryPage, recordControllers,
--- showMacroTab, withAtlasHeights — moved with it, because each is defined and
--- read only inside it. Every case moved whole: not one assertion changed.
+-- The blocks' fixtures — renderEveryPage, recordControllers, showMacroTab (and
+-- withAtlasHeights, deleted with its case by CM-20) — moved with them, because
+-- each is defined and read only inside them. Every case moved whole.
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -68,7 +69,7 @@ local function renderEveryPage(KCM)
     return drawn
 end
 
--- The §13 exemption, as it applies to KCM.Settings.order: the one page in it that
+-- The options-ui-§13 exemption, as it applies to KCM.Settings.order: the one page in it that
 -- the host does not draw through the flow engine.
 local STRIP_EXEMPT = { profiles = true }
 
@@ -375,7 +376,7 @@ test("Settings: the Stat Priority secondaries are one bounded reorder list", fun
     t.eq(#made[1].rows, 4, "all four stats are rows; two of them are inert")
 end)
 
--- The secondary rows are MultiMeters-shaped (options-ui-§8, §18): a bounded box
+-- The secondary rows are MultiMeters-shaped (options-ui-§8, options-ui-§18): a bounded box
 -- behind the WHOLE row, and a stride wider than the box so consecutive rows do
 -- not touch.
 --
@@ -511,112 +512,29 @@ test("Settings: the secondary split is stored order first, then the rest", funct
 end)
 
 -- ---------------------------------------------------------------------------
--- options-ui-§13 — a wrapped strip's geometry MUST NOT depend on the selection
+-- options-ui-§13 — a wrapped strip's geometry: the LIBRARY's pin, not this one
 -- ---------------------------------------------------------------------------
 --
--- R4c, reproduced on this addon's two hand-drawn strips: the Macros page wraps to
--- three rows at fifteen tabs and the Macro Bar page to two at eight. The strip
--- used to record its row pitch from the FIRST tab it drew, whichever that was —
--- and the selected tab is cut from `Options_Tab_Active_*` while the rest come
--- from `Options_Tab_*`, two atlas families the client does not draw at the same
--- height. So selecting tab 1 packed the rows by one number and selecting any
--- other packed them by another, and the content panel moved under the player.
---
--- THE HARNESS HAS TO BE ABLE TO SEE IT (testing-§12). A mock that answers one
--- height for every atlas cannot fail this case, so the probe texture below
--- answers a DIFFERENT height for the selected-state art — which is the only thing
--- that makes the assertion mean anything.
---
--- red under: reading the pitch back off a tab that was just drawn (whatever its
--- state), or measuring the label under the selected font before the width is
--- taken.
-local function withAtlasHeights(fn)
-    local realCreate = _G.CreateFrame
-    _G.CreateFrame = function(kind, name, parent, template)
-        local f = realCreate(kind, name, parent, template)
-        f.CreateTexture = function()
-            local tex = loader.mock.makeStub()
-            local height = 0
-            tex.SetAtlas = function(_, atlas)
-                height = tostring(atlas):find("Active", 1, true) and 33 or 28
-                return tex
-            end
-            tex.GetHeight = function() return height end
-            return tex
-        end
-        return f
-    end
-    local ok, err = pcall(fn)
-    _G.CreateFrame = realCreate
-    if not ok then error(err, 0) end
-end
+-- The selection-invariance case that stood here (a wrapped strip reserves the
+-- same band whichever tab is selected, R4c) was deleted by CM-20. Every strip
+-- this addon shows is drawn by the library -- O.TabStrip on the Macros, Stat
+-- Priority and Macro Bar pages, RenderTabbedSchema on General -- so it
+-- duplicated LibKa0s' own tests/test_options_tabs.lua case "a wrapped strip's
+-- geometry is IDENTICAL for every value of the selection" (testing-§8). What stays
+-- here is host-specific: which tabs each page draws, in what order, under what
+-- first key (the options-ui-§13 block above, and tests/test_settingsui.lua's tabbed-page
+-- cases).
 
-test("Settings: a wrapped strip reserves the same band whichever tab is selected",
-    function(t)
-        local KCM = loader.loadFullAddon()
-        local UI  = KCM.Settings.Helpers.instance
-        local Widgets = LibStub("LibKa0s-Options-1.0")
-        -- The measurement is cached for the session, and it must be taken under
-        -- the mock that can tell the two atlas families apart.
-        UI.__resetTabArtHeight()
-
-        local bands = {}
-        local realChrome = UI.SetChromeHeight
-        UI.SetChromeHeight = function(ctx, height)
-            bands[#bands + 1] = height
-            return realChrome(ctx, height)
-        end
-
-        withAtlasHeights(function()
-            -- THE HARNESS FIDELITY CHECK, and the case means nothing without it
-            -- (testing-§12). The measurement has to come back as the INACTIVE
-            -- art's 28 -- not the selected state's 33, and not the TAB_H fallback
-            -- a mock that cannot measure anything would produce.
-            t.eq(UI.__tabArtHeight(), 28,
-                "the strip measured the unselected art, which no click can change")
-            t.ne(UI.__tabArtHeight(), UI.TAB_H,
-                "…and the harness really can tell the two atlas families apart")
-
-            for _, page in ipairs({ "macros", "macrobar" }) do
-                KCM.Settings.builders[page]({})
-                local ctx = UI.__panelFor(page)
-                ctx.panel.IsShown = function() return true end
-
-                -- The FIRST tab, then the second: the two states the defect told
-                -- apart. Each render records the band it reserved.
-                bands = {}
-                local tabs = (page == "macros") and KCM.Options.MacroTabs()
-                    or KCM.Settings.MACROBAR_TABS
-                local firstKey  = tabs[1].key or tabs[1].group
-                local secondKey = tabs[2].key or tabs[2].group
-
-                ctx.activeTab = firstKey
-                KCM.Settings.Helpers.RefreshAllPanels()
-                local bandFirst = bands[#bands]
-
-                bands = {}
-                ctx.activeTab = secondKey
-                KCM.Settings.Helpers.RefreshAllPanels()
-                local bandSecond = bands[#bands]
-
-                t.truthy(type(bandFirst) == "number" and bandFirst > 0,
-                    page .. " reserved a band for its strip")
-                t.eq(bandSecond, bandFirst,
-                    page .. ": the reserved band is identical for both selections")
-            end
-        end)
-
-        UI.SetChromeHeight = realChrome
-        UI.__resetTabArtHeight()
-        t.truthy(Widgets, "the strip under test is the library's")
-    end)
+-- ---------------------------------------------------------------------------
+-- options-ui-§15 — the Master controls tab
+-- ---------------------------------------------------------------------------
 
 -- The Master controls tab's closing BUTTON PAIR is the composer's second return
 -- value, wired as that group's `afterGroup`. The group name IS the hook key, so
 -- renaming the group detaches the hook and NOTHING errors — which is exactly why
 -- it is asserted on the drawn buttons rather than on the wiring.
 --
--- red under: dropping the `{ ["Master controls"] = masterTail }` argument, or
+-- red under: dropping the `{ ["Master controls"] = masterTail }` AFTER_GROUP, or
 -- renaming the group on either side of it.
 test("Settings: the Master controls tab closes with the two reset buttons", function(t)
     local KCM = loader.loadFullAddon()
@@ -649,7 +567,7 @@ test("Settings: the Master controls tab closes with the two reset buttons", func
     for _, text in ipairs(texts) do seen[text] = true end
     t.truthy(seen["Reset position"], "the pair's left half is Reset position")
     t.truthy(seen["Reset all settings"], "and its right half is the global reset")
-    -- The Maintenance subsection's three buttons are NOT visible from here, and
+    -- The Maintenance tab's three buttons are NOT visible from here, and
     -- that is a property of this harness rather than of the page: they are drawn
     -- by settings/Panel.lua's own Button / ButtonPair, which hold AceGUI as a
     -- file-local captured at load, so swapping UI.AceGUI cannot see them. The
@@ -711,6 +629,57 @@ test("Settings: the Reset all settings tooltip names Profiles → Reset Profile"
         "the tooltip names the equivalence and the blast radius")
 end)
 
+-- CM-11 (ConsumableMaster-R-08): one global reset act, one popup. The panel
+-- door used to raise its own KCM_RESET_ALL, whose handler carried the combat
+-- guard and the repaint the slash door's KCM_CONFIRM_RESET lacked. Both now live
+-- in KCM.ResetAllToDefaults and both doors raise the same dialog.
+--
+-- red under: onResetAll raising any other popup, or KCM_RESET_ALL coming back.
+test("Settings: the panel's Reset all settings raises the same popup as /cm resetall",
+    function(t)
+        local KCM = loader.loadFullAddon()
+        local UI  = KCM.Settings.Helpers.instance
+
+        local buttons = {}
+        local realAceGUI = UI.AceGUI
+        UI.AceGUI = setmetatable({
+            Create = function(_, kind)
+                local w = loader.mock.makeAceWidget()
+                if kind == "Button" then
+                    local callbacks = {}
+                    w.SetCallback = function(self, event, fn) callbacks[event] = fn; return self end
+                    buttons[#buttons + 1] = { widget = w, callbacks = callbacks }
+                end
+                return w
+            end,
+            RegisterWidgetType = function() end,
+            RegisterLayout     = function() end,
+            GetWidgetVersion   = function() return 0 end,
+        }, { __index = function() return function() end end })
+
+        KCM.Settings.builders.general({})
+        local ctx = UI.__panelFor("general")
+        ctx.panel.IsShown = function() return true end
+        ctx.activeTab = "Master controls"
+        KCM.Settings.Helpers.RefreshAllPanels()
+        UI.AceGUI = realAceGUI
+
+        local reset
+        for _, b in ipairs(buttons) do
+            if rawget(b.widget, "__text") == "Reset all settings" then reset = b end
+        end
+        t.truthy(reset and reset.callbacks.OnClick, "the button is drawn with a click handler")
+
+        local shown
+        local saved = _G.StaticPopup_Show
+        _G.StaticPopup_Show = function(which) shown = which end
+        local ok, err = pcall(reset.callbacks.OnClick)
+        _G.StaticPopup_Show = saved
+        t.truthy(ok, tostring(err))
+        t.eq(shown, "KCM_CONFIRM_RESET", "the panel door raises the slash door's popup")
+        t.eq(StaticPopupDialogs["KCM_RESET_ALL"], nil, "and the duplicate popup is gone")
+    end)
+
 -- The Maintenance TAB is back, by the owner's call on 2026-09-09. It was folded
 -- into Master controls as a subsection on the reasoning that a whole tab over
 -- three monthly buttons cost a click; from inside the panel the trade reads the
@@ -718,15 +687,15 @@ end)
 -- destructive-ish acts hanging off its bottom are three things a player did not
 -- come for.
 --
--- Permitted where the canonical set is not: §15 forbids reordering, renaming or
+-- Permitted where the canonical set is not: options-ui-§15 forbids reordering, renaming or
 -- splitting THAT set across tabs, and these three were never in it. Master
--- controls stays first, which §15 does require.
+-- controls stays first, which options-ui-§15 does require.
 --
 -- Read off the mock AceGUI's creation log rather than a stub, because these
 -- three are HOST-drawn — see the note above.
 --
 -- red under: folding the three back under Master controls, dropping the
--- Maintenance tab from TABS, or renaming a button.
+-- Maintenance host tab from TAB_OPTS, or renaming a button.
 test("Settings: the three maintenance verbs draw on their own tab", function(t)
     local KCM = loader.loadFullAddon()
     local AceGUI = LibStub("AceGUI-3.0")
@@ -755,46 +724,149 @@ end)
 -- ADDON_LOADED("Blizzard_Settings"), and neither normally lands mid-fight —
 -- but another addon calling C_AddOns.LoadAddOn("Blizzard_Settings") during a
 -- pull does, and so does an in-combat /reload. One tainted category poisons
--- the Settings window for the rest of the session, so the gate is cheap
--- insurance rather than a reaction to a reproduction.
+-- the Settings window for the rest of the session.
 --
--- These two cases are the headless half. The taint itself is invisible here —
--- no mock raises "Interface action failed because of an AddOn" — so what is
--- pinned is the observable half: nothing is registered under lockdown, the
--- attempt survives as a parked flag, and the addon's ONE regen handler is what
--- replays it. docs/smoke-tests.md § 6a owns the in-client half.
---
--- red under: dropping the InCombatLockdown early-out in registerPanel, or
--- moving the replay onto a second PLAYER_REGEN_ENABLED registration of its own.
+-- The park and its replay are LibKa0s-Options-1.0's (minor 24): registerPanel
+-- hands the request to UI.CreateOptionsPanel, which under lockdown registers
+-- nothing and replays itself on a library-private PLAYER_REGEN_ENABLED frame.
+-- These cases are the headless half. The taint itself is invisible here — no
+-- mock raises "Interface action failed because of an AddOn" — so what is pinned
+-- is the observable half: nothing registers under lockdown, the end of combat
+-- registers it exactly once, and it does so whatever the addon's stand-down
+-- state. docs/smoke-tests.md § 6a owns the in-client half.
+
+--- A `Settings` whose category calls answer and are counted. The mock's own
+--- answers nil from every member, which a real registration cannot get past.
+local function countRegistrations()
+    local seen = { addon = 0 }
+    rawset(_G.Settings, "RegisterCanvasLayoutCategory", function()
+        return { GetID = function() return 7 end }
+    end)
+    rawset(_G.Settings, "RegisterAddOnCategory", function() seen.addon = seen.addon + 1 end)
+    return seen
+end
+
+--- Record which frames created from here on are registered for which events.
+--- The repo's frame stub swallows RegisterEvent, so without this "fire the event
+--- at every frame listening for it" has no listener set to read.
+local function trackFrames()
+    local tracked = {}
+    local realCreate = _G.CreateFrame
+    _G.CreateFrame = function(...)
+        local f = realCreate(...)
+        local events = {}
+        rawset(f, "__events", events)
+        rawset(f, "RegisterEvent", function(self, e) events[e] = true; return self end)
+        rawset(f, "UnregisterEvent", function(self, e) events[e] = nil; return self end)
+        rawset(f, "UnregisterAllEvents", function(self)
+            for k in pairs(events) do events[k] = nil end
+            return self
+        end)
+        tracked[#tracked + 1] = f
+        return f
+    end
+    return tracked
+end
+
+--- PLAYER_REGEN_ENABLED, fired at every listener there is: the addon's own
+--- AceEvent registrations (the kit's live set) and every tracked frame still
+--- registered for it.
+local function fireRegen(tracked)
+    loader.mock.base.__fire("PLAYER_REGEN_ENABLED")
+    for _, f in ipairs(tracked) do
+        if f.__events.PLAYER_REGEN_ENABLED then f:_run("OnEvent", "PLAYER_REGEN_ENABLED") end
+    end
+end
+
+--- An enabled addon (OnEnable run, as tests/test_disabled.lua's build does),
+--- counting category registrations and tracking frames.
+local function enabledAddon()
+    local KCM = loader.loadFullAddon()
+    KCM:OnEnable()
+    local tracked = trackFrames()
+    return KCM, countRegistrations(), tracked
+end
+
+-- red under: dropping the library's InCombatLockdown park, or a host that
+-- re-parks (a second queued replay) on a second Register in the same combat.
 test("Settings: registering the category in combat is refused and parked", function(t)
-    local KCM = loader.loadWithSchema()
+    local KCM, seen = enabledAddon()
     loader.mock.setCombat(true)
     KCM.Settings.Register()
+    KCM.Settings.Register()
     loader.mock.setCombat(false)
-    t.eq(KCM.Settings.main, nil, "no Blizzard category is registered under lockdown")
-    t.truthy(KCM.Settings.registerPending, "the refused attempt is parked for regen to replay")
+    t.eq(seen.addon, 0, "no Blizzard category is registered under lockdown")
+    local lib = LibStub("LibKa0s-Options-1.0")
+    t.eq(#lib.__parkedPanels, 1, "one parked replay: a second Register while parked is a no-op")
 end)
 
+-- red under: a replay that re-arms itself, or a park that never listens for regen.
 test("Settings: leaving combat replays the parked registration, and only then", function(t)
-    local KCM = loader.loadWithSchema()
+    local KCM, seen, tracked = enabledAddon()
     loader.mock.setCombat(true)
     KCM.Settings.Register()
     loader.mock.setCombat(false)
+    t.eq(seen.addon, 0, "nothing before regen")
 
-    -- Count the replay rather than letting it run: the mock's Blizzard
-    -- `Settings` global answers every call with a no-op returning nil, so a
-    -- real registerPanel() body cannot complete headlessly (see the Battle Rez
-    -- note above). The seam under test is the wiring, not the body.
-    local real = KCM.Settings.Register
-    local calls = 0
-    KCM.Settings.Register = function() calls = calls + 1 end
+    fireRegen(tracked)
+    t.eq(seen.addon, 1, "the end of combat registers the category once")
 
-    KCM:OnRegenEnabled()
-    t.eq(calls, 1, "the addon's existing regen handler replays it — no second event frame")
-
-    KCM.Settings.registerPending = nil
-    KCM:OnRegenEnabled()
-    t.eq(calls, 1, "and a regen with nothing parked does not re-enter registration")
-
-    KCM.Settings.Register = real
+    fireRegen(tracked)
+    t.eq(seen.addon, 1, "and a second regen does not re-enter registration")
 end)
+
+-- ConsumableMaster-R-03: slash-commands-§7 names the settings-category
+-- registration as SETUP that survives a stand-down. The host's own replay lived
+-- at the end of OnRegenEnabled, after the stood-down early return, so a park
+-- taken while disabled was lost for the session, with the Enable checkbox in it.
+--
+-- red under: the replay living only in the host's OnRegenEnabled
+test("Settings: a registration parked while the addon is stood down still registers on regen",
+    function(t)
+        local KCM, seen, tracked = enabledAddon()
+        KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+        loader.mock.setCombat(true)
+        KCM.Settings.Register()
+        loader.mock.setCombat(false)
+        fireRegen(tracked)
+        t.eq(seen.addon, 1, "the category registers although the addon is disabled")
+    end)
+
+-- The same, with the stand-down itself taken IN combat: the addon then holds its
+-- one sanctioned PLAYER_REGEN_ENABLED registration, and its handler returns on
+-- the stood-down branch.
+--
+-- red under: the replay living only in the host's OnRegenEnabled
+test("Settings: a registration parked by a stand-down in combat still registers on regen",
+    function(t)
+        local KCM, seen, tracked = enabledAddon()
+        loader.mock.setCombat(true)
+        KCM.Settings.Helpers.SetAndRefresh("enabled", false)
+        KCM.Settings.Register()
+        loader.mock.setCombat(false)
+        fireRegen(tracked)
+        t.eq(seen.addon, 1, "the category registers although the addon stood down mid-fight")
+    end)
+
+-- options-ui-§2: opening is refused outright in combat, in the library's words,
+-- once. The gate is UI.OpenOptionsPanel's; KCM.Options.Open only reports it.
+--
+-- red under: a host notice printed beside the library's, or a host that
+-- answers the refusal with 'settings panel unavailable'.
+test("Settings: /cm config in combat answers false and prints the library's refusal once",
+    function(t)
+        local KCM = enabledAddon()
+        KCM.Settings.Register()
+        local refused = LibStub("LibKa0s-Options-1.0").STRINGS.COMBAT_REFUSED
+        loader.mock.output = {}
+        loader.mock.setCombat(true)
+        local answer = KCM.Options.Open()
+        loader.mock.setCombat(false)
+        t.eq(answer, false, "the open is refused")
+        local hits, other = 0, 0
+        for _, line in ipairs(loader.mock.output) do
+            if line:find(refused, 1, true) then hits = hits + 1 else other = other + 1 end
+        end
+        t.eq(hits, 1, "the library's COMBAT_REFUSED line, exactly once")
+        t.eq(other, 0, "and nothing else is said")
+    end)

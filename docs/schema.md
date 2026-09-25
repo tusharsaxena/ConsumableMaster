@@ -4,11 +4,12 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ## The AceDB tree (account-wide global, plus one tree per profile)
 
-`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). There are **two** `schemaVersion` stamps, one per scope, because a migration step belongs to whichever scope it writes: the account-wide **global** stamp is the marker `savedvariables-§1` asks for, and each profile carries its own, which is what gates the steps that write that profile. Only the global one is a shipped default — a profile's is written by `RunMigrations` the first time it walks that profile. Everything else is in the profile bar one — the minimap button's visibility, which `launcher-§3` fixes in the **global** store and requires to survive **every** reset the addon ships — so a profile switch, *Reset all settings* and the General page's *Defaults* button all leave it alone (see [settings-panel.md](./settings-panel.md#the-minimap-button-row--shown-says-one-thing-the-store-says-the-other)) — so the Profiles page ([profiles.md](./profiles.md)) switches, copies and resets every other setting the addon has:
+`KCM.dbDefaults` (declared in `defaults/Profile.lua`, the one declaration site for every shipped default). There are **two** `schemaVersion` stamps, one per scope, because a migration step belongs to whichever scope it writes: the account-wide **global** stamp is the marker `savedvariables-§1` asks for, and each profile carries its own, which is what gates the steps that write that profile. Only the global one is a shipped default, and it ships as `0`, the pre-migration floor, never a real version: AceDB's `removeDefaults` strips a stored value equal to its default at logout, and its defaults merge backfills a declared default onto a legacy account, so a real version there could erase a stamp or mask a migration (`savedvariables-§1`). A profile's is written by `RunMigrations` the first time it walks that profile. Everything else is in the profile bar one — the minimap button's visibility, which `launcher-§3` fixes in the **global** store and requires to survive **every** reset the addon ships — so a profile switch, *Reset all settings* and the General page's *Defaults* button all leave it alone (see [settings-panel.md](./settings-panel.md#the-minimap-button-row--shown-says-one-thing-the-store-says-the-other)) — so the Profiles page ([profiles.md](./profiles.md)) switches, copies and resets every other setting the addon has:
 
 ```
 db.global
-├── schemaVersion        3          -- migration marker; see core/Database.lua
+├── schemaVersion        3          -- migration marker; default 0, walked to 3 by
+│                                   -- RunMigrations (core/Database.lua)
 └── minimap                         -- LibDBIcon-1.0's OWN table, handed straight to
     ├── hide             boolean    -- :Register (launcher-§3). GLOBAL and not profile:
     │                                -- a minimap button belongs to the INSTALLATION, so a
@@ -17,8 +18,8 @@ db.global
     │                                -- General page's Defaults button, which is carved
     │                                -- out by the row's `neverReset` stamp
     │                                -- (settings/General.lua). The row says SHOWN and this
-    │                                -- key says HIDDEN; settings/Panel.lua's GLOBAL_PATHS
-    │                                -- inverts at the single write seam.
+    │                                -- key says HIDDEN; the row's own get/set
+    │                                -- (settings/General.lua) inverts, under the seam.
     └── minimapPos       number     -- the angle the player dragged the button to.
                                     -- LibDBIcon's own write; no schema row addresses
                                     -- it (architecture-§5).
@@ -144,7 +145,7 @@ Seeds live in `KCM.SEED.<CATKEY>` Lua constants, **not** in SavedVariables — t
 
 ### Migrations
 
-Both stamps are at `3`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` **and again on every profile switch, copy and reset** (the hooks in `core/ConsumableMaster.lua`), and is the one place version-gated migrations land; every step is guarded on the stored version for the scope it writes, so it runs at most once per store. The same reaction then forgets the macro fingerprints on a switch or a copy, resyncs, and publishes `PROFILE_CHANGED` ([profiles.md](./profiles.md)).
+Both stamps are at `3`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` **and again on every profile switch, copy and reset** (the hooks in `core/ConsumableMaster.lua`), and is the one place version-gated migrations land; every step is guarded on the stored version for the scope it writes, so it runs at most once per store. The runner owns both stamps: no step writes `schemaVersion`, and each stamp line sits after its step call, so a step that raises leaves the stamp at the last completed version and the next load retries it. The same reaction then forgets the macro fingerprints on a switch or a copy, resyncs, and publishes `PROFILE_CHANGED` ([profiles.md](./profiles.md)).
 
 Both steps below write `db.profile`, so both are gated on `db.profile.schemaVersion`. Gating them on the account-wide stamp — which is what this addon did until the profile stamp existed — meant that once *any* profile had been walked to the current version, every other profile in the file was skipped from then on, whatever build had written it; the `OnProfileChanged` hook that exists to catch exactly that re-ran a pass gated on a stamp that had already moved. The cost of the repair is paid once: no profile in an existing file carries a stamp, so each one meets the v2 step once on its first arrival under this build, and a deliberate opt-out has to be set again. The information needed to avoid that — which profile the old runner migrated — was never written down.
 
@@ -225,7 +226,7 @@ In v1.0.0, `discovered[id] = true` accumulated forever. One-shot consumables loo
 
 ### Sweep trigger
 
-`PLAYER_ENTERING_WORLD`, after auto-discovery and before the first recompute. Pseudo-code:
+`PLAYER_ENTERING_WORLD`, and the stand-up after a re-enable, each after auto-discovery and before the recompute (`Pipeline.DiscoverAndSweep`). Pseudo-code:
 
 ```
 SweepStaleDiscovered(nowUnix):
@@ -251,12 +252,71 @@ TTL is the only gate. A classifier re-check on stale entries was considered and 
 
 ### Manual trigger
 
-There isn't one. `/cm resync` does a full rescan but **does not** include a GC sweep — that's an explicit PEW-only policy. If demand emerges, a `/cm gc` variant is trivial to add.
+There isn't one. `/cm resync` does a full rescan but **does not** include a GC sweep — the sweep runs only at login (`PLAYER_ENTERING_WORLD`) and on the stand-up after a re-enable, both through `Pipeline.DiscoverAndSweep`. If demand emerges, a `/cm gc` variant is trivial to add.
+
+## The write seam
+
+Every schema row is written through **one** seam (`architecture-§5`): `LibKa0s-Schema-1.0`'s
+instance, built in `settings/Panel.lua` and published as `KCM.Settings.Helpers.schema`
+([ConsumableMaster#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)). The
+library owns the machinery (the path walk, the row index, the pipeline, the batch, the bulk
+bracket and the reset count). The addon owns the rows, their type rules and what a write sets
+off. Its doors are unchanged. `KCM.Schema:Set` / `:SetMany`, `Helpers.SetAndRefresh` /
+`SetManyAndRefresh`, every panel widget and every host verb reach it.
+
+**The pipeline, in order** (the library's contract, `docs/api/Schema/version-2-docs.md` in
+LibKa0s):
+
+1. A path no row declares is **refused** (`Setting not found`), never stored.
+2. `validate(value)`: the row's type rule refuses a wrong type or an enum value outside the
+   row's list (`allowed values: …`).
+3. `normalize(value)` answers what is stored. A number is clamped to `min` / `max`. A color, an
+   order and a map are rebuilt as a fresh table: an order is repaired to its member set, and a
+   flag map keeps only its members' booleans. `nil, why` refuses. Stat priority's map carries its
+   own `normalize`, which is kept.
+4. The store is `db.profile` (the descriptor's `resolveRoot`), and a table value is **copied** in.
+   A row with its own `get` / `set` stores there instead: `state.debugConsole` (session-only, the
+   console window itself) and `global.minimap.shown` (in `db.global`, where the SHOWN ↔ HIDDEN
+   inversion lives, `launcher-§3`: the path says *shown*, the stored key is still LibDBIcon's `hide`). Both stores are stamped on the row in `settings/General.lua`.
+5. The `[Set] <path> = <value>` line, when debug is on, **before** any reaction.
+6. `announce`: the row's **`apply`**, then the in-place `RefreshScalars`.
+
+The type rules are `TYPE_RULES` in `settings/Panel.lua`, split `validate` / `normalize` by type.
+`bool`, `string` and enum rows are validate-only. `Helpers.AddRows` / `AddRow` /
+`RegisterRows` stamp them onto each row, closed over it, and index the row. A row added any
+other way is not writable.
+
+**`apply`, not `onChange`.** A row's reaction (the bar's re-apply, the recompute, the latch) is
+the host field `apply`, and `announce` runs it through the `onChange for <path> failed: …`
+reporter. A raising reaction is reported and never propagated, because the value has already
+landed. Schema's own `row.onChange` would propagate, so no row declares one.
+
+**`SetMany`, all or nothing.** `Helpers.SetManyAndRefresh(entries, opts)` is the library's
+`SetMany`. Every entry is validated and normalized before the first store, so one bad value
+writes none. The batch's `announceBatch` then runs, once, either the caller's `opts.onChange` or
+each **distinct** row `apply` in first-seen order, followed by one refresh
+(`RefreshAllPanels` when `opts.structural`, otherwise `RefreshScalars`). A sixty-row page reset
+is still one `applyBar`. `opts.bulk = { act, scope }` makes the batch one bracket, so it logs one
+`[Set] <act> <scope>: N rows` line (`debug-logging-§10`).
+
+**The bracket and the reset count.** `Helpers.Bulk(act, scope, fn)` is the library's `BulkRun`.
+`Helpers.MuteSetLog(fn)` is the same bracket marked as a profile reset, so it logs nothing. A
+sweep inside a bracket never resets a row flagged `neverReset` (the minimap button,
+`launcher-§3`), because such rows form the descriptor's `resetExempt`. `KCM.ResetAllToDefaults`
+wraps `db:ResetProfile()` in `ResetCounted`, and the `OnProfileReset` handler's
+`ConsumeResetCount` both silences any open bracket and hands the line its count.
+
+**The degraded build.** With LibKa0s absent the seam is `settings/SchemaStub.lua`
+(`KCM.SchemaStub`), the library's documented degradation stub. It is write-completing and
+log-silent. Reads, writes, `normalize`, the reaction, the announce and the sweep veto all work,
+so `/cm bar on|off`, `/cm enable` and the global reset keep writing. No `[Set]` line, bracket
+line or reset count is written. `tests/test_surface_parity.lua` pins its instance surface against
+a live instance and its library surface against the major by name.
 
 ## Reset path
 
-`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that resets the whole active profile back to `dbDefaults`. Both the General page's **Reset all settings** button (Master controls' closing pair, `options-ui-§15`) and `/cm resetall`'s StaticPopup delegate to it so semantics stay identical regardless of entry point. The General page's **Reset all priorities** button is a narrower, separately-confirmed act (`KCM.ResetAllPriorities`, `settings/General.lua`): every category's `added` / `blocked` / `pins` — `bySpec` buckets included, through the registry writer's `Selector.ResetAllBuckets` — plus `statPriority`, and nothing else. `discovered` survives it, exactly as it survives a per-category reset. (`/cm reset <path>` is unrelated: it is `Sl:CliReset`, which applies one schema row's `default` and leaves both tables alone.)
+`KCM.ResetAllToDefaults(reason)` in `core/ConsumableMaster.lua` is the one place that resets the whole active profile back to `dbDefaults`. Both the General page's **Reset all settings** button (Master controls' closing pair, `options-ui-§15`) and `/cm resetall` raise the one `KCM_CONFIRM_RESET` popup, which delegates to it, so semantics stay identical regardless of entry point. It refuses under combat lockdown before any write (`false, "combat"`) and repaints every open panel on success. The General page's **Reset all priorities** button is a narrower, separately-confirmed act (`KCM.ResetAllPriorities`, `settings/General.lua`): every category's `added` / `blocked` / `pins` — `bySpec` buckets included, through the registry writer's `Selector.ResetAllBuckets` — plus `statPriority`, and nothing else. `discovered` survives it, exactly as it survives a per-category reset. (`/cm reset <path>` is unrelated: it is `Sl:CliReset`, which applies one schema row's `default` and leaves both tables alone.)
 
-After the DB wipe, the `OnProfileReset` handler (`KCM.RegisterProfileCallbacks`, `core/ConsumableMaster.lua`) drives a full resync: `TooltipCache.InvalidateAll` → `RunAutoDiscovery` → `Pipeline.Recompute`. It is the same reaction a switch or a copy gets, and it ends by publishing `PROFILE_CHANGED`, off which the macro bar re-applies itself whole and every open settings page rebuilds. Macro writes that land in combat defer via the pending queue, so this is safe to run without a combat guard.
+After the DB wipe, the `OnProfileReset` handler (`KCM.RegisterProfileCallbacks`, `core/ConsumableMaster.lua`) drives a full resync: `TooltipCache.InvalidateAll` → `RunAutoDiscovery` → `Pipeline.Recompute`. It is the same reaction a switch or a copy gets, and it ends by publishing `PROFILE_CHANGED`, off which the macro bar re-applies itself whole and every open settings page rebuilds. Macro writes that land in combat would defer via the pending queue, so the wipe itself is combat-safe; the reset refuses in combat anyway, to match the General page's other Maintenance verbs rather than half-land mid-fight.
 
 `db:ResetProfile()` empties `macroState` along with the rest of the profile. The resync puts it back: with no fingerprint left to match, `Recompute` re-issues every macro, so live macros stay valid and the cache is rebuilt. A **switch** or a **copy** brings another profile's `macroState` in instead, and that describes the bodies that profile last wrote rather than what the account's macros hold now. So the profile handler calls `MacroManager.InvalidateState()` before the resync on both, and every macro is rewritten ([profiles.md](./profiles.md#why-the-fingerprints-are-forgotten)). To re-issue the macros without resetting anything, use `/cm rewritemacros`, which calls `MacroManager.InvalidateState()` to clear `macroState` + `pendingUpdates` and then re-runs the pipeline.

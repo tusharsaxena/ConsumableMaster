@@ -370,17 +370,23 @@ end
 M.makeAceWidget = makeAceWidget
 
 -- ---------------------------------------------------------------------------
--- AceDB (kept local, and not for the profile key any more)
+-- AceDB (kept local, at the kit's revision-26 fidelity)
 --
--- Through kit revision 17 the kit's AceDB fake handed every callback the ACTIVE
--- profile's key, which is wrong for a copy; since revision 18 (LibKa0s v1.33.0)
--- each event carries its own key, the copy's SOURCE included, and since revision
--- 19 (v1.34.0) a reset carries none, exactly as this fake does. Two differences
--- remain, and they are why this one stays: the kit
--- calls every callback as a plain function, with no CallbackHandler string-method
--- form (`target[method](target, event, ...)`), and it keeps the profile store as
+-- Why this fake stays rather than giving way to the kit's AceDB: the kit calls
+-- every callback as a plain function, with no CallbackHandler string-method form
+-- (`target[method](target, event, ...)`), and it keeps the profile store as
 -- `sv.profiles` rather than as real AceDB's `db.profiles`, which the suites seed
 -- directly to stage a second profile.
+--
+-- What it now shares with the kit (tests/_kit/mock_record.lua, revision 26), all
+-- modeled on libs/AceDB-3.0/AceDB-3.0.lua:
+--   * each callback carries its own key -- the NEW profile's for a switch, the
+--     SOURCE's for a copy, none for a reset (kit revisions 18 and 19);
+--   * a switch runs removeDefaults over the OUTGOING profile first (:460-463),
+--     so a profile nobody is using holds only what differs from the defaults;
+--   * CopyProfile and DeleteProfile raise AceDB's own messages, byte for byte at
+--     level 2, where the real library raises (:531-537 and :581-587), instead of
+--     returning silently on a bad name.
 -- ---------------------------------------------------------------------------
 
 local function makeAceDB()
@@ -426,6 +432,24 @@ local function makeAceDB()
                     copyDefaults(dest[k], v)
                 elseif dest[k] == nil then
                     dest[k] = v
+                end
+            end
+        end
+
+        -- AceDB's removeDefaults (AceDB-3.0.lua:134-178), the inverse of the
+        -- above: a stored scalar equal to its default is removed, a default table
+        -- is recursed into and removed if that leaves it empty, and a key with no
+        -- default is never touched. Only the scalar and plain-sub-table arms are
+        -- modeled; the "*" / "**" wildcard arms and their blocker argument are not,
+        -- because defaults/Profile.lua uses neither (the kit's mirror in
+        -- tests/_kit/mock_record.lua draws the same line).
+        local function removeDefaults(dest, src)
+            for k, v in pairs(src or {}) do
+                if type(v) == "table" and type(dest[k]) == "table" then
+                    removeDefaults(dest[k], v)
+                    if next(dest[k]) == nil then dest[k] = nil end
+                elseif dest[k] == v then
+                    dest[k] = nil
                 end
             end
         end
@@ -490,6 +514,10 @@ local function makeAceDB()
         -- table for both would never show it.
         db.SetProfile = function(_, name)
             if type(name) ~= "string" or name == current then return end
+            -- AceDB strips the defaults from the OUTGOING profile before the
+            -- switch (AceDB-3.0.lua:460-463), in place, so a caller still holding
+            -- the old db.profile sees it stripped too.
+            removeDefaults(db.profile, defaults.profile)
             local p = db.profiles[name] or {}
             db.profiles[name] = p
             copyDefaults(p, defaults.profile)
@@ -498,17 +526,38 @@ local function makeAceDB()
             fire("OnProfileChanged", name)
         end
 
-        -- db:CopyProfile(name) -- the active profile becomes a copy of `name`,
-        -- IN PLACE like a reset, and OnProfileCopied carries the SOURCE's key,
-        -- which is what the real library passes.
-        db.CopyProfile = function(_, name)
+        -- db:CopyProfile(name, silent) -- the active profile becomes a copy of
+        -- `name`, IN PLACE like a reset, and OnProfileCopied carries the SOURCE's
+        -- key, which is what the real library passes. A copy onto the active
+        -- profile, or of a missing one unless `silent`, raises AceDB's own message
+        -- at level 2 (AceDB-3.0.lua:581-587); AceDB resets before it copies, so a
+        -- silent copy of a missing profile is a reset.
+        db.CopyProfile = function(_, name, silent)
+            if name == current then
+                error(("Cannot have the same source and destination profiles (%q)."):format(name), 2)
+            end
             local src = db.profiles[name]
-            if type(src) ~= "table" or name == current then return end
+            if type(src) ~= "table" and not silent then
+                error(("Cannot copy profile %q as it does not exist."):format(name), 2)
+            end
             local p = db.profile
             for k in pairs(p) do p[k] = nil end
-            for k, v in pairs(deepcopy(src)) do p[k] = v end
+            for k, v in pairs(deepcopy(src or {})) do p[k] = v end
             copyDefaults(p, defaults.profile)
             fire("OnProfileCopied", name)
+        end
+
+        -- db:DeleteProfile(name, silent) -- raises on the active profile, and on
+        -- a missing one unless `silent`, with AceDB's messages (AceDB-3.0.lua:
+        -- 531-537). OnProfileDeleted is not fired: nothing here registers for it.
+        db.DeleteProfile = function(_, name, silent)
+            if name == current then
+                error(("Cannot delete the active profile (%q) in an AceDBObject."):format(name), 2)
+            end
+            if db.profiles[name] == nil and not silent then
+                error(("Cannot delete profile %q as it does not exist."):format(name), 2)
+            end
+            db.profiles[name] = nil
         end
 
         db.GetCurrentProfile = function() return current end
@@ -762,13 +811,16 @@ function M.install(NS)
     end
     _G.GetClassInfo = function(classID) return "Class" .. tostring(classID) end
 
-    -- Item / spell legacy globals
-    _G.GetItemInfo = function(id)
+    -- Item / spell legacy globals. C_Item.GetItemInfo below is the same
+    -- function, so KCM.Compat.GetItemInfo's first rung and its fallback answer
+    -- identically and a test can remove either one to reach the other.
+    local function getItemInfo(id)
         local it = M.items[id]
         if not it then return nil end
         -- name, link, quality, ilvl, reqLevel, class, subType, ...
         return it.name, "link", it.quality, it.ilvl, 0, "Consumable", it.subType
     end
+    _G.GetItemInfo = getItemInfo
     _G.GetSpellInfo = function(spellID)
         local s = M.spells[spellID]
         return s and s.name or nil
@@ -864,6 +916,7 @@ function M.install(NS)
             -- itemID, itemType, itemSubType, equipLoc, icon, classID, subClassID
             return id, "Consumable", it.subType, "", 0, it.classID, it.subClassID
         end,
+        GetItemInfo = getItemInfo,
         GetItemCount = function(id) return M.bags[id] or 0 end,
         GetItemNameByID = function(id) return M.items[id] and M.items[id].name or nil end,
         GetItemIconByID = function(id) return M.items[id] and ("icon:" .. id) or nil end,

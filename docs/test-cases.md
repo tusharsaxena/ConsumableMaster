@@ -45,14 +45,14 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_bulklog.lua (14)
 
-- bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every onChange runs
+- bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every apply runs
 - bulk: a raising act still logs its line with the rows so far, marked stopped, re-raises, and unmutes
 - bulk: a bracket inside a bracket folds into it, with one line for the outer act
 - bulk: SetManyAndRefresh's opts.bulk is the same one line, and a refused batch logs nothing
 - bulk: the Macro Bar page's Defaults on a page already at defaults logs 0 rows
-- bulk: the General page's Defaults is one [Set] line and runs each row's onChange
+- bulk: the General page's Defaults is one [Set] line and runs each row's apply
 - bulk: the composite category reset is one [Set] line, and its reactor runs
-- bulk: /cm aio <key> reset is one [Set] line, and the rows' shared onChange runs
+- bulk: /cm aio <key> reset is one [Set] line, and the rows' shared apply runs
 - bulk: the global reset is one [Set] line from the profile handler, the session row muted
 - bulk: a profile copy is one [Set] line from the handler, and a switch is a [Profile] line
 - bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes
@@ -108,7 +108,7 @@ badge and any count quoted in the docs must agree with it.
 - classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
 - classifier: keys on numeric subclass, not the localized subType
 
-### test_compat.lua (23)
+### test_compat.lua (26)
 
 - Compat.GetSpecialization returns the live spec index
 - Compat.GetSpecializationInfo maps an index to specID + name
@@ -133,6 +133,9 @@ badge and any count quoted in the docs must agree with it.
 - Compat.GetSpellName returns a secret name untouched and ends the ladder
 - Compat.GetSpellName answers nil for an id outside the client's domain, asking no rung
 - Compat degraded: readers answer nil, the guard still asks the client
+- Compat.GetItemInfo prefers C_Item
+- Compat.GetItemInfo falls back to the global when C_Item.GetItemInfo is absent
+- Compat.GetItemInfo answers nil with neither
 
 ### test_constants.lua (12)
 
@@ -164,7 +167,7 @@ badge and any count quoted in the docs must agree with it.
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 - CoreSetup: the shared color decoder answers nil for a channel that is not stored
 
-### test_database.lua (23)
+### test_database.lua (26)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -175,6 +178,9 @@ badge and any count quoted in the docs must agree with it.
 - Database.RunMigrations leaves unrelated global keys untouched
 - Database.RunMigrations leaves unrelated profile settings untouched
 - Database.RunMigrations stamps the schema in both scopes
+- Database: defaults declare global.schemaVersion = 0
+- Database: a raising profile step leaves the profile stamp at the last completed version and the account stamp unmoved
+- Database: every step is idempotent against a fresh default profile
 - Database.RunMigrations is a safe no-op before the DB exists
 - Database v2: a profile that predates the macro bar gets it on and unlocked
 - Database v2: an off/locked bar from an earlier build of the feature is turned on
@@ -207,7 +213,7 @@ badge and any count quoted in the docs must agree with it.
 - Debug: the sink publishes no Toggle of its own
 - Debug: no call site formats through a numeric placeholder
 
-### test_debuglog.lua (18)
+### test_debuglog.lua (19)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -217,6 +223,7 @@ badge and any count quoted in the docs must agree with it.
 - DebugLog: the Debug sink is gated, and formats into the console buffer
 - DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
 - DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
+- DebugLog: [Init] names rejected events only when there are any
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
 - DebugLog: the console IS the library's instance, not a host lookalike
@@ -263,7 +270,7 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
-### test_disabled.lua (18)
+### test_disabled.lua (19)
 
 - Disabled 1: enabled, the addon registers a non-empty set
 - Disabled 3: the registration set is EMPTY, by count and by name
@@ -276,9 +283,10 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 7b: the bare /cm opens the settings panel
 - Disabled 7c: a feature verb refuses on exactly one line, and reaches no seam
 - Disabled 7d: the refusal line is the collection's shape, not a re-spelling
-- Disabled 8: left-click is refused and writes nothing; right-click opens the panel
+- Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing
 - Disabled 9: re-enabling rebuilds exactly the set it took down
 - Disabled 9b: a setting changed while disabled is honored on the way back up
+- Disabled 9c: an item looted while disabled is discovered on the way back up
 - Disabled 10: releasing perf does not stand up an addon disable still holds
 - Disabled 10b: the same, with the holds taken in the other order
 - Disabled 10c: the perf harness takes its hold on this very latch
@@ -300,10 +308,16 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: a SPELL link is not mistaken for an item
 - ItemSetup: the degraded stub answers exactly what the library does
 
-### test_events.lua (20)
+### test_events.lua (26)
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
+- a retired event name leaves the other eight bound
+- a retired event name leaves the other eight bound on a client with no C_EventUtils
+- IsEventValid answering false rejects without calling RegisterEvent
+- a stand-down and stand-up does not record a rejected name twice
+- the degraded Core stub's SafeRegisterEvent records a raising name
+- /cm dump events lists every event and names the rejected one
 - PLAYER_ENTERING_WORLD discovers, sweeps, then recomputes in that order
 - PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
 - BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
@@ -358,24 +372,36 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_launcher.lua (16)
+### test_launcher.lua (28)
 
 - Launcher: KCM:OnInitialize registers ONE object under the folder name
 - Launcher: the object is a launcher, wearing this addon's own logo
 - Launcher: the broker label is the brand name in plain text
 - Launcher: the icon file the object names is on disk, at the TOC's path
 - Launcher: Register is idempotent — a second call builds no second button
-- Launcher: left-click toggles the macro bar's lock through the schema seam
-- Launcher: the left click holds no state — it reads the profile each time
-- Launcher: right-click opens the settings panel, and never the rung
+- Launcher: left-click opens the settings panel, in either state, and nothing else
+- Launcher: right-click opens the options menu -- Enabled, then Locked, and no more
+- Launcher: each open reads the states afresh
+- Launcher: the Locked entry runs /cm lock's handler through the schema seam
+- Launcher: Locked on a switched-off bar says what /cm unlock says
+- Launcher: the Enabled entry runs /cm disable's and /cm enable's handler
+- Launcher: while disabled, Locked is grayed and Enabled switches the addon back on
+- Launcher: with no MenuUtil, right-click opens the settings panel
 - Launcher: the Minimap button row stores LibDBIcon's own key, globally
 - Launcher: the row's get/set invert, and the button follows the checkbox
 - Launcher: LibDBIcon writes into the same table the row reads
+- Launcher: /cm get global.minimap.shown answers true while hide is false
+- Launcher: /cm set global.minimap.shown false writes hide = true
+- Launcher: a legacy hide = true store reads as not shown and keeps its angle
 - Launcher: the global reset leaves a hidden button hidden
 - Launcher: the General page's Defaults button leaves a hidden button hidden
 - Launcher: a host with neither broker library does not raise
 - Launcher: the write seam owns the inversion, not the library
 - Launcher: no LibKa0s means no launcher at all, and no stub
+- Launcher: the descriptor answers the tooltip's and the menu's questions and no others
+- Launcher: the tooltip, enabled and unlocked, in the collection's one shape
+- Launcher: the tooltip reads the lock on every show, never a cached copy
+- Launcher: the tooltip still draws while disabled, with the same two hints
 
 ### test_lintconfig.lua (4)
 
@@ -563,7 +589,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: no clearance when the flyout is off or the label is outside
 - macrobar flyout: clearance scales with the band thickness
 
-### test_macromanager.lua (49)
+### test_macromanager.lua (51)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -598,6 +624,8 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.FlushPending re-queues a write if combat resumes mid-flush
 - MacroManager: a queued write that already matches the live macro is dropped
 - MacroManager: a re-queued write keeps its retry count for the combat window
+- MacroManager.FlushPending replays a per-hand weapon-enchant body
+- MacroManager: /cm rewritemacros in combat keeps the WPN_ENCH body
 - MacroManager.InvalidateState forces the next pass to rewrite every body
 - MacroManager.InvalidateState drops queued combat writes
 - MacroManager.InvalidateState traces what it cleared, and only with debug on
@@ -644,7 +672,7 @@ badge and any count quoted in the docs must agree with it.
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
-### test_pipeline.lua (30)
+### test_pipeline.lua (31)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
@@ -670,6 +698,7 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults empties macro state and the resync rebuilds each macro's fingerprint
 - ResetAllToDefaults rediscovers what is still in bags
 - ResetAllToDefaults reports whether it mutated anything
+- ResetAllToDefaults refuses in combat before any write, and repaints on success
 - ResetAllToDefaults keeps the addon on when the defaults have no enabled key
 - ResetAllToDefaults runs invalidate then discover then recompute, in that order
 - ResetAllToDefaults copies the defaults rather than aliasing them
@@ -677,7 +706,7 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
 
-### test_profiles.lua (15)
+### test_profiles.lua (21)
 
 - Profiles: the page is the last in the sidebar and its file loads last
 - Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
@@ -694,8 +723,14 @@ badge and any count quoted in the docs must agree with it.
 - Profiles: a switch or copy rewrites a macro whose incoming fingerprint matches a body no longer live
 - Profiles: each profile act logs its one handler line, a switch included
 - Profiles: the open settings pages rebuild on the switch itself, not after the debounce
+- AceDB fake: a profile switch strips at-default values from the outgoing profile
+- AceDB fake: the shipped default table survives a switch
+- AceDB fake: CopyProfile onto the active profile raises AceDB's own message
+- AceDB fake: DeleteProfile of the active profile raises AceDB's own message
+- /cm reset: resetting a color row stores a copy, not the dbDefaults table
+- /cm reset: a profile switch after a color reset leaves the shipped default intact
 
-### test_ranker.lua (23)
+### test_ranker.lua (26)
 
 - Ranker: spell sentinel scores SPELL_SCORE for any category
 - Ranker: nil/unknown guards score 0
@@ -720,6 +755,9 @@ badge and any count quoted in the docs must agree with it.
 - Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
 - Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
 - Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
+- Ranker: three seeded items score the same uncached, cache-cold and cache-warm
+- Ranker: the per-pass field cache carries quality, ilvl and tt, and no subType
+- Ranker: item fields come through KCM.Compat.GetItemInfo, not the bare global
 
 ### test_register.lua (1)
 
@@ -732,7 +770,7 @@ badge and any count quoted in the docs must agree with it.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (55)
+### test_schema.lua (54)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -742,11 +780,10 @@ badge and any count quoted in the docs must agree with it.
 - schema: Set round-trips a bool setting through Helpers
 - schema: unknown paths resolve to nil/false
 - schema: [Set] logs exactly one line at the write seam, gated by debug
-- schema: Resolve splits a dotted path into its parent table and key
-- schema: Resolve walks nested tables
-- schema: Resolve refuses a path that runs through a non-table
-- schema: Resolve returns nothing for an empty path or a missing DB
+- schema: Get reads a nested path out of db.profile, row or not
+- schema: Get answers nil through a non-table, for an empty path, or with no DB
 - schema: Set can write a nested path, not just a top-level one
+- schema: Set refuses a path no row declares, even one under a real table
 - schema: every row declares a panel that exists in the tab order
 - schema: every row carries a label and a tooltip for the panel to render
 - schema: every row's default matches the seeded profile value
@@ -755,7 +792,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: ValidateSchemaValue enforces each declared type
 - schema: ValidateSchemaValue passes a row with no recognized type straight through
 - schema: ValidateSchemaValue clamps a number to its declared range
-- schema: SetAndRefresh writes the value and fires the row's onChange
+- schema: SetAndRefresh writes the value and runs the row's apply
 - schema: SetAndRefresh refuses a value of the wrong type
 - schema: SetAndRefresh refuses an explicit nil rather than deleting the key
 - schema: SetAndRefresh refuses a path that is not in the schema
@@ -781,7 +818,7 @@ badge and any count quoted in the docs must agree with it.
 - schema: every row on every page carries a group
 - schema: every color row is followed by its class-color companion
 - schema: every mixed tab breaks its blocks up with subsection headings
-- schema: SetManyAndRefresh writes every row, each distinct onChange once, one refresh
+- schema: SetManyAndRefresh writes every row, each distinct apply once, one refresh
 - schema: SetManyAndRefresh refuses the whole batch when one value is invalid
 - schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset
 - schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows
@@ -789,6 +826,22 @@ badge and any count quoted in the docs must agree with it.
 - schema: a flag map keeps its members' booleans, drops strangers and refuses anything else
 - schema: statPriority keeps well-formed overrides and repairs their lists
 - schema: no runtime file writes a whole-value row's field around the helper
+
+### test_schema_adoption.lua (13)
+
+- adoption: SetAndRefresh stores a number clamped to its row's range
+- adoption: an enum refusal prints the allowed values and stores nothing
+- adoption: an unknown path is refused and stores nothing
+- adoption: a color, an order and a map are each stored as a copy
+- adoption: the Macro Bar page's Defaults applies the bar once and logs one line of N rows
+- adoption: a composite category reset logs one line and recomputes once
+- adoption: /cm resetall logs the profile handler's line and nothing else
+- adoption: the debug console row shows and hides the window and lives outside the profile
+- adoption: the minimap row inverts onto its global key and survives both resets
+- adoption: a raising reaction is reported and the write persists
+- adoption: the degraded build still writes through a host verb and the global reset
+- adoption: the [Set] line is written before the row's apply runs
+- adoption: a normalize refusal reaches /cm set as one INVALID line
 
 ### test_selector.lua (55)
 
@@ -848,7 +901,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (36)
+### test_settingsui.lua (42)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -860,6 +913,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: the scroll container comes from the library
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
+- Settings UI: the About logo path follows the folder name
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
@@ -867,6 +921,11 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: with the library absent a schema WRITE completes and reports success
 - Settings UI: the degraded stub completes every page-file load, composed rows aside
 - Settings UI: Helpers reads the library's members off the instance, not off a copy
+- Settings: the General page's strip is Master controls, then Maintenance
+- Settings: the Master controls tab draws the page's canonical rows and their tail
+- Settings: the Maintenance tab draws its three verbs and no schema row
+- Settings: the Macro Bar page keeps its eight tabs in order
+- Settings: every Macro Bar tab draws exactly its group's schema rows
 - Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
@@ -887,7 +946,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_settingsui_optionsui.lua (18)
+### test_settingsui_optionsui.lua (21)
 
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
@@ -901,16 +960,21 @@ badge and any count quoted in the docs must agree with it.
 - Settings: every draggable row on the Macros page is boxed full-width and spaced
 - Settings: clicking a secondary stat's glyph toggles whether it is ranked
 - Settings: the secondary split is stored order first, then the rest
-- Settings: a wrapped strip reserves the same band whichever tab is selected
 - Settings: the Master controls tab closes with the two reset buttons
 - Settings: the Reset all settings tooltip names Profiles → Reset Profile
+- Settings: the panel's Reset all settings raises the same popup as /cm resetall
 - Settings: the three maintenance verbs draw on their own tab
 - Settings: registering the category in combat is refused and parked
 - Settings: leaving combat replays the parked registration, and only then
+- Settings: a registration parked while the addon is stood down still registers on regen
+- Settings: a registration parked by a stand-down in combat still registers on regen
+- Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (106)
+### test_slash.lua (113)
 
 - /cm set toggles a bool setting through the schema
+- /cm disable prints exactly one line, the enabled echo
+- /cm enable prints exactly one line, the enabled echo
 - /cm priority add then remove edits the FOOD candidate set
 - /cm priority add accepts a spell sentinel (s:ID)
 - /cm stat primary sets the current spec's primary stat
@@ -929,6 +993,8 @@ badge and any count quoted in the docs must agree with it.
 - /cm help and the About panel read the same command table
 - /cm resetall asks for confirmation instead of wiping immediately
 - /cm resetall's confirmation still performs the full wipe when accepted
+- /cm resetall confirmed in combat refuses and writes nothing
+- /cm resetall help names a whole-profile reset
 - /cm reset <path> restores exactly that row and leaves its neighbors alone
 - /cm config reports when the settings panel cannot be opened
 - /cm priority with no category prints the sub-verbs and known categories
@@ -1003,19 +1069,37 @@ badge and any count quoted in the docs must agree with it.
 - every /cm stat and /cm aio write goes through the schema helper
 - /cm unlock and /cm lock write the macro bar's stored lock flag
 - /cm bar lock and /cm bar unlock land on the same stored flag
+- /cm unlock on a switched-off bar says the bar is off
+- /cm bar unlock on a switched-off bar says the same line
+- /cm unlock on a shown bar keeps the drag wording
+- bare /cm bar toggles the stored flag during a perf hold
 - /cm lock and /cm unlock write through the schema helper, not the table
 - /cm lock and /cm unlock are in the published command table
 - Slash: enable / disable write the Enable row's own path
 - Slash: enable / disable hold no state of their own
 - Slash: the dispatcher still answers while the addon is disabled
 - Slash: enable echoes the stored value in the canonical set shape
-- Slash: with LibKa0s absent the verbs say so rather than going inert
 - Slash: a disabled addon refuses a feature verb and does not act on it
 - Slash: a disabled addon refuses the macro-bar verb without touching the bar
 - Slash: a disabled addon refuses resync rather than reporting a pass that wrote nothing
 - Slash: every verb outside the live set refuses while disabled, and every live one answers
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
+
+### test_slash_degraded.lua (12)
+
+- Slash: the library-absent line is WS-02's sentence, through the locale
+- Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm disable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar on lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar off lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar lands on the hand-declared row and says so once
+- Slash: /cm bar on over a refused write never says ON
+- Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
 
 ### test_slashsetup.lua (18)
 
@@ -1057,7 +1141,7 @@ badge and any count quoted in the docs must agree with it.
 - SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
 - SpecHelper.AllSpecs skips classes the client reports no specs for
 
-### test_surface_parity.lua (6)
+### test_surface_parity.lua (8)
 
 - Parity: the LibKa0s-Core stub carries the whole live seam
 - Parity: the LibKa0s-DebugLog stub carries the whole live seam
@@ -1065,6 +1149,8 @@ badge and any count quoted in the docs must agree with it.
 - Parity: the LibKa0s-Options stub carries the whole live seam
 - Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires
 - Parity: the LibKa0s-Bus stub carries the major's whole surface
+- Parity: the LibKa0s-Schema stub instance carries the whole live instance
+- Parity: KCM.SchemaStub carries the LibKa0s-Schema-1.0 library surface
 
 ### test_tooltipcache.lua (23)
 
@@ -1124,12 +1210,12 @@ badge and any count quoted in the docs must agree with it.
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
-- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
 
 ### test_prose.lua (15)
 
-- prose: no authored file carries a British spelling from localization-5's published list
-- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 - prose self-test: the carve-out suppresses the named generated folder, and only it
 - prose self-test: a path the carve-out does not name is not covered by one that looks like it
 - prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
@@ -1148,7 +1234,7 @@ badge and any count quoted in the docs must agree with it.
 
 - layoutcap: every authored file over the 1500-line cap is named in the census
 - layoutcap: no census row outlives the breach it records
-- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
 - layoutcap: the census and the exempt set agree about which paths were exempted
 - layoutcap: an empty census is written as a result rather than left standing empty
 - layoutcap self-test: the parser reads the census nested under the register, and stops there
@@ -1170,22 +1256,22 @@ badge and any count quoted in the docs must agree with it.
 | test_bus.lua | 19 |
 | test_categories.lua | 4 |
 | test_classifier.lua | 16 |
-| test_compat.lua | 23 |
+| test_compat.lua | 26 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
-| test_database.lua | 23 |
+| test_database.lua | 26 |
 | test_debug.lua | 14 |
-| test_debuglog.lua | 18 |
+| test_debuglog.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
-| test_disabled.lua | 18 |
+| test_disabled.lua | 19 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
-| test_events.lua | 20 |
+| test_events.lua | 26 |
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_launcher.lua | 16 |
+| test_launcher.lua | 28 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
@@ -1193,22 +1279,24 @@ badge and any count quoted in the docs must agree with it.
 | test_macrobar_chrome.lua | 18 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
-| test_macromanager.lua | 49 |
+| test_macromanager.lua | 51 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
-| test_pipeline.lua | 30 |
-| test_profiles.lua | 15 |
-| test_ranker.lua | 23 |
+| test_pipeline.lua | 31 |
+| test_profiles.lua | 21 |
+| test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 55 |
+| test_schema.lua | 54 |
+| test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 36 |
-| test_settingsui_optionsui.lua | 18 |
-| test_slash.lua | 106 |
+| test_settingsui.lua | 42 |
+| test_settingsui_optionsui.lua | 21 |
+| test_slash.lua | 113 |
+| test_slash_degraded.lua | 12 |
 | test_slashsetup.lua | 18 |
 | test_spechelper.lua | 16 |
-| test_surface_parity.lua | 6 |
+| test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 23 |
 | test_vendor_sync.lua | 3 |
 | test_weaponslots.lua | 9 |
@@ -1216,4 +1304,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **998** |
+| **Total** | **1078** |

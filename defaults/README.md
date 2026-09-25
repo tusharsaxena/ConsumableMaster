@@ -14,7 +14,7 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 
 | File                          | Populates            | Purpose                                                      |
 | ----------------------------- | -------------------- | ------------------------------------------------------------ |
-| `Profile.lua`                 | `KCM.dbDefaults`     | The AceDB defaults tree: `global.schemaVersion`, `profile.enabled`, the per-category buckets, `statPriority` / `macroState` and the whole `macroBar` table |
+| `Profile.lua`                 | `KCM.dbDefaults`     | The AceDB defaults tree: `global.schemaVersion` (shipped as `0`, the pre-migration floor: a real version there would be stripped by AceDB at logout and backfilled onto legacy accounts, `savedvariables-§1`), `profile.enabled`, the per-category buckets, `statPriority` / `macroState` and the whole `macroBar` table |
 | `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key); composite rows for HP_AIO / MP_AIO |
 | `Defaults_StatPriority.lua`   | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` |
 | `Defaults_Food.lua`           | `KCM.SEED.FOOD`      | Basic Well Fed food (non-stat); may include spell sentinels (e.g. Recuperate) |

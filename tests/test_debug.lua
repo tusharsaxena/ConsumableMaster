@@ -4,7 +4,7 @@
 -- halves: the zero-cost gate (nothing is formatted while debug is off), the
 -- console-vs-chat routing (DebugLog when loaded, KCM.Say during early boot),
 -- and the secret-safe formatting it inherits from KCM.SafeToString
--- (debug-logging-§4/§5).
+-- (debug-logging-§4/debug-logging-§5).
 --
 -- The suites load the pure layer PLUS State + Debug but deliberately WITHOUT
 -- core/DebugLogSetup.lua, so the early-boot fallback path is the default and the
@@ -169,7 +169,7 @@ end)
 -- reaches a slot is already a STRING -- and a combat-protected value reaches it
 -- as the "<secret>" sentinel, which string.format rejects for a numeric slot.
 -- The library sink pcalls the format and degrades to a joined line
--- (libs/LibKa0s/DebugLog.lua:640-655, which names this exact mistake); the
+-- (libs/LibKa0s/DebugLog.lua:659-677, which names this exact mistake); the
 -- chat fallback three functions above in core/Debug.lua does not pcall, so on
 -- early boot and on a degraded install the raise lands on the path the sink
 -- exists to protect.

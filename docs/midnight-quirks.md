@@ -73,29 +73,27 @@ See [macro-manager.md](./macro-manager.md#action-bar-icon-convention) for the fu
 
 ## `Settings.OpenToCategory` wants the numeric category ID, not a frame
 
-`Settings.RegisterCanvasLayoutCategory` (parent) and `Settings.RegisterCanvasLayoutSubcategory` (sub-pages) both return a category object whose `:GetID()` is the numeric ID `Settings.OpenToCategory` accepts. Passing the frame produces a range error. Capture the ID at registration time:
+`Settings.RegisterCanvasLayoutCategory` (parent) and `Settings.RegisterCanvasLayoutSubcategory` (sub-pages) both return a category object whose `:GetID()` is the numeric ID `Settings.OpenToCategory` accepts. Passing the frame produces a range error. `LibKa0s-Options-1.0` captures the ID at registration time (`registerMain` in `libs/LibKa0s/Options.lua`), and `/cm config` reaches it through `KCM.Options.Open` → `UI.OpenOptionsPanel`, which lands on the About splash:
 
 ```lua
-local main = Settings.RegisterCanvasLayoutCategory(panel, PANEL_TITLE)
-KCM._settingsCategoryID = main:GetID()
+mainCategory   = Settings.RegisterCanvasLayoutCategory(mainCtx.panel, d.parentTitle)
+Settings.RegisterAddOnCategory(mainCategory)
+mainCategoryID = mainCategory:GetID()
 ```
-
-`/cm config` (in `settings/Slash.lua`'s `COMMANDS` table) uses the parent's ID stored in `KCM._settingsCategoryID` to land on the About splash.
 
 ## Forcing a parent category to render expanded in the AddOns sidebar
 
-`SettingsCategoryMixin` does NOT expose a `SetExpanded` method — that lives on the visual list-entry element. To force the parent's sub-pages to render unfolded by default, reach into `SettingsPanel:GetCategoryList():GetCategoryEntry(category):SetExpanded(true)`. The whole walk is wrapped in `pcall` because every step (`SettingsPanel`, `GetCategoryList`, `GetCategoryEntry`) is private Blizzard API and could shift between patches; if any call goes missing the panel still opens, just without the parent unfolded.
+`SettingsCategoryMixin` does NOT expose a `SetExpanded` method — that lives on the visual list-entry element. To force the parent's sub-pages to render unfolded by default, reach into `SettingsPanel:GetCategoryList():GetCategoryEntry(category):SetExpanded(true)`. The walk is `LibKa0s-Options-1.0`'s (a private `expandMainCategory` beside `OpenOptionsPanel`); this addon carried its own copy until it adopted `OpenOptionsPanel`. The whole walk is wrapped in `pcall` because every step (`SettingsPanel`, `GetCategoryList`, `GetCategoryEntry`) is private Blizzard API and could shift between patches; if any call goes missing the panel still opens, just without the parent unfolded.
 
 ```lua
 local function expandMainCategory()
-    local main = KCM.Settings.main
-    if not (main and SettingsPanel) then return end
+    if not (mainCategory and SettingsPanel) then return end
     pcall(function()
         local list = SettingsPanel.GetCategoryList
             and SettingsPanel:GetCategoryList()
             or SettingsPanel.CategoryList
         if not (list and list.GetCategoryEntry) then return end
-        local entry = list:GetCategoryEntry(main)
+        local entry = list:GetCategoryEntry(mainCategory)
         if entry and entry.SetExpanded then
             entry:SetExpanded(true)
         end
@@ -103,12 +101,14 @@ local function expandMainCategory()
 end
 ```
 
-Call it AFTER `Settings.OpenToCategory` so `SettingsPanel` is realized and the entry element exists. Re-running on every `KCM.Options.Open` means a manual mid-session collapse doesn't stick across the next `/cm config`.
+Call it AFTER `Settings.OpenToCategory` so `SettingsPanel` is realized and the entry element exists. Re-running on every `OpenOptionsPanel` means a manual mid-session collapse doesn't stick across the next `/cm config`.
 
-The Settings panel is protected during combat (`InCombatLockdown()` blocks `Settings.OpenToCategory`). Two guards cover both entry points: `KCM.Options.Open` early-returns with a chat notice (covers `/cm` and `/cm config`), and `Helpers.SetRenderer`'s panel `OnShow` callback closes `SettingsPanel` and prints the same notice when a panel is shown during combat (covers a direct ESC → AddOns sidebar click that bypasses `O.Open`).
+The Settings panel is protected during combat (`InCombatLockdown()` blocks `Settings.OpenToCategory`). Two guards cover both entry points: `OpenOptionsPanel`, which `KCM.Options.Open` calls, refuses with the library's chat notice (covers `/cm` and `/cm config`), and `Helpers.SetRenderer`'s panel `OnShow` callback closes `SettingsPanel` and prints the same notice when a panel is shown during combat (covers a direct ESC → AddOns sidebar click that bypasses `O.Open`).
 
 ## `LEARNED_SPELL_IN_TAB` removed in retail
 
 Blizzard removed `LEARNED_SPELL_IN_TAB` from retail; AceEvent throws `Attempt to register unknown event` when registering it. The addon uses its modern replacement `LEARNED_SPELL_IN_SKILL_LINE` so newly-learned spell entries (e.g. Recuperate on level-up) hydrate their macro body without a reload.
 
-If a future patch removes another event the addon listens for, the failure mode is the same: AceEvent throws on registration. Replace with whatever modern event covers the same trigger.
+If a future patch removes another event the addon listens for, AceEvent still throws on registration, but the throw no longer escapes. Every registration goes through `KCM.SafeRegisterEvent` (`LibKa0s-Core-1.0`, bound in `core/CoreSetup.lua`), which asks `C_EventUtils.IsEventValid` first (a private probe frame on a client without it), then `pcall`s the call, and appends a refused name once to `KCM.RejectedEvents` (events-frames-taint-§1). So one retired name costs only its own handler, and the other eight events in `KCM.EVENTS` stay bound. Before, a bare `self:RegisterEvent` raised out of `KCM:OnEnable` at that name and every event after it went unregistered.
+
+**The trade.** A retired name is now recorded and skipped rather than raised, so it no longer shows up as a Lua error on login. It shows up in two places instead: `/cm dump events` marks it `rejected`, and the `[Init]` line of a `/cm debug on` session ends `, rejected events: <NAME>`. The fix is unchanged: replace the name with whatever modern event covers the same trigger. The degraded Core stub (no LibKa0s) keeps only the `pcall` rung, so on that path AceEvent reports an unknown name to its first registrant only.

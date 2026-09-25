@@ -14,36 +14,41 @@
 -- rather than here.
 --
 -- ---------------------------------------------------------------------------
--- THE RUNG: (b) LOCK / UNLOCK
+-- THE BUTTONS: LEFT OPENS SETTINGS, RIGHT OPENS THE OPTIONS MENU
 -- ---------------------------------------------------------------------------
 --
--- launcher-§2 orders the left click by what the player most likely wants, first
--- match wins: (a) toggle the addon's primary window, (b) else toggle its preview
--- switch, (c) else open the settings panel. This addon draws no standalone
--- window, and its preview switch is the macro bar's LOCK -- unlocking IS the
--- preview here, the options-ui-§15 exemption -- so it sits on rung (b), which is
--- what `ADDONS.md` records for it.
+-- launcher-§2 as of the standard's v2.67.0, drawn by LibKa0s-Launcher-1.0
+-- minor 4. The LEFT click opens the settings panel on every addon, in either
+-- state; `openSettings` below is all it asks for. The RIGHT click opens the
+-- client's own context menu, which the library builds out of the
+-- accessor-and-toggle pairs passed here, one checkbox per state the addon
+-- really has. This addon has two, and `ADDONS.md` records exactly those:
 --
--- RIGHT-CLICK ALWAYS OPENS THE PANEL, on every addon on every rung, which is
--- what lets the left button be spent on something better. The library owns that
--- half; `openSettings` below is all it asks for.
+--   Enabled   isEnabled + setEnabled   -- /cm enable | /cm disable
+--   Locked    isLocked  + toggleLock   -- /cm lock   | /cm unlock (the macro bar)
 --
--- WHILE THE ADDON IS DISABLED the left click is REFUSED and the right click is
--- unchanged (launcher-§2, slash-commands-§7). Rung (b) drives a preview switch
--- and a preview switch is a feature, so the left button prints the one refusal
--- line and does nothing else -- no SavedVariables write above all. The button
--- itself stays on the minimap: `minimap.hide` is a per-installation display
--- preference and says nothing about whether the addon is running.
+-- NO *Test mode*: the unlocked bar IS the preview here (the options-ui-§15
+-- exemption). NO *Show window*: this addon draws no standalone window; the
+-- macro bar is a HUD element whose visibility is `/cm bar`, not a primary
+-- window, and its lock is already the Locked entry.
 --
--- THE LEFT CLICK DRIVES THE EXISTING SWITCH THROUGH THE EXISTING SEAM and holds
--- no copy of it. `MB.SetLocked` is the write path both `/cm bar lock|unlock` and
--- the Master-controls *Lock frame* checkbox already take (CM-R-05,
--- modules/MacroBar.lua's writeFlag): it routes `macroBar.locked` through
--- KCM.Schema:Set, so validation, the row's onChange (MB.ApplyLock) and the open
--- page's in-place re-sync happen exactly once no matter who called. A launcher
--- that assigned `c.locked` here instead would be the second write path that
--- change removed, and the checkbox would show the old state until the page was
--- rebuilt.
+-- WHILE THE ADDON IS DISABLED the library grays *Locked* with "enable the addon
+-- first" and a click on it reaches nothing (slash-commands-§7); *Enabled* stays
+-- live, since the menu is one of the routes back on. The button itself stays on
+-- the minimap: `minimap.hide` is a per-installation display preference and says
+-- nothing about whether the addon is running.
+--
+-- EVERY TOGGLE IS THE SLASH VERB'S OWN BODY, never a copy. *Locked* runs
+-- KCM.SlashCommands.Verbs.RunLock, the body behind `/cm lock|unlock` and
+-- `/cm bar lock|unlock`, which writes through `MB.SetLocked` -> KCM.Schema:Set
+-- (CM-R-05, modules/MacroBar.lua's writeFlag) -- so validation, the row's apply
+-- (MB.ApplyLock) and the open page's in-place re-sync happen exactly once no
+-- matter who called, and the chat line is the verb's. *Enabled* runs
+-- Verbs.SetEnabled, the body behind `/cm enable|disable` (settings/Slash.lua),
+-- which writes the `enabled` row through the seam and echoes it. A launcher
+-- assigning `c.locked` or `profile.enabled` here would be the second write path
+-- those seams exist to remove, and the checkbox would show the old state until
+-- the page was rebuilt.
 --
 -- ---------------------------------------------------------------------------
 -- WHY `minimap` IS A FUNCTION AND NOT A TABLE
@@ -62,9 +67,9 @@
 -- ---------------------------------------------------------------------------
 --
 -- The row says SHOWN and LibDBIcon's key says HIDDEN, so something has to
--- invert -- and it is the host's single write seam that does it, in
--- settings/Panel.lua's GLOBAL_PATHS entry for `global.minimap.hide`
--- (options-ui-§1). It calls `KCM.Launcher:SetShown(value)` afterwards so the
+-- invert -- and it is the `global.minimap.shown` row's own store that does it,
+-- the get/set settings/General.lua stamps on the row, which the single write
+-- seam calls (options-ui-§1). It calls `KCM.Launcher:SetShown(value)` afterwards so the
 -- button follows the checkbox immediately rather than at the next reload. This
 -- file offers the verb and knows nothing about the row.
 --
@@ -141,50 +146,62 @@ KCM.Launcher = lib:New({
         return KCM.db and KCM.db.global and KCM.db.global.minimap
     end,
 
-    -- RIGHT-click always, and left-click too on rung (c) -- which this addon is
-    -- not on, but the library asks for it unconditionally and is right to.
-    -- Resolved at call time: settings/OptionsShim.lua publishes KCM.Options.Open
-    -- long after this file loads, and on a build with no panel at all the shim is absent
-    -- and the say() below is the honest answer.
+    -- LEFT-click, always and in either state (launcher-§2, minor 4); and the
+    -- RIGHT click too on a client with no context-menu API. Resolved at call
+    -- time: settings/OptionsShim.lua publishes KCM.Options.Open long after this
+    -- file loads, and on a build with no panel at all the shim is absent and the
+    -- say() below is the honest answer.
     openSettings = function()
         if not (KCM.Options and KCM.Options.Open and KCM.Options.Open()) then
             KCM.Say("Settings panel unavailable.")
         end
     end,
 
-    -- THE LEFT CLICK, AND ITS PRESENCE IS THE RUNG (launcher-§2). Toggles the
-    -- macro bar's lock through the same seam the checkbox and `/cm bar lock`
-    -- take; it reads the CURRENT value out of the profile rather than keeping
-    -- one, so three surfaces cannot disagree.
-    onClick = function()
-        -- REFUSED WHILE THE ADDON IS DISABLED (launcher-§2, slash-commands-§7).
-        -- This is a rung-(b) left click: it drives the preview switch, which is a
-        -- FEATURE, so it prints the one refusal line and does nothing else -- in
-        -- particular it writes no SavedVariables, which is the thing a minimap
-        -- button with no disabled gate does every single time it is clicked.
-        -- Unlocking a bar that is not drawn is not a coherent request anyway.
-        --
-        -- THE LINE IS THE DISPATCHER'S, never re-spelled here: one wording,
-        -- collection-wide, built once by cli:DisabledLine() (slash-commands-§7).
-        -- The right click is UNCHANGED in either state -- it opens the settings
-        -- panel, which is setup rather than a feature, and it is one of the two
-        -- routes a player uses to switch the addon back on by hand.
-        --
-        -- The DISABLED hold, not the latch as a whole: a perf capture's suspended
-        -- arm is a diagnostic the player started, not a switch they threw.
-        if KCM.IsAddonDisabled and KCM.IsAddonDisabled() then
-            local Sl = KCM.SlashCommands and KCM.SlashCommands.instance
-            if Sl then KCM.Say(Sl:DisabledLine()) end
-            return
-        end
+    -- THE *Enabled* PAIR. `isEnabled` is asked on every hover and every menu
+    -- open, never cached: the tooltip's `Enabled` line, the entry's check, and
+    -- -- while it answers false -- the gray on *Locked*.
+    --
+    -- The DISABLED hold, not the latch as a whole: a perf capture's suspended
+    -- arm is a diagnostic the player started, not a switch they threw.
+    isEnabled = function()
+        return not (KCM.IsAddonDisabled and KCM.IsAddonDisabled())
+    end,
+    -- `/cm enable` / `/cm disable`'s own body (settings/Slash.lua, published as
+    -- Verbs.SetEnabled), handed the state the addon is moving TO. Resolved at
+    -- call time: settings/ loads after this file.
+    setEnabled = function(on)
+        KCM.SlashCommands.Verbs.SetEnabled(on)
+    end,
+
+    -- THE STATUS TOOLTIP (launcher-§1, LibKa0s-Launcher-1.0 minor 3). The
+    -- LIBRARY draws it, on every hover and while the addon is disabled too, in
+    -- the collection's one shape: `<label>  v<version>`, `Enabled`, the states
+    -- passed below, then the two fixed click hints. These fields only answer its
+    -- questions, each asked on every show and never cached. There is no
+    -- `onTooltipShow`: this addon has no line of its own to add, and a title or
+    -- a click hint drawn here would be a second copy (anti-pattern #89).
+    --
+    -- The version is the TOC's `## Version` (KCM.Version: TOC first, the
+    -- in-code constant only where the manifest cannot be read).
+    version = function() return KCM.Version and KCM.Version() end,
+    -- THE LOCK IS THE ONLY STATE PASSED BESIDE `Enabled`, because it is the only
+    -- other one this addon has: the macro bar's `macroBar.locked`, the very value the Master-controls
+    -- *Lock frame* row reads, out of the live profile. There is NO `isTestMode`:
+    -- the unlocked bar IS the preview here (the options-ui-§15 exemption the
+    -- General page's composer notes), so a *Test mode* line would describe a
+    -- switch the player cannot find; and no `isWindowShown`, for want of a window.
+    isLocked = function()
         local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
-        if not (cfg and KCM.MacroBar and KCM.MacroBar.SetLocked) then
-            return KCM.Say("macro bar unavailable.")
-        end
-        local locked = not cfg.locked
-        KCM.MacroBar.SetLocked(locked)
-        KCM.Say(locked and "macro bar locked"
-                        or "macro bar unlocked \226\128\148 drag it, then /cm lock")
+        return cfg and cfg.locked and true or false
+    end,
+    -- THE *Locked* TOGGLE: `/cm lock` / `/cm unlock`'s own body
+    -- (KCM.SlashCommands.Verbs.RunLock), so the write seam and the wording are
+    -- one copy, not two. It reads the CURRENT value out of the profile rather
+    -- than keeping one, so the surfaces cannot disagree.
+    toggleLock = function()
+        local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+        if not cfg then return KCM.Say("macro bar unavailable.") end
+        KCM.SlashCommands.Verbs.RunLock(not cfg.locked)
     end,
 
     -- Thunks, never bare: lib:New snapshots both. Same note as

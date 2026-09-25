@@ -80,7 +80,7 @@ function KCM:OnInitialize()
     -- No boot summary is emitted here: the debug flag is session-only and off at
     -- login, so a load-time line would be gated off and never render. The
     -- lifecycle summary rides the DebugLog.SetEnabled seam instead, as the [Init]
-    -- line emitted on debug-enable (debug-logging-§5/§8).
+    -- line emitted on debug-enable (debug-logging-§5/debug-logging-§8).
 end
 
 -- ---------------------------------------------------------------------------
@@ -210,12 +210,15 @@ function P.Recompute(reason)
     -- cooldown bracket is, and for the same reason: Note() records whether or
     -- not a capture is open.
     local perfT0 = (Perf and Perf.on) and debugprofilestop() or nil
-    -- Master enable gates only the macro write loop. The panel refresh
-    -- below still runs so that opening the panel while the addon is off
-    -- hydrates priority-list rows from item-info events (otherwise rows
-    -- whose data hadn't loaded sit on `[Loading]` until re-enable). Macros
-    -- keep their last-written body until the off→on transition kicks a
-    -- recompute via the toggle's onChange in settings/Panel.lua.
+    -- Master enable gates only the macro write loop; the panel refresh below
+    -- runs whenever a recompute does. While the addon is disabled no recompute
+    -- arrives, though: the stand-down drops GET_ITEM_INFO_RECEIVED
+    -- (UnregisterAllEvents, core/LifecycleSetup.lua) and the options bus
+    -- target's PANEL_REFRESH (settings/OptionsShim.lua). So item rows in a
+    -- panel opened in a fresh session while disabled stay `[Loading]` until
+    -- re-enable (docs/ARCHITECTURE.md, Known Limitations). Macros keep their
+    -- last-written body until standUp's RequestRecompute
+    -- (core/LifecycleSetup.lua) runs on the off->on transition.
     if macrosEnabled() then
         local rewrote, skipped, total = runMacroPass(reason)
         if isDebugOn() then
@@ -358,50 +361,37 @@ end
 -- Expose for manual invocation from /cm resync and tests.
 KCM.Pipeline.RunAutoDiscovery = runAutoDiscovery
 
--- Pure recompute-summary formatter (debug-logging-§8/§9, unit-tested).
+-- Discovery, then the stale-discovered sweep: login's pass, shared with the
+-- stand-up (core/LifecycleSetup.lua) because PLAYER_ENTERING_WORLD does not
+-- fire again on a re-enable and bags looted while disabled must still count.
+-- The sweep runs after discovery so freshly-bumped timestamps survive it, and
+-- before the caller's recompute so the first pick sees the cleaned set.
+local function discoverAndSweep(reason)
+    runAutoDiscovery(reason)
+    if KCM.Selector and KCM.Selector.SweepStaleDiscovered then
+        KCM.Selector.SweepStaleDiscovered(time())
+    end
+end
+
+KCM.Pipeline.DiscoverAndSweep = discoverAndSweep
+
+-- Pure recompute-summary formatter (debug-logging-§8/debug-logging-§9, unit-tested).
 function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
     return ("reason=%s rewrote %s/%s (skipped %s)"):format(
         tostring(reason), tostring(rewrote), tostring(total), tostring(skipped))
 end
 
--- Wipe every user customization and restore from dbDefaults — category
--- buckets, stat-priority overrides, and the master enable flag. The profile
--- reset empties macroState with everything else; the resync below re-issues
--- every macro, which rebuilds each fingerprint, so live macros stay valid.
--- Shared by the Options panel's
--- "Reset all priorities" execute and the /cm reset StaticPopup — both
--- paths land here to keep semantics identical regardless of entry point.
---
--- After the DB wipe we drive a full resync (not just a RequestRecompute):
--- tooltip cache invalidation, auto-discovery pass, then an immediate
--- Recompute. The cache invalidation clears any stale `pending` entries
--- from the prior session, auto-discovery re-fills the `discovered` set
--- which we just wiped, and Recompute rewrites every macro body.
---
--- Why Recompute (immediate) and not RequestRecompute (next-frame): the user
--- just clicked "reset" and expects the panel and macros to refresh now. The
--- combat-guard contract is upheld transitively — Recompute → MacroManager,
--- and MacroManager.SetMacro / SetCompositeMacro are the only protected-API
--- callers and they early-out on InCombatLockdown(), enqueuing the write for
--- PLAYER_REGEN_ENABLED to flush. If a future module ever calls a protected
--- API outside MacroManager, this path becomes a taint hazard and the choice
--- of immediate-vs-deferred recompute would need to be re-evaluated.
---
--- Returns true if the DB was mutated; callers that want user feedback
--- should print their own confirmation message.
--- The DB half of the reset: every persisted customization back to its shipped
--- value. CopyTable, never an alias — aliasing dbDefaults would let a later user
--- edit corrupt the defaults for the rest of the session.
--- `restoreProfileDefaults` USED TO LIVE HERE, naming three profile keys by hand:
+-- A hand-written reset USED TO LIVE HERE, naming three profile keys by hand:
 -- categories, statPriority and the master enable. That was the whole profile as
 -- this addon knew it when the function was written, and it is the shape that
 -- quietly stops being true -- anything a later version stores beside them
 -- survived a reset that took everything around it.
 --
--- The reset is `db:ResetProfile()` now (options-ui-§12). AceDB empties the profile
--- IN PLACE, so anything holding KCM.db.profile keeps the live table, and merges
--- KCM.dbDefaults.profile back over it -- which restores those three and everything
--- else, without a list here to keep current.
+-- The reset is `db:ResetProfile()` now, inside KCM.ResetAllToDefaults below
+-- (options-ui-§12). AceDB empties the profile IN PLACE, so anything holding
+-- KCM.db.profile keeps the live table, and merges KCM.dbDefaults.profile back
+-- over it -- which restores those three and everything else, without a list
+-- here to keep current.
 
 -- The resync half. Order matters: invalidate → discover → recompute, so
 -- discovery sees a cleared cache and recompute sees the refreshed discovered
@@ -459,21 +449,25 @@ function KCM.RegisterProfileCallbacks(target)
     -- The one log line a profile-wide act gets (debug-logging-§10): AceDB replaced
     -- the whole profile, which is not a batch through the helper, so the HANDLER
     -- logs it, worded by the event. Its line is the whole act, so it silences any
-    -- Helpers.Bulk bracket open around it: one line in total, never this one plus
-    -- an `outer: N rows`. A reset and a copy replace the profile's rows and carry
+    -- bulk bracket open around it -- the seam's ConsumeResetCount marks the open
+    -- bracket as a profile reset -- one line in total, never this one plus an
+    -- `outer: N rows`. A reset and a copy replace the profile's rows and carry
     -- the [Set] tag; a switch rewrites no rows and takes the `[Profile]` trace
     -- MultiMeters and KickCD carry.
     --
-    -- No row count on the reset: N means the rows the reset actually changed,
-    -- which needs their values from before it. AceDB has already replaced the
-    -- profile when OnProfileReset fires, and AceDBOptions' Reset Profile button
-    -- gives no earlier hook to take them from.
+    -- The reset's row count is there when KCM.ResetAllToDefaults drove it: that
+    -- wraps db:ResetProfile() in the seam's ResetCounted, which counts the rows
+    -- off their defaults BEFORE AceDB replaces the profile. AceDBOptions' own
+    -- Reset Profile button gives no earlier hook, so its line carries no count.
     local function trace(event, d, key)
         local H = KCM.Settings and KCM.Settings.Helpers
-        if H and H.SilenceOpenBulk then H.SilenceOpenBulk() end
+        local S = H and H.schema
+        local count = S and S.ConsumeResetCount()
         if not isDebugOn() then return end
         local name = d and d.GetCurrentProfile and d:GetCurrentProfile()
-        if event == "OnProfileReset" then
+        if event == "OnProfileReset" and count then
+            KCM.Debug("Set", "reset profile '%s' to defaults: %s rows", tostring(name), tostring(count))
+        elseif event == "OnProfileReset" then
             KCM.Debug("Set", "reset profile '%s' to defaults", tostring(name))
         elseif event == "OnProfileCopied" then
             KCM.Debug("Set", "copied profile '%s' → '%s'", tostring(key), tostring(name))
@@ -517,7 +511,7 @@ end
 ---
 --- options-ui-§12 makes this half of the global reset a MUST, and it is the half a
 --- profile reset by construction cannot do: a session-only row's storage is its own
---- `set()` (settings/Panel.lua's SESSION_PATHS), not the db, so `db:ResetProfile()`
+--- `set()` (settings/General.lua's debug console row), not the db, so `db:ResetProfile()`
 --- cannot reach it and the row outlives a reset that took everything around it. The
 --- debug console's visibility is the addon's only such row today, and the sweep is
 --- written off the `sessionOnly` FLAG rather than off that one path so a second one
@@ -536,14 +530,19 @@ end
 --- stub's own reset loop" means.
 local function restoreSessionRows()
     local S = KCM.Settings
-    local H = S and S.Helpers
+    local seam = S and S.Helpers and S.Helpers.schema
     local vetoed = S and S.VetoedFromResetAll
-    if not (H and H.Set and S.Schema and vetoed) then return end
-    for _, row in ipairs(S.Schema) do
-        if not vetoed(row) and row.default ~= nil then
-            H.Set(row.path, row.default)
-        end
+    if not (seam and vetoed) then return end
+    for _, row in ipairs(seam.AllRows()) do
+        if not vetoed(row) then seam.ApplyDefault(row) end
     end
+end
+
+-- The rows a profile reset reaches, for the seam's changed-row count: every row
+-- carrying a default except the ones no reset may touch (the minimap button's,
+-- which lives in db.global). The seam already skips the sessionOnly rows.
+local function countedByProfileReset(row)
+    return not (row.default == nil or row.neverReset)
 end
 
 --- Reset the ACTIVE PROFILE to the shipped defaults, and the same act as
@@ -555,39 +554,57 @@ end
 --- which is the path a profile SWITCH takes too. Calling it here as well would run
 --- the pipeline twice for one action.
 ---
---- THE SESSION SWEEP RUNS FIRST, and it lives HERE rather than at either door so the
---- two doors cannot diverge: the Master controls tab's [Reset all settings] and
---- `/cm resetall` are one act, and the addon's own note in settings/General.lua that
---- "every execute path is shared with the slash commands" is only true while the
---- whole act is behind this one function. First, not last, for the reason the
---- library's own `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
+--- THE WHOLE ACT LIVES HERE, not at either door, so the two doors cannot diverge:
+--- the Master controls tab's [Reset all settings] and `/cm resetall` both raise
+--- core/SlashCommands.lua's KCM_CONFIRM_RESET, whose OnAccept is the only caller,
+--- and everything a door used to add on its own is in this function instead
+--- (ConsumableMaster-R-08): the combat refusal, the session sweep, the profile
+--- reset and the repaint. A door that wants to differ has nothing left to differ in.
+---
+--- REFUSED IN COMBAT, BEFORE ANY WRITE. The DB wipe itself is combat-safe
+--- (MacroManager defers macro writes to regen), but the General page's Maintenance
+--- verbs all refuse under lockdown, and a reset that half-lands mid-fight -- the
+--- profile gone, the macros still showing the old picks until regen -- is harder
+--- to read than one that did not happen. The popup's OnAccept prints the page's
+--- `in combat — reset deferred until regen.` line off the 'combat' answer.
+---
+--- THE SESSION SWEEP RUNS FIRST. First, not last, for the reason the library's own
+--- `O.RestoreAllDefaults` orders it that way (libs/LibKa0s/Options.lua):
 --- ResetProfile fires OnProfileReset, whose handler repaints, and a sweep afterwards
 --- would be writing into a panel that had already been drawn from the old value.
+--- The closing H.RefreshAllPanels() is the repaint the panel door used to run on
+--- its own; here it covers the slash door too, and any page the profile callback's
+--- rebuild did not reach.
 ---
 --- ONE LOG LINE for the whole act (debug-logging-§10): the OnProfileReset
---- handler's `[Set] reset profile '<name>' to defaults`. Both halves run inside
+--- handler's `[Set] reset profile '<name>' to defaults: N rows`, N counted by the
+--- seam's ResetCounted before the profile is replaced. Both halves run inside
 --- Helpers.MuteSetLog, so the session sweep's own write logs no row, and no line
 --- is added here. `reason` is the caller's audit tag and is no longer logged.
+---
+--- Returns true on success, or false plus why: 'combat' under lockdown, 'db' when
+--- the database is not ready yet.
 function KCM.ResetAllToDefaults(reason)
-    if not (KCM.db and KCM.db.ResetProfile) then return false end
+    if InCombatLockdown and InCombatLockdown() then return false, "combat" end
+    if not (KCM.db and KCM.db.ResetProfile) then return false, "db" end
+    local H = KCM.Settings and KCM.Settings.Helpers
+    local seam = H and H.schema
     local function act()
         restoreSessionRows()
-        KCM.db:ResetProfile()
+        if seam then
+            seam.ResetCounted(function() KCM.db:ResetProfile() end, countedByProfileReset)
+        else
+            KCM.db:ResetProfile()
+        end
     end
-    local H = KCM.Settings and KCM.Settings.Helpers
     if H and H.MuteSetLog then H.MuteSetLog(act) else act() end
+    if H and H.RefreshAllPanels then H.RefreshAllPanels() end
     return true
 end
 
 function KCM:OnPlayerEnteringWorld()
-    -- Fires on login and /reload. Discover + recompute everything.
-    -- Sweep runs after discovery so bumped timestamps are seen by the sweep
-    -- and before recompute so the cleaned-up discovered set feeds the first
-    -- pick.
-    runAutoDiscovery("player_entering_world")
-    if KCM.Selector and KCM.Selector.SweepStaleDiscovered then
-        KCM.Selector.SweepStaleDiscovered(time())
-    end
+    -- Fires on login and /reload. Discover + sweep, then recompute everything.
+    discoverAndSweep("player_entering_world")
     requestRecompute("player_entering_world")
     -- Build / re-show the optional macro bar. A no-op when it's disabled, which
     -- is the default, so nothing is created for users who never enable it.
@@ -644,16 +661,9 @@ function KCM:OnRegenEnabled()
     if KCM.MacroBar and KCM.MacroBar.FlushPending then
         KCM.MacroBar.FlushPending()
     end
-    -- A settings-category registration refused under lockdown parked itself
-    -- rather than tainting the Settings window (settings/Panel.lua's
-    -- registerPanel). This handler is the addon's only listener that knows
-    -- combat just ended, so the replay belongs here rather than on a second
-    -- PLAYER_REGEN_ENABLED frame owned by the options layer. It is a no-op on
-    -- every ordinary regen: nothing parks the flag unless a login, a /reload
-    -- or a force-load of Blizzard_Settings happened mid-fight.
-    if KCM.Settings and KCM.Settings.registerPending and KCM.Settings.Register then
-        KCM.Settings.Register()
-    end
+    -- No settings replay here: a category registration refused under lockdown
+    -- is parked by LibKa0s-Options-1.0 and replayed on its own frame, whatever
+    -- the stand-down state (settings/Panel.lua's registerPanel).
 end
 
 function KCM:OnItemInfoReceived(event, itemID, success)
@@ -693,25 +703,43 @@ function KCM:OnEquipmentChanged(event, slotID)
     end
 end
 
--- THE REGISTRATION LIST, and the one place it is written down. The latch's
--- `standUp` CALLS this rather than copying it, and `standDown` drops the lot
--- with UnregisterAllEvents, so the two can never name different sets.
---
+-- THE REGISTRATION LIST, and the one place it is written down: { event, handler
+-- method } pairs, in registration order. KCM:OnEnable walks it, the latch's
+-- `standUp` CALLS OnEnable rather than copying it, and `standDown` drops the lot
+-- with UnregisterAllEvents, so the two can never name different sets. `/cm dump
+-- events` renders from it too.
+KCM.EVENTS = {
+    { "PLAYER_ENTERING_WORLD",         "OnPlayerEnteringWorld" },
+    { "BAG_UPDATE_DELAYED",            "OnBagUpdateDelayed" },
+    { "PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged" },
+    { "PLAYER_REGEN_ENABLED",          "OnRegenEnabled" },
+    { "GET_ITEM_INFO_RECEIVED",        "OnItemInfoReceived" },
+    { "LEARNED_SPELL_IN_SKILL_LINE",   "OnLearnedSpell" },
+    { "PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged" },
+    { "SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate" },
+    { "BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate" },
+}
+
+-- The names the client refused, each once, for the whole session. The addon's
+-- ONE rejected list (events-frames-taint-§1): every KCM.SafeRegisterEvent call
+-- site passes it, and the [Init] debug summary and `/cm dump events` read it.
+KCM.RejectedEvents = KCM.RejectedEvents or {}
+
 -- IT REFUSES TO RUN WHILE A HOLD IS TAKEN, and that is not a draw gate: it is
 -- the door, not a handler. AceAddon calls OnEnable after OnInitialize, which is
 -- where the `disabled` hold is taken from the stored path, so a player who logs
 -- in with the addon off registers NOTHING — rather than registering nine events
 -- and having them torn down a frame later, which is a race the perf harness can
 -- land in the middle of.
+--
+-- ONE RETIRED NAME CAN NO LONGER DEAFEN THE REST. The client raises on an event
+-- name it does not know, and a bare self:RegisterEvent raised out of this loop at
+-- that name, so every event after it went unregistered. Through
+-- KCM.SafeRegisterEvent a refused name is recorded in KCM.RejectedEvents and
+-- skipped; the trade is written up in docs/midnight-quirks.md.
 function KCM:OnEnable()
     if KCM.IsStoodDown and KCM.IsStoodDown() then return end
-    self:RegisterEvent("PLAYER_ENTERING_WORLD",         "OnPlayerEnteringWorld")
-    self:RegisterEvent("BAG_UPDATE_DELAYED",            "OnBagUpdateDelayed")
-    self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged")
-    self:RegisterEvent("PLAYER_REGEN_ENABLED",          "OnRegenEnabled")
-    self:RegisterEvent("GET_ITEM_INFO_RECEIVED",        "OnItemInfoReceived")
-    self:RegisterEvent("LEARNED_SPELL_IN_SKILL_LINE",   "OnLearnedSpell")
-    self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged")
-    self:RegisterEvent("SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate")
-    self:RegisterEvent("BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate")
+    for _, e in ipairs(KCM.EVENTS) do
+        KCM.SafeRegisterEvent(self, e[1], e[2], KCM.RejectedEvents)
+    end
 end

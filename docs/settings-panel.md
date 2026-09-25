@@ -17,8 +17,14 @@ page registry, the widget makers, the two-column flow engine, the tab strip and 
 refresh debounce and the options layer's three bus receivers — is `settings/OptionsShim.lua`'s, peeled
 off `Panel.lua` on 2026-09-16 at `layout-§1`'s 1500-line cap and loaded immediately after it.
 
-Each page module hands a **builder** to `RegisterTab`; `settings/Panel.lua` iterates the builders once
-`Blizzard_Settings` is ready, driven by its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap.
+Each page module hands a **builder** to `RegisterTab`. Once `Blizzard_Settings` is ready, driven by
+its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap, `settings/Panel.lua`'s `registerPanel` queues
+them with the library's `RegisterOptionsPage` in `KCM.Settings.order` and calls
+`UI.CreateOptionsPanel()`, which registers the main canvas (the descriptor's `buildMain`, the About
+page) after running the descriptor's `validate`, then builds every page. In combat the library
+registers nothing: it parks the request and replays it once on its own `PLAYER_REGEN_ENABLED` frame,
+whatever the addon's stand-down state, so a disabled addon still gets its category and its Enable
+checkbox. The bootstrap lets go of its events as soon as the request is the library's.
 
 ### Every page draws a strip
 
@@ -49,13 +55,23 @@ name a section the rows do not have. It also means a group's rows must be **cont
 under a group the page has already left draws that tab a second time — which `tests/test_schema.lua`
 pins.
 
+**Who draws each strip.** The **General** page hands its whole strip to the library's
+`RenderTabbedSchema` (LibKa0s-Options-1.0, OptionsTabs minor 4): the page's schema rows declare one
+group, **Master controls**, which becomes the first tab, and **Maintenance** is a *host tab* passed in
+`opts.tabs`, placed after it and filled by `drawMaintenance`. The other three pages build their strip
+with `H.TabStrip` themselves, and [#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)
+records why: Macros and Stat Priority have no schema rows for the library to partition, and every
+reorder list (the Macro Bar's Buttons tab among them) must be released *before* the scroll is cleared,
+which `RenderTabbedSchema`'s own tab click gives the host no hook to do.
+
 **The strip's geometry does not depend on which tab is selected** (`options-ui-§13`,
-anti-patterns #70). Both hand-drawn strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
+anti-patterns #70). The strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
 and the reserved chrome band and every wrapped row's offset are the same numbers for every value of
 the selection. The pitch is measured once, from the **unselected** tab art, which no click can
-change. That is the library's to get right; `tests/test_settingsui_optionsui.lua` pins it on both pages under a
-mock that answers a *different* height for the selected-state atlas, because a harness that answers
-one height for every atlas cannot fail the case.
+change. Every strip is the library's `O.TabStrip`, so that is the library's to get right, and its own
+suite pins it (`tests/test_options_tabs.lua`, under a mock that answers a *different* height for the
+selected-state atlas). This addon's copy of that case was deleted as a duplicate (CM-20, `testing-§8`);
+what stays here is which tabs each page draws, in what order.
 
 **A page never loses its strip for some state.** The Stat Priority page used to return before drawing
 anything when no spec could be resolved; the strip is drawn first now and the empty state is content
@@ -74,10 +90,10 @@ scroll, naming what the page is editing (`options-ui-§14`). It was a `Selection
 scroll before, which put the control that governs the dropdowns below it out of sight the moment you
 scrolled to them.
 
-It is the **only** picker for that state, which is `§14`'s rule — a banner replaces a picker, it never
+It is the **only** picker for that state, which is `options-ui-§14`'s rule — a banner replaces a picker, it never
 mirrors one. The spec-aware tabs on the Macros page (Flask, Combat Potion, Stat Food, Weapon Enchant)
 therefore **state** the viewed spec as a sentence and offer no second picker of their own; two
-controls over one piece of session state is a synchronisation problem the design would have invented
+controls over one piece of session state is a synchronization problem the design would have invented
 and then owned forever.
 
 ### `Helpers` is a live view, not a snapshot
@@ -110,11 +126,10 @@ them. `tests/test_settingsui.lua` **measures** that gap on both arms rather than
 ### Combat gate
 
 Opening is refused in combat, not deferred (`options-ui-§2`). The `O.Open` slash path
-(`settings/OptionsShim.lua`) reaches one helper — `sayCombatOpenBlocked`, defined in
-`settings/Panel.lua` and published on `KCM.Settings` for the shim — so the refusal emits a single
-canonical gray notice through the shared secret-safe printer, never a protected category switch and
-never a silent no-op. That is its only caller: the helper is published because the peel moved the
-caller into another file, not because it has two. A **tab click** is not gated: redrawing widgets inside an already-open panel was
+(`settings/OptionsShim.lua`) calls the library's `OpenOptionsPanel`, which prints its one canonical
+gray `COMBAT_REFUSED` line through the descriptor's printer and answers `false`, never a protected
+category switch and never a silent no-op; `O.Open` answers `false` in turn and says nothing more. Out
+of combat the library opens the category and expands the parent in the sidebar. A **tab click** is not gated: redrawing widgets inside an already-open panel was
 never a protected action (`options-ui-§13`).
 
 ## Page | Covers
@@ -126,11 +141,11 @@ own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs | **Master controls** (the canonical set, `options-ui-§15`) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `§15` does require. |
+| **General** | 2 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities; a host tab with no rows). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 8 tabs | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
-| **Profiles** | none (`§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
+| **Macro Bar** | 8 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
+| **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
 
@@ -168,14 +183,22 @@ Four of the rows are **new** and three moved:
 | Master scale | `scale` | **new**, addon-wide |
 | Master alpha | `alpha` | **new**, addon-wide |
 | Lock frame | `macroBar.locked` | moved from Macro Bar → General (the tab moved, the storage did not) |
-| Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, resolved by `settings/Panel.lua`'s `SESSION_PATHS` |
-| Minimap button | `global.minimap.hide` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session |
+| Debug console | `state.debugConsole` | replaces the bespoke `SessionCheckbox`; session-only, stored by the row's own `get` / `set` |
+| Minimap button | `global.minimap.shown` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session; the path says *shown*, the stored key is still LibDBIcon's `hide` |
 | *Reset position* | — | moved from Macro Bar → General |
 | *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
 
 ### The Minimap button row — shown says one thing, the store says the other
 
-The row is `global.minimap.hide`, and four things about it are deliberate.
+The row is `global.minimap.shown`, and five things about it are deliberate.
+
+**Its path reads in the row's own sense; its store key does not move.** The path is what
+`/cm get` / `/cm set` / `/cm reset` name, and it says *shown* like the label and like the answer
+(`true` means the button is on the minimap). The store is still LibDBIcon's
+`db.global.minimap.hide`: the row's `get` / `set` invert onto it, so the rename moved no
+SavedVariables, needs no migration and no schema-version bump, and no `shown` key is ever written
+beside `hide` (anti-pattern #81). Before the rename the path ended in `.hide`; that path
+is no row any more and answers *Setting not found*.
 
 **Its store is LibDBIcon's OWN table, not a key beside it.** `db.global.minimap` is the table this
 addon hands straight to `LibDBIcon:Register`, and `hide` is the boolean LibDBIcon writes itself when
@@ -207,21 +230,47 @@ The exemption is one row flag, `neverReset`, stamped on the row by `settings/Gen
 `decorate` map and read through `settings/OptionsSetup.lua`'s `VetoedFromEveryReset` — the same file
 that names the global reset's veto, so there is one register rather than a second list per page.
 `vetoedFromResetAll` reads it first, so both doors ask one question. What it deliberately does not
-cover is `/cm reset global.minimap.hide`: that is the player naming the row out loud, which is the
+cover is `/cm reset global.minimap.shown`: that is the player naming the row out loud, which is the
 checkbox by another door. Every arm is pinned by cases in `tests/test_launcher.lua` that run the
 real reset and assert on the store.
 
 **Its label says SHOWN and its stored key says HIDDEN, so the row inverts.** That inversion lives in
-the addon's single write seam and nowhere else — `settings/Panel.lua`'s `GLOBAL_PATHS`, a second
-diversion table beside `SESSION_PATHS` (a second table rather than a wider one because the two
-differ exactly where the reset sweep reads them). The `set` writes `hide = not value` and then calls
+the row's own store and nowhere else — the `get` / `set` `settings/General.lua` stamps on the
+row, which the single write seam calls. The `set` writes `hide = not value` and then calls
 `KCM.Launcher:SetShown(value)`, so the button follows the checkbox immediately rather than at the
 next reload.
 
 The button itself, and the broker plugin that is the same object, are
-[ARCHITECTURE.md → LibKa0s adoption](./ARCHITECTURE.md#libka0s-adoption)'s `Launcher-1.0` row. Its
-**left click** toggles **Lock frame** — the same seam this checkbox drives — and its right click
-opens this panel.
+[module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption)'s `Launcher-1.0` row. Its
+**left click** opens this panel, in either state, and its **right click** opens the options menu
+(`launcher-§2`, `LibKa0s-Launcher-1.0` minor 4), whose entries are this addon's two toggles:
+
+```
+Ka0s Consumable Master
+[x] Enabled     isEnabled + setEnabled   /cm enable | disable's own handler (Verbs.SetEnabled)
+[ ] Locked      isLocked  + toggleLock   /cm lock | unlock's own handler (Verbs.RunLock) — the
+                                         same seam the Lock frame checkbox drives
+```
+
+No *Test mode* (the unlocked bar is the preview) and no *Show window* (no standalone window). While
+the addon is disabled, **Locked** reads `Locked (enable the addon first)` and is grayed; a click
+on it reaches no handler. **Enabled** stays live.
+
+**Hovering the button shows the status tooltip, and the library draws it** (`launcher-§1`,
+`LibKa0s-Launcher-1.0` minor 3, hints fixed at minor 4), including while the addon is disabled. This addon only answers its
+questions, each asked on every hover:
+
+```
+Ka0s Consumable Master  v<the TOC's ## Version>
+Enabled: Yes|No                          the disabled hold, as the menu's gray reads it
+Locked: Yes|No                           macroBar.locked — the Lock frame row's own value
+Left-click: Open settings
+Right-click: Options menu
+```
+
+There is **no Test mode line**: the unlocked bar is this addon's preview (the `options-ui-§15`
+exemption above), so it passes `isLocked` and not `isTestMode`, and it passes no `onTooltipShow`,
+having no line of its own to add. The hints are the library's, the same on every Ka0s addon.
 
 **The master rows are not the macro bar's.** `Master scale` / `Master alpha` / `General visibility`
 govern the whole addon; the bar keeps its own `Bar scale`, `Bar opacity` and `Combat visibility`, and
@@ -230,24 +279,30 @@ the two **compose** — the scales and the opacities multiply, and the two visib
 Conflating them would make one of the two sliders do nothing at one end of the other's range.
 
 **The two resets are different acts.** *Reset all settings* is the profile reset — the same act
-`Profiles → Reset Profile` performs, behind the collection's one wording. *Reset all priorities*, in
+`Profiles → Reset Profile` performs, behind the collection's one wording. It raises
+`KCM_CONFIRM_RESET` (`core/SlashCommands.lua`), the same popup `/cm resetall` raises; there is no
+second global-reset popup, and the combat refusal and the repaint are `KCM.ResetAllToDefaults`' own,
+so neither door adds anything the other lacks ([slash-dispatch.md](./slash-dispatch.md)). The
+*Reset all priorities* tooltip points at it by tab: *use Reset all settings on the Master controls
+tab*. *Reset all priorities*, in
 the **Maintenance** tab, clears every category's added / blocked / pinned items and every spec's
 stat-priority override and leaves everything else standing, behind its own, narrower confirmation.
 The button that used to sit on this page said the second and did the first.
 
 **The global reset is two halves, not one.** `KCM.ResetAllToDefaults` restores every **session-only**
-schema row by hand *first*, then calls `db:ResetProfile()`. The sweep is a `§12` MUST and it is the
+schema row by hand *first*, then calls `db:ResetProfile()`. The sweep is an `options-ui-§12` MUST and it is the
 half a profile reset by construction cannot do: a session-only row's storage is its own `set()`
-(`SESSION_PATHS`), not the db, so `Debug console` survived a reset that took everything around it.
+(stamped in `settings/General.lua`), not the db, so `Debug console` survived a reset that took everything around it.
 It is written off the `sessionOnly` **flag** rather than off that one path, so a second such row is
 covered the day it is declared — which is also why the composed row is given an explicit
 `debugConsole = false` default in `settings/General.lua`: three separate resets key on
 `default ~= nil` before they will touch a row, and `OptionsCompose` emits that row without one.
-Both halves live behind the one function so the button and `/cm resetall` cannot drift.
+Both halves, the combat refusal ahead of them and the repaint after, live behind the one function
+so the button and `/cm resetall` cannot drift.
 
 Which rows the sweep writes is **one predicate's** call, `KCM.Settings.VetoedFromResetAll`
 (`settings/OptionsSetup.lua`): it refuses the Profiles page's rows (`options-ui-§3`) and every
-profile-resident row (`§12`), which leaves the session rows. The same function is the library
+profile-resident row (`options-ui-§12`), which leaves the session rows. The same function is the library
 descriptor's `skipRestoreAll`, so the rule is named once and shared rather than restated.
 
 **The tooltip comes from the descriptor, not from this page.** The button is the composer's, and
@@ -258,7 +313,7 @@ is: `resetProfile`, which is the same `db:ResetProfile()` `KCM.ResetAllToDefault
 reads *Restore every setting in this addon to its default.*, which overstates a reset that leaves the
 other profiles alone. The library's `RestoreAllDefaults` is the only other reader of `resetProfile`,
 and nothing in this addon calls it, so the two fields change the tooltip and nothing else. The
-button still runs `KCM_RESET_ALL` and the popup still runs `KCM.ResetAllToDefaults`.
+button still raises `KCM_CONFIRM_RESET` and the popup still runs `KCM.ResetAllToDefaults`.
 
 ### The Macros strip, in tab order
 
@@ -356,7 +411,7 @@ One tab, **Priority**, under the spec banner.
   below the boundary, because its position among the others is not stored and offering a gesture that
   cannot be saved is worse than offering none.
 
-  **The row is MultiMeters-shaped**, and that is the point of it (`options-ui-§8`, `§18`): every
+  **The row is MultiMeters-shaped**, and that is the point of it (`options-ui-§8`, `options-ui-§18`): every
   draggable list in the collection is meant to read the same, so a player learns one row once. The
   row is
 
@@ -479,8 +534,8 @@ Two different paths, and the difference is what a row shape can express.
 **Schema-backed controls** are rows in `KCM.Settings.Schema` — an ordered array published by
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
-whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the `Resolve` →
-`SetAndRefresh` seam. There are **79**: 64 `macroBar.*` rows on the Macro Bar page, 7 in the
+whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the
+`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **79**: 64 `macroBar.*` rows on the Macro Bar page, 7 in the
 General page's Master controls block, 7 on the Macros page and 1 on the Stat Priority page. Ten
 of them are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
 `map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section
@@ -490,7 +545,7 @@ its rows from one call — so read it off `#KCM.Settings.Schema`, which is what 
 row gains all three surfaces at once — never write a parallel mutator for a path that already has one.
 
 Composed rows are spliced in by `Helpers.RegisterRows`, which stamps the fields the composers cannot
-know: `panel`, `section`, this addon's `onChange`, and the ordered `{ value =, text = }` media lists
+know: `panel`, `section`, this addon's `apply`, and the ordered `{ value =, text = }` media lists
 it declares where the library declares a hash.
 
 **Bespoke controls** are everything a `{ path, type }` row cannot describe, and they are deliberate,
@@ -569,8 +624,8 @@ not gaps:
   AceGUI's pool. Since v1.35.0 it clears both before `onAdd` and touches neither after a clean one,
   so the wait is no longer load-bearing. It is kept as the order that is safe under either behavior.
 - The **Debug console** row is a schema row now, not a bespoke checkbox — the composer emits it and
-  `settings/Panel.lua`'s `SESSION_PATHS` resolves its `state.debugConsole` path to the console
-  window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare
+  the row's own `get` / `set` (stamped in `settings/General.lua`) map its `state.debugConsole` path
+  to the console window's show/hide. It never touches the session debug flag `KCM.State.debug`, exactly like a bare
   `/cm debug` (`debug-logging-§5`); logging is armed separately, via the in-window `Debug: ON/OFF`
   toggle or `/cm debug on|off`. `KCM.State.debug` is session-only and never persisted, so it still has
   no path to declare.
@@ -586,12 +641,13 @@ not gaps:
   tab strip replaces the group heading it used to draw — a heading under a tab of the same name says
   the same thing twice — but a **`subgroup`** heading inside a mixed tab is *not* suppressed, because
   there is no tab left to name each block with (`options-ui-§7`).
-- **Tab strips** come from `H.TabStrip(ctx, { tabs, value, onSelect })` (`options-ui-§13`) and the page
-  banner from `H.PageBanner(ctx, { label, list, order, value, onSelect })` (`§14`). Both are the
+- **Tab strips** come from `H.TabStrip(ctx, { tabs, value, onSelect })` (`options-ui-§13`), or on the
+  General page from `H.RenderTabbedSchema(ctx, "general", afterGroup, nil, { tabs = … })`, and the page
+  banner from `H.PageBanner(ctx, { label, list, order, value, onSelect })` (`options-ui-§14`). Both are the
   library's, both live in the page's chrome band above the scroll, and the banner is drawn first
   because it reserves the share of the band the strip then places itself under.
 - **Action buttons** use `H.ButtonPair` / `H.Button`, and a destructive one is confirm-gated through a
-  `StaticPopup` — *Reset all settings* raises `KCM_RESET_ALL` and *Reset all priorities* raises
+  `StaticPopup` — *Reset all settings* raises `KCM_CONFIRM_RESET` and *Reset all priorities* raises
   `KCM_RESET_PRIORITIES`, rather than either acting on click.
 - User-visible strings route through `L[…]` (`localization-§1`), and `tests/test_locale.lua` is what
   holds that: it lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any

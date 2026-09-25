@@ -30,7 +30,7 @@
 --      and a gesture that cannot be saved is worse than no gesture.
 --
 -- THE ROW IS MULTIMETERS-SHAPED, and that is the point of it. Every draggable
--- list in the collection is meant to read the same (options-ui-§8, §18): the
+-- list in the collection is meant to read the same (options-ui-§8, options-ui-§18): the
 -- library draws a bounded box behind the whole row and a player learns one row
 -- once. This page drew its rows as AceGUI widgets in a Flow group and named the
 -- handle's 30px SLOT as the box's parent, so the library boxed the gutter and the
@@ -308,7 +308,7 @@ local function renderStatPriority(value)
     return table.concat(parts, "; ")
 end
 
-KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
+H.AddRow({
     path      = "statPriority",
     type      = "map",
     panel     = "statpriority",
@@ -321,12 +321,12 @@ KCM.Settings.Schema[#KCM.Settings.Schema + 1] = {
     render    = renderStatPriority,
     cliHint   = "/cm stat",
     -- New stats re-rank every spec-aware category, so the picks are recomputed.
-    onChange  = function()
+    apply     = function()
         if KCM.Pipeline and KCM.Pipeline.RequestRecompute then
             KCM.Pipeline.RequestRecompute("options_stat_priority")
         end
     end,
-}
+})
 
 --- Store one new secondary ORDER. Everything the list can do -- a drag and an
 --- Include toggle alike -- ends here, as ONE write.

@@ -10,7 +10,7 @@
 --   * HERE — the library instance: the panel factory, the lazy Defaults button,
 --     the scroll container, the always-visible scrollbar patch, the row makers,
 --     and the codecs/thunks that teach the library this addon's conventions.
---   * settings/Panel.lua — the addon's own half: the schema rows, Resolve /
+--   * settings/Panel.lua — the addon's own half: the schema rows,
 --     Get / Set / FindSchema / ValidateSchema, the SetAndRefresh write seam, the
 --     wrappers that shadow a library member, and the registration bootstrap.
 --
@@ -52,7 +52,7 @@ KCM.Settings.PANEL_TITLE = PANEL_TITLE
 --
 -- WHY THIS SURFACE CANNOT TAKE THE NIL the decoder answers for an absent
 -- channel: the library passes what colorDecode returns to the AceGUI picker's
--- SetColor (libs/LibKa0s/OptionsWidgets.lua:1658-1660), and SetColor passes its
+-- SetColor (libs/LibKa0s/OptionsWidgets.lua:1446-1453), and SetColor passes its
 -- four arguments straight into Texture:SetVertexColor
 -- (libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua:149), which RAISES on a
 -- nil. A swatch cannot draw "absent", so it draws something — but it no longer
@@ -104,9 +104,9 @@ end
 -- settings/General.lua's `minimapPath`, and a second copy of that string in this
 -- file would be two files having to keep agreeing about it. General.lua stamps
 -- `neverReset` on the row through the same `decorate` map that stamps its
--- onChange handlers.
+-- apply handlers.
 --
--- WHAT THIS DELIBERATELY DOES NOT COVER is `/cm reset global.minimap.hide`. That
+-- WHAT THIS DELIBERATELY DOES NOT COVER is `/cm reset global.minimap.shown`. That
 -- is the player naming the one row out loud, which is the checkbox by another
 -- door -- not a reset that reached past the settings it warned about.
 local function vetoedFromEveryReset(row)
@@ -156,13 +156,10 @@ KCM.Settings.VetoedFromResetAll = vetoedFromResetAll
 -- button-pair inset, the scroll insets, the 20px gutter, the thumb tints, the
 -- breadcrumb atlas) and they are identical, so nothing moves on screen.
 --
--- Adopted in PARTS, deliberately. The schema-row widget makers in
--- settings/Panel.lua are NOT the library's: its dropdown reads `values` as a key
--- map where ours is an ordered array of { value =, text = }, its color picker
--- defaults hasAlpha to false where ours defaults it to true (all seven pickers
--- would lose their alpha slider), and its slider commits on mouse-up where ours
--- commits live — which is the whole point of the Macro Bar page's drag preview.
--- Recorded in closed issue #22 (LIBKA0S-04).
+-- The schema-row widget makers are the library's too, since LIBKA0S-04 (issue
+-- #22). What this addon's own makers once knew and the library cannot guess --
+-- the positional color shape, the live slider commit -- is handed to it on the
+-- instance below, not kept in a second set of makers.
 
 local optionsLib = LibStub and LibStub("LibKa0s-Options-1.0", true)
 local UI
@@ -223,10 +220,18 @@ if optionsLib and AceGUI then
         -- A thunk, not `KCM.Say` bare: the library snapshots the printer at
         -- :New, so a captured value would freeze the load-time function object.
         -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
-        -- print. Inert in the adopted scope — both lines that reach it live in
-        -- the panel-registry half we do not use — but passed so a later step
-        -- cannot leak an untagged line.
+        -- print. It carries the library's own lines through the addon's tag:
+        -- a page builder that failed, a missing AceGUI, and the combat refusal
+        -- OpenOptionsPanel prints for /cm config mid-fight.
         print = function(line) KCM.Say(line) end,
+
+        -- The panel registry is the library's (CreateOptionsPanel, reached from
+        -- settings/Panel.lua's registerPanel), so the main canvas and the
+        -- schema check it runs first are declared here. Both are thunks:
+        -- settings/Panel.lua, which defines what they call, loads after this
+        -- file.
+        buildMain = function(ctx) return Helpers.BuildAboutContent(ctx) end,
+        validate  = function() Helpers.ValidateSchema() end,
 
         -- The row makers are the library's now (LIBKA0S-04, issue #22), so it needs the
         -- two things this addon's own makers knew and it could not guess.
@@ -259,6 +264,19 @@ if optionsLib and AceGUI then
         get = function(path) return Helpers.Get(path) end,
         set = function(path, value) Helpers.SetAndRefresh(path, value) end,
 
+        -- One page's rows in declaration order, which is what the library's
+        -- RenderTabbedSchema partitions into tabs (the General page's strip).
+        -- `panel` is the page key here: it is the field ValidateSchema checks, and
+        -- the only one a hand-written row carries as well as a composed one. The
+        -- schema is read at CALL time, since settings/Panel.lua creates it later.
+        rowsForPage = function(pageKey)
+            local out = {}
+            for _, row in ipairs(KCM.Settings.Schema or {}) do
+                if row.panel == pageKey then out[#out + 1] = row end
+            end
+            return out
+        end,
+
         -- The veto above, by reference (options-ui-§3). This addon's global reset
         -- is its own KCM.ResetAllToDefaults rather than the library's
         -- RestoreAllDefaults, so the library never walks with it today; it is
@@ -278,14 +296,10 @@ if optionsLib and AceGUI then
         -- KCM.db at CALL time because the db does not exist when this file loads.
         -- It changes nothing else: the library's only other reader of it is
         -- RestoreAllDefaults, which this addon never calls, so the button still
-        -- raises KCM_RESET_ALL and the popup still runs KCM.ResetAllToDefaults.
+        -- raises KCM_CONFIRM_RESET and the popup still runs KCM.ResetAllToDefaults.
         resetProfile = function() KCM.db:ResetProfile() end,
         profilesPage = true,
     })
-
-    -- Restated because the library resolves AceGUI once at :New and re-resolves
-    -- it only inside its own CreateOptionsPanel, which this addon never calls.
-    UI.AceGUI = AceGUI
 
     -- THE binding, replacing the hand-written re-export list. Every member the
     -- library publishes — AttachTooltip, EnsureScroll, PatchAlwaysShowScrollbar,

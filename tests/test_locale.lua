@@ -206,7 +206,7 @@ end
 --                   them (LIBKA0S-09, issue #16). Routing a string nothing
 --                   renders is noise.
 --   CLI SURFACE     A `/cm` verb description or reply. `/cm` prints these
---                   seventeen verbs and core/SlashCommands.lua's five
+--                   twenty-one verbs and core/SlashCommands.lua's five
 --                   sub-command tables through one lib.FormatRow, and four
 --                   fifths of that listing lives outside the scanned surface.
 --                   Routing this fifth alone would split one help listing
@@ -228,8 +228,6 @@ end
 --                   developer diagnostics docs/debug.md governs, never chat.
 local RESIDUE = {
     -- settings/Panel.lua
-    {"settings/Panel.lua", "|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r",
-     "NOT YET ROUTED"},
     {"settings/Panel.lua", "|cffff0000schema error|r: ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "<no path>", "DIAGNOSTIC"},
     {"settings/Panel.lua", "row is not a table", "DIAGNOSTIC"},
@@ -246,11 +244,17 @@ local RESIDUE = {
     {"settings/Panel.lua", "allowed values: ", "VALIDATOR"},
     {"settings/Panel.lua", "expected color table", "VALIDATOR"},
     {"settings/Panel.lua", "invalid value for ", "DIAGNOSTIC"},
-    {"settings/Panel.lua", "value must not be nil", "VALIDATOR"},
     {"settings/Panel.lua", "expected true or false for ", "VALIDATOR"},
     {"settings/Panel.lua", "expected a list", "VALIDATOR"},
     {"settings/Panel.lua", "expected a table", "VALIDATOR"},
-    {"settings/Panel.lua", "settings tab '", "DIAGNOSTIC"},
+
+    -- settings/SchemaStub.lua — the degraded write seam's refusals, handed back
+    -- to the caller as the library's would be (LibKa0s-Schema-1.0's stub
+    -- "carries no STRINGS; its refusals are the host's own words").
+    {"settings/SchemaStub.lua", ": invalid value for ", "DIAGNOSTIC"},
+    {"settings/SchemaStub.lua", ": no setting ", "DIAGNOSTIC"},
+    {"settings/SchemaStub.lua", ": nowhere to store ", "DIAGNOSTIC"},
+    {"settings/SchemaStub.lua", ": LibKa0s-Schema-1.0 is missing, so the schema was not checked", "DIAGNOSTIC"},
 
     -- settings/OptionsShim.lua — O.Open's last-resort line. It reads as
     -- Panel.lua's, and was, until the KCM.Options shim was peeled off at the
@@ -263,8 +267,10 @@ local RESIDUE = {
     {"settings/General.lua", "rewrote all macros. If action bar icons still look stale, /reload to force the bars to refresh.",
      "NOT YET ROUTED"},
     {"settings/General.lua", "Consumable Master", "LIB DESCRIPTOR"},
+    -- The afterGroup key: the MasterControls composer's own group name, which
+    -- RenderTabbedSchema also draws as the tab's label (options-ui-§15's fixed name).
+    {"settings/General.lua", "Master controls", "LIB DESCRIPTOR"},
     {"settings/General.lua", "macro bar position reset.", "NOT YET ROUTED"},
-    {"settings/General.lua", "Master enable ", "SPLIT COLOR"},
     {"settings/General.lua", "General page", "DEBUG SCOPE"},
 
     -- settings/MacroBar.lua
@@ -281,7 +287,6 @@ local RESIDUE = {
     {"settings/Slash.lua", "Print addon version", "CLI SURFACE"},
     {"settings/Slash.lua", "Turn the addon on — the same switch as the Enable checkbox", "CLI SURFACE"},
     {"settings/Slash.lua", "Turn the addon off — `/cm enable` turns it back on", "CLI SURFACE"},
-    {"settings/Slash.lua", "settings unavailable.", "CLI SURFACE"},
     {"settings/Slash.lua", "A/B performance capture — `/cm perf` opens the step panel", "CLI SURFACE"},
     {"settings/Slash.lua", "perf capture unavailable.", "CLI SURFACE"},
     {"settings/Slash.lua", "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`", "CLI SURFACE"},
@@ -294,7 +299,7 @@ local RESIDUE = {
     {"settings/Slash.lua", "rewrote all macros (body + icon). If action bar icons still look stale, /reload to force the bars to refresh.",
      "CLI SURFACE"},
     {"settings/Slash.lua", "Reset ONE setting to its default — `/cm reset <path>`", "CLI SURFACE"},
-    {"settings/Slash.lua", "Reset every priority list and stat override to defaults (asks first)", "CLI SURFACE"},
+    {"settings/Slash.lua", "Reset this profile to the addon's defaults — every setting and list (asks first)", "CLI SURFACE"},
     {"settings/Slash.lua", "StaticPopup unavailable.", "CLI SURFACE"},
     {"settings/Slash.lua", "List every schema setting and its current value", "CLI SURFACE"},
     {"settings/Slash.lua", "Print a setting's current value — `/cm get <path>`", "CLI SURFACE"},

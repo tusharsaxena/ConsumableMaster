@@ -22,8 +22,8 @@ docs/perf-analysis/<YYYYMMDD-HHMMSS>/
 ```
 
 The stamp is **local time, derived from the record's own `timestamp` field** (epoch seconds) — when
-the capture *happened*, not when it was written up, so a run analysed a week later still sorts
-against its neighbours.
+the capture *happened*, not when it was written up, so a run analyzed a week later still sorts
+against its neighbors.
 
 This replaced a flat pile of `<YYYY-MM-DD>-ingame-<label>.json` files. A bundle keeps a record and
 its reading in one place, so neither can be moved or lost without the other, and the directory name

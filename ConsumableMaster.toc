@@ -47,14 +47,15 @@ libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 # the block depend on that.
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
-# LibKa0s — the Ka0s-owned shared modules (Core, DebugLog, Slash, Options,
-# Perf). Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
+# LibKa0s — the Ka0s-owned shared library: fifteen majors, and the file list is
+# LibKa0s.xml. Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
 # through its own packaged XML, which is the file list. Depends on LibStub
 # alone, but it sits last in the block so nothing above it can be reordered
 # behind it.
 libs\LibKa0s\LibKa0s.xml
 
 # Locales
+# Position within this group is conventional, not load-bearing.
 locales\enUS.lua
 
 # Core
@@ -62,7 +63,7 @@ locales\enUS.lua
 # and the version string PerfSetup reads at load.
 # ConsumableMaster.lua promotes NS to the AceAddon object and owns the DB
 # bootstrap + recompute pipeline. Constants (KCM.PREFIX), CoreSetup (KCM.Say off
-# LibKa0s-Core-1.0), Compat (spec + spell API seam), State (session-only flags),
+# LibKa0s-Core-1.0), Compat (spec, spell and item API seam), State (session-only flags),
 # and Database (SV migrations) load next; the pure engine modules
 # (SpecHelper → Classifier) follow.
 core\Namespace.lua
@@ -73,13 +74,15 @@ core\Namespace.lua
 # the instance has to exist first. Everything it reaches outward through -- the
 # bus, KCM:OnEnable's list, the macro bar, the printer -- is a call-time thunk.
 core\LifecycleSetup.lua
-# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. It sits here,
-# second, because performance-§1 requires it BEFORE any file that takes
-# `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua and
-# modules\MacroBar.lua both do. Its only load-time read is KCM.VERSION, which is
-# why that constant lives in core\Namespace.lua; the run log, the printer, the
-# suspend/resume pair and the macro bar are all reached through thunks at call
-# time, so loading before them costs nothing.
+# PerfSetup builds the A/B capture harness from LibKa0s-Perf-1.0. Both sides of
+# its position are load-bearing. performance-§1 requires it BEFORE any file that
+# takes `local Perf = NS.Perf` as a load-time upvalue -- core\ConsumableMaster.lua
+# and modules\MacroBar.lua both do. And it must come AFTER core\LifecycleSetup.lua,
+# because it reads two things at load: KCM.VERSION (hence that constant lives in
+# core\Namespace.lua) and the KCM.Lifecycle instance it passes as
+# descriptor.lifecycle, without which it returns before building the probe. The
+# run log, the printer, the `perf` hold itself and the macro bar are all reached
+# through thunks at call time, so loading before them costs nothing.
 core\PerfSetup.lua
 # MediaSetup publishes the LibKa0s-Media-1.0 seam (KCM.Icon / KCM.MediaFont) and
 # makes the one LibSharedMedia registration for the shipped face. THE POSITION IS
@@ -164,6 +167,7 @@ defaults\Defaults_Bloodlust.lua
 defaults\Defaults_BattleRez.lua
 
 # Modules
+# Position within this group is conventional, not load-bearing.
 modules\Ranker.lua
 modules\Selector.lua
 modules\MacroManager.lua
@@ -176,15 +180,19 @@ modules\KCMMacroDragIcon.lua
 modules\KCMItemRow.lua
 
 # Settings
-# settings/OptionsSetup.lua first: it is the LibKa0s-Options-1.0 seam (the panel
+# settings/SchemaStub.lua -- the LibKa0s-Schema-1.0 degradation stub (KCM.SchemaStub),
+# the write seam settings/Panel.lua builds when the library is absent. It only
+# has to precede Panel.lua, which takes it at file load; nothing else reads it.
+settings\SchemaStub.lua
+# settings/OptionsSetup.lua next: it is the LibKa0s-Options-1.0 seam (the panel
 # chrome and the scroll container) and the only place the library is
 # constructed. It creates KCM.Settings.Helpers and publishes the instance as
 # KCM.Settings.optionsUI, which settings/Panel.lua takes as a file-scope local —
 # so it has to load before Panel.lua, not after.
 settings\OptionsSetup.lua
 # settings/Panel.lua next: the addon's own half — the schema rows, the
-# Resolve/Get/Set/FindSchema/ValidateSchema helpers, the SetAndRefresh write
-# seam, the wrappers that shadow a library member — and it exposes
+# LibKa0s-Schema-1.0 write seam and its Get/Set/FindSchema/ValidateSchema
+# helpers, the SetAndRefresh door, the wrappers that shadow a library member — and it exposes
 # KCM.Settings.RegisterTab, which the per-tab modules below call.
 # It also publishes the KCM.Options shim (Register/Refresh/RequestRefresh/Open)
 # so the core / pipeline callers keep working unchanged.
@@ -194,11 +202,12 @@ settings\Panel.lua
 # subscriptions that drive them. Peeled off Panel.lua at the 1500-line cap
 # (layout-§1). Immediately after Panel.lua and that is load-bearing in one
 # direction only: it takes KCM.Settings.Helpers, the optionsUI instance and
-# Panel.lua's two notice functions as file-scope locals, so it cannot load
+# Panel.lua's panel-unavailable notice as file-scope locals, so it cannot load
 # before them. Nothing below reads it at load -- the page files reach
 # KCM.Options through call-time thunks -- so its only constraint is to come
 # after Panel.lua.
 settings\OptionsShim.lua
+# The four page files: position within this group is conventional, not load-bearing.
 settings\General.lua
 settings\MacroBar.lua
 settings\StatPriority.lua

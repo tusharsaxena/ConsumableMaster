@@ -110,7 +110,7 @@ test("Profiles: a pooled, hidden SimpleGroup is shown before AceConfigDialog fil
 end)
 
 -- options-ui-§11: an open panel reflects live state after a profile switch. And
--- §11's re-render rule: only when the thing that invalidates the layout changed.
+-- options-ui-§11's re-render rule: only when the thing that invalidates the layout changed.
 --
 -- red under: no PROFILE_CHANGED listener on the page (the list goes stale), or a
 -- renderer that re-Opens on every structural refresh (the pipeline's debounced
@@ -486,4 +486,92 @@ test("Profiles: the open settings pages rebuild on the switch itself, not after 
     KCM.db:SetProfile("Alt")
     H.RefreshAllPanels = nil
     t.eq(n, 1, "one structural refresh, off the profile-changed message")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The AceDB fake itself (tests/wow_mock.lua)
+-- ---------------------------------------------------------------------------
+
+-- AceDB-3.0's SetProfile runs removeDefaults over the OUTGOING profile before it
+-- switches (libs/AceDB-3.0/AceDB-3.0.lua:460-463). A fake that skips it cannot
+-- show a bug that aliases a default table into the stored profile.
+--
+-- red under: a fake SetProfile that leaves at-default values in the outgoing profile.
+test("AceDB fake: a profile switch strips at-default values from the outgoing profile", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.scale = KCM.dbDefaults.profile.scale
+    KCM.db:SetProfile("Other")
+    t.eq(KCM.db.profiles.Default.scale, nil, "a scalar equal to its default is removed")
+end)
+
+-- The guard CM-03 turns red: a switch must never write into the shipped defaults.
+--
+-- red under: a copyDefaults that aliases a default sub-table into a profile, which
+-- the stripping switch then empties.
+test("AceDB fake: the shipped default table survives a switch", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db:SetProfile("Alt")
+    KCM.db:SetProfile("Default")
+    t.eq(#KCM.dbDefaults.profile.macroBar.barBackdropColor, 4,
+        "the default color keeps its four channels")
+end)
+
+-- AceDB-3.0.lua:581-587: a copy onto the active profile, or of a missing one
+-- unless silent, raises -- a fake that no-ops lets a copy command pass here and
+-- raise a raw Lua error in the client.
+--
+-- red under: a fake CopyProfile that returns silently on a bad name.
+test("AceDB fake: CopyProfile onto the active profile raises AceDB's own message", function(t)
+    local KCM = h.loader.loadFullAddon()
+    h.assertErrorMatches(function() KCM.db:CopyProfile("Default") end,
+        'Cannot have the same source and destination profiles ("Default").')
+    h.assertErrorMatches(function() KCM.db:CopyProfile("Nope") end,
+        'Cannot copy profile "Nope" as it does not exist.')
+    KCM.db:CopyProfile("Nope", true)
+    t.eq(KCM.db:GetCurrentProfile(), "Default", "a silent copy of a missing profile does not raise")
+end)
+
+-- AceDB-3.0.lua:531-537: the same for a delete.
+--
+-- red under: a fake with no DeleteProfile, or one that no-ops on a bad name.
+test("AceDB fake: DeleteProfile of the active profile raises AceDB's own message", function(t)
+    local KCM = h.loader.loadFullAddon()
+    h.assertErrorMatches(function() KCM.db:DeleteProfile("Default") end,
+        'Cannot delete the active profile ("Default") in an AceDBObject.')
+    h.assertErrorMatches(function() KCM.db:DeleteProfile("Nope") end,
+        'Cannot delete profile "Nope" as it does not exist.')
+    KCM.db:DeleteProfile("Nope", true)
+    KCM.db:SetProfile("Alt")
+    KCM.db:SetProfile("Default")
+    KCM.db:DeleteProfile("Alt")
+    t.eq(KCM.db.profiles.Alt, nil, "an inactive profile is deleted")
+end)
+
+-- ---------------------------------------------------------------------------
+-- /cm reset on a color row (ConsumableMaster-R-02)
+-- ---------------------------------------------------------------------------
+
+-- A color row's `default` IS the dbDefaults table, and the reset sends it through
+-- SetAndRefresh. Storing it as-is aliases the shipped default into the profile.
+--
+-- red under: return value unchanged from TYPE_RULES.color's normalize
+test("/cm reset: resetting a color row stores a copy, not the dbDefaults table", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM:OnSlashCommand("reset macroBar.barBackdropColor")
+    local stored = KCM.db.profile.macroBar.barBackdropColor
+    t.truthy(stored ~= KCM.dbDefaults.profile.macroBar.barBackdropColor,
+        "the stored color is its own table")
+    t.eq(#stored, 4, "and it carries all four channels")
+end)
+
+-- The aliased table is emptied in place when the switch strips the outgoing
+-- profile, which blanks the shipped default for every profile after it.
+--
+-- red under: return value unchanged from TYPE_RULES.color's normalize
+test("/cm reset: a profile switch after a color reset leaves the shipped default intact", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM:OnSlashCommand("reset macroBar.barBackdropColor")
+    KCM.db:SetProfile("Other")
+    t.eq(#KCM.dbDefaults.profile.macroBar.barBackdropColor, 4,
+        "the default color keeps its four channels")
 end)

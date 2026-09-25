@@ -26,7 +26,11 @@ Everything the player can set lives in `db.profile`, so a profile carries all of
 
 Three things are deliberately **not** in a profile, and none of them moves when one does:
 
-- `global.schemaVersion`, the account-wide migration marker.
+- `global.schemaVersion`, the account-wide migration marker. Its shipped default is `0`, never a
+  real version: AceDB strips a stored value equal to its default at logout, and backfills a declared
+  default onto a legacy account that stored none, so a real version there could erase the stamp or
+  make a pre-runner account read as migrated (`savedvariables-§1`). `RunMigrations` walks it to the
+  current version.
 - `ConsumableMasterPerfDB`, the perf capture ring. It is a SavedVariable of its own, outside AceDB
   entirely (`ConsumableMaster.toc:11`).
 - The debug console's visibility and the session logging flag. Both are session state.
@@ -86,7 +90,8 @@ It runs five steps, in this order:
 1. **The act's one log line** (below).
 2. **The migrations** (`KCM.Database.RunMigrations`), for an incoming profile an older build wrote.
    Each profile carries its own `schemaVersion`, so a profile arriving for the first time under this
-   build is walked forward on arrival ([schema.md](schema.md#migrations)).
+   build is walked forward on arrival ([schema.md](schema.md#migrations)). That is how the
+   profile-scoped steps reach every profile rather than only the one live at the upgrade login.
 3. **On a switch or a copy, the macro fingerprints are forgotten** (`MacroManager.InvalidateState`).
 4. **The resync** (`afterReset`): tooltip cache invalidated, the bags re-read, and every category
    recomputed and its macro rewritten against the incoming profile.
@@ -129,20 +134,22 @@ One sender, the reaction above (`architecture-§4`). Three receivers, each on it
 
 A profile act is not a batch through the schema helper: AceDB replaces the whole profile. So the
 handler logs it once, worded by the event, and silences any `Helpers.Bulk` bracket open around it
-(`Helpers.SilenceOpenBulk`). The result is one line in total, never the handler's line plus an
+(the write seam's `ConsumeResetCount` marks the open bracket as a profile reset). The result is one line in total, never the handler's line plus an
 `outer: N rows` line.
 
 | Event | Line |
 |---|---|
-| *Reset* | `[Set] reset profile '<name>' to defaults` |
+| *Reset* | `[Set] reset profile '<name>' to defaults: N rows` (N only when `KCM.ResetAllToDefaults` drove it, counted before the reset) |
 | *Copied* | `[Set] copied profile '<source>' → '<active>'` |
 | *Changed* | `[Profile] switched to '<name>'` |
 
 A reset and a copy replace the profile's rows, so they carry the `[Set]` tag. A switch rewrites no
-rows and takes the `[Profile]` trace MultiMeters and KickCD carry. The reset line has no row count.
-N would be the rows the reset actually changed, which needs their values from before it. AceDB has
-already replaced the profile when `OnProfileReset` fires, and AceDBOptions' Reset Profile button
-gives no earlier hook. A switch or copy is followed by the forced rewrite's own
+rows and takes the `[Profile]` trace MultiMeters and KickCD carry. N is the rows the reset actually
+changed, which needs their values from before it. AceDB has already replaced the profile when
+`OnProfileReset` fires, so `KCM.ResetAllToDefaults` (General > **Reset all settings**) wraps
+`db:ResetProfile()` in the seam's `ResetCounted`, which counts the rows off their defaults first and
+hands the count to the handler. AceDBOptions' own Reset Profile button gives no earlier hook, so its
+line carries no count: `[Set] reset profile '<name>' to defaults`. A switch or copy is followed by the forced rewrite's own
 `[Macro] forced rewrite: cleared …` line and the resync's `[Scan]` and `[Calc]` lines, which
 report what the act caused rather than restating the act.
 

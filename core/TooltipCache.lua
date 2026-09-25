@@ -456,7 +456,7 @@ function TC.Get(itemID)
     -- state as pending; on the next call we'll re-fetch and usually get
     -- the full text. Otherwise the Ranker scores the item as if it had
     -- no stat buff / heal value / duration.
-    local name, _, _, _, minLevel = GetItemInfo(itemID)
+    local name, _, _, _, minLevel = KCM.Compat.GetItemInfo(itemID)
     if not name then
         local stub = { pending = true, statBuffs = {} }
         cache[itemID] = stub

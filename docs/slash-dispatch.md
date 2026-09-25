@@ -25,8 +25,8 @@ tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:143`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:354` so the verb set has one source
+`COMMANDS` (`settings/Slash.lua:163`) is an ordered list of positional triples
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:358` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
@@ -47,7 +47,7 @@ print them:
 | `resync` | host | Invalidate the tooltip cache, run auto-discovery, recompute every category. |
 | `rewritemacros` (alias `rewrite`) | host | Invalidate macro state and rewrite every body and icon. |
 | `reset <path>` | library | Reset **one** schema row to its default. |
-| `resetall` | host | The confirm-gated global wipe, via `StaticPopup_Show("KCM_CONFIRM_RESET")`. |
+| `resetall` | host | The confirm-gated whole-profile reset, via `StaticPopup_Show("KCM_CONFIRM_RESET")` — the same popup the General page's *Reset all settings* raises. |
 | `list` | library | Every schema row and its value, grouped by the row's `panel`. |
 | `get <path>` | library | One row's value. |
 | `set <path> <value>` | library | Type-aware parse, then `Helpers.SetAndRefresh`. |
@@ -79,6 +79,14 @@ the library's `resetall` walks the schema rows, and this addon's global reset is
 `KCM.ResetAllToDefaults`, which also wipes the priority lists and the stat overrides — data the
 schema does not describe.
 
+**One act, one popup, both doors.** `KCM_CONFIRM_RESET` (`core/SlashCommands.lua`) is the only
+global-reset confirmation: `/cm resetall` and the General page's *Reset all settings* both raise it
+by name. Everything a door used to add on its own is inside `KCM.ResetAllToDefaults` now — it refuses
+under `InCombatLockdown` before any write (`false, "combat"`), answers `false, "db"` before the
+database exists, and repaints every open panel on success. The popup's `OnAccept` switches on that
+second return: *Reset complete — defaults restored.*, *in combat — reset deferred until regen.* (the
+General page's own combat wording), or *Reset failed (DB not ready).*
+
 ## The sub-command trees
 
 Four verbs dispatch a sub-verb of their own, from five ordered tables in two files. Every one of them
@@ -87,11 +95,11 @@ read the same rows and cannot drift.
 
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
-| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:445`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (`:596`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
-| `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:873`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
-| `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:374`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick` |
+| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:451`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
+| `stat` | `STAT_COMMANDS` (`:602`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `aio` | `AIO_COMMANDS` (`:807`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
+| `bar` | `BAR_COMMANDS` (`:930`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:392`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
 category before dispatching, so their handlers take `(cat, rest)` — the resolve happens once, in the
@@ -116,7 +124,7 @@ numeric head routes to the `item` target rather than failing as an unknown targe
 frames*; whether an addon registers them at all is a **MAY**, and this addon now takes it. All four
 spellings share one body — `runLock` in `core/SlashCommands.lua`, published as `V.RunLock` — which
 writes `macroBar.locked` through `KCM.MacroBar.SetLocked`, the same `KCM.Schema:Set` seam the *Lock
-frame* checkbox and the launcher's left click take. So there is one value, one `onChange` and one
+frame* checkbox and the launcher menu's *Locked* entry take. So there is one value, one `apply` and one
 confirmation line, never a `KCM.locked` local beside them and never a second implementation hiding
 behind the second spelling.
 
@@ -159,7 +167,7 @@ Ka0s Consumable Master v1.6.2 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:382`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:393`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -223,8 +231,9 @@ somebody is asking why the addon has gone quiet.
 The refusal reads `Ka0s Consumable Master is disabled — enable it with /cm enable`, with the command
 gold. **The wording is the collection's, not this addon's**: `slash-commands-§7` fixes one shape for
 all eleven addons, `cli:DisabledLine()` builds it, and it MUST NOT be re-spelled per addon, per verb
-or per call site — which is why it no longer goes through `KCM.L` and why the launcher's left click
-calls the same member rather than writing the line again. It is **one line and nothing else**: no
+or per call site — which is why it no longer goes through `KCM.L`. (The launcher no longer prints it
+at all: since LibKa0s v1.58.0 its left click opens the panel in either state and its menu grays the
+feature entries rather than refusing, `launcher-§2`.) It is **one line and nothing else**: no
 partial work, no side effect, no second line. The rule stays a **SHOULD** in the standard — a
 courtesy rather than a correctness property — and this addon takes it.
 
@@ -246,7 +255,7 @@ verbs, the bare `/cm`, and the shape of the refusal line itself.
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:139`) names the six verbs that actually route through the
+`LIB_BACKED_VERBS` (`settings/Slash.lua:159`) names the six verbs that actually route through the
 library — `help`, `list`, `get`, `set`, `reset` and `perf`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
@@ -256,7 +265,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:653`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:672`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the
@@ -273,6 +282,18 @@ declines it is not deviating and owes no register row, and this build has alread
 its own line that half the surface is missing. The **stand-down** is a MUST and is not what is
 skipped here — that arm has no `LibKa0s-Lifecycle-1.0` either, so a build with no library keeps the
 old stored-flag behavior in full, which is the tampered install's problem and not a supported state.
+
+**The composed-row verbs refuse on one library-absent line** (`options-ui-§1` route (b), CM-18).
+`enable`, `disable`, `lock`, `unlock`, `bar lock` and `bar unlock` write rows the library's composers
+build (`enabled`, `macroBar.locked`), and on this build those rows do not exist and there is no
+stand-down latch to honor a stored switch. Each one prints
+`/cm <verb> is unavailable: the LibKa0s library did not load.`, the standard's sentence through the
+locale (`KCM.SlashCommands.SayLibraryAbsent`, `core/SlashCommands.lua`), writes nothing and raises
+nothing. Taking route (b) for `enable`/`disable` is a recorded deviation
+([ARCHITECTURE.md](./ARCHITECTURE.md#documented-deviations)). `bar`, `bar on` and `bar off` write the
+hand-declared `macroBar.enabled` row, so they keep working here; like every macro-bar verb they print
+their success line only when `KCM.MacroBar.SetEnabled` / `SetLocked` answered true, so no write the
+seam refused is ever reported as done. `tests/test_slash_degraded.lua` pins all of it.
 
 `GetLandingRows` returns an **empty** list in that state rather than a host-formatted fallback: with
 LibKa0s missing the settings panel is never registered, so there is no About page to render into, and

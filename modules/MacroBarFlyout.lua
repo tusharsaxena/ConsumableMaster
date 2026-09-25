@@ -50,6 +50,16 @@ local HIGHLIGHT_TEXTURE = [[Interface\Buttons\ButtonHilight-Square]]
 -- pool can only grow out of combat, so it is bounded rather than unbounded.
 FO.MAX_ENTRIES = 16
 
+-- The combat conditional fed to each flyout's `kcmCombat` attribute. One
+-- constant, because FO.Create arms it and FO.StandUp re-arms it, and the two
+-- must not drift.
+local FLYOUT_COMBAT_DRIVER = "[combat] 1; 0"
+
+-- Every flyout FO.Create has built, in creation order. The frames outlive a
+-- stand-down (they are kept, not rebuilt), so this is the list FO.StandDown and
+-- FO.StandUp walk to take their attribute drivers off and put them back.
+local built = {}
+
 -- Secure snippets. `_onenter` shows the flyout; `_onleave` closes it only when
 -- the mouse has left BOTH the indicator and the flyout, so the gap-free travel
 -- between them doesn't dismiss it. Attached to both frames — whichever the mouse
@@ -287,8 +297,9 @@ function FO.Create(button, catKey, index)
     -- InCombatLockdown — and it's the same mechanism as the bar's visibility
     -- driver, so it stays taint-free.
     if RegisterAttributeDriver then
-        RegisterAttributeDriver(flyout, "kcmCombat", "[combat] 1; 0")
+        RegisterAttributeDriver(flyout, "kcmCombat", FLYOUT_COMBAT_DRIVER)
     end
+    built[#built + 1] = flyout
 
     -- Shade first, arrow on top of it, both inside the band.
     indicator.shade = indicator:CreateTexture(nil, "ARTWORK")
@@ -314,6 +325,31 @@ function FO.Create(button, catKey, index)
     button.flyout    = flyout
     button.indicator = indicator
     return flyout
+end
+
+-- ---------------------------------------------------------------------------
+-- Stand-down (slash-commands-§7)
+-- ---------------------------------------------------------------------------
+-- An attribute driver is a secure-side subscription: the state-driver manager
+-- keeps re-evaluating `[combat]` for every registered flyout whether or not the
+-- bar is on screen. So a disabled addon takes them off, and the enable path
+-- puts them back on the SAME frames. Both are protected operations; the one
+-- caller, MB.Update, is already behind the bar's single combat gate.
+
+--- Unregister every built flyout's `kcmCombat` attribute driver.
+function FO.StandDown()
+    if not UnregisterAttributeDriver then return end
+    for _, flyout in ipairs(built) do
+        UnregisterAttributeDriver(flyout, "kcmCombat")
+    end
+end
+
+--- Re-register every built flyout's `kcmCombat` attribute driver.
+function FO.StandUp()
+    if not RegisterAttributeDriver then return end
+    for _, flyout in ipairs(built) do
+        RegisterAttributeDriver(flyout, "kcmCombat", FLYOUT_COMBAT_DRIVER)
+    end
 end
 
 -- ---------------------------------------------------------------------------

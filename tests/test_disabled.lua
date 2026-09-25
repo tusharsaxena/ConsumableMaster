@@ -155,15 +155,15 @@ test("Disabled 1: enabled, the addon registers a non-empty set", function(t)
 
     local names = {}
     for _, r in ipairs(R_on) do names[r] = true end
-    -- The nine KCM:OnEnable declares, by name, so a list that quietly shrinks is
-    -- a failure here rather than a smaller set silently passing step 3.
-    for _, e in ipairs({
-        "event:PLAYER_ENTERING_WORLD", "event:BAG_UPDATE_DELAYED",
-        "event:PLAYER_SPECIALIZATION_CHANGED", "event:PLAYER_REGEN_ENABLED",
-        "event:GET_ITEM_INFO_RECEIVED", "event:LEARNED_SPELL_IN_SKILL_LINE",
-        "event:PLAYER_EQUIPMENT_CHANGED", "event:SPELL_UPDATE_COOLDOWN",
-        "event:BAG_UPDATE_COOLDOWN",
-    }) do t.truthy(names[e], e .. " is registered while enabled") end
+    -- Every name KCM.EVENTS declares, derived from the list OnEnable walks, so a
+    -- pair added there is checked here unasked. The count is pinned too, so a
+    -- list that quietly shrinks is a failure here rather than a smaller set
+    -- silently passing step 3.
+    t.eq(#KCM.EVENTS, 9, "KCM.EVENTS declares the nine client events")
+    for _, pair in ipairs(KCM.EVENTS) do
+        local e = "event:" .. pair[1]
+        t.truthy(names[e], e .. " is registered while enabled")
+    end
     -- And the bus, which is the half a teardown built only on UnregisterAllEvents
     -- would leave behind.
     t.truthy(names["message:Ka0s_ConsumableMaster_Recompute"], "the pipeline is subscribed")
@@ -206,6 +206,21 @@ end)
 -- 4. Nothing is still going to wake up
 -- ---------------------------------------------------------------------------
 
+--- Every frame the mock still holds a `kcmCombat` attribute driver on, as a
+--- set. These are the flyout containers: modules/MacroBarFlyout.lua registers
+--- one per slot so its secure snippets can read combat state, and the secure
+--- driver manager keeps evaluating it for as long as it is registered.
+local function combatDriverFrames()
+    local out, n = {}, 0
+    for frame, attrs in pairs(mock.attributeDrivers) do
+        if attrs.kcmCombat ~= nil then
+            out[frame] = attrs.kcmCombat
+            n = n + 1
+        end
+    end
+    return out, n
+end
+
 test("Disabled 4: no OnUpdate and no state driver is left armed", function(t)
     local _, H, frames = build()
     -- The fade tick is this addon's OnUpdate, and it only exists while the bar
@@ -215,12 +230,22 @@ test("Disabled 4: no OnUpdate and no state driver is left armed", function(t)
     local bar = frames.KCMMacroBar
     t.truthy(bar, "the bar frame was built")
     t.truthy(bar:GetScript("OnUpdate") ~= nil, "and its fade tick is armed while enabled")
+    -- A non-empty baseline, or the "none left" assertion below passes over a
+    -- bar whose flyouts were never built.
+    local armed, n_on = combatDriverFrames()
+    t.truthy(n_on > 0, "the flyouts' kcmCombat attribute drivers are armed while enabled")
+    for _, value in pairs(armed) do
+        t.eq(value, "[combat] 1; 0", "each flyout driver carries the combat conditional")
+    end
 
     H.SetAndRefresh("enabled", false)
 
     t.eq(bar:GetScript("OnUpdate"), nil, "the fade tick is cleared, not left to find a hidden bar")
     local drivers = mock.stateDrivers[bar]
     t.falsy(drivers and drivers.visibility, "the secure visibility driver is unregistered")
+    -- red under: drop FO.StandDown from MB.Update's disable branch
+    local _, n_off = combatDriverFrames()
+    t.eq(n_off, 0, "no flyout attribute driver is left registered (was " .. n_on .. ")")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -286,10 +311,25 @@ test("Disabled 6b: the harness WOULD have caught a survivor", function(t)
     -- the case above is also true of a harness that had lost the ability to
     -- dispatch at all. Firing UNCONDITIONALLY at the addon proves it had not.
     local KCM, H = build()
+    -- The kit reaches a handler whose registration is gone through `__events`,
+    -- or failing that through the method NAMED for the event (AceEvent's
+    -- default). KCM names its own ("OnPlayerEnteringWorld"), and unregister
+    -- clears that name from `__events`, so a bare fire at KCM answers 0. The
+    -- handler map is therefore taken while the addon is up and fired at a view
+    -- of KCM that still holds it: the handler is KCM's own, only the
+    -- registration is gone, which is exactly what a survivor would look like.
+    local registered = {}
+    for e, handler in pairs(rawget(KCM, "__events")) do registered[e] = handler end
+    t.eq(registered.PLAYER_ENTERING_WORLD, "OnPlayerEnteringWorld", "the handler KCM registered")
     H.SetAndRefresh("enabled", false)
     resetPrinted()
-    local ran = mock.base.__fireUnconditional(KCM, "PLAYER_ENTERING_WORLD")
-    t.truthy((ran or 0) > 0 or true, "the unconditional dispatch is available")
+    local reached, real = 0, KCM.OnPlayerEnteringWorld
+    KCM.OnPlayerEnteringWorld = function(...) reached = reached + 1; return real(...) end
+    local view = setmetatable({ __events = registered }, { __index = KCM })
+    local ran = mock.base.__fireUnconditional(view, "PLAYER_ENTERING_WORLD")
+    KCM.OnPlayerEnteringWorld = real
+    t.truthy((ran or 0) > 0, "the unconditional dispatch reaches OnPlayerEnteringWorld")
+    t.eq(reached, 1, "and it was KCM's own handler that ran")
     -- And the live set really is the thing __fire reads: with the addon back up,
     -- the same call reaches a handler.
     H.SetAndRefresh("enabled", true)
@@ -371,11 +411,10 @@ test("Disabled 7c: a feature verb refuses on exactly one line, and reaches no se
     local out = dispatch(KCM, "bar on")
     t.truthy(out:find(refusal, 1, true) ~= nil, "it is the collection's line: " .. out)
     t.eq(select(2, out:gsub("\n", "")), 0, "exactly one line")
-    t.eq(storedState(KCM), before, "and no write seam was reached")
-    -- The addon takes §2's SHOULD, so this suite PINS that choice: an addon that
+    -- The addon takes slash-commands-§2's SHOULD, so this suite PINS that choice: an addon that
     -- declined it would assert its feature verbs act normally instead, and either
     -- is conformant. What must not happen is the choice drifting in silence.
-    t.truthy(true, "this addon refuses its feature verbs")
+    t.eq(storedState(KCM), before, "and no write seam was reached")
 end)
 
 test("Disabled 7d: the refusal line is the collection's shape, not a re-spelling", function(t)
@@ -398,10 +437,9 @@ end)
 -- 8. The launcher
 -- ---------------------------------------------------------------------------
 
-test("Disabled 8: left-click is refused and writes nothing; right-click opens the panel",
+test("Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing",
     function(t)
         local KCM, H = build()
-        local refusal = KCM.SlashCommands.instance:DisabledLine()
         local opened = 0
         KCM.Options.Open = function() opened = opened + 1; return true end
         H.SetAndRefresh("enabled", false)
@@ -411,18 +449,29 @@ test("Disabled 8: left-click is refused and writes nothing; right-click opens th
         resetPrinted()
         object.OnClick(object, "LeftButton")
 
-        -- Rung (b): the left click drives the macro bar's lock, which IS this
-        -- addon's preview switch, and a preview switch is a feature (launcher-§2).
+        -- launcher-§2 as of v2.67.0 (LibKa0s-Launcher-1.0 minor 4): the left
+        -- button opens the panel in EITHER state -- the panel is setup, not a
+        -- feature, and it is where the addon is switched back on. No refusal.
+        t.eq(opened, 1, "left-click opened the settings panel")
+        t.eq(printed(), "", "and printed no refusal")
         t.eq(storedState(KCM), before, "the click wrote no SavedVariables")
-        local out = printed()
-        t.truthy(out:find(refusal, 1, true) ~= nil, "one refusal line: " .. out)
-        t.eq(select(2, out:gsub("\n", "")), 0, "and exactly one")
-        t.eq(opened, 0, "the left button did not open the panel either")
 
-        -- Right-click is UNCHANGED in either state: the panel is setup, not a
-        -- feature, and it is the route that replaces what the left button lost.
-        object.OnClick(object, "RightButton")
-        t.eq(opened, 1, "right-click opened the settings panel")
+        -- The right button's menu: the macro bar's lock drives what this addon
+        -- draws, a feature, so its entry is grayed and a click forced through
+        -- anyway reaches no handler and writes nothing (slash-commands-§7).
+        local menu = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/mock_menu.lua")(_G)
+        local ok, err = pcall(function()
+            object.OnClick(object, "RightButton")
+            local m = menu.last
+            t.truthy(m, "right-click opened the options menu")
+            t.falsy(m:Find("Locked").enabled, "Locked is grayed while disabled")
+            t.truthy(m:Find("Enabled").enabled, "Enabled stays live")
+            m:ForceClick("Locked")
+            t.eq(storedState(KCM), before, "the grayed entry wrote no SavedVariables")
+            t.eq(printed(), "", "and said nothing")
+        end)
+        menu.remove()
+        if not ok then error(err, 0) end
     end)
 
 -- ---------------------------------------------------------------------------
@@ -432,10 +481,20 @@ test("Disabled 8: left-click is refused and writes nothing; right-click opens th
 test("Disabled 9: re-enabling rebuilds exactly the set it took down", function(t)
     local _, H = build()
     local R_on = registrations()
+    local armed, n_on = combatDriverFrames()
+    t.truthy(n_on > 0, "the flyout attribute drivers are armed before the disable")
     H.SetAndRefresh("enabled", false)
     t.eq(count(registrations()), 0, "down")
+    t.eq(select(2, combatDriverFrames()), 0, "and the flyout attribute drivers with it")
     H.SetAndRefresh("enabled", true)
     t.eqList(registrations(), R_on, "and back up with the same registration set")
+    -- The same frames, re-armed: the flyouts are kept across the stand-down,
+    -- not rebuilt, so identity is the right comparison here.
+    local rearmed, n_back = combatDriverFrames()
+    t.eq(n_back, n_on, "every flyout attribute driver is re-armed")
+    for frame, value in pairs(armed) do
+        t.eq(rearmed[frame], value, "on the same flyout frame, with the same conditional")
+    end
 end)
 
 test("Disabled 9b: a setting changed while disabled is honored on the way back up", function(t)
@@ -453,6 +512,37 @@ test("Disabled 9b: a setting changed while disabled is honored on the way back u
     H.SetAndRefresh("enabled", true)
     t.eq(seen.shows, 0, "the bar stayed off, because the rebuild read the setting as it is NOW")
     t.falsy(KCM.MacroBarModel.IsEnabled(), "and the ladder agrees")
+end)
+
+-- red under: standUp without DiscoverAndSweep. The stand-down took
+-- BAG_UPDATE_DELAYED off, and PLAYER_ENTERING_WORLD does not fire again on a
+-- re-enable, so without the stand-up's own discovery pass an item looted while
+-- disabled is no candidate until the next bag update happens to arrive.
+test("Disabled 9c: an item looted while disabled is discovered on the way back up", function(t)
+    local KCM, H = build()
+    local LOOTED = 910090
+    local function isCandidate()
+        for _, id in ipairs(KCM.Selector.GetEffectivePriority("FOOD")) do
+            if id == LOOTED then return true end
+        end
+        return false
+    end
+    H.SetAndRefresh("enabled", false)
+
+    mock.setItem(LOOTED, { subType = "Food & Drink", tt = { healValue = 500 } })
+    mock.setBag(LOOTED, 1)
+    -- The full addon runs the real tooltip parser, which the mock feeds no
+    -- lines; answer for this one item from its `tt`, as the pure layer's
+    -- TooltipCache stub (tests/run.lua) does for every item.
+    local realGet = KCM.TooltipCache.Get
+    KCM.TooltipCache.Get = function(id)
+        if id ~= LOOTED then return realGet(id) end
+        return { healValue = 500, itemName = mock.items[id].name }
+    end
+    t.falsy(isCandidate(), "not a FOOD candidate while disabled")
+
+    H.SetAndRefresh("enabled", true)   -- and no BAG_UPDATE_DELAYED is fired
+    t.truthy(isCandidate(), "the stand-up's discovery pass made it a FOOD candidate")
 end)
 
 -- ---------------------------------------------------------------------------

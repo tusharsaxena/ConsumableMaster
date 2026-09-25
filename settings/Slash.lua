@@ -22,8 +22,8 @@
 local _, NS = ...
 local KCM = NS
 
--- Same secret-safe seam as the verb file (core/Constants.lua): the [CM] tag is
--- unconditional and a combat "secret" can never raise mid-line.
+-- Same secret-safe seam as the verb file (KCM.Say, defined in
+-- core/CoreSetup.lua): the [CM] tag is unconditional and a combat "secret" can never raise mid-line.
 local say = KCM.Say
 
 -- The locale seam (localization-§1) is no longer reached from this file. The one
@@ -58,6 +58,12 @@ local function helpers()
     return KCM.Settings and KCM.Settings.Helpers
 end
 
+-- The LibKa0s-Schema-1.0 instance settings/Panel.lua builds (or its stub).
+local function schema()
+    local H = helpers()
+    return H and H.schema
+end
+
 -- Bound at the foot of this file, once the Slash instance exists.
 local cliList, cliGet, cliSet, cliReset
 
@@ -78,11 +84,12 @@ local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 -- their own: no second key, no session flag, no `KCM.enabled` local. That is the
 -- whole rule, and it is why this is four lines rather than a feature: the
 -- checkbox and the verbs cannot show the player two different answers, and the
--- row's own onChange (settings/General.lua's `Master enable ON/OFF` line plus
--- the off→on recompute) runs whichever surface was used.
+-- row's own apply (settings/General.lua's KCM.OnEnabledChanged call) runs
+-- whichever surface was used. That row says nothing itself (CM-R-12): the
+-- `enabled = <bool>` echo below is the verbs' one reply.
 --
 -- THE WRITE IS THE HOST'S, not the library's CliSet, and the difference is the
--- DISABLED state §2 is actually about. Routing it through `Sl:CliSet` would have
+-- DISABLED state slash-commands-§2 is actually about. Routing it through `Sl:CliSet` would have
 -- made `enable` a LIB_BACKED_VERB alongside list / get / set / reset, and the
 -- degraded notice at the foot of this file would then be telling a player who
 -- had just disabled the addon that the verb which turns it back on is one of the
@@ -91,15 +98,22 @@ local printHelp  -- forward decl (printed by COMMANDS[1].fn)
 -- shared formatter `list` / `get` / `set` / `reset` all use so `/cm enable`
 -- cannot drift from `/cm set enabled true`.
 --
--- WHAT IS HONESTLY NOT COVERED, because the comment above used to claim it was:
--- on a build with `libs/LibKa0s/` missing there is no `enabled` ROW -- the
--- Master controls block is composed by the library and its degradation stub
--- emits nothing (settings/OptionsSetup.lua) -- so there is no schema entry for
--- the seam to validate against and no panel carrying the checkbox either. The
--- verb says so on one line rather than writing round the seam: a second write
--- path is exactly the "no state of their own" rule inverted, and it would be a
--- path only a tampered install ever took.
+-- THE LIBRARY-ABSENT BUILD TAKES ROUTE (b) (options-ui-§1, WS-02; CM-18). On a
+-- build with `libs/LibKa0s/` missing there is no `enabled` ROW -- the Master
+-- controls block is composed by the library and its degradation stub emits
+-- nothing (settings/OptionsSetup.lua) -- and there is no Lifecycle latch either
+-- (core/LifecycleSetup.lua returns early), so a stored `enabled` would not be
+-- obeyed this session. Route (a), a `writeThrough` path on the seam, would store
+-- the switch and acknowledge it, which is acknowledging a switch nothing honors.
+-- So the verb refuses on the one library-absent line, `/cm enable is
+-- unavailable: the LibKa0s library did not load.`, writes nothing and raises
+-- nothing. options-ui-§1 SHOULDs route (a) for this pair, so taking (b) is a
+-- recorded deviation (docs/ARCHITECTURE.md, Documented deviations).
 local ENABLED_PATH = "enabled"
+
+-- The line's one owner is core/SlashCommands.lua, which says it for the macro
+-- bar's composed-row verbs too.
+local refuseLibraryAbsent = KCM.SlashCommands.SayLibraryAbsent
 
 -- Bound beside cliGet on the live arm. Unreachable on the degraded one -- the
 -- guard below returns before it, because a build with no schema row is the same
@@ -109,7 +123,7 @@ local echoEnabled
 local function setEnabled(on)
     local H = helpers()
     if not (H and H.FindSchema and H.FindSchema(ENABLED_PATH)) then
-        return say("settings unavailable.")
+        return refuseLibraryAbsent(on and "enable" or "disable")
     end
     -- SetAndRefresh reports its own refusal; a false here is not a second
     -- failure to announce.
@@ -117,6 +131,12 @@ local function setEnabled(on)
         echoEnabled()
     end
 end
+
+-- Published beside the verbs core/SlashCommands.lua owns, for ONE other caller:
+-- the launcher menu's *Enabled* entry (core/LauncherSetup.lua's setEnabled,
+-- launcher-§2), which is `/cm enable` / `/cm disable` with a mouse and so runs
+-- this body rather than a second copy of the write and the echo.
+V.SetEnabled = setEnabled
 
 -- Backwards-compat: `/cm rewrite` → `/cm rewritemacros`. The original handler
 -- accepted both spellings; this preserves that without bloating COMMANDS. Held
@@ -228,7 +248,7 @@ local COMMANDS = {
     -- overridden below to name `resetall` explicitly.
     {"reset",         "Reset ONE setting to its default — `/cm reset <path>`",
         function(rest) cliReset(rest) end},
-    {"resetall",      "Reset every priority list and stat override to defaults (asks first)",
+    {"resetall",      "Reset this profile to the addon's defaults — every setting and list (asks first)",
         function()
             if StaticPopup_Show then
                 StaticPopup_Show("KCM_CONFIRM_RESET")
@@ -271,24 +291,14 @@ local COMMANDS = {
 -- The disabled state: a feature verb refuses, ONCE, in one place
 -- ---------------------------------------------------------------------------
 --
--- slash-commands-§2 SHOULDs it and now says it precisely enough to implement: a
--- verb that DRIVES THE ADDON'S FEATURES answers, while `enabled` is false, on ONE
--- tagged line naming `/cm enable`, and does nothing else. Acting is the wrong
--- answer twice over -- the player asked for something the addon is currently
--- standing down from doing, and a silent no-op leaves them with no clue why
--- nothing happened. This addon's no-op really is silent: `macrosEnabled()` gates
--- the macro write pass (core/ConsumableMaster.lua), so `/cm resync` while
--- disabled already printed "recomputed all categories." over a pass that wrote
--- nothing.
+-- slash-commands-§2: a verb that DRIVES THE ADDON'S FEATURES answers, while
+-- `enabled` is false, on ONE tagged line naming `/cm enable`, and does nothing
+-- else -- acting, or a silent no-op, both leave the player with no clue why.
 --
--- THE GATE IS AT THE TABLE, NOT IN THE VERBS, and that is the whole design. A
--- guard pasted into each of the six bodies is six places to forget, and the
--- seventh verb somebody adds forgets it by DEFAULT. Wrapping here inverts that:
--- a new verb is gated unless its name is added to the live set below, which is
--- the direction an omission should fail in. It also covers BOTH dispatch arms for
--- free -- Sl:OnSlash and degradedDispatch each look the verb up in this same
--- table and call entry[3] -- so a disabled addon answers identically whether
--- LibKa0s loaded or not.
+-- The gate is LibKa0s-Slash-1.0's (see "THE GATE IS THE LIBRARY'S NOW" below),
+-- so a verb is gated unless its name is in the live set below, which is the
+-- direction an omission should fail in. It covers the library's OnSlash only:
+-- degradedDispatch, the library-absent arm at the foot of this file, has no gate.
 --
 -- THE LIVE SET, NAMED ONCE AS DATA. slash-commands-§2 fixes twelve of these, and
 -- the reasoning is that a player must be able to READ AND REPAIR SETTINGS and to
@@ -343,7 +353,8 @@ end
 -- `disabled — /cm enable turns it back on`. slash-commands-§7 fixes one shape
 -- collection-wide, built by `cli:DisabledLine()` from the brand name, and says it
 -- MUST NOT be re-spelled per addon, per verb or per call site. So the line is the
--- library's, here and at the launcher's left click (core/LauncherSetup.lua).
+-- library's. (The launcher stopped printing it at LibKa0s v1.58.0: its menu grays
+-- the feature entries while disabled instead of refusing, launcher-§2.)
 --
 -- The `L` seam went with the string, which is the right answer rather than a loss:
 -- the line is the collection's, not this addon's, and the library's own note says
@@ -357,7 +368,7 @@ KCM.COMMANDS = COMMANDS
 -- LibKa0s-Slash-1.0 — the dispatcher
 -- ---------------------------------------------------------------------
 --
--- Everything above is this addon's: seventeen verbs, five sub-command tables
+-- Everything above is this addon's: twenty-one verbs, five sub-command tables
 -- with three different handler arities, the dump targets, and the schema CLI.
 -- What the library takes is the part that is the same in every Ka0s addon —
 -- trim, split, lowercase the verb only, apply the alias, find the entry, call
@@ -489,7 +500,7 @@ if slashLib then
         aliases      = ALIASES,
         version      = addonVersion,
 
-        -- THE DISABLED GATE (Slash minor 13, slash-commands-§2 and §7). Three
+        -- THE DISABLED GATE (Slash minor 13, slash-commands-§2 and slash-commands-§7). Three
         -- fields, and the library does the rest: the twelve reserved verbs and
         -- the bare `/cm` answer normally while the addon is off -- a player must
         -- be able to read and repair settings and to REACH THE PANEL then, which
@@ -518,18 +529,26 @@ if slashLib then
         L            = SLASH_STRINGS,
 
         -- The schema half. Every one of these resolves through KCM.Settings at
-        -- CALL time: settings/Panel.lua loads long after this file, and the
-        -- rows themselves are appended by the four page files after that.
+        -- CALL time, so the rows the page files append after settings/Panel.lua
+        -- built the seam are all there by the first command.
+        --
+        -- `set` is the seam's own Set, not SetAndRefresh: it answers
+        -- `false, err, why` on a refusal (Slash minor 15), so CliSet prints the
+        -- library's INVALID line and the reason ONCE, and the host prints no
+        -- second line of its own. `applyDefault` is the seam's ApplyDefault,
+        -- whose exact `false` for a row with no default is the NO_DEFAULT line.
         get          = function(path) local H = helpers(); return H and H.Get(path) end,
         set          = function(path, value)
-            local H = helpers()
-            if H then H.SetAndRefresh(path, value) end
+            local S = schema()
+            if not S then return false end
+            return S.Set(path, value)
         end,
-        findRow      = function(path) local H = helpers(); return H and H.FindSchema(path) end,
+        findRow      = function(path) local S = schema(); return S and S.FindRow(path) end,
         allRows      = function() return (KCM.Settings and KCM.Settings.Schema) or {} end,
         applyDefault = function(row)
-            local H = helpers()
-            if H and row.default ~= nil then H.SetAndRefresh(row.path, row.default) end
+            local S = schema()
+            if not S then return false end
+            return S.ApplyDefault(row)
         end,
         -- Rows carry `panel`, not the library's default `page`.
         groupKey     = function(row) return row.panel or "?" end,

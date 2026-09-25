@@ -98,7 +98,7 @@ A bad scorer in one category can no longer break the other fourteen macros. The 
 
 `scoreCache` is a single Lua table created at the top of `Pipeline.Recompute` and threaded through `RecomputeOne` → `PickBestForCategory` → `SortCandidates` → `Score`. It memoizes:
 
-- `scoreCache.fields[id]` — the `GetItemInfo` + `TooltipCache.Get` lookup. Shared across categories so an item appearing in multiple candidate sets isn't re-parsed.
+- `scoreCache.fields[id]` — the `KCM.Compat.GetItemInfo` (quality, item level) + `TooltipCache.Get` lookup. Shared across categories so an item appearing in multiple candidate sets isn't re-parsed.
 - `scoreCache[catKey][id]` — the per-category score. Spell entries short-circuit and don't populate this; item scores are full Ranker output.
 
 The same `scoreCache` is also handed to `MacroManager.SetCompositeMacro`, which calls `Selector.PickBestForCategory(refKey, nil, scoreCache)` for each enabled sub-cat. Items that appear in both a single-pick category's macro write and a composite's reference resolution share the cache hit.
@@ -119,14 +119,16 @@ Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handler
 
 | Event | Handler | What it does |
 |-------|---------|--------------|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`, then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. Finally `MacroBar.Update()`, which builds / re-shows the macro bar (a no-op if the user switched it off). |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `discoverAndSweep` (published as `Pipeline.DiscoverAndSweep`): `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`. Then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. Finally `MacroBar.Update()`, which builds / re-shows the macro bar (a no-op if the user switched it off). |
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + publish `RECOMPUTE`. |
 | `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes — then `MacroBar.FlushPending()`, which applies any macro-bar build / relayout / restyle deferred because slots are protected frames. Last, `KCM.Settings.Register()` if the panel bootstrap parked a registration: `Settings.RegisterAddOnCategory` is protected too, and an in-combat `/reload` reaches it. |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes — then `MacroBar.FlushPending()`, which applies any macro-bar build / relayout / restyle deferred because slots are protected frames. A settings-category registration parked in combat is not replayed here: `LibKa0s-Options-1.0` parks and replays it on its own frame, whatever the stand-down state. |
 | `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → publish `PANEL_REFRESH` only (which the options layer debounces into a rebuild). See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
 | `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` | Ignored except for slot 16 (main hand) / 17 (off hand); on a main-hand or off-hand swap, publish `RECOMPUTE` (`"equip"`) so `KCM_WPN_ENCH` re-derives each hand's weapon-type affinity (`core/WeaponSlots.lua`) and re-picks per hand. |
 | `SPELL_UPDATE_COOLDOWN`, `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` | `MacroBar.RefreshCooldowns()`, gated on the bar being enabled — slots and their flyout entries alike. Bar-only and cheap: these exist to catch the *start* of a cooldown, since the `Cooldown` frame animates itself once set. Repainting a `Cooldown` is unprotected, so unlike flyout *content* this works mid-fight — provided the swipe is set from a duration object, because the spell cooldown numbers themselves go secret in combat (`MacroBarButton.ApplyCooldown`; see [midnight-quirks.md](./midnight-quirks.md#secret-values)). No pipeline involvement. |
+
+**Standing back up** (`standUp`, `core/LifecycleSetup.lua`) runs the same discovery pass and stale sweep, `Pipeline.DiscoverAndSweep("stand_up")`, before its `RequestRecompute("stand_up")`. `BAG_UPDATE_DELAYED` was unregistered while the addon was down and `PLAYER_ENTERING_WORLD` does not fire again on a re-enable, so without it a consumable looted while disabled would not be a candidate until the next bag update.
 
 `Pipeline.Recompute` publishes `MACROBAR_REFRESH` alongside `PANEL_REFRESH` at the end of every pass; the macro bar owns the only receiver and repaints slot icons + counts. Unlike the panel refresh it is not debounced — a live on-screen bar should track the macro it just rewrote.
 
@@ -164,14 +166,14 @@ PLAYER_REGEN_ENABLED:
 
 No protected API is called during combat. Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper are pure and combat-safe. Only `MacroManager.SetMacro` / `SetCompositeMacro` reach `EditMacro` / `CreateMacro`, and they early-out on `InCombatLockdown()`. The combat gate is `InCombatLockdown()` itself — no separate flag.
 
-`pendingUpdates[macroName]` carries `{ body, itemID, catKey, attempts }` for single picks or `{ body, itemID=nil, catKey, cat, attempts }` for composites — composite entries carry `cat` so `FlushPending` can dispatch back to `SetCompositeMacro`. Last-write-wins: if the body changes again before `PLAYER_REGEN_ENABLED`, only the final version is applied. See [macro-manager.md](./macro-manager.md#flush-retry).
+`pendingUpdates[macroName]` carries `{ body, itemID, catKey, attempts }` for single picks or `{ body, itemID=nil, catKey, cat, attempts }` for composites — composite entries carry `cat` so `FlushPending` can dispatch back to `SetCompositeMacro`; every other entry replays its queued `body` through `commitMacro` rather than being rebuilt, so a per-hand weapon-enchant body keeps its `/use 16` and `/use 17` lines. Last-write-wins: if the body changes again before `PLAYER_REGEN_ENABLED`, only the final version is applied. See [macro-manager.md](./macro-manager.md#flush-retry).
 
 ## First-run / defaults seeding
 
 `OnInitialize` (`core/ConsumableMaster.lua`):
 
 1. `self.db = LibStub("AceDB-3.0"):New("ConsumableMasterDB", KCM.dbDefaults, true)`, then `core/Database.lua`'s `RunMigrations()`.
-2. `db.global.schemaVersion` is seeded at `1` from `dbDefaults` on a fresh install and then walked forward by `RunMigrations` to `Database.CURRENT_SCHEMA` (`3`); every step is idempotent, so a genuinely fresh account passes through them as a no-op that just stamps the version. The steps that write the **profile** are gated on `db.profile.schemaVersion` instead, which is not a shipped default and is written by `RunMigrations` the first time it walks that profile — including a profile arriving on a switch, which is the only moment it can be walked. See [schema.md](./schema.md#migrations).
+2. `db.global.schemaVersion` is seeded at `0` from `dbDefaults` (the pre-migration floor, never a real version, so AceDB's logout strip cannot erase a stamp the runner wrote — `savedvariables-§1`) and then walked forward by `RunMigrations` to `Database.CURRENT_SCHEMA` (`3`); every step is idempotent, so a genuinely fresh account passes through them as a no-op that just stamps the version. The steps that write the **profile** are gated on `db.profile.schemaVersion` instead, which is not a shipped default and is written by `RunMigrations` the first time it walks that profile — including a profile arriving on a switch, which is the only moment it can be walked. See [schema.md](./schema.md#migrations).
 3. Defaults files are Lua constants (`KCM.SEED.<CAT> = { ... }`), **not** copied into SavedVariables. The candidate set is computed at recompute time as `(seed ∪ added ∪ discovered) − blocked`.
 4. Stat-priority defaults follow the same model: `KCM.SEED.STAT_PRIORITY[<spec>]`. Only user overrides go into SavedVariables.
 5. The first recompute happens after `PLAYER_ENTERING_WORLD`, post-discovery and post-sweep.

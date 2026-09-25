@@ -43,8 +43,8 @@ local t0 = (Perf and Perf.on) and debugprofilestop() or nil
 if t0 then Perf.Note("cooldown", debugprofilestop() - t0) end
 ```
 
-`Perf` is a **load-time upvalue** (`performance-§2`), which is why `core/PerfSetup.lua` sits second
-in the TOC — ahead of every file that takes `local Perf = NS.Perf`. With no capture open the gate
+`Perf` is a **load-time upvalue** (`performance-§2`), which is why `core/PerfSetup.lua` sits after
+`core/LifecycleSetup.lua` in the TOC — ahead of every file that takes `local Perf = NS.Perf`. With no capture open the gate
 is an upvalue read, a nil test and a field read: no table lookup through `KCM`, no allocation. It
 **must** be a gate rather than an unconditional call, because `Note()` records whether or not a
 window is open — an ungated bracket would accumulate outside every window and poison the next

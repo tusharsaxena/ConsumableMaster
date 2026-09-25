@@ -82,13 +82,12 @@ read_globals = {
     -- C_CurveUtil + Enum.LuaCurveType are the GCD-suppress step curve
     -- (modules/MacroBarButton.lua), same secret-safe pattern.
     "issecretvalue", "C_DurationUtil", "C_CurveUtil", "Enum",
-    -- Spell / item. Of these, only GetSpellInfo goes through core/Compat.lua —
-    -- it is the deprecated last fallback inside Compat.GetSpellName, behind
-    -- C_Spell.GetSpellName and C_Spell.GetSpellInfo. The item globals are NOT
-    -- wrapped: GetItemInfo, GetItemInfoInstant and GetItemCount are live retail
-    -- globals, not deprecated ones, so `compat`'s routing rule does not reach
-    -- them and callers read them directly (see docs/ARCHITECTURE.md's deviation
-    -- register for the two direct GetItemInfo call sites).
+    -- Spell / item. GetSpellInfo and GetItemInfo are read only inside
+    -- core/Compat.lua: GetSpellInfo is the deprecated last fallback inside
+    -- Compat.GetSpellName, behind C_Spell.GetSpellName and C_Spell.GetSpellInfo,
+    -- and GetItemInfo is Compat.GetItemInfo's guarded fallback behind
+    -- C_Item.GetItemInfo. GetItemCount is NOT wrapped: its direct read sites are
+    -- listed in docs/ARCHITECTURE.md's deviation register (the `compat` row).
     "GetSpellInfo", "GetSpellCooldown", "GetItemInfo", "GetItemInfoInstant",
     "GetItemCount",
     -- Macro APIs. Only the PROTECTED writers (CreateMacro/EditMacro/DeleteMacro)
@@ -176,6 +175,16 @@ files["settings/Slash.lua"]    = { ignore = { "212/self" } }
 -- those stubs; the escapes are there because luacheck matches an ignore name as a Lua pattern.
 files["tests/wow_mock.lua"] = {
     ignore = { "212/self", "212/%.%.%." },
+}
+
+-- The same obligation for the menu fake, which is LibKa0s v1.58.0's own tests/mock_menu.lua with
+-- its body copied unchanged (the file's header says why): the client calls a menu description's
+-- methods with method sugar, so `root:CreateTitle`, `element:SetEnabled` and the recording
+-- `menu:Texts()` family take the receiver whether they read it or not, and the element methods,
+-- defined inside CreateCheckbox, shadow CreateCheckbox's own `self` in doing so. The library's lint
+-- config does not report these (its top-level ignore carries both); here they are named.
+files["tests/mock_menu.lua"] = {
+    ignore = { "212/self", "432/self" },
 }
 
 -- The Selector.AddItem this suite substitutes at :789 has to take the same two arguments the real

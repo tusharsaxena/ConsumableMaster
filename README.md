@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-998%2F998_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1078%2F1078_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -31,10 +31,6 @@ Loot something better, change spec, reload, or drop out of combat, and each macr
 | 15 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
 If a better pick turns up while you are in combat, the macro updates the moment you leave. WoW does not allow macro changes mid-fight.
-
-## What's new in 1.6.2
-
-- Fixed the AIO Health and AIO Mana tooltips on the macro bar showing the macro's text instead of the item or spell it will use
 
 ## Screenshots
 
@@ -71,7 +67,7 @@ Four categories move with your spec. Flask, Combat Potion, Stat Food and Weapon 
 
 Everything else is configuration, and it lives in two places: the addon's own page under Settings → AddOns in game, and `/cm` (or `/consumablemaster`), which opens that page. `/cm help` prints the full command list.
 
-There is also a button on your minimap wearing the addon's logo. **Right-click it** to open the settings page from anywhere. **Left-click it** to unlock the macro bar, move it, and lock it again — the same switch as **Lock frame** in the settings and `/cm lock`. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
+There is also a button on your minimap wearing the addon's logo. **Left-click it** to open the settings page from anywhere. **Right-click it** for a small menu with two checkboxes: **Enabled** switches the whole addon on or off (the same as `/cm enable` / `/cm disable`), and **Locked** unlocks the macro bar so you can move it, then locks it again (the same switch as **Lock frame** in the settings and `/cm lock`). While the addon is switched off, **Locked** is grayed out until you turn it back on. **Hover it** to see whether the addon is enabled and the bar is locked; the tooltip shows even while the addon is switched off. If you'd rather not have the button, untick **Minimap button** under General → Master controls; it is remembered per installation rather than per profile, so switching profiles will not bring it back. If you run Titan Panel, Bazooka or ElvUI's data texts, the addon shows up there too, and clicking it there does the same things.
 
 ## How picking & ranking works
 
@@ -123,6 +119,7 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
 | Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
 | `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading. Reload and try again. |
+| `/cm resetall` or "Reset all settings" says "reset deferred until regen". | You were in combat, so nothing was reset. Run it again once combat ends. |
 | I want to restore a default list after removing items by hand. | **Reset category** clears that one category. **Reset all priorities** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 | I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
 

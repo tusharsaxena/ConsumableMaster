@@ -30,6 +30,30 @@ test("/cm set toggles a bool setting through the schema", function(t)
     t.eq(KCM.db.profile.enabled, true, "enabled set to true via schema")
 end)
 
+-- CM-R-12: the Enable row's onChange used to say its own ON|OFF line
+-- on top of the verb's canonical `enabled = <bool>` echo, so both verbs printed
+-- two lines. The echo is the one reply; the row says nothing, like every other.
+local function linesOf(KCM, mock, line)
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    return mock.output
+end
+
+test("/cm disable prints exactly one line, the enabled echo", function(t)
+    local KCM, mock = load()
+    local out = linesOf(KCM, mock, "disable")
+    t.eq(#out, 1, "one line, not the row's say plus the echo: " .. table.concat(out, " | "))
+    t.truthy(tostring(out[1]):find("enabled", 1, true), "the line is the enabled echo")
+end)
+
+test("/cm enable prints exactly one line, the enabled echo", function(t)
+    local KCM, mock = load()
+    KCM:OnSlashCommand("disable")
+    local out = linesOf(KCM, mock, "enable")
+    t.eq(#out, 1, "one line, not the row's say plus the echo: " .. table.concat(out, " | "))
+    t.truthy(tostring(out[1]):find("enabled", 1, true), "the line is the enabled echo")
+end)
+
 test("/cm priority add then remove edits the FOOD candidate set", function(t)
     local KCM = load()
     KCM:OnSlashCommand("priority food add 987654")
@@ -245,6 +269,44 @@ test("/cm resetall's confirmation still performs the full wipe when accepted", f
     t.eq(KCM.db.profile.enabled, true, "…and the master enable is restored with it")
     t.truthy(table.concat(mock.output, "\n"):find("Reset complete", 1, true),
         "…and the user is told: " .. table.concat(mock.output, "\n"))
+end)
+
+-- CM-11 (ConsumableMaster-R-08). The combat refusal used to live on the panel
+-- door only (settings/General.lua's doResetAll), so the slash door reset the
+-- profile mid-fight. It now lives inside KCM.ResetAllToDefaults, which both
+-- doors reach through this one popup.
+--
+-- red under: dropping the InCombatLockdown refusal from ResetAllToDefaults, or
+-- an OnAccept that does not tell the 'combat' answer from 'db'.
+test("/cm resetall confirmed in combat refuses and writes nothing", function(t)
+    local KCM, mock = load()
+    KCM.Selector.AddItem("FOOD", 960001)
+    KCM.db.profile.enabled = false
+    mock.setCombat(true)
+    mock.output = {}
+    StaticPopupDialogs["KCM_CONFIRM_RESET"].OnAccept()
+    mock.setCombat(false)
+    t.truthy(KCM.Selector.GetBucket("FOOD").added[960001], "the added item survives")
+    t.eq(KCM.db.profile.enabled, false, "and so does the non-default master switch")
+    local text = table.concat(mock.output, "\n")
+    t.truthy(text:find("in combat — reset deferred until regen.", 1, true),
+        "the player is told why: " .. text)
+    t.falsy(text:find("Reset complete", 1, true), "and is not told it happened")
+    t.falsy(text:find("DB not ready", 1, true), "nor that the DB was the reason")
+end)
+
+-- The help row names the act the verb runs: db:ResetProfile() on the whole
+-- profile, not the priority-only wipe Reset all priorities performs.
+test("/cm resetall help names a whole-profile reset", function(t)
+    local KCM = load()
+    local row
+    for _, entry in ipairs(KCM.COMMANDS) do
+        if entry[1] == "resetall" then row = entry end
+    end
+    t.truthy(row, "resetall is a registered verb")
+    t.eq(row and row[2],
+        "Reset this profile to the addon's defaults — every setting and list (asks first)",
+        "the help text describes the whole-profile reset")
 end)
 
 test("/cm reset <path> restores exactly that row and leaves its neighbors alone", function(t)
@@ -932,11 +994,9 @@ end)
 -- #35: the list-shaped settings are rows, so /cm get|set|list|reset reach them
 -- ---------------------------------------------------------------------------
 
+-- Every path the write seam is asked to write (tests/run.lua's spy).
 local function recordSets(KCM)
-    local H = KCM.Settings.Helpers
-    local paths, real = {}, H.Set
-    H.Set = function(path, value) paths[#paths + 1] = path; return real(path, value) end
-    return paths
+    return (h.loader.spySeamWrites(KCM))
 end
 
 test("/cm get and list render the list-shaped rows as text, never a table address", function(t)
@@ -1079,6 +1139,61 @@ test("/cm bar lock and /cm bar unlock land on the same stored flag", function(t)
     t.eq(KCM.db.profile.macroBar.locked, true, "the sub-verb still locks")
 end)
 
+-- Unlocking a bar that is switched OFF still writes the flag -- the player may be
+-- about to turn it on and wants it draggable when it appears -- but "drag it" is
+-- a promise about a bar they cannot see. So the line says the bar is off and how
+-- to show it, and both spellings share the one body, so they say the same thing
+-- (ConsumableMaster-R-11).
+local OFF_UNLOCK = "macro bar unlocked (the bar is off \226\128\148 /cm bar on to show it)"
+
+test("/cm unlock on a switched-off bar says the bar is off", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", false)
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.locked", true)
+    local line = say(KCM, mock, "unlock")
+    t.eq(KCM.db.profile.macroBar.locked, false, "the write still lands")
+    t.truthy(line:find(OFF_UNLOCK, 1, true) ~= nil, "and it says the bar is off: " .. line)
+    t.truthy(line:find("drag it", 1, true) == nil, "and never asks for a drag: " .. line)
+end)
+
+test("/cm bar unlock on a switched-off bar says the same line", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", false)
+    local line = say(KCM, mock, "bar unlock")
+    t.eq(KCM.db.profile.macroBar.locked, false, "the sub-verb still unlocks")
+    t.truthy(line:find(OFF_UNLOCK, 1, true) ~= nil, "one body, one wording: " .. line)
+end)
+
+test("/cm unlock on a shown bar keeps the drag wording", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", true)
+    local line = say(KCM, mock, "unlock")
+    t.truthy(line:find("macro bar unlocked \226\128\148 drag it, then /cm lock", 1, true) ~= nil,
+        "a visible bar is still told to drag: " .. line)
+    line = say(KCM, mock, "lock")
+    t.truthy(line:find("macro bar locked", 1, true) ~= nil, "and lock is unchanged: " .. line)
+end)
+
+-- A bare `/cm bar` is the player's own switch, so it flips the STORED flag. It
+-- used to flip MacroBarModel.IsEnabled(), which also answers false under any
+-- stand-down hold -- a perf capture's suspended arm included -- so during a
+-- capture a bar that was on read as off and every bare `/cm bar` wrote true.
+test("bare /cm bar toggles the stored flag during a perf hold", function(t)
+    local KCM, mock = load()
+    KCM.Settings.Helpers.SetAndRefresh("macroBar.enabled", true)
+    KCM.Perf.Suspend()
+    t.falsy(KCM.MacroBarModel.IsEnabled(), "precondition: the hold makes IsEnabled answer false")
+
+    local line = say(KCM, mock, "bar")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "the first bare /cm bar turns the stored flag off")
+    t.truthy(line:find("OFF", 1, true) ~= nil, "and says OFF: " .. line)
+
+    line = say(KCM, mock, "bar")
+    t.eq(KCM.db.profile.macroBar.enabled, true, "the second turns it back on")
+    t.truthy(line:find("ON", 1, true) ~= nil, "and says ON: " .. line)
+    KCM.Perf.Resume()
+end)
+
 test("/cm lock and /cm unlock write through the schema helper, not the table", function(t)
     local KCM = load()
     local paths = recordSets(KCM)
@@ -1166,18 +1281,6 @@ test("Slash: enable echoes the stored value in the canonical set shape", functio
     t.truthy(viaVerb:find("enabled", 1, true) ~= nil, "the verb names the path: " .. viaVerb)
     t.truthy(viaVerb:find("false", 1, true) ~= nil, "and the value it stored")
     t.eq(viaVerb, viaSet, "the long name prints the very same line")
-end)
-
-test("Slash: with LibKa0s absent the verbs say so rather than going inert", function(t)
-    -- There is no `enabled` ROW on that build -- the Master controls block is the
-    -- library's composer and its degradation stub emits nothing -- so there is
-    -- nothing for the single write seam to validate against, and no panel
-    -- carrying the checkbox either. Writing round the seam would be the second
-    -- switch slash-commands-§2 forbids, so the verb reports instead. What it must
-    -- NOT do is answer nothing at all, which is what it did before this case.
-    local KCM = h.loader.loadFullAddon(true)
-    local line = say(KCM, h.loader.mock, "enable")
-    t.truthy(line:find("unavailable", 1, true) ~= nil, "it says so: " .. line)
 end)
 
 -- ---------------------------------------------------------------------------
@@ -1307,7 +1410,7 @@ test("Slash: with LibKa0s absent there is no refusal to print, and the verb acts
     -- which is precisely the drift the one-place rule exists to stop, and it would
     -- be a copy that only ever ran on a tampered install.
     --
-    -- Nothing is owed. The feature-verb refusal is §2's SHOULD, an addon that
+    -- Nothing is owed. The feature-verb refusal is slash-commands-§2's SHOULD, an addon that
     -- declines it is not deviating and owes no register row, and this build has
     -- already told the player on its own line that half the surface is missing.
     -- The stand-down is a MUST and is NOT what is skipped here: that arm has no

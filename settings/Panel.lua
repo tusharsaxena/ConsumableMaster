@@ -19,7 +19,7 @@
 --      immediately after this file: the schema-and-chrome half a page module
 --      calls while it BUILDS is this file, the shim the addon calls afterwards
 --      is that one. The cut is layout-§1's 1500-line cap; nothing else moved
---      with it, and the two notices it still needs are published on
+--      with it, and the one notice it still needs is published on
 --      KCM.Settings below rather than copied.
 --   KCM.Settings.Helpers + KCM.Settings.Schema  (SlashCommands /cm list/get/set)
 
@@ -34,9 +34,7 @@ local AceGUI = LibStub("AceGUI-3.0", true)
 KCM.Settings         = KCM.Settings         or {}
 KCM.Settings.Schema  = KCM.Settings.Schema  or {}
 KCM.Settings.builders= KCM.Settings.builders or {}
-KCM.Settings.sub     = KCM.Settings.sub     or {}
 KCM.Settings._panels = KCM.Settings._panels or {}
-KCM.Settings.main    = nil
 
 -- Canonical PAGE order — the five sub-pages in the AddOns sidebar, in the order
 -- a player meets them: the master switch and the maintenance actions, the macro
@@ -97,29 +95,10 @@ KCM.Settings.Helpers = Helpers
 -- on both sides is what makes the order between the two harmless.
 KCM.Options = KCM.Options or {}
 
-local PANEL_TITLE   = KCM.Settings.PANEL_TITLE
--- PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
+-- The panel title (KCM.Settings.PANEL_TITLE) is the library descriptor's
+-- parentTitle now, settings/OptionsSetup.lua. PADDING_X, HEADER_TOP, HEADER_HEIGHT, DEFAULTS_W and the breadcrumb
 -- separator all live in LibKa0s-Options-1.0's LAYOUT table now, carrying the
 -- same values they carried here.
-
--- Combat-lockdown open refusal (options-ui-§2): the O.Open slash path emits the
--- one canonical gray notice through the shared secret-safe seam, never a
--- protected category-switch and never a silent no-op.
---
--- ONE CALLER, IN ANOTHER FILE, which is the whole reason this is published on
--- KCM.Settings rather than left a plain local: the 2026-09-16 peel moved O.Open
--- to settings/OptionsShim.lua and the wording stayed here. Published rather than
--- copied — a second copy is how one refusal starts reading differently from the
--- other.
---
--- NOT the Defaults guard below. That one refuses a different act and says so in
--- its own words ("Defaults is blocked until combat ends"), because what it is
--- declining is a reset, not an open. A comment here claimed the two shared this
--- wording and they never have.
-local function sayCombatOpenBlocked()
-    KCM.Say("|cff808080cannot open settings during combat — Blizzard's category-switch is protected|r")
-end
-KCM.Settings.SayCombatOpenBlocked = sayCombatOpenBlocked
 
 -- Vertical rhythm, matched to Ka0s KickCD's settings pages (the house
 -- reference). The one that was missing here is ROW_VSPACER: KickCD emits it
@@ -145,136 +124,46 @@ KCM.Settings.SayCombatOpenBlocked = sayCombatOpenBlocked
 -- site is reachable on a build without the library — nothing registers a panel
 -- there — so there is no nil arm to guard.
 
-local LOGO_TEXTURE = [[Interface\AddOns\ConsumableMaster\media\logos\consumablemaster.logo.tga]]
+-- Built from the folder name rather than typed, the same derivation
+-- core/LauncherSetup.lua uses for the launcher icon (its ICON, built from
+-- `addonName`): a texture path is absolute from `Interface\AddOns\`, so the
+-- folder half has to be the name the client loaded, and layout-§4 lowercases
+-- the file half. This is consistency with that file, not a layout-§4
+-- deviation being corrected -- the literal spelled the same path. This file
+-- opens `local _, NS = ...`, so the name is read off NS.name, which
+-- core/Namespace.lua sets from the vararg.
+local LOGO_TEXTURE = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.tga")
+    :format(KCM.name, KCM.name:lower())
 local LOGO_PIXELS  = 300
 
 -- ---------------------------------------------------------------------
--- db.profile path helpers
--- ---------------------------------------------------------------------
-
-function Helpers.Resolve(path)
-    if not (KCM.db and KCM.db.profile) then return nil, nil end
-    local segments = {}
-    for part in string.gmatch(path or "", "[^.]+") do
-        segments[#segments + 1] = part
-    end
-    if #segments == 0 then return nil, nil end
-    local parent = KCM.db.profile
-    for i = 1, #segments - 1 do
-        parent = parent[segments[i]]
-        if type(parent) ~= "table" then return nil, nil end
-    end
-    return parent, segments[#segments]
-end
-
--- ---------------------------------------------------------------------
--- Session-only paths — settings whose store is NOT db.profile
+-- The write seam -- LibKa0s-Schema-1.0 (ConsumableMaster#39)
 -- ---------------------------------------------------------------------
 --
--- One entry today: the debug console's visibility. options-ui-§15 puts a
--- `Debug console` row on the Master controls tab and debug-logging keeps it
--- SESSION-only -- a console left open is not a setting the next character
--- inherits -- so it has a schema `path` like every other row and no home in the
--- profile. The library's MasterControls composer names that path
--- `state.debugConsole` verbatim, which is why the key below is a literal rather
--- than something derived.
+-- The machinery around the rows is the library's: the path walk, the row
+-- index, the validate -> normalize -> store -> log -> announce pipeline, the
+-- all-or-nothing batch, the bulk bracket that makes a sweep one `[Set]` line
+-- (debug-logging-§10) and the profile reset's changed-row count. What stays
+-- here is what only this addon knows: the rows themselves, their type rules
+-- (further down), and what a write sets off -- a row's `apply`, run by
+-- `announce` below, then the panel re-sync.
 --
--- Resolved HERE rather than in Resolve() because Resolve's contract is "a
--- db.profile parent and a key", and answering a synthetic parent for a value
--- that lives in neither would make `/cm get` report a table nobody stores.
+-- With the library absent the seam is settings/SchemaStub.lua's
+-- write-completing, log-silent stub, so `/cm bar on|off`, `/cm enable` and the
+-- global reset keep writing on a degraded load (slash-commands-§1).
 --
--- The console itself is untouched: this is the same show/hide a bare `/cm debug`
--- performs and it never arms LOGGING (KCM.State.debug), which stays the separate
--- flag it has always been (debug-logging-§5).
-local SESSION_PATHS = {
-    ["state.debugConsole"] = {
-        get = function()
-            local DL = KCM.DebugLog
-            return (DL and DL.IsWindowShown and DL.IsWindowShown()) and true or false
-        end,
-        set = function(v)
-            local DL = KCM.DebugLog
-            if not DL then return false end
-            if v then
-                if DL.Show then DL.Show() end
-            elseif DL.Hide then
-                DL.Hide()
-            end
-            return true
-        end,
-    },
-}
-Helpers.SESSION_PATHS = SESSION_PATHS
-
--- ---------------------------------------------------------------------
--- Global-store paths -- STORED settings whose home is db.global, not db.profile
--- ---------------------------------------------------------------------
+-- THREE THINGS CHANGED ON PURPOSE WITH THE ADOPTION. A path no row declares is
+-- refused rather than stored; a table value is copied into the store rather
+-- than stored by reference; and the `[Set]` line is written before the row's
+-- reaction rather than after it. tests/test_schema_adoption.lua pins each.
 --
--- One entry today, and it is the minimap button's visibility. Unlike
--- SESSION_PATHS above these rows ARE persisted -- they simply persist somewhere
--- Helpers.Resolve cannot reach, because Resolve's contract is "a db.profile
--- parent and a key" and launcher-§3 fixes this table in the GLOBAL store: a
--- minimap button belongs to the installation, so a profile switch must not move
--- the player's buttons and options-ui-§12's *Reset all settings* -- a profile
--- reset by definition -- must not un-hide one they deliberately hid.
---
--- A SECOND TABLE RATHER THAN A WIDER SESSION_PATHS, because the two differ in
--- the one place it matters: settings/OptionsSetup.lua's `vetoedFromResetAll`
--- keys the global reset's sweep on `row.sessionOnly`, and this row is not
--- session-only. Folding it in beside the console would have been one table with
--- two meanings, and the reset would be reading the wrong one.
---
--- THE INVERSION LIVES HERE, in the single write seam, exactly as launcher-§3
--- says it should. The row's label says SHOWN; LibDBIcon's key says HIDDEN. That
--- is the whole cost of storing the library's own key rather than a second
--- boolean beside it -- LibDBIcon writes `hide` itself when the player uses the
--- button's own menu, and a parallel `show` would be free to disagree with it
--- (anti-pattern #81). The `set` calls the launcher afterwards so the button
--- follows the checkbox immediately rather than at the next reload; the launcher
--- writes `hide` a second time with the same value, which is deliberate on its
--- side so a caller reaching it from elsewhere need not know the inversion.
---
--- The path is `global.minimap.hide` VERBATIM and unprefixed, for the same
--- reason `state.debugConsole` is: the library's MasterControls composer takes
--- `minimapPath` as given because the table lives outside the block's profile
--- prefix.
-local function minimapTable()
-    return KCM.db and KCM.db.global and KCM.db.global.minimap
-end
-
-local GLOBAL_PATHS = {
-    ["global.minimap.hide"] = {
-        get = function()
-            local t = minimapTable()
-            -- Shown is the answer when there is no table yet: that is what a
-            -- fresh profile ships as, and it is what the button does.
-            return not (t and t.hide)
-        end,
-        set = function(v)
-            local t = minimapTable()
-            if not t then return false end
-            t.hide = not v
-            if KCM.Launcher then KCM.Launcher:SetShown(v and true or false) end
-            return true
-        end,
-    },
-}
-Helpers.GLOBAL_PATHS = GLOBAL_PATHS
-
--- The one lookup both diversions answer to. Every seam below asks this rather
--- than indexing either table, so a third store can only ever be added in one
--- place.
-local function divertedPath(path)
-    return SESSION_PATHS[path] or GLOBAL_PATHS[path]
-end
-
-function Helpers.Get(path)
-    local diverted = divertedPath(path)
-    if diverted then return diverted.get() end
-    local parent, key = Helpers.Resolve(path)
-    if not parent then return nil end
-    return parent[key]
-end
+-- THE STORES THAT ARE NOT THE PROFILE are rows now, each carrying its own
+-- get/set, both stamped in settings/General.lua's decorate map: the debug
+-- console's visibility (`state.debugConsole`, sessionOnly) and the minimap
+-- button's (`global.minimap.shown`, the SHOWN/HIDDEN inversion in its get/set
+-- onto LibDBIcon's `db.global.minimap.hide`, which is still the stored key).
+-- `resolveRoot` therefore only ever answers the profile.
+local SchemaLib = LibStub and LibStub("LibKa0s-Schema-1.0", true) or KCM.SchemaStub
 
 -- A table value logs as its contents, not as an address: the whole-value rows
 -- are tables, and a color is one too. One level deep -- a stat-priority entry
@@ -293,109 +182,94 @@ local function logValue(v)
     return "{" .. table.concat(parts, ", ") .. "}"
 end
 
--- The bulk bracket (debug-logging-§10). A bulk copy or reset is ONE
--- `[Set] <act> <scope>: N rows` line, never a line per row, and N is the rows
--- whose stored value the act actually CHANGED -- a row already at its default is
--- not counted. While a bracket is open, Helpers.Set tallies instead of logging.
---
--- `bulk` is the innermost open frame, `prev` the one it sits in, so the chain is
--- the depth counter: a frame that closes inside another folds its tally into it,
--- and only the outermost one logs. A MuteSetLog frame logs nothing and silences
--- every frame around it -- that is the global reset, whose one line is the
--- OnProfileReset handler's. SilenceOpenBulk does the same from outside a frame,
--- for a profile handler whose line lands while a bracket is open.
-local bulk = nil
-
-local function sameValue(a, b)
-    if a == b then return true end
-    if type(a) ~= "table" or type(b) ~= "table" then return false end
-    for k, v in pairs(a) do
-        if not sameValue(v, b[k]) then return false end
+-- The one reporter every host reaction runs through. A raising reaction is
+-- REPORTED, never propagated: the value has already landed, and a caller that
+-- saw an error over a write that persisted would retry or give up on a write
+-- that worked. That is why the reactions are the host field `apply` and not
+-- Schema's own `onChange`, which propagates.
+local function fireApply(path, fn, value)
+    local ok, err = pcall(fn, value)
+    if not ok then
+        KCM.Say("onChange for " .. tostring(path) .. " failed: " .. tostring(err))
     end
-    for k in pairs(b) do
-        if a[k] == nil then return false end
-    end
-    return true
 end
 
-function Helpers.Set(path, value)
-    local diverted = divertedPath(path)
-    -- Read BEFORE the write, and only inside a bracket: nothing else needs it.
-    local before
-    if bulk then before = Helpers.Get(path) end
-    local ok
-    if diverted then
-        ok = diverted.set(value) and true or false
+-- Set by Helpers.SetManyAndRefresh for the length of its batch: the caller's
+-- one reactor and whether the batch changes what a page draws.
+local batchCtx
+
+-- One write's tail: the row's reaction, then the in-place re-sync (a scalar
+-- write never rebuilds a page, options-ui-§11). Resolved off Helpers at call
+-- time, because the refresh tiers are the Options instance's and a suite may
+-- swap them.
+local function announce(row, path, value)
+    if type(row.apply) == "function" then fireApply(path, row.apply, value) end
+    Helpers.RefreshScalars()
+end
+
+-- A batch's tail, once: the caller's reactor when it named one, otherwise each
+-- DISTINCT row reaction once, in first-seen order -- so a sixty-row page reset
+-- is still one applyBar -- then one refresh.
+local function announceBatch(writes)
+    local ctx = batchCtx
+    if ctx and ctx.onChange then
+        fireApply(writes[1] and writes[1].path, ctx.onChange)
     else
-        local parent, key = Helpers.Resolve(path)
-        if not parent then return false end
-        parent[key] = value
-        ok = true
+        local ran = {}
+        for _, w in ipairs(writes) do
+            local fn = w.row.apply
+            if type(fn) == "function" and not ran[fn] then
+                ran[fn] = true
+                fireApply(w.path, fn, w.value)
+            end
+        end
     end
-    if not ok then return false end
-    if bulk then
-        if not sameValue(before, value) then bulk.count = bulk.count + 1 end
-    elseif KCM.State and KCM.State.debug then
-        KCM.Debug("Set", "%s = %s", tostring(path), logValue(value))
-    end
-    return true
+    if ctx and ctx.structural then Helpers.RefreshAllPanels() else Helpers.RefreshScalars() end
 end
 
--- Runs fn inside a frame. A raising fn still closes it, so a mute cannot stick.
--- Answers pcall's ok and error, the frame's tally, and whether it was nested.
-local function runFrame(fn, silent)
-    local frame = { count = 0, prev = bulk, silent = silent }
-    bulk = frame
-    local ok, err = pcall(fn)
-    bulk = frame.prev
-    local outer = frame.prev
-    if outer then
-        outer.count  = outer.count + frame.count
-        outer.silent = outer.silent or frame.silent
-    end
-    return ok, err, frame, outer ~= nil
-end
+-- The rows no SWEEP may reset (launcher-§3): filled as rows carrying
+-- `neverReset` register. The library reads it at call time and honors it only
+-- inside a bracket, so `/cm reset global.minimap.shown` still works by name.
+local resetExempt = {}
 
---- Run fn as ONE bulk act: every Helpers.Set inside it validates, writes and
---- reacts exactly as it would outside, but logs no row of its own. When fn
+local S = SchemaLib:New({
+    rows          = KCM.Settings.Schema,
+    resolveRoot   = function() return KCM.db and KCM.db.profile, 1 end,
+    announce      = announce,
+    announceBatch = announceBatch,
+    debug         = function(tag, fmt, ...) if KCM.Debug then KCM.Debug(tag, fmt, ...) end end,
+    debugEnabled  = function() return KCM.State and KCM.State.debug end,
+    format        = function(_, v) return logValue(v) end,
+    resetExempt   = resetExempt,
+})
+Helpers.schema = S
+
+-- Read and write one row by path. Get reads any path under the profile, a row
+-- or not; Set refuses a path no row declares. Set answers the library's
+-- `true | false, err, why` and prints nothing -- SetAndRefresh below is the
+-- door that tells the player why.
+Helpers.Get        = S.Get
+Helpers.Set        = S.Set
+Helpers.FindSchema = S.FindRow
+
+--- Run fn as ONE bulk act (debug-logging-§10): every write inside it validates,
+--- stores and reacts as it would outside, but logs no line of its own. When fn
 --- returns (or raises) the act logs `[Set] <act> <scope>: N rows`, N being the
---- rows it changed; a bracket nested in another logs nothing and its rows count
---- toward the outer line. An act that raises still logs its one line, ending
---- ` (stopped by an error)`, and the error is then re-raised unwrapped.
---- @return number  the rows changed
+--- rows it changed; a bracket nested in another folds into it. An act that
+--- raises still logs its line, ending ` (stopped by an error)`, and the error is
+--- re-raised unwrapped.
 function Helpers.Bulk(act, scope, fn)
-    local ok, err, frame, nested = runFrame(fn, false)
-    if not (nested or frame.silent) and KCM.State and KCM.State.debug then
-        KCM.Debug("Set", ok and "%s %s: %s rows" or "%s %s: %s rows (stopped by an error)",
-            tostring(act), tostring(scope), tostring(frame.count))
-    end
-    if not ok then error(err, 0) end
-    return frame.count
+    S.BulkRun(act, scope, function() fn() end)
 end
 
 --- Run fn with the per-row line muted and NO line of its own, for an act another
 --- seam logs once: the global reset, logged by the OnProfileReset handler. A
 --- bracket around it logs nothing either (one line overall).
---- @return number  the rows changed
 function Helpers.MuteSetLog(fn)
-    local ok, err, frame = runFrame(fn, true)
-    if not ok then error(err, 0) end
-    return frame.count
-end
-
---- Silence the bracket open right now, if there is one, because another seam has
---- just logged the whole act: a profile reset or copy, whose one line is the
---- profile handler's (core/ConsumableMaster.lua). Every frame around it goes
---- quiet as it closes; a bracket opened afterwards logs as usual.
-function Helpers.SilenceOpenBulk()
-    if bulk then bulk.silent = true end
-end
-
-function Helpers.FindSchema(path)
-    for _, def in ipairs(KCM.Settings.Schema) do
-        if def.path == path then return def end
-    end
-    return nil
+    S.BulkRun("reset", "profile", function(info)
+        info.profileReset = true
+        fn()
+    end)
 end
 
 -- The four pages a schema row may target. It used to list the fifteen category
@@ -409,7 +283,7 @@ local _validPanels = {
 -- pages declare the whole-value rows behind their own controls (architecture-§5).
 local _validSections = { general = true, macrobar = true, macros = true, statpriority = true }
 -- `order` and `map` are the WHOLE-VALUE rows (architecture-§5): a list over a
--- fixed member set, and a keyed map. See VALIDATORS below.
+-- fixed member set, and a keyed map. See TYPE_RULES below.
 local _validTypes    = { bool = true, number = true, string = true, color = true,
                          order = true, map = true }
 
@@ -445,10 +319,11 @@ end
 -- LibKa0s-Options-1.0 — the panel shell's seam, read back
 -- ---------------------------------------------------------------------
 --
--- Everything ABOVE this line is the schema half and stays the addon's: the
--- rows themselves, Resolve / Get / Set / FindSchema / ValidateSchema, and (far
--- below) the SetAndRefresh write seam. None of it touches the library, which is
--- what keeps `/cm list|get|set` working on an install where LibKa0s is missing.
+-- Everything ABOVE this line is the schema half: the write seam over
+-- LibKa0s-Schema-1.0 (or settings/SchemaStub.lua when the library is absent),
+-- Get / Set / FindSchema / Bulk / ValidateSchema, and (far below) the type rules
+-- and the SetAndRefresh door. None of it touches the Options instance, which is
+-- what keeps the host verbs writing on an install where LibKa0s is missing.
 --
 -- The seam ITSELF — the :New call, its codecs and thunks, the __index binding
 -- and the degraded no-op arm — lives in settings/OptionsSetup.lua now
@@ -594,16 +469,6 @@ Helpers.ResetScroll = UI and UI.ClearScroll
 -- (`_ka0sAlwaysScrollbar`, not a per-addon one), so two Ka0s addons can no
 -- longer stack two overrides on one pooled AceGUI ScrollFrame.
 
-local function fireOnChange(def, value)
-    if def.onChange then
-        local ok, err = pcall(def.onChange, value)
-        if not ok then
-            KCM.Say("onChange for " .. tostring(def.path)
-                  .. " failed: " .. tostring(err))
-        end
-    end
-end
-
 -- ---------------------------------------------------------------------
 -- Section heading (AceGUI Heading with side dividers) + spacers.
 -- ---------------------------------------------------------------------
@@ -629,7 +494,7 @@ end
 --   string -> Dropdown (enum: def.values = { {value=,text=}, ... })
 --   color  -> ColorPicker ({ r, g, b, a } array in the DB)
 -- Every one routes its write through Helpers.SetAndRefresh so the widget path
--- and the `/cm set` path share a single validate → write → onChange → refresh
+-- and the `/cm set` path share a single validate → write → apply → refresh
 -- seam (architecture-§5).
 -- ---------------------------------------------------------------------
 
@@ -653,7 +518,7 @@ end
 -- leaving the label rendering — silently, and only in game.
 --
 -- Helpers.EnumValues stays here, and it is not vocabulary any more -- it is the
--- validator's single reader. `validateSchemaValue` below calls it, and nothing
+-- string rule's single reader. `validateString` below calls it, and nothing
 -- else in core/, modules/ or settings/ does. It used to be settings/MacroBar.lua's
 -- too; that stopped being true when M3-04 deleted the three `values` overrides,
 -- and the export survived because the job it does moved INTO this file rather
@@ -677,7 +542,7 @@ end
 -- exactly as `enumList` (libs/LibKa0s/OptionsWidgets.lua:78-79) tells them apart;
 -- nothing else a row declares can look like that.
 --
--- WHY THIS IS NOT COSMETIC. `validateSchemaValue` below reads this list and
+-- WHY THIS IS NOT COSMETIC. `validateString` below reads this list and
 -- guards on `#allowed > 0`. A key map measures 0, so an un-normalized one does
 -- not raise -- it walks straight past the membership test, and `/cm set` starts
 -- accepting any string at all for a row whose dropdown offers three. It fails
@@ -881,185 +746,189 @@ local function normalizeFlagMap(def, value)
     return out
 end
 
--- One validator per declared schema type, built once at file load. Each returns
--- the coerced value, or nil + a reason the caller can put in front of the user.
--- A type with no entry here is not an error: see validateSchemaValue.
-local VALIDATORS = {
-    bool = function(_, value)
-        if type(value) ~= "boolean" then return nil, "expected boolean" end
-        return value
-    end,
-
-    -- min and max are independently optional, so the clamp is two separate
-    -- one-sided tests rather than a range check.
-    number = function(def, value)
-        if type(value) ~= "number" then return nil, "expected number" end
-        if def.min then value = math.max(def.min, value) end
-        if def.max then value = math.min(def.max, value) end
-        return value
-    end,
-
-    string = function(def, value)
-        if type(value) ~= "string" then return nil, "expected string" end
-        -- Enum rows (a `values` list) reject anything outside the list, so the
-        -- dropdown and `/cm set` can't write a value the renderer can't display.
-        local allowed = Helpers.EnumValues and Helpers.EnumValues(def) or def.values
-        if type(allowed) == "table" and #allowed > 0 then
-            local names, ok = {}, false
-            for i, item in ipairs(allowed) do
-                names[i] = tostring(item.value)
-                if item.value == value then ok = true end
-            end
-            if not ok then
-                return nil, "allowed values: " .. table.concat(names, ", ")
-            end
-        end
-        return value
-    end,
-
-    color = function(_, value)
-        if type(value) ~= "table" then return nil, "expected color table" end
-        return value
-    end,
-
-    -- A WHOLE-VALUE list over a fixed member set (architecture-§5): the bar's slot
-    -- order, a composite's section. NORMALIZED, not merely checked: unknown and
-    -- repeated members are dropped and every missing one is appended in the member
-    -- set's own order, so a stored order names each member exactly once. Always a
-    -- fresh table, so neither a caller's list nor a row's `default` -- which IS the
-    -- dbDefaults table -- is ever what gets stored.
-    order = function(def, value)
-        if type(value) ~= "table" then return nil, "expected a list" end
-        local members = membersOf(def)
-        local known, seen, out = {}, {}, {}
-        for _, m in ipairs(members) do known[m] = true end
-        for _, m in ipairs(value) do
-            if known[m] and not seen[m] then seen[m] = true; out[#out + 1] = m end
-        end
-        for _, m in ipairs(members) do
-            if not seen[m] then seen[m] = true; out[#out + 1] = m end
-        end
-        return out
-    end,
-
-    -- A WHOLE-VALUE keyed map. A row with its own `normalize` (stat priority's) is
-    -- handed the map; a row naming `members` is a flag map; anything else is
-    -- copied. Every arm answers a fresh table.
-    map = function(def, value)
-        if type(value) ~= "table" then return nil, "expected a table" end
-        if type(def.normalize) == "function" then return def.normalize(value) end
-        if def.members then return normalizeFlagMap(def, value) end
-        local out = {}
-        for k, v in pairs(value) do out[k] = v end
-        return out
-    end,
-}
-
--- Validate a value against a schema row's declared type, clamping numbers to
--- min/max. Returns the coerced value, or nil + reason on a type mismatch.
---
--- An unrecognized (or absent) def.type passes the value through untouched —
--- that is the fall-through the elseif chain this replaced always had, and
--- rejecting instead would break every row that declares no type.
-local function validateSchemaValue(def, value)
-    local f = VALIDATORS[def.type]
-    if not f then return value end
-    return f(def, value)
+local function copyShallow(value)
+    local out = {}
+    for k, v in pairs(value) do out[k] = v end
+    return out
 end
-Helpers.ValidateSchemaValue = validateSchemaValue
 
--- The single mutation seam for schema-backed settings: validate → write →
--- fire onChange → refresh panels. Both the panel widgets and /cm set route
--- through here (architecture-§5). Returns true on success.
-function Helpers.SetAndRefresh(path, value)
-    local def = Helpers.FindSchema(path)
-    if not def then return false end
-    local coerced, reason = validateSchemaValue(def, value)
-    -- `coerced == nil` alone, with no `and value ~= nil` escape clause. Every
-    -- validator rejects nil (nil is not a boolean, a number, a string or a
-    -- table), so the old second half let an EXPLICIT nil skip the report and
-    -- fall through to Helpers.Set(path, nil) — which does not "write nil", it
-    -- DELETES the key out of the profile. The row then read back as absent
-    -- rather than as its default, and SetAndRefresh returned true for it.
-    -- A typeless row has no validator and passes its value through untouched,
-    -- so it reaches here with coerced == value and is rejected on nil for the
-    -- same reason and with the same message.
-    if coerced == nil then
-        KCM.Say("invalid value for " .. tostring(path) .. ": "
-              .. tostring(reason or "value must not be nil"))
-        return false
+local function isType(want, why)
+    return function(_, value)
+        if type(value) ~= want then return false, why end
+        return true
     end
-    if not Helpers.Set(def.path, coerced) then return false end
-    fireOnChange(def, coerced)
-    -- Scalar write → in-place widget re-sync, never a page rebuild (options-ui-§11).
-    Helpers.RefreshScalars()
+end
+
+-- Enum rows (a `values` list) reject anything outside the list, so the
+-- dropdown and `/cm set` can't write a value the renderer can't display.
+local function validateString(def, value)
+    if type(value) ~= "string" then return false, "expected string" end
+    local allowed = enumValues(def)
+    if #allowed > 0 then
+        local names = {}
+        for i, item in ipairs(allowed) do
+            if item.value == value then return true end
+            names[i] = tostring(item.value)
+        end
+        return false, "allowed values: " .. table.concat(names, ", ")
+    end
     return true
 end
 
--- The reactors a batch runs: the caller's one `opts.onChange` when it names one,
--- otherwise each DISTINCT row onChange once, in first-seen order, handed the value
--- of the first row that carries it.
-local function runBatchReactors(plan, opts)
-    if opts and opts.onChange then
-        -- Reported under the batch's first path, through the one reporter a row's
-        -- own onChange uses, so a failure reads the same whichever reactor raised.
-        fireOnChange({ path = plan[1] and plan[1].def.path, onChange = opts.onChange })
-        return
+-- One rule per declared schema type, split the way LibKa0s-Schema-1.0's
+-- pipeline splits it: `validate(def, value) -> ok, why` refuses, and
+-- `normalize(def, value) -> value | nil, why` answers what is stored. bool,
+-- string and enum are validate-only. A type with no entry here passes its value
+-- through untouched, as the elseif chain this replaced always did.
+local TYPE_RULES = {
+    bool = { validate = isType("boolean", "expected boolean") },
+
+    -- min and max are independently optional, so the clamp is two separate
+    -- one-sided tests rather than a range check.
+    number = {
+        validate  = isType("number", "expected number"),
+        normalize = function(def, value)
+            if def.min then value = math.max(def.min, value) end
+            if def.max then value = math.min(def.max, value) end
+            return value
+        end,
+    },
+
+    string = { validate = validateString },
+
+    -- Always a fresh table: a color row's `default` IS the dbDefaults table, and
+    -- a reset sends it through the seam. Stored as-is it would alias the shipped
+    -- default, and AceDB's removeDefaults on a later SetProfile nils its channels
+    -- in place -- every profile after that reads an empty color. The seam copies
+    -- a table into the store as well; this copy is what `apply` and the log see.
+    color = { validate = isType("table", "expected color table"),
+              normalize = function(_, value) return copyShallow(value) end },
+
+    -- A WHOLE-VALUE list over a fixed member set (architecture-§5): the bar's
+    -- slot order, a composite's section. NORMALIZED, not merely checked: unknown
+    -- and repeated members are dropped and every missing one is appended in the
+    -- member set's own order, so a stored order names each member exactly once.
+    order = {
+        validate  = isType("table", "expected a list"),
+        normalize = function(def, value)
+            local members = membersOf(def)
+            local known, seen, out = {}, {}, {}
+            for _, m in ipairs(members) do known[m] = true end
+            for _, m in ipairs(value) do
+                if known[m] and not seen[m] then seen[m] = true; out[#out + 1] = m end
+            end
+            for _, m in ipairs(members) do
+                if not seen[m] then seen[m] = true; out[#out + 1] = m end
+            end
+            return out
+        end,
+    },
+
+    -- A WHOLE-VALUE keyed map. A row naming `members` is a flag map; anything
+    -- else is copied. A row with its OWN `normalize` (stat priority's) keeps it,
+    -- which is LibKa0s-Schema-1.0's row.normalize: see stampRow.
+    map = {
+        validate  = isType("table", "expected a table"),
+        normalize = function(def, value)
+            if def.members then return normalizeFlagMap(def, value) end
+            return copyShallow(value)
+        end,
+    },
+}
+
+-- Put the row's type rule on the row, closed over it, where the library's
+-- pipeline reads it: `validate` and `normalize`. A row that already carries
+-- its own keeps it. Stamped once; `__typed` is the marker.
+local function stampRow(row)
+    if type(row) ~= "table" or row.__typed then return end
+    row.__typed = true
+    local rule = TYPE_RULES[row.type]
+    if not rule then return end
+    if row.validate == nil and rule.validate then
+        row.validate = function(value) return rule.validate(row, value) end
     end
-    local ran = {}
-    for _, step in ipairs(plan) do
-        local fn = step.def.onChange
-        if fn and not ran[fn] then
-            ran[fn] = true
-            fireOnChange(step.def, step.value)
-        end
+    if row.normalize == nil and rule.normalize then
+        row.normalize = function(value) return rule.normalize(row, value) end
     end
 end
 
--- Several rows as ONE act. It is the seam SetAndRefresh is -- validate, write
--- through Helpers.Set, react, refresh -- taken once for the whole batch rather
--- than once per row. A page reset is what it exists for: sixty rows through
--- SetAndRefresh would be sixty onChanges and sixty refreshes for one click.
---
--- LOGGING (debug-logging-§10). A plain batch logs one [Set] line per row. A batch
--- that IS a bulk copy or reset passes `opts.bulk = { act = , scope = }`, and then
--- its writes and reactors run inside Helpers.Bulk: one `[Set] <act> <scope>: N rows`
--- line, no per-row line. The bracket opens only after validation, so a refused
--- batch logs nothing.
---
--- ALL OR NOTHING: every entry is resolved and validated before the first write,
--- so a batch holding one bad value writes none of them.
+local function registerRow(row)
+    stampRow(row)
+    if row.neverReset and type(row.path) == "string" then resetExempt[row.path] = true end
+end
+
+--- Append hand-written rows to the schema: stamped with their type rules and
+--- indexed by the seam, which is what makes a row writable at all.
+function Helpers.AddRows(list)
+    for _, row in ipairs(list) do registerRow(row) end
+    return S.AddRows(list)
+end
+
+function Helpers.AddRow(row)
+    Helpers.AddRows({ row })
+    return row
+end
+
+-- Validate and coerce a value against a row's declared type, the way the seam
+-- would, without writing it. Returns the value that would be stored, or nil and
+-- the reason. A thin read of TYPE_RULES kept for the suites that pin each rule;
+-- the seam itself reads the stamped row fields.
+local function validateSchemaValue(def, value)
+    local rule = TYPE_RULES[def.type]
+    if not rule then return value end
+    local ok, why = rule.validate(def, value)
+    if not ok then return nil, why end
+    if type(def.normalize) == "function" then return def.normalize(value) end
+    if rule.normalize then return rule.normalize(def, value) end
+    return value
+end
+Helpers.ValidateSchemaValue = validateSchemaValue
+
+-- The door a player's write takes -- a widget, `/cm enable`, a page button:
+-- the seam, and on a refusal one line saying why. Returns true on success.
+function Helpers.SetAndRefresh(path, value)
+    local ok, err, why = S.Set(path, value)
+    if not ok then
+        -- An unknown path or a missing db is refused silently, as it always was
+        -- here: every caller is addon code naming its own rows. A refused VALUE
+        -- is the player's, and its rule always says why, so it is reported.
+        if why ~= nil then
+            KCM.Say("invalid value for " .. tostring(path) .. ": " .. tostring(why or err))
+        end
+        return false
+    end
+    return true
+end
+
+-- Several rows as ONE act, all or nothing: the library's SetMany prepares every
+-- entry before the first store, so a batch holding one bad value writes none.
+-- A page reset is what it exists for: sixty rows through SetAndRefresh would be
+-- sixty reactions and sixty refreshes for one click.
 --
 -- `opts.onChange` names the one apply pass a page's rows all share (the Macro
 -- Bar page's MacroBar.Update), and then it runs instead of the rows' own.
--- `opts.structural` swaps the in-place re-sync for a page rebuild, for a batch
--- that changes what a page draws and not only the values it shows.
+-- `opts.structural` swaps the in-place re-sync for a page rebuild.
+-- `opts.bulk = { act =, scope = }` makes the batch ONE bracket: one
+-- `[Set] <act> <scope>: N rows` line and no per-row line (debug-logging-§10).
 --
 -- @param entries  array of { path = <schema path>, value = <new value> }
 -- @return boolean  true when every entry was written
 function Helpers.SetManyAndRefresh(entries, opts)
-    local plan = {}
-    for i, e in ipairs(entries or {}) do
-        -- A path that is not a row is refused silently, exactly as SetAndRefresh
-        -- refuses one: every caller is addon code naming its own rows.
-        local def = Helpers.FindSchema(e.path)
-        if not def then return false end
-        local coerced, reason = validateSchemaValue(def, e.value)
-        if coerced == nil then
-            KCM.Say("invalid value for " .. tostring(e.path) .. ": "
-                  .. tostring(reason or "value must not be nil"))
-            return false
+    opts = opts or {}
+    local b = opts.bulk
+    local prev = batchCtx
+    batchCtx = { onChange = opts.onChange, structural = opts.structural }
+    local ran, ok, err, why, at = pcall(S.SetMany, entries or {},
+        { act = b and b.act, scope = b and b.scope })
+    batchCtx = prev
+    if not ran then error(ok, 0) end
+    if not ok then
+        if why ~= nil then
+            local e = entries and entries[at]
+            KCM.Say("invalid value for " .. tostring(e and e.path) .. ": " .. tostring(why or err))
         end
-        if not (divertedPath(def.path) or Helpers.Resolve(def.path)) then return false end
-        plan[i] = { def = def, value = coerced }
+        return false
     end
-    local function apply()
-        for _, step in ipairs(plan) do Helpers.Set(step.def.path, step.value) end
-        runBatchReactors(plan, opts)
-    end
-    local b = opts and opts.bulk
-    if b then Helpers.Bulk(b.act, b.scope, apply) else apply() end
-    if opts and opts.structural then Helpers.RefreshAllPanels() else Helpers.RefreshScalars() end
     return true
 end
 
@@ -1097,13 +966,15 @@ end
 --- The composers (OptionsCompose) emit `path`, `page`, `group`, `subgroup`,
 --- `order`, `type`, `label`, `tooltip` and `default` -- everything options-ui-§16
 --- and options-ui-§17 pin. What they cannot know is this addon's own row vocabulary:
---- `panel` and `section` (which ValidateSchema checks), the `onChange` that
---- applies the write, and the ordered `{ value =, text = }` media lists this
---- addon declares where the library declares a hash.
+--- `panel` and `section` (which ValidateSchema checks), the `apply` that reacts
+--- to the write, a store of its own (`get`/`set`), and the ordered
+--- `{ value =, text = }` media lists this addon declares where the library
+--- declares a hash. The type rules are stamped after the decoration, so a
+--- decorated `validate` or `normalize` wins.
 ---
 --- `decorate` is keyed by the row's stored PATH rather than by its position, so
 --- a composer that gains a row cannot silently re-target somebody else's
---- onChange.
+--- reaction.
 function Helpers.RegisterRows(rows, panel, section, decorate)
     for _, row in ipairs(rows) do
         row.panel   = panel
@@ -1118,8 +989,8 @@ function Helpers.RegisterRows(rows, panel, section, decorate)
         if extra then
             for k, v in pairs(extra) do row[k] = v end
         end
-        KCM.Settings.Schema[#KCM.Settings.Schema + 1] = row
     end
+    Helpers.AddRows(rows)
     return rows
 end
 
@@ -1219,19 +1090,35 @@ end
 -- Tab + main-category registration
 -- ---------------------------------------------------------------------
 
+-- The library's page registry, fed in KCM.Settings.order, once. Guarded by a
+-- flag because registerPanel is reached more than once (PLAYER_LOGIN, then
+-- ADDON_LOADED("Blizzard_Settings"), or a second bootstrap event before the
+-- Settings API exists), and a page queued twice would be built twice.
+local pagesQueued = false
+
 function KCM.Settings.RegisterTab(key, builder)
     if type(key) ~= "string" or type(builder) ~= "function" then return end
     KCM.Settings.builders[key] = builder
-    if KCM.Settings.main and not KCM.Settings.sub[key] then
-        local ok, sub = pcall(builder, KCM.Settings.main)
-        if ok and sub then
-            KCM.Settings.sub[key] = sub
-        end
-    end
+    -- A page registered after the queue was fed goes straight to the library,
+    -- which builds it at once if the panel already exists.
+    if pagesQueued and UI then UI.RegisterOptionsPage(key, key, builder) end
 end
 
+-- Hand the whole options surface to LibKa0s-Options-1.0's CreateOptionsPanel:
+-- the main canvas (the descriptor's buildMain, settings/OptionsSetup.lua), the
+-- schema validation (its validate) and every page builder, in sidebar order.
+--
+-- Settings.RegisterAddOnCategory is protected, and an in-combat /reload or a
+-- mid-pull force-load of Blizzard_Settings reaches this. The library parks the
+-- registration under lockdown and replays it on its own PLAYER_REGEN_ENABLED
+-- frame, whatever this addon's stand-down state: the category and its Enable
+-- checkbox are setup that survives a disable (slash-commands-§7). The host
+-- park this replaced replayed from OnRegenEnabled, after its stood-down
+-- return, and lost the category for the session (ConsumableMaster-R-03).
+--
+-- Answers true once the request is the library's, which is what lets the
+-- bootstrap below let go of its events.
 local function registerPanel()
-    if KCM.Settings.main then return end
     -- With LibKa0s absent the panel is not registered AT ALL, rather than
     -- registered onto an empty canvas. Every page body is built out of the
     -- library's chrome, so a category that opened onto nothing would leave the
@@ -1243,70 +1130,37 @@ local function registerPanel()
     -- only ever reached from here.
     if libAbsent then
         sayPanelUnavailable()
-        return
+        return false
     end
     if not (Settings and Settings.RegisterCanvasLayoutCategory
             and Settings.RegisterAddOnCategory) then
-        return
+        return false
     end
 
-    -- Settings.RegisterAddOnCategory is protected. This function runs off the
-    -- PLAYER_LOGIN / ADDON_LOADED bootstrap at the foot of the file, which
-    -- normally lands out of combat — but an in-combat /reload reaches it, and
-    -- so does another addon calling C_AddOns.LoadAddOn("Blizzard_Settings")
-    -- mid-pull. Registering under lockdown taints the Settings window for the
-    -- rest of the session, and nothing is lost by waiting: the panel cannot be
-    -- opened in combat anyway (O.Open refuses below), so a category that
-    -- appears on regen is a category the user could not have reached sooner.
-    --
-    -- The replay is the addon's EXISTING PLAYER_REGEN_ENABLED handler
-    -- (core/ConsumableMaster.lua's OnRegenEnabled), not a second event
-    -- registration of this file's own: one deferred call does not justify a
-    -- parallel copy of a handler that already runs at exactly this moment, and
-    -- two frames listening for the same event is how the two halves drift.
-    if InCombatLockdown and InCombatLockdown() then
-        KCM.Settings.registerPending = true
-        return
-    end
-    KCM.Settings.registerPending = nil
-
-    Helpers.ValidateSchema()
-
-    local mainCtx = Helpers.CreatePanel("KCMMainPanel", PANEL_TITLE, { isMain = true })
-    Helpers.SetRenderer(mainCtx, Helpers.BuildAboutContent)
-
-    local main = Settings.RegisterCanvasLayoutCategory(mainCtx.panel, PANEL_TITLE)
-    Settings.RegisterAddOnCategory(main)
-    KCM.Settings.main = main
-
-    -- /cm config (and KCM.Options.Open) lands on the parent — the About
-    -- splash with logo + tagline + slash help. Sub-pages are forced
-    -- expanded in the AddOns sidebar (see O.Open) so all panels are one
-    -- click away from the landing page.
-    KCM._settingsCategoryID = main:GetID()
-
-    for _, key in ipairs(KCM.Settings.order) do
-        local fn = KCM.Settings.builders[key]
-        if type(fn) == "function" and not KCM.Settings.sub[key] then
-            local ok, sub = pcall(fn, main)
-            if ok and sub then
-                KCM.Settings.sub[key] = sub
-            elseif not ok then
-                KCM.Say("settings tab '" .. key .. "' failed: " .. tostring(sub))
-            end
+    if not pagesQueued then
+        pagesQueued = true
+        for _, key in ipairs(KCM.Settings.order) do
+            local fn = KCM.Settings.builders[key]
+            if type(fn) == "function" then UI.RegisterOptionsPage(key, key, fn) end
         end
     end
+    -- Idempotent, and parks itself in combat: a second call is a no-op.
+    UI.CreateOptionsPanel()
+    return true
 end
 KCM.Settings.Register = registerPanel
 
--- Bootstrap: defer until Blizzard_Settings is ready.
+-- Bootstrap: defer until Blizzard_Settings is ready. Once registerPanel has
+-- handed the request over, the library owns the park and the replay, so this
+-- frame has nothing left to listen for.
 local bootstrap = CreateFrame("Frame")
-bootstrap:RegisterEvent("PLAYER_LOGIN")
-bootstrap:RegisterEvent("ADDON_LOADED")
+-- Through KCM.SafeRegisterEvent like every other registration here
+-- (events-frames-taint-§1); a frame ignores the nil handler.
+KCM.SafeRegisterEvent(bootstrap, "PLAYER_LOGIN", nil, KCM.RejectedEvents)
+KCM.SafeRegisterEvent(bootstrap, "ADDON_LOADED", nil, KCM.RejectedEvents)
 bootstrap:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 ~= "Blizzard_Settings" then return end
-    registerPanel()
-    if KCM.Settings.main then
+    if registerPanel() then
         self:UnregisterAllEvents()
     end
 end)

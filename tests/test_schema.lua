@@ -105,43 +105,44 @@ end)
 -- Path resolution
 -- ---------------------------------------------------------------------------
 
-test("schema: Resolve splits a dotted path into its parent table and key", function(t)
+-- The walk itself is LibKa0s-Schema-1.0's (lib.Read / lib.Write), pinned in that
+-- repo's suite. What is pinned here is the seam's answer for this addon's store:
+-- the profile, reached through the descriptor's resolveRoot.
+
+test("schema: Get reads a nested path out of db.profile, row or not", function(t)
     local KCM = h.loader.loadWithSchema()
-    local parent, key = KCM.Settings.Helpers.Resolve("enabled")
-    t.eq(parent, KCM.db.profile, "a top-level path resolves against db.profile")
-    t.eq(key, "enabled", "with the leaf as the key")
+    local H = KCM.Settings.Helpers
+    t.eq(H.Get("enabled"), KCM.db.profile.enabled, "a top-level path resolves against db.profile")
+    t.eq(H.Get("categories.FOOD.added"), KCM.db.profile.categories.FOOD.added,
+        "an interior node no row declares is still readable")
 end)
 
-test("schema: Resolve walks nested tables", function(t)
+test("schema: Get answers nil through a non-table, for an empty path, or with no DB", function(t)
     local KCM = h.loader.loadWithSchema()
-    local parent, key = KCM.Settings.Helpers.Resolve("categories.FOOD.added")
-    t.eq(parent, KCM.db.profile.categories.FOOD, "the parent is the containing table")
-    t.eq(key, "added", "and the key is the final segment")
-end)
-
-test("schema: Resolve refuses a path that runs through a non-table", function(t)
-    local KCM = h.loader.loadWithSchema()
-    local parent = KCM.Settings.Helpers.Resolve("enabled.deeper")
-    t.eq(parent, nil, "a scalar cannot be indexed further")
-end)
-
-test("schema: Resolve returns nothing for an empty path or a missing DB", function(t)
-    local KCM = h.loader.loadWithSchema()
-    local Helpers = KCM.Settings.Helpers
-    t.eq((Helpers.Resolve("")), nil, "empty path")
-    t.eq((Helpers.Resolve(nil)), nil, "nil path")
+    local H = KCM.Settings.Helpers
+    t.eq(H.Get("enabled.deeper"), nil, "a scalar cannot be indexed further")
+    t.eq(H.Get(""), nil, "empty path")
+    t.eq(H.Get(nil), nil, "nil path")
     local saved = KCM.db
     KCM.db = nil
-    local parent = Helpers.Resolve("enabled")
+    local v = H.Get("enabled")
+    local ok = H.Set("enabled", false)
     KCM.db = saved
-    t.eq(parent, nil, "no DB means nothing to resolve against")
+    t.eq(v, nil, "no DB means nothing to read")
+    t.eq(ok, false, "and a write has nowhere to land")
+    t.eq(KCM.db.profile.enabled, true, "so nothing moved")
 end)
 
 test("schema: Set can write a nested path, not just a top-level one", function(t)
-    local KCM = h.loader.loadWithSchema()
+    local KCM = h.loader.loadFullAddon()
     local Helpers = KCM.Settings.Helpers
-    t.truthy(Helpers.Set("categories.FOOD.pins", { { itemID = 1, position = 1 } }), "write accepted")
-    t.eq(#KCM.db.profile.categories.FOOD.pins, 1, "and landed in the nested table")
+    t.truthy(Helpers.Set("categories.HP_AIO.orderInCombat", { "HS", "HP_POT" }), "write accepted")
+    t.eq(KCM.db.profile.categories.HP_AIO.orderInCombat[1], "HS", "and landed in the nested table")
+end)
+
+test("schema: Set refuses a path no row declares, even one under a real table", function(t)
+    local KCM = h.loader.loadWithSchema()
+    t.falsy(KCM.Settings.Helpers.Set("categories.FOOD.pins", {}), "not a row, so not writable here")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -234,15 +235,15 @@ test("schema: ValidateSchemaValue clamps a number to its declared range", functi
     t.eq(V(def, 5), 5, "in range passes through untouched")
 end)
 
-test("schema: SetAndRefresh writes the value and fires the row's onChange", function(t)
+test("schema: SetAndRefresh writes the value and runs the row's apply", function(t)
     local KCM = h.loader.loadWithSchema()
     local Helpers = KCM.Settings.Helpers
     local def = Helpers.FindSchema("enabled")
     local seen
-    local realOnChange = def.onChange
-    def.onChange = function(v) seen = v end
+    local realApply = def.apply
+    def.apply = function(v) seen = v end
     local ok = Helpers.SetAndRefresh("enabled", false)
-    def.onChange = realOnChange
+    def.apply = realApply
 
     t.eq(ok, true, "the write succeeded")
     t.eq(KCM.db.profile.enabled, false, "the value landed in the profile")
@@ -599,7 +600,7 @@ end)
 -- storage, which is the whole of "move, do not duplicate" — the Macro Bar page
 -- must not also declare it, and the next case proves it does not.
 --
--- `global.minimap.hide` is `Minimap button`, and it is LAST because that is the
+-- `global.minimap.shown` is `Minimap button`, and it is LAST because that is the
 -- canonical position: the composer emits it on the fourth line of the set, below
 -- Lock frame / Debug console, as column 1 of `[Minimap button] [Test mode]`. This
 -- addon declares no test mode — its preview switch is Lock frame, the
@@ -608,13 +609,13 @@ end)
 -- own table in db.global, and it is NOT sessionOnly either, which is what keeps
 -- the global reset off it.
 local MASTER_ROWS = {
-    { "enabled",             "bool"   },
-    { "visibility",          "string" },
-    { "scale",               "number" },
-    { "alpha",               "number" },
-    { "macroBar.locked",     "bool"   },
-    { "state.debugConsole",  "bool"   },
-    { "global.minimap.hide", "bool"   },
+    { "enabled",              "bool"   },
+    { "visibility",           "string" },
+    { "scale",                "number" },
+    { "alpha",                "number" },
+    { "macroBar.locked",      "bool"   },
+    { "state.debugConsole",   "bool"   },
+    { "global.minimap.shown", "bool"   },
 }
 
 -- red under: renaming the group, declaring any other general-page group ahead of
@@ -804,29 +805,28 @@ end)
 -- ---------------------------------------------------------------------------
 --
 -- A page reset writes every row of the page. Through SetAndRefresh one at a time
--- that is one onChange and one refresh per row; this is the same seam -- validate,
--- write through Helpers.Set, react, refresh -- taken once for the whole batch.
+-- that is one apply and one refresh per row; this is the same seam -- validate,
+-- store, react, refresh -- taken once for the whole batch (the library's SetMany).
 
 local function fakeRows(KCM)
     local schema = KCM.Settings.Schema
     local fired = {}
     local shared = function(v) fired[#fired + 1] = "shared:" .. tostring(v) end
     local rows = {
-        { path = "scale", type = "number", min = 0.5, max = 2, onChange = shared },
-        { path = "alpha", type = "number", min = 0.1, max = 1, onChange = shared },
-        { path = "enabled", type = "bool",
-          onChange = function(v) fired[#fired + 1] = "own:" .. tostring(v) end },
+        { path = "scale", apply = shared },
+        { path = "alpha", apply = shared },
+        { path = "enabled", apply = function(v) fired[#fired + 1] = "own:" .. tostring(v) end },
     }
     local saved = {}
     for i, r in ipairs(rows) do
         local live = KCM.Settings.Helpers.FindSchema(r.path)
-        saved[i] = { live = live, onChange = live.onChange }
-        live.onChange = r.onChange
+        saved[i] = { live = live, apply = live.apply }
+        live.apply = r.apply
     end
-    return fired, function() for _, s in ipairs(saved) do s.live.onChange = s.onChange end end, schema
+    return fired, function() for _, s in ipairs(saved) do s.live.apply = s.apply end end, schema
 end
 
-test("schema: SetManyAndRefresh writes every row, each distinct onChange once, one refresh", function(t)
+test("schema: SetManyAndRefresh writes every row, each distinct apply once, one refresh", function(t)
     local KCM = h.loader.loadWithSchema()
     local H = KCM.Settings.Helpers
     local fired, restore = fakeRows(KCM)

@@ -23,12 +23,19 @@ KCM.dbDefaults = {
     -- Schema shape is account-wide, so its version lives in `global`, not
     -- `profile` (savedvariables-§1). Database.RunMigrations reads it.
     global = {
-        -- Deliberately the ORIGINAL version, not Database.CURRENT_SCHEMA (which
-        -- isn't loaded yet anyway): an account with no stored version is treated
-        -- as pre-migration, and RunMigrations walks it forward. Every step is
+        -- 0, the pre-migration floor, and never a version the runner reaches
+        -- (savedvariables-§1). Two AceDB behaviors rule out a real version here.
+        -- removeDefaults strips a stored value equal to its default at logout, so
+        -- a default equal to a stamp the runner writes would erase that stamp and
+        -- mask the next migration. And AceDB backfills a declared default onto a
+        -- legacy store that has no stamp at all, so a real version here would make
+        -- an account from before the runner read as already walked. 0 has neither
+        -- problem: any stamp the runner writes differs from it and persists, and
+        -- an account with no stamp reads 0 and runs every step. Every step is
         -- idempotent, so a genuinely fresh account passing through them is a
-        -- no-op that just stamps the current version.
-        schemaVersion = 1,
+        -- no-op that just stamps Database.CURRENT_SCHEMA. It never moves when
+        -- CURRENT_SCHEMA does.
+        schemaVersion = 0,
         -- LibDBIcon-1.0's OWN table, and the whole of the minimap button's
         -- stored state (launcher-§3). `hide` is the library's key -- it writes
         -- it when the player uses the button's own menu, and it writes
@@ -43,15 +50,16 @@ KCM.dbDefaults = {
         -- deliberately hid would reappear.
         --
         -- Declaring it here is what MATERIALIZES the table, which is the only
-        -- seeding it gets: a whole-section write over a path a schema row
-        -- addresses would be architecture-§5's business, and the row addresses
-        -- `global.minimap.hide`.
+        -- seeding it gets: a whole-section write over a table a schema row
+        -- stores into would be architecture-§5's business, and the
+        -- `global.minimap.shown` row stores into this one -- its path says
+        -- SHOWN, its get/set invert onto this `hide` key, which never moves.
         minimap = {
             hide = false,     -- shipped SHOWN; the Master controls row says shown and inverts
         },
     },
     profile = {
-        enabled = true,    -- master enable; when false the recompute pipeline early-returns
+        enabled = true,    -- master enable; when false the addon stands down (core/LifecycleSetup.lua) and a recompute writes no macros
         -- NB: the debug flag is session-only (KCM.State.debug), never persisted.
         --
         -- The three ADDON-WIDE master controls (options-ui-§15). They are not the
@@ -104,14 +112,17 @@ KCM.dbDefaults = {
         -- The CM-only macro bar (modules/MacroBar.lua). On and UNLOCKED out of
         -- the box so the feature is discoverable — a bar the user never sees is
         -- a bar they never configure, and unlocked means the drag handle is
-        -- right there to place it. Turning it off tears the frames down (they
-        -- are never created again until re-enabled), so opting out costs
-        -- nothing. Existing profiles get the same treatment once, via the
+        -- right there to place it. Turning it off hides the frames and takes
+        -- their visibility and flyout drivers and the fade tick off (the frames
+        -- are kept and shown again on re-enable), so opting out costs nothing
+        -- per frame. Existing profiles get the same treatment once, via the
         -- schema-v2 step in core/Database.lua.
         --
-        -- Every scalar here has a matching KCM.Settings.Schema row, which is
-        -- what gives it a widget on the Macro Bar tab AND
-        -- `/cm get|set macroBar.<field>` for free.
+        -- Every scalar here EXCEPT point, relPoint, x and y has a matching
+        -- KCM.Settings.Schema row, which is what gives it a widget on the Macro
+        -- Bar tab AND `/cm get|set macroBar.<field>` for free. The four anchor
+        -- fields have no row: only a drag or a reset (`/cm bar reset`, Reset
+        -- position) writes them.
         macroBar = {
             enabled  = true,
             locked   = false,

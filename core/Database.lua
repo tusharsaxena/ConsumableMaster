@@ -7,10 +7,17 @@
 --
 -- TWO STAMPS, one per scope, because a step belongs to whichever scope it writes.
 -- `db.global.schemaVersion` is the account-wide marker savedvariables-§1 asks for
--- and gates anything that migrates account-wide storage. Every step below writes
--- `db.profile`, so each is gated on `db.profile.schemaVersion` — that profile's
--- own record of how far it has been walked. See RunMigrations for why the
--- account-wide gate alone was wrong.
+-- and gates anything that migrates account-wide storage. Its shipped default is
+-- 0 (defaults/Profile.lua), the pre-migration floor and never a real version, so
+-- AceDB's logout strip can never erase a stamp this runner wrote. Every step
+-- below writes `db.profile`, so each is gated on `db.profile.schemaVersion` —
+-- that profile's own record of how far it has been walked, which is not a
+-- shipped default at all. See RunMigrations for why the account-wide gate alone
+-- was wrong.
+--
+-- THE RUNNER OWNS BOTH STAMPS. No step writes `schemaVersion`; the runner
+-- advances a stamp only on the line after the step call, so a step that raises
+-- leaves the stamp at the last completed version and the next load retries it.
 --
 -- Version history:
 --   1 — original shape.
@@ -121,6 +128,19 @@ end
 -- Each step is gated on the stamp rather than on the one `from` the function
 -- entered with, so a profile that is several versions behind meets every step
 -- between where it is and where this build stands, in order.
+--
+-- A profile with no stamp is a pre-stamp v1 profile, hence `or 1` rather than
+-- the account's 0 floor: that is the one-time cost documented above.
+--
+-- THE INVARIANT: each stamp line sits AFTER its step call. A step that raises
+-- never reaches its stamp, so the profile is left at the last completed version
+-- and the error propagates out of RunMigrations before the account stamp moves.
+--
+-- These steps run on EVERY profile, not only the one live at the upgrade login:
+-- the OnProfileChanged / Copied / Reset hooks in core/ConsumableMaster.lua call
+-- RunMigrations on each profile as it arrives, and the per-profile stamp decides
+-- what is left to do. They are never gated on the account stamp alone. That is
+-- savedvariables-§1's second allowed shape for a profile-scoped step.
 local function migrateProfile(p)
     p.schemaVersion = p.schemaVersion or 1
     local pFrom = p.schemaVersion
@@ -163,7 +183,7 @@ function D.RunMigrations()
     local db = KCM.db
     if not (db and db.global) then return end
     local g = db.global
-    g.schemaVersion = g.schemaVersion or 1
+    g.schemaVersion = g.schemaVersion or 0
     local from = g.schemaVersion
 
     -- ACCOUNT-WIDE steps go here, gated on `g.schemaVersion`. There are none

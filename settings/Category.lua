@@ -168,7 +168,7 @@ end
 --
 -- Generated from KCM.Categories.LIST, like the tab strip, so a composite or a
 -- targeted category added there gets its rows without a line here. Every row
--- shares ONE onChange, so a batch across a composite's three rows recomputes once.
+-- shares ONE apply, so a batch across a composite's three rows recomputes once.
 local CATEGORY_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile
     and KCM.dbDefaults.profile.categories) or {}
 
@@ -188,8 +188,8 @@ local function categoryRow(cat, field, spec)
     spec.section  = "macros"
     spec.group    = cat.key
     spec.default  = CATEGORY_DEFAULTS[cat.key] and CATEGORY_DEFAULTS[cat.key][field]
-    spec.onChange = recomputeAfterRow
-    KCM.Settings.Schema[#KCM.Settings.Schema + 1] = spec
+    spec.apply    = recomputeAfterRow
+    H.AddRow(spec)
 end
 
 -- Both sections' sub-categories: the keys a composite's `enabled` map may carry.
@@ -665,7 +665,7 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
         -- the whole row. Naming the handle's SLOT -- which this used to do -- drew the library's
         -- fill and 1px edge around the 30px gutter and left the row itself with no background at
         -- all, so this list looked nothing like the same control on the Stat Priority page or on
-        -- MultiMeters' Columns tab (options-ui-§8, §18: one row, learned once).
+        -- MultiMeters' Columns tab (options-ui-§8, options-ui-§18: one row, learned once).
         list:AddRow(row.frame, {
             ghostText = ghostTextOf(itemRow),
             height    = ROW_H,
@@ -1103,6 +1103,7 @@ end
 -- Select a tab from outside the strip. Answers false for an unknown category
 -- and for a page that has not been built, so a caller can tell "no such
 -- category" from "done".
+-- Kept as a deliberate test seam: only the suites call it (ConsumableMaster-R-16).
 function O.SetMacroTab(catKey)
     local ctx = O._macrosCtx
     if not (ctx and catKey and KCM.Categories.Get(catKey)) then return false end
