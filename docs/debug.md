@@ -18,6 +18,7 @@ KCM.DebugLog.SetEnabled(on) / IsEnabled() / Toggle()   -- Toggle flips the flag
 KCM.DebugLog.AddLine(tag, msg) / Clear()
 KCM.DebugLog.Show() / Hide() / Toggle_Window() / IsWindowShown() / ShowCopy()
 KCM.DebugLog.RefreshHeader() / UpdateScrollBar() / UpdateStatus()   -- header + scrollbar + line counter (debug-logging-§11)
+KCM.DebugLog.RunDiagnostics(spec) -> n                -- the debug-logging-§14 report; the stub prints one line, returns 0
 KCM.DebugLog.FormatPlain(ts, tag, msg) / FormatColored(ts, tag, msg)   -- pure formatters (the library's)
 KCM.DebugLog.instance                                                  -- the library instance itself
 ```

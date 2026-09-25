@@ -39,7 +39,17 @@ end
 -- forgotten here surfaces as a failure rather than as silence.
 local MAJORS = {
     { major = "LibKa0s-Core-1.0",     files = { "Core" } },
-    { major = "LibKa0s-DebugLog-1.0", files = { "DebugLog" } },
+    {
+        major = "LibKa0s-DebugLog-1.0",
+        -- DebugLogDiagnostics joined at LibKa0s v1.60.0: the diagnostics report
+        -- (debug-logging-§14), a secondary file paired on the shell's minor the
+        -- way the Options and Perf attach files are.
+        files = { "DebugLog", "DebugLogDiagnostics" },
+        primary = "DebugLog",
+        paired = {
+            { file = "DebugLogDiagnostics", minor = "__diagMinor", shell = "__diagShellMinor" },
+        },
+    },
     { major = "LibKa0s-Slash-1.0",    files = { "Slash" } },
     { major = "LibKa0s-Launcher-1.0", files = { "Launcher" } },
     {

@@ -514,8 +514,8 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-§9 prescribes; the kit (revision 26, as vendored from
-    -- LibKa0s v1.56.0; since revision 25) resolves the relative `dir` against the
+    -- literal form testing-§9 prescribes; the kit (revision 27, as vendored from
+    -- LibKa0s v1.60.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive
@@ -526,9 +526,12 @@ local SUITES = {
     --   test_prose      -- the US-English prose gate (kit revision 24)
     --   test_layout_cap -- the 1500-line cap gate over the census in
     --                      docs/ARCHITECTURE.md (kit revision 25)
-    { name = "test_eol",        dir = "tests/_kit/" },
-    { name = "test_prose",      dir = "tests/_kit/" },
-    { name = "test_layout_cap", dir = "tests/_kit/" },
+    --   test_diagnostics_contract -- the debug-logging-§14 dispatcher contract (kit
+    --                      revision 27); one declared skip until Kit.diagnostics is set
+    { name = "test_eol",                  dir = "tests/_kit/" },
+    { name = "test_prose",                dir = "tests/_kit/" },
+    { name = "test_layout_cap",           dir = "tests/_kit/" },
+    { name = "test_diagnostics_contract", dir = "tests/_kit/" },
 }
 
 Kit.run({ dir = ROOT .. "/tests/", suites = SUITES })

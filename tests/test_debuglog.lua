@@ -278,7 +278,7 @@ test("DebugLog: the descriptor reproduces the addon's window identity", function
         if n == "ConsumableMasterDebugWindow" then registered = true end
     end
     t.truthy(registered, "the derived frame name is preserved, and Esc closes it")
-    t.eq(lib.MAX_BUFFER, 1500, "the buffer cap still matches the library's one number")
+    t.eq(lib.MAX_BUFFER, 3000, "the buffer cap still matches the library's one number")
 end)
 
 test("DebugLog: the console's own strings resolve to prose, not to their own keys", function(t)
@@ -364,6 +364,46 @@ test("DebugLog: with the library absent the console degrades and chat still answ
     t.eq(notices, 1, "the missing-console notice is said exactly once")
 
     KCM.State.debug = false
+end)
+
+-- ── the diagnostics report's two arms (debug-logging-§14, LibKa0s v1.60.0) ────
+
+test("DebugLog: with the library absent RunDiagnostics says one line and floods nothing", function(t)
+    -- The stub must NOT take the chat fallback a debug line takes: a report is
+    -- hundreds of lines. One library-absent line, nothing written, 0 returned.
+    --
+    -- red under: a stub that forwards the report into KCM.Debug (the chat
+    -- fallback), or one that says nothing at all.
+    local KCM  = h.loader.loadConsole(true)
+    local DL   = KCM.DebugLog
+    local mock = h.loader.mock
+    t.falsy(LibStub("LibKa0s-DebugLog-1.0", true), "the major really is absent")
+
+    KCM.State.debug = true
+    -- Spend the degraded KCM.Say's one-time "library is missing" announcement
+    -- first (core/CoreSetup.lua), so the count below measures the report alone.
+    KCM.Say("primed")
+    mock.output = {}
+    t.eq(DL.RunDiagnostics(), 0, "the stub reports zero lines written")
+    t.eq(#mock.output, 1, "exactly one chat line, no flood")
+    t.eq(mock.output[1], KCM.PREFIX ..
+        " /cm diagnostics is unavailable: the LibKa0s library did not load.",
+        "the collection's library-absent line, naming the verb")
+    t.truthy(KCM.State.debug, "the debug flag is untouched")
+    KCM.State.debug = false
+end)
+
+test("DebugLog: RunDiagnostics forwards to the library instance and answers its count", function(t)
+    -- The live facade is a plain forwarder, like its siblings: the report is the
+    -- library's, the line count is the instance's, and the flag stays off.
+    local KCM, DL = load()
+    KCM.State.debug = false
+    local before = DL.instance:BufferSize()
+    local n = DL.RunDiagnostics()
+    t.eq(type(n), "number", "a line count comes back")
+    t.truthy(n > 0, "the report wrote lines")
+    t.eq(DL.instance:BufferSize(), before + n, "every counted line landed in the console")
+    t.falsy(KCM.State.debug, "the report never switches logging on")
 end)
 
 -- ── the descriptor field the title bar's art hangs on ─────────────────────────

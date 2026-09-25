@@ -105,6 +105,21 @@ if not lib then
     function DL.Hide() end
     function DL.IsWindowShown() return false end
 
+    -- The diagnostics report (debug-logging-§14) has nowhere to go. It must NOT
+    -- take core/Debug.lua's chat fallback the way a debug line does: a report is
+    -- hundreds of lines, and the chat frame would be flooded with them. So it says
+    -- the collection's one library-absent line, writes nothing and returns 0, the
+    -- line count the live instance's RunDiagnostics answers.
+    function DL.RunDiagnostics()
+        if KCM.Say then
+            local L = KCM.L or {}
+            local line = L["%s is unavailable: the LibKa0s library did not load."]
+                or "%s is unavailable: the LibKa0s library did not load."
+            KCM.Say(line:format("/cm diagnostics"))
+        end
+        return 0
+    end
+
     -- Deliberately publishes NO instance and NO AddLine. core/Debug.lua's
     -- emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
     -- whether a console exists, and falls back to the chat frame when it does
@@ -220,6 +235,7 @@ function DL.ShowCopy()         D:ShowCopy() end
 function DL.RefreshHeader()    D:RefreshHeader() end
 function DL.UpdateScrollBar()  D:UpdateScrollBar() end
 function DL.UpdateStatus()     D:UpdateStatus() end
+function DL.RunDiagnostics(spec) return D:RunDiagnostics(spec) end
 
 -- Window, not flag. The library spells this one `Toggle`; ours has always meant
 -- the other thing (below), and a name-for-name alias would invert `/cm debug`.
