@@ -102,10 +102,13 @@ test("Settings UI: the published instance carries all three of the major's files
     local KCM = loader.loadWithSchema()
     local UI = KCM.Settings.Helpers.instance
     t.truthy(UI, "the instance is published for the suite to reach")
-    -- One major, three files: the shell (Options.lua), the widget helpers
+    -- One major, ten files at v1.62.0 (Options.lua plus the nine Options*.lua
+    -- siblings that each stamp their own lib.MODULES row). Three of them are
+    -- probed here: the shell (Options.lua), the widget helpers
     -- (OptionsWidgets.lua) and the scroll patch (OptionsScroll.lua) all attach
     -- onto the same instance. A copy vendored without its siblings would build
-    -- panels that lay out wrong, and this is where that shows up.
+    -- panels that lay out wrong, and this is where that shows up. The full
+    -- per-file inventory lives in tests/test_libka0s.lua.
     t.truthy(UI.CreatePanel, "the shell attached")
     t.truthy(UI.AttachTooltip, "the widget helpers attached")
     t.truthy(UI.PatchAlwaysShowScrollbar, "the scroll patch attached")
@@ -117,13 +120,16 @@ test("Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L", 
     -- lib.STRINGS table of its own, so asserting that table is absent would
     -- fail against a module behaving exactly as designed. The half that
     -- transfers is the source half — Options resolves its user-visible strings
-    -- from lib.STRINGS with no descriptor override path anywhere in the three
-    -- files, so there is nothing for a key-echoing locale table to shadow.
+    -- from lib.STRINGS with no descriptor override path anywhere in the major's
+    -- files (ten at v1.62.0, derived below from lib.MODULES so a file peeled out
+    -- of a scanned one, as OptionsIds.lua, OptionsIdList.lua and
+    -- OptionsRegistry.lua were, stays covered), so there is nothing for a
+    -- key-echoing locale table to shadow.
     --
     -- `local L = lib.LAYOUT` at the top of Options.lua is GEOMETRY. The layout
     -- assertion below keeps that distinction pinned against a rename.
     --
-    -- red under: adding a `d.L` read to any of the three files.
+    -- red under: adding a `d.L` read to any of the major's files.
     loader.loadWithSchema()
     local lib = LibStub("LibKa0s-Options-1.0")
     t.truthy(lib, "the vendored Options major must be registered")
@@ -132,7 +138,22 @@ test("Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L", 
     t.eq(type(rawget(lib, "LAYOUT")), "table",
         "and `L` inside Options.lua is this geometry table, not a locale one")
 
-    for _, rel in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsScroll.lua" }) do
+    -- The scan list is every file the major registers in lib.MODULES (each
+    -- key is the file's basename). The floor below keeps a MODULES registry
+    -- that stopped being populated from turning this loop vacuous.
+    local files = {}
+    for name in pairs(rawget(lib, "MODULES") or {}) do
+        files[#files + 1] = name .. ".lua"
+    end
+    table.sort(files)
+    local scanned = table.concat(files, " ")
+    for _, want in ipairs({ "Options.lua", "OptionsWidgets.lua", "OptionsScroll.lua",
+            "OptionsRegistry.lua", "OptionsIds.lua", "OptionsIdList.lua" }) do
+        t.truthy((" " .. scanned .. " "):find(" " .. want .. " ", 1, true),
+            want .. " must be in the scanned set (from lib.MODULES): " .. scanned)
+    end
+
+    for _, rel in ipairs(files) do
         local fh = assert(io.open("libs/LibKa0s/" .. rel, "r"),
             "cannot open libs/LibKa0s/" .. rel .. " (tests run from the repo root)")
         local src = fh:read("*a")
