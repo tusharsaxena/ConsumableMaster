@@ -114,14 +114,23 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
 | Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check that the viewed spec on the **Stat Priority** page matches the spec you are actually playing. |
 | Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped, or you own nothing that fits it: whetstones need a bladed weapon, weightstones a blunt one, and oils fit anything. The Weapon Enchant tab names each hand's weapon type above the list, so a hand reading **no stone (oils only)** wants an oil. |
-| I opened the debug console but nothing shows up in it. | The window and the logging are two separate switches, which is the one people trip over. A bare `/cm debug` only shows or hides the window; `/cm debug on` (or the window's **Debug: ON/OFF** toggle) is what captures output. The log also clears on every login. |
+| I opened the debug console but nothing shows up in it. | The window and the logging are two separate switches, which is the one people trip over. A bare `/cm debug` only shows or hides the window and never turns logging on. `/cm debug on` (or the window's **Debug: ON/OFF** toggle) is what captures output. The log also clears on every login. |
 | `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
-| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
+| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Follow [Reporting a bug](#reporting-a-bug) below and reproduce the failed writes at step 1. |
 | `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading. Reload and try again. |
 | `/cm resetall` or "Reset all settings" says "reset deferred until regen". | You were in combat, so nothing was reset. Run it again once combat ends. |
 | I want to restore a default list after removing items by hand. | **Reset category** clears that one category. **Reset all priorities** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 | I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
+| Something looks wrong and I want to report it. | Follow [Reporting a bug](#reporting-a-bug) below. |
+
+## Reporting a bug
+
+1. Type `/cm debug on` and reproduce the bug.
+2. Type `/cm diagnostics`.
+3. If the debug window isn't open, open it with `/cm debug`. Press **Copy**, copy the entire output, and include it with your bug report.
+
+The report is added after the debug trace in the same window, so one copy carries both.
 
 ## Issues and feature requests
 
