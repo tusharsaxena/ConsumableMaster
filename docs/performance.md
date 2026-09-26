@@ -149,6 +149,31 @@ What it *does* assert is the deterministic half, which is machine-independent:
 Timings are printed for orientation only. Read them as ratios between scenarios in one run, never
 as absolute numbers to compare across machines.
 
+### The `recompute` byte figure is a residue, not an allocation
+
+`recompute` has no ceiling and no assertion, and its byte column should not be read as what a pass
+allocates. A pass allocates about **226.6 KB** under the mock, so the 200-iteration loop allocates
+about 45 MB and the collector runs many cycles inside it. `measure` reports the heap growth between
+the two `collectgarbage("count")` reads, which is the garbage the collector has *not* reclaimed when
+the loop ends. That depends on where the loop stops in the collector's cycle, and the cycle's pacing
+depends on the live heap the rest of the addon holds. Loading more code anywhere therefore moves the
+figure, whatever the recompute itself does.
+
+**The 2026-09-26 sweep (ATS-01) found this case.** Run `20260926-160431` recorded `recompute` at
+**6505.88 → 14740.12** bytes/iter (+126.6%) over `f8729fa..bc284a4`. A per-commit bisect with
+`tests/perf.lua` put the step at `b19e9bb` (DR-CM-03, the diagnostics report): 3031.9 → 16751.3.
+That commit adds `core/Diagnostics.lua` and does not touch the recompute path. Two checks show the
+step is a measurement effect:
+
+* **The true allocation did not move.** With the collector stopped around the same 200-pass loop,
+  a pass allocated 226614.5 bytes at `f8729fa`, 226614.5 at `986c51f`, 226613.8 at `b19e9bb` and
+  226610.6 at `bc284a4`. Over those commits the live heap grew from 2408 KB to 2528 KB.
+* **The step goes away without the file.** At `b19e9bb` with `core/Diagnostics.lua` removed from the
+  TOC, `recompute` read 2619.9, on two runs out of two. The recompute never calls that file.
+
+There was no avoidable allocation to remove. For a real change in what a recompute allocates, measure
+with the collector stopped as above rather than reading this column.
+
 ## The exemption does not apply here
 
 `performance-§12` lets an addon with no combat path decline the harness. ConsumableMaster does not
