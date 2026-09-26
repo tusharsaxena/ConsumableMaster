@@ -537,7 +537,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (18)
+### test_macrobar_chrome.lua (22)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -557,6 +557,10 @@ badge and any count quoted in the docs must agree with it.
 - macrobar handle: the strip and the mark draw two distinct tooltips
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark holds its resting gray, because no click is wired here
+- macrobar handle: the X hides the bar through macroBar.enabled and says the way back
+- macrobar handle: the X's tooltip says what the click does and the way back
+- macrobar handle: the X widens the label's reserve by the close mark's frame
+- macrobar handle: in combat the X stores the flag and the bar hides at combat end
 
 ### test_macrobar_buttons.lua (8)
 
@@ -1313,7 +1317,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 85 |
-| test_macrobar_chrome.lua | 18 |
+| test_macrobar_chrome.lua | 22 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
 | test_macromanager.lua | 53 |
@@ -1342,4 +1346,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1108** |
+| **Total** | **1112** |

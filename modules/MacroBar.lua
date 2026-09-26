@@ -129,6 +129,18 @@ local function fadeTick(self, elapsed)
     if self:GetAlpha() ~= target then self:SetAlpha(target) end
 end
 
+-- The drag handle's close mark (X-01, X-02). It turns off the smallest thing the
+-- strip drags -- this bar -- through MB.SetEnabled, the same write as
+-- `/cm bar off` and the Macro Bar page's Enabled row. Never `profile.enabled`:
+-- that stops the macro writes the player's own action bars rely on. The lock
+-- and the position are untouched, so `/cm bar on` puts the bar back where it
+-- was, and in combat the hide waits for combat end like any other bar-off
+-- (MB.ApplyEnabled). A refused write says nothing here: nothing was hidden.
+local function closeBar()
+    if not MB.SetEnabled(false) then return end
+    KCM.Say(KCM.L["Macro bar hidden. /cm bar on brings it back."])
+end
+
 local function buildBar()
     local frame = CreateFrame("Frame", BAR_NAME, UIParent, "BackdropTemplate")
     frame:SetFrameStrata("MEDIUM")
@@ -190,6 +202,18 @@ local function buildBar()
             return not (not c or c.locked)
         end,
         onDragStop = savePosition,
+        -- The close mark, left of the help mark (Widgets 10.3). Its tooltip
+        -- carries the chat line's way back.
+        onClose      = closeBar,
+        closeIcon    = KCM.Icon and KCM.Icon("close") or nil,
+        closeTooltip = {
+            title  = KCM.L["Hide the macro bar"],
+            anchor = "ANCHOR_TOPRIGHT",
+            body   = {
+                KCM.L["Click to hide the macro bar. Its layout and position are kept."],
+                KCM.L["/cm bar on brings it back."],
+            },
+        },
         -- The STRIP's tooltip: titled for the addon, anchored above the strip.
         -- Its one body line is a FUNCTION rather than a string because it is
         -- read on every hover, and the lock can change between two hovers of the

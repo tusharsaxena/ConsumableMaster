@@ -23,8 +23,9 @@ files, which `tests/test_macrobar.lua` and its two peeled siblings
 `tests/test_macrobar_chrome.lua` for the chrome appliers) exercise headlessly. The `modules/`
 files are a thin apply pass whose behavior is otherwise validated in-game
 (see [smoke-tests.md](./smoke-tests.md)) — the one exception is the drag
-handle's two tooltips and its mark tint, which are plain Lua closures over the
-lock and are hovered headlessly in `tests/test_macrobar_chrome.lua`.
+handle's two tooltips, its mark tint and its close mark, which are plain Lua
+closures over the lock and the `macroBar.enabled` write, hovered and clicked
+headlessly in `tests/test_macrobar_chrome.lua`.
 
 `core/MacroDisplay.lua` is also used by `modules/KCMMacroDragIcon.lua` — the
 per-category drag icon in the settings panel — so icon/tooltip resolution can't
@@ -361,6 +362,19 @@ wide — prose long enough to explain both gestures would either clip or force t
 handle wider than the bar it labels, while a 14px icon costs the same at every
 width. The handle's own tooltip stays a single line, so hovering it to drag
 doesn't dump a wall of text.
+
+Left of the help icon sits a **close mark** (an X, the widget's `onClose`,
+LibKa0s-Widgets 10.3). Clicking it hides the bar: it writes `macroBar.enabled =
+false` through `MB.SetEnabled`, the same write as `/cm bar off` and the Macro
+Bar page's Enabled row, so the `[Set]` trace, the row's `onChange` and an open
+page all follow. It never touches `profile.enabled` (that would stop the macro
+writes the player's action bars rely on), the lock or the position, so
+`/cm bar on` brings the bar back where it was. Chat says so in one line, `Macro
+bar hidden. /cm bar on brings it back.`, and the X's own tooltip ends with the
+same way back. In combat the flag is written at once and the hide waits for
+`PLAYER_REGEN_ENABLED`, like any other bar-off. The mark widens the strip: the
+widget reserves its frame on both sides of the label, so the label stays
+centered.
 
 ## Defaults & the v2 / v3 migrations
 
