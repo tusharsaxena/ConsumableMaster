@@ -116,7 +116,7 @@ Every section runs under its own `pcall`, and so does each category's block, so 
 - No `Selector.PickBestForCategory` / `PickBestForSlot`. Their level gate asks `TooltipCache.IsUsableByPlayer` about entries that may still be pending. The pick is read from `macroState`, as the macro wrote it.
 - No `Selector.GetBucket` for a spec that has no bucket yet, because that call creates one in the profile. That category is ranked from its seed list instead, which is what `GetEffectivePriority` returns for an empty bucket.
 - No cooldown numbers. They are secret in combat and a bug report does not need them.
-- No protected API, so the report is safe in combat. Every value goes through `SafeToString`, every format is `%s`-only, and every number that could be secret (the macro counts, the macro index, scores, bag counts) is tested with `out:readable` before any arithmetic or comparison. A value it cannot read prints as `unreadable` or `<secret>` instead of raising.
+- No protected API, so the report is safe in combat. Every value goes through `SafeToString`, every line's format is `%s`-only, and every number that could be secret (the macro counts, the macro index, scores, bag counts) is tested with `out:readable` before any arithmetic or comparison. The one numeric format, a score's `%.1f`, runs only after that test passes. A value it cannot read prints as `unreadable` or `<secret>` instead of raising.
 
 Nothing is redacted, because players send the report to the maintainer privately. Color, texture and hyperlink escapes are stripped so the Copy text is clean. The body is English diagnostic text and does not go through `KCM.L`, like every trace line; only the chat line after it is localizable.
 

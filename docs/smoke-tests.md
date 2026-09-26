@@ -778,7 +778,7 @@ Rename it back and `/reload`.
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
-| The diagnostics report (`core/Diagnostics.lua`, the `diagnostics` row or the `debug` handler in `settings/Slash.lua`, the read-only accessors it calls) | §7d in full, plus §7b step 6 |
+| The diagnostics report (`core/Diagnostics.lua`, the `diagnostics` row or the `debug` handler in `settings/Slash.lua`, the read-only accessors it calls) | §7d in full, plus step 6 of §7b (the debug console one) |
 | The stored color codec — `KCM.ColorDecode`, `Helpers.ColorDecode`, either `colorDecode` descriptor field, or `KCM.FormatSchemaValue`'s color arm | [LibKa0s seam pass](#libka0s-seam-pass) step 20 — both surfaces, and the absent-channel case in its step 4 |
 | `reset` / `resetall` semantics, or anything touching the confirm popup | §7 step 10 **and** 10a — the button and the slash verb reach the same popup, and both paths have to keep it |
 | Composite category change | §4 + §10 |
