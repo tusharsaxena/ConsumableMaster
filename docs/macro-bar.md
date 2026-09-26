@@ -18,8 +18,10 @@ control-by-control page reference is [settings-panel.md](./settings-panel.md).
 | [`settings/MacroBar.lua`](../settings/MacroBar.lua) | yes | the Macro Bar page + every `macroBar.*` schema row |
 
 The split is deliberate: all the logic worth testing is in the three `core/`
-files, which `tests/test_macrobar.lua` and its two peeled siblings
+files, which `tests/test_macrobar.lua` and its peeled siblings
 (`tests/test_macrobar_layout.lua` for `core/MacroBarLayout.lua`'s geometry,
+`tests/test_macrobar_display.lua` for `core/MacroDisplay.lua` and the cooldown application,
+`tests/test_macrobar_flyout.lua` for the flyout's candidate list and click gating,
 `tests/test_macrobar_chrome.lua` for the chrome appliers) exercise headlessly. The `modules/`
 files are a thin apply pass whose behavior is otherwise validated in-game
 (see [smoke-tests.md](./smoke-tests.md)) — the one exception is the drag

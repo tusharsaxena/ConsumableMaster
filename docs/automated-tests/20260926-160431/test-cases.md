@@ -449,7 +449,7 @@ badge and any count quoted in the docs must agree with it.
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
 
-### test_macrobar.lua (35)
+### test_macrobar.lua (85)
 
 - macrobar model: AllKeys covers every managed category
 - macrobar model: NormalizeOrder leaves a complete order untouched
@@ -468,6 +468,37 @@ badge and any count quoted in the docs must agree with it.
 - macrobar model: the shipped default order needs no repair
 - macrobar model: Order repairs a damaged saved order on read, and writes nothing
 - macrobar model: Visible reflects the shown map over the saved order
+- macrodisplay: an unwritten macro falls back to the cooking-pot icon
+- macrodisplay: an item pick resolves to the item's icon and count
+- macrodisplay: a spell pick resolves to the spell icon and has no count
+- macrodisplay: item and spell cooldowns both report active plus a span
+- macrodisplay: an empty-state macro reports no pick, count or cooldown
+- macrodisplay: SetTooltip points at the spell a spell pick resolves to
+- macrodisplay: SetTooltip points at the item an item pick resolves to
+- macrodisplay: SetTooltip falls back to the macro name and body when unresolved
+- macrodisplay: SetTooltip with no such macro shows just the name
+- macrodisplay: SetTooltip does nothing without an owner
+- macrodisplay: an AIO tooltip out of combat shows its out-of-combat spell, not the macro text
+- macrodisplay: an AIO tooltip in combat shows the first in-combat step
+- macrodisplay: an AIO tooltip skips a disabled or pickless step, as the body does
+- macrodisplay: an AIO tooltip with nothing on the current side still falls back to the macro
+- macrodisplay: Pickup puts the macro on the cursor out of combat
+- macrodisplay: Pickup refuses in combat instead of calling the protected API
+- macrodisplay: Pickup on a macro that does not exist is a silent no-op
+- macrobar cooldowns: an active cooldown paints from the duration object
+- macrobar cooldowns: an inactive cooldown clears the swipe
+- macrobar cooldowns: a client without duration objects falls back to numbers
+- macrobar cooldowns: restricted cooldowns are never compared or set as numbers
+- macrobar cooldowns: a restricted spell still reports whether it is running
+- macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration
+- macrobar cooldowns: showGCD true never suppresses and always shows the swipe
+- macrobar cooldowns: no duration object skips suppression without erroring
+- macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
+- macrobar cooldowns: the GCD-suppress curve is built once and reused
+- macrobar cooldowns: showGCD false disables the completion bling
+- macrobar cooldowns: showGCD true enables the completion bling
+- macrobar cooldowns: the inactive path still applies the correct bling state
+- macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 - macrobar schema: every macroBar row validates and resolves against the db
 - macrobar schema: locking and unlocking reaches the bar frame, whichever surface asked
 - macrobar: the drag handle does not move a locked bar
@@ -477,6 +508,25 @@ badge and any count quoted in the docs must agree with it.
 - macrobar schema: the default slot order matches the Macros tab order
 - macrobar schema: border rows are populated from LibSharedMedia
 - macrobar schema: LSMValues never hands back an empty list
+- macrobar flyout: candidates come back in rank order, best first
+- macrobar flyout: invert reverses the order without dropping anything
+- macrobar flyout: the list is capped to flyoutMax, keeping the top ranks
+- macrobar flyout: the cap is bounded by the pool ceiling, not just the setting
+- macrobar flyout: it ships on, opening upward, closing after 3s
+- macrobar flyout: auto-close is configurable and 0 means never
+- macrobar flyout: Create wires the secure frames without erroring
+- macrobar click: a bar slot fires on mouse-up even with ActionButtonUseKeyDown on
+- macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on
+- macrobar flyout: ApplyBackdrop paints the panel child, not the container
+- macrobar flyout: leaving hands off to the countdown, and says so securely
+- macrobar flyout: combat state is driven into the snippet, not polled
+- macrobar flyout: an entry's border follows buttonBorder through the bar's own applier
+- macrobar flyout: the idle clock resets while the mouse is on the strip
+- macrobar flyout: hovering the band alone also holds the flyout open
+- macrobar flyout: the idle clock stands down in combat
+- macrobar flyout: an auto-close of 0 never closes on idle
+- macrobar flyout: Close hides the strip and stands down in combat
+- macrobar flyout: Close tolerates a nil flyout
 - macrobar schema: the bar publishes its own bus message
 - macrobar master: Master scale and Master alpha MULTIPLY the bar's own
 - macrobar master: General visibility is INTERSECTED with the bar's combat mode
@@ -564,62 +614,6 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: a label on a different edge is left alone
 - macrobar flyout: no clearance when the flyout is off or the label is outside
 - macrobar flyout: clearance scales with the band thickness
-
-### test_macrobar_display.lua (31)
-
-- macrodisplay: an unwritten macro falls back to the cooking-pot icon
-- macrodisplay: an item pick resolves to the item's icon and count
-- macrodisplay: a spell pick resolves to the spell icon and has no count
-- macrodisplay: item and spell cooldowns both report active plus a span
-- macrodisplay: an empty-state macro reports no pick, count or cooldown
-- macrodisplay: SetTooltip points at the spell a spell pick resolves to
-- macrodisplay: SetTooltip points at the item an item pick resolves to
-- macrodisplay: SetTooltip falls back to the macro name and body when unresolved
-- macrodisplay: SetTooltip with no such macro shows just the name
-- macrodisplay: SetTooltip does nothing without an owner
-- macrodisplay: an AIO tooltip out of combat shows its out-of-combat spell, not the macro text
-- macrodisplay: an AIO tooltip in combat shows the first in-combat step
-- macrodisplay: an AIO tooltip skips a disabled or pickless step, as the body does
-- macrodisplay: an AIO tooltip with nothing on the current side still falls back to the macro
-- macrodisplay: Pickup puts the macro on the cursor out of combat
-- macrodisplay: Pickup refuses in combat instead of calling the protected API
-- macrodisplay: Pickup on a macro that does not exist is a silent no-op
-- macrobar cooldowns: an active cooldown paints from the duration object
-- macrobar cooldowns: an inactive cooldown clears the swipe
-- macrobar cooldowns: a client without duration objects falls back to numbers
-- macrobar cooldowns: restricted cooldowns are never compared or set as numbers
-- macrobar cooldowns: a restricted spell still reports whether it is running
-- macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration
-- macrobar cooldowns: showGCD true never suppresses and always shows the swipe
-- macrobar cooldowns: no duration object skips suppression without erroring
-- macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
-- macrobar cooldowns: the GCD-suppress curve is built once and reused
-- macrobar cooldowns: showGCD false disables the completion bling
-- macrobar cooldowns: showGCD true enables the completion bling
-- macrobar cooldowns: the inactive path still applies the correct bling state
-- macrobar cooldowns: a frame lacking SetDrawBling degrades without error
-
-### test_macrobar_flyout.lua (19)
-
-- macrobar flyout: candidates come back in rank order, best first
-- macrobar flyout: invert reverses the order without dropping anything
-- macrobar flyout: the list is capped to flyoutMax, keeping the top ranks
-- macrobar flyout: the cap is bounded by the pool ceiling, not just the setting
-- macrobar flyout: it ships on, opening upward, closing after 3s
-- macrobar flyout: auto-close is configurable and 0 means never
-- macrobar flyout: Create wires the secure frames without erroring
-- macrobar click: a bar slot fires on mouse-up even with ActionButtonUseKeyDown on
-- macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on
-- macrobar flyout: ApplyBackdrop paints the panel child, not the container
-- macrobar flyout: leaving hands off to the countdown, and says so securely
-- macrobar flyout: combat state is driven into the snippet, not polled
-- macrobar flyout: an entry's border follows buttonBorder through the bar's own applier
-- macrobar flyout: the idle clock resets while the mouse is on the strip
-- macrobar flyout: hovering the band alone also holds the flyout open
-- macrobar flyout: the idle clock stands down in combat
-- macrobar flyout: an auto-close of 0 never closes on idle
-- macrobar flyout: Close hides the strip and stands down in combat
-- macrobar flyout: Close tolerates a nil flyout
 
 ### test_macromanager.lua (53)
 
@@ -935,7 +929,7 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_settingsui.lua (28)
+### test_settingsui.lua (42)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -961,13 +955,6 @@ badge and any count quoted in the docs must agree with it.
 - Settings: the Macro Bar page keeps its eight tabs in order
 - Settings: every Macro Bar tab draws exactly its group's schema rows
 - Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
-- Settings UI: a first-open refresh burst arms one timer, not one per call
-- Settings UI: the rebuild waits out the quiet window before it lands
-- Settings UI: a storm that never goes quiet still rebuilds at the max wait
-- Settings UI: a timer that fires early rebuilds instead of re-arming forever
-
-### test_settingsui_category.lua (14)
-
 - Settings: the category reset popup restores a composite's AIO fields from defaults
 - Settings: the category reset popup clears added/blocked/pins but keeps discovered
 - Settings: the category reset popup is inert with no payload and on an unknown category
@@ -979,6 +966,10 @@ badge and any count quoted in the docs must agree with it.
 - Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets
 - Settings: a priority row's Remove button still calls Selector.Block
 - Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line
+- Settings UI: a first-open refresh burst arms one timer, not one per call
+- Settings UI: the rebuild waits out the quiet window before it lands
+- Settings UI: a storm that never goes quiet still rebuilds at the max wait
+- Settings UI: a timer that fires early rebuilds instead of re-arming forever
 - Settings: the Stat Priority Defaults button drops only the viewed spec's override
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
@@ -1007,7 +998,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (88)
+### test_slash.lua (113)
 
 - /cm set toggles a bool setting through the schema
 - /cm disable prints exactly one line, the enabled echo
@@ -1097,24 +1088,6 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a plain number row still clamps to min/max
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
-
-### test_slash_degraded.lua (12)
-
-- Slash: the library-absent line is WS-02's sentence, through the locale
-- Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
-- Slash: with LibKa0s absent, /cm disable prints the library-absent line and writes nothing
-- Slash: with LibKa0s absent, /cm lock prints the library-absent line and writes nothing
-- Slash: with LibKa0s absent, /cm unlock prints the library-absent line and writes nothing
-- Slash: with LibKa0s absent, /cm bar lock prints the library-absent line and writes nothing
-- Slash: with LibKa0s absent, /cm bar unlock prints the library-absent line and writes nothing
-- Slash: with LibKa0s absent, /cm bar on lands on the hand-declared row and says so once
-- Slash: with LibKa0s absent, /cm bar off lands on the hand-declared row and says so once
-- Slash: with LibKa0s absent, /cm bar lands on the hand-declared row and says so once
-- Slash: /cm bar on over a refused write never says ON
-- Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
-
-### test_slash_store.lua (25)
-
 - /cm stat primary, secondary and reset leave exactly the stored map they always did
 - /cm aio toggle, down and reset leave exactly the stored sections they always did
 - /cm get and list render the list-shaped rows as text, never a table address
@@ -1140,6 +1113,21 @@ badge and any count quoted in the docs must agree with it.
 - Slash: every verb outside the live set refuses while disabled, and every live one answers
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
+
+### test_slash_degraded.lua (12)
+
+- Slash: the library-absent line is WS-02's sentence, through the locale
+- Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm disable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar on lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar off lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar lands on the hand-declared row and says so once
+- Slash: /cm bar on over a refused write never says ON
+- Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
 
 ### test_slashsetup.lua (19)
 
@@ -1328,12 +1316,10 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
-| test_macrobar.lua | 35 |
+| test_macrobar.lua | 85 |
 | test_macrobar_chrome.lua | 22 |
 | test_macrobar_buttons.lua | 8 |
 | test_macrobar_layout.lua | 39 |
-| test_macrobar_display.lua | 31 |
-| test_macrobar_flyout.lua | 19 |
 | test_macromanager.lua | 53 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -1345,12 +1331,10 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
-| test_settingsui.lua | 28 |
-| test_settingsui_category.lua | 14 |
+| test_settingsui.lua | 42 |
 | test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 88 |
+| test_slash.lua | 113 |
 | test_slash_degraded.lua | 12 |
-| test_slash_store.lua | 25 |
 | test_slashsetup.lua | 19 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |

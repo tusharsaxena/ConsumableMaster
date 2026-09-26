@@ -539,7 +539,7 @@ end
 --                                                                  rows included as of v1.26.0
 --
 -- The array is told apart by its first element being a table carrying `value`,
--- exactly as `enumList` (libs/LibKa0s/OptionsWidgets.lua:78-79) tells them apart;
+-- exactly as `enumList` (libs/LibKa0s/OptionsWidgets.lua:105-109) tells them apart;
 -- nothing else a row declares can look like that.
 --
 -- WHY THIS IS NOT COSMETIC. `validateString` below reads this list and

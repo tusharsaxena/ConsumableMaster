@@ -397,8 +397,8 @@ against any file in it.
 git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -rn
 ```
 
-and re-measured 2026-09-24 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
-`layoutcap:` cases; the largest authored files are `tests/test_slash.lua` and `tests/test_macrobar.lua`, at 1425 lines each.
+and re-measured 2026-09-26 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
+`layoutcap:` cases; the largest authored file is `settings/MacroBar.lua`, at 1169 lines.
 
 | File | Lines | Disposition |
 |---|---|---|
@@ -411,10 +411,12 @@ emptied look identical on the page and are not the same claim. Rows alongside th
 too. The section itself stays whether or not there is a breach — it is where the rule is written
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-09-24):
-`tests/test_slash.lua` (1425), `tests/test_macrobar.lua` (1425), `tests/test_settingsui.lua` (1419),
+**The 1000–1500 band is on notice, not in breach** (measured 2026-09-26):
 `settings/MacroBar.lua` (1169), `settings/Panel.lua` (1166), `settings/Category.lua` (1142),
-`tests/test_schema.lua` (1023) and `tests/test_selector.lua` (1009). They are named here so a later
+`tests/test_schema.lua` (1023) and `tests/test_selector.lua` (1009). The three test suites that
+led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
+`tests/test_settingsui.lua` (1440) — were peeled below 1000 on 2026-09-26 (see
+[module-map.md → Peel history](./module-map.md#peel-history)). They are named here so a later
 reader can tell the band was looked at rather than missed; none needs a disposition until it
 crosses, with two exceptions. `settings/Panel.lua` and `settings/Category.lua` were carried as
 Accepted on the automated-test watch list at 1.6.0, 1.6.1 and 1.6.2, and `automated-tests-§4`

@@ -91,7 +91,7 @@ Object keys are emitted in sorted order so two records diff cleanly.
   subtraction would report the whole frame time as the addon's cost.
 - **`buckets[*].totalMs`** is Lua execution time only.
 - **`interface`** is the **client's** interface version — `GetBuildInfo`'s fourth return, not the
-  addon's `## Interface` TOC line (`libs/LibKa0s/Perf.lua:163-179`). Earlier notes here said both of
+  addon's `## Interface` TOC line (`libs/LibKa0s/Perf.lua:176-191`). Earlier notes here said both of
   the wrong things about it in turn: first that it always reads `0` (true only of records emitted
   before the library stopped asking `GetAddOnMetadata`, which never served the field), then that it
   stamps the TOC. The 20260909-015018 record settles it — the record reads `120100` while the TOC

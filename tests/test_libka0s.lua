@@ -62,7 +62,12 @@ local MAJORS = {
         -- below reads it as a file registering under a major it does not own.
         -- OptionsNav joined at LibKa0s v1.61.0 the same way: the nav rail (O.NavRail), its own
         -- MODULES row, and a paired minor and shell.
-        files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav" },
+        -- LibKa0s v1.62.0 peeled four more attach files out of three that had outgrown the
+        -- 1500-line cap: OptionsRegistry (out of Options), OptionsIds and OptionsIdList (out of
+        -- OptionsWidgets) and OptionsCombat (out of OptionsTabs). No member moved, each with its
+        -- own MODULES row and a paired minor and shell.
+        files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
+                  "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -70,6 +75,10 @@ local MAJORS = {
             { file = "OptionsScroll",  minor = "__scrollMinor",  shell = "__scrollShellMinor" },
             { file = "OptionsCompose", minor = "__composeMinor", shell = "__composeShellMinor" },
             { file = "OptionsNav",     minor = "__navMinor",     shell = "__navShellMinor" },
+            { file = "OptionsRegistry", minor = "__registryMinor", shell = "__registryShellMinor" },
+            { file = "OptionsIds",      minor = "__idsMinor",      shell = "__idsShellMinor" },
+            { file = "OptionsIdList",   minor = "__idListMinor",   shell = "__idListShellMinor" },
+            { file = "OptionsCombat",   minor = "__combatMinor",   shell = "__combatShellMinor" },
         },
     },
     {

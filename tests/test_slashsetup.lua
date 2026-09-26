@@ -1,6 +1,7 @@
 -- test_slashsetup.lua — the addon's half of LibKa0s-Slash-1.0.
 --
--- tests/test_slash.lua drives all 15 verbs through KCM:OnSlashCommand and reads
+-- tests/test_slash.lua (with tests/test_slash_store.lua, peeled from it) drives
+-- all 15 verbs through KCM:OnSlashCommand and reads
 -- the emitted chat, and every one of those cases is deliberately left alone:
 -- they were written against the host dispatcher and they are the oracle for the
 -- swap. What this suite adds is the part they cannot see — that the dispatch is

@@ -680,7 +680,21 @@ cases it did before — the total did not move by one. (It has moved since, for 
 | `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
 | | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (options-ui-§13 strips, options-ui-§18 reorder lists, options-ui-§13 wrapped-strip geometry) |
 
-Two of the cuts moved off the line numbers the issues recorded, because both files grew after the
+**The three band-leading suites were peeled on 2026-09-26** (CM-ATS-02, the automated-tests sweep's
+ATS-14), each below 1000 on sections the file already drew, and again every case moved whole: the
+harness registered 1112 cases before and 1112 after, with the same names.
+
+| Was | Is now |
+|---|---|
+| `tests/test_slash.lua` (1426, 113 cases) | `tests/test_slash.lua` (940, 88) — the dispatcher and each namespace's parsing and replies |
+| | `tests/test_slash_store.lua` (525, 25) — the verbs held to the store they leave: the #35 `/cm stat` and `/cm aio` characterization, the list-shaped rows, `/cm lock`/`unlock`, `/cm enable`/`disable` and the disabled refusal |
+| `tests/test_macrobar.lua` (1425, 85 cases) | `tests/test_macrobar.lua` (713, 35) — model, schema rows, master controls, the Defaults button, the #35 slot-order writers |
+| | `tests/test_macrobar_display.lua` (418, 31) — display resolution and the slot tooltip, Pickup, cooldown application and GCD-swipe suppression |
+| | `tests/test_macrobar_flyout.lua` (331, 19) — the flyout's candidate list, click gating and its hover, idle-clock and combat hand-offs |
+| `tests/test_settingsui.lua` (1440, 42 cases) | `tests/test_settingsui.lua` (972, 28) — this addon's own settings wiring, the page strips and the refresh debounce |
+| | `tests/test_settingsui_category.lua` (488, 14) — the category reset popup, the Add-by-ID line and the #35 Stat Priority and composite writers |
+
+Two of the #32/#33 cuts moved off the line numbers the issues recorded, because both files grew after the
 issues were written. The macro bar's chrome block also had to take the three `options-ui-§15/options-ui-§16/options-ui-§17`
 cases that arrived after it, which use its `styleButton`/`firstCall` fixtures; the settings suite's
 cut is a middle slice rather than a tail, because two later blocks (the refresh debounce and the #35
