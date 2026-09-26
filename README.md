@@ -143,6 +143,7 @@ Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsa
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.7.0 | 2026-09-27 | - New Profiles page: create, switch, copy, reset and delete profiles, and every setting follows the active profile<br>- Minimap button, also shown in broker displays: left-click opens the settings, right-click offers Enabled and Locked. New `/cm enable` and `/cm disable`, and a bare `/cm` now opens the settings<br>- `/cm diagnostics` writes a snapshot for bug reports to the debug console<br>- Add by ID accepts an ID, a link or a name, suggests IDs as you type, and finds items by name even when they aren't in your bags<br>- Macro bar: an X on the unlocked drag handle hides the bar, and the Buttons tab is now a list you reorder by dragging |
 | 1.6.2 | 2026-09-11 | - Fixed the AIO Health and AIO Mana tooltips on the macro bar showing the macro's text instead of the item or spell it will use |
 | 1.6.1 | 2026-09-11 | - Fixed the macro bar and its flyouts doing nothing when clicked while WoW's "cast on key down" setting is on (the game's default) |
 | 1.6.0 | 2026-09-10 | - **Maintenance** has its own tab on the General page again<br>- Fixed a refresh burst arming about a hundred and fifty timers to perform one rebuild<br>- Category registration is now refused in combat and replayed when combat ends, instead of tainting<br>- Fixed the info glyph lighting up a whole panel; it now matches Loot History's<br>- Updated for game patch 12.1.0 |
