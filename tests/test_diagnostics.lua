@@ -77,8 +77,8 @@ end
 -- ---------------------------------------------------------------------------
 
 local SECTIONS = {
-    "state", "settings", "spec", "categories", "weapon enchant", "macros",
-    "macro bar", "tooltip cache", "bags", "events",
+    "state", "settings", "spec", "tooltip cache", "categories", "weapon enchant",
+    "macros", "macro bar", "bags", "events",
 }
 
 test("Diagnostics: the DX-CM sections are supplied in order, and every one runs", function(t)
@@ -91,8 +91,8 @@ test("Diagnostics: the DX-CM sections are supplied in order, and every one runs"
     t.eq(#failedLines(lines), 0, "no section failed: " .. table.concat(failedLines(lines), " | "))
     -- One tag per section, so a paste reads as blocks. Order is the section order.
     local at = 0
-    for _, tag in ipairs({ "[State]", "[Set]", "[Spec]", "[Cat]", "[Wpn]", "[Macro]", "[Bar]",
-                           "[Tip]", "[Bags]", "[Events]" }) do
+    for _, tag in ipairs({ "[State]", "[Set]", "[Spec]", "[Tip]", "[Cat]", "[Wpn]", "[Macro]",
+                           "[Bar]", "[Bags]", "[Events]" }) do
         local i = find(lines, tag, at + 1)
         t.truthy(i, tag .. " lines follow the section before")
         at = i or at
@@ -203,6 +203,32 @@ test("Diagnostics: the tooltip cache reports its pending ids from the snapshot",
     local lines = report(KCM)
     t.truthy(find(lines, "[Tip] tooltip cache: 3 entries, 2 pending, 0 unsupported"), "the counts")
     t.truthy(find(lines, "pending ids: 111, 222"), "the pending ids")
+end)
+
+-- Ranking a category scores its candidates, and Ranker.Score reads TooltipCache.Get,
+-- which re-fetches a pending entry and may resolve it. Snapshotted after that, the
+-- report would describe a cache it had just changed, and an item stranded at
+-- pending (the evidence a maintainer wants) could read as resolved.
+test("Diagnostics: the tooltip cache is snapshotted before any category is ranked", function(t)
+    local KCM = build()
+    local TC = KCM.TooltipCache
+    local order = {}
+    local realGet, realSnap = TC.Get, TC.Snapshot
+    TC.Get = function(...)
+        order[#order + 1] = "get"
+        return realGet(...)
+    end
+    TC.Snapshot = function(...)
+        order[#order + 1] = "snapshot"
+        return realSnap(...)
+    end
+    local lines = report(KCM)
+    t.eq(#failedLines(lines), 0, "no section failed")
+    -- red under: the tooltip cache section after categories, so Gets come first.
+    t.eq(order[1], "snapshot", "the snapshot is the report's first cache read")
+    local gets = 0
+    for _, what in ipairs(order) do if what == "get" then gets = gets + 1 end end
+    t.truthy(gets > 0, "and the categories did score through the cache: " .. gets .. " Get(s)")
 end)
 
 test("Diagnostics: the macro bar reports an apply deferred by combat, and where it is", function(t)

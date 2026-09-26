@@ -478,11 +478,14 @@ function Dx.Sections()
         { "state",          state },
         { "settings",       settings },
         { "spec",           spec },
+        -- Before categories: ranking scores every candidate through TooltipCache.Get,
+        -- which re-fetches a pending entry and may resolve it, so the cache is read
+        -- here first, as the player's session left it.
+        { "tooltip cache",  tooltipCache },
         { "categories",     categories },
         { "weapon enchant", weaponEnchant },
         { "macros",         macros },
         { "macro bar",      macroBar },
-        { "tooltip cache",  tooltipCache },
         { "bags",           bags },
         { "events",         events },
     }

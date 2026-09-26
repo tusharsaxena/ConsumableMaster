@@ -295,7 +295,7 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 10c: the perf harness takes its hold on this very latch
 - Disabled 10d: a profile that arrives disabled stands the addon down
 
-### test_diagnostics.lua (15)
+### test_diagnostics.lua (16)
 
 - Diagnostics: the DX-CM sections are supplied in order, and every one runs
 - Diagnostics: the descriptor names the brand and the sections
@@ -305,6 +305,7 @@ badge and any count quoted in the docs must agree with it.
 - Diagnostics: while stood down every section still runs and says so
 - Diagnostics: the combat queue, the oversize gate and the give-up record are reported
 - Diagnostics: the tooltip cache reports its pending ids from the snapshot
+- Diagnostics: the tooltip cache is snapshotted before any category is ranked
 - Diagnostics: the macro bar reports an apply deferred by combat, and where it is
 - Diagnostics: a category reports its top five of the priority, never the whole list
 - Diagnostics: a category reports the stored edits and the pick as written
@@ -1300,7 +1301,7 @@ badge and any count quoted in the docs must agree with it.
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 20 |
-| test_diagnostics.lua | 15 |
+| test_diagnostics.lua | 16 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 26 |
@@ -1341,4 +1342,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1107** |
+| **Total** | **1108** |
