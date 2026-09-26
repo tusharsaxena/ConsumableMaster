@@ -1,0 +1,1 @@
+fixed: tooltip cache section moved before categories (ranking's TooltipCache.Get could resolve pending entries before the snapshot) in 0dbf877; otherwise matches DX-CM, STD-02..07/19, rulings and section-4; gate 1108/0, luacheck 0/0, lizard clean
