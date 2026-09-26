@@ -225,8 +225,11 @@ one-way:
 
 `diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
 `debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the
-word is in this addon's array by hand. The verb itself is not declared yet; until it is, the entry
-changes nothing a player can see.
+word is in this addon's array by hand. It is live for the same reason `debug` is: the report reads
+state and writes nothing, and a disabled addon is exactly when a maintainer needs to see its state.
+Both forms answer while disabled. `/cm diagnostics` passes the gate because the word is on the list,
+and `/cm debug diagnostics` passes because `debug` is. `tests/test_disabled.lua` step 7e dispatches
+both. What the report prints is in [debug.md](./debug.md#the-diagnostics-report-cm-diagnostics).
 
 `dump` is this addon's fourteenth and it is a judgment rather than a quote from the rule.
 `core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and

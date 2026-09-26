@@ -290,6 +290,22 @@ Setup: `/reload`, then `/cm debug on` (arms capture) and `/cm debug` (opens the 
 3. **Scrollbar — always shown, inert when it fits.** With only a few lines (log not full), the thin right-edge scrollbar is **visible** but **inert** (thumb parked, no drag). Fill the log past one screen — the bar becomes **active**.
 4. **Two-way sync.** Mouse-wheel up/down over the log — the **thumb tracks** the scroll. Drag the **thumb** — the **log scrolls** to match. No flicker or runaway loop (the `_syncing` guard).
 5. **Thumb direction (the one thing to eyeball).** Thumb at **top = oldest** lines, thumb at **bottom = newest**. If it reads inverted, the `sliderValue ↔ offset` sign is flipped.
+6. **Fill past the cap.** Keep logging on and push the console past 3000 lines. `/cm resync` a few dozen times does it, and so do several `/cm diagnostics` runs. The counter climbs to **`3000 / 3000 lines`** and stays there, and the oldest lines drop off the top. Press **Copy**: the copy box opens with no noticeable hitch and holds the newest 3000 lines. A counter reading `1500` is a stale `libs/LibKa0s/` older than v1.60.0.
+
+### 7d. Debug console — the diagnostics report (`/cm diagnostics`)
+
+Tests: `debug-logging-§14`. What each section prints is in [debug.md](./debug.md#the-diagnostics-report-cm-diagnostics).
+
+1. **Append, and the trace stays.** `/cm debug on`, then `/cm resync` so the console holds some trace. `/cm diagnostics`. The report lands **below** the trace. It starts at `[Diag] ==== Ka0s Consumable Master diagnostics begin ====` and ends at `[Diag] ==== Ka0s Consumable Master diagnostics end: N line(s) ====`, and one chat line gives the line count and says to press Copy. Nothing above the begin marker was cleared.
+2. **Content.** Between the markers, in order: the identity header (`[Init]`, client build, locale, logging flag, the two combat reads, the running LibKa0s files), then `state`, `settings`, `spec`, `tooltip cache`, `categories` (one block per category, top five only), `weapon enchant`, `macros`, `macro bar`, `bags`, `events`. `enabled`, `macroBar.enabled`, `macroBar.locked` and `global.minimap.shown` print even at their defaults. No line reads `section <name> failed`.
+3. **Read-only.** Note a macro body and the bar's position, run the report, and check both again: nothing moved and no macro was rewritten. The priority lists on the Macros page are unchanged.
+4. **Logging off.** `/cm debug off`, then `/cm diagnostics`. The report lands in full. Afterwards the console header still reads red `Debug: OFF`, and the next `/cm resync` writes no `[Calc]` line.
+5. **Hidden console.** Close the console, then `/cm diagnostics`. The console opens with the report at the bottom.
+6. **The second form and the long alias.** `/cm debug diagnostics`, `/cm DEBUG Diagnostics`, `/consumablemaster diagnostics` and `/consumablemaster debug diagnostics` each write the same report.
+7. **No alias.** `/cm debug diag` and `/cm debug dump` just toggle the console window, like any other unknown `debug` word, and write no report. `/cm diag` gets `unknown command` and the index.
+8. **While disabled.** `/cm disable`, then `/cm diagnostics` and `/cm debug diagnostics`. Both write the full report, with no refusal line. The `state` line reads `enabled(stored)=no stood down=yes` and the bar section reads `bar hidden: the addon is stood down`. `/cm enable` afterwards.
+9. **In combat.** Pull a training dummy and run `/cm diagnostics` mid-fight. No Lua error; the identity header shows combat as `true`; a number the client will not give up prints as `unreadable` or `<secret>` instead of raising.
+10. **Copy is clean.** After step 1, press **Copy** and paste into a text editor. The paste has the trace, the begin marker and the end marker with the brand, and no `|c` escapes.
 
 ### 7b. Settings panel — the tab strips and the page banner
 
@@ -515,6 +531,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 3. `/cm config` — opens panel (covered in section 7).
 4. `/cm version` — prints the version.
 5. `/cm debug` — toggles debug; UI checkbox flips to match.
+5a. `/cm diagnostics` and `/cm debug diagnostics` — each writes the diagnostics report into the console (covered in section 7d).
 6. `/cm resync` / `/cm rewritemacros` / `/cm resetall` — covered in section 7. Also: a bare `/cm reset` prints the usage line naming `/cm resetall` and raises no popup; `/cm reset macroBar.orientation` echoes the row and moves nothing else.
 7. `/cm list` — schema rows grouped by panel: `enabled` under `[general]`, then the whole `macroBar.*` set under `[macrobar]`, then `[macros]` (each composite's flags and section orders, Battle Rez's mouseover) and `[statpriority]` (`statPriority`). No row renders as `table: 0x…`. (`debug` is deliberately absent — it's session-only `KCM.State`, never a schema row.)
 8. `/cm get enabled` / `/cm get macroBar.orientation` — single-row read.
@@ -537,7 +554,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 14b. **The rest of the surface is UNCHANGED while disabled** (`slash-commands-§7`, restored at
     v2.57.0 after a day narrowed). Still disabled, confirm each of these answers **normally**:
     `/cm help` (the full index, with the refusal line under the header — not instead of it),
-    `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm list`, `/cm get enabled`,
+    `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm diagnostics`, `/cm list`, `/cm get enabled`,
     `/cm set scale 1.1`, `/cm reset scale`, `/cm resetall`, `/cm dump categories`, and
     `/cm enable`, which must never refuse or the switch is one-way. **And the bare `/cm` opens the
     settings panel** — that is the case that settled the reversal, so a refusal there is the
@@ -761,6 +778,7 @@ Rename it back and `/reload`.
 | Panel refresh perf / Defaults button styling (options-ui-§5/§11, #39) | §7a |
 | Per-tab settings module | the corresponding section (7 / 8 / 9 / 10) |
 | Slash command (new verb) | §11 |
+| The diagnostics report (`core/Diagnostics.lua`, the `diagnostics` row or the `debug` handler in `settings/Slash.lua`, the read-only accessors it calls) | §7d in full, plus §7b step 6 |
 | The stored color codec — `KCM.ColorDecode`, `Helpers.ColorDecode`, either `colorDecode` descriptor field, or `KCM.FormatSchemaValue`'s color arm | [LibKa0s seam pass](#libka0s-seam-pass) step 20 — both surfaces, and the absent-channel case in its step 4 |
 | `reset` / `resetall` semantics, or anything touching the confirm popup | §7 step 10 **and** 10a — the button and the slash verb reach the same popup, and both paths have to keep it |
 | Composite category change | §4 + §10 |
