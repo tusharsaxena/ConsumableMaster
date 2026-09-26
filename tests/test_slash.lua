@@ -1361,9 +1361,10 @@ test("Slash: every verb outside the live set refuses while disabled, and every l
         local KCM, mock = load()
         -- slash-commands-§2's live set, verbatim, plus this addon's read-only
         -- `dump` -- a diagnostic like `debug` and `perf`, writing nothing.
+        -- `diagnostics` joined the set with Slash minor 16 (debug-logging-§14).
         local LIVE = {
             help = true, config = true, version = true, enable = true, disable = true,
-            debug = true, perf = true,
+            debug = true, perf = true, diagnostics = true,
             get = true, set = true, list = true, reset = true, resetall = true,
             dump = true,
         }

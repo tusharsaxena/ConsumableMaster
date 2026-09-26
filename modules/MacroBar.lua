@@ -486,6 +486,13 @@ function MB.FlushPending()
     return MB.Update()
 end
 
+-- Read-only, for the diagnostics report (debug-logging-§14, DX-CM): is an Update()
+-- waiting on combat end? The flag stays file-local so nothing but Update and
+-- FlushPending can move it.
+function MB.IsUpdatePending()
+    return pendingUpdate
+end
+
 -- ---------------------------------------------------------------------
 -- The two Bar-section flags: one write path, two apply halves
 -- ---------------------------------------------------------------------

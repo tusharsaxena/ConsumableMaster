@@ -272,7 +272,7 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
-### test_disabled.lua (19)
+### test_disabled.lua (20)
 
 - Disabled 1: enabled, the addon registers a non-empty set
 - Disabled 3: the registration set is EMPTY, by count and by name
@@ -284,6 +284,7 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 7: every reserved verb still answers normally
 - Disabled 7b: the bare /cm opens the settings panel
 - Disabled 7c: a feature verb refuses on exactly one line, and reaches no seam
+- Disabled 7e: both forms of the diagnostics report still write one while disabled
 - Disabled 7d: the refusal line is the collection's shape, not a re-spelling
 - Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing
 - Disabled 9: re-enabling rebuilds exactly the set it took down
@@ -293,6 +294,24 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 10b: the same, with the holds taken in the other order
 - Disabled 10c: the perf harness takes its hold on this very latch
 - Disabled 10d: a profile that arrives disabled stands the addon down
+
+### test_diagnostics.lua (15)
+
+- Diagnostics: the DX-CM sections are supplied in order, and every one runs
+- Diagnostics: the descriptor names the brand and the sections
+- Diagnostics: the always-print rows print at their defaults
+- Diagnostics: a changed setting prints as path = value (default)
+- Diagnostics: the report writes nothing and calls no setter, macro write or probe
+- Diagnostics: while stood down every section still runs and says so
+- Diagnostics: the combat queue, the oversize gate and the give-up record are reported
+- Diagnostics: the tooltip cache reports its pending ids from the snapshot
+- Diagnostics: the macro bar reports an apply deferred by combat, and where it is
+- Diagnostics: a category reports its top five of the priority, never the whole list
+- Diagnostics: a category reports the stored edits and the pick as written
+- Diagnostics: a secret macro count does not raise
+- Diagnostics: a raising section costs one line and the next still runs
+- Diagnostics: `debug diagnostics` runs the report before the window toggle
+- Diagnostics: `diagnostics` is a COMMANDS row right after `debug`
 
 ### test_envsetup.lua (5)
 
@@ -1105,7 +1124,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /cm bar on over a refused write never says ON
 - Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
 
-### test_slashsetup.lua (18)
+### test_slashsetup.lua (19)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -1120,6 +1139,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: /cm set keeps a multi-word font name whole
 - Slash: with the library absent every host-owned verb still dispatches
 - Slash: with the library absent only the five library-backed verbs degrade
+- Slash: with the library absent /cm diagnostics says the one line and floods nothing
 - Slash: /cm help degrades without latching, and an unknown verb still reports
 - Slash: with the library absent a bare /cm still runs config, every time
 - Slash: the degraded path keeps the library's parse — verb only is lowercased
@@ -1251,9 +1271,15 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
-### test_diagnostics_contract.lua (1)
+### test_diagnostics_contract.lua (7)
 
-- diagnostics contract: debug-logging-§14 (skipped: Kit.diagnostics is not set in the runner, so this repo's dispatcher is not wired to the shared contract yet. Every Ka0s addon owes debug-logging-§14's report; wire Kit.diagnostics once the report exists)
+- diagnostics contract: both forms run the report
+- diagnostics contract: the debug word is matched in any case
+- diagnostics contract: both markers carry the brand and the end counts the report
+- diagnostics contract: the report appends after what the console already holds
+- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: both forms run while the addon is disabled
+- diagnostics contract: no other name runs the report
 
 ## Totals
 
@@ -1273,7 +1299,8 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 21 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
-| test_disabled.lua | 19 |
+| test_disabled.lua | 20 |
+| test_diagnostics.lua | 15 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 26 |
@@ -1303,7 +1330,7 @@ badge and any count quoted in the docs must agree with it.
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 113 |
 | test_slash_degraded.lua | 12 |
-| test_slashsetup.lua | 18 |
+| test_slashsetup.lua | 19 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1313,5 +1340,5 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 1 |
-| **Total** | **1084** |
+| test_diagnostics_contract.lua | 7 |
+| **Total** | **1107** |

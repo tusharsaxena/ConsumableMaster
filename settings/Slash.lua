@@ -153,11 +153,13 @@ local ALIASES = { rewrite = "rewritemacros" }
 -- Every OTHER verb in COMMANDS is the host's own and keeps working, which is
 -- the whole point: this table exists so the degraded notice can name what is
 -- gone by reading COMMANDS rather than by repeating a hand-written list that a
--- new verb would silently fall out of. `perf` still DISPATCHES on the degraded
--- path — it answers "perf capture unavailable." itself — it is only kept off
--- the "these still work" half of the notice.
+-- new verb would silently fall out of. `perf` and `diagnostics` still DISPATCH
+-- on the degraded path — `perf` answers "perf capture unavailable." itself and
+-- `diagnostics` reaches core/DebugLogSetup.lua's stub, which says the report is
+-- unavailable — they are only kept off the "these still work" half of the notice.
 local LIB_BACKED_VERBS = {
     help = true, list = true, get = true, set = true, reset = true, perf = true,
+    diagnostics = true,
 }
 
 local COMMANDS = {
@@ -186,11 +188,17 @@ local COMMANDS = {
             end
             for _, line in ipairs(KCM.Perf.OnCommand(rest)) do say(line) end
         end},
-    {"debug",         "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`",
+    {"debug",         "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off|diagnostics]`",
         function(rest)
             local arg = (rest or ""):match("^(%S*)"):lower()
             local DL = KCM.DebugLog
-            if arg == "on" or arg == "off" then
+            -- `diagnostics` is tested FIRST, in any case, before on/off and before the
+            -- window toggle (debug-logging-§14). It is the report's one other spelling;
+            -- `diag`, `dump` and every other word fall through to the toggle below, as
+            -- any unknown word does. No short alias exists or may (slash-commands-§2).
+            if arg == "diagnostics" then
+                DL.RunDiagnostics()
+            elseif arg == "on" or arg == "off" then
                 -- DL.SetEnabled is the single seam: it owns the chat ack, the
                 -- console transition line, and the options-panel refresh (debug-logging-§5).
                 local want = (arg == "on")
@@ -210,6 +218,12 @@ local COMMANDS = {
                 end
             end
         end},
+    -- The diagnostics report (debug-logging-§14): appended to the debug console after
+    -- whatever trace is there, never gated on the logging flag, and on LIVE_VERBS below
+    -- so it answers while the addon is disabled. The sections are core/Diagnostics.lua's;
+    -- on a library-absent build core/DebugLogSetup.lua's stub says the report cannot run.
+    {"diagnostics",   "Write a diagnostics report to the debug console, for a bug report",
+        function() KCM.DebugLog.RunDiagnostics() end},
     {"resync",        "Force macros to resync from bags",
         function()
             if InCombatLockdown and InCombatLockdown() then
@@ -370,7 +384,7 @@ KCM.COMMANDS = COMMANDS
 -- LibKa0s-Slash-1.0 — the dispatcher
 -- ---------------------------------------------------------------------
 --
--- Everything above is this addon's: twenty-one verbs, five sub-command tables
+-- Everything above is this addon's: twenty-two verbs, five sub-command tables
 -- with three different handler arities, the dump targets, and the schema CLI.
 -- What the library takes is the part that is the same in every Ka0s addon —
 -- trim, split, lowercase the verb only, apply the alias, find the entry, call

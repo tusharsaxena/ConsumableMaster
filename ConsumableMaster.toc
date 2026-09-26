@@ -142,6 +142,10 @@ core\MacroBarLayout.lua
 # settings\Slash.lua (CM-47).
 core\SlashDump.lua
 core\SlashCommands.lua
+# The diagnostics report's sections (debug-logging-§14, DX-CM). Position is
+# conventional: core\DebugLogSetup.lua asks for them at RUN time, and every
+# module the sections read is reached through KCM when the report runs.
+core\Diagnostics.lua
 
 # Defaults
 # Profile.lua first: KCM.dbDefaults, the AceDB defaults tree and THE

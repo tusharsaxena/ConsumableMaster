@@ -198,6 +198,17 @@ local D = lib:New({
         return line
     end,
 
+    -- The diagnostics report (debug-logging-§14). `brandName` is the plain-text
+    -- `Ka0s <Name>` both report markers carry -- the same string settings/Slash.lua
+    -- hands LibKa0s-Slash-1.0 -- and NOT `title` above, which is the console's bare
+    -- window caption. `diagnostics` asks for the sections at RUN time, because
+    -- core/Diagnostics.lua loads after this file; an install where it failed to load
+    -- still writes the library's markers and identity header around no sections.
+    brandName   = "Ka0s Consumable Master",
+    diagnostics = function()
+        return KCM.Diagnostics and KCM.Diagnostics.Sections and KCM.Diagnostics.Sections() or {}
+    end,
+
     -- Fires on both OnShow and OnHide. Mandatory, not decorative: Escape and the
     -- × both hide the window WITHOUT going through the options checkbox's own
     -- set(), so without this the panel's [Debug console] row stays checked over
