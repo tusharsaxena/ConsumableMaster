@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260926-193121`](20260926-193121/) | `76bdd69` | clean | 1.6.2 | 0/0 | 126 | 1112/0/1112 | pass | 25689 | 2838 | 7.8 | 2.5 | 14 | 0 | **green** |
 | [`20260926-160431`](20260926-160431/) | `bc284a4` | clean | 1.6.2 | 0/0 | 122 | 1112/0/1112 | pass | 25645 | 2835 | 7.8 | 2.5 | 14 | 0 | **green** |
 | [`20260924-120622`](20260924-120622/) | `f8729fa` | clean | 1.6.2 | 0/0 | 119 | 1071/0/1071 | pass | 24468 | 2685 | 7.8 | 2.5 | 14 | 0 | **green** |
 | [`20260916-184427`](20260916-184427/) | unknown | unknown | 1.6.2 | 0/0 | 114 | 928/0/928 | pass | 22707 | 2396 | 8.0 | 2.6 | 15 | 0 | **green** |
@@ -51,17 +52,17 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 ## Test suite
 
 **1112 cases** — 1112 passed, 0 failed, 0 skipped. The generated inventory
-[`20260926-160431/test-cases.md`](20260926-160431/test-cases.md) is the authority on which cases existed at this run;
+[`20260926-193121/test-cases.md`](20260926-193121/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **1071 → 1112** since the previous run.
+Unchanged from the previous run at 1112 cases.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
 
 ## Lint
 
-**0 warnings / 0 errors over 122 files** (`luacheck .`).
+**0 warnings / 0 errors over 126 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 4 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -71,23 +72,23 @@ to whoever thinks to open `.luacheckrc`.
 ## Perf
 
 **5 scenarios** from `tests/perf.lua`; the measurements are in
-[`20260926-160431/perf.json`](20260926-160431/perf.json).
+[`20260926-193121/perf.json`](20260926-193121/perf.json).
 
 | `scenario` | `iters` | `ms/iter` | `total` | `ms` |
 |---|---|---|---|---|
-| `recompute` | 200 | 1.23204 | 246.408 | 14740.1 |
-| `cooldownRefresh` | 200 | 0.01945 | 3.889 | 6000.0 |
-| `probeOverheadOff` | 200 | 0.02433 | 4.865 | 6000.0 |
-| `probeOverheadOn` | 200 | 0.03345 | 6.690 | 6001.3 |
-| `refreshBurst` | 200 | 0.03274 | 6.547 | 0.0 |
+| `recompute` | 200 | 0.89579 | 179.157 | 13407.6 |
+| `cooldownRefresh` | 200 | 0.02721 | 5.442 | 6000.0 |
+| `probeOverheadOff` | 200 | 0.01828 | 3.656 | 6000.0 |
+| `probeOverheadOn` | 200 | 0.01882 | 3.765 | 6001.3 |
+| `refreshBurst` | 200 | 0.01677 | 3.353 | 0.0 |
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20260926-160431`](20260926-160431/) — **this run's measurement, not its diff.** Max CCN **14** across 2835
-functions, **0** of them warned on; 8 file(s) in the 1000–1500 band and 0 over the 1500 cap
+Current as of [`20260926-193121`](20260926-193121/) — **this run's measurement, not its diff.** Max CCN **14** across 2838
+functions, **0** of them warned on; 5 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
 Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
@@ -100,18 +101,17 @@ cell is this file saying something crossed and nobody has ruled on it yet.
 | Function | CCN | Location | Disposition |
 |---|---|---|---|
 
+None.
+
 ### Files by `layout-§1` band
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `settings/Category.lua` | 1142 | **Peel tracked as [#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)** — the composite (AIO) section editor (`renderComposite`, `renderCompositeSection`, `renderCompositeRow`, `renderCompositeLegend`) out to `settings/CategoryComposite.lua`, mirroring the `settings/CategoryAddByID.lua` peel. 1400 → **1142** since the previous run, almost all of it the Add-by-ID peel in `bfd48b2`, 673 NLOC across 66 functions at avg CCN 5.1, no warned function; `renderCompositeSection` is one of the eleven functions at the run's max of 14 and leaves with the peel. Three release runs of acceptance (1.6.0, 1.6.1, 1.6.2) were the `automated-tests-§4` limit, so this cell is the tracked issue, not a renewal. |
-| 1000–1500 (on notice) | `settings/MacroBar.lua` | 1169 | **Accepted — page breadth, not tangle; re-check at 1300.** 1166 → 1169 since the previous run. 798 NLOC across 42 functions at avg CCN 3.1, no warned function. First carried at [`20260916-094429`](20260916-094429/); no release run has carried it yet, so this is its first acceptance toward the three-release limit. |
-| 1000–1500 (on notice) | `settings/Panel.lua` | 1166 | **Peel tracked as [#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)** — the About page renderer (`readAddOnNotes`, `aboutLogo`, `aboutNotes`, `aboutSlashCommands`, `Helpers.BuildAboutContent`) out to `settings/About.lua`; the issue names the row-rule block as the follow-on seam. 1488 → **1166** since the previous run: the `bfd48b2` peel, the Schema-1.0 write seam (`01a5c94`) and the CreateOptionsPanel hand-off (`da5fc69`), 499 NLOC across 54 functions at avg CCN 3.4, no warned function; `Helpers.BuildAboutContent`, at 15 in the previous run, now reads CCN 1. Three release runs of acceptance (1.6.0, 1.6.1, 1.6.2) were the `automated-tests-§4` limit, so this cell is the tracked issue, not a renewal. |
-| 1000–1500 (on notice) | `tests/test_macrobar.lua` | 1425 | **Peeled by CM-ATS-02 (2026-09-26) to 713** — display and cooldowns out to `tests/test_macrobar_display.lua` (418), the flyout's candidate list and click gating out to `tests/test_macrobar_flyout.lua` (331); 85 cases → 35 + 31 + 19, the harness total unchanged at 1112. Leaves the band on the next run. |
-| 1000–1500 (on notice) | `tests/test_schema.lua` | 1023 | **Accepted — case count, not tangle; re-check at 1300.** 1023, unchanged since the previous run. 743 NLOC across 70 functions at avg CCN 2.1. |
-| 1000–1500 (on notice) | `tests/test_selector.lua` | 1009 | **Accepted — case count, not tangle; re-check at 1300.** 1011 → 1009 since the previous run. 711 NLOC across 66 functions at avg CCN 1.4. |
-| 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1419 | **Peeled by CM-ATS-02 (2026-09-26) to 972** — the category reset popup, the Add-by-ID line and the #35 Stat Priority and composite writers out to `tests/test_settingsui_category.lua` (488); 42 cases → 28 + 14, the harness total unchanged at 1112. Leaves the band on the next run. |
-| 1000–1500 (on notice) | `tests/test_slash.lua` | 1426 | **Peeled by CM-ATS-02 (2026-09-26) to 940** — the store-asserting verbs (#35 characterization, list-shaped rows, `/cm lock`/`unlock`, `/cm enable`/`disable`, the disabled refusal) out to `tests/test_slash_store.lua` (525); 113 cases → 88 + 25, the harness total unchanged at 1112. Leaves the band on the next run. |
+| 1000–1500 (on notice) | `settings/Category.lua` | 1142 | **Peel tracked as [#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)** — the composite (AIO) section editor (`renderComposite`, `renderCompositeSection`, `renderCompositeRow`, `renderCompositeLegend`) out to `settings/CategoryComposite.lua`, mirroring the `settings/CategoryAddByID.lua` peel. 1142, unchanged since [`20260926-160431`](20260926-160431/) (it came down from 1400 at [`20260924-120622`](20260924-120622/), almost all of it the Add-by-ID peel in `bfd48b2`); 673 NLOC across 66 functions at avg CCN 5.1, no warned function; `renderCompositeSection` (CCN 14) is one of the eleven functions at this run's max of 14 and leaves with the peel. Three release runs of acceptance (1.6.0, 1.6.1, 1.6.2) were the `automated-tests-§4` limit, so this cell is the tracked issue, not a renewal. |
+| 1000–1500 (on notice) | `settings/MacroBar.lua` | 1169 | **Accepted — page breadth, not tangle; re-check at 1300.** 1169, unchanged since [`20260926-160431`](20260926-160431/). 798 NLOC across 42 functions at avg CCN 3.1, no warned function. First carried at [`20260916-094429`](20260916-094429/); no release run has carried it yet, so this is its first acceptance toward the three-release limit. |
+| 1000–1500 (on notice) | `settings/Panel.lua` | 1166 | **Peel tracked as [#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)** — the About page renderer (`readAddOnNotes`, `aboutLogo`, `aboutNotes`, `aboutSlashCommands`, `Helpers.BuildAboutContent`) out to `settings/About.lua`; the issue names the row-rule block as the follow-on seam. 1166, unchanged since [`20260926-160431`](20260926-160431/) (it came down from 1488 at [`20260924-120622`](20260924-120622/): the `bfd48b2` peel, the Schema-1.0 write seam (`01a5c94`) and the CreateOptionsPanel hand-off (`da5fc69`)); 499 NLOC across 54 functions at avg CCN 3.4, no warned function; `Helpers.BuildAboutContent` reads CCN 1. Three release runs of acceptance (1.6.0, 1.6.1, 1.6.2) were the `automated-tests-§4` limit, so this cell is the tracked issue, not a renewal. |
+| 1000–1500 (on notice) | `tests/test_schema.lua` | 1023 | **Accepted — case count, not tangle; re-check at 1300.** 1023, unchanged since [`20260926-160431`](20260926-160431/). 743 NLOC across 70 functions at avg CCN 2.1. |
+| 1000–1500 (on notice) | `tests/test_selector.lua` | 1009 | **Accepted — case count, not tangle; re-check at 1300.** 1009, unchanged since [`20260926-160431`](20260926-160431/). 711 NLOC across 66 functions at avg CCN 1.4. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
