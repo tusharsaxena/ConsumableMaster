@@ -1,0 +1,1 @@
+fixed: sync-docs missed ARCHITECTURE.md's allRows cite (settings/Slash.lua:549 -> :563), corrected in 03d5ade DR-CM-07R; all other cites, AUD-01 claims and the gate (1112/0, luacheck 0/0, lizard clean) verified
