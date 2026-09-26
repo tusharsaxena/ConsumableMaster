@@ -1,0 +1,1 @@
+clean: NR-CM-01 matches its task and R18; libs/LibKa0s == v1.61.0 (c6183bd) byte for byte, CRLF kept; inventory case fails on master's test (LibKa0s-Options-1.0 reports OptionsNav) and the paired row is live (mutation fails the pairing case); gate 1112/0/0, luacheck 0/0, lizard -C 15 clean
