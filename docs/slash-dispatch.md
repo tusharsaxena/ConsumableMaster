@@ -252,7 +252,7 @@ in the list. A **typo** is a different case again and gets `unknown command '<ve
 — the gate sits after the `COMMANDS` lookup, so a verb the addon ships and is standing down from is
 refused, while a word it does not ship means the addon genuinely did not understand.
 
-The cases (`tests/test_slash.lua`) assert **both halves**, that the verb said so *and* that it did
+The cases (`tests/test_slash_store.lua`) assert **both halves**, that the verb said so *and* that it did
 not act, because a case reading only the chat line passes over a verb that printed the refusal and
 then did the thing anyway — which, given the silent no-op above, would look exactly like the bug. One
 of them sweeps every entry in `KCM.COMMANDS`, so a verb added tomorrow is covered on the day it is
