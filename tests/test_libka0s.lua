@@ -60,13 +60,16 @@ local MAJORS = {
         -- the peel is invisible to a caller -- but the file registers its own
         -- MODULES row, so the inventory here has to name it or the stray check
         -- below reads it as a file registering under a major it does not own.
-        files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose" },
+        -- OptionsNav joined at LibKa0s v1.61.0 the same way: the nav rail (O.NavRail), its own
+        -- MODULES row, and a paired minor and shell.
+        files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
             { file = "OptionsTabs",    minor = "__tabsMinor",    shell = "__tabsShellMinor" },
             { file = "OptionsScroll",  minor = "__scrollMinor",  shell = "__scrollShellMinor" },
             { file = "OptionsCompose", minor = "__composeMinor", shell = "__composeShellMinor" },
+            { file = "OptionsNav",     minor = "__navMinor",     shell = "__navShellMinor" },
         },
     },
     {
