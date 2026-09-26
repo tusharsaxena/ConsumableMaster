@@ -1,0 +1,1 @@
+fixed: STD-20 doc section accurate against the code apart from a '%s-only' claim (score uses %.1f after readable) and an ambiguous §7b ref; both corrected in DR-CM-05R 4fa7a0e; gate 1108/0, luacheck 0/0, lizard clean
