@@ -1,0 +1,1349 @@
+# Test Cases
+
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
+
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
+
+### test_addbyid.lua (19)
+
+- Add-by-ID: typing lists the category's candidates, every rank of a shared name its own row
+- Add-by-ID: a name the client cannot look up resolves through the category's candidates
+- Add-by-ID: picking a suggestion stores through Selector.AddItem exactly once
+- Add-by-ID: a shared name lists every rank, and Enter without a pick is refused
+- Add-by-ID: the tooltip and the refusals say where a name can come from
+- Add-by-ID: a spec-aware tab with no spec suggests nothing
+- Add-by-ID: a spec-aware tab with no spec promises no list and no name hint
+- Add-by-ID: onAdd re-checks existence, since a pick skips the resolver
+- Add-by-ID: the candidates are the Type's own kind, turned back from their stored shape
+- Add-by-ID: ranks the player carries are one shared name too, listed to pick from
+- Add-by-ID: changing Type keeps what was typed across the redraw
+- Add-by-ID: a debounced page rebuild waits while the box is in use
+- Add-by-ID: a crafted potion's rows show each rank's tier icon, its name in quality color
+- Add-by-ID: a picked row is asked of this addon's resolver, which can refuse it
+- Add-by-ID: under Spell the rows show the spell's subtext, and a pick stores the sentinel
+- Add-by-ID: changing Type redraws the line, so its list is the new kind's
+- Add-by-ID: adding a spell the selector can never pick says so; an item says nothing
+- Add-by-ID: a spell the class gate opens goes quiet for that class alone
+- Category page: the ready icon reads the selector's rule, class gate and all
+
+### test_bagscanner.lua (12)
+
+- BagScanner.Scan is empty when bags are empty
+- BagScanner.Scan aggregates distinct items to itemID -> count
+- BagScanner.Scan sums separate stacks of the same item
+- BagScanner.HasItem reports ownership and count
+- BagScanner.HasItem is false for a nil id
+- BagScanner.Scan treats a slot with no stackCount as a single item
+- BagScanner.Scan skips empty slots without inventing entries
+- BagScanner.Scan returns an empty table when the container API is absent
+- BagScanner.Scan walks the reagent bag slot, not just the backpack
+- BagScanner.HasItem answers from Blizzard's tally, not a full bag walk
+- BagScanner.HasItem counts bank stacks in via the includeBank flag
+- BagScanner.HasItem reports not-owned when the item count API is absent
+
+### test_bulklog.lua (14)
+
+- bulk: Helpers.Bulk logs one [Set] line counting the rows it changed, and every apply runs
+- bulk: a raising act still logs its line with the rows so far, marked stopped, re-raises, and unmutes
+- bulk: a bracket inside a bracket folds into it, with one line for the outer act
+- bulk: SetManyAndRefresh's opts.bulk is the same one line, and a refused batch logs nothing
+- bulk: the Macro Bar page's Defaults on a page already at defaults logs 0 rows
+- bulk: the General page's Defaults is one [Set] line and runs each row's apply
+- bulk: the composite category reset is one [Set] line, and its reactor runs
+- bulk: /cm aio <key> reset is one [Set] line, and the rows' shared apply runs
+- bulk: the global reset is one [Set] line from the profile handler, the session row muted
+- bulk: a profile copy is one [Set] line from the handler, and a switch is a [Profile] line
+- bulk: MuteSetLog re-raises a raising act, logs no line, and unmutes
+- bulk: a Macro Bar Defaults that raises mid-walk logs its one line marked stopped, and re-raises
+- bulk: the global reset inside an open bracket is still one line in all
+- bulk: a profile handler's line inside an open bracket is the one line, for a reset and a copy
+
+### test_bus.lua (19)
+
+- bus, NewBusTarget, and message catalog are published
+- a target hears a message, then goes silent after unregister
+- RECOMPUTE routes to Pipeline.RequestRecompute
+- bus: every message name is namespaced and distinct
+- bus: NewBusTarget hands out a fresh, independently-embedded table
+- bus: one message fans out to every subscribed target
+- bus: unregistering one target leaves the others subscribed
+- bus: a message nobody subscribes to is a silent no-op
+- bus: the pipeline subscribes on its own target, never on KCM.bus
+- bus: RECOMPUTE with no reason still reaches the pipeline
+- bus: RECOMPUTE is inert while the pipeline entry point is missing
+- bus: StandDown drops every subscribed message and StandUp restores the same set
+- bus: a subscribe function runs once, on the target NewBusTarget returns
+- bus: RECOMPUTE still reaches the pipeline after a stand-down round trip
+- bus: a target built without a subscribe function is taken down and brought back
+- bus: a registration made while down is recorded and goes live only at stand-up
+- bus: a bare StandUp is refused while the latch still holds the addon down
+- bus: KCM.MSG is strict, so a mistyped key raises instead of going quiet
+- bus degraded: receivers still subscribe; the stand-down record is empty
+
+### test_categories.lua (4)
+
+- Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets
+- Categories: AUG_RUNE registered with metadata, DB bucket, and seed
+- Categories: BLOODLUST and BATTLE_REZ registered with metadata, buckets and seeds
+- Categories: the Bloodlust seed leads with spells and the class gate names Primal Rage
+
+### test_classifier.lua (16)
+
+- classifier: FOOD matches Food & Drink with heal and no stat buff
+- classifier: DRINK matches Food & Drink with mana and no stat buff
+- classifier: STAT_FOOD matches stat-buff food and excludes feast
+- classifier: HP_POT matches healing potions without a stat buff
+- classifier: MP_POT matches mana potions without a stat buff
+- classifier: HS matches hard-coded healthstone IDs regardless of item data
+- classifier: CMBT_POT matches buff potions with 1..60s duration and no heal/mana
+- classifier: FLASK matches on subtype alone
+- classifier: MatchAny never yields composite categories
+- classifier: unrecognized subtype with empty tt matches nothing
+- classifier: WPN_ENCH matches weapon enhancements by the isWeaponEnhance flag
+- classifier: a recipe carrying its crafted item's tooltip never matches
+- classifier: VANTUS matches whitelisted rune IDs regardless of item data
+- classifier: guard and edge cases for nil/unknown inputs
+- classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper
+- classifier: keys on numeric subclass, not the localized subType
+
+### test_compat.lua (26)
+
+- Compat.GetSpecialization returns the live spec index
+- Compat.GetSpecializationInfo maps an index to specID + name
+- Compat.GetNumSpecializationsForClassID delegates to the client
+- Compat.GetSpecializationInfoForClassID maps (class,index) to a spec
+- Compat.GetSpellName resolves known spells and nil otherwise
+- Compat.IsSecret defers to the client's own issecretvalue
+- Compat.IsSecret reports nothing secret on a pre-Midnight client
+- Compat prefers C_SpecializationInfo over the legacy spec globals
+- Compat falls back to the flat globals when the namespace is absent
+- Compat.GetSpecializationInfo guards a nil index
+- Compat.GetNumSpecializationsForClassID reports zero when no API answers
+- Compat.GetSpecializationInfoForClassID returns nil for an unknown pair
+- Compat.GetSpellName guards a nil spellID before touching the client
+- Compat.GetSpellName treats an empty name as unresolved and keeps looking
+- Compat.GetSpellName falls back to the C_Spell.GetSpellInfo shape
+- Compat.GetSpellName falls back to the deprecated global last
+- Compat.GetSpellName returns nil when nothing can resolve the id
+- Compat.GetSpellName answers exactly one value on every rung and on a miss
+- Compat.GetSpecializationInfo passes the rung's whole multi-return through
+- Compat.IsSecret normalizes the client's answer to a real boolean
+- Compat.GetSpellName returns a secret name untouched and ends the ladder
+- Compat.GetSpellName answers nil for an id outside the client's domain, asking no rung
+- Compat degraded: readers answer nil, the guard still asks the client
+- Compat.GetItemInfo prefers C_Item
+- Compat.GetItemInfo falls back to the global when C_Item.GetItemInfo is absent
+- Compat.GetItemInfo answers nil with neither
+
+### test_constants.lua (12)
+
+- Constants: PREFIX is the cyan [CM] tag with no trailing space
+- Constants: IsConcatSafe accepts strings and numbers
+- Constants: IsConcatSafe rejects a value table.concat would raise on
+- Constants: SafeToString renders nil as the literal 'nil'
+- Constants: SafeToString passes booleans through, which concat itself rejects
+- Constants: SafeToString passes strings and numbers through unchanged
+- Constants: SafeToString substitutes <secret> for a concat-hostile value
+- Constants: Say prints one prefixed line in the single-string form
+- Constants: Say interpolates the format-string call form
+- Constants: Say stringifies every format arg through the secret guard
+- Constants: Say renders a nil format arg as 'nil' rather than dropping it
+- Constants: Say guards the single-string form too
+
+### test_coresetup.lua (12)
+
+- CoreSetup: the addon's stringifier IS the library's, not a lookalike
+- CoreSetup: the secret sentinel is the library's, so the docs cannot drift from it
+- CoreSetup: the prefix is re-read on every line, not frozen at load
+- CoreSetup: chat still lands in the global print, which is where the harness listens
+- CoreSetup: with the library absent the addon still prints, and says why once
+- CoreSetup: the degraded stringifier answers the same sentinel as the library
+- CoreSetup: LibKa0s-Core-1.0 still has no user-visible strings to trap
+- CoreSetup: the prefix is the only library-rendered fragment, and it is prose
+- CoreSetup: the close-button wrapper hands the library the addon FOLDER name
+- CoreSetup: the folder name the wrapper sends resolves to a mark that exists
+- CoreSetup: with the library absent there is no wrapper to call, and no error
+- CoreSetup: the shared color decoder answers nil for a channel that is not stored
+
+### test_database.lua (26)
+
+- Database.CURRENT_SCHEMA is the version the code understands
+- Database.RunMigrations stamps a fresh account at the current schema
+- Database.RunMigrations is idempotent across repeated logins
+- Database.RunMigrations is a safe no-op when the DB has no global scope
+- Database.RunMigrations seeds a missing schemaVersion instead of leaving it nil
+- Database.RunMigrations upgrades an older stored version to current
+- Database.RunMigrations leaves unrelated global keys untouched
+- Database.RunMigrations leaves unrelated profile settings untouched
+- Database.RunMigrations stamps the schema in both scopes
+- Database: defaults declare global.schemaVersion = 0
+- Database: a raising profile step leaves the profile stamp at the last completed version and the account stamp unmoved
+- Database: every step is idempotent against a fresh default profile
+- Database.RunMigrations is a safe no-op before the DB exists
+- Database v2: a profile that predates the macro bar gets it on and unlocked
+- Database v2: an off/locked bar from an earlier build of the feature is turned on
+- Database v2: the step is one-shot — a later opt-out survives the next login
+- Database v2: the migration leaves every other bar setting alone
+- Database v2: MigrateMacroBarV2 tolerates a nil profile
+- Database v3: an outlined label from an older profile reads back as OUTLINE
+- Database v3: an un-outlined label from an older profile reads back as no flags
+- Database v3: a profile with no retired boolean keeps the flags it chose
+- Database v3: a second pass over a converted profile changes nothing
+- Database v3: MigrateLabelFlagsV3 tolerates a nil profile and a bar-less one
+- Database: switching profile re-runs the migration pass
+- Database: a second profile written before v3 is migrated when it is switched to
+- Database v2: a second profile pays the one-shot cost once, not on every switch
+
+### test_debug.lua (14)
+
+- Debug: the sink is published and callable
+- Debug: IsOn is false by default (State.debug is never persisted on)
+- Debug: IsOn tracks State.debug when no console module has loaded
+- Debug: IsOn defers to DebugLog.IsEnabled once the console owns the flag
+- Debug: a call while gated off emits nothing
+- Debug: a call while gated off never reaches the console either
+- Debug: an enabled call is handed to the console instance's own sink
+- Debug: with no console loaded an enabled call falls back to tagged chat
+- Debug: a message with no format args is emitted verbatim
+- Debug: every format arg goes through the secret guard
+- Debug: a nil format arg renders as 'nil' rather than shifting later args
+- Debug: the chat fallback stringifies a hostile tag safely
+- Debug: the sink publishes no Toggle of its own
+- Debug: no call site formats through a numeric placeholder
+
+### test_debuglog.lua (21)
+
+- DebugLog: FormatPlain renders the plain line shape with no color codes
+- DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
+- DebugLog: SetEnabled/IsEnabled drive State.debug
+- DebugLog: Toggle flips State.debug both directions
+- DebugLog: SafeToString stringifies safely and catches concat-hostile values
+- DebugLog: the Debug sink is gated, and formats into the console buffer
+- DebugLog: Pipeline.CalcSummary formats reason + rewrite/skip tally
+- DebugLog: enable emits [Debug]+[Init] brackets and colored ON/OFF acks
+- DebugLog: [Init] names rejected events only when there are any
+- DebugLog: Show/Hide toggle the window without touching the enabled flag
+- DebugLog: scrollbar + counter sync run headlessly without error
+- DebugLog: the console IS the library's instance, not a host lookalike
+- DebugLog: the descriptor reproduces the addon's window identity
+- DebugLog: the console's own strings resolve to prose, not to their own keys
+- DebugLog: the flag lives in KCM.State, not in the library
+- DebugLog: with the library absent the console degrades and chat still answers
+- DebugLog: with the library absent RunDiagnostics says one line and floods nothing
+- DebugLog: RunDiagnostics forwards to the library instance and answers its count
+- DebugLogSetup: the descriptor passes addonName BESIDE name, not instead of it
+- DebugLogSetup: the folder name the descriptor carries names art that exists
+- DebugLogSetup: the console's font comes out of the payload, with a real client fallback
+
+### test_docmap.lua (1)
+
+- docmap: every Tier 2 row agrees with what docs/ holds
+
+### test_defaults.lua (28)
+
+- Categories: every row has a unique key and BY_KEY resolves it
+- Categories: Get returns nil for a key that isn't registered
+- Categories: every macro name is unique, KCM_-prefixed, and within 16 chars
+- Categories: every row carries a display name and an empty-state body
+- Categories: single-pick rows declare both a classifier and a ranker key
+- Categories: composite rows carry components and no ranker/classifier hint
+- Categories: every composite component names a real single-pick category
+- Categories: only the Weapon Enchant row is per-hand, and it is spec-aware
+- Defaults: every category has a profile bucket of the right shape
+- Defaults: no profile bucket exists for a category that was removed
+- Defaults: composite default order matches the category's declared components
+- Defaults: every composite sub-category ships enabled
+- Defaults: the addon ships enabled with an empty user-override state
+- Defaults: every single-pick category ships a non-empty seed list
+- Defaults: no seed list ships a duplicate entry
+- Defaults: every seed entry is a non-zero integer ID
+- Defaults: every seed entry classifies as either an item or a spell sentinel
+- Defaults: no seed list is shared by reference between two categories
+- Defaults: a seeded itemID is shared only across a health/mana sibling pair
+- Defaults: the FOOD seed carries the conjured-food spell as a sentinel
+- Defaults: the Healthstone seed is item-only
+- Defaults: every reusable augment rune the Classifier knows is in the seed
+- Defaults: a consumed augment rune is not flagged reusable
+- Defaults: every stat-priority key is a well-formed classID_specID pair
+- Defaults: stat priority covers all thirteen classes
+- Defaults: every seeded spec names a primary stat the Ranker weights
+- Defaults: every seeded secondary list is ordered, valid, and duplicate-free
+- Defaults: a seeded spec resolves through SpecHelper without falling back
+
+### test_disabled.lua (20)
+
+- Disabled 1: enabled, the addon registers a non-empty set
+- Disabled 3: the registration set is EMPTY, by count and by name
+- Disabled 3b: /cm disable takes the same route as the checkbox
+- Disabled 4: no OnUpdate and no state driver is left armed
+- Disabled 5: the bar is hidden, and its show ladder answers no
+- Disabled 6: firing every event it used to watch reaches nothing
+- Disabled 6b: the harness WOULD have caught a survivor
+- Disabled 7: every reserved verb still answers normally
+- Disabled 7b: the bare /cm opens the settings panel
+- Disabled 7c: a feature verb refuses on exactly one line, and reaches no seam
+- Disabled 7e: both forms of the diagnostics report still write one while disabled
+- Disabled 7d: the refusal line is the collection's shape, not a re-spelling
+- Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing
+- Disabled 9: re-enabling rebuilds exactly the set it took down
+- Disabled 9b: a setting changed while disabled is honored on the way back up
+- Disabled 9c: an item looted while disabled is discovered on the way back up
+- Disabled 10: releasing perf does not stand up an addon disable still holds
+- Disabled 10b: the same, with the holds taken in the other order
+- Disabled 10c: the perf harness takes its hold on this very latch
+- Disabled 10d: a profile that arrives disabled stands the addon down
+
+### test_diagnostics.lua (16)
+
+- Diagnostics: the DX-CM sections are supplied in order, and every one runs
+- Diagnostics: the descriptor names the brand and the sections
+- Diagnostics: the always-print rows print at their defaults
+- Diagnostics: a changed setting prints as path = value (default)
+- Diagnostics: the report writes nothing and calls no setter, macro write or probe
+- Diagnostics: while stood down every section still runs and says so
+- Diagnostics: the combat queue, the oversize gate and the give-up record are reported
+- Diagnostics: the tooltip cache reports its pending ids from the snapshot
+- Diagnostics: the tooltip cache is snapshotted before any category is ranked
+- Diagnostics: the macro bar reports an apply deferred by combat, and where it is
+- Diagnostics: a category reports its top five of the priority, never the whole list
+- Diagnostics: a category reports the stored edits and the pick as written
+- Diagnostics: a secret macro count does not raise
+- Diagnostics: a raising section costs one line and the next still runs
+- Diagnostics: `debug diagnostics` runs the report before the window toggle
+- Diagnostics: `diagnostics` is a COMMANDS row right after `debug`
+
+### test_envsetup.lua (5)
+
+- EnvSetup: KCM.Meta reads THIS addon's TOC
+- EnvSetup: KCM.Version prefers the TOC over the in-code constant
+- EnvSetup: KCM.Version falls back to this addon's own constant
+- EnvSetup: the seam still answers with LibKa0s absent
+- EnvSetup: Notes comes through the seam, not a hardcoded folder name
+
+### test_itemsetup.lua (5)
+
+- ItemSetup: KCM.Item.ItemIDFromLink reads the id out of a full item link
+- ItemSetup: it reads a bare itemString too
+- ItemSetup: a non-link string and a non-string both answer nil
+- ItemSetup: a SPELL link is not mistaken for an item
+- ItemSetup: the degraded stub answers exactly what the library does
+
+### test_events.lua (26)
+
+- OnEnable registers every client event the addon reacts to
+- OnEnable registers no event without a matching handler method
+- a retired event name leaves the other eight bound
+- a retired event name leaves the other eight bound on a client with no C_EventUtils
+- IsEventValid answering false rejects without calling RegisterEvent
+- a stand-down and stand-up does not record a rejected name twice
+- the degraded Core stub's SafeRegisterEvent records a raising name
+- /cm dump events lists every event and names the rejected one
+- PLAYER_ENTERING_WORLD discovers, sweeps, then recomputes in that order
+- PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
+- BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
+- PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack
+- LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked
+- PLAYER_EQUIPMENT_CHANGED recomputes for a main-hand or off-hand swap
+- PLAYER_EQUIPMENT_CHANGED ignores every non-weapon slot
+- PLAYER_REGEN_ENABLED flushes the macro writes deferred during combat
+- PLAYER_REGEN_ENABLED is safe before the macro layer has loaded
+- GET_ITEM_INFO_RECEIVED ignores a failed or id-less delivery
+- GET_ITEM_INFO_RECEIVED for a bag item invalidates its cached tooltip
+- GET_ITEM_INFO_RECEIVED for a bag item discovers it and recomputes
+- GET_ITEM_INFO_RECEIVED for a non-bag item refreshes the panel but never recomputes
+- GET_ITEM_INFO_RECEIVED never discovers an item the player does not own
+- RequestRecompute keeps the latest reason across a coalesced burst
+- RequestRecompute falls back to a placeholder reason when given none
+- RequestRecompute re-arms after its frame callback has fired
+- RequestRecompute's frame callback is inert if the request was already served
+
+### test_harness.lua (10)
+
+- Harness: the addon object is published as _G.KCM and is the namespace
+- Harness: AceGUI:Create hands back the permissive widget, logged in creation order
+- Harness: GetWidgetVersion answers 0 for an unregistered type
+- Harness: LibStub answers nil for an unknown major, silent flag or not
+- Harness: LibSharedMedia serves the fonts and borders the settings pages read
+- Harness: a string-method bus registration calls the target's method
+- Harness: OnEnable registers every game event without raising
+- Harness: AceConsole's Printf reaches the addon object, as in the client
+- Harness: perf suspend drops every game event, through the recorded event half
+- Harness: AceGUI:Release takes a widget back, and raises on a second release
+
+### test_id.lua (8)
+
+- ID.AsSpell negates the spellID into a sentinel
+- ID.IsSpell is true for negatives, false otherwise
+- ID.IsItem is true for positives, false for negatives
+- ID.SpellID recovers magnitude for spells, nil for items
+- ID.AsSpell/SpellID round-trips
+- ID predicates reject non-numeric input rather than raising
+- ID treats zero as neither an item nor a spell
+- ID: item and spell ranges are disjoint for every real id
+
+### test_libka0s.lua (8)
+
+- LibKa0s: the harness load list matches libs/LibKa0s/LibKa0s.xml exactly
+- LibKa0s: every vendored library file the loader names exists on disk
+- LibKa0s: the TOC loads the library through its own packaged XML
+- LibKa0s: every declared major registers, and reports the minor of every one of its files
+- LibKa0s: no file registers under a major it does not belong to
+- LibKa0s: each attach file is paired to the shell minor it actually attached to
+- LibKa0s: library file basenames are unique across every vendored major
+- LibKa0s: omitting the vendored files leaves every major absent, not half-wired
+
+### test_launcher.lua (28)
+
+- Launcher: KCM:OnInitialize registers ONE object under the folder name
+- Launcher: the object is a launcher, wearing this addon's own logo
+- Launcher: the broker label is the brand name in plain text
+- Launcher: the icon file the object names is on disk, at the TOC's path
+- Launcher: Register is idempotent — a second call builds no second button
+- Launcher: left-click opens the settings panel, in either state, and nothing else
+- Launcher: right-click opens the options menu -- Enabled, then Locked, and no more
+- Launcher: each open reads the states afresh
+- Launcher: the Locked entry runs /cm lock's handler through the schema seam
+- Launcher: Locked on a switched-off bar says what /cm unlock says
+- Launcher: the Enabled entry runs /cm disable's and /cm enable's handler
+- Launcher: while disabled, Locked is grayed and Enabled switches the addon back on
+- Launcher: with no MenuUtil, right-click opens the settings panel
+- Launcher: the Minimap button row stores LibDBIcon's own key, globally
+- Launcher: the row's get/set invert, and the button follows the checkbox
+- Launcher: LibDBIcon writes into the same table the row reads
+- Launcher: /cm get global.minimap.shown answers true while hide is false
+- Launcher: /cm set global.minimap.shown false writes hide = true
+- Launcher: a legacy hide = true store reads as not shown and keeps its angle
+- Launcher: the global reset leaves a hidden button hidden
+- Launcher: the General page's Defaults button leaves a hidden button hidden
+- Launcher: a host with neither broker library does not raise
+- Launcher: the write seam owns the inversion, not the library
+- Launcher: no LibKa0s means no launcher at all, and no stub
+- Launcher: the descriptor answers the tooltip's and the menu's questions and no others
+- Launcher: the tooltip, enabled and unlocked, in the collection's one shape
+- Launcher: the tooltip reads the lock on every show, never a cached copy
+- Launcher: the tooltip still draws while disabled, with the same two hints
+
+### test_lintconfig.lua (4)
+
+- lintconfig: .luacheckrc sets no top-level ignore
+- lintconfig: .luacheckrc switches no warning class off wholesale
+- lintconfig: every files[...] ignore is narrowed to a file or a name
+- lintconfig: no source file carries a bare inline luacheck ignore
+
+### test_load.lua (1)
+
+- full addon loads in TOC order and publishes core handles
+
+### test_locale.lua (10)
+
+- Locale: KCM.L is published as a table
+- Locale: an unknown key falls back to itself verbatim
+- Locale: the enUS manifest carries only entries that differ from their key
+- Locale: the literal scan reads the settings surface it is meant to guard
+- Locale: every user-facing literal in the settings surface is routed or recorded
+- Locale: every recorded residue literal is still unrouted in the file that names it
+- Locale: every residue entry carries one of the declared classes
+- Locale: the join-key exemption only ever covers a string the same file routes
+- Locale: the two custom widgets route their labels through L
+- Locale: the color escapes on the drag-icon labels stay outside the key
+
+### test_macrobar.lua (85)
+
+- macrobar model: AllKeys covers every managed category
+- macrobar model: NormalizeOrder leaves a complete order untouched
+- macrobar model: NormalizeOrder drops unknown keys
+- macrobar model: NormalizeOrder appends categories missing from a saved order
+- macrobar model: NormalizeOrder de-duplicates a repeated key
+- macrobar model: Swap exchanges two slots
+- macrobar model: Swap refuses an absent or self-referential key
+- macrobar model: VisibleKeys hides only slots explicitly set to false
+- macrobar model: MacroName and KeyForMacroName round-trip
+- macrobar model: the bar ships centered on screen at 36px buttons
+- macrobar model: the GCD swipe is suppressed out of the box
+- macrobar defaults: perRow tracks the number of managed categories
+- macrobar schema: perRow's max slider value is derived from the category count
+- macrobar model: the bar ships on and unlocked so it is discoverable
+- macrobar model: the shipped default order needs no repair
+- macrobar model: Order repairs a damaged saved order on read, and writes nothing
+- macrobar model: Visible reflects the shown map over the saved order
+- macrodisplay: an unwritten macro falls back to the cooking-pot icon
+- macrodisplay: an item pick resolves to the item's icon and count
+- macrodisplay: a spell pick resolves to the spell icon and has no count
+- macrodisplay: item and spell cooldowns both report active plus a span
+- macrodisplay: an empty-state macro reports no pick, count or cooldown
+- macrodisplay: SetTooltip points at the spell a spell pick resolves to
+- macrodisplay: SetTooltip points at the item an item pick resolves to
+- macrodisplay: SetTooltip falls back to the macro name and body when unresolved
+- macrodisplay: SetTooltip with no such macro shows just the name
+- macrodisplay: SetTooltip does nothing without an owner
+- macrodisplay: an AIO tooltip out of combat shows its out-of-combat spell, not the macro text
+- macrodisplay: an AIO tooltip in combat shows the first in-combat step
+- macrodisplay: an AIO tooltip skips a disabled or pickless step, as the body does
+- macrodisplay: an AIO tooltip with nothing on the current side still falls back to the macro
+- macrodisplay: Pickup puts the macro on the cursor out of combat
+- macrodisplay: Pickup refuses in combat instead of calling the protected API
+- macrodisplay: Pickup on a macro that does not exist is a silent no-op
+- macrobar cooldowns: an active cooldown paints from the duration object
+- macrobar cooldowns: an inactive cooldown clears the swipe
+- macrobar cooldowns: a client without duration objects falls back to numbers
+- macrobar cooldowns: restricted cooldowns are never compared or set as numbers
+- macrobar cooldowns: a restricted spell still reports whether it is running
+- macrobar cooldowns: showGCD false hides the swipe via the curve-evaluated duration
+- macrobar cooldowns: showGCD true never suppresses and always shows the swipe
+- macrobar cooldowns: no duration object skips suppression without erroring
+- macrobar cooldowns: a missing C_CurveUtil degrades to full alpha without erroring
+- macrobar cooldowns: the GCD-suppress curve is built once and reused
+- macrobar cooldowns: showGCD false disables the completion bling
+- macrobar cooldowns: showGCD true enables the completion bling
+- macrobar cooldowns: the inactive path still applies the correct bling state
+- macrobar cooldowns: a frame lacking SetDrawBling degrades without error
+- macrobar schema: every macroBar row validates and resolves against the db
+- macrobar schema: locking and unlocking reaches the bar frame, whichever surface asked
+- macrobar: the drag handle does not move a locked bar
+- macrobar schema: a flag written from /cm re-syncs the open Macro Bar page in place
+- macrobar schema: enum rows reject a value outside their list
+- macrobar schema: number rows clamp to their declared range
+- macrobar schema: the default slot order matches the Macros tab order
+- macrobar schema: border rows are populated from LibSharedMedia
+- macrobar schema: LSMValues never hands back an empty list
+- macrobar flyout: candidates come back in rank order, best first
+- macrobar flyout: invert reverses the order without dropping anything
+- macrobar flyout: the list is capped to flyoutMax, keeping the top ranks
+- macrobar flyout: the cap is bounded by the pool ceiling, not just the setting
+- macrobar flyout: it ships on, opening upward, closing after 3s
+- macrobar flyout: auto-close is configurable and 0 means never
+- macrobar flyout: Create wires the secure frames without erroring
+- macrobar click: a bar slot fires on mouse-up even with ActionButtonUseKeyDown on
+- macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on
+- macrobar flyout: ApplyBackdrop paints the panel child, not the container
+- macrobar flyout: leaving hands off to the countdown, and says so securely
+- macrobar flyout: combat state is driven into the snippet, not polled
+- macrobar flyout: an entry's border follows buttonBorder through the bar's own applier
+- macrobar flyout: the idle clock resets while the mouse is on the strip
+- macrobar flyout: hovering the band alone also holds the flyout open
+- macrobar flyout: the idle clock stands down in combat
+- macrobar flyout: an auto-close of 0 never closes on idle
+- macrobar flyout: Close hides the strip and stands down in combat
+- macrobar flyout: Close tolerates a nil flyout
+- macrobar schema: the bar publishes its own bus message
+- macrobar master: Master scale and Master alpha MULTIPLY the bar's own
+- macrobar master: General visibility is INTERSECTED with the bar's combat mode
+- macrobar master: General visibility = never takes the bar off screen
+- macrobar Defaults: every page setting back to its shipped value, the lock kept, one apply pass
+- macrobar Defaults: the page reset is one [Set] line, written into the same table
+- macrobar Defaults: a batch that fails leaves the position where it was, and says so
+- macrobar: dragging one slot onto another stores the swapped order
+- Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
+
+### test_macrobar_chrome.lua (22)
+
+- macrobar button: ApplyStyle sizes the slot and paints the border child
+- macrobar button: ApplyStyle hides the border child when the border is off
+- macrobar button: ApplyStyle floors the edge thickness at one pixel
+- macrobar button: ApplyStyle clamps the icon zoom to 0..40 percent
+- macrobar button: ApplyStyle fills the backdrop and follows its toggle
+- macrobar flyout: Apply tears the strip down when the feature is off
+- macrobar flyout: Apply binds an owned item entry with its chrome
+- macrobar flyout: Apply binds a known spell entry by name
+- macrobar flyout: Apply hides everything when nothing is available
+- macrobar flyout: Apply declines in combat
+- macrobar label: the font FACE, FLAGS and SHADOW reach the FontString
+- macrobar label: the class-color companion repaints the label, alpha and all
+- macrobar button: an unresolvable class falls through to the stored swatch
+- macrobar handle: the strip's tooltip is the addon's, drawn above the strip itself
+- macrobar handle: the mark's tooltip is the bar's, drawn off the mark at its own anchor
+- macrobar handle: the strip and the mark draw two distinct tooltips
+- macrobar handle: the mark's lock line is re-read on every hover
+- macrobar handle: the mark holds its resting gray, because no click is wired here
+- macrobar handle: the X hides the bar through macroBar.enabled and says the way back
+- macrobar handle: the X's tooltip says what the click does and the way back
+- macrobar handle: the X widens the label's reserve by the close mark's frame
+- macrobar handle: in combat the X stores the flag and the bar hides at combat end
+
+### test_macrobar_buttons.lua (8)
+
+- Buttons: shown slots first in order, then hidden ones dimmed and handle-less, boundary = shown count
+- Buttons: a drag splices the shown group and writes the order once; a drop in place writes nothing
+- Buttons: untick goes to the top of the hidden group, tick to the end of the shown group
+- Buttons: every slot can be hidden, as the checkboxes allowed
+- Buttons: the last render's controller is canceled before the scroll is cleared
+- Buttons: in combat a drag and a tick are refused, write nothing and repaint nothing
+- Buttons: each act re-applies the bar once, and the bar carries the new order and set
+- macrobar: the slot swap, the list's drag and its tick write through the schema helper
+
+### test_macrobar_layout.lua (39)
+
+- macrobar layout: one row of 13 reports 13 columns and one row
+- macrobar layout: first slot sits at the padding offset
+- macrobar layout: slots step by size + spacing along the row
+- macrobar layout: 13 slots at 7 per row wrap into two rows
+- macrobar layout: growth LEFT mirrors the columns
+- macrobar layout: growth UP mirrors the rows
+- macrobar layout: VERTICAL orientation fills columns first
+- macrobar layout: zero slots still reports a non-zero container
+- macrobar layout: missing config falls back to shipped defaults
+- macrobar layout: perRow below 1 is clamped rather than dividing by zero
+- macrobar label: inside anchors the label's own corner to the button's
+- macrobar label: outside flips the anchor across that edge
+- macrobar label: offsets pass through and CENTER never flips
+- macrobar label: an unknown position falls back to the shipped default
+- macrobar label: every declared label position resolves to an anchor
+- macrobar label: font size scales with the button and clamps to legible
+- macrobar label: every category supplies both a full and a short label
+- macrobar label: an unknown category degrades to its key
+- macrobar flyout: entry 1 sits one gap off the button
+- macrobar flyout: the gap is configurable and can be closed to zero
+- macrobar flyout: entries step by size + spacing away from the button
+- macrobar flyout: growing downward mirrors the offsets
+- macrobar flyout: horizontal sides stack along x instead of y
+- macrobar flyout: container is sized to the run of entries
+- macrobar flyout: scale shrinks entries independently of the button
+- macrobar flyout: an empty flyout still reports a usable frame size
+- macrobar flyout: padding insets the strip inside its panel
+- macrobar flyout: padding leaves entries centered on the cross axis
+- macrobar flyout: the indicator band sits inside the icon's edge
+- macrobar flyout: each side rotates the arrow to point away from the button
+- macrobar flyout: arrow size scales off the band and never vanishes
+- macrobar flyout: a side band swaps its span and thickness
+- macrobar flyout: band thickness is a ratio of the button, capped at half
+- macrobar flyout: every flyout side resolves geometry
+- macrobar flyout: a label sharing the band's edge is pushed clear
+- macrobar flyout: clearance follows the band to another edge
+- macrobar flyout: a label on a different edge is left alone
+- macrobar flyout: no clearance when the flyout is off or the label is outside
+- macrobar flyout: clearance scales with the band thickness
+
+### test_macromanager.lua (53)
+
+- MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
+- MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
+- MacroManager: a targeted category's spell body carries the conditional
+- MacroManager: a targeted category's item body carries the same conditional
+- MacroManager: turning mouseover off drops the conditional
+- MacroManager: an untargeted category is unaffected
+- MacroManager: BuildBody with nil item falls back to category emptyText
+- MacroManager: BuildCompositeBody HP_AIO happy path joins in- and out-of-combat picks
+- MacroManager: BuildCompositeBody drops a disabled sub-category from the in-combat sequence
+- MacroManager: BuildCompositeBody returns nil for no usable picks or invalid inputs
+- MacroManager: BuildCompositeBody with only in-combat picks adds the out-of-combat /run fallback
+- MacroManager: BuildCompositeBody with only out-of-combat pick adds the in-combat /run fallback
+- MacroManager: BuildCompositeBody uses a spell pick's localized name in the /castsequence
+- MacroManager: BuildCompositeBody assembles #showtooltip, the /castsequence and every /use line in order
+- MacroManager: buildWeaponEnchantBody emits per-slot lines for MH+OH / one / neither
+- MacroManager: BuildBody VANTUS uses the default single /use body
+- MacroManager.SetMacro creates the macro on the first write
+- MacroManager.SetMacro records the body and icon it wrote
+- MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat
+- MacroManager.SetMacro edits in place when the pick changes
+- MacroManager.SetMacro falls back to the empty body when nothing is picked
+- MacroManager.SetMacro resolves the category from the macro name if not told
+- MacroManager.SetMacro rejects an empty macro name
+- MacroManager.SetMacro refuses to write before the DB is ready
+- MacroManager.SetMacro errors out when the account macro quota is full
+- MacroManager.SetMacro surfaces a rejected edit as an error
+- MacroManager.SetMacro defers instead of writing while in combat
+- MacroManager.FlushPending applies a deferred write once combat ends
+- MacroManager.FlushPending refuses to run while still in combat
+- MacroManager.FlushPending gives up on a macro after three failed writes
+- MacroManager.FlushPending re-queues a write if combat resumes mid-flush
+- MacroManager: a queued write that already matches the live macro is dropped
+- MacroManager: a re-queued write keeps its retry count for the combat window
+- MacroManager.FlushPending replays a per-hand weapon-enchant body
+- MacroManager: /cm rewritemacros in combat keeps the WPN_ENCH body
+- MacroManager.InvalidateState forces the next pass to rewrite every body
+- MacroManager.InvalidateState drops queued combat writes
+- MacroManager.InvalidateState traces what it cleared, and only with debug on
+- MacroManager falls back to the empty body when a body exceeds 255 bytes
+- MacroManager warns about an oversized body only once per category
+- MacroManager: the debug gate is a predicate — diagnostic arguments are not evaluated with debug off
+- MacroManager.SetWeaponEnchantMacro writes the empty stub when neither hand has a pick
+- MacroManager: a hunter with a bow and an oil gets a real body, not the stub
+- MacroManager.SetWeaponEnchantMacro takes its icon from the main hand
+- MacroManager.SetWeaponEnchantMacro guards a missing category or DB
+- MacroManager.SetCompositeMacro stores the dynamic icon and no item id
+- MacroManager.SetCompositeMacro falls back to the default icon with no picks
+- MacroManager.SetCompositeMacro coalesces an unchanged rewrite
+- MacroManager.SetCompositeMacro defers in combat and replays as a composite
+- MacroManager.SetCompositeMacro guards a non-composite category and a missing DB
+- Named state: modules/MacroManager.lua is the only runtime writer of macroState
+- MacroManager.PendingSnapshot copies the combat queue, sorted by macro name
+- MacroManager.WriteTracking reports oversized categories and given-up macros
+
+### test_mediasetup.lua (12)
+
+- MediaSetup: KCM.Icon answers the vendored path, extensionless
+- MediaSetup: an icon the library does not ship answers nil
+- MediaSetup: KCM.MediaFont answers the vendored face, and only a face it ships
+- MediaSetup: the seam is told the addon FOLDER name, not the frame prefix
+- MediaSetup: the face the console names is one the library actually carries
+- MediaSetup: the console resolves its font through the seam, not a local copy
+- MediaSetup: this addon no longer ships its own copy of the face
+- MediaSetup: every mark this addon draws is one the library ships
+- MediaSetup: every name the library ships has a file in the vendored copy
+- MediaSetup: the vendored payload carries the face and its license
+- MediaSetup: it loads before the file that resolves the console font
+- MediaSetup: with no library there is no art and no face, and that is not an error
+
+### test_perfsetup.lua (11)
+
+- Perf: the harness IS the library's instance, not a lookalike
+- Perf: the panel half attached to the instance
+- Perf: every panel step's label resolves to prose, not to its own key
+- Perf: the descriptor answers the fields whose defaults are silently wrong
+- Perf: the SavedVariables global the harness writes is actually declared
+- Perf: /cm perf is a published verb and reaches the harness
+- Perf: the capture flag is the library's alone, with no second home
+- Perf: the instrumentation records nothing while no capture is running
+- Perf: every declared bucket is reached by a real call path
+- Perf: every Note call site sits in a file that gates on the capture flag
+- Perf: with the library absent the feature is absent, and /cm perf says so
+
+### test_pipeline.lua (31)
+
+- Pipeline.RequestRecompute coalesces a burst into a single run
+- Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
+- Pipeline.RunAutoDiscovery keeps a user-blocked item out of candidates
+- Pipeline.Recompute writes a macro body pointing at the owned pick
+- Pipeline.Recompute skips macro writes when the addon is disabled
+- Pipeline.RecomputeOne routes a perHand category through SetWeaponEnchantMacro
+- Pipeline.RecomputeOne ignores a category that does not exist
+- Pipeline.RecomputeOne routes a composite category to the composite writer
+- Pipeline.RecomputeOne asks for a pick per hand on a per-hand category
+- Pipeline.Recompute writes one macro per registered category
+- Pipeline.Recompute isolates a category whose write raises
+- Pipeline.Recompute refreshes the panel even while the addon is disabled
+- Pipeline.Recompute is a no-op before the category table has loaded
+- Pipeline.CalcSummary renders the reason and the rewrite/skip tally
+- Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set
+- Pipeline.RunAutoDiscovery reports zero when nothing new is in bags
+- discovery reports through the bulk summary, not per item, on a bag pass
+- discovery prints a per-item line for a standalone item-info retry
+- discovery stays silent for a bag item that matches no category
+- ResetAllToDefaults wipes category customizations back to the shipped state
+- ResetAllToDefaults clears stat-priority overrides and re-enables the addon
+- ResetAllToDefaults empties macro state and the resync rebuilds each macro's fingerprint
+- ResetAllToDefaults rediscovers what is still in bags
+- ResetAllToDefaults reports whether it mutated anything
+- ResetAllToDefaults refuses in combat before any write, and repaints on success
+- ResetAllToDefaults keeps the addon on when the defaults have no enabled key
+- ResetAllToDefaults runs invalidate then discover then recompute, in that order
+- ResetAllToDefaults copies the defaults rather than aliasing them
+- ResetAllToDefaults leaves the category buckets structurally valid
+- ResetAllToDefaults restores the session-only rows a profile reset cannot reach
+- ResetAllToDefaults sweeps the session rows before it resets the profile
+
+### test_profiles.lua (21)
+
+- Profiles: the page is the last in the sidebar and its file loads last
+- Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
+- Profiles: a pooled, hidden SimpleGroup is shown before AceConfigDialog fills it
+- Profiles: a profile event redraws the page; a pipeline refresh does not
+- Profiles: with AceConfigDialog absent the page is simply not built
+- Profiles: the global-reset veto is named once and is the descriptor's skipRestoreAll
+- Profiles: the Options descriptor declares the profile reset and the Profiles page
+- Profiles: the reset loop asks the same veto before it sweeps a row
+- Profiles: a global reset empties the active profile only and publishes PROFILE_CHANGED
+- Profiles: a switch re-applies the whole bar -- anchor, order, shown slots and enabled
+- Profiles: a copy re-applies the whole bar
+- Profiles: a reset re-applies the whole bar
+- Profiles: a switch or copy rewrites a macro whose incoming fingerprint matches a body no longer live
+- Profiles: each profile act logs its one handler line, a switch included
+- Profiles: the open settings pages rebuild on the switch itself, not after the debounce
+- AceDB fake: a profile switch strips at-default values from the outgoing profile
+- AceDB fake: the shipped default table survives a switch
+- AceDB fake: CopyProfile onto the active profile raises AceDB's own message
+- AceDB fake: DeleteProfile of the active profile raises AceDB's own message
+- /cm reset: resetting a color row stores a copy, not the dbDefaults table
+- /cm reset: a profile switch after a color reset leaves the shipped default intact
+
+### test_ranker.lua (26)
+
+- Ranker: spell sentinel scores SPELL_SCORE for any category
+- Ranker: nil/unknown guards score 0
+- Ranker: FOOD conjured bonus beats higher flat-value non-conjured
+- Ranker: FOOD healPct dominates and healValue+healValueAvg are additive
+- Ranker: DRINK conjured bonus beats higher flat-value non-conjured
+- Ranker: immediate HP pot outranks similar-amount HOT pot
+- Ranker: HOT HP pot earns immediate bonus only past the 20% threshold
+- Ranker: immediate MP pot outranks similar-amount HOT pot
+- Ranker: HS preference table prefers modern stone and sorts it first
+- Ranker: _statWeight ranks stats by spec priority
+- Ranker: FLASK stat-aware primary buff outweighs equal-amount secondary
+- Ranker: WPN_ENCH stat-aware primary buff outweighs equal-amount secondary
+- Ranker: VANTUS prefers higher ilvl (current tier) then quality
+- Ranker: SortCandidates orders by score desc, ties by id asc
+- Ranker: spell sentinel sorts first and empty input is safe
+- Ranker: AP weights as primary for STR/AGI specs, 0 for INT; SP mirrors
+- Ranker: AUG_RUNE ranks by amount, reusable breaks ties, amount dominates
+- Ranker: BLOODLUST prefers a higher affect-cap, and an uncapped drum outranks every capped one
+- Ranker: BLOODLUST's cap term is weighted above ilvl (a lower-ilvl higher-cap drum wins)
+- Ranker: BLOODLUST Explain reports the actual cap and only notes 'no cap' when uncapped
+- Ranker: BATTLE_REZ Explain reports ilvl and quality signals with the scorer's score
+- Ranker: BATTLE_REZ ranks the lone seeded item by ilvl and quality
+- Ranker: PRIMARY token does not change FLASK score (statWeight stays 0)
+- Ranker: three seeded items score the same uncached, cache-cold and cache-warm
+- Ranker: the per-pass field cache carries quality, ilvl and tt, and no subType
+- Ranker: item fields come through KCM.Compat.GetItemInfo, not the bare global
+
+### test_register.lua (1)
+
+- every deviation id the register cites is assigned by a bundle in docs/audits/
+
+### test_runner_list.lua (4)
+
+- --list groups cases by suite file with counts
+- --list emits a Totals table summing all cases
+- --list prints the inventory and runs no tests
+- --list exits 0 without running the suite
+
+### test_schema.lua (54)
+
+- schema: Settings.Helpers and Settings.Schema tables exist
+- schema: ValidateSchema reports zero errors and at least one row
+- schema: 'enabled' row exists and is a bool
+- schema: every row is findable by path and has a valid type
+- schema: Get('enabled') mirrors db.profile.enabled
+- schema: Set round-trips a bool setting through Helpers
+- schema: unknown paths resolve to nil/false
+- schema: [Set] logs exactly one line at the write seam, gated by debug
+- schema: Get reads a nested path out of db.profile, row or not
+- schema: Get answers nil through a non-table, for an empty path, or with no DB
+- schema: Set can write a nested path, not just a top-level one
+- schema: Set refuses a path no row declares, even one under a real table
+- schema: every row declares a panel that exists in the tab order
+- schema: every row carries a label and a tooltip for the panel to render
+- schema: every row's default matches the seeded profile value
+- schema: ValidateSchema counts a row with a bad panel, section, and type
+- schema: ValidateSchema flags a row with no path
+- schema: ValidateSchemaValue enforces each declared type
+- schema: ValidateSchemaValue passes a row with no recognized type straight through
+- schema: ValidateSchemaValue clamps a number to its declared range
+- schema: SetAndRefresh writes the value and runs the row's apply
+- schema: SetAndRefresh refuses a value of the wrong type
+- schema: SetAndRefresh refuses an explicit nil rather than deleting the key
+- schema: SetAndRefresh refuses a path that is not in the schema
+- schema: the published Schema:Set is the same seam as SetAndRefresh
+- schema: FormatSchemaValue renders nil as 'nil'
+- schema: FormatSchemaValue renders a color as a four-component table
+- schema: FormatSchemaValue renders booleans and strings readably
+- schema: RefreshAllPanels flags an off-screen page dirty instead of rebuilding it
+- schema: RefreshAllPanels rebuilds the page that is on screen
+- schema: a render failure is reported instead of breaking the refresh loop
+- schema: RefreshScalars re-syncs widgets in place without a rebuild
+- schema: RefreshScalars flags a hidden page dirty rather than syncing it
+- schema: the page order lists five pages, each once, Profiles last
+- schema: the Macros page carries one tab per category, in macroOrder
+- schema: the Macros strip is the designed run of tabs, in order
+- schema: a Macros tab is labeled with the category's display name
+- schema: the Macro Bar page partitions into its designed tabs
+- schema: no page's rows leave a group and come back to it
+- schema: the tab strips name only groups their rows declare
+- schema: the General page opens on Master controls, carrying the canonical rows
+- schema: every session-only row declares a default, so a reset can reach it
+- schema: every moved Master controls setting is declared exactly once
+- schema: every row on every page carries a group
+- schema: every color row is followed by its class-color companion
+- schema: every mixed tab breaks its blocks up with subsection headings
+- schema: SetManyAndRefresh writes every row, each distinct apply once, one refresh
+- schema: SetManyAndRefresh refuses the whole batch when one value is invalid
+- schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset
+- schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows
+- schema: an order row normalizes to its member set and never stores the caller's table
+- schema: a flag map keeps its members' booleans, drops strangers and refuses anything else
+- schema: statPriority keeps well-formed overrides and repairs their lists
+- schema: no runtime file writes a whole-value row's field around the helper
+
+### test_schema_adoption.lua (13)
+
+- adoption: SetAndRefresh stores a number clamped to its row's range
+- adoption: an enum refusal prints the allowed values and stores nothing
+- adoption: an unknown path is refused and stores nothing
+- adoption: a color, an order and a map are each stored as a copy
+- adoption: the Macro Bar page's Defaults applies the bar once and logs one line of N rows
+- adoption: a composite category reset logs one line and recomputes once
+- adoption: /cm resetall logs the profile handler's line and nothing else
+- adoption: the debug console row shows and hides the window and lives outside the profile
+- adoption: the minimap row inverts onto its global key and survives both resets
+- adoption: a raising reaction is reported and the write persists
+- adoption: the degraded build still writes through a host verb and the global reset
+- adoption: the [Set] line is written before the row's apply runs
+- adoption: a normalize refusal reaches /cm set as one INVALID line
+
+### test_selector.lua (55)
+
+- Selector: BuildCandidateSet is seed-first; unknown category is empty
+- Selector: AddItem adds to the set and is idempotent
+- Selector: Block removes from set, is idempotent, and AddItem unblocks
+- Selector: MarkDiscovered promotes once; blocked items are never discovered
+- Selector: PickBestForCategory returns the one owned item, nil when nothing owned
+- Selector: a known spell entry counts as owned and is picked
+- Selector: a class-gated spell resolves for its class when IsPlayerSpell says no
+- Selector: the class gate does not override a genuinely known spell
+- Selector: MoveUp/MoveDown reorder via pins; moving past an edge is a no-op
+- Selector: MoveTo MOVES rather than swaps, which only shows up beyond one step
+- Selector: MoveTo refuses an index off the ends, or the one it already holds
+- Selector: MoveUp and MoveDown are MoveTo, so a drag and an arrow agree
+- Selector: spec-aware FLASK category routes GetBucket/AddItem into the bySpec sub-table
+- Selector: PickBestForSlot filters by weapon affinity + ownership
+- Selector: a ranged weapon takes an any-affinity oil
+- Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
+- Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
+- Selector: PickBestForSlot skips a level-blocked enhancement
+- Selector.MarkDiscovered reports 'new' only on the first sighting
+- Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
+- Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
+- Selector.MarkDiscovered upgrades a legacy boolean entry to a timestamp
+- Selector.MarkDiscovered refuses spell sentinels and unknown categories
+- Selector.SweepStaleDiscovered drops an entry past the 30-day TTL
+- Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL
+- Selector.SweepStaleDiscovered refreshes an item that is still in bags
+- Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient
+- Selector.SweepStaleDiscovered evicts a discovered non-consumable still in bags
+- Selector.SweepStaleDiscovered keeps a discovered item whose class is unresolvable
+- Selector.SweepStaleDiscovered never touches user-intentional entries
+- Selector.SweepStaleDiscovered reaches inside per-spec buckets
+- Selector.SweepStaleDiscovered is a no-op before the DB exists
+- Selector: a pin at position 1 moves its item to the front
+- Selector: a pin for an item outside the candidate set is ignored
+- Selector: a pin past the end of the list clamps to last place
+- Selector: two pins on the same position keep both items in the list
+- Selector.GetEffectivePriority returns an empty list for an unknown category
+- Selector: ListAvailable returns every owned candidate, not just the best
+- Selector: ListAvailable preserves effective-priority order
+- Selector: ListAvailable skips unknown spells and includes known ones
+- Selector: ListAvailable on a per-hand category only offers what fits the weapons
+- Selector: ListAvailable on a per-hand category is empty with no weapon equipped
+- Selector: ListAvailable on a composite unions its components, deduped
+- Selector: ListAvailable on a composite honors disabled components
+- Selector: ListAvailable returns an empty list for an unknown category
+- Selector.PickBestForCategory skips an item the player is over the cap for
+- Selector.ListAvailable omits an item the player is over the cap for
+- Selector.PickBestForCategory keeps an item whose tooltip is still pending
+- Selector.SpliceOrder moves one entry to an index rather than swapping neighbors
+- Selector.SpliceOrder refuses a move it cannot make
+- Selector.MoveCompositeRef writes one section, spliced, through the schema helper
+- Registry resets: each of the three doors leaves exactly the stored shape it always did
+- Selector.ResetBucket clears one bucket's added/blocked/pins and keeps discovered
+- Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
+- Registry: modules/Selector.lua is the only runtime writer of the bucket fields
+
+### test_settingsui.lua (42)
+
+- Settings UI: the scrollbar patch IS the library's, not a lookalike
+- Settings UI: the live wiring registers the Border fixup through the library
+- Settings UI: the published instance carries all three of the major's files
+- Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L
+- Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh
+- Settings UI: OnDefault reaches a defaultsOnClick parked after the panel is built
+- Settings UI: a page with no defaults action still has a callable, inert OnDefault
+- Settings UI: the scroll container comes from the library
+- Settings UI: the render helpers are the instance's, not host copies
+- Settings UI: a panel comes from the library's registry, breadcrumb and all
+- Settings UI: the About logo path follows the folder name
+- Settings UI: the library's user-visible strings resolve to prose, not to their own keys
+- Settings UI: ResetScroll reassigns the refresher list rather than wiping it
+- Settings UI: with the library absent no panel is registered, and it says why once
+- Settings UI: with the library absent Helpers still reaches both refresh tiers
+- Settings UI: with the library absent a schema WRITE completes and reports success
+- Settings UI: the degraded stub completes every page-file load, composed rows aside
+- Settings UI: Helpers reads the library's members off the instance, not off a copy
+- Settings: the General page's strip is Master controls, then Maintenance
+- Settings: the Master controls tab draws the page's canonical rows and their tail
+- Settings: the Maintenance tab draws its three verbs and no schema row
+- Settings: the Macro Bar page keeps its eight tabs in order
+- Settings: every Macro Bar tab draws exactly its group's schema rows
+- Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
+- Settings: the category reset popup restores a composite's AIO fields from defaults
+- Settings: the category reset popup clears added/blocked/pins but keeps discovered
+- Settings: the category reset popup is inert with no payload and on an unknown category
+- Settings: add-by-ID is the library's id line — an edit box, an Add button, a status line
+- Settings: add-by-ID takes an ID or a shift-clicked link, of the kind the Type dropdown names
+- Settings: add-by-ID takes a name, through the client's own lookup
+- Settings: add-by-ID adds nothing it cannot resolve, says why on its line and keeps the text
+- Settings: add-by-ID stores through Selector.AddItem in the shape it always had
+- Settings: add-by-ID rebuilds the page only after the id line has finished with its widgets
+- Settings: a priority row's Remove button still calls Selector.Block
+- Settings: add-by-ID refuses a spec-aware category with no resolvable spec, on its line
+- Settings UI: a first-open refresh burst arms one timer, not one per call
+- Settings UI: the rebuild waits out the quiet window before it lands
+- Settings UI: a storm that never goes quiet still rebuilds at the max wait
+- Settings UI: a timer that fires early rebuilds instead of re-arming forever
+- Settings: the Stat Priority Defaults button drops only the viewed spec's override
+- Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
+- Settings: every Stat Priority, composite and mouseover control writes through the schema helper
+
+### test_settingsui_optionsui.lua (21)
+
+- Settings: every page draws a tab strip, and General opens on Master controls
+- Settings: the Stat Priority page draws its strip with no spec resolvable
+- Settings: the Macros page reaches its strip with no categories to tab
+- Settings: an AIO tab explains its own in-bags / not-in-bags glyphs
+- Settings: a composite tab builds one reorder controller per combat section
+- Settings: re-rendering a composite tab cancels EVERY controller it built
+- Settings: every reorder list takes the library's handle gutter
+- Settings: the Stat Priority secondaries are one bounded reorder list
+- Settings: a secondary stat row is boxed full-width and spaced from the next
+- Settings: every draggable row on the Macros page is boxed full-width and spaced
+- Settings: clicking a secondary stat's glyph toggles whether it is ranked
+- Settings: the secondary split is stored order first, then the rest
+- Settings: the Master controls tab closes with the two reset buttons
+- Settings: the Reset all settings tooltip names Profiles → Reset Profile
+- Settings: the panel's Reset all settings raises the same popup as /cm resetall
+- Settings: the three maintenance verbs draw on their own tab
+- Settings: registering the category in combat is refused and parked
+- Settings: leaving combat replays the parked registration, and only then
+- Settings: a registration parked while the addon is stood down still registers on regen
+- Settings: a registration parked by a stand-down in combat still registers on regen
+- Settings: /cm config in combat answers false and prints the library's refusal once
+
+### test_slash.lua (113)
+
+- /cm set toggles a bool setting through the schema
+- /cm disable prints exactly one line, the enabled echo
+- /cm enable prints exactly one line, the enabled echo
+- /cm priority add then remove edits the FOOD candidate set
+- /cm priority add accepts a spell sentinel (s:ID)
+- /cm stat primary sets the current spec's primary stat
+- /cm stat primary resolves a CLASS:SPEC token
+- /cm version prints the canonical v<version> line, not 'version <v>'
+- /cm list colors the header, page group, and key=value rows (no trailing colon)
+- /cm get echoes the same colored key=value form as list
+- /cm with an unknown command reports it and prints help
+- /cm dump pick renders a category's effective priority and marks owned picks
+- /cm rewrite is a back-compat alias for rewritemacros
+- /cm with no argument opens the settings panel through config
+- /cm with only whitespace opens the settings panel too
+- /cm help prints the help table
+- /cm lower-cases only the verb, leaving arguments alone
+- /cm tolerates surrounding whitespace
+- /cm help and the About panel read the same command table
+- /cm resetall asks for confirmation instead of wiping immediately
+- /cm resetall's confirmation still performs the full wipe when accepted
+- /cm resetall confirmed in combat refuses and writes nothing
+- /cm resetall help names a whole-profile reset
+- /cm reset <path> restores exactly that row and leaves its neighbors alone
+- /cm config reports when the settings panel cannot be opened
+- /cm priority with no category prints the sub-verbs and known categories
+- /cm priority with an unknown category reports it and prints help
+- /cm priority <cat> with no sub-verb defaults to the list
+- /cm priority list marks ownership and the current pick
+- /cm priority list renders item and spell rows in the same columns
+- /cm priority on a spec-aware category with no spec explains the refusal
+- /cm priority rejects an unparseable id with a usage line
+- /cm priority reset clears the user's edits but keeps discoveries
+- /cm priority up reorders the list by pinning
+- /cm priority up on the top entry reports the edge instead of reordering
+- /cm priority on a composite category points at the aio editor
+- /cm priority with an unknown sub-verb reports it
+- /cm stat with no sub-verb prints the stat help
+- /cm stat list prints the resolved priority for the current spec
+- /cm stat primary rejects a stat that is not a primary
+- /cm stat secondary stores an ordered, deduplicated list
+- /cm stat secondary rejects the whole list if any stat is unknown
+- /cm stat secondary preserves the existing primary
+- /cm stat reset drops the override and falls back to the seed
+- /cm stat reset on a spec with no override says there is nothing to do
+- /cm stat with an unknown sub-verb reports it
+- /cm aio with no key prints the sub-verbs and the composite keys
+- /cm aio on a single-pick category is rejected
+- /cm aio list shows both sections with their on/off state
+- /cm aio toggle flips a sub-category and back
+- /cm aio toggle honors an explicit on/off argument
+- /cm aio toggle on a ref with no stored flag flips it OFF, not on
+- /cm aio toggle writes a real boolean, never a string or nil
+- /cm aio toggle with an unrecognized word falls through to a flip
+- /cm aio toggle rejects a ref that is not part of the composite
+- /cm aio down reorders within a section
+- /cm aio up at the top of a section reports the edge
+- /cm aio reset restores both the enabled flags and the section order
+- /cm aio with an unknown sub-verb reports it
+- /cm dump with no target lists every dump target
+- /cm dump with an unknown target reports it and lists the valid ones
+- /cm dump <itemID> is a shortcut for the item target
+- /cm dump bags lists each owned itemID and its count
+- /cm dump pick on a composite renders the assembled macro body
+- /cm dump statpriority prints the current spec's resolved stats
+- /cm dump item without an itemID prints its usage line
+- /cm dump item reports header, instant info, classification and usability in that order
+- /cm dump item on an unclassifiable item says (none) in red
+- /cm dump item on a pending tooltip says pending and asks no usability question
+- /cm dump item renders every raw tooltip line, splitting left from right
+- /cm dump pick without a category prints usage and the known keys
+- /cm dump pick on an unknown category names the bad key
+- /cm dump pick on a composite renders both sections with on/off tags
+- /cm dump pick on a spec-aware category prints the spec context first
+- /cm resync rediscovers, recomputes, and reports the count
+- /cm resync warns that macro writes are deferred while in combat
+- /cm resync drops cached tooltip parses first
+- /cm rewritemacros clears the fingerprint cache before recomputing
+- /cm debug on and off drive the logging flag through the DebugLog seam
+- /cm debug with no argument toggles the window and leaves the flag alone
+- /cm set reports an unknown setting path
+- /cm get reports an unknown setting path
+- /cm set rejects a non-boolean value for a bool setting
+- /cm set on a numeric dropdown accepts a listed value as a number
+- /cm set on a numeric dropdown rejects a value outside the list
+- /cm set on a plain number row still clamps to min/max
+- /cm set on a string dropdown still matches by text
+- /cm list covers every row in the settings schema
+- /cm stat primary, secondary and reset leave exactly the stored map they always did
+- /cm aio toggle, down and reset leave exactly the stored sections they always did
+- /cm get and list render the list-shaped rows as text, never a table address
+- /cm set and reset reach the slot order, a flag map and mouseover
+- /cm set on an order keeps every unnamed key in its current stored order
+- /cm set on a flag map merges the pairs given over the stored map
+- every /cm stat and /cm aio write goes through the schema helper
+- /cm unlock and /cm lock write the macro bar's stored lock flag
+- /cm bar lock and /cm bar unlock land on the same stored flag
+- /cm unlock on a switched-off bar says the bar is off
+- /cm bar unlock on a switched-off bar says the same line
+- /cm unlock on a shown bar keeps the drag wording
+- bare /cm bar toggles the stored flag during a perf hold
+- /cm lock and /cm unlock write through the schema helper, not the table
+- /cm lock and /cm unlock are in the published command table
+- Slash: enable / disable write the Enable row's own path
+- Slash: enable / disable hold no state of their own
+- Slash: the dispatcher still answers while the addon is disabled
+- Slash: enable echoes the stored value in the canonical set shape
+- Slash: a disabled addon refuses a feature verb and does not act on it
+- Slash: a disabled addon refuses the macro-bar verb without touching the bar
+- Slash: a disabled addon refuses resync rather than reporting a pass that wrote nothing
+- Slash: every verb outside the live set refuses while disabled, and every live one answers
+- Slash: enable itself still works while disabled, or the pair is one-way
+- Slash: with LibKa0s absent there is no refusal to print, and the verb acts
+
+### test_slash_degraded.lua (12)
+
+- Slash: the library-absent line is WS-02's sentence, through the locale
+- Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm disable prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar lock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar unlock prints the library-absent line and writes nothing
+- Slash: with LibKa0s absent, /cm bar on lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar off lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm bar lands on the hand-declared row and says so once
+- Slash: /cm bar on over a refused write never says ON
+- Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
+
+### test_slashsetup.lua (19)
+
+- Slash: the dispatcher IS the library's instance, not a host lookalike
+- Slash: /cm routes through the instance rather than a parallel path
+- Slash: the library reads the addon's live COMMANDS table, not a copy
+- Slash: help rows are rendered by the library's own formatter
+- Slash: the About panel's rows go through the SAME formatter, un-indented
+- Slash: the addon's own shipped wording survives the library's strings
+- Slash: every rendered string resolves to prose, not to its own key
+- Slash: a bare /cm get answers with its usage line rather than raising
+- Slash: a bare /cm reset points at /cm resetall rather than wiping
+- Slash: the schema CLI reads the addon's shapes through the library
+- Slash: /cm set keeps a multi-word font name whole
+- Slash: with the library absent every host-owned verb still dispatches
+- Slash: with the library absent only the five library-backed verbs degrade
+- Slash: with the library absent /cm diagnostics says the one line and floods nothing
+- Slash: /cm help degrades without latching, and an unknown verb still reports
+- Slash: with the library absent a bare /cm still runs config, every time
+- Slash: the degraded path keeps the library's parse — verb only is lowercased
+- Slash: the panel's degraded advice agrees with what /cm actually answers
+- Slash: `/cm get` and the settings panel decode one stored color the same way
+
+### test_spechelper.lua (16)
+
+- SpecHelper.MakeKey joins classID_specID, nil on missing parts
+- SpecHelper.GetCurrent reads the live spec and re-reads on respec
+- SpecHelper.GetCurrent returns classID-only when no spec is chosen
+- SpecHelper.GetStatPriority honors a user override
+- SpecHelper.GetStatPriority falls back to class primary, never nil
+- SpecHelper.GetStatPriority returns a well-formed seed default for a real spec
+- SpecHelper.AllSpecs enumerates specs including the current one
+- SpecHelper.MakeKey is stable regardless of numeric or string inputs
+- SpecHelper.GetCurrent returns nothing when the client has no class yet
+- SpecHelper.GetCurrent stops at the classID when the spec id is unresolvable
+- SpecHelper.GetStatPriority ignores a user row that names no primary
+- SpecHelper.GetStatPriority defaults a user override's secondary list to empty
+- SpecHelper.GetStatPriority falls back on class primary for an unseeded spec
+- SpecHelper.GetStatPriority never returns nil, even for a malformed key
+- SpecHelper.AllSpecs yields fully-formed rows keyed the same way as GetCurrent
+- SpecHelper.AllSpecs skips classes the client reports no specs for
+
+### test_surface_parity.lua (8)
+
+- Parity: the LibKa0s-Core stub carries the whole live seam
+- Parity: the LibKa0s-DebugLog stub carries the whole live seam
+- Parity: the LibKa0s-Slash stub carries the whole live seam
+- Parity: the LibKa0s-Options stub carries the whole live seam
+- Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires
+- Parity: the LibKa0s-Bus stub carries the major's whole surface
+- Parity: the LibKa0s-Schema stub instance carries the whole live instance
+- Parity: KCM.SchemaStub carries the LibKa0s-Schema-1.0 library surface
+
+### test_tooltipcache.lua (24)
+
+- TooltipCache: parses combined flat 'health and mana' into both values
+- TooltipCache: parses health-only food with no manaValue
+- TooltipCache: parses mana-only drink with no healValue
+- TooltipCache: flags weapon enhancements via the 'your <weapon>' effect
+- TooltipCache: parses combined percentage 'health and mana' form
+- TooltipCache: parses Attack Power and Spell Power as AP/SP stats
+- TooltipCache: weaponAffinity from bladed/blunt/plain phrasing
+- TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff
+- TooltipCache: sets isAugmentRune from the category marker line
+- TooltipCache: isAugmentRune fires on an inline 'Augment Rune' marker
+- TooltipCache: partial consumable tooltip stays pending until body loads
+- TooltipCache: effectless NON-consumable is cached, not pending
+- TooltipCache: parses a 'cannot be used by players higher than level' cap
+- TooltipCache: parses a drums 'above level' affect cap
+- TooltipCache: a floor phrasing without a negation does NOT produce a maxLevel
+- TooltipCache: an item whose only recognized line is a max-level cap resolves final, not pending (Emergency Soul Link)
+- TooltipCache: an uncapped item reports no maxLevel
+- TooltipCache.IsUsableByPlayer rejects an over-cap item and accepts at the cap
+- TooltipCache: hour wins over a shorter unit on the same line
+- TooltipCache: the longest duration seen across lines wins
+- TooltipCache: 'over N sec' feeds the over-fields, never buffDurationSec
+- TooltipCache: 'over' applies to the seconds form only
+- TooltipCache: a cooldown note is stripped and a bare cooldown line skipped
+- TooltipCache.Snapshot counts entries and lists pending ids without fetching
+
+### test_vendor_sync.lua (3)
+
+- libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
+- tests/_kit is the test kit that shipped with that release
+- the automated-test runner is recorded executable (100755)
+
+### test_weaponslots.lua (9)
+
+- WeaponSlots: maps equipped weapon subtype to bladed/blunt/nil
+- WeaponSlots: keys on weapon subClassID, not the localized subType
+- WeaponSlots: every bladed weapon subclass reports bladed affinity
+- WeaponSlots: every blunt weapon subclass reports blunt affinity
+- WeaponSlots: ranged and wand subclasses take no stone, but are still weapons
+- WeaponSlots: main hand and off hand are read independently
+- WeaponSlots: an off-hand holdable (armor) is not enhanceable
+- WeaponSlots: an unknown item in the slot yields no affinity
+- WeaponSlots: a slot the client cannot report is safe to query
+
+### test_widgets.lua (8)
+
+- Widgets: every custom widget registers itself with AceGUI
+- Widgets: each registration supplies a constructor function
+- Widgets: each registration declares a positive integer version
+- Widgets: the version guard skips a widget already registered at that version
+- Widgets: no two widgets claim the same type name
+- Widgets: every widget name used by the settings pages is registered
+- Widgets: the score button lights no panel behind itself on hover
+- Widgets: the info glyph comes from the catalog, as LootHistory's does
+
+### test_eol.lua (2)
+
+- eol: every tracked file carries the terminator .gitattributes declares for it
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
+
+### test_prose.lua (15)
+
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
+- prose self-test: the carve-out suppresses the named generated folder, and only it
+- prose self-test: a path the carve-out does not name is not covered by one that looks like it
+- prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
+- prose self-test: a TOC's file lines are read as paths, and its directives and comments are not
+- prose self-test: a .pkgmeta's ignore block is read, and the keys around it are not
+- prose self-test: an ignore entry covers a path exactly, by folder, and by wildcard
+- prose self-test: the carve-out admits a generated dump and refuses a file the TOC loads
+- prose self-test: a waiver-file exclusion meets the same two refusals as the carve-out
+- prose self-test: each list is refused on the matching rule its own scan uses
+- prose self-test: the scan and the refusals read the added exclusions through one reader
+- prose self-test: a narrowing is refused by what it suppresses, not by how it is written
+- prose self-test: the disclosure names what each entry suppressed, and says when it is bounded
+- prose self-test: a malformed waived is a failure, not a silence
+
+### test_layout_cap.lua (13)
+
+- layoutcap: every authored file over the 1500-line cap is named in the census
+- layoutcap: no census row outlives the breach it records
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
+- layoutcap: the census and the exempt set agree about which paths were exempted
+- layoutcap: an empty census is written as a result rather than left standing empty
+- layoutcap self-test: the parser reads the census nested under the register, and stops there
+- layoutcap self-test: a census outside its register, or at the wrong level, is not read
+- layoutcap self-test: an over-cap file missing from the census is reported, and an exempt one is not
+- layoutcap self-test: a census row that outlives its breach is reported
+- layoutcap self-test: an over-cap row that names no terminal state is reported
+- layoutcap self-test: the census and the exempt set are held to naming the same paths
+- layoutcap self-test: a census that states nothing is told apart from one that states none
+- layoutcap self-test: the exempt set takes folders as well as paths
+
+### test_diagnostics_contract.lua (7)
+
+- diagnostics contract: both forms run the report
+- diagnostics contract: the debug word is matched in any case
+- diagnostics contract: both markers carry the brand and the end counts the report
+- diagnostics contract: the report appends after what the console already holds
+- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: both forms run while the addon is disabled
+- diagnostics contract: no other name runs the report
+
+## Totals
+
+| Suite | Cases |
+|-------|------:|
+| test_addbyid.lua | 19 |
+| test_bagscanner.lua | 12 |
+| test_bulklog.lua | 14 |
+| test_bus.lua | 19 |
+| test_categories.lua | 4 |
+| test_classifier.lua | 16 |
+| test_compat.lua | 26 |
+| test_constants.lua | 12 |
+| test_coresetup.lua | 12 |
+| test_database.lua | 26 |
+| test_debug.lua | 14 |
+| test_debuglog.lua | 21 |
+| test_docmap.lua | 1 |
+| test_defaults.lua | 28 |
+| test_disabled.lua | 20 |
+| test_diagnostics.lua | 16 |
+| test_envsetup.lua | 5 |
+| test_itemsetup.lua | 5 |
+| test_events.lua | 26 |
+| test_harness.lua | 10 |
+| test_id.lua | 8 |
+| test_libka0s.lua | 8 |
+| test_launcher.lua | 28 |
+| test_lintconfig.lua | 4 |
+| test_load.lua | 1 |
+| test_locale.lua | 10 |
+| test_macrobar.lua | 85 |
+| test_macrobar_chrome.lua | 22 |
+| test_macrobar_buttons.lua | 8 |
+| test_macrobar_layout.lua | 39 |
+| test_macromanager.lua | 53 |
+| test_mediasetup.lua | 12 |
+| test_perfsetup.lua | 11 |
+| test_pipeline.lua | 31 |
+| test_profiles.lua | 21 |
+| test_ranker.lua | 26 |
+| test_register.lua | 1 |
+| test_runner_list.lua | 4 |
+| test_schema.lua | 54 |
+| test_schema_adoption.lua | 13 |
+| test_selector.lua | 55 |
+| test_settingsui.lua | 42 |
+| test_settingsui_optionsui.lua | 21 |
+| test_slash.lua | 113 |
+| test_slash_degraded.lua | 12 |
+| test_slashsetup.lua | 19 |
+| test_spechelper.lua | 16 |
+| test_surface_parity.lua | 8 |
+| test_tooltipcache.lua | 24 |
+| test_vendor_sync.lua | 3 |
+| test_weaponslots.lua | 9 |
+| test_widgets.lua | 8 |
+| test_eol.lua | 2 |
+| test_prose.lua | 15 |
+| test_layout_cap.lua | 13 |
+| test_diagnostics_contract.lua | 7 |
+| **Total** | **1112** |

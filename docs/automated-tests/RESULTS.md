@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260926-160431`](20260926-160431/) | `bc284a4` | clean | 1.6.2 | 0/0 | 122 | 1112/0/1112 | pass | 25645 | 2835 | 7.8 | 2.5 | 14 | 0 | **green** |
 | [`20260924-120622`](20260924-120622/) | `f8729fa` | clean | 1.6.2 | 0/0 | 119 | 1071/0/1071 | pass | 24468 | 2685 | 7.8 | 2.5 | 14 | 0 | **green** |
 | [`20260916-184427`](20260916-184427/) | unknown | unknown | 1.6.2 | 0/0 | 114 | 928/0/928 | pass | 22707 | 2396 | 8.0 | 2.6 | 15 | 0 | **green** |
 | [`20260916-094429`](20260916-094429/) | unknown | unknown | 1.6.2 | 0/0 | 108 | 901/0/901 | pass | 22225 | 2342 | 8.0 | 2.6 | 15 | 0 | **green** |
@@ -49,18 +50,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**1071 cases** — 1071 passed, 0 failed, 0 skipped. The generated inventory
-[`20260924-120622/test-cases.md`](20260924-120622/test-cases.md) is the authority on which cases existed at this run;
+**1112 cases** — 1112 passed, 0 failed, 0 skipped. The generated inventory
+[`20260926-160431/test-cases.md`](20260926-160431/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **928 → 1071** since the previous run.
+Moved **1071 → 1112** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
 
 ## Lint
 
-**0 warnings / 0 errors over 119 files** (`luacheck .`).
+**0 warnings / 0 errors over 122 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 4 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -70,22 +71,22 @@ to whoever thinks to open `.luacheckrc`.
 ## Perf
 
 **5 scenarios** from `tests/perf.lua`; the measurements are in
-[`20260924-120622/perf.json`](20260924-120622/perf.json).
+[`20260926-160431/perf.json`](20260926-160431/perf.json).
 
 | `scenario` | `iters` | `ms/iter` | `total` | `ms` |
 |---|---|---|---|---|
-| `recompute` | 200 | 1.13382 | 226.763 | 6505.9 |
-| `cooldownRefresh` | 200 | 0.02243 | 4.486 | 6000.0 |
-| `probeOverheadOff` | 200 | 0.02240 | 4.479 | 6000.0 |
-| `probeOverheadOn` | 200 | 0.02447 | 4.894 | 6001.3 |
-| `refreshBurst` | 200 | 0.02130 | 4.260 | 0.0 |
+| `recompute` | 200 | 1.23204 | 246.408 | 14740.1 |
+| `cooldownRefresh` | 200 | 0.01945 | 3.889 | 6000.0 |
+| `probeOverheadOff` | 200 | 0.02433 | 4.865 | 6000.0 |
+| `probeOverheadOn` | 200 | 0.03345 | 6.690 | 6001.3 |
+| `refreshBurst` | 200 | 0.03274 | 6.547 | 0.0 |
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20260924-120622`](20260924-120622/) — **this run's measurement, not its diff.** Max CCN **14** across 2685
+Current as of [`20260926-160431`](20260926-160431/) — **this run's measurement, not its diff.** Max CCN **14** across 2835
 functions, **0** of them warned on; 8 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
@@ -110,7 +111,7 @@ cell is this file saying something crossed and nobody has ruled on it yet.
 | 1000–1500 (on notice) | `tests/test_schema.lua` | 1023 | **Accepted — case count, not tangle; re-check at 1300.** 1023, unchanged since the previous run. 743 NLOC across 70 functions at avg CCN 2.1. |
 | 1000–1500 (on notice) | `tests/test_selector.lua` | 1009 | **Accepted — case count, not tangle; re-check at 1300.** 1011 → 1009 since the previous run. 711 NLOC across 66 functions at avg CCN 1.4. |
 | 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1419 | **Accepted on notice — case count, not tangle; re-check at 1475.** 1255 → **1419** since the previous run, past the 1400 re-check the last disposition set, almost all of it the General page's RenderTabbedSchema cases (`bac6600`) and the About logo path cases (`254e7ac`). Re-checked here: 899 NLOC across 104 functions at avg CCN 1.7, no warned function, so the growth is cases rather than tangle. The seam if it needs one is the #33 pattern again — one conformance block per peeled file. |
-| 1000–1500 (on notice) | `tests/test_slash.lua` | 1425 | **Accepted on notice — case count, not tangle; re-check at 1475.** 1249 → **1425** since the previous run, past the 1350 re-check the last disposition set, on the `/cm unlock` and stand-down cases (`8906741`, `a6e592e`) and the remediation's slash cases (the bare `/cm bar` toggle, the unlock notice, one-line enable/disable, the in-combat `resetall` refusal). Re-checked here: 1074 NLOC across 135 functions at avg CCN 1.3, the lowest density in the band. The degraded-dispatch cases already moved to `tests/test_slash_degraded.lua`; the next cut is a per-namespace suite (`priority` / `stat` / `aio` / `bar`). |
+| 1000–1500 (on notice) | `tests/test_slash.lua` | 1426 | **Accepted on notice — case count, not tangle; re-check at 1475.** 1249 → **1425** since the previous run, past the 1350 re-check the last disposition set, on the `/cm unlock` and stand-down cases (`8906741`, `a6e592e`) and the remediation's slash cases (the bare `/cm bar` toggle, the unlock notice, one-line enable/disable, the in-combat `resetall` refusal). Re-checked here: 1074 NLOC across 135 functions at avg CCN 1.3, the lowest density in the band. The degraded-dispatch cases already moved to `tests/test_slash_degraded.lua`; the next cut is a per-namespace suite (`priority` / `stat` / `aio` / `bar`). |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
