@@ -1,0 +1,1 @@
+clean: README ## Reporting a bug diffs clean against STD-17 (/cm), sits between Troubleshooting and Issues, step 3 'include it with your bug report', no GitHub link; STD-18 row added and the :120 row repointed; CRLF kept (152/152); docs-only; gate re-run green (1108/0/0, luacheck 0/0, lizard -C 15 clean, max 1426 lines).
