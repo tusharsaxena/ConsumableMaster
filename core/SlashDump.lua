@@ -373,16 +373,29 @@ DUMP_TARGETS.pick = {
 -- when the client refused the name (KCM.RejectedEvents,
 -- events-frames-taint-§1), `off` while a hold has the addon stood down, else
 -- `registered`. Renders from KCM.EVENTS, so a new pair appears here unasked.
+--
+-- The rows are built once, here, and printed by two readers: this dump target
+-- and the diagnostics report's events section (core/Diagnostics.lua), so the
+-- two cannot disagree about what a state is called. A read: it writes nothing.
+local function eventStates()
+    local rejected = {}
+    for _, name in ipairs(KCM.RejectedEvents or {}) do rejected[name] = true end
+    local down = KCM.IsStoodDown and KCM.IsStoodDown()
+    local rows = {}
+    for _, pair in ipairs(KCM.EVENTS or {}) do
+        local state = rejected[pair[1]] and "rejected" or (down and "off (addon disabled)" or "registered")
+        rows[#rows + 1] = { event = pair[1], state = state, handler = pair[2] }
+    end
+    return rows, #(KCM.RejectedEvents or {})
+end
+
 DUMP_TARGETS.events = {
     summary = "client events and whether each registered",
     run = function()
-        local rejected = {}
-        for _, name in ipairs(KCM.RejectedEvents or {}) do rejected[name] = true end
-        local down = KCM.IsStoodDown and KCM.IsStoodDown()
-        say(("%d client events, %d rejected"):format(#(KCM.EVENTS or {}), #(KCM.RejectedEvents or {})))
-        for _, pair in ipairs(KCM.EVENTS or {}) do
-            local state = rejected[pair[1]] and "rejected" or (down and "off (addon disabled)" or "registered")
-            say(("  %s  %s  -> %s"):format(pair[1], state, pair[2]))
+        local rows, nRejected = eventStates()
+        say(("%d client events, %d rejected"):format(#rows, nRejected))
+        for _, row in ipairs(rows) do
+            say(("  %s  %s  -> %s"):format(row.event, row.state, row.handler))
         end
     end,
 }
@@ -430,10 +443,11 @@ local function dumpDispatch(rest)
 end
 
 -- Published for core/SlashCommands.lua (whose `priority` verb renders composite
--- categories through the `pick` target) and for settings/Slash.lua, which wires
--- Dispatch in as the `dump` verb.
+-- categories through the `pick` target), for settings/Slash.lua, which wires
+-- Dispatch in as the `dump` verb, and for core/Diagnostics.lua (EventStates).
 KCM.SlashDump = {
-    Dispatch = dumpDispatch,
-    Help     = dumpHelp,
-    TARGETS  = DUMP_TARGETS,
+    Dispatch    = dumpDispatch,
+    Help        = dumpHelp,
+    TARGETS     = DUMP_TARGETS,
+    EventStates = eventStates,
 }

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1080%2F1081_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1112%2F1112_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable-macro addon which keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch on whether you are fighting. Set your food, flask and potion macros up once. Then stop rebuilding them.
 
@@ -59,7 +59,7 @@ If a better pick turns up while you are in combat, the macro updates the moment 
 
 Install it with your addon manager, or drop the folder into `Interface/AddOns`, and log in. The macros are written for you on the way in: Consumable Master reads your bags, scores what it finds, and fills all fifteen. Drag them onto your action bars from the macro window, or from the small draggable icon under the title on any category tab in the settings, which is nearer to hand while you're already in there.
 
-You don't have to give up bar space for any of this. Consumable Master ships a bar of its own that holds its macros and nothing else, and it arrives unlocked so you can put it where you want before locking it down with `/cm lock`. Every button on that bar wears a shaded strip along one edge with a small arrow on it. Hover the strip and a flyout opens listing what you can use in that category right now, best-ranked nearest the button, so the second-best flask is a hover away rather than a bag dive. Long categories are trimmed to whatever you set Maximum flyout entries to. If none of that appeals, `/cm bar off`.
+You don't have to give up bar space for any of this. Consumable Master ships a bar of its own that holds its macros and nothing else, and it arrives unlocked so you can put it where you want before locking it down with `/cm lock`. Every button on that bar wears a shaded strip along one edge with a small arrow on it. Hover the strip and a flyout opens listing what you can use in that category right now, best-ranked nearest the button, so the second-best flask is a hover away rather than a bag dive. Long categories are trimmed to whatever you set Maximum flyout entries to. If none of that appeals, `/cm bar off` hides it. So does the X on the bar's handle while it's unlocked, and `/cm bar on` puts it back where it was.
 
 You can overrule the ranking anywhere it gets something wrong. Each category has a tab on the Macros page showing its candidates in order: a green check on the ones you own, a yellow star on the one the macro is currently using. Grab a row by its drag handle and drop it higher to pin it above the score, or press × to block it so a later bag scan won't put it back. Every row carries a blue info button that explains why the item landed where it did, and the first time a ranking surprises you that button is the fastest way to find out you had pinned something two patches ago. Anything the addon has never heard of goes in through the add-by-ID box at the top of the tab: pick Item or Spell, then type the ID or the name, or shift-click the thing straight into the box.
 
@@ -114,14 +114,23 @@ Hover the **blue info button** on any row to see exactly why it landed where it 
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
 | Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check that the viewed spec on the **Stat Priority** page matches the spec you are actually playing. |
 | Only one weapon got an enchant, or a hand was left bare. | That hand either has nothing equipped, or you own nothing that fits it: whetstones need a bladed weapon, weightstones a blunt one, and oils fit anything. The Weapon Enchant tab names each hand's weapon type above the list, so a hand reading **no stone (oils only)** wants an oil. |
-| I opened the debug console but nothing shows up in it. | The window and the logging are two separate switches, which is the one people trip over. A bare `/cm debug` only shows or hides the window; `/cm debug on` (or the window's **Debug: ON/OFF** toggle) is what captures output. The log also clears on every login. |
+| I opened the debug console but nothing shows up in it. | The window and the logging are two separate switches, which is the one people trip over. A bare `/cm debug` only shows or hides the window and never turns logging on. `/cm debug on` (or the window's **Debug: ON/OFF** toggle) is what captures output. The log also clears on every login. |
 | `/cm dump item id` shows a type the addon doesn't recognize. | A patch probably renamed that item type. Please file an issue with the type shown in the dump. |
 | Chat says "macro body exceeds 255 bytes" once on login. | WoW limits macros to 255 characters. Rather than write a broken macro, the addon leaves that category on its empty note. Please report it with the category name. |
-| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Run `/cm debug`, reproduce it, and file an issue with the log. |
+| Chat says it "gave up on a macro after 3 failed writes". | Something is repeatedly blocking the macro write, usually another addon interfering. Follow [Reporting a bug](#reporting-a-bug) below and reproduce the failed writes at step 1. |
 | `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading. Reload and try again. |
 | `/cm resetall` or "Reset all settings" says "reset deferred until regen". | You were in combat, so nothing was reset. Run it again once combat ends. |
 | I want to restore a default list after removing items by hand. | **Reset category** clears that one category. **Reset all priorities** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 | I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
+| Something looks wrong and I want to report it. | Follow [Reporting a bug](#reporting-a-bug) below. |
+
+## Reporting a bug
+
+1. Type `/cm debug on` and reproduce the bug.
+2. Type `/cm diagnostics`.
+3. If the debug window isn't open, open it with `/cm debug`. Press **Copy**, copy the entire output, and include it with your bug report.
+
+The report is added after the debug trace in the same window, so one copy carries both.
 
 ## Issues and feature requests
 

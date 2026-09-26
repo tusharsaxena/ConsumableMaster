@@ -350,7 +350,7 @@ end)
 
 local RESERVED = {
     "help", "config", "version", "enable", "disable", "debug",
-    "perf", "get", "set", "list", "reset", "resetall",
+    "perf", "diagnostics", "get", "set", "list", "reset", "resetall",
 }
 
 -- The verbs whose answer is a WINDOW rather than a line: `debug` toggles the
@@ -372,7 +372,7 @@ test("Disabled 7: every reserved verb still answers normally", function(t)
 
     for _, verb in ipairs(RESERVED) do
         local out = dispatch(KCM, verb)
-        -- What is asked of every one of the twelve is the thing the standard
+        -- What is asked of every one of the thirteen is the thing the standard
         -- actually fixes: that it was NOT refused.
         if not SILENT[verb] then
             t.truthy(out ~= "", "'" .. verb .. "' answered something")
@@ -415,6 +415,30 @@ test("Disabled 7c: a feature verb refuses on exactly one line, and reaches no se
     -- declined it would assert its feature verbs act normally instead, and either
     -- is conformant. What must not happen is the choice drifting in silence.
     t.eq(storedState(KCM), before, "and no write seam was reached")
+end)
+
+test("Disabled 7e: both forms of the diagnostics report still write one while disabled", function(t)
+    local KCM, H = build()
+    local D = KCM.DebugLog.instance
+    H.SetAndRefresh("enabled", false)
+    local function reports()
+        local n = 0
+        for _, line in ipairs(D.buffer) do
+            if line:find("diagnostics begin ====", 1, true) then n = n + 1 end
+        end
+        return n
+    end
+    -- debug-logging-§14: the report is for exactly the moment the addon looks
+    -- broken, and a player who switched it off to stop the damage is in that moment.
+    --
+    -- red under: dropping `diagnostics` from settings/Slash.lua's LIVE_VERBS, which
+    -- refuses the verb on the dispatcher's one line (the `debug` form still runs,
+    -- since `debug` is live, so each form is counted on its own).
+    dispatch(KCM, "diagnostics")
+    t.eq(reports(), 1, "/cm diagnostics wrote a report while disabled")
+    dispatch(KCM, "debug diagnostics")
+    t.eq(reports(), 2, "/cm debug diagnostics wrote a second one")
+    t.truthy(KCM.IsStoodDown(), "and the addon is still stood down: the report stood nothing up")
 end)
 
 test("Disabled 7d: the refusal line is the collection's shape, not a re-spelling", function(t)

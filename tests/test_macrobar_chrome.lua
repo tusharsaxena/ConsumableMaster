@@ -2,8 +2,8 @@
 -- (MacroBarButton.ApplyStyle), the flyout's bind/apply pass, and the
 -- options-ui-§15/options-ui-§16/options-ui-§17 rows those appliers are what honors.
 -- Since the drag-handle adoption it also carries the unlocked strip's own
--- chrome: the two tooltips the strip and its help mark draw, and the mark's
--- hover tint.
+-- chrome: the two tooltips the strip and its help mark draw, the mark's
+-- hover tint, and the close mark that hides the bar (X-01, X-02, X-05).
 --
 -- Peeled out of tests/test_macrobar.lua at the seam issue #32 named, which the
 -- cap census in docs/ARCHITECTURE.md carried. NOT the same suite as
@@ -389,7 +389,7 @@ end)
 -- The strip above the bar is `LibKa0s-Widgets-1.0`'s `DragHandle`, and this
 -- addon is the host whose TWO descriptors the widget's shape was drawn around:
 -- `tooltip` for the strip and `helpTooltip` for the mark, each with its own
--- title, body and anchor (modules/MacroBar.lua:197-229). Nothing asserted a
+-- title, body and anchor (modules/MacroBar.lua:221-253). Nothing asserted a
 -- line of either, so the entire reason there are two rested on a hand check.
 --
 -- What is observed is what a hover puts on screen — the frame the tooltip is
@@ -533,4 +533,105 @@ test("macrobar handle: the mark holds its resting gray, because no click is wire
 
         help:GetScript("OnLeave")(help)
         t.eqList(tints[2], { 0.7, 0.7, 0.72 }, "and leaving it leaves the same tint behind")
+    end)
+
+-- ---------------------------------------------------------------------------
+-- The drag handle's close mark (X-01, X-02, X-05)
+--
+-- The X turns off the smallest thing the strip drags: the macro bar, through
+-- `macroBar.enabled` and the same seam as `/cm bar off` and the Macro Bar
+-- page's Enabled row. Never `profile.enabled` -- that would stop the macro
+-- writes the player's action bars rely on -- never the lock, and never the
+-- position, so `/cm bar on` puts the bar back where it was.
+-- ---------------------------------------------------------------------------
+
+local X_ACK  = "Macro bar hidden. /cm bar on brings it back."
+local X_BACK = "/cm bar on brings it back."
+
+--- Every path written through the schema seam while `fn` runs, in order.
+local function recordWrites(KCM, fn)
+    local paths = {}
+    local realSet = KCM.Schema.Set
+    KCM.Schema.Set = function(self, path, ...)
+        paths[#paths + 1] = path
+        return realSet(self, path, ...)
+    end
+    fn()
+    KCM.Schema.Set = realSet
+    return paths
+end
+
+local function clickX(handle)
+    handle.close:GetScript("OnClick")(handle.close, "LeftButton")
+end
+
+-- red under: a strip built without `onClose`, or an X that writes
+-- `profile.enabled`, the lock or the position, or writes the flag by hand.
+test("macrobar handle: the X hides the bar through macroBar.enabled and says the way back",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local seen, _, handle = support.buildBar(KCM)
+        t.truthy(handle.close, "the strip carries a close mark")
+        local c = KCM.db.profile.macroBar
+        local pos = { c.point, c.relPoint, c.x, c.y }
+        local locked = c.locked
+        h.loader.mock.output = {}
+
+        local paths = recordWrites(KCM, function() clickX(handle) end)
+
+        t.eqList(paths, { "macroBar.enabled" }, "exactly the bar's enable row, through the seam")
+        t.eq(c.enabled, false, "the bar's flag is off")
+        t.eq(KCM.db.profile.enabled, true, "the addon stays on: its macros are still written")
+        t.eq(c.locked, locked, "the lock is untouched")
+        t.eqList({ c.point, c.relPoint, c.x, c.y }, pos, "the position is untouched")
+        t.eq(seen.barVisible, false, "the bar left the screen")
+        local said = table.concat(h.loader.mock.output, "\n")
+        t.truthy(said:find(X_ACK, 1, true), "the chat line names the way back")
+
+        KCM.MacroBar.SetEnabled(true)
+        t.eq(seen.barVisible, true, "/cm bar on brings it back")
+        t.eqList({ c.point, c.relPoint, c.x, c.y }, pos, "…where it was")
+    end)
+
+-- red under: dropping `closeTooltip` (the X would show the strip's tooltip)
+-- or a tooltip that no longer names the way back.
+test("macrobar handle: the X's tooltip says what the click does and the way back", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, _, handle = support.buildBar(KCM)
+    local rec = hover(handle.close)
+    t.eq(rec.lines[1], "Hide the macro bar", "the X carries its own title")
+    t.eq(rec.owner, handle.close, "owned by the X")
+    t.truthy(hasLine(rec, "Click to hide the macro bar. Its layout and position are kept."),
+        "…says what the click does")
+    t.truthy(hasLine(rec, X_BACK), "…and carries the chat line's way back")
+end)
+
+-- The X widens the strip: the widget reserves the close mark's frame on both
+-- sides of the label (Widgets 10.3, `handle:Reserve()`). This addon pins no
+-- Measure literal; the reserve is read from the library's own constants.
+test("macrobar handle: the X widens the label's reserve by the close mark's frame", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, _, handle = support.buildBar(KCM)
+    local D = LibStub("LibKa0s-Widgets-1.0").DRAG_HANDLE
+    t.eq(handle:Reserve(), D.RESERVE + D.HELP_HIT + D.CLOSE_GAP,
+        "the reserve is the strip's with a close mark")
+end)
+
+-- The bar is a secure frame: its hide waits for PLAYER_REGEN_ENABLED, through
+-- the same deferral `/cm bar off` takes. The flag lands at once.
+--
+-- red under: an X that hides the frame directly, or one that drops the write
+-- in combat instead of letting the apply seam defer it.
+test("macrobar handle: in combat the X stores the flag and the bar hides at combat end",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local seen, _, handle = support.buildBar(KCM)
+        seen.barVisible = true
+        h.loader.mock.setCombat(true)
+        clickX(handle)
+        t.eq(KCM.db.profile.macroBar.enabled, false, "the flag is written at once")
+        t.eq(seen.barVisible, true, "the secure bar is not hidden mid-combat")
+        h.loader.mock.setCombat(false)
+        KCM.MacroBar.FlushPending()
+        t.eq(seen.barVisible, false, "the bar hides when combat ends")
     end)

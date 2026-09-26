@@ -477,6 +477,9 @@ local SUITES = {
     "test_docmap",
     "test_defaults",
     "test_disabled",
+    -- The diagnostics report's ConsumableMaster half (DX-CM): its sections, the debug word
+    -- and the read-only guarantee. After test_disabled, which establishes the verbs first.
+    "test_diagnostics",
     "test_envsetup",
     "test_itemsetup",
     "test_events",
@@ -527,11 +530,43 @@ local SUITES = {
     --   test_layout_cap -- the 1500-line cap gate over the census in
     --                      docs/ARCHITECTURE.md (kit revision 25)
     --   test_diagnostics_contract -- the debug-logging-§14 dispatcher contract (kit
-    --                      revision 27); one declared skip until Kit.diagnostics is set
+    --                      revision 27), wired below through Kit.diagnostics
     { name = "test_eol",                  dir = "tests/_kit/" },
     { name = "test_prose",                dir = "tests/_kit/" },
     { name = "test_layout_cap",           dir = "tests/_kit/" },
     { name = "test_diagnostics_contract", dir = "tests/_kit/" },
+}
+
+-- The kit's diagnostics contract (debug-logging-§14), wired to THIS addon's dispatcher: the five
+-- facts tests/_kit/test_diagnostics_contract.lua reads. `reset` builds a fresh whole addon, past
+-- OnEnable, before every case, so no case inherits another's console, flag or latch; the other
+-- facts read that instance at call time. Every form goes through `/cm`'s own handler, and the
+-- disabled state is the one a player reaches, through the single write seam.
+--
+-- THE PRINT RESTORE, AGAIN. Every contract case builds an addon, and building installs the mock's
+-- chat capture as _G.print, which is the function the kit reports PASS and FAIL through. The
+-- suite registers through Kit.test directly, not through KCM_TEST.test above, so nothing handed
+-- the real print back and the rest of the run, summary included, went into the capture. The
+-- wrapper below is KCM_TEST.test's restore for the kit's own suites.
+local diagKCM
+local kitTest = Kit.test
+Kit.test = function(name, fn, skipReason)
+    return kitTest(name, fn and function(...)
+        local ok, err = pcall(fn, ...)
+        _G.print = realprint
+        if not ok then error(err, 0) end
+    end or nil, skipReason)
+end
+Kit.diagnostics = {
+    brand       = "Ka0s Consumable Master",
+    reset       = function()
+        diagKCM = L.loadFullAddon()
+        diagKCM:OnEnable()
+    end,
+    dispatch    = function(line) diagKCM:OnSlashCommand(line) end,
+    console     = function() return diagKCM.DebugLog.instance end,
+    setDebug    = function(on) diagKCM.State.debug = on and true or false end,
+    setDisabled = function(off) diagKCM.Settings.Helpers.SetAndRefresh("enabled", not off) end,
 }
 
 Kit.run({ dir = ROOT .. "/tests/", suites = SUITES })

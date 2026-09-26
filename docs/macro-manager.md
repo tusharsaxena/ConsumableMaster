@@ -12,8 +12,12 @@ KCM.MacroManager.FlushPending()                          -> applied:int    -- on
 KCM.MacroManager.BuildBody(catKey, id)                   -> string         -- pure helper
 KCM.MacroManager.BuildCompositeBody(cat, pickFor)        -> string|nil     -- pure helper, exposed for /cm dump pick
 KCM.MacroManager.CompositeDisplayPick(cat, inCombat, pickFor) -> id|nil   -- the step #showtooltip shows, for the bar tooltip
-KCM.MacroManager.InvalidateState()                       -- clears macroState + pendingUpdates + oversize warnings
+KCM.MacroManager.InvalidateState()                       -- clears macroState + pendingUpdates + oversize warnings + give-up record
+KCM.MacroManager.PendingSnapshot()                       -> { {name, catKey, itemID, attempts, composite, bytes}, ... }  -- read-only copy, sorted by name
+KCM.MacroManager.WriteTracking()                         -> { oversized = {catKey, ...}, gaveUp = { {name, attempts}, ... } }  -- read-only copies
 ```
+
+`PendingSnapshot` and `WriteTracking` are read-only accessors for the diagnostics report (debug-logging-§14). The combat queue, the oversized-warning gate and the give-up record are file-local, so the report reads fresh sorted copies of them and can never change the write path. A queued body is reported by its size in bytes, not its text.
 
 ## Body builders
 
@@ -187,7 +191,7 @@ FlushPending():
 
 A single-category entry **replays the body it queued** through `commitMacro`, the one write tail; it is not rebuilt through `SetMacro`. `SetMacro` only knows the single-item shape, so a rebuild turned a deferred per-hand `KCM_WPN_ENCH` body (two `/use item` + `/use 16` / `/use 17` pairs) into one `/use item` line (ConsumableMaster-R-01). The queued `itemID` is the post-oversize icon item, so a replayed empty-state body carries a nil icon item exactly as the live write would. A composite is re-run through `SetCompositeMacro`, which re-reads its picks.
 
-Bounded to **3 attempts** before giving up, with a one-time chat notice. Prevents an infinite re-queue loop across regen cycles when something — usually a Blizzard bug or another addon tainting the macro APIs — persistently rejects the write.
+Bounded to **3 attempts** before giving up, with a one-time chat notice. The give-up is also recorded (macro name and attempts) for `WriteTracking`, until `InvalidateState` clears it. Prevents an infinite re-queue loop across regen cycles when something — usually a Blizzard bug or another addon tainting the macro APIs — persistently rejects the write.
 
 ## Edge cases and error handling
 

@@ -1,6 +1,6 @@
 # Debug & diagnostics
 
-The debug console, the dump targets, and the schema-driven slash CLI. All chat output is prefixed with the cyan `|cff00ffff[CM]|r` tag (`KCM.PREFIX`) — no raw `print(...)` calls.
+The debug console, the diagnostics report, the dump targets, and the schema-driven slash CLI. All chat output is prefixed with the cyan `|cff00ffff[CM]|r` tag (`KCM.PREFIX`) — no raw `print(...)` calls.
 
 ## Toggle the debug console
 
@@ -82,6 +82,45 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 | `pick <catKey>` | The effective priority list with per-entry Ranker scores, an `[owned]` tag for entries you actually have, and a `<-- pick` marker on the winner. Composite catKeys (`hp_aio` / `mp_aio`) print the configured order, per-sub-cat picks, and the assembled macro body. |
 
 `<catKey>` is case-insensitive (`flask`, `FLASK`, `hp_aio` all work).
+
+## The diagnostics report (`/cm diagnostics`)
+
+A trace says what the addon did; the report says what it was working with. `debug-logging-§14` makes it a MUST, and the point is that one Copy carries both: turn logging on, reproduce the problem, run the report, press **Copy**. The README's `## Reporting a bug` gives players the same steps.
+
+**Two forms, and no third.** `/cm diagnostics` (a `COMMANDS` row, right after `debug`) and `/cm debug diagnostics` (a word of the `debug` verb) run the same report, and so does the long alias, `/consumablemaster diagnostics`. The `debug` handler in `settings/Slash.lua` tests `diagnostics` **first**, in any case, before `on` / `off` and before the window toggle. Nothing else runs it: `/cm debug diag`, `/cm debug dump` and every other `debug` word just toggle the window, as any unknown word always has, and there is no `diag` or `dx` row. `/cm dump` is the separate `dump <target>` namespace above and does not run the report. `diagnostics` is on the live set, so both forms answer while the addon is disabled ([slash-dispatch.md](./slash-dispatch.md#while-the-addon-is-disabled-the-slash-surface-is-unchanged)).
+
+**It appends, and it ignores the logging flag.** The report goes through `KCM.DebugLog.RunDiagnostics`, which writes with the library's ungated `Add`. It lands in full with logging off, and it never reads or changes `KCM.State.debug`, so the console header reads the same afterwards. Nothing it reaches calls `Clear()`: the trace you just reproduced stays above the begin marker. If the console is hidden the report opens it, and then prints one chat line with the line count that tells you to press Copy.
+
+**Who writes what.** The library (`libs/LibKa0s/DebugLogDiagnostics.lua`) writes the two markers, `[Diag] ==== Ka0s Consumable Master diagnostics begin ====` and `... diagnostics end: N line(s) ====`, with N counting both markers. It also writes the identity header: the `[Init]` summary, the client build, the locale, the logging flag, `InCombatLockdown()` and `UnitAffectingCombat("player")`, and every LibKa0s file running in the client with its minor. Beyond that it owns the per-section `pcall`, the cap and the escape strip. `core/DebugLogSetup.lua` hands it `brandName` and a `diagnostics` function, which asks `core/Diagnostics.lua` for its sections when the report runs, not at load. What follows is this addon's half, in this order:
+
+| Section | Tag | What it prints |
+|---|---|---|
+| `state` | `State` | Stored `enabled`, whether the addon is stood down, the Lifecycle holds; the schema version (global, profile, code) and the active profile; the perf harness flags; rejected client events. |
+| `settings` | `Set` | The schema row count, then every row that differs from its default as `path = value (default)`. Four rows print even at their defaults: `enabled`, `macroBar.enabled`, `macroBar.locked`, `global.minimap.shown`. |
+| `spec` | `Spec` | Class, spec, spec key and name; how many specs have a stored stat-priority override; the active spec's primary and secondary order, and whether it is an override. |
+| `tooltip cache` | `Tip` | Entry, pending and unsupported counts, and the pending ids. It comes before `categories` on purpose: ranking goes through `TooltipCache.Get`, which can resolve a pending entry, so this is the cache as the session left it. |
+| `categories` | `Cat` | One nested block per category in `KCM.Categories.LIST`: macro name, spec-aware and composite flags; the stored edits as counts plus the added, blocked and pinned ids; the effective priority's size and its **top five** with score and owned flag; a composite's in-combat and out-of-combat refs, `(off)` where a ref is switched off; the pick **as the macro wrote it**. |
+| `weapon enchant` | `Wpn` | Each hand's weapon and slot affinity, and the `item -> slot` uses the written weapon-enchant body carries. |
+| `macros` | `Macro` | Account macro slots used; one row per managed macro (exists, index, item, icon, category, body size in bytes); the combat queue, one row per pending write; the oversized-warning gate; the give-up record; the recompute debounce. |
+| `macro bar` | `Bar` | Why the bar is hidden when it is (stood down, or `macroBar.enabled` off); the saved and live anchor; shown, visible, scale and alpha; whether a combat-deferred apply is pending; the visibility settings; the slot order and the shown slots. |
+| `bags` | `Bags` | Distinct items and the total count from `BagScanner.Scan()`. |
+| `events` | `Events` | The `/cm dump events` rows, built by the same `KCM.SlashDump.EventStates()`. |
+
+Every section runs under its own `pcall`, and so does each category's block, so a raise costs one line (`section <name> failed: <err>`) and the report carries on. Stored configuration prints the same whether or not the addon is stood down. What the stand-down released says so: the `state` line reads `stood down=yes`, and the bar section reads `bar hidden: the addon is stood down`.
+
+**Caps.** The report never goes over `min(lib.DIAG_MAX_LINES, lib.MAX_BUFFER - 100)` lines, markers included. That is 1200 today, against a 3000-line console, so the report cannot push itself out of the buffer. Each id list stops at 40 entries (`lib.DIAG_MAX_PER_LIST`) and shows the rest as `(+N more)`. A priority list prints its top five and never the whole list; the entry count is on the line above them. When a cap cuts something, the line before the end marker reads `truncated: N line(s) omitted, per-list caps hit=yes|no`.
+
+**What it deliberately does not read or call.** The report is read-only. `tests/test_diagnostics.lua` pins that with a before-and-after comparison of the stored tree and spies on every write path.
+
+- No write of any kind: no setter, no `EditMacro` / `CreateMacro`, no `Recompute` / `RequestRecompute`, no `MacroBar.Update` / `Refresh` / `SetEnabled`, no `Show` / `Hide`, no Lifecycle hold, no event registration, no timer.
+- No `Selector.PickBestForCategory` / `PickBestForSlot`. Their level gate asks `TooltipCache.IsUsableByPlayer` about entries that may still be pending. The pick is read from `macroState`, as the macro wrote it.
+- No `Selector.GetBucket` for a spec that has no bucket yet, because that call creates one in the profile. That category is ranked from its seed list instead, which is what `GetEffectivePriority` returns for an empty bucket.
+- No cooldown numbers. They are secret in combat and a bug report does not need them.
+- No protected API, so the report is safe in combat. Every value goes through `SafeToString`, every line's format is `%s`-only, and every number that could be secret (the macro counts, the macro index, scores, bag counts) is tested with `out:readable` before any arithmetic or comparison. The one numeric format, a score's `%.1f`, runs only after that test passes. A value it cannot read prints as `unreadable` or `<secret>` instead of raising.
+
+Nothing is redacted, because players send the report to the maintainer privately. Color, texture and hyperlink escapes are stripped so the Copy text is clean. The body is English diagnostic text and does not go through `KCM.L`, like every trace line; only the chat line after it is localizable.
+
+With LibKa0s absent, the stub's `RunDiagnostics` prints one line, `/cm diagnostics is unavailable: the LibKa0s library did not load.`, writes nothing and returns 0. A few hundred report lines printed to chat would be worse than no report.
 
 ## Measure what the addon costs (`/cm perf`)
 

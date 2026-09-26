@@ -299,6 +299,35 @@ test("Slash: with the library absent only the five library-backed verbs degrade"
     end
     t.falsy(text:find("perf", 1, true),
         "…and not perf, which needs LibKa0s-Perf to answer: " .. text)
+    -- Nor diagnostics: the report is written by LibKa0s-DebugLog-1.0, so like perf it
+    -- dispatches and says it cannot run, and is kept off the "still work" half.
+    t.falsy(text:find("diagnostics", 1, true),
+        "…and not diagnostics, which needs LibKa0s-DebugLog to write: " .. text)
+end)
+
+test("Slash: with the library absent /cm diagnostics says the one line and floods nothing", function(t)
+    local KCM, mock = loadDegraded()
+    -- The stub in core/DebugLogSetup.lua answers for the report (debug-logging-§14):
+    -- the collection's library-absent line, once, and no report taken through the
+    -- chat fallback a debug line uses.
+    --
+    -- red under: routing the verb to a host report that prints its lines to chat.
+    -- (The first line the addon prints on a library-absent build also carries
+    -- core/CoreSetup.lua's once-only install notice; it is not counted.)
+    for _, form in ipairs({ "diagnostics", "debug diagnostics" }) do
+        mock.output = {}
+        KCM:OnSlashCommand(form)
+        local said, report = 0, 0
+        for _, line in ipairs(mock.output) do
+            if line:find("/cm diagnostics is unavailable: the LibKa0s library did not load.", 1, true) then
+                said = said + 1
+            end
+            if line:find("diagnostics begin", 1, true) then report = report + 1 end
+        end
+        t.eq(said, 1, "/cm " .. form .. " said the library-absent line once: "
+            .. table.concat(mock.output, " | "))
+        t.eq(report, 0, "and no report reached chat")
+    end
 end)
 
 test("Slash: /cm help degrades without latching, and an unknown verb still reports", function(t)

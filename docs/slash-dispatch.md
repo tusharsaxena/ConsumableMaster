@@ -2,10 +2,10 @@
 
 `/cm` and `/consumablemaster` reach one dispatcher: the **LibKa0s-Slash-1.0** instance built in
 `settings/Slash.lua`. The library owns the parse, the help renderer, the row and value formatters and
-the schema CLI. This addon owns twenty-one verbs, five sub-command tables with three different handler
+the schema CLI. This addon owns twenty-two verbs, five sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — twenty-one verbs is over eight, and four verbs
+Both halves of `documentation-§3`'s trigger fire here — twenty-two verbs is over eight, and four verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -16,7 +16,7 @@ Three files, and the split is deliberate:
 |---|---|
 | `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. |
 | `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes six entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
-| `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`. |
+| `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
 `COMMANDS` is built. That is why `settings/Slash.lua:40` resolves it once at load rather than per
@@ -25,14 +25,14 @@ tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:163`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:358` so the verb set has one source
+`COMMANDS` (`settings/Slash.lua:165`) is an ordered list of positional triples
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:381` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
 renderer's input.
 
-The twenty-one verbs, in declaration order, which is also the order `/cm help` and the About page
+The twenty-two verbs, in declaration order, which is also the order `/cm help` and the About page
 print them:
 
 | Verb | Backed by | Behavior |
@@ -43,7 +43,8 @@ print them:
 | `enable` | host | Writes `enabled = true` through `Helpers.SetAndRefresh` — the Master controls checkbox's own path and seam — then echoes the stored value through the library's shared `path = value` formatter. |
 | `disable` | host | The same write with `false`. Neither verb holds state of its own (`slash-commands-§2`); with `libs/LibKa0s/` absent there is no `enabled` row to write and both say so rather than going inert. |
 | `perf` | LibKa0s-Perf | Resolves `KCM.Perf` at **call** time, prints the lines it returns. |
-| `debug` | host | Bare toggles the console window; `on`/`off` set logging through `DebugLog.SetEnabled`. |
+| `debug` | host | Bare toggles the console window; `on`/`off` set logging through `DebugLog.SetEnabled`; `diagnostics`, tested first in any case, writes the diagnostics report. Any other word, `diag` included, toggles the window. |
+| `diagnostics` | LibKa0s-DebugLog | Writes the diagnostics report (`debug-logging-§14`) into the debug console through `DebugLog.RunDiagnostics`, after whatever trace is there. The sections are `core/Diagnostics.lua`'s. On the live set, so it answers while the addon is disabled. With the library absent the stub prints the one library-absent line. |
 | `resync` | host | Invalidate the tooltip cache, run auto-discovery, recompute every category. |
 | `rewritemacros` (alias `rewrite`) | host | Invalidate macro state and rewrite every body and icon. |
 | `reset <path>` | library | Reset **one** schema row to its default. |
@@ -99,7 +100,7 @@ read the same rows and cannot drift.
 | `stat` | `STAT_COMMANDS` (`:602`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
 | `aio` | `AIO_COMMANDS` (`:807`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
 | `bar` | `BAR_COMMANDS` (`:930`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
-| `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:392`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
+| `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:405`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
 category before dispatching, so their handlers take `(cat, rest)` — the resolve happens once, in the
@@ -167,7 +168,7 @@ Ka0s Consumable Master v1.6.2 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:395`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:409`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -224,8 +225,11 @@ one-way:
 
 `diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
 `debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the
-word is in this addon's array by hand. The verb itself is not declared yet; until it is, the entry
-changes nothing a player can see.
+word is in this addon's array by hand. It is live for the same reason `debug` is: the report reads
+state and writes nothing, and a disabled addon is exactly when a maintainer needs to see its state.
+Both forms answer while disabled. `/cm diagnostics` passes the gate because the word is on the list,
+and `/cm debug diagnostics` passes because `debug` is. `tests/test_disabled.lua` step 7e dispatches
+both. What the report prints is in [debug.md](./debug.md#the-diagnostics-report-cm-diagnostics).
 
 `dump` is this addon's fourteenth and it is a judgment rather than a quote from the rule.
 `core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and
@@ -252,7 +256,7 @@ The cases (`tests/test_slash.lua`) assert **both halves**, that the verb said so
 not act, because a case reading only the chat line passes over a verb that printed the refusal and
 then did the thing anyway — which, given the silent no-op above, would look exactly like the bug. One
 of them sweeps every entry in `KCM.COMMANDS`, so a verb added tomorrow is covered on the day it is
-declared. `tests/test_disabled.lua` is where the surface as a whole is pinned — all twelve reserved
+declared. `tests/test_disabled.lua` is where the surface as a whole is pinned — all thirteen reserved
 verbs, the bare `/cm`, and the shape of the refusal line itself.
 
 ## When the library is absent
@@ -260,8 +264,8 @@ verbs, the bare `/cm`, and the shape of the refusal line itself.
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:159`) names the six verbs that actually route through the
-library — `help`, `list`, `get`, `set`, `reset` and `perf`. Everything else is the host's own and
+`LIB_BACKED_VERBS` (`settings/Slash.lua:160`) names the seven verbs that actually route through the
+library — `help`, `list`, `get`, `set`, `reset`, `perf` and `diagnostics`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
 `/cm is unavailable`, which was untrue of thirteen of the nineteen verbs and told the player to stop
@@ -270,7 +274,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:674`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:688`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the

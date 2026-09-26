@@ -507,3 +507,23 @@ function TC.IsUsableByPlayer(itemID)
     end
     return true, nil
 end
+
+-- ---------------------------------------------------------------------------
+-- Snapshot — read-only counts for the diagnostics report (debug-logging-§14)
+-- ---------------------------------------------------------------------------
+-- Reads the cache and nothing else: it never calls Get(), so taking a snapshot
+-- fetches no tooltip and cannot change the state it describes.
+
+function TC.Snapshot()
+    local total, pending, unsupported, ids = 0, 0, 0, {}
+    for itemID, entry in pairs(cache) do
+        total = total + 1
+        if entry.pending then
+            pending = pending + 1
+            ids[#ids + 1] = itemID
+        end
+        if entry.unsupported then unsupported = unsupported + 1 end
+    end
+    table.sort(ids)
+    return { total = total, pending = pending, unsupported = unsupported, pendingIds = ids }
+end

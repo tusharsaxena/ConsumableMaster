@@ -206,7 +206,7 @@ end
 --                   them (LIBKA0S-09, issue #16). Routing a string nothing
 --                   renders is noise.
 --   CLI SURFACE     A `/cm` verb description or reply. `/cm` prints these
---                   twenty-one verbs and core/SlashCommands.lua's five
+--                   twenty-two verbs and core/SlashCommands.lua's five
 --                   sub-command tables through one lib.FormatRow, and four
 --                   fifths of that listing lives outside the scanned surface.
 --                   Routing this fifth alone would split one help listing
@@ -289,8 +289,9 @@ local RESIDUE = {
     {"settings/Slash.lua", "Turn the addon off — `/cm enable` turns it back on", "CLI SURFACE"},
     {"settings/Slash.lua", "A/B performance capture — `/cm perf` opens the step panel", "CLI SURFACE"},
     {"settings/Slash.lua", "perf capture unavailable.", "CLI SURFACE"},
-    {"settings/Slash.lua", "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off]`", "CLI SURFACE"},
+    {"settings/Slash.lua", "Toggle the debug window; `on`/`off` set logging — `/cm debug [on|off|diagnostics]`", "CLI SURFACE"},
     {"settings/Slash.lua", "Debug console unavailable.", "CLI SURFACE"},
+    {"settings/Slash.lua", "Write a diagnostics report to the debug console, for a bug report", "CLI SURFACE"},
     {"settings/Slash.lua", "Force macros to resync from bags", "CLI SURFACE"},
     {"settings/Slash.lua", "in combat — picks computed now; macro writes will apply when combat ends.", "CLI SURFACE"},
     {"settings/Slash.lua", "auto-discovery found %d new item(s)", "CLI SURFACE"},
