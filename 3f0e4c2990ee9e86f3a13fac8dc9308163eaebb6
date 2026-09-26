@@ -1,0 +1,1 @@
+CM-ATS-SD citations review: PASS — both listed citations fixed and verified (OptionsSetup.lua:55 -> OptionsWidgets.lua:855-862 readColor/SetColor; Panel.lua:542 -> :105-109 enumList def + array-vs-map test); comment-only, 2 files, LF preserved, nothing under libs/ or tests/_kit/; tests 1112/0/0, luacheck 0/0.
