@@ -7,7 +7,9 @@
 -- bind/apply pass out to tests/test_macrobar_chrome.lua. `fcfg` — the flyout's
 -- config table, defaults merged under an override — is read on all three sides:
 -- by the geometry cases that left, by the click-gating case that stayed
--- (MacroBarFlyout.Apply), and by the bind/apply pass that left the other way.
+-- (MacroBarFlyout.Apply; since CM-ATS-02 it lives in
+-- tests/test_macrobar_flyout.lua), and by the bind/apply pass that left the
+-- other way.
 --
 -- SHARED, not copied, and the distinction is the point. It is stateless today,
 -- so three copies would be correct today; a copy is simply the shape that stops

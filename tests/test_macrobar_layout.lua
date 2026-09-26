@@ -6,9 +6,11 @@
 -- cap census in docs/ARCHITECTURE.md carried: four sections that load only the
 -- pure layer and call a resolver on a config table. Nothing here builds a frame,
 -- so nothing here can need one. The rest of the macro bar's coverage stays in
--- tests/test_macrobar.lua (model, display, cooldowns, schema rows, the flyout's
--- candidate list, master controls) and in tests/test_macrobar_chrome.lua (the
--- chrome appliers and the flyout's bind/apply pass).
+-- tests/test_macrobar.lua (model, schema rows, master controls),
+-- tests/test_macrobar_display.lua (display, cooldowns),
+-- tests/test_macrobar_flyout.lua (the flyout's candidate list, click gating) and
+-- tests/test_macrobar_chrome.lua (the chrome appliers and the flyout's
+-- bind/apply pass).
 --
 -- Every case moved whole: not one assertion changed in the peel.
 
