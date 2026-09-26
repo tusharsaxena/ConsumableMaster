@@ -1,0 +1,1 @@
+clean: DR-CM-06 X writes only macroBar.enabled via MB.SetEnabled (X-01/X-02/X-05, DR-OW-03); 4 cases red without the change (1106/4), gate re-run 1112/0/0, luacheck 0/0, lizard clean, max 1426 lines, CRLF kept, citations verified
