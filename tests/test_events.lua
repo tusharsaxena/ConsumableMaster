@@ -44,6 +44,7 @@ test("OnEnable registers every client event the addon reacts to", function(t)
         GET_ITEM_INFO_RECEIVED        = "OnItemInfoReceived",
         LEARNED_SPELL_IN_SKILL_LINE   = "OnLearnedSpell",
         PLAYER_EQUIPMENT_CHANGED      = "OnEquipmentChanged",
+        ADDON_RESTRICTION_STATE_CHANGED = "OnRestrictionChanged",
     }
     for event, handler in pairs(expected) do
         t.eq(registered[event], handler, event .. " is wired to " .. handler)
@@ -102,14 +103,14 @@ local function assertOthersBound(t, KCM, mock, ok, err, label)
     t.eqList(KCM.RejectedEvents or {}, { RETIRED }, label .. ": the retired name is recorded once")
 end
 
-test("a retired event name leaves the other eight bound", function(t)
+test("a retired event name leaves the other nine bound", function(t)
     local KCM, mock, ok, err = enableWithRetired(false)
-    t.eq(#(KCM.EVENTS or {}), 9, "KCM.EVENTS holds the nine pairs")
+    t.eq(#(KCM.EVENTS or {}), 10, "KCM.EVENTS holds the ten pairs")
     assertOthersBound(t, KCM, mock, ok, err, "IsEventValid present")
     t.falsy(registeredOn(mock, KCM)[RETIRED], "the retired name is not registered")
 end)
 
-test("a retired event name leaves the other eight bound on a client with no C_EventUtils", function(t)
+test("a retired event name leaves the other nine bound on a client with no C_EventUtils", function(t)
     local KCM, mock, ok, err = enableWithRetired(true)
     assertOthersBound(t, KCM, mock, ok, err, "C_EventUtils nil")
 end)
@@ -268,6 +269,20 @@ test("PLAYER_REGEN_ENABLED flushes the macro writes deferred during combat", fun
     t.eq(flushes, 1, "the queue is drained exactly once on leaving combat")
 end)
 
+test("a non-combat restriction lifting marks every macro stale and recomputes", function(t)
+    local KCM, _, reasons = loadRouted()
+    local marks = 0
+    KCM.MacroManager.MarkAllStale = function() marks = marks + 1 end
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, true)
+    t.eq(marks, 0, "a restriction starting rewrites nothing")
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 0, false)
+    t.eq(marks, 0, "combat ending is PLAYER_REGEN_ENABLED's, not this handler's")
+    -- red under: no handler, so the key ending never rewrote the macros a mid-key reload left blank
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 4, false)
+    t.eq(marks, 1, "a restriction lifting marks the macros stale")
+    t.eq(reasons[#reasons], "restriction_lifted", "and asks for one recompute")
+end)
+
 test("PLAYER_REGEN_ENABLED is safe before the macro layer has loaded", function(t)
     local KCM = h.loader.loadPure()
     local saved = KCM.MacroManager
@@ -388,4 +403,66 @@ test("RequestRecompute's frame callback is inert if the request was already serv
     scheduled[1]()
     scheduled[1]()      -- a stale duplicate callback
     t.eq(runs, 1, "the pending flag stops a second run on the same request")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The [Event] trace (owner, 2026-09-29)
+-- ---------------------------------------------------------------------------
+
+-- Capture every KCM.Debug line under `tag`, formatted the way the sink formats
+-- it (each argument stringified first). A pure load has no sink, so install one.
+local function traceOf(KCM, tag)
+    local lines = {}
+    KCM.Debug = setmetatable({ IsOn = function() return true end }, { __call = function(_, t, fmt, ...)
+        if t ~= tag then return end
+        local n = select("#", ...)
+        local args = { ... }
+        for i = 1, n do args[i] = tostring(args[i]) end
+        local count = #lines
+        lines[count + 1] = fmt:format(unpack(args, 1, n))
+    end })
+    return lines
+end
+
+local function anyLine(lines, needle)
+    for _, l in ipairs(lines) do
+        if l:find(needle, 1, true) then return l end
+    end
+    return nil
+end
+
+test("the state-changing events each leave one [Event] line while logging is on", function(t)
+    local KCM = loadRouted()
+    KCM.State = KCM.State or {}
+    KCM.State.debug = true
+    KCM.MacroManager.MarkAllStale = function() end
+    local lines = traceOf(KCM, "Event")
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, true)
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 4, false)
+    KCM:OnPlayerEnteringWorld("PLAYER_ENTERING_WORLD", false, true)
+    KCM:OnRegenEnabled("PLAYER_REGEN_ENABLED")
+    KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED")
+    KCM:OnEquipmentChanged("PLAYER_EQUIPMENT_CHANGED", 16)
+    -- red under: a handler with no trace line
+    t.truthy(anyLine(lines, "type=1 active=true rewrite=no"),
+        "a restriction starting is traced, and says it rewrote nothing")
+    t.truthy(anyLine(lines, "type=4 active=false rewrite=yes"),
+        "a restriction lifting is traced, and says it marked the macros")
+    t.truthy(anyLine(lines, "login=false reload=true"), "world entry")
+    t.truthy(anyLine(lines, "flushed="), "combat end, with the flush count")
+    t.truthy(anyLine(lines, "PLAYER_SPECIALIZATION_CHANGED"), "spec change")
+    t.truthy(anyLine(lines, "slot=16"), "a weapon swap")
+end)
+
+test("a non-weapon equipment change and a quiet session leave no [Event] line", function(t)
+    local KCM = loadRouted()
+    KCM.State = KCM.State or {}
+    KCM.State.debug = true
+    local lines = traceOf(KCM, "Event")
+    KCM:OnEquipmentChanged("PLAYER_EQUIPMENT_CHANGED", 1)
+    t.eq(#lines, 0, "only slots 16 and 17 change a pick")
+    KCM.State.debug = false
+    KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED")
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, true)
+    t.eq(#lines, 0, "nothing is written while logging is off")
 end)

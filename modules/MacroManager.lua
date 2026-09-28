@@ -320,6 +320,13 @@ end
 
 local pendingUpdates = {}
 
+-- stale[macroName] = true: the next write of this macro goes through even when
+-- its body and icon match the fingerprint. Set by MarkAllStale, cleared by the
+-- write that lands. Kept apart from macroState on purpose: the fingerprint's
+-- lastItemID is what the macro bar draws, and wiping it (as InvalidateState
+-- does) would blank the bar for as long as a combat-deferred write waits.
+local stale = {}
+
 -- ---------------------------------------------------------------------------
 -- Macro write (the only place touching protected APIs)
 -- ---------------------------------------------------------------------------
@@ -473,7 +480,7 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
     local state   = KCM.db.profile.macroState[macroName]
     local pending = pendingUpdates[macroName]
 
-    if alreadyApplied(state, pending, body, icon) then
+    if not stale[macroName] and alreadyApplied(state, pending, body, icon) then
         pendingUpdates[macroName] = nil
         return "unchanged"
     end
@@ -497,6 +504,13 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
         lastCat    = catKey,
     }
     pendingUpdates[macroName] = nil
+    stale[macroName] = nil
+    -- Every write that lands, named (owner, 2026-09-29): which macro, created or
+    -- edited, the pick (nil = the empty-state body) and the stored icon (134400
+    -- lets `#showtooltip` draw; 7704166 is the empty-state cooking pot).
+    if isDebugOn() then
+        KCM.Debug("Macro", "%s %s item=%s icon=%s", macroName, result, iconItemID, icon)
+    end
     return result
 end
 
@@ -670,6 +684,23 @@ function M.InvalidateState()
     pendingUpdates = {}
     alreadyWarnedOversized = {}
     gaveUp = {}
+    stale = {}
+end
+
+-- MarkAllStale — make the next pipeline pass write every macro once more,
+-- identical body or not. A write is what makes the client re-resolve a
+-- `#showtooltip` icon: after a /reload or relog mid-key the action bar drew
+-- every KCM macro blank, the fingerprint matched, so no later pass wrote, and
+-- the icons stayed blank until the next /reload (`/cm rewritemacros` fixed it,
+-- `/cm resync` did not). Unlike InvalidateState it keeps the fingerprints, the
+-- queue and the once-per-session warnings: nothing is forgotten, one write is
+-- owed. Called from KCM:OnRestrictionChanged (core/ConsumableMaster.lua).
+function M.MarkAllStale()
+    local state = KCM.db and KCM.db.profile and KCM.db.profile.macroState
+    for name in pairs(state or {}) do stale[name] = true end
+    if isDebugOn() then
+        KCM.Debug("Macro", "marked %s macro(s) stale for one forced rewrite", countEntries(state))
+    end
 end
 
 -- ---------------------------------------------------------------------------

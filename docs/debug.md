@@ -38,7 +38,8 @@ Functional-area tags in use today:
 - `DB` — schema migration, only logged when one actually runs
 - `Scan` — auto-discovery pass summary (reason in content)
 - `Calc` — recompute pass summary (reason + rewrote/total/skipped)
-- `Macro` — exceptional macro events (combat-deferred, byte-limit, `EditMacro` failure, flush drop/apply), and the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`
+- `Macro` — every write that lands, `[Macro] <name> created|edited item=<pick> icon=<fileID>` (`item=nil` is the empty-state body; icon `134400` lets `#showtooltip` draw, `7704166` is the cooking pot), plus the exceptional ones (combat-deferred, byte-limit, `EditMacro` failure, flush drop), the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`, and `[Macro] marked N macro(s) stale for one forced rewrite` from `MacroManager.MarkAllStale`
+- `Event` — one line per client event that changes what the addon writes, `[Event] <EVENT> lockdown=<bool>` then the event's fields: `ADDON_RESTRICTION_STATE_CHANGED … type=<n> active=<bool> rewrite=yes|no`, `PLAYER_ENTERING_WORLD … login=<bool> reload=<bool>`, `PLAYER_REGEN_ENABLED … flushed=<n>` (held macro writes applied), `PLAYER_SPECIALIZATION_CHANGED`, and `PLAYER_EQUIPMENT_CHANGED … slot=16|17` (other slots change no pick and log nothing). The bag, item-info, learned-spell and cooldown events log nothing here: `[Scan]` and `[Calc]` already name their reason. Logging is off after every `/reload` (session-only), so the login's own `PLAYER_ENTERING_WORLD` is never traced; a zone-in is
 - `GC` — stale-discovered sweep
 - `Set` — settings write at `Helpers.Set`, a bulk reset's one line, and the profile handler's reset/copy line
 - `Profile` — the profile handler's switch trace, `[Profile] switched to '<name>'`. A switch rewrites no rows, so it is not a `[Set]` line ([profiles.md](./profiles.md))
