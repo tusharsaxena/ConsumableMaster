@@ -89,7 +89,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PANEL-5. No raw locale key renders.** Walk every sub-page, the debug console and `/cm perf` → every label, tooltip title, heading, button and perf step name is English prose. One `SCREAMING_SNAKE_CASE` string on screen (`STEP_START`, `PANEL_TITLE_SUFFIX`, `LIST_HEADER`) means a descriptor was handed `KCM.L`, and it fails for every key in that module at once. Result:
 
-**PANEL-6. The General page's two tabs.** Open General → a two-tab strip, **Master controls** first and **Maintenance** beside it. Master controls holds nine controls, two per line: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, `[Minimap button]` alone, then the `[Reset position | Reset all settings]` pair, and nothing else. Maintenance holds `[Force resync | Force rewrite]` and a full-width `[Reset all priorities]`, under no heading of its own. A **Defaults** button sits top-right in the page header. Result:
+**PANEL-6. The General page's two tabs.** Open General → a two-tab strip, **Master controls** first and **Maintenance** beside it. Master controls holds nine controls, two per line: `[Enable Consumable Master] [General visibility]`, `[Master scale] [Master alpha]`, `[Lock frame] [Debug console]`, `[Minimap button]` alone, then the `[Reset position | Reset all settings]` pair, and nothing else. Maintenance holds `[Force resync | Force rewrite macros]` and a full-width `[Reset all priorities]`, under no heading of its own. A **Defaults** button sits top-right in the page header. Result:
 
 **PANEL-7. Nothing is declared twice.** Macro Bar → General → no Lock and no Reset position. `/cm set macroBar.locked true` → still works, and General's **Lock frame** ticks. Result:
 
@@ -97,7 +97,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PANEL-9. Force resync.** Maintenance → **Force resync** (or `/cm resync`) → the tooltip cache invalidates, auto-discovery re-runs and every category recomputes (`[Scan]` and `[Calc]` lines with debug on). In combat `/cm resync` is not refused: it prints `in combat — picks computed now; macro writes will apply when combat ends.`, still recomputes, and the writes land on regen (the button is under the combat cover then, COMBAT-8). Result:
 
-**PANEL-10. Force rewrite.** Maintenance → **Force rewrite** (or `/cm rewritemacros`) → every `KCM_*` body and icon is re-issued unconditionally, which clears a stale action-bar texture. Result:
+**PANEL-10. Force rewrite macros.** Maintenance → **Force rewrite macros** (or `/cm rewritemacros`) → every `KCM_*` body and icon is re-issued unconditionally, which clears a stale action-bar texture. Result:
 
 **PANEL-11. Reset all settings.** Hover **Reset all settings** → the tooltip reads *Reset the current profile to its defaults — the same thing Profiles -> Reset Profile does. Your other profiles are not affected.*, with a plain `->` rather than an arrow glyph (a tooltip without the Profiles clause, or *Restore every setting in this addon to its default.*, means the descriptor lost `profilesPage` or `resetProfile`). Click it → the collection's one confirm popup; Yes resets the whole active profile, items in bags are re-discovered, discovered items no longer in bags drop, and the open panel repaints. Raise the popup again, pull a dummy and press Yes in combat → *in combat — reset deferred until regen.* and nothing changes. Result:
 
@@ -115,7 +115,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PANEL-18. The Settings window's footer Defaults.** Blizzard's control at the bottom of the Settings frame: with General open → the page's defaults action fires, as the header button does; with About open → nothing happens and nothing errors. Result:
 
-**PANEL-19. A mutation does not freeze the panel.** Visit General, two Macros tabs, Stat Priority and two Macro Bar tabs so several pages are built. On General toggle **Enable**, toggle **Debug console**, press **Force resync** → each responds at once with no half-second stall. Repeat on a Macros tab and on Stat Priority. (Force rewrite and Reset all priorities may hitch briefly; that is the synchronous macro rewrite.) Result:
+**PANEL-19. A mutation does not freeze the panel.** Visit General, two Macros tabs, Stat Priority and two Macro Bar tabs so several pages are built. On General toggle **Enable**, toggle **Debug console**, press **Force resync** → each responds at once with no half-second stall. Repeat on a Macros tab and on Stat Priority. (Force rewrite macros and Reset all priorities may hitch briefly; that is the synchronous macro rewrite.) Result:
 
 **PANEL-20. An off-screen page refreshes when shown.** While viewing General, `/cm priority flask add 212283` (any valid flask ID), then open Macros → Flask → the new entry is there, with no stale state and no Lua error. Result:
 
@@ -427,9 +427,9 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **COMBAT-5. The settings category registers after an in-combat reload.** Confirm the category is under Settings → AddOns out of combat (if not, stop). Pull a dummy, `/reload` mid-fight and keep fighting, watch chat and the error frame for ten seconds → ConsumableMaster is absent from the AddOns list while in combat and no "Interface action failed because of an AddOn" appears. Drop combat → the category is there, and `/cm config` opens it with the parent expanded. Result:
 
-**COMBAT-6. The same, disabled.** `/cm disable`, pull, `/reload` in combat. Still in combat, `/cm config` → the library's gray refusal line (COMBAT-7's), once, and the panel does not open. Drop combat → the category and its **Enable Consumable Master** checkbox are listed, with no taint error. `/cm enable` afterward. Result:
+**COMBAT-6. The same, disabled.** `/cm disable`, pull, `/reload` in combat. Still in combat, `/cm config` → COMBAT-7's two lines, each once, and the panel does not open. Drop combat → the category and its **Enable Consumable Master** checkbox are listed, with no taint error. `/cm enable` afterward. Result:
 
-**COMBAT-7. `/cm config` is refused in combat.** In combat, `/cm config` → the library's gray line `cannot open settings during combat — Blizzard's category-switch is protected`, once, and the panel does not open. Result:
+**COMBAT-7. `/cm config` is refused in combat.** In combat, `/cm config` → two tagged lines, each once: the library's gray `[CM] cannot open settings during combat — Blizzard's category-switch is protected`, then `[CM] Settings panel unavailable.` (the `config` verb adds its own line whenever the open is refused). The panel does not open. Result:
 
 **COMBAT-8. An open page is covered in combat.** Open the panel on Macros, pull a dummy → the whole page, tab strip and header included, dims under a cover reading `Settings are locked during combat.`; clicking a tab or a row does nothing. Click another of this addon's pages in the sidebar → it opens covered too, and chat prints, once and in gray, `settings are locked during combat — changes are refused until it ends`. Drop combat → the cover lifts and the page shows current values. Result:
 
@@ -515,7 +515,7 @@ Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` an
 
 **DEGRADED-2. No settings category.** → Ka0s Consumable Master is absent from the AddOns list, as intended. Result:
 
-**DEGRADED-3. `/cm config` explains once.** Run `/cm config` three times → the first run prints `The LibKa0s library is missing from this installation of Consumable Master (expected in libs/LibKa0s), so the settings panel is unavailable, and so are /cm list, /cm get and /cm set. …` and no later run repeats it; every run prints `Settings panel unavailable.`, nothing opens, and no Lua error appears. Result:
+**DEGRADED-3. The panel notice is said once, at login.** During the `/reload` that starts this section, before you type anything, chat prints `The LibKa0s library is missing from this installation of Consumable Master (expected in libs/LibKa0s), so the settings panel is unavailable, and so are /cm list, /cm get and /cm set. …` once (the settings bootstrap tries to register the panel at login). Then run `/cm config` three times → each run prints only `Settings panel unavailable.`; the notice does not repeat, nothing opens, and no Lua error appears. Result:
 
 **DEGRADED-4. Debug logging goes to chat.** `/cm debug on` → logging arms and diagnostics route to chat, with its own one-time notice. Result:
 
@@ -540,6 +540,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | SLASH-4 | §11 steps 8, 9 | Corrected: the refusal is two lines, and the accepted words end `/yes/no` |
 | SLASH-6, SLASH-7 | §11 step 9b (#35) | Owed since the 2026-09-12 triage batch; SLASH-7 also carries its bulk-reset one-line rule |
 | SLASH-14 | §11 step 14b | New: `/cm profile` answers while disabled. Corrected: the typo line reads `Unknown command: resyncc` |
+| PANEL-6 | §7 step 4, §7b tabs step 19 | Corrected: the Maintenance button reads `Force rewrite macros` |
 | PANEL-9 | §7 step 8 | Corrected: `/cm resync` in combat recomputes with a notice rather than refusing |
 | PANEL-11 | §7 step 10 | Corrected: the tooltip spells `->`; the combat Yes needs the popup raised first |
 | PANEL-13, PANEL-15 | §7 steps 10a, 11 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |
@@ -562,6 +563,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | BAR-26, BAR-27 | Seam step 17 | Never run: the composed media dropdowns (LibKa0s v1.26.0). Corrected: BAR-26's minor, BAR-27's unquoted values |
 | BAR-28 | Seam step 19 | Never run: `LSM30_Border` shared by five addons (`M4-03`) |
 | BAR-29, BAR-30 | Seam step 20 | Never run: the stored color codec (`M4-18`). BAR-30 now edits the live file |
+| COMBAT-6, COMBAT-7 | §6a steps 4, 6 | Corrected: the library's refusal is followed by the `config` verb's `Settings panel unavailable.`. COMBAT-7 is newly spelled out (old §6a step 4 only pointed at it) |
 | COMBAT-8 | §7b tabs step 7 | Corrected: an open page is covered in combat (the Options combat lock); a tab click no longer switches |
 | COMBAT-9 | §9 step 2, in-combat bullet | Corrected: only a bar slot can be dragged in combat |
 | COMBAT-13 | §11a step 14 | Corrected: the in-combat changes are made from chat; the Macro Bar page is covered |
@@ -569,5 +571,5 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | DIAG-1 | §7 step 7, §11 step 5, seam step 10 | Corrected: logging follows `/cm debug on`/`off` and the console header's toggle, not the Debug console box |
 | DIAG-17 | §7d step 7 | Corrected: `/cm diag` answers `Unknown command: diag` |
 | DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
-| DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the exact `/cm config` lines |
+| DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
