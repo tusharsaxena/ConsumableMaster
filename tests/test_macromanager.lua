@@ -250,6 +250,40 @@ test("MacroManager.SetMacro reports 'unchanged' and makes no API call on a repea
     t.eq(edits, 0, "no protected API is touched for a no-op recompute")
 end)
 
+test("MacroManager.MarkAllStale forces one write of an identical body, then short-circuits again", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940006)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940006, "FOOD")
+
+    local edits = 0
+    local realEdit = _G.EditMacro
+    _G.EditMacro = function(...) edits = edits + 1; return realEdit(...) end
+    KCM.MacroManager.MarkAllStale()
+    -- red under: a restriction lift leaving the fingerprint to short-circuit the rewrite, which is
+    -- what left the action bar's #showtooltip icon blank after a mid-key reload until /reload
+    local first = KCM.MacroManager.SetMacro("KCM_FOOD", 940006, "FOOD")
+    local second = KCM.MacroManager.SetMacro("KCM_FOOD", 940006, "FOOD")
+    _G.EditMacro = realEdit
+
+    t.eq(first, "edited", "the identical body is written again")
+    t.eq(second, "unchanged", "once only")
+    t.eq(edits, 1, "exactly one EditMacro")
+    t.eq(KCM.db.profile.macroState["KCM_FOOD"].lastItemID, 940006, "the fingerprint is kept, not wiped")
+end)
+
+test("MacroManager.MarkAllStale in combat defers the write and keeps the pick the bar draws", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940007)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940007, "FOOD")
+    KCM.MacroManager.MarkAllStale()
+    mock.setCombat(true)
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 940007, "FOOD"), "deferred", "queued, not written")
+    t.eq(KCM.db.profile.macroState["KCM_FOOD"].lastItemID, 940007, "the macro bar still has its pick")
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 1, "the forced write lands when combat ends")
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 940007, "FOOD"), "unchanged", "and is not repeated")
+end)
+
 test("MacroManager.SetMacro edits in place when the pick changes", function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     ownFood(mock, 940004)
@@ -638,8 +672,11 @@ test("MacroManager: the debug gate is a predicate — diagnostic arguments are n
 
     -- loadPure does not load core/Debug.lua, so the sink has to be stood up
     -- before the gate is allowed to open.
+    -- Counts the oversize line only: a landed write now leaves a [Macro] line too.
     local sunk = 0
-    KCM.Debug = function() sunk = sunk + 1 end
+    KCM.Debug = function(_, fmt)
+        if tostring(fmt):find("exceeds", 1, true) then sunk = sunk + 1 end
+    end
     KCM.State.debug = true
     KCM.MacroManager.SetMacro("KCM_PROBE2", 943010, probeKey)
     t.eq(sunk, 1, "debug on → the oversize diagnostic reaches the sink")
@@ -878,4 +915,26 @@ test("MacroManager.WriteTracking reports oversized categories and given-up macro
     track = KCM.MacroManager.WriteTracking()
     t.eq(#track.oversized, 0, "a forced rewrite forgets the oversize gate")
     t.eq(#track.gaveUp, 0, "and the give-up record")
+end)
+
+test("MacroManager: a landed write leaves one [Macro] line naming what it wrote; an unchanged pass none", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 940008)
+    KCM.State = KCM.State or {}
+    KCM.State.debug = true
+    local lines = {}
+    KCM.Debug = setmetatable({ IsOn = function() return true end }, { __call = function(_, tag, fmt, ...)
+        if tag ~= "Macro" then return end
+        local n = select("#", ...)
+        local args = { ... }
+        for i = 1, n do args[i] = tostring(args[i]) end
+        local count = #lines
+        lines[count + 1] = fmt:format(unpack(args, 1, n))
+    end })
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940008, "FOOD")
+    -- red under: commitMacro writing silently
+    t.eq(#lines, 1, "one line for the write")
+    t.truthy(lines[1] and lines[1]:find("KCM_FOOD created item=940008 icon=134400", 1, true), lines[1])
+    KCM.MacroManager.SetMacro("KCM_FOOD", 940008, "FOOD")
+    t.eq(#lines, 1, "an unchanged pass writes nothing and says nothing")
 end)

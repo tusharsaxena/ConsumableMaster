@@ -330,12 +330,12 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: a SPELL link is not mistaken for an item
 - ItemSetup: the degraded stub answers exactly what the library does
 
-### test_events.lua (26)
+### test_events.lua (29)
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
-- a retired event name leaves the other eight bound
-- a retired event name leaves the other eight bound on a client with no C_EventUtils
+- a retired event name leaves the other nine bound
+- a retired event name leaves the other nine bound on a client with no C_EventUtils
 - IsEventValid answering false rejects without calling RegisterEvent
 - a stand-down and stand-up does not record a rejected name twice
 - the degraded Core stub's SafeRegisterEvent records a raising name
@@ -348,6 +348,7 @@ badge and any count quoted in the docs must agree with it.
 - PLAYER_EQUIPMENT_CHANGED recomputes for a main-hand or off-hand swap
 - PLAYER_EQUIPMENT_CHANGED ignores every non-weapon slot
 - PLAYER_REGEN_ENABLED flushes the macro writes deferred during combat
+- a non-combat restriction lifting marks every macro stale and recomputes
 - PLAYER_REGEN_ENABLED is safe before the macro layer has loaded
 - GET_ITEM_INFO_RECEIVED ignores a failed or id-less delivery
 - GET_ITEM_INFO_RECEIVED for a bag item invalidates its cached tooltip
@@ -358,6 +359,8 @@ badge and any count quoted in the docs must agree with it.
 - RequestRecompute falls back to a placeholder reason when given none
 - RequestRecompute re-arms after its frame callback has fired
 - RequestRecompute's frame callback is inert if the request was already served
+- the state-changing events each leave one [Event] line while logging is on
+- a non-weapon equipment change and a quiet session leave no [Event] line
 
 ### test_harness.lua (10)
 
@@ -621,7 +624,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: Close hides the strip and stands down in combat
 - macrobar flyout: Close tolerates a nil flyout
 
-### test_macromanager.lua (53)
+### test_macromanager.lua (56)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -642,6 +645,8 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.SetMacro creates the macro on the first write
 - MacroManager.SetMacro records the body and icon it wrote
 - MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat
+- MacroManager.MarkAllStale forces one write of an identical body, then short-circuits again
+- MacroManager.MarkAllStale in combat defers the write and keeps the pick the bar draws
 - MacroManager.SetMacro edits in place when the pick changes
 - MacroManager.SetMacro falls back to the empty body when nothing is picked
 - MacroManager.SetMacro resolves the category from the macro name if not told
@@ -676,6 +681,7 @@ badge and any count quoted in the docs must agree with it.
 - Named state: modules/MacroManager.lua is the only runtime writer of macroState
 - MacroManager.PendingSnapshot copies the combat queue, sorted by macro name
 - MacroManager.WriteTracking reports oversized categories and given-up macros
+- MacroManager: a landed write leaves one [Macro] line naming what it wrote; an unchanged pass none
 
 ### test_mediasetup.lua (12)
 
@@ -1320,7 +1326,7 @@ badge and any count quoted in the docs must agree with it.
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
-| test_events.lua | 26 |
+| test_events.lua | 29 |
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
@@ -1334,7 +1340,7 @@ badge and any count quoted in the docs must agree with it.
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 19 |
-| test_macromanager.lua | 53 |
+| test_macromanager.lua | 56 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 31 |
@@ -1362,4 +1368,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1112** |
+| **Total** | **1118** |

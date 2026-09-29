@@ -602,7 +602,26 @@ function KCM.ResetAllToDefaults(reason)
     return true
 end
 
-function KCM:OnPlayerEnteringWorld()
+-- THE [Event] TRACE (owner, 2026-09-29): one line per client event that
+-- changes what the addon writes — world entry, combat's end, a restriction
+-- starting or stopping, a spec change, a weapon swap. Each names the event and
+-- lockdown, then the event's own fields; the [Calc] and [Macro] lines after it
+-- say what the pass did. Gated here as well as in the sink so the lockdown read
+-- and the format concatenation cost nothing while logging is off
+-- (debug-logging-§4). The sink stringifies every argument, so booleans go in
+-- raw, and the event's fields come last because only a trailing `...` passes
+-- all of its values. The bag, item-info, learned-spell and cooldown events are
+-- left out: [Scan] and [Calc] already name their reason, and the cooldown pair
+-- only repaints swipes.
+local function traceEvent(event, fmt, ...)
+    if not isDebugOn() then return end
+    KCM.Debug("Event", "%s lockdown=%s" .. (fmt or ""), event,
+        (InCombatLockdown and InCombatLockdown()) and true or false, ...)
+end
+
+function KCM:OnPlayerEnteringWorld(event, isLogin, isReload)
+    traceEvent(event or "PLAYER_ENTERING_WORLD", " login=%s reload=%s",
+        isLogin and true or false, isReload and true or false)
     -- Fires on login and /reload. Discover + sweep, then recompute everything.
     discoverAndSweep("player_entering_world")
     requestRecompute("player_entering_world")
@@ -627,7 +646,8 @@ function KCM:OnBagUpdateDelayed()
     requestRecompute("bag_update_delayed")
 end
 
-function KCM:OnSpecChanged()
+function KCM:OnSpecChanged(event)
+    traceEvent(event or "PLAYER_SPECIALIZATION_CHANGED")
     requestRecompute("spec_changed")
     -- The Stat Priority page's retrack-to-current-spec behavior is a panel
     -- concern, so it is published as SPEC_CHANGED and handled by the options
@@ -637,7 +657,7 @@ function KCM:OnSpecChanged()
     end
 end
 
-function KCM:OnRegenEnabled()
+function KCM:OnRegenEnabled(event)
     -- THE PENDING STAND-DOWN, FINISHED AND RELEASED (slash-commands-§7).
     -- A disable that landed mid-fight could not touch the bar's state driver or
     -- its anchors, so core/LifecycleSetup.lua parked the job and re-registered
@@ -650,12 +670,11 @@ function KCM:OnRegenEnabled()
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
         return
     end
+    local flushed = 0
     if KCM.MacroManager and KCM.MacroManager.FlushPending then
-        local n = KCM.MacroManager.FlushPending()
-        if n > 0 and KCM.State and KCM.State.debug then
-            KCM.Debug("Macro", "flushed %s pending macro(s) on regen", n)
-        end
+        flushed = KCM.MacroManager.FlushPending()
     end
+    traceEvent(event or "PLAYER_REGEN_ENABLED", " flushed=%s", flushed)
     -- Any macro-bar work requested during the fight (build, relayout, restyle)
     -- was deferred because it anchors protected frames. Apply it now.
     if KCM.MacroBar and KCM.MacroBar.FlushPending then
@@ -664,6 +683,31 @@ function KCM:OnRegenEnabled()
     -- No settings replay here: a category registration refused under lockdown
     -- is parked by LibKa0s-Options-1.0 and replayed on its own frame, whatever
     -- the stand-down state (settings/Panel.lua's registerPanel).
+end
+
+-- An addon restriction started or stopped: `(restrictionType, state)`. The
+-- state is Enum.AddOnRestrictionState, a NUMBER — 0 inactive, 1 active, 2
+-- activating — so the lifted edge is `state == 0`, never a truthiness test (0
+-- is true in Lua; the first cut read it that way and never fired). Seen in the
+-- owner's key log (2026-09-29): type 0 is combat, 1 an encounter, 2 and 5 the
+-- keystone, both going to 0 at the key's end. Type 0 is PLAYER_REGEN_ENABLED's.
+-- Any other type lifting owes every macro one write: after a /reload or relog
+-- mid-key the action bar drew the `#showtooltip` icons blank and kept them
+-- blank, because every later pass found the body unchanged and wrote nothing.
+-- The write itself is what re-resolves the icon (MarkAllStale,
+-- modules/MacroManager.lua). Every non-combat lift counts: 15 identical writes
+-- at an encounter's end is the whole cost, coalesced into one pass and
+-- combat-deferred like any write.
+function KCM:OnRestrictionChanged(event, restrictionType, active)
+    local lifted = active == 0 or active == false
+    local rewrite = lifted and restrictionType ~= 0
+    traceEvent(event or "ADDON_RESTRICTION_STATE_CHANGED", " type=%s active=%s rewrite=%s",
+        restrictionType, active, rewrite and "yes" or "no")
+    if not rewrite then return end
+    if KCM.MacroManager and KCM.MacroManager.MarkAllStale then
+        KCM.MacroManager.MarkAllStale()
+    end
+    requestRecompute("restriction_lifted")
 end
 
 function KCM:OnItemInfoReceived(event, itemID, success)
@@ -699,6 +743,7 @@ function KCM:OnEquipmentChanged(event, slotID)
     -- Only main hand (16) / off hand (17) swaps affect the per-hand weapon
     -- enchant pick; every other equipment slot is a no-op here.
     if slotID == 16 or slotID == 17 then
+        traceEvent(event or "PLAYER_EQUIPMENT_CHANGED", " slot=%s", slotID)
         requestRecompute("equip")
     end
 end
@@ -718,6 +763,7 @@ KCM.EVENTS = {
     { "PLAYER_EQUIPMENT_CHANGED",      "OnEquipmentChanged" },
     { "SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate" },
     { "BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate" },
+    { "ADDON_RESTRICTION_STATE_CHANGED", "OnRestrictionChanged" },
 }
 
 -- The names the client refused, each once, for the whole session. The addon's
@@ -728,7 +774,7 @@ KCM.RejectedEvents = KCM.RejectedEvents or {}
 -- IT REFUSES TO RUN WHILE A HOLD IS TAKEN, and that is not a draw gate: it is
 -- the door, not a handler. AceAddon calls OnEnable after OnInitialize, which is
 -- where the `disabled` hold is taken from the stored path, so a player who logs
--- in with the addon off registers NOTHING — rather than registering nine events
+-- in with the addon off registers NOTHING — rather than registering ten events
 -- and having them torn down a frame later, which is a race the perf harness can
 -- land in the middle of.
 --

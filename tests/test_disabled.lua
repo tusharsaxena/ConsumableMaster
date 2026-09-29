@@ -125,7 +125,7 @@ local function build()
 
     -- The lifecycle tests/run.lua already runs: AceAddon calls OnInitialize at
     -- load and OnEnable a moment later. loadFullAddon does the first; this is the
-    -- second, and it is the call that puts the nine game events on.
+    -- second, and it is the call that puts the ten game events on.
     KCM:OnEnable()
     return KCM, H, frames
 end
@@ -159,7 +159,7 @@ test("Disabled 1: enabled, the addon registers a non-empty set", function(t)
     -- pair added there is checked here unasked. The count is pinned too, so a
     -- list that quietly shrinks is a failure here rather than a smaller set
     -- silently passing step 3.
-    t.eq(#KCM.EVENTS, 9, "KCM.EVENTS declares the nine client events")
+    t.eq(#KCM.EVENTS, 10, "KCM.EVENTS declares the ten client events")
     for _, pair in ipairs(KCM.EVENTS) do
         local e = "event:" .. pair[1]
         t.truthy(names[e], e .. " is registered while enabled")

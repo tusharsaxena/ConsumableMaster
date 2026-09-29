@@ -193,7 +193,7 @@ Tests: `/cm config` lands on About with sub-pages expanded; General-page checkbo
 4b. **The master rows are addon-wide, and they compose.** Set **Master scale** to 2.0 with the bar's own **Bar scale** at 1.0 → the bar doubles. Now set Bar scale to 0.5 → it lands halfway back, at an effective 1.0. Same for **Master alpha** against **Bar opacity**. Set **General visibility** to *Only in combat* with the bar's **Combat visibility** at *Always* → the bar appears on pull and goes on combat drop. Set the bar's Combat visibility to *Hide in combat* as well → the two can never agree, and the bar stays hidden.
 5. Toggle Enable off — nothing prints (the checkbox is silent like every other row; `/cm disable` answers `enabled = false`), **and the addon stops running** (`slash-commands-§7`). The macro bar **goes off the screen immediately** — that is the reported bug and the one thing to look at first; a bar still sitting there is the draw gate this was fixed for. Confirm the rest with `/framestack` and the debug console: nothing repaints on a bag change, a spec change or a cooldown tick, and no macro is rewritten. The settings panel stays open and usable, and every `/cm` verb still answers — both are **setup**, not features.
 5a. **In combat.** Pull something, toggle Enable off mid-fight. The bar cannot be taken down under lockdown, so it goes on the **regen** that follows — and nothing else survives: the addon holds exactly one registration, `PLAYER_REGEN_ENABLED`, and drops that too the moment it fires.
-5b. **Through a `/reload`.** Disabled, `/reload`. The addon comes back **still off**, having registered nothing at all — not registering nine events and tearing them down a frame later.
+5b. **Through a `/reload`.** Disabled, `/reload`. The addon comes back **still off**, having registered nothing at all — not registering ten events and tearing them down a frame later.
 5c. **Through a profile switch.** With the addon disabled, switch to a profile where it is enabled: it comes back up, because the AceDB profile callbacks survive the disabled state on purpose. Switch back: it stands down again.
 6. Toggle Enable on — nothing prints (`/cm enable` answers `enabled = true`). Every event re-registers, the bar comes back **only if `Enable macro bar` is still ticked** (the rebuild reads the settings as they are *now*, not as they were when it went down — test it by unticking the bar while the addon is off), and a recompute kicks immediately.
 7. Toggle Debug — color-coded ack `[CM] debug logging ON` (green) / `OFF` (red), plus a `[Debug] logging enabled/disabled` line in the console; on enable, an `[Init]` session summary line (addon + version, schema, profile) follows the bracket. Tagged debug console lines start / stop appearing.
@@ -570,7 +570,7 @@ Tests: every verb in `COMMANDS`, `DUMP_TARGETS`, `*_COMMANDS` works.
 17. `/cm dump bags` — bag scanner output.
 18. `/cm dump item 12345` — parsed tooltip + raw lines.
 19. `/cm dump pick <catKey>` — covered above. Composite keys (`hp_aio`, `mp_aio`) print the assembled body.
-19b. `/cm dump events` — nine client events, every one `registered`, and `0 rejected` in the header line. Then `/cm debug on` and `/reload`: the `[Init]` line carries no `rejected events:` clause.
+19b. `/cm dump events` — ten client events, every one `registered`, and `0 rejected` in the header line. Then `/cm debug on` and `/reload`: the `[Init]` line carries no `rejected events:` clause.
 
 ### 11a. Macro bar
 
@@ -754,6 +754,15 @@ Worth doing once, since it changed. Rename `Interface/AddOns/ConsumableMaster/li
 - **The chrome loses its art, and that is the intended degradation, not a bug.** The icons and JetBrains Mono live inside the payload you just renamed away, so `KCM.Icon` and `KCM.MediaFont` answer nil: the macro bar's handle help control falls back to Blizzard's `InformationIcon`, and any console the addon could still draw would fall back to word buttons and a `×`. Confirm one thing in particular — the macro bar's handle still shows a help control **at all**. A blank square there means something built a path by concatenation to route around the nil instead of walking the ladder, and a path to a texture that is not there draws nothing and raises nothing.
 
 Rename it back and `/reload`.
+
+## Mid-key reload and the event trace (2026-09-29, owner to run)
+
+A `/reload` or relog in the middle of a Mythic+ key left every KCM macro on the action bar blank until the next `/reload`; `/cm rewritemacros` fixed it and `/cm resync` did not. A non-combat restriction lifting now owes every macro one write (`KCM:OnRestrictionChanged` → `MacroManager.MarkAllStale`). Steps 1 and 2 need a key; step 3 runs at any boss.
+
+1. **The fix.** In a key, out of combat between pulls, `/reload`. Finish the key **without typing any `/cm` command**. → Within a second of the key completing, every KCM macro on the action bar shows its item or spell icon again. No Lua error.
+2. **The trace.** Same key: `/cm debug on` straight after the `/reload` in step 1 (logging is off after every reload), then play on to the key's end. → The console carries `[Event] ADDON_RESTRICTION_STATE_CHANGED lockdown=… type=<n> active=<0|1|2> rewrite=yes|no` lines, `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=<n>` at each kill, and after the `rewrite=yes` line one `[Macro] marked N macro(s) stale …`, a `[Calc] … reason=restriction_lifted` summary and one `[Macro] KCM_… edited item=… icon=…` line per macro. Note which `type=` values appear at the key's start, at a boss and at the key's end, and whether the macro-bar icons were placeholders during the key: the `[Macro] … item=` values say what each macro held. Copy the whole console into the bug thread.
+3. **Any boss (no key needed).** A follower dungeon or LFR boss with `/cm debug on`. → `[Event] ADDON_RESTRICTION_STATE_CHANGED … type=1 active=1 rewrite=no` at the pull; at the kill `… type=1 active=0 rewrite=yes`, then one `[Macro] … edited` line per macro (written after combat ends if still in combat). Action-bar icons are unchanged throughout. No Lua error.
+4. **Weapon swap and spec.** Out of combat, swap the main-hand weapon → `[Event] PLAYER_EQUIPMENT_CHANGED lockdown=false slot=16`. Change a ring → no `[Event]` line. Change spec → `[Event] PLAYER_SPECIALIZATION_CHANGED lockdown=false`.
 
 ## Targeted by change area
 
