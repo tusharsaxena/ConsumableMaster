@@ -181,7 +181,7 @@ test("Buttons: untick goes to the top of the hidden group, tick to the end of th
     end)
 
 -- The checkboxes this list replaced let a player untick all fifteen; the bar then
--- collapses to an empty backdrop (docs/smoke-tests.md §11a step 11). Kept.
+-- collapses to an empty backdrop (docs/smoke-tests.md BAR-18). Kept.
 test("Buttons: every slot can be hidden, as the checkboxes allowed", function(t)
     local KCM = h.loader.loadFullAddon()
     local ctx = openButtons(KCM)

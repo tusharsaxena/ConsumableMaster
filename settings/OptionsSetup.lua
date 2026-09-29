@@ -179,7 +179,7 @@ if optionsLib and AceGUI then
     -- above it. Load all five and the wrapper a Border dropdown actually got
     -- belonged to whichever addon the client reached last. Nothing headless in any
     -- of the five repos could see it: each suite loads one copy, registers once and
-    -- passes, and docs/smoke-tests.md's §11a step 6 checked the alignment with this addon alone.
+    -- passes, and docs/smoke-tests.md's BAR-12 checked the alignment with this addon alone.
     --
     -- lib.__PatchLSM30Border (LibKa0s-Options-1.0 minor 15) is that same wrapper
     -- published once, guarded by lib.__lsmBorderPatched. Five vendored copies of

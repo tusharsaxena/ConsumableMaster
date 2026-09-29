@@ -217,4 +217,5 @@ the already-current answer. `tests/test_disabled.lua` step 7f pins the verb live
 `tests/test_slash_degraded.lua` pins the library-absent line.
 
 The in-game half, meaning AceDBOptions' real controls driving the real AceDB with the real bar and
-macros following, is [smoke-tests.md](smoke-tests.md) §13 and §13a.
+macros following, is [smoke-tests.md](smoke-tests.md) PROFILE-1 – PROFILE-14; the verb's in-game
+checks are PROFILE-15 – PROFILE-21.

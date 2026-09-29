@@ -58,7 +58,7 @@ See [schema.md](./schema.md#composite-bucket-shape) for the composite bucket sha
 
 ## Refresh seed item IDs after a patch
 
-The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>`, update the relevant `defaults/Defaults_*.lua` file, then run the [auto-discovery section](./smoke-tests.md#2-auto-discovery) of the smoke suite.
+The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>`, update the relevant `defaults/Defaults_*.lua` file, then run the [Discovery checks](./smoke-tests.md#discovery) of the smoke suite.
 
 Updating a defaults file is a zero-migration upgrade for existing users — the candidate set is `(seed ∪ added ∪ discovered) − blocked` at runtime, and the right-side sets live in SavedVariables independent of the seed.
 
@@ -74,6 +74,6 @@ For the Midnight-specific gotcha catalog see [midnight-quirks.md](./midnight-qui
 
 ## Verify a behavior change in-game
 
-The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `luacheck .` before committing. In-game behavior still needs manual validation: use the [Quick smoke](./smoke-tests.md#quick-smoke) recipe in [smoke-tests.md](./smoke-tests.md) for the post-change minimum, and the [targeted-by-change-area lookup](./smoke-tests.md#targeted-by-change-area) at the bottom of that file for which sections of the full suite map to your change.
+The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `luacheck .` before committing. In-game behavior still needs manual validation: run the quick pass MACRO-1 in [smoke-tests.md](./smoke-tests.md) as the post-change minimum, and use that file's [Index](./smoke-tests.md#index), which names the themes to run for the code you touched.
 
 If you can only reason about the change from code and cannot test it in WoW, say so explicitly — don't claim it works.

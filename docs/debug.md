@@ -208,4 +208,4 @@ Recompute no longer logs per-category — the old per-category `Pipeline.Recompu
 
 ## Smoke testing
 
-The full validation playbook lives in [smoke-tests.md](./smoke-tests.md): a [Quick smoke](./smoke-tests.md#quick-smoke) recipe for post-change validation, a [12-section full suite](./smoke-tests.md#full-suite) for releases, and a [targeted-by-change-area lookup](./smoke-tests.md#targeted-by-change-area) at the bottom that maps "I changed X" to "run sections Y, Z".
+The in-game validation suite lives in [smoke-tests.md](./smoke-tests.md): checks grouped by theme with stable IDs, the quick pass MACRO-1 for post-change validation, every theme walked before a release, and an [Index](./smoke-tests.md#index) that maps "I changed X" to the themes to run. The debug console and the diagnostics report are its [Diagnostics](./smoke-tests.md#diagnostics) theme.

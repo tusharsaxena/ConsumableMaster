@@ -319,6 +319,6 @@ output. Bundles are never edited and never pruned.
 
 ## In-game smoke tests
 
-The headless suite can't exercise real client behavior. The manual in-game playbook — a
-quick post-change smoke plus the full section-by-section suite — lives at
+The headless suite can't exercise real client behavior. The manual in-game suite, one
+deduplicated set of checks grouped by theme with an index of what to run for a change, lives at
 [smoke-tests.md](./smoke-tests.md). Run it before a release.

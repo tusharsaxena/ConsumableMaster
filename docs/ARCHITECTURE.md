@@ -70,7 +70,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
 | Contributor toolchain — what to install to build, run, test or release | — | [../DEPENDENCIES.md](../DEPENDENCIES.md) |
 | Automated test records (produced at release — recorded, not a gate) | — | [automated-tests/](./automated-tests/) |
-| Smoke-test playbook (quick + full + targeted) | — | [smoke-tests.md](./smoke-tests.md) |
+| Smoke-test suite (theme-grouped, with an index) | — | [smoke-tests.md](./smoke-tests.md) |
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 | Test-case inventory (generated — the authoritative pass count) | `tests/` | [test-cases.md](./test-cases.md) |
 | Seed reference + patch-day refresh procedure | `defaults/` | [../defaults/README.md](../defaults/README.md) |
