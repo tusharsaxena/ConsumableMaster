@@ -535,6 +535,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 
 | ID | Origin (old section and step) | Why it is owed |
 |---|---|---|
+| INSTALL-1 | §1 steps 1-5 | Corrected: the fresh-install step deletes the real SavedVariables file, `ConsumableMaster.lua`, not a `ConsumableMasterDB.lua` that never existed |
 | INSTALL-4, INSTALL-5 | §11a steps 1a, 1b | Corrected: the steps edit the live SavedVariables file, not a copy the client never loads |
 | SLASH-3 | §11 step 7 | Corrected: `[statpriority]` prints before `[macros]` |
 | SLASH-4 | §11 steps 8, 9 | Corrected: the refusal is two lines, and the accepted words end `/yes/no` |
