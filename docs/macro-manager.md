@@ -12,7 +12,8 @@ KCM.MacroManager.FlushPending()                          -> applied:int    -- on
 KCM.MacroManager.BuildBody(catKey, id)                   -> string         -- pure helper
 KCM.MacroManager.BuildCompositeBody(cat, pickFor)        -> string|nil     -- pure helper, exposed for /cm dump pick
 KCM.MacroManager.CompositeDisplayPick(cat, inCombat, pickFor) -> id|nil   -- the step #showtooltip shows, for the bar tooltip
-KCM.MacroManager.InvalidateState()                       -- clears macroState + pendingUpdates + oversize warnings + give-up record
+KCM.MacroManager.InvalidateState()                       -- clears macroState + pendingUpdates + oversize warnings + give-up record + stale marks
+KCM.MacroManager.MarkAllStale()                          -- owes every stored macro one write past the early-out; keeps the fingerprints
 KCM.MacroManager.PendingSnapshot()                       -> { {name, catKey, itemID, attempts, composite, bytes}, ... }  -- read-only copy, sorted by name
 KCM.MacroManager.WriteTracking()                         -> { oversized = {catKey, ...}, gaveUp = { {name, attempts}, ... } }  -- read-only copies
 ```
@@ -135,7 +136,7 @@ SetMacro(name, id, catKey):
     icon = iconFor(effectiveItemID)
     state   = macroState[name]
     pending = pendingUpdates[name]
-    if state.lastBody == body and state.lastIcon == icon and (pending == nil or pending.body == body):
+    if not stale[name] and state.lastBody == body and state.lastIcon == icon and (pending == nil or pending.body == body):
         clear pendingUpdates[name] if redundant
         return "unchanged"
     if InCombatLockdown():
@@ -144,6 +145,7 @@ SetMacro(name, id, catKey):
     result = doEdit(name, icon, body, catKey)   -- CreateMacro if new, else EditMacro
     persist macroState[name] = { lastItemID = id, lastBody = body, lastIcon = icon, lastCat = catKey }
     pendingUpdates[name] = nil
+    stale[name] = nil
     return result
 ```
 
@@ -215,3 +217,9 @@ Bounded to **3 attempts** before giving up, with a one-time chat notice. The giv
 Clears `macroState` + `pendingUpdates` + the oversized-warning gate. The next pipeline run re-issues every macro unconditionally because the early-out fingerprints are gone. Used by `/cm rewritemacros` (and the Force rewrite macros button in General settings) when an action-bar icon looks stale and you want a fresh `EditMacro` call even though the body hasn't changed.
 
 The profile handler calls it too, on every profile **switch** and **copy** (`KCM.RegisterProfileCallbacks`, `core/ConsumableMaster.lua`). `macroState` is per profile while the macros are account-wide, so an incoming profile's fingerprint can match the body that profile would write while the live macro holds the outgoing profile's. Trusting it would skip the write. See [profiles.md](./profiles.md#why-the-fingerprints-are-forgotten).
+
+## MarkAllStale — a restriction lifting
+
+Flags every macro in `macroState` as stale. `commitMacro` skips its "unchanged" early-out for a stale macro and clears the flag when the write lands, so the next pipeline pass issues one `EditMacro` per macro even when the body is identical. It is called from `KCM:OnRestrictionChanged` (`core/ConsumableMaster.lua`) when a non-combat addon restriction lifts (an encounter, a key or a match ending), followed by a recompute.
+
+The reason is the icon: after a `/reload` or relog mid-key the action bar drew every `KCM_*` macro's `#showtooltip` icon blank, and every later pass found the body unchanged and wrote nothing, so the icons stayed blank until the next `/reload`. Only a write makes the client re-resolve the icon. Unlike `InvalidateState` it keeps the fingerprints, the combat queue and the once-per-session warnings, so the macro bar keeps drawing its picks while a combat-deferred write waits. The stale marks live only in memory; `InvalidateState` clears them too.
