@@ -9,7 +9,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | INSTALL-1 – INSTALL-6 | Install | Fresh install, re-login, the v2 and v3 SavedVariables upgrades, the TOC version and notes. Run for `core/Database.lua` migrations, TOC edits and `core/EnvSetup.lua`. |
 | SLASH-1 – SLASH-14 | Slash commands | Every `/cm` verb, the schema CLI, `[Set]` logging, the disabled refusal and what still answers while disabled. Run for `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, schema rows and a new verb. |
 | PANEL-1 – PANEL-31 | Settings panel | Landing page, sidebar, header, the General page and its resets, Defaults buttons, refresh behavior, the Macros tab strip. Run for `settings/Panel.lua`, `settings/General.lua`, `settings/OptionsSetup.lua`, `settings/OptionsShim.lua`, `reset` / `resetall` and the confirm popup. |
-| PROFILE-1 – PROFILE-21 | Profiles | The Profiles page (new, switch, copy, reset, delete), per-profile migration, what stays out of a profile, and the `/cm profile` verb. Run for `settings/Profiles.lua`, the profile hooks in `core/ConsumableMaster.lua`, `PROFILE_CHANGED` receivers, `KCM.Settings.VetoedFromResetAll`, the vendored AceConfig / AceDBOptions. |
+| PROFILE-1 – PROFILE-21 | Profiles | The Profiles page (new, switch, copy, reset, delete), per-profile migration, what stays out of a profile, and the `/cm profile` verb. Run for `settings/Profiles.lua`, the profile hooks in `core/ConsumableMaster.lua`, `PROFILE_CHANGED` receivers, `KCM.Settings.VetoedFromResetAll`, the vendored AceConfig / AceDBOptions; for the `/cm profile` verb (PROFILE-15 – PROFILE-21), its `profile` row in `settings/Slash.lua`'s `COMMANDS`, its `LIVE_VERBS` entry, the descriptor's `profiles` thunk and a LibKa0s `Slash.lua` re-vendor (`CliProfile`, `ProfileSwitch`). |
 | STATE-1 – STATE-9 | State | Master enable and the stand-down, the lock and its four doors. Run for `core/LifecycleSetup.lua`, the enable row and `KCM.MacroBar.SetLocked`. |
 | MACRO-1 – MACRO-23 | Macros | What each category's macro body picks and writes: single-pick, Weapon Enchant, Augment Rune, Bloodlust and Battle Rez, the AIO composites, spec changes, edge cases. Run for the Ranker, Selector, `core/WeaponSlots.lua`, MacroManager body builders, `TooltipCache.IsUsableByPlayer`, seed files. |
 | DISC-1 – DISC-8 | Discovery | Auto-discovery, the stale sweep, numeric item-class classification, tooltip hydration. Run for the Classifier, BagScanner, TooltipCache patterns, `defaults/` seed refreshes. |
@@ -21,7 +21,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
-Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Slash.lua`, `core/PerfSetup.lua`): run INSTALL-6, SLASH-1, SLASH-2, PANEL, PROFILE-1, DIAG, BAR-6, BAR-12 and BAR-26 – BAR-30. The swap is meant to be pixel-identical, so anything that looks different is the finding. A change to `.luacheckrc`, a headless-only gate or a doc needs no smoke run.
+Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Slash.lua`, `core/PerfSetup.lua`): run INSTALL-6, SLASH-1, SLASH-2, PANEL, PROFILE-1, PROFILE-15 – PROFILE-21, DIAG, BAR-6, BAR-12 and BAR-26 – BAR-30. The swap is meant to be pixel-identical, so anything that looks different is the finding. A change to `.luacheckrc`, a headless-only gate or a doc needs no smoke run.
 
 ## Before you start
 
@@ -31,7 +31,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 - Target dummies (every faction's training district) are the cheapest way into combat.
 - A second client on stable settings is useful to compare against.
 - Keep a spread of consumables in bags: two different foods, a drink, a healing potion, a mana potion, a flask, an augment rune, a whetstone and a weightstone.
-- A check that edits or wipes SavedVariables works on a copy: back up `WTF/Account/<account>/SavedVariables/ConsumableMaster.lua` first and restore it afterward.
+- A check that edits, wipes or reads SavedVariables works on the live file, `WTF/Account/<account>/SavedVariables/ConsumableMaster.lua`, the one the client loads. Log out first (the client rewrites the file on logout), copy it aside as a backup, edit or read the live file, then log in. Put the backup back when the check is done.
 
 ## Install
 
@@ -41,9 +41,9 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **INSTALL-3. Re-login keeps what is there.** Log out and back in without touching SavedVariables → INSTALL-1's checks pass again, existing macros are reused and no duplicate `KCM_*` macro appears. Result:
 
-**INSTALL-4. Upgrade from a build without the macro bar.** On a copy, set `global.schemaVersion = 1`, delete the active profile's own `schemaVersion` (the stamp the v2 step is gated on), set `profile.macroBar.enabled = false` and `locked = true`, log in → the bar comes up enabled and unlocked, and both stamps read 3 (the v2 step, then the v3 label-flags step). Turn the bar off and `/reload` → it stays off; the v2 step runs once per profile. Result:
+**INSTALL-4. Upgrade from a build without the macro bar.** Log out, back up the SavedVariables file (Before you start), and in the live file set `global.schemaVersion = 1`, delete the active profile's own `schemaVersion` (the stamp the v2 step is gated on), set `profile.macroBar.enabled = false` and `locked = true`, log in → the bar comes up enabled and unlocked, and both stamps read 3 (the v2 step, then the v3 label-flags step). Turn the bar off and `/reload` → it stays off; the v2 step runs once per profile. Result:
 
-**INSTALL-5. The v3 label-flags conversion keeps the player's choice.** On a copy, give the active profile `macroBar.labelOutline = false`, no `macroBar.labelFlags` key, `macroBar.buttonLabel = true`, and `schemaVersion = 2` on that profile and on `global`. Log in, open Macro Bar → Labels → **Font flags** reads *None* and the labels carry no outline (*Outline* means AceDB's shipped default won over the migration). Repeat with `labelOutline = true` → *Outline*. `/reload` → both stick, and `labelOutline` is gone from the saved file. Result:
+**INSTALL-5. The v3 label-flags conversion keeps the player's choice.** Log out, back up the SavedVariables file, and in the live file give the active profile `macroBar.labelOutline = false`, no `macroBar.labelFlags` key, `macroBar.buttonLabel = true`, and `schemaVersion = 2` on that profile and on `global`. Log in, open Macro Bar → Labels → **Font flags** reads *None* and the labels carry no outline (*Outline* means AceDB's shipped default won over the migration). Repeat with `labelOutline = true` → *Outline*. `/reload` → both stick, and `labelOutline` is gone from the saved file. Result:
 
 **INSTALL-6. Version and About notes come from the TOC.** `/cm version`, `/cm help`, then `/cm config` → About → both chat lines print the TOC's `## Version` (never a stale number or `?`), and the paragraph under the logo reads the TOC's `## Notes`. A wrong folder name fails silently, as a blank paragraph and a fallback version, so look at both. Result:
 
@@ -53,15 +53,15 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **SLASH-2. Every line is tagged.** `/cm help`, `/cm version`, `/cm list` → every chat line carries the cyan `[CM]` tag; nothing prints untagged. Result:
 
-**SLASH-3. `/cm list` groups rows by page.** `/cm list` → `enabled` under `[general]`, the `macroBar.*` set under `[macrobar]`, then `[macros]` (each composite's flags and section orders, Battle Rez's mouseover) and `[statpriority]` (`statPriority`). No row renders as `table: 0x…`, and `debug` is absent (session state, not a schema row). Result:
+**SLASH-3. `/cm list` groups rows by page.** `/cm list` → under `Available settings`, in this order: `[general]` (`enabled` among its rows), `[macrobar]` (the `macroBar.*` set), `[statpriority]` (`statPriority`), then `[macros]` (each composite's flags and section orders, Battle Rez's mouseover). No row renders as `table: 0x…`, and `debug`, the logging flag, is absent (session state, not a schema row). Result:
 
-**SLASH-4. `/cm get` and `/cm set` on one row.** With General open: `/cm get enabled`, `/cm get macroBar.orientation`, then `/cm set enabled false` → each get prints one row; the set turns the addon off and the **Enable** checkbox follows. `/cm set enabled banana` → rejected with "expected true/false/on/off/1/0". `/cm set enabled true` afterward. Result:
+**SLASH-4. `/cm get` and `/cm set` on one row.** With General open: `/cm get enabled`, `/cm get macroBar.orientation`, then `/cm set enabled false` → each get prints one row; the set turns the addon off and the **Enable** checkbox follows. `/cm set enabled banana` → two lines, `Invalid value for enabled` and `expected true/false/on/off/1/0/yes/no`, and nothing changes. `/cm set enabled true` afterward. Result:
 
 **SLASH-5. `/cm reset` resets one row, never the profile.** Bare `/cm reset`, then `/cm reset macroBar.orientation` → the bare form prints the usage line naming `/cm resetall` and raises no popup; the path form echoes that row and nothing else moves. Result:
 
 **SLASH-6. Whole-value rows.** `/cm get macroBar.order` → the slot keys in order. `/cm set macroBar.order DRINK,FOOD` → Drink and Food move to the front of the bar and every other slot keeps its place. Untick Drink on Macro Bar → Buttons, then `/cm set macroBar.shown FOOD=off` → Food hides, its Buttons row drops below the rule, dimmed, and Drink stays hidden. `/cm set categories.BATTLE_REZ.mouseover off` → **Cast on mouseover** unticks and the Battle Rez body drops `[@mouseover,help]`; `/cm reset categories.BATTLE_REZ.mouseover` puts it back. `/cm stat primary AGI`, then `/cm get statPriority` → `<spec>: AGI > …`; `/cm set statPriority x` is refused and names `/cm stat`. `/cm reset categories.HP_AIO.orderInCombat` → Healthstone is back above Healing Potion on AIO Health. Result:
 
-**SLASH-7. One `[Set]` line per panel write.** `/cm debug on`, then use each panel control that writes a whole-value row → exactly one `[Set]` line each: the AIO Health Enabled checkbox, a drag between its rows, its Reset category (`[Set] reset category HP_AIO: N rows`, no `[Prio] reset` line beside it), the Stat Priority list and its Defaults, a drag on the Buttons tab (`[Set] macroBar.order`), a drag on the bar, and Reset all priorities. A tick on the Buttons tab writes two rows and logs two, `macroBar.shown` then `macroBar.order`. `/cm aio hp_aio reset` logs the same one line as the tab's Reset category. Result:
+**SLASH-7. One `[Set]` line per panel write.** `/cm debug on`, then use each panel control that writes a whole-value row → exactly one `[Set]` line each: the AIO Health Enabled checkbox, a drag between its rows, its Reset category (`[Set] reset category HP_AIO: N rows`, no `[Prio] reset` line beside it), the Stat Priority list and its Defaults, a drag on the Buttons tab (`[Set] macroBar.order = {…}`), a drag on the bar, and Reset all priorities. A tick on the Buttons tab writes two rows and logs two, `[Set] macroBar.shown = {…}` then `[Set] macroBar.order = {…}`. `/cm aio hp_aio reset` logs the same one line as the tab's Reset category. Result:
 
 **SLASH-8. `/cm priority`.** `/cm priority hp_pot list` → the effective HP_POT order. `/cm priority hp_pot add 12345` → added (an unknown ID is rejected); `remove 12345` → removed and blocked; `up 12345` / `down 12345` → reordered; `/cm priority hp_pot reset` → the category's added, blocked and pinned items wiped. `/cm priority flask list s:1234` → the `s:<spellID>` spell sentinel round-trips. Result:
 
@@ -75,7 +75,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **SLASH-13. A disabled addon refuses a feature verb.** `/cm disable`, then `/cm resync` → one line, `Ka0s Consumable Master is disabled — enable it with /cm enable` with the command in gold, and nothing else (no *auto-discovery found N*, no *recomputed all categories*). Same for `/cm bar on` (no bar appears), `/cm priority hp_pot add 12345` (after `/cm enable`, `/cm priority hp_pot list` has no 12345), `/cm stat primary AGI` and `/cm aio hp_aio toggle hs`. A verb that prints the refusal and then acts anyway is the failure. Result:
 
-**SLASH-14. The rest of the surface answers while disabled.** Still disabled: `/cm help`, `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm diagnostics`, `/cm list`, `/cm get enabled`, `/cm set scale 1.1`, `/cm reset scale`, `/cm resetall`, `/cm dump categories`, `/cm profile`, bare `/cm`, and `/cm enable` → each answers normally; `/cm help` prints the full index with the refusal line under the header, not instead of it; bare `/cm` opens the panel; `/cm enable` never refuses. A typo (`/cm resyncc`) gets `unknown command` and the index, not the refusal. Result:
+**SLASH-14. The rest of the surface answers while disabled.** Still disabled: `/cm help`, `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm diagnostics`, `/cm list`, `/cm get enabled`, `/cm set scale 1.1`, `/cm reset scale`, `/cm resetall`, `/cm dump categories`, `/cm profile`, bare `/cm`, and `/cm enable` → each answers normally; `/cm help` prints the full index with the refusal line under the header, not instead of it; bare `/cm` opens the panel; `/cm enable` never refuses. A typo (`/cm resyncc`) gets `Unknown command: resyncc` and the index, not the refusal. Result:
 
 ## Settings panel
 
@@ -95,23 +95,23 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PANEL-8. The master rows compose with the bar's own.** **Master scale** 2.0 with **Bar scale** 1.0 → the bar doubles; Bar scale 0.5 → effective 1.0. Same for **Master alpha** against **Bar opacity**. **General visibility** *Only in combat* with the bar's **Combat visibility** *Always* → the bar shows on pull and goes on combat drop; set Combat visibility to *Hide in combat* too → the two never agree and the bar stays hidden. Result:
 
-**PANEL-9. Force resync.** Maintenance → **Force resync** (or `/cm resync`) → the tooltip cache invalidates, auto-discovery re-runs and every category recomputes (`[Scan]` and `[Calc]` lines with debug on). In combat it is refused with a chat notice. Result:
+**PANEL-9. Force resync.** Maintenance → **Force resync** (or `/cm resync`) → the tooltip cache invalidates, auto-discovery re-runs and every category recomputes (`[Scan]` and `[Calc]` lines with debug on). In combat `/cm resync` is not refused: it prints `in combat — picks computed now; macro writes will apply when combat ends.`, still recomputes, and the writes land on regen (the button is under the combat cover then, COMBAT-8). Result:
 
 **PANEL-10. Force rewrite.** Maintenance → **Force rewrite** (or `/cm rewritemacros`) → every `KCM_*` body and icon is re-issued unconditionally, which clears a stale action-bar texture. Result:
 
-**PANEL-11. Reset all settings.** Hover **Reset all settings** → the tooltip reads *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* (a tooltip without the Profiles clause, or *Restore every setting in this addon to its default.*, means the descriptor lost `profilesPage` or `resetProfile`). Click it → the collection's one confirm popup; Yes resets the whole active profile, items in bags are re-discovered, discovered items no longer in bags drop, and the open panel repaints. In combat, Yes prints *in combat — reset deferred until regen.* and changes nothing. Result:
+**PANEL-11. Reset all settings.** Hover **Reset all settings** → the tooltip reads *Reset the current profile to its defaults — the same thing Profiles -> Reset Profile does. Your other profiles are not affected.*, with a plain `->` rather than an arrow glyph (a tooltip without the Profiles clause, or *Restore every setting in this addon to its default.*, means the descriptor lost `profilesPage` or `resetProfile`). Click it → the collection's one confirm popup; Yes resets the whole active profile, items in bags are re-discovered, discovered items no longer in bags drop, and the open panel repaints. Raise the popup again, pull a dummy and press Yes in combat → *in combat — reset deferred until regen.* and nothing changes. Result:
 
 **PANEL-12. `/cm resetall` raises the same popup.** `/cm resetall` → the same popup as PANEL-11 (one `KCM_CONFIRM_RESET` popup, no second one). Cancel → nothing is wiped (a custom added item survives). Run it again, Yes → the same effect as PANEL-11, and in combat the same refusal line with nothing changed. Result:
 
 **PANEL-13. The reset closes the debug console too.** Tick **Debug console** so the window is open, change something profile-backed (drag the bar, or drop Button size), then Reset all settings → Yes → the console window is closed and the checkbox unticked, alongside everything else the reset took. With `/cm debug on`, the reset logs one `[Set] reset profile '<name>' to defaults: N rows` line and no `[Set] state.debugConsole` line. Repeat through `/cm resetall` → identical. Result:
 
-**PANEL-14. Reset all priorities.** Set a non-default Button size, then Maintenance → **Reset all priorities** → a different popup naming the narrower act; Yes clears every category's added, blocked and pinned items and every spec's stat-priority override, and nothing else (Button size survives). In combat it is refused with a chat notice. Result:
+**PANEL-14. Reset all priorities.** Set a non-default Button size, then Maintenance → **Reset all priorities** → a different popup naming the narrower act; Yes clears every category's added, blocked and pinned items and every spec's stat-priority override, and nothing else (Button size survives). Raise its popup again, pull a dummy and press Yes in combat → `in combat — reset deferred until regen.` and nothing is cleared. Result:
 
 **PANEL-15. The General page's Defaults.** Disable the addon and move **Master scale** off 1.0, then press the top-right **Defaults** from the **Maintenance** tab → this page only resets, every tab of it: Enable ticks back on (no chat line), scale, alpha and visibility return to shipped values, and the debug console switches off. Category and stat-priority customizations survive (a custom added item is still there). With `/cm debug on` the console shows `[Set] reset General page: N rows`. Result:
 
 **PANEL-16. Every Defaults button is the AceGUI one.** Visit General, Macros, Stat Priority and Macro Bar → each has a top-right **Defaults** rendered dark with gold text, not Blizzard's red stone button; About has none. Check again with a skinning addon loaded if you have one. Click one → its page reset still fires. Result:
 
-**PANEL-17. Defaults refuses in combat.** Pull a dummy, press General's Defaults → the gray in-combat refusal and no reset. Result:
+**PANEL-17. Defaults cannot fire in combat.** With General open and a setting off its default, pull a dummy and click the top-right **Defaults** → it sits under the combat cover (COMBAT-8), so nothing happens; after combat the setting still holds your value. Result:
 
 **PANEL-18. The Settings window's footer Defaults.** Blizzard's control at the bottom of the Settings frame: with General open → the page's defaults action fires, as the header button does; with About open → nothing happens and nothing errors. Result:
 
@@ -145,13 +145,13 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PROFILE-1. The Profiles page.** `/cm debug on` and keep the console open for this theme. `/cm config` → **Profiles**, last in the sidebar → AceDBOptions' controls (Reset Profile, the current profile, New, Existing Profiles, Copy From, Delete a Profile) sit inside the addon's canvas under the header and the `Ka0s Consumable Master › Profiles` breadcrumb, not in a floating window. No Defaults button top-right and no tab strip (Profiles and the landing page are the two pages without one). Result:
 
-**PROFILE-2. A new profile is created, switched to and migrated.** Work on a SavedVariables copy, with two different foods in bags. Type `Alt` into New and press Enter → the console shows `[Profile] switched to 'Alt'`, then `[DB] migrated profile 'Alt' schema v1 -> v3`, then `[Macro] forced rewrite: cleared 0 macro fingerprint(s) and 0 queued write(s)`, then a `[Scan]` and a `[Calc]` line, and no `[Set]` line. The page names Alt as current. Silence where the migration line belongs is the defect. Result:
+**PROFILE-2. A new profile is created, switched to and migrated.** Back up the SavedVariables file first (Before you start); keep two different foods in bags. Type `Alt` into New and press Enter → the console shows `[Profile] switched to 'Alt'`, then `[DB] migrated profile 'Alt' schema v1 -> v3`, then `[Macro] forced rewrite: cleared 0 macro fingerprint(s) and 0 queued write(s)`, then a `[Scan]` and a `[Calc]` line, and no `[Set]` line. The page names Alt as current. Silence where the migration line belongs is the defect. Result:
 
 **PROFILE-3. A switch moves everything, without a reload.** In Alt: unlock the bar and drag it to another corner, set Macro Bar → Layout → Buttons per row to 5, hide one slot and move another to the front on Macro Bar → Buttons, and on Macros → Food block the food `KCM_FOOD` uses so it picks the other. Note `KCM_FOOD`'s item. Existing Profiles → Default → the bar jumps to Default's position, grid, shown slots, slot order and lock state, `KCM_FOOD` names Default's food again, and the console shows `[Profile] switched to 'Default'` and `[Macro] forced rewrite: cleared N macro fingerprint(s) …`. A bar still showing Alt's layout is the defect. Result:
 
 **PROFILE-4. The round trip rewrites every macro.** Switch to Alt again → everything from PROFILE-3 comes back and `KCM_FOOD` names Alt's food. A macro that keeps the other profile's item means fingerprints were trusted across the switch. Result:
 
-**PROFILE-5. Migration runs once per profile.** Switch back to Default → no migration line the second time, and nothing is lost: settings, bar position and geometry are as you left them. Log out, open the copy → every visited profile carries its own `schemaVersion = 3`, and `global.schemaVersion` reads 3. Result:
+**PROFILE-5. Migration runs once per profile.** Switch back to Default → no migration line the second time, and nothing is lost: settings, bar position and geometry are as you left them. Log out and open the live SavedVariables file → every visited profile carries its own `schemaVersion = 3`, and `global.schemaVersion` reads 3. Log back in. Result:
 
 **PROFILE-6. The v2 step's one-time cost.** A profile written before per-profile stamps meets the v2 step once on its first arrival, so a profile with a deliberate `macroBar.enabled = false` comes back on. Set it off again, switch away and back → it stays off. A bar that re-enables on every switch is the defect (the profile stamp not being written). Result:
 
@@ -167,9 +167,9 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PROFILE-12. A switch in combat through AceDB.** Pull a dummy and run `/run LibStub("AceAddon-3.0"):GetAddon("ConsumableMaster").db:SetProfile("Default")` mid-fight → no Lua error; the bar keeps its layout until combat ends and then applies Default's, and the macro writes land on regen. Result:
 
-**PROFILE-13. What stays out of a profile.** Across every switch above → the debug console's open state and `/cm perf`'s saved runs never change, and the minimap button's visibility (LAUNCH-6) does not follow the profile. Result:
+**PROFILE-13. What stays out of a profile.** Across every switch above → the debug console's open state and `/cm perf`'s saved runs never change. (The minimap button's visibility is LAUNCH-6.) Result:
 
-**PROFILE-14. A switch through the Profiles page brings a disabled addon back.** With Default disabled, pick Alt (enabled) under Existing Profiles → the addon comes back up; pick Default → it stands down again. The profile callbacks survive the disabled state on purpose. Result:
+**PROFILE-14. A switch through the Profiles page brings a disabled addon back.** On Default, `/cm disable`; Alt stays enabled. Pick Alt under Existing Profiles → the addon comes back up; pick Default → it stands down again. The profile callbacks survive the disabled state on purpose. `/cm enable` afterward, so Default is running again for the checks that follow. Result:
 
 **PROFILE-15. `/cm profile` lists the profiles.** With Default and Alt present, `/cm profile` → a `Profiles` header (no trailing colon), one row per profile sorted without regard to case, the active one suffixed `(current)`, then `/cm profile <name> switches profile`. Result:
 
@@ -189,7 +189,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **STATE-1. Enable off stops the addon.** General → untick **Enable** → nothing prints (`/cm disable` answers `enabled = false`), and the macro bar leaves the screen at once. `/framestack` and the debug console confirm the rest: nothing repaints on a bag change, a spec change or a cooldown tick, and no macro is rewritten. The panel stays open and usable, and every `/cm` verb still answers (SLASH-13, SLASH-14). Result:
 
-**STATE-2. Enable off in combat.** Pull a dummy, untick Enable mid-fight → the bar goes on the regen that follows. The addon holds exactly one registration until then, `PLAYER_REGEN_ENABLED`, and drops it when it fires. Result:
+**STATE-2. Enable off in combat.** Pull a dummy and `/cm disable` mid-fight (the panel is under the combat cover, COMBAT-8) → the bar goes on the regen that follows. The addon holds exactly one registration until then, `PLAYER_REGEN_ENABLED`, and drops it when it fires. Result:
 
 **STATE-3. Disabled through a `/reload`.** Disabled, `/reload` → the addon comes back still off and registers nothing (not ten events torn down a frame later). Result:
 
@@ -213,7 +213,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **MACRO-3. Blocking the pick moves to the next.** On the category's tab, press × on the current pick → within a frame the body points at the next-best owned candidate and the action-bar icon follows. Result:
 
-**MACRO-4. An empty category writes the empty state.** Remove or block every owned candidate → the body becomes `/run print('|cff00ffff[CM]|r no <category> in bags')` with the cooking-pot icon. Result:
+**MACRO-4. An empty category writes the empty state.** On Food, remove or block every owned candidate → the body becomes `/run print('|cff00ffff[CM]|r no food in bags')` with the cooking-pot icon. The other bag categories read `no <category> in bags` the same way; the spec-aware four read `no <category> for this spec`, and Bloodlust and Battle Rez `no bloodlust available` and `no battle rez available` (`defaults/Categories.lua`). Result:
 
 **MACRO-5. Weapon Enchant picks by the main hand's type.** Sword in the main hand → `/cm dump pick wpn_ench` shows a whetstone as the main-hand pick, a weightstone listed but excluded. The Weapon Enchant tab marks the whetstone row with the star and **MH**; weightstone rows are dimmed as not applicable. Result:
 
@@ -225,7 +225,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **MACRO-9. Weapon affinity comes from the subclass.** Swap main-hand weapons and read the Weapon Enchant tab's header line → sword, dagger, axe, polearm, fist and warglaive → bladed (whetstone); mace and staff → blunt (weightstone); bow, gun, crossbow and wand → no stone (oils only), and with an oil in bags that hand still gets a pick. Judge by the header and the body, not `/cm dump pick wpn_ench`, which asks the single-pick path and can name a pick for a hand the macro leaves bare. Result:
 
-**MACRO-10. A shield is not a polearm.** Shield in the off hand → no off-hand enchant, and `/cm dump item <shieldID>` shows `classID=4 subClassID=6` with `classified: (none)` (Armor subclass 6 against Weapon subclass 6; the class gate keeps them apart). Result:
+**MACRO-10. A shield is not a polearm.** Shield in the off hand → no off-hand enchant, and `/cm dump item <shieldID>` shows `classID=4` and `subClassID=6` on its `instant:` line, with `classified: (none)` (Armor subclass 6 against Weapon subclass 6; the class gate keeps them apart). Result:
 
 **MACRO-11. Augment Rune body and order.** One augment rune in bags → the body is `#showtooltip` + `/use item:<id>`. `/cm dump pick aug_rune` → ordered by primary-stat amount, highest first (Void-Touched 25 above Ethereal 6 above Dreambound 5); a reusable rune outranks a consumable one only on an equal amount. Block the top rune on the Augment Rune tab → the pick falls to the next-highest within a frame. Result:
 
@@ -261,7 +261,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DISC-3. Stale discoveries are swept.** Hand-edit `discovered[id]` to a timestamp over 30 days old (or wait) → on the next login `Selector.SweepStaleDiscovered` removes it, and `/cm dump pick flask` no longer lists it. Result:
 
-**DISC-4. The numeric item class drives classification.** For a few owned consumables, `/cm dump item <id>` → the `instant:` line's `classID` / `subClassID` and the `classified:` line agree: healing potion `classID=0 subClassID=1` → `HP_POT`; mana potion `0/1` → `MP_POT`; stat food `0/5` → `STAT_FOOD`; plain food `0/5` → `FOOD` or `DRINK`; flask or phial `0/3` → `FLASK`. Result:
+**DISC-4. The numeric item class drives classification.** For a few owned consumables, `/cm dump item <id>` → the `instant:` line's `classID` / `subClassID` and the `classified:` line agree: healing potion `classID=0`, `subClassID=1` → `HP_POT`; mana potion `0/1` → `MP_POT`; stat food `0/5` → `STAT_FOOD`; plain food `0/5` → `FOOD` or `DRINK`; flask or phial `0/3` → `FLASK`. Result:
 
 **DISC-5. English picks are unchanged.** Food, a potion and a flask in bags, `/cm resync`, then `/cm dump pick hp_pot`, `flask`, `stat_food` → each picks the expected item and the `KCM_*` bodies target it. Result:
 
@@ -277,9 +277,9 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PRIO-2. Add by ID, item.** Type Item, paste the ID of an item you do not own, press Enter → a row appears with the red-X glyph and the box empties. Result:
 
-**PRIO-3. Add by ID, spell.** Type Spell, paste `1231411` (Recuperate) and click **Add** → on a Rogue the row appears with the spell's name and icon; on another class the status line reads `No spell matches '1231411'.` plus the spellbook hint, and nothing reaches chat. Result:
+**PRIO-3. Add by ID, spell.** Type Spell, paste `1231411` (Recuperate) and click **Add** → on a Rogue the row appears with the spell's name and icon. On another class the add is still accepted: the row appears with the red-X glyph and chat prints `Recuperate is added, but you cannot cast it, so it will never be picked.` Paste `99999999` with Type Spell → the status line reads `No spell matches '99999999'.` plus the spellbook hint, nothing is added, and nothing reaches chat. Result:
 
-**PRIO-4. Add by name.** Type Item, remove a potion you carry with × and type its exact name, Enter → it resolves to the same row. Type Spell, a class ability's name (`Recuperate` on a Rogue) → the row appears. After a `/reload`, the full name of an item the tab lists but you have not carried this session → it resolves from the list and the box empties. An item removed with × is blocked: it leaves the list and the name no longer resolves unless you carry it. An unknown name → `No item matches '<name>'. Names work for items you carry (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link.` The first name in a session may read `Looking up items...` for up to about two seconds (an ID that never loads holds it for the whole wait). Result:
+**PRIO-4. Add by name.** Type Item, remove a potion you carry with × and type its exact name, Enter → it resolves to the same row. Type Spell, a class ability's name (`Recuperate` on a Rogue) → the row appears. After a `/reload`, the full name of an item the tab lists but you have not carried this session → it resolves from the list and the box empties. An item removed with × is blocked: it leaves the list and the name no longer resolves unless you carry it. An unknown name → `No item matches '<name>'. Names work for items you carry (or carried this session) and ones this list knows; otherwise use the ID or shift-click a link.` The first name in a session may read `Looking up items...` for up to about two seconds (an ID that never loads holds it for the whole wait, even for an item you carry). Result:
 
 **PRIO-5. Suggestions while typing.** Hover the box → the tooltip says to type a name and pick it, ending with the name hint. On a tab listing several ranks of a crafted potion, type two letters → a list opens: icon, name in quality color, the crafted-quality tier icon, then the gray ID, one row per rank, told apart by tier icon. Up and Down move the highlight; Enter or a click adds that rank and clears box and list. Type the full shared name and press Enter without picking → nothing added, `Several items share the name '<name>': pick one from the list, or use the ID.`, and the list opens; Enter again → still nothing. Escape closes the list. Carry two ranks of a potion the tab does not list (two ranks of *Potion of the Hushed Zephyr*), type its full name, Enter → the same shared-name line and a list of the two carried ranks; tab-listed and carried ranks list together. Switch Type to Spell with text in the box → the page redraws, the text stays, and typing lists the tab's spells, a spell's subtext after its name; picking a spell with a subtext adds the spell. On a spec-aware tab with no active spec → no list opens, and the tooltip says a spec is missing with no name hint. Result:
 
@@ -327,7 +327,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **PRIO-27. Two lists, one line each.** Drag on Stat Priority, then on Macro Bar → Buttons, then Stat Priority again → each drag draws exactly one line under the list being dragged, and nothing stays painted on the page you left. Result:
 
-**PRIO-28. The Stat Priority banner.** Open **Stat Priority** → the **Viewing spec** dropdown sits in the page's own band above the scroll with a hairline rule under it, stays put while scrolling, lists specs with class and spec icons sorted by class name, and is not clipped (its label makes the band taller than 44px). There is no "Selection" section and no second spec picker anywhere; the Macros spec-aware tabs say "Spec-aware. Viewing: <spec>." as a sentence. Under the banner, a one-tab strip reading **Priority**, drawn even with no resolvable spec, where "No spec selected" sits inside the page under it. After a real spec switch in the talents UI the banner shows the new spec. Result:
+**PRIO-28. The Stat Priority banner.** Open **Stat Priority** → the full-width **Viewing spec** dropdown sits in the page's own band above the scroll with a hairline rule under it, stays put while scrolling, lists specs with class and spec icons sorted by class name, and is not clipped (its label makes the band taller than 44px). There is no "Selection" section and no second spec picker anywhere; the Macros spec-aware tabs say "Spec-aware. Viewing: <spec>." as a sentence. Under the banner, a one-tab strip reading **Priority**, drawn even with no resolvable spec, where "No spec selected" sits inside the page under it. After a real spec switch in the talents UI the banner shows the new spec. Result:
 
 **PRIO-29. Picking a spec repopulates both pages.** Pick another spec in the banner → Primary stat and the secondary list repopulate (override, then seed, then class fallback), and Macros → Flask (and Combat Potion, Stat Food, Weapon Enchant) reads "Spec-aware. Viewing: <picked spec>." with that spec's list. Result:
 
@@ -337,7 +337,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-1. The Macro Bar page's tabs.** Open **Macro Bar** → eight tabs in this order: **General, Layout, Bar appearance, Button appearance, Labels, Flyout, Visibility, Buttons**; only the active tab's controls show, with no heading repeating the tab's name. Result:
 
-**BAR-2. Row counts per tab.** General 1 (Enable macro bar) plus Reset slot order; Layout 8; Bar appearance 9; Button appearance 13; Labels 12; Flyout 16; Visibility 3; Buttons one draggable list of fifteen rows (handle, tick, name) under a one-line hint. No Lock position and no Reset position (they are on General). Result:
+**BAR-2. Row counts per tab.** Open Macro Bar and click through its eight tabs → General 1 (Enable macro bar) plus Reset slot order; Layout 8; Bar appearance 9; Button appearance 13; Labels 12; Flyout 16; Visibility 3; Buttons one draggable list of fifteen rows (handle, tick, name) under a one-line hint. No Lock position and no Reset position (they are on General). Result:
 
 **BAR-3. Subsection headings.** **Bar opacity** is on Bar appearance, once, under an **Opacity** heading. The mixed tabs use centered headings, never colored labels: Bar appearance *Opacity* → *Background* → *Border*; Button appearance *Background* → *Border* → *Icon*; Labels *Text* → *Layout* → *Font*; Flyout *Layout* → *Background* → *Icon*. No heading repeats its tab's name or a word of it. Result:
 
@@ -357,7 +357,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-11. Layout.** Buttons per row 7 → two rows; Orientation Vertical → two columns; Horizontal growth Left and Vertical growth Up → the first slot moves to the opposite corner. Drag Button size, Button spacing, Bar padding and Bar scale → geometry follows live with no tearing. Result:
 
-**BAR-12. Bar and button appearance.** Toggle each background and border box and change each color → backdrop, bar frame and button borders respond. Pick a different **Bar border style** and **Button border style** → the edge changes and the closed dropdown shows the new name, flush with no 42px gap. Border thickness 16 → thick edges; raise **Button border offset** → the border moves off the icon. Button border off → a flat icon grid. Icon zoom 40% → symmetric crop. Show stack count off → counts vanish (and a thick border never slices them when on). Show tooltips off → hovering shows nothing. Result:
+**BAR-12. Bar and button appearance.** Toggle each background and border box and change each color → backdrop, bar frame and button borders respond. Pick a different **Bar border style** and **Button border style** → the edge changes and the closed dropdown shows the new name, flush with no 42px gap. Border thickness 16 → thick edges; raise **Button border offset** → the border moves off the icon. Button border off → a flat icon grid. Icon zoom 40% → symmetric crop. Show stack count off → counts vanish (and a thick border never slices them when on). Show tooltips off → hovering shows nothing. This check loads ConsumableMaster alone and cannot see the defect BAR-28 exists for, so run BAR-28 too whenever the border dropdowns matter. Result:
 
 **BAR-13. Labels.** Labels tab reads `[Show button labels] [Label text]` under *Text*, `[anchor] [placement]`, `[offset X] [offset Y]` under *Layout*, and under *Font* `[Font] [Font size (% of button)]`, `[Font color] [Use class color]`, `[Font flags] [Font shadow]`. Show labels → each button gets its category name inside its top edge. Walk the nine positions, Inside and Outside at each → the label lands where named and alignment follows. Label text *Always full* → long names overflow; *Auto* → long names shorten, short ones stay; *Always short* → all abbreviated. Drag Button size → the font scales. Offsets move the label. Pick a Font → on the first open after login every row draws in its own face (blank rows filling in on the second open mean the font preload is not running), and the labels redraw. Walk Font flags' five values (*None* removes the outline). Tick Font shadow → a soft shadow; untick → it clears. Font color with Use class color → class color, opacity still applied. Result:
 
@@ -365,7 +365,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-15. Reorder on the bar.** Drag one slot onto another → they swap, and the swap survives `/reload`. **Reset slot order** → back to shipped order. Result:
 
-**BAR-16. Reorder on the Buttons tab.** Macro Bar → Buttons → each row is handle, green tick, name, shown buttons first in bar order; hidden ones below a rule, dimmed, no handle. Drag a shown row two down → it lands there, passed rows shift up one, and the bar reorders at once. Drag past the rule → the line stops at the rule and the row lands last among shown. Drop in place → nothing written. With debug on: a drag logs one `[Set] macroBar.order = {…}`; a tick logs `[Set] macroBar.shown = {…}` then `[Set] macroBar.order = {…}`. Swap two buttons on the bar with the tab open → the list follows. `/reload` → both orders survive. Result:
+**BAR-16. Reorder on the Buttons tab.** Macro Bar → Buttons → each row is handle, green tick, name, shown buttons first in bar order; hidden ones below a rule, dimmed, no handle. Drag a shown row two down → it lands there, passed rows shift up one, and the bar reorders at once. Drag past the rule → the line stops at the rule and the row lands last among shown. Drop in place → nothing written. (Its `[Set]` lines are SLASH-7.) Swap two buttons on the bar with the tab open → the list follows. `/reload` → both orders survive. Result:
 
 **BAR-17. Drag out, and nothing drags in.** Drag a slot onto a Blizzard action bar → the macro lands there and the bar keeps its own. Drop an item, a spell and a non-KCM macro on the bar in turn → nothing happens and the cursor keeps holding it. Result:
 
@@ -387,13 +387,13 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-26. The three media dropdowns are populated.** Macro Bar → open **Bar border style**, **Button border style** and **Label font** → each lists real entries (Blizzard's own at least, plus anything a media addon registered). One empty dropdown is the finding; a populated neighbor proves nothing. Pick a new value in each → bar edge, button edges and label face change, and the closed dropdown names it. Then `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → at least the `COMPOSE_MINOR` in `libs/LibKa0s/OptionsCompose.lua` (7 at LibKa0s v1.63.0); a lower number means the client loaded an older payload than this build vendors, and the dropdown check above proved nothing. Result:
 
-**BAR-27. A border style from chat is validated.** `/cm set macroBar.barBorderStyle "Not A Border"` → rejected with the allowed values. `/cm set macroBar.barBorderStyle "Blizzard Tooltip"` → accepted and the panel tracks it. A validator that does not normalize the composed row's map stops rejecting anything. Result:
+**BAR-27. A border style from chat is validated.** `/cm set macroBar.barBorderStyle Not A Border` → `Invalid value for macroBar.barBorderStyle` and an `allowed values:` line. `/cm set macroBar.barBorderStyle Blizzard Tooltip` → accepted and the panel tracks it. Type the value without quotes: the quotes become part of it and the set is refused. A validator that does not normalize the composed row's map stops rejecting anything. Result:
 
 **BAR-28. The Border dropdown with five Ka0s addons loaded.** Enable KickCD, PanelMaster, AbsorbTracker, ConsumableMaster and MultiMeters, log in, open every addon's Border dropdown (here: Macro Bar → Bar border style and Button border style) → in all five the closed control is flush with the rows stacked with it, no ~42px gap, and the open list draws per-row previews. Change the load order (disable and re-enable addons), `/reload`, walk them again → nothing differs and no Lua error appears. One dropdown unlike the others, or one that changes with load order, is the finding. Result:
 
 **BAR-29. A stored color round-trips through the picker and the CLI.** Macro Bar → **Bar backdrop color**, pick a color with an obvious non-default alpha, confirm → the bar repaints while you drag and keeps it. `/cm get macroBar.barBackdropColor` → four channels matching the picker; reopen the picker → it still shows them; `/reload` and check both again. Repeat for **Bar border color**, **Button backdrop color**, **Button border color** and the label **Font color**. Result:
 
-**BAR-30. A color with missing channels still draws.** Log out, and in the SavedVariables copy delete the third and fourth entries of `barBackdropColor`. Log in, open Macro Bar → the page and the swatch draw with no Lua error, and `/cm get macroBar.barBackdropColor` prints the same four channels the swatch shows. Two answers for one stored value is the finding. Restore the file or re-pick the color before anything else. Result:
+**BAR-30. A color with missing channels still draws.** Log out, back up the SavedVariables file (Before you start), and in the live file delete the third and fourth entries of `barBackdropColor`. Log in, open Macro Bar → the page and the swatch draw with no Lua error, and `/cm get macroBar.barBackdropColor` prints the same four channels the swatch shows. Two answers for one stored value is the finding. Put the backup back (logged out) or re-pick the color before anything else. Result:
 
 ## Launcher
 
@@ -411,7 +411,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **LAUNCH-7. No reset brings it back.** With the button hidden: Reset all settings → Yes (or `/cm resetall`) → every profile setting resets and the button stays hidden. Press General's Defaults → Master scale, Master alpha, General visibility and Lock frame reset, and **Minimap button** stays unticked. Tick it → it returns at the saved angle, not the default one. Result:
 
-**LAUNCH-8. The broker plugin.** With a broker display (Titan Panel, ElvUI data texts, Bazooka), Ka0s Consumable Master appears in its plugin list with the same logo, and clicking it does what clicking the minimap button does. There is no setting to hide it from a display. Result:
+**LAUNCH-8. The broker plugin.** Load a broker display (Titan Panel, ElvUI data texts, Bazooka), open its plugin list and click Ka0s Consumable Master → it is listed with the same logo, and the click does what clicking the minimap button does. There is no setting to hide it from a display. Result:
 
 **LAUNCH-9. The status tooltip.** Hover → top to bottom: `Ka0s Consumable Master  v<TOC version>`, `Enabled: Yes` in green, `Locked: No` in red (or `Yes` in green), `Left-click: Open settings`, `Right-click: Options menu`; no Test mode line. Toggle Locked from the menu, hover again → the Locked line flips. `/cm disable`, hover → `Enabled: No` in red, Locked unchanged, the same two hints. `/cm enable`. Result:
 
@@ -427,13 +427,13 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **COMBAT-5. The settings category registers after an in-combat reload.** Confirm the category is under Settings → AddOns out of combat (if not, stop). Pull a dummy, `/reload` mid-fight and keep fighting, watch chat and the error frame for ten seconds → ConsumableMaster is absent from the AddOns list while in combat and no "Interface action failed because of an AddOn" appears. Drop combat → the category is there, and `/cm config` opens it with the parent expanded. Result:
 
-**COMBAT-6. The same, disabled.** `/cm disable`, pull, `/reload` in combat, drop combat → the category and its **Enable Consumable Master** checkbox are listed, with no taint error. Result:
+**COMBAT-6. The same, disabled.** `/cm disable`, pull, `/reload` in combat. Still in combat, `/cm config` → the library's gray refusal line (COMBAT-7's), once, and the panel does not open. Drop combat → the category and its **Enable Consumable Master** checkbox are listed, with no taint error. `/cm enable` afterward. Result:
 
-**COMBAT-7. `/cm config` is refused in combat.** In combat, `/cm config` → the library's gray refusal line, once, and the panel does not open. Result:
+**COMBAT-7. `/cm config` is refused in combat.** In combat, `/cm config` → the library's gray line `cannot open settings during combat — Blizzard's category-switch is protected`, once, and the panel does not open. Result:
 
-**COMBAT-8. A tab click in an open panel works in combat.** Open the panel, enter combat, click another Macros tab → it switches normally. Result:
+**COMBAT-8. An open page is covered in combat.** Open the panel on Macros, pull a dummy → the whole page, tab strip and header included, dims under a cover reading `Settings are locked during combat.`; clicking a tab or a row does nothing. Click another of this addon's pages in the sidebar → it opens covered too, and chat prints, once and in gray, `settings are locked during combat — changes are refused until it ends`. Drop combat → the cover lifts and the page shows current values. Result:
 
-**COMBAT-9. Dragging a macro icon is refused in combat.** In combat, drag the Macros tab's icon (or a bar slot) → `[CM] in combat — drag a macro to an action bar once combat ends.` and no Lua error. Result:
+**COMBAT-9. Dragging a macro icon is refused in combat.** In combat, drag a macro-bar slot (the Macros tab's drag icon is under the combat cover, COMBAT-8) → `[CM] in combat — drag a macro to an action bar once combat ends.` and no Lua error. Result:
 
 **COMBAT-10. Restricted spell cooldowns draw without error.** With a spell pick (Healthstone, a class heal), pull, use the spell, watch its slot and its flyout entry → the swipe animates with no Lua error. Repeat inside a dungeon or raid, where the restriction lasts the whole instance. An idle slot stays unshaded; leaving combat, the swipe finishes cleanly. Result:
 
@@ -441,7 +441,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **COMBAT-12. Combat visibility.** **Combat visibility** *Hide in combat* → the bar goes the instant a fight starts and returns when it ends, with no error; then *Only in combat* → the reverse. Both work mid-fight. Result:
 
-**COMBAT-13. Bar changes in combat are deferred.** In combat: enable the bar, change Button size, try a drag-swap → chat says the change applies after combat (the swap is refused), no taint, everything lands on combat end, and on-screen buttons keep working. With the Buttons tab open before the pull, drag a row and click a tick → each is refused with `in combat — macro bar buttons cannot be moved or hidden until combat ends.` and the list and bar are unchanged. Result:
+**COMBAT-13. Bar changes in combat are deferred.** `/cm bar off`, then pull a dummy. In combat: `/cm bar on` → `in combat — the macro bar will appear when combat ends.`; `/cm set macroBar.buttonSize 48` → the value echoes and nothing moves yet. Drop combat → the bar appears at the new size, with no taint. Pull again and drag one slot onto another → the drag never starts (COMBAT-9's line) and the order is unchanged; on-screen buttons keep working. The Macro Bar page takes no drag or tick in combat: it is under the cover (COMBAT-8). Result:
 
 **COMBAT-14. A mid-key reload does not blank the macros.** In a Mythic+ key, out of combat between pulls, `/reload`, then finish the key without typing any `/cm` command → within a second of completion every KCM macro on the action bar shows its item or spell icon again, with no Lua error. Result:
 
@@ -475,7 +475,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DIAG-11. `/cm diagnostics` appends below the trace.** `/cm debug on`, `/cm resync`, then `/cm diagnostics` → the report lands below the trace, from `[Diag] ==== Ka0s Consumable Master diagnostics begin ====` to `[Diag] ==== Ka0s Consumable Master diagnostics end: N line(s) ====`; one chat line gives the count and says to press Copy; nothing above the begin marker was cleared. Result:
 
-**DIAG-12. The report's contents.** Between the markers, in order: the identity header (`[Init]`, client build, locale, logging flag, the two combat reads, the running LibKa0s files), then `state`, `settings`, `spec`, `tooltip cache`, `categories` (top five per category), `weapon enchant`, `macros`, `macro bar`, `bags`, `events`. `enabled`, `macroBar.enabled`, `macroBar.locked` and `global.minimap.shown` print even at defaults, and no line reads `section <name> failed`. Result:
+**DIAG-12. The report's contents.** After DIAG-11, read the report between the markers → in order: the identity header (`[Init]`, client build, locale, logging flag, the two combat reads, the running LibKa0s files), then `state`, `settings`, `spec`, `tooltip cache`, `categories` (top five per category), `weapon enchant`, `macros`, `macro bar`, `bags`, `events`. `enabled`, `macroBar.enabled`, `macroBar.locked` and `global.minimap.shown` print even at defaults, and no line reads `section <name> failed`. Result:
 
 **DIAG-13. The report is read-only.** Note a macro body and the bar's position, run the report → neither moved, no macro was rewritten, and the Macros page lists are unchanged. Result:
 
@@ -485,7 +485,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DIAG-16. The report's other spellings.** `/cm debug diagnostics`, `/cm DEBUG Diagnostics`, `/consumablemaster diagnostics`, `/consumablemaster debug diagnostics` → the same report each time. Result:
 
-**DIAG-17. No short alias.** `/cm debug diag` and `/cm debug dump` → the window toggles, no report. `/cm diag` → `unknown command` and the index. Result:
+**DIAG-17. No short alias.** `/cm debug diag` and `/cm debug dump` → the window toggles, no report. `/cm diag` → `Unknown command: diag` and the index. Result:
 
 **DIAG-18. The report while disabled.** `/cm disable`, then `/cm diagnostics` and `/cm debug diagnostics` → both write the full report with no refusal; `state` reads `enabled(stored)=no stood down=yes` and the bar section reads `bar hidden: the addon is stood down`. `/cm enable`. Result:
 
@@ -511,11 +511,11 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` and `/reload` for these checks; rename it back and `/reload` afterward.
 
-**DEGRADED-1. The addon still works.** → It loads, macros update, and `/cm list`, `/cm get` and `/cm set` read and write every setting. Result:
+**DEGRADED-1. The addon still works.** `/cm list`, `/cm get enabled`, `/cm set enabled true` → it loads and macros update; each of the three verbs prints `The LibKa0s library is missing from this installation of Consumable Master (expected in libs/LibKa0s), so /cm help, list, get, set and reset are unavailable. These still work: …` and changes nothing, with no Lua error. Result:
 
 **DEGRADED-2. No settings category.** → Ka0s Consumable Master is absent from the AddOns list, as intended. Result:
 
-**DEGRADED-3. `/cm config` explains once.** Run `/cm config` several times → one line naming the missing library, printed exactly once. Result:
+**DEGRADED-3. `/cm config` explains once.** Run `/cm config` three times → the first run prints `The LibKa0s library is missing from this installation of Consumable Master (expected in libs/LibKa0s), so the settings panel is unavailable, and so are /cm list, /cm get and /cm set. …` and no later run repeats it; every run prints `Settings panel unavailable.`, nothing opens, and no Lua error appears. Result:
 
 **DEGRADED-4. Debug logging goes to chat.** `/cm debug on` → logging arms and diagnostics route to chat, with its own one-time notice. Result:
 
@@ -531,15 +531,43 @@ Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` an
 
 ## Pending sign-off
 
-Owner checks that were never run when they landed, carried over from the previous layout of this file.
+No client pass is recorded for these. They are the owner checks carried over from the previous layout that were never run or were left on an owed list (the 2026-09-12 triage batch, batch 5 of 2026-09-13), plus every check that is new in the 2026-09-29 rewrite or whose steps or expected result were corrected against the code in it. Sign one off on its own `Result:` line, then remove its row here.
 
-| ID | Origin |
-|---|---|
-| PANEL-29 | LibKa0s seam pass step 18 (tab strip pooling, `M4-01`, LibKa0s v1.27.0) |
-| PANEL-30, PANEL-31 | §7a step 4 (refresh burst and cap, `M4-22`) |
-| PRIO-25 – PRIO-27 | §9a step 3 (`ReorderList` ghost-frame poll and pooled line, LibKa0s v1.56.0) |
-| BAR-26, BAR-27 | LibKa0s seam pass step 17 (composed media dropdowns, LibKa0s v1.26.0) |
-| BAR-28 | LibKa0s seam pass step 19 (`LSM30_Border` shared by five addons, `M4-03`) |
-| BAR-29, BAR-30 | LibKa0s seam pass step 20 (stored color codec, `M4-18`) |
-| COMBAT-14 – COMBAT-17 | Mid-key reload and the event trace (2026-09-29) |
-| DIAG-27 | Perf harness step 7 (US perf strings, `M4-01`) |
+| ID | Origin (old section and step) | Why it is owed |
+|---|---|---|
+| INSTALL-4, INSTALL-5 | §11a steps 1a, 1b | Corrected: the steps edit the live SavedVariables file, not a copy the client never loads |
+| SLASH-3 | §11 step 7 | Corrected: `[statpriority]` prints before `[macros]` |
+| SLASH-4 | §11 steps 8, 9 | Corrected: the refusal is two lines, and the accepted words end `/yes/no` |
+| SLASH-6, SLASH-7 | §11 step 9b (#35) | Owed since the 2026-09-12 triage batch; SLASH-7 also carries its bulk-reset one-line rule |
+| SLASH-14 | §11 step 14b | New: `/cm profile` answers while disabled. Corrected: the typo line reads `Unknown command: resyncc` |
+| PANEL-9 | §7 step 8 | Corrected: `/cm resync` in combat recomputes with a notice rather than refusing |
+| PANEL-11 | §7 step 10 | Corrected: the tooltip spells `->`; the combat Yes needs the popup raised first |
+| PANEL-13, PANEL-15 | §7 steps 10a, 11 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |
+| PANEL-14 | §7 step 10b | Corrected: the combat case goes through the popup, since the button is under the combat cover |
+| PANEL-17 | Seam step 5 | Corrected: Defaults sits under the combat cover and cannot be clicked |
+| PANEL-29 | Seam step 18 | Never run: the pooled tab strip (`M4-01`, LibKa0s v1.27.0) |
+| PANEL-30, PANEL-31 | §7a step 4 | Never run: the refresh burst and cap (`M4-22`) |
+| PROFILE-2, PROFILE-5 | §13 steps 2-5, §13a step 2 | Corrected: the live SavedVariables file, not a copy |
+| PROFILE-8, PROFILE-9 | §13a steps 7, 8 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |
+| PROFILE-11 | §13a step 10 | New: the switch made elsewhere is now `/cm profile Alt` |
+| PROFILE-15 – PROFILE-21 | New | The `/cm profile` verb (LibKa0s v1.63.0), never run in a client |
+| STATE-2 | §7 step 5a | Corrected: `/cm disable` mid-fight, since the panel is covered in combat |
+| STATE-6 | §11a step 4a | Corrected: the help mark's footer, hovered while unlocked, names `/cm lock` |
+| MACRO-4 | §3 step 5 | Corrected: the empty-state text differs by category |
+| PRIO-3 | §9 step 4 | Corrected: a spell your class cannot cast is added, with a chat line, not refused |
+| PRIO-5, PRIO-6 | §9 steps 5a, 5b | Owed since batch 5 (2026-09-13) |
+| PRIO-12 | §8 step 5a, §9 step 7, §10 step 5a | Corrected: the `[Prio]` lines need `/cm debug on` |
+| PRIO-25 – PRIO-27 | §9a step 3 | Never run: the `ReorderList` ghost-frame poll and pooled line (LibKa0s v1.56.0) |
+| BAR-24 | §11a step 16 (#36) | Owed since the 2026-09-12 triage batch |
+| BAR-26, BAR-27 | Seam step 17 | Never run: the composed media dropdowns (LibKa0s v1.26.0). Corrected: BAR-26's minor, BAR-27's unquoted values |
+| BAR-28 | Seam step 19 | Never run: `LSM30_Border` shared by five addons (`M4-03`) |
+| BAR-29, BAR-30 | Seam step 20 | Never run: the stored color codec (`M4-18`). BAR-30 now edits the live file |
+| COMBAT-8 | §7b tabs step 7 | Corrected: an open page is covered in combat (the Options combat lock); a tab click no longer switches |
+| COMBAT-9 | §9 step 2, in-combat bullet | Corrected: only a bar slot can be dragged in combat |
+| COMBAT-13 | §11a step 14 | Corrected: the in-combat changes are made from chat; the Macro Bar page is covered |
+| COMBAT-14 – COMBAT-17 | Mid-key reload and the event trace (2026-09-29) | Never run |
+| DIAG-1 | §7 step 7, §11 step 5, seam step 10 | Corrected: logging follows `/cm debug on`/`off` and the console header's toggle, not the Debug console box |
+| DIAG-17 | §7d step 7 | Corrected: `/cm diag` answers `Unknown command: diag` |
+| DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
+| DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the exact `/cm config` lines |
+| DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
