@@ -73,6 +73,30 @@ The page is built from four silently-resolved libraries: `AceDBOptions-3.0`, `Ac
 `AceConfigDialog-3.0` and `AceGUI-3.0`. With any of them missing, the builder answers `nil` and the
 page is simply absent. Everything else in the panel is unaffected (`library-stack-§4`).
 
+## Switching from chat: `/cm profile`
+
+`/cm profile` lists the profiles, sorted without regard to case, with the active one marked
+`(current)`, then a hint line. `/cm profile <name>` switches to a profile that **already exists**.
+The name is everything after the verb: one pair of surrounding quotes is stripped, and case and
+inner spaces are kept, because AceDB profile names are case-sensitive (`/cm profile "Main - Realm"`).
+An unknown name is refused with `No profile named '<name>'.`, then `Did you mean '<Name>'?` when
+exactly one profile matches in another case, then the list. It is never created: the Profiles page
+creates profiles, and the verb only switches. Naming the active profile answers
+`Already on profile '<name>'.`. In combat the switch is refused (`Can't switch profiles in combat.`)
+while the bare list still answers.
+
+The behavior is `LibKa0s-Slash-1.0`'s (minor 17, `Sl:CliProfile`), the same in every Ka0s addon.
+This addon supplies the `COMMANDS` row in `settings/Slash.lua` and the descriptor's `profiles`
+field, a thunk answering `KCM.db`. A switch is `db:SetProfile(name)`, so everything in the next
+section follows from AceDB's `OnProfileChanged` exactly as it does for the page's dropdown. The
+one `[Profile] switched to '<name>'` line is the handler's; the verb logs nothing of its own.
+
+The verb answers **while the addon is disabled**. `profile` is on this addon's `liveVerbs`, because
+`KCM.RegisterProfileCallbacks` re-reads the stand-down latch before anything else, so switching
+into a profile whose `enabled` is true stands the addon back up. With LibKa0s absent the verb
+prints the one library-absent line and switches nothing. The dispatch side is
+[slash-dispatch.md](slash-dispatch.md).
+
 ## Reacting to a profile change
 
 A profile act is not a settings change: every stored value is different afterwards, and every surface
@@ -186,6 +210,11 @@ fakes:
 - the macro rewrite on the round trip and on a copy;
 - each act's one log line;
 - the immediate panel refresh.
+
+`tests/test_slash_profile.lua` drives `/cm profile` end to end against the same fakes: the list,
+a switch and the handler's one line, an unknown name refused and not created, quotes, combat and
+the already-current answer. `tests/test_disabled.lua` step 7f pins the verb live while disabled, and
+`tests/test_slash_degraded.lua` pins the library-absent line.
 
 The in-game half, meaning AceDBOptions' real controls driving the real AceDB with the real bar and
 macros following, is [smoke-tests.md](smoke-tests.md) §13 and §13a.

@@ -457,6 +457,31 @@ test("Disabled 7d: the refusal line is the collection's shape, not a re-spelling
     t.truthy(line:find("Ka0s Consumable Master", 1, true) ~= nil, "and the line carries it")
 end)
 
+test("Disabled 7f: /cm profile answers while disabled, and a switch to an enabled profile stands it up",
+    function(t)
+        local KCM, H = build()
+        KCM.db:SetProfile("Raid")
+        KCM.db:SetProfile("Default")
+        H.SetAndRefresh("enabled", false)
+        t.eq(count(registrations()), 0, "stood down on Default")
+        local refusal = KCM.SlashCommands.instance:DisabledLine()
+        -- `profile` is not a reserved verb, so the library's default live set does not
+        -- carry it (Slash minor 17); this addon widens its own liveVerbs by it. The
+        -- AceDB callbacks survive the disabled state on purpose (Disabled 10d), which
+        -- makes switching into an enabled profile a way back on, and a refused verb
+        -- would close that door from the keyboard.
+        --
+        -- red under: dropping `profile` from settings/Slash.lua's LIVE_VERBS, which
+        -- answers both lines below with the dispatcher's one refusal line.
+        local listed = dispatch(KCM, "profile")
+        t.falsy(listed:find(refusal, 1, true), "the bare list was not refused: " .. listed)
+        t.truthy(listed:find("Default (current)", 1, true), "it listed the profiles: " .. listed)
+        local switched = dispatch(KCM, "profile Raid")
+        t.truthy(switched:find("Switched to profile 'Raid'.", 1, true), "it switched: " .. switched)
+        t.eq(KCM.db:GetCurrentProfile(), "Raid", "onto Raid")
+        t.truthy(count(registrations()) > 0, "whose enabled=true stood the addon back up")
+    end)
+
 -- ---------------------------------------------------------------------------
 -- 8. The launcher
 -- ---------------------------------------------------------------------------

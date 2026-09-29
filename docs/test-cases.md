@@ -272,7 +272,7 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
-### test_disabled.lua (20)
+### test_disabled.lua (21)
 
 - Disabled 1: enabled, the addon registers a non-empty set
 - Disabled 3: the registration set is EMPTY, by count and by name
@@ -286,6 +286,7 @@ badge and any count quoted in the docs must agree with it.
 - Disabled 7c: a feature verb refuses on exactly one line, and reaches no seam
 - Disabled 7e: both forms of the diagnostics report still write one while disabled
 - Disabled 7d: the refusal line is the collection's shape, not a re-spelling
+- Disabled 7f: /cm profile answers while disabled, and a switch to an enabled profile stands it up
 - Disabled 8: left-click opens the panel; the menu grays Locked and writes nothing
 - Disabled 9: re-enabling rebuilds exactly the set it took down
 - Disabled 9b: a setting changed while disabled is honored on the way back up
@@ -746,7 +747,7 @@ badge and any count quoted in the docs must agree with it.
 - ResetAllToDefaults restores the session-only rows a profile reset cannot reach
 - ResetAllToDefaults sweeps the session rows before it resets the profile
 
-### test_profiles.lua (21)
+### test_profiles.lua (22)
 
 - Profiles: the page is the last in the sidebar and its file loads last
 - Profiles: the page hosts AceDBOptions' own table and carries no Defaults button
@@ -767,6 +768,7 @@ badge and any count quoted in the docs must agree with it.
 - AceDB fake: the shipped default table survives a switch
 - AceDB fake: CopyProfile onto the active profile raises AceDB's own message
 - AceDB fake: DeleteProfile of the active profile raises AceDB's own message
+- AceDB fake: GetProfiles lists every stored profile and answers the count
 - /cm reset: resetting a color row stores a copy, not the dbDefaults table
 - /cm reset: a profile switch after a color reset leaves the shipped default intact
 
@@ -1104,7 +1106,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slash_degraded.lua (12)
+### test_slash_degraded.lua (13)
 
 - Slash: the library-absent line is WS-02's sentence, through the locale
 - Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
@@ -1116,8 +1118,21 @@ badge and any count quoted in the docs must agree with it.
 - Slash: with LibKa0s absent, /cm bar on lands on the hand-declared row and says so once
 - Slash: with LibKa0s absent, /cm bar off lands on the hand-declared row and says so once
 - Slash: with LibKa0s absent, /cm bar lands on the hand-declared row and says so once
+- Slash: with LibKa0s absent, /cm profile prints the library-absent line and switches nothing
 - Slash: /cm bar on over a refused write never says ON
 - Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
+
+### test_slash_profile.lua (9)
+
+- /cm profile: the row sits after set, closing the settings verbs
+- /cm profile: help and the About page both list it through the library's formatter
+- /cm profile: bare lists every profile, current marked, then the hint
+- /cm profile <name>: switches to an existing profile and the handler runs
+- /cm profile <name>: an unknown name is refused and no profile is created
+- /cm profile "name": quotes are stripped, case and inner spaces kept
+- /cm profile <name>: refused in combat, and the list still answers
+- /cm profile <name>: the current profile answers that it already is
+- /cm profile: the published CliProfile and ProfileSwitch reach the library
 
 ### test_slash_store.lua (25)
 
@@ -1322,7 +1337,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 21 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
-| test_disabled.lua | 20 |
+| test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
@@ -1344,7 +1359,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 31 |
-| test_profiles.lua | 21 |
+| test_profiles.lua | 22 |
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
@@ -1355,7 +1370,8 @@ badge and any count quoted in the docs must agree with it.
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 88 |
-| test_slash_degraded.lua | 12 |
+| test_slash_degraded.lua | 13 |
+| test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
 | test_slashsetup.lua | 19 |
 | test_spechelper.lua | 16 |
@@ -1368,4 +1384,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1118** |
+| **Total** | **1130** |

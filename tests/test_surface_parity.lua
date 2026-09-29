@@ -216,8 +216,12 @@ end)
 -- core/SlashCommands.lua's and never went to the library; `GetLandingRows` and
 -- `OnSlashCommand` are settings/Slash.lua's and must answer on both paths —
 -- slash-commands-§1: the host verbs never went to the library, so a stub that
--- blacks out the whole command surface is non-compliant.
-local SLASH_SEAM = { "Verbs", "GetLandingRows" }
+-- blacks out the whole command surface is non-compliant. `CliProfile` and
+-- `ProfileSwitch` are the instance's two Slash minor 17 members, published by
+-- settings/Slash.lua on both arms: the version 17 document's stub rule says a
+-- degraded build carries both (each printing the library-absent line), and this
+-- four-argument case is where this addon pins it.
+local SLASH_SEAM = { "Verbs", "GetLandingRows", "CliProfile", "ProfileSwitch" }
 
 -- `instance` is the library object, published at the foot of settings/Slash.lua purely so
 -- the suite can assert identity rather than lookalike behavior.
