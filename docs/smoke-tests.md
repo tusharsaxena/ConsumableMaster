@@ -531,7 +531,7 @@ Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` an
 
 ## Pending sign-off
 
-No client pass is recorded for these. They are the owner checks carried over from the previous layout that were never run or were left on an owed list (the 2026-09-12 triage batch, batch 5 of 2026-09-13), plus every check that is new in the 2026-09-29 rewrite or whose steps or expected result were corrected against the code in it. Sign one off on its own `Result:` line, then remove its row here.
+No client pass is recorded for these. They are the owner checks carried over from the previous layout that were never run or were left on an owed list (the 2026-09-12 triage batch, batch 5 of 2026-09-13, the owed checklist of the 2026-09-07 remediation, and Session CM of the 2026-09-23 remediation's in-client sessions), plus every check that is new in the 2026-09-29 rewrite or whose steps or expected result were corrected against the code in it. Sign one off on its own `Result:` line, then remove its row here.
 
 | ID | Origin (old section and step) | Why it is owed |
 |---|---|---|
@@ -539,30 +539,42 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | SLASH-3 | §11 step 7 | Corrected: `[statpriority]` prints before `[macros]` |
 | SLASH-4 | §11 steps 8, 9 | Corrected: the refusal is two lines, and the accepted words end `/yes/no` |
 | SLASH-6, SLASH-7 | §11 step 9b (#35) | Owed since the 2026-09-12 triage batch; SLASH-7 also carries its bulk-reset one-line rule |
+| SLASH-12 | §11 step 19b | Never run: Session CM step CM.4 of the 2026-09-23 remediation (`CM-15`) |
 | SLASH-14 | §11 step 14b | New: `/cm profile` answers while disabled. Corrected: the typo line reads `Unknown command: resyncc` |
+| PANEL-1 | §7 steps 1, 2, seam step 2 | Never run: Session CM step CM.3, the About logo (`CM-21`) |
 | PANEL-6 | §7 step 4, §7b tabs step 19 | Corrected: the Maintenance button reads `Force rewrite macros` |
 | PANEL-9 | §7 step 8 | Corrected: `/cm resync` in combat recomputes with a notice rather than refusing |
+| PANEL-10 | §7 step 9 | Never run: Session CM step CM.8, Maintenance's buttons (`CM-20`) |
 | PANEL-11 | §7 step 10 | Corrected: the tooltip spells `->`; the combat Yes needs the popup raised first |
+| PANEL-12 | §7 step 10a | Never run: Session CM step CM.10, `/cm resetall` in and out of combat (`CM-11`) |
 | PANEL-13, PANEL-15 | §7 steps 10a, 11 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |
 | PANEL-14 | §7 step 10b | Corrected: the combat case goes through the popup, since the button is under the combat cover |
 | PANEL-17 | Seam step 5 | Corrected: Defaults sits under the combat cover and cannot be clicked |
+| PANEL-27, PANEL-28 | §7b tabs steps 5, 21 | Never run: Session CM step CM.8, the strips at the narrowest width (`CM-20`) |
 | PANEL-29 | Seam step 18 | Never run: the pooled tab strip (`M4-01`, LibKa0s v1.27.0) |
 | PANEL-30, PANEL-31 | §7a step 4 | Never run: the refresh burst and cap (`M4-22`) |
 | PROFILE-2, PROFILE-5 | §13 steps 2-5, §13a step 2 | Corrected: the live SavedVariables file, not a copy |
+| PROFILE-6 | §13 step 6 | Never run: step 5 of §5.2 on the 2026-09-07 checklist (`M2-07`), the bar that stays off after the one-time v2 step |
 | PROFILE-8, PROFILE-9 | §13a steps 7, 8 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |
 | PROFILE-11 | §13a step 10 | New: the switch made elsewhere is now `/cm profile Alt` |
 | PROFILE-15 – PROFILE-21 | New | The `/cm profile` verb (LibKa0s v1.63.0), never run in a client |
 | STATE-2 | §7 step 5a | Corrected: `/cm disable` mid-fight, since the panel is covered in combat |
 | STATE-6 | §11a step 4a | Corrected: the help mark's footer, hovered while unlocked, names `/cm lock` |
+| STATE-8 | §11a step 4c | Never run: Session CM step CM.5 (`CM-09`), the unlock line for a switched-off bar. Its left-click half is gone: the launcher's left-click now opens settings (LAUNCH-2) |
+| STATE-9 | §11a step 11e | Never run: Session CM step CM.12, the flyout drivers after a stand-down (`CM-06`) |
 | MACRO-4 | §3 step 5 | Corrected: the empty-state text differs by category |
 | PRIO-3 | §9 step 4 | Corrected: a spell your class cannot cast is added, with a chat line, not refused |
 | PRIO-5, PRIO-6 | §9 steps 5a, 5b | Owed since batch 5 (2026-09-13) |
 | PRIO-12 | §8 step 5a, §9 step 7, §10 step 5a | Corrected: the `[Prio]` lines need `/cm debug on` |
 | PRIO-25 – PRIO-27 | §9a step 3 | Never run: the `ReorderList` ghost-frame poll and pooled line (LibKa0s v1.56.0) |
+| BAR-16 | §11a step 8a | Never run: Session CM step CM.8, the Buttons-tab reorder (`CM-20`) |
+| BAR-23 | §11a step 15 | Never run: Session CM step CM.6's enum refusal (`CM-17`), and the ConsumableMaster enum row of the 2026-09-23 step X1.3, whose record covers only `/bl` and `/mm` |
 | BAR-24 | §11a step 16 (#36) | Owed since the 2026-09-12 triage batch |
 | BAR-26, BAR-27 | Seam step 17 | Never run: the composed media dropdowns (LibKa0s v1.26.0). Corrected: BAR-26's minor, BAR-27's unquoted values |
 | BAR-28 | Seam step 19 | Never run: `LSM30_Border` shared by five addons (`M4-03`) |
 | BAR-29, BAR-30 | Seam step 20 | Never run: the stored color codec (`M4-18`). BAR-30 now edits the live file |
+| LAUNCH-6 | §7c steps 5, 6 | Never run: Session CM steps CM.1 and CM.2, the row in its `shown` sense (`CM-19`) |
+| COMBAT-5 | §6a steps 1-5 | Never run: §1.2 on the 2026-09-07 checklist (`M2-08`), and Session CM step CM.13's enabled run (`CM-05`) |
 | COMBAT-6, COMBAT-7 | §6a steps 4, 6 | Corrected: the library's refusal is followed by the `config` verb's `Settings panel unavailable.`. COMBAT-7 is newly spelled out (old §6a step 4 only pointed at it) |
 | COMBAT-8 | §7b tabs step 7 | Corrected: an open page is covered in combat (the Options combat lock); a tab click no longer switches |
 | COMBAT-9 | §9 step 2, in-combat bullet | Corrected: only a bar slot can be dragged in combat |
@@ -573,3 +585,4 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
+| LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |
