@@ -685,17 +685,22 @@ function KCM:OnRegenEnabled(event)
     -- the stand-down state (settings/Panel.lua's registerPanel).
 end
 
--- An addon restriction started or stopped: `(restrictionType, active)`. Type 0
--- is combat, whose end is PLAYER_REGEN_ENABLED's. Any other type lifting (an
--- encounter, a key, a match ending) owes every macro one write: after a /reload
--- or relog mid-key the action bar drew the `#showtooltip` icons blank and kept
--- them blank, because every later pass found the body unchanged and wrote
--- nothing. The write itself is what re-resolves the icon (MarkAllStale,
--- modules/MacroManager.lua). Which type the key's end clears is unverified, so
--- every non-combat lift counts: 15 identical writes at an encounter's end is
--- the whole cost, coalesced into one pass and combat-deferred like any write.
+-- An addon restriction started or stopped: `(restrictionType, state)`. The
+-- state is Enum.AddOnRestrictionState, a NUMBER — 0 inactive, 1 active, 2
+-- activating — so the lifted edge is `state == 0`, never a truthiness test (0
+-- is true in Lua; the first cut read it that way and never fired). Seen in the
+-- owner's key log (2026-09-29): type 0 is combat, 1 an encounter, 2 and 5 the
+-- keystone, both going to 0 at the key's end. Type 0 is PLAYER_REGEN_ENABLED's.
+-- Any other type lifting owes every macro one write: after a /reload or relog
+-- mid-key the action bar drew the `#showtooltip` icons blank and kept them
+-- blank, because every later pass found the body unchanged and wrote nothing.
+-- The write itself is what re-resolves the icon (MarkAllStale,
+-- modules/MacroManager.lua). Every non-combat lift counts: 15 identical writes
+-- at an encounter's end is the whole cost, coalesced into one pass and
+-- combat-deferred like any write.
 function KCM:OnRestrictionChanged(event, restrictionType, active)
-    local rewrite = not active and restrictionType ~= 0
+    local lifted = active == 0 or active == false
+    local rewrite = lifted and restrictionType ~= 0
     traceEvent(event or "ADDON_RESTRICTION_STATE_CHANGED", " type=%s active=%s rewrite=%s",
         restrictionType, active, rewrite and "yes" or "no")
     if not rewrite then return end

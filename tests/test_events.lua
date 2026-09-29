@@ -273,13 +273,17 @@ test("a non-combat restriction lifting marks every macro stale and recomputes", 
     local KCM, _, reasons = loadRouted()
     local marks = 0
     KCM.MacroManager.MarkAllStale = function() marks = marks + 1 end
-    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, true)
+    -- The client passes Enum.AddOnRestrictionState, a NUMBER: 0 inactive, 1 active, 2 activating
+    -- (owner's in-game log, 2026-09-29: `type=2 active=0` at the key's end).
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, 1)
     t.eq(marks, 0, "a restriction starting rewrites nothing")
-    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 0, false)
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 2, 2)
+    t.eq(marks, 0, "nor one about to start")
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
     t.eq(marks, 0, "combat ending is PLAYER_REGEN_ENABLED's, not this handler's")
-    -- red under: no handler, so the key ending never rewrote the macros a mid-key reload left blank
-    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 4, false)
-    t.eq(marks, 1, "a restriction lifting marks the macros stale")
+    -- red under: `if active then return`, where the lifted state 0 is truthy in Lua
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 2, 0)
+    t.eq(marks, 1, "the key's restriction lifting marks the macros stale")
     t.eq(reasons[#reasons], "restriction_lifted", "and asks for one recompute")
 end)
 
@@ -437,16 +441,16 @@ test("the state-changing events each leave one [Event] line while logging is on"
     KCM.State.debug = true
     KCM.MacroManager.MarkAllStale = function() end
     local lines = traceOf(KCM, "Event")
-    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, true)
-    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 4, false)
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, 1)
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 4, 0)
     KCM:OnPlayerEnteringWorld("PLAYER_ENTERING_WORLD", false, true)
     KCM:OnRegenEnabled("PLAYER_REGEN_ENABLED")
     KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED")
     KCM:OnEquipmentChanged("PLAYER_EQUIPMENT_CHANGED", 16)
     -- red under: a handler with no trace line
-    t.truthy(anyLine(lines, "type=1 active=true rewrite=no"),
+    t.truthy(anyLine(lines, "type=1 active=1 rewrite=no"),
         "a restriction starting is traced, and says it rewrote nothing")
-    t.truthy(anyLine(lines, "type=4 active=false rewrite=yes"),
+    t.truthy(anyLine(lines, "type=4 active=0 rewrite=yes"),
         "a restriction lifting is traced, and says it marked the macros")
     t.truthy(anyLine(lines, "login=false reload=true"), "world entry")
     t.truthy(anyLine(lines, "flushed="), "combat end, with the flush count")
@@ -463,6 +467,6 @@ test("a non-weapon equipment change and a quiet session leave no [Event] line", 
     t.eq(#lines, 0, "only slots 16 and 17 change a pick")
     KCM.State.debug = false
     KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED")
-    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, true)
+    KCM:OnRestrictionChanged("ADDON_RESTRICTION_STATE_CHANGED", 1, 1)
     t.eq(#lines, 0, "nothing is written while logging is off")
 end)
