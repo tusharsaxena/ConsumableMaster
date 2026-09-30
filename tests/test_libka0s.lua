@@ -43,11 +43,13 @@ local MAJORS = {
         major = "LibKa0s-DebugLog-1.0",
         -- DebugLogDiagnostics joined at LibKa0s v1.60.0: the diagnostics report
         -- (debug-logging-§14), a secondary file paired on the shell's minor the
-        -- way the Options and Perf attach files are.
-        files = { "DebugLog", "DebugLogDiagnostics" },
+        -- way the Options and Perf attach files are. DebugLogGates joined at
+        -- LibKa0s v1.65.0 the same way: the change gates and the at-enable queue.
+        files = { "DebugLog", "DebugLogDiagnostics", "DebugLogGates" },
         primary = "DebugLog",
         paired = {
             { file = "DebugLogDiagnostics", minor = "__diagMinor", shell = "__diagShellMinor" },
+            { file = "DebugLogGates",       minor = "__gatesMinor", shell = "__gatesShellMinor" },
         },
     },
     { major = "LibKa0s-Slash-1.0",    files = { "Slash" } },
