@@ -221,7 +221,9 @@ end
 -- One write pass over every category, returning the tally the Calc line
 -- reports. A "deferred" answer is HELD, not rewritten: it is counted apart, so
 -- a pass in combat reads `rewrote 0/15 (skipped 12, held 3)` rather than
--- claiming three writes that have not happened.
+-- claiming three writes that have not happened. An "error" answer (a refused
+-- write, such as a full macro quota) is FAILED and counted apart too, so a pass
+-- that wrote nothing stays a no-write pass and stays change-gated.
 local function runMacroPass(reason)
     -- Per-pass score cache. `fields[id]` memoizes GetItemInfo +
     -- TooltipCache.Get so items appearing across multiple categories
@@ -229,7 +231,7 @@ local function runMacroPass(reason)
     -- `[catKey][id]` memoizes the per-category score. Passing nil (as
     -- /cm dump / panel renders do) falls back to the uncached path.
     local scoreCache = { fields = {} }
-    local rewrote, skipped, total, held = 0, 0, 0, 0
+    local rewrote, skipped, total, held, failed = 0, 0, 0, 0, 0
     for _, cat in ipairs(KCM.Categories.LIST) do
         -- Isolate each category so one bad scorer can't break the other
         -- fourteen macros. One pcall per category per recompute (15 per
@@ -243,19 +245,21 @@ local function runMacroPass(reason)
             skipped = skipped + 1
         elseif res == "deferred" then
             held = held + 1
+        elseif res == "error" then
+            failed = failed + 1
         elseif res ~= nil then
             rewrote = rewrote + 1   -- created / edited
         end
     end
-    return rewrote, skipped, total, held
+    return rewrote, skipped, total, held, failed
 end
 
 -- The pass's one [Calc] line. A pass that wrote something always logs: its
 -- [Macro] lines need the reason. A no-write pass on a repeating reason logs
 -- only when its summary moved (debug-logging-§9's quiet steady state): a
 -- dungeon's worth of loot that changes no pick is one line, not hundreds.
-local function traceCalc(reason, rewrote, skipped, total, held)
-    local summary = P.CalcSummary(reason, rewrote, total, skipped, held)
+local function traceCalc(reason, rewrote, skipped, total, held, failed)
+    local summary = P.CalcSummary(reason, rewrote, total, skipped, held, failed)
     if rewrote > 0 or not REPEATING_REASON[reason] then
         Q.Forget("calc")
         KCM.Debug("Calc", "%s", summary)
@@ -304,9 +308,9 @@ function P.Recompute(reason)
     -- last-written body until standUp's RequestRecompute
     -- (core/LifecycleSetup.lua) runs on the off->on transition.
     if macrosEnabled() then
-        local rewrote, skipped, total, held = runMacroPass(reason)
+        local rewrote, skipped, total, held, failed = runMacroPass(reason)
         if isDebugOn() then
-            traceCalc(reason, rewrote, skipped, total, held)
+            traceCalc(reason, rewrote, skipped, total, held, failed)
             -- The combat queue as the pass left it, change-gated: one line when
             -- the held set moves, never one per macro per pass.
             if KCM.MacroManager and KCM.MacroManager.TraceHeld then KCM.MacroManager.TraceHeld() end
@@ -476,12 +480,14 @@ end
 KCM.Pipeline.DiscoverAndSweep = discoverAndSweep
 
 -- Pure recompute-summary formatter (debug-logging-§8/debug-logging-§9, unit-tested).
--- `held`, the writes the pass queued for combat's end, is named only when there
--- are any, so an out-of-combat line reads as it always has.
-function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped, held)
+-- `held`, the writes the pass queued for combat's end, and `failed`, the writes
+-- the client refused, are each named only when there are any, so an ordinary
+-- line reads as it always has.
+function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped, held, failed)
     local heldPart = (held and held ~= 0) and (", held " .. tostring(held)) or ""
-    return ("reason=%s rewrote %s/%s (skipped %s%s)"):format(
-        tostring(reason), tostring(rewrote), tostring(total), tostring(skipped), heldPart)
+    local failedPart = (failed and failed ~= 0) and (", failed " .. tostring(failed)) or ""
+    return ("reason=%s rewrote %s/%s (skipped %s%s%s)"):format(
+        tostring(reason), tostring(rewrote), tostring(total), tostring(skipped), heldPart, failedPart)
 end
 
 -- A hand-written reset USED TO LIVE HERE, naming three profile keys by hand:

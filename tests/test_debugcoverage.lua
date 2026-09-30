@@ -176,6 +176,51 @@ test("a category whose recompute raises on every pass is one line per distinct e
     KCM.Pipeline.RecomputeOne = real
 end)
 
+-- red under: commitMacro logging `<macro> failed — <err>` on every pass, and
+-- runMacroPass counting the "error" answer as a rewrite. A full account macro
+-- quota refuses every CreateMacro, the refused write stores no fingerprint, so
+-- every bag update retried it: fifteen [Macro] lines plus a [Calc] line that
+-- claimed fifteen writes (and so bypassed the no-write gate) on every pass.
+test("writes refused on every pass log one failed line per macro and one [Calc] line", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 950010)
+    local total = #KCM.Categories.LIST
+    local saved = _G.GetNumMacros
+    _G.GetNumMacros = function() return 120 end
+    local lines = record(KCM)
+    for _ = 1, 4 do KCM.Pipeline.Recompute("bag_update_delayed") end
+    _G.GetNumMacros = saved
+    t.eq(count(lines, "[Macro] KCM_FOOD failed — account macro quota full (120)"), 1,
+        "four refused passes, one failed line for the macro")
+    t.eq(count(lines, " failed — "), total, "and one per macro, not one per macro per pass")
+    t.eq(count(lines, "[Calc] "), 1, "the no-write pass is change-gated")
+    t.truthy(find(lines, ("[Calc] reason=bag_update_delayed rewrote 0/%d (skipped 0, failed %d)"):format(total, total)),
+        "and counts the refusals as failed, not as rewritten")
+end)
+
+-- red under: applyBodyLimit logging the oversize line (with the whole body) on
+-- every pass. The check runs before the unchanged early-out, so an oversized
+-- pick wrote its body to the log on every bag update while nothing changed.
+test("an oversized body that stays picked logs its oversize line once", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 950011)
+    local realBuild = KCM.MacroManager.BuildBody
+    KCM.MacroManager.BuildBody = function() return string.rep("x", 300) end
+    local lines = record(KCM)
+    for _ = 1, 4 do KCM.MacroManager.SetMacro("KCM_FOOD", 950011, "FOOD") end
+    t.eq(count(lines, "FOOD body exceeds 255 bytes"), 1, "four passes over the same body, one line")
+    KCM.MacroManager.BuildBody = function() return string.rep("y", 300) end
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950011, "FOOD")
+    t.eq(count(lines, "FOOD body exceeds 255 bytes"), 2, "a different oversized body logs again")
+    t.truthy(find(lines, "(after 3 unchanged pass(es))"), "naming the passes left unlogged")
+    KCM.MacroManager.BuildBody = realBuild
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950011, "FOOD")
+    KCM.MacroManager.BuildBody = function() return string.rep("y", 300) end
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950011, "FOOD")
+    KCM.MacroManager.BuildBody = realBuild
+    t.eq(count(lines, "FOOD body exceeds 255 bytes"), 3, "after the body fits once, the same oversize logs again")
+end)
+
 -- ---------------------------------------------------------------------------
 -- The addon's own state edges and refusals
 -- ---------------------------------------------------------------------------

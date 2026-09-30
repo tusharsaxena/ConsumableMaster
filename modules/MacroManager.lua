@@ -382,19 +382,42 @@ local function isDebugOn()
     return false
 end
 
+-- The oversize line, change-gated per category on the body (debug-logging-§9):
+-- this check runs before the unchanged early-out, so an oversized pick would
+-- otherwise write its whole body to the log on every recompute pass for as long
+-- as it stays picked. Logs again when the oversized body changes, and after the
+-- body has fit once (traceBodyFits forgets the key).
+local function traceOversize(body, catKey, opts)
+    if not isDebugOn() then return end
+    local Q = KCM.DebugQuiet
+    local unlogged = 0
+    if Q then
+        unlogged = Q.Changed("oversize:" .. tostring(catKey), body)
+        if not unlogged then return end
+    end
+    KCM.Debug("Macro", (opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s") .. "%s",
+        tostring(catKey), MACRO_BODY_LIMIT, body, Q and Q.Suffix(unlogged) or "")
+end
+
+local function traceBodyFits(catKey)
+    if not isDebugOn() then return end
+    local Q = KCM.DebugQuiet
+    if Q then Q.Forget("oversize:" .. tostring(catKey)) end
+end
+
 -- Enforce Blizzard's 255-byte cap. Silent truncation corrupted the macro (e.g.
 -- half a /cast line), so swap to the category's empty-state body and surface the
 -- problem once per catKey per session. Full oversized body goes to Debug for
 -- troubleshooting. Returns the body to write plus whether the swap happened —
 -- a swapped body drags the stored icon inputs with it.
 local function applyBodyLimit(body, catKey, opts)
-    if string.len(body) <= MACRO_BODY_LIMIT then return body, false end
+    if string.len(body) <= MACRO_BODY_LIMIT then
+        traceBodyFits(catKey)
+        return body, false
+    end
     local cat = opts.cat
         or (KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(catKey))
-    if isDebugOn() then
-        KCM.Debug("Macro", opts.oversizeDebugFmt or "%s body exceeds %s bytes: %s",
-            tostring(catKey), MACRO_BODY_LIMIT, body)
-    end
+    traceOversize(body, catKey, opts)
     if catKey and not alreadyWarnedOversized[catKey] then
         alreadyWarnedOversized[catKey] = true
         KCM.Say(opts.oversizeSay
@@ -402,6 +425,17 @@ local function applyBodyLimit(body, catKey, opts)
             catKey)
     end
     return buildEmptyBody(cat), true
+end
+
+-- A refused write stores no fingerprint, so every pass retries it (a full
+-- account macro quota refuses the same CreateMacro on every bag update). Said
+-- once per distinct (macro, error) for the logging window (debug-logging-§8).
+local function traceWriteFailure(macroName, err)
+    if not isDebugOn() then return end
+    local Q = KCM.DebugQuiet
+    local msg = tostring(err)
+    if Q and not Q.First("write:" .. tostring(macroName) .. ":" .. msg) then return end
+    KCM.Debug("Macro", "%s failed — %s", macroName, msg)
 end
 
 -- True when the client already carries this body+icon AND no queued write
@@ -492,9 +526,7 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
 
     local result, err = doEdit(macroName, icon, body, catKey)
     if result == "error" then
-        if isDebugOn() then
-            KCM.Debug("Macro", "%s failed — %s", macroName, tostring(err))
-        end
+        traceWriteFailure(macroName, err)
         return "error", err
     end
 
