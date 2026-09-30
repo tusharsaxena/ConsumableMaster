@@ -17,7 +17,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | BAR-1 – BAR-30 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
-| DIAG-1 – DIAG-27 | Diagnostics | Debug console, the diagnostics report, the shared window chrome and marks, the perf harness. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
+| DIAG-1 – DIAG-33 | Diagnostics | Debug console, the diagnostics report, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
 | DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
@@ -385,7 +385,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-25. A full macro pool on the bar.** With the bar on and the account pool full (MACRO-23) → slots whose macro does not exist yet show the fallback icon and do not error on click. Result:
 
-**BAR-26. The three media dropdowns are populated.** Macro Bar → open **Bar border style**, **Button border style** and **Label font** → each lists real entries (Blizzard's own at least, plus anything a media addon registered). One empty dropdown is the finding; a populated neighbor proves nothing. Pick a new value in each → bar edge, button edges and label face change, and the closed dropdown names it. Then `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → at least the `COMPOSE_MINOR` in `libs/LibKa0s/OptionsCompose.lua` (7 at LibKa0s v1.63.0); a lower number means the client loaded an older payload than this build vendors, and the dropdown check above proved nothing. Result:
+**BAR-26. The three media dropdowns are populated.** Macro Bar → open **Bar border style**, **Button border style** and **Label font** → each lists real entries (Blizzard's own at least, plus anything a media addon registered). One empty dropdown is the finding; a populated neighbor proves nothing. Pick a new value in each → bar edge, button edges and label face change, and the closed dropdown names it. Then `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → at least the `COMPOSE_MINOR` in `libs/LibKa0s/OptionsCompose.lua` (7 at LibKa0s v1.64.0); a lower number means the client loaded an older payload than this build vendors, and the dropdown check above proved nothing. Result:
 
 **BAR-27. A border style from chat is validated.** `/cm set macroBar.barBorderStyle Not A Border` → `Invalid value for macroBar.barBorderStyle` and an `allowed values:` line. `/cm set macroBar.barBorderStyle Blizzard Tooltip` → accepted and the panel tracks it. Type the value without quotes: the quotes become part of it and the set is refused. A validator that does not normalize the composed row's map stops rejecting anything. Result:
 
@@ -507,6 +507,18 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DIAG-27. Perf strings read US English.** `/cm perf start mylabel`, then `finish` → the started line and the report header name the label. `/cm perf start` with no label, then `cancel` → the start line, the report header and the cancel line read `unlabeled` and `perf run CANCELED`, never a doubled L. Result:
 
+**DIAG-28. The console resizes from its corner.** Open the console → it opens at its usual size (700 × 344) with a small size grip in the bottom-right corner, drawn over the log. Drag the grip out and in, on both axes → the log reflows to the new size, the scrollbar runs the full height and its thumb still tracks the log, the `N / 3000 lines` counter stays bottom-right and clear of the grip, and the title, the `Debug: ON/OFF` toggle and the copy, clear and close marks stay in the title bar. The lines already logged and the scroll position are kept. Result:
+
+**DIAG-29. The console stops at its minimum.** Drag the grip as far up and left as it goes → the window stops shrinking while the whole title and every title-bar control are still visible, with the status bar and a few log lines between them. Nothing overlaps and nothing is clipped. Result:
+
+**DIAG-30. The console's size lasts the session only.** Resize the console, close it (close mark or Escape) and reopen it with `/cm debug` → it comes back at the size you left it. `/reload` and open it again → it is back at the default 700 × 344. Result:
+
+**DIAG-31. The copy window resizes on its own.** Resize the console, then press Copy → the copy window opens at its own default size, not the console's, with a grip bottom-right. Drag it on both axes → the text box widens and narrows with the window (no text clipped at the right edge, no gap), and the scroll bar's down arrow sits above the grip and takes every click. It stops at a minimum with the close mark still reachable. Close and press Copy again → the size you left; `/reload` → back to the default. Result:
+
+**DIAG-32. The perf panel resizes in width only.** `/cm perf` → the panel opens at its usual size with a grip bottom-right. Drag it → only the width changes, every step row stretches to the new width with its `/cm perf …` command still right-aligned, and it will not go narrower than it opened. Close and reopen → the width you left; `/reload` → back to the default. Result:
+
+**DIAG-33. Another addon's console keeps its own size.** With another Ka0s addon loaded, resize this addon's console, then open the other addon's console → it opens at its own size, not this one's. Resize it → this addon's console keeps the size you gave it. Result:
+
 ## Degraded install
 
 Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` and `/reload` for these checks; rename it back and `/reload` afterward.
@@ -584,6 +596,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | DIAG-1 | §7 step 7, §11 step 5, seam step 10 | Corrected: logging follows `/cm debug on`/`off` and the console header's toggle, not the Debug console box |
 | DIAG-17 | §7d step 7 | Corrected: `/cm diag` answers `Unknown command: diag` |
 | DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
+| DIAG-28 – DIAG-33 | New | The resizable console, copy window and perf panel (LibKa0s v1.64.0), never run in a client |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
 | LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |
