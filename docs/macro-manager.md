@@ -156,7 +156,7 @@ SetMacro(name, id, catKey):
 | `cat` | the empty-state body, and the field `FlushPending` dispatches on. A single-category write leaves it nil, which **is** the distinction `FlushPending` reads. |
 | `active` | whether the body is the built one rather than the empty-state one; feeds `resolveIcon`, and is forced false when the oversize fallback swaps the body. |
 | `resolveIcon` | a composite's icon is a sentinel chosen by whether the body is active, not by an item, so it cannot come from `iconFor`. |
-| `oversizeDebugFmt` / `oversizeSay` / `deferDebugFmt` | the three wordings, which differ only in the noun. |
+| `oversizeDebugFmt` / `oversizeSay` | the two oversize wordings, which differ only in the noun. A deferral has no wording of its own: no line is written per queued macro, and `M.TraceHeld` reports the queue once per change after the pass ([debug.md](./debug.md#coverage)). |
 
 `SetCompositeMacro` passes `iconItemID = nil`, which is what makes the stored `lastItemID` and the deferred entry's `itemID` come out nil. With no stored pick, the macro bar's tooltip used to fall back to the raw body text. `core/MacroDisplay.lua` now asks `CompositeDisplayPick(cat, inCombat)` instead. That walks the same `compositeConfig` and drops the same unresolvable picks as the builders, and answers the head of the `/castsequence` in combat or the first `[nocombat]` line out of it. That is step 1 either way, because the client's position in the sequence can't be read from Lua.
 
@@ -188,7 +188,7 @@ FlushPending():
             else:
                 still[name] = entry
     pendingUpdates = still
-    return applied
+    return applied, count(still)       -- [Event] PLAYER_REGEN_ENABLED … flushed=<applied> held=<still>
 ```
 
 A single-category entry **replays the body it queued** through `commitMacro`, the one write tail; it is not rebuilt through `SetMacro`. `SetMacro` only knows the single-item shape, so a rebuild turned a deferred per-hand `KCM_WPN_ENCH` body (two `/use item` + `/use 16` / `/use 17` pairs) into one `/use item` line (ConsumableMaster-R-01). The queued `itemID` is the post-oversize icon item, so a replayed empty-state body carries a nil icon item exactly as the live write would. A composite is re-run through `SetCompositeMacro`, which re-reads its picks.

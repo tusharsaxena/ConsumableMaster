@@ -237,6 +237,23 @@ badge and any count quoted in the docs must agree with it.
 - DebugLogSetup: the folder name the descriptor carries names art that exists
 - DebugLogSetup: the console's font comes out of the payload, with a real client fallback
 
+### test_debugcoverage.lua (14)
+
+- DebugQuiet.Changed answers nil on a repeat and the unlogged count on the next change
+- repeated bag-update passes that change nothing log one [Scan] and one [Calc] line
+- a pass that writes, or a pass on an edge reason, always logs its [Calc] line
+- a gated line logs again after logging is switched off and back on
+- a forced rewrite in combat is one held line, quiet on repeat, and a flush line at regen
+- a category whose recompute raises on every pass is one line per distinct error
+- disable and enable each leave one [State] line naming the holds
+- a stand-down in combat says its bar teardown is held, and regen says it finished
+- a reset refused in combat names the guard
+- a refused settings write names the rule, under [Cmd] and never [Set]
+- every slash command leaves one [Cmd] line as typed
+- the macro bar's combat hold is one line however often it is asked, and its flush one more
+- a flyout cap is logged once while it holds, and again when it moves
+- [Init] names a stand-down and a missing optional library, and neither when all is well
+
 ### test_docmap.lua (1)
 
 - docmap: every Tier 2 row agrees with what docs/ holds
@@ -1335,6 +1352,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 26 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 21 |
+| test_debugcoverage.lua | 14 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 21 |
@@ -1384,4 +1402,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **1130** |
+| **Total** | **1144** |

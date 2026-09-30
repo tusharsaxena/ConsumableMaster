@@ -249,6 +249,9 @@ function MD.Pickup(macroName)
     local idx = MD.MacroIndex(macroName)
     if idx == 0 or not PickupMacro then return false end
     if InCombatLockdown and InCombatLockdown() then
+        if KCM.State and KCM.State.debug and KCM.Debug then
+            KCM.Debug("Cmd", "pickup %s refused: in combat", macroName)
+        end
         if KCM.Say then
             KCM.Say("in combat — drag a macro to an action bar once combat ends.")
         end

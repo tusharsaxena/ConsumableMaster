@@ -70,6 +70,7 @@ local DEBUG_CONSOLE_PATH = "state.debugConsole"
 local neverReset = KCM.Settings.VetoedFromEveryReset
 
 local function inCombatNotice(label)
+    H.TraceCombatRefused(label)
     KCM.Say("in combat — %s deferred until regen.", label)
 end
 

@@ -572,7 +572,12 @@ if slashLib then
         set          = function(path, value)
             local S = schema()
             if not S then return false end
-            return S.Set(path, value)
+            local ok, err, why = S.Set(path, value)
+            -- The library prints the refusal; the log gets it too, guard named.
+            if not ok and KCM.State and KCM.State.debug and KCM.Debug then
+                KCM.Debug("Cmd", "%s refused: %s", tostring(path), tostring(why or err))
+            end
+            return ok, err, why
         end,
         findRow      = function(path) local S = schema(); return S and S.FindRow(path) end,
         allRows      = function() return (KCM.Settings and KCM.Settings.Schema) or {} end,
@@ -748,7 +753,19 @@ local function degradedDispatch(msg)
     return printHelp()
 end
 
+-- Every command, one gated line as typed (debug-logging-§8): a support read of
+-- the log needs what the player asked for before what the addon did about it.
+-- Refusals the library's dispatcher answers (a feature verb while stood down,
+-- an unknown verb) print to chat only; this line and the [State] edges are what
+-- put them in the log.
+local function traceCommand(msg)
+    if KCM.State and KCM.State.debug and KCM.Debug then
+        KCM.Debug("Cmd", "/cm %s", (msg or ""):match("^%s*(.-)%s*$") or "")
+    end
+end
+
 function KCM:OnSlashCommand(msg)
+    traceCommand(msg)
     if not Sl then return degradedDispatch(msg) end
     return Sl:OnSlash(msg)
 end

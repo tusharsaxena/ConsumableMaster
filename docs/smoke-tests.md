@@ -17,7 +17,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | BAR-1 – BAR-30 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
-| DIAG-1 – DIAG-33 | Diagnostics | Debug console, the diagnostics report, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
+| DIAG-1 – DIAG-35 | Diagnostics | Debug console, the diagnostics report, what the log carries and holds back, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
 | DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
@@ -445,7 +445,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **COMBAT-14. A mid-key reload does not blank the macros.** In a Mythic+ key, out of combat between pulls, `/reload`, then finish the key without typing any `/cm` command → within a second of completion every KCM macro on the action bar shows its item or spell icon again, with no Lua error. Result:
 
-**COMBAT-15. The restriction trace through a key.** Same key, `/cm debug on` straight after the reload, play to the end → the console carries `[Event] ADDON_RESTRICTION_STATE_CHANGED lockdown=… type=<n> active=<0|1|2> rewrite=yes|no` lines and `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=<n>` at each kill; after a `rewrite=yes` line, one `[Macro] marked N macro(s) stale …`, a `[Calc] … reason=restriction_lifted` line and one `[Macro] KCM_… edited item=… icon=…` per macro. Note the `type=` values at the key's start, at a boss and at its end, and whether bar icons were placeholders during the key; copy the console into the bug thread. Result:
+**COMBAT-15. The restriction trace through a key.** Same key, `/cm debug on` straight after the reload, play to the end → the console carries `[Event] ADDON_RESTRICTION_STATE_CHANGED lockdown=… type=<n> active=<0|1|2> rewrite=yes|no` lines and `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=<n> held=0` at each kill; after a `rewrite=yes` line, one `[Macro] marked N macro(s) stale …`, a `[Calc] … reason=restriction_lifted` line and one `[Macro] KCM_… edited item=… icon=…` per macro. Note the `type=` values at the key's start, at a boss and at its end, and whether bar icons were placeholders during the key; copy the console into the bug thread. Result:
 
 **COMBAT-16. The restriction trace at any boss.** A follower dungeon or LFR boss with `/cm debug on` → `… type=1 active=1 rewrite=no` at the pull; at the kill `… type=1 active=0 rewrite=yes`, then one `[Macro] … edited` line per macro (after combat if still in it). Action-bar icons stay unchanged; no Lua error. Result:
 
@@ -518,6 +518,10 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 **DIAG-32. The perf panel resizes in width only.** `/cm perf` → the panel opens at its usual size with a grip bottom-right. Drag it → only the width changes, every step row stretches to the new width with its `/cm perf …` command still right-aligned, and it will not go narrower than it opened. Close and reopen → the width you left; `/reload` → back to the default. Result:
 
 **DIAG-33. Another addon's console keeps its own size.** With another Ka0s addon loaded, resize this addon's console, then open the other addon's console → it opens at its own size, not this one's. Resize it → this addon's console keeps the size you gave it. Result:
+
+**DIAG-34. A dungeon of looting is not a wall of lines.** `/cm debug on`, then loot and drink through a few pulls with nothing new entering your bags → the console gains one `[Scan]` and one `[Calc]` line for the first unchanged bag update, and none for the ones after it, until an item arrives or leaves; the line that logs then ends `(after N unchanged pass(es))`. Result:
+
+**DIAG-35. Combat holds are one line each way.** `/cm debug on`, pull a dummy, and in combat `/cm rewritemacros` → one `[Macro] held N write(s) for combat: KCM_…` line, not one `deferred` line per macro, and nothing more while the fight goes on; drop combat → `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=N held=0` and one `[Macro] KCM_… edited …` line per macro. Result:
 
 ## Degraded install
 
@@ -597,6 +601,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | DIAG-17 | §7d step 7 | Corrected: `/cm diag` answers `Unknown command: diag` |
 | DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
 | DIAG-28 – DIAG-33 | New | The resizable console, copy window and perf panel (LibKa0s v1.64.0), never run in a client |
+| DIAG-34, DIAG-35 | New | The quiet steady state and the combat hold line (DL-CM-02), never run in a client |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
 | LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |

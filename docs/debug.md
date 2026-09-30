@@ -32,19 +32,7 @@ window's frame globals are the library's — `ConsumableMasterDebugCopyWindow` a
 
 ### Tags
 
-Functional-area tags in use today:
-
-- `Init` — session summary emitted on debug-**enable** (addon + version, schema version, active profile), right after the `[Debug] logging enabled` bracket so a pasted log self-identifies (debug-logging-§5/debug-logging-§8). The addon supplies the line's content (`initSummary`); the library owns when it is emitted
-- `DB` — schema migration, only logged when one actually runs
-- `Scan` — auto-discovery pass summary (reason in content)
-- `Calc` — recompute pass summary (reason + rewrote/total/skipped)
-- `Macro` — every write that lands, `[Macro] <name> created|edited item=<pick> icon=<fileID>` (`item=nil` is the empty-state body; icon `134400` lets `#showtooltip` draw, `7704166` is the cooking pot), plus the exceptional ones (combat-deferred, byte-limit, `EditMacro` failure, flush drop), the forced rewrite's `[Macro] forced rewrite: cleared …` line from `MacroManager.InvalidateState`, and `[Macro] marked N macro(s) stale for one forced rewrite` from `MacroManager.MarkAllStale`
-- `Event` — one line per client event that changes what the addon writes, `[Event] <EVENT> lockdown=<bool>` then the event's fields: `ADDON_RESTRICTION_STATE_CHANGED … type=<n> active=<0|1|2> rewrite=yes|no`, `PLAYER_ENTERING_WORLD … login=<bool> reload=<bool>`, `PLAYER_REGEN_ENABLED … flushed=<n>` (held macro writes applied), `PLAYER_SPECIALIZATION_CHANGED`, and `PLAYER_EQUIPMENT_CHANGED … slot=16|17` (other slots change no pick and log nothing). The bag, item-info, learned-spell and cooldown events log nothing here: `[Scan]` and `[Calc]` already name their reason. Logging is off after every `/reload` (session-only), so the login's own `PLAYER_ENTERING_WORLD` is never traced; a zone-in (a portal, or entering an instance) is, once logging is back on.
-- `GC` — stale-discovered sweep
-- `Set` — settings write at `Helpers.Set`, a bulk reset's one line, and the profile handler's reset/copy line
-- `Profile` — the profile handler's switch trace, `[Profile] switched to '<name>'`. A switch rewrites no rows, so it is not a `[Set]` line ([profiles.md](./profiles.md))
-- `Prio` — priority-list mutations (add/block/move) and the registry resets (`ResetBucket` / `ResetAllBuckets`)
-- `Bar` — macro-bar events worth noticing, today just a flyout truncated by `macroBar.flyoutMax` (never a silent cap)
+The tag set is open (debug-logging-§3): `Init`, `DB`, `State`, `Event`, `Scan`, `Calc`, `Macro`, `GC`, `Set`, `Profile`, `Prio`, `Bar`, `Bus`, `Cmd`, plus the library's own `Debug`, `Diag`, `Launcher` and `Perf`. What emits each one, and when, is the [Coverage](#coverage) table below.
 
 Every settings change logs once as `[Set] <path> = <value>` at the write seam (`LibKa0s-Schema-1.0`'s `Set`, before the row's `apply` runs); repeating passes (auto-discovery, recompute) coalesce to one `[Scan]` / `[Calc]` summary line per pass instead of one line per item.
 
@@ -68,6 +56,33 @@ Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 - `KCM.Say(fmt, ...)` (`core/CoreSetup.lua`, built on `LibKa0s-Core-1.0`) — the single secret-safe chat seam for all one-shot output: slash lines, dump rows, help, and one-shot warnings (oversized macro body, give-up notice on flush failure, etc.). Always prepends `[CM]`; pass a finished string or a format string + args that each get secret-stringified. `core/SlashCommands.lua`'s `say` is just `local say = KCM.Say`.
 - `KCM.Debug(tag, ...)` — gated diagnostics into the console.
 - The only literal `print(...)` in the addon is `KCM.PREFIX` embedded in generated macro-body `/run print(...)` strings (`modules/MacroManager.lua`, `defaults/Categories.lua`) — that runs in the player's macro, not the addon.
+
+## Coverage
+
+What the log carries, by tag, so a pasted log can be read back into what happened (debug-logging-§8), and what it deliberately holds back (debug-logging-§9). Every line below is one gated `KCM.Debug` call with its string-building behind the gate, except the library's own ungated lines, which are marked. Logging is off after every `/reload`, so login's own lines (the first `PLAYER_ENTERING_WORLD`, a load-time migration, a stand-down taken at login) never render; `[Init]` on enable is what reports the state they left.
+
+| Tag | Emitted by | When |
+|---|---|---|
+| `Debug` | the library (`LibKa0s-DebugLog-1.0`) | `logging enabled` / `logging disabled` at each `/cm debug on\|off` or header-toggle edge. The disable line is ungated. |
+| `Init` | `core/DebugLogSetup.lua`'s `initSummary`, emitted by the library | Once per debug-enable, straight after the `[Debug]` bracket: addon + version, schema version, active profile; then, only when there are any, `rejected events: …`, `stood down (holds: disabled, perf)` and `missing libraries: …` (the optional LibKa0s majors and third-party libraries the addon degrades without). The two last clauses are debug-logging-§8's stand-down and dependency lines: a stand-down taken before logging was on has no `[State]` line to show it. |
+| `DB` | `core/Database.lua` `reportMigrations` | A schema migration that actually ran (account, and the named profile). Nothing when no version moved. |
+| `State` | `core/LifecycleSetup.lua` `traceEdge` | The addon's own edges: `stood down (holds: …)` when the first hold is taken (`/cm disable`, the Enable checkbox, a profile switch into a disabled profile, a perf capture's arm B), with `; bar teardown held for combat` when it happened mid-fight; `stood up (holds: none)` when the last hold goes. |
+| `Event` | `core/ConsumableMaster.lua` `traceEvent` | One line per client event that changes what the addon writes, `[Event] <EVENT> lockdown=<bool>` then the event's fields: `ADDON_RESTRICTION_STATE_CHANGED … type=<n> active=<0\|1\|2> rewrite=yes\|no`; `PLAYER_ENTERING_WORLD … login=<bool> reload=<bool>` (a zone-in, a portal, an instance); `PLAYER_REGEN_ENABLED … flushed=<n> held=<m>` (held macro writes applied, and still held: a non-zero `held` after a fight is a hold that did not flush), or `… stood down: held bar teardown finished` when a mid-fight stand-down completes; `PLAYER_SPECIALIZATION_CHANGED`; `PLAYER_EQUIPMENT_CHANGED … slot=16\|17` (other slots change no pick and log nothing). The bag, item-info, learned-spell and cooldown events log nothing here: `[Scan]` and `[Calc]` name their reason, and the cooldown pair only repaints swipes. Combat's start is not an edge the addon reacts to (writes defer lazily), so it has no line; the first held write says so. |
+| `Scan` | `core/ConsumableMaster.lua` `traceScan` | One summary per discovery pass, `reason=<r> scanned N items, M new. Scanned=[…]. New=[…]` (world entry, bag update, stand-up, resync, a reset). On a **repeating** reason (`bag_update_delayed`, `item_info_received`) it is change-gated: a pass whose item set and finds match the last line logged writes nothing, and the next one that differs ends `(after N unchanged pass(es))`. A single bag item whose info arrived late logs `discovered <CAT> id=<id> (reason=item_info_received)`. |
+| `Calc` | `core/ConsumableMaster.lua` `traceCalc` | One summary per recompute pass, `reason=<r> rewrote W/T (skipped S[, held H])`, `held` being writes queued for combat's end. A pass that wrote something always logs, and so does every pass on an edge reason (a spec change, a command, a profile act). A **no-write** pass on a repeating reason is change-gated like `[Scan]`. `skipped writes (disabled): reason=<r>` while the addon is stood down. |
+| `Macro` | `modules/MacroManager.lua`, `core/ConsumableMaster.lua` | Every write that lands, `<name> created\|edited item=<pick> icon=<fileID>` (`item=nil` is the empty-state body; icon `134400` lets `#showtooltip` draw, `7704166` is the cooking pot); an oversized body; an `EditMacro` / `CreateMacro` failure; `held N write(s) for combat: KCM_…` after a pass, **once per change of the queue** (never one line per macro: a forced rewrite in combat used to print fifteen `deferred … (combat)` lines per pass); a queued write failing on replay, `flush of <name> failed (attempt n of 3): <err>`, and a category's recompute raising, `<CAT> recompute failed: <err>`, each once per distinct error; `dropped <name> after N attempts`; `forced rewrite: cleared …` from `InvalidateState`; `marked N macro(s) stale for one forced rewrite` from `MarkAllStale`. |
+| `GC` | `modules/Selector.lua` `reportSweep` | The stale-discovered sweep, only when it removed something. |
+| `Set` | `LibKa0s-Schema-1.0` at `Helpers.Set`; the profile handler | Every settings write, `<path> = <value>`; a bulk act's one `<act> <scope>: N rows`; `reset profile '<name>' to defaults: N rows`; `copied profile 'A' → 'B'`. Only writes: a refused write is a `[Cmd]` line. |
+| `Profile` | the profile handler | `switched to '<name>'`. A switch rewrites no rows, so it is not a `[Set]` line ([profiles.md](./profiles.md)). |
+| `Prio` | `modules/Selector.lua`; the priority pages | Registry mutations (`add` / `block` / `move` / `reset`); the drag handle's grab and drop; `paint <CAT> rows=N spec=<key>` when a Macros page draws its list, change-gated (an open page repaints after every pass, and an unchanged list says so once). |
+| `Bar` | `modules/MacroBar.lua`, `modules/MacroBarFlyout.lua`, `settings/MacroBar.lua` | `update held for combat` / `flyout rebuild held for combat` / `position reset held for combat` on the not-held → held edge only, and `flushed the held update` at regen; `<CAT> flyout capped at N of M available`, once per change of that slot's cap or count; the slot drag handle's grab and drop. |
+| `Bus` | `core/Bus.lua` | A bus registration the client refused on stand-up. |
+| `Cmd` | `settings/Slash.lua`, `settings/Panel.lua`, the pages | Every slash command as typed, `/cm <line>` (a feature verb the stood-down dispatcher refuses shows here beside the `[State]` line that explains it). **Refusals, naming the guard**: `<what> refused: in combat` for the global reset, a page's Defaults, the General page's maintenance buttons, a macro-bar slot move or hide, a bar reorder, a macro drag to the action bar and the settings panel open; `<path> refused: <rule>` for a write the schema rejected (panel, `/cm set`). **Errors caught** by the settings layer's `pcall`s (a row's `apply`, a page's Defaults, a button, an icon button), `<site> failed: <err>`, once per distinct error. |
+| `Launcher` | `LibKa0s-Launcher-1.0` through `core/LauncherSetup.lua`'s `debug` | The library's own launcher diagnostics. |
+| `Perf` | `LibKa0s-Perf-1.0` through `core/PerfSetup.lua` | The capture's lifecycle, ungated (a run the player started reports itself). |
+| `Diag` | the library's diagnostics report | The report's markers, ungated ([below](#the-diagnostics-report-cm-diagnostics)). |
+
+**The quiet steady state.** Three kinds of repeating path, and how each is kept quiet: the pass summaries on a repeating reason (`[Scan]`, no-write `[Calc]`) and the per-view lines (`[Prio] paint`, `[Bar] … capped`) are **change-gated** on their own summary through `KCM.DebugQuiet` (`core/ConsumableMaster.lua`); the combat holds (`[Macro] held …`, `[Bar] … held`) log on their **edge**; and an error a repeating path catches is logged **once per distinct error**. The memory is reset on every debug-enable, so a new logging window starts by showing the current state. The console's `(xN)` repeat folding is not relied on for any of this. The cooldown repaint (`SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN`), the bar's fade tick and the flyout's idle poll log nothing at all. `tests/test_debugcoverage.lua` pins each rule with a repeat-N-times case.
 
 ## Dump internals
 
@@ -204,7 +219,7 @@ All three namespaces dispatch through `findCommand` against an ordered `*_COMMAN
 
 ## Per-category recompute log
 
-Recompute no longer logs per-category — the old per-category `Pipeline.RecomputeOne` block (which fired `N × M` times during login: N categories × M `GET_ITEM_INFO_RECEIVED` events) was deleted. Each recompute pass now emits exactly one `[Calc]` summary line (reason + rewrote/total/skipped counts), gated on `KCM.State.debug`.
+Recompute no longer logs per-category — the old per-category `Pipeline.RecomputeOne` block (which fired `N × M` times during login: N categories × M `GET_ITEM_INFO_RECEIVED` events) was deleted. Each recompute pass now emits at most one `[Calc]` summary line (reason + rewrote/total/skipped, and held when there are any), gated on `KCM.State.debug`, and a no-write pass on a repeating reason only when its summary changed ([Coverage](#coverage)).
 
 ## Smoke testing
 

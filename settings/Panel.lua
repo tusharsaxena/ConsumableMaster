@@ -88,6 +88,33 @@ KCM.Settings.macroOrder = KCM.Settings.macroOrder or {
 local Helpers = KCM.Settings.Helpers or {}
 KCM.Settings.Helpers = Helpers
 
+-- The settings layer's diagnosis lines (debug-logging-§8), shared by every page
+-- file and all under [Cmd], the player's-action tag. A REFUSAL names its guard:
+-- the report is "I clicked and nothing happened", and the chat line the player
+-- saw is not in the log. A CAUGHT error from a pcall this layer owns is logged
+-- once per distinct message for the logging window, the site named, so a
+-- handler that raises on every click is one line. All gated before anything is
+-- built. Never [Set]: that tag is the write seam's, and a refusal wrote nothing.
+local function logOn()
+    return KCM.State and KCM.State.debug and KCM.Debug and true or false
+end
+
+function Helpers.TraceRefused(what, guard)
+    if logOn() then KCM.Debug("Cmd", "%s refused: %s", what, guard) end
+end
+
+function Helpers.TraceCombatRefused(what)
+    if logOn() then KCM.Debug("Cmd", "%s refused: in combat", what) end
+end
+
+function Helpers.TraceCaught(site, err)
+    if not logOn() then return end
+    local msg = tostring(err)
+    local Q = KCM.DebugQuiet
+    if Q and not Q.First("caught:" .. tostring(site) .. ":" .. msg) then return end
+    KCM.Debug("Cmd", "%s failed: %s", site, msg)
+end
+
 -- The shim TABLE is created here and filled in settings/OptionsShim.lua, which
 -- loads next. It is created on this side of the peel because Core, Debug and
 -- Pipeline all reach for KCM.Options, and a build that stopped after this file
@@ -190,6 +217,7 @@ end
 local function fireApply(path, fn, value)
     local ok, err = pcall(fn, value)
     if not ok then
+        Helpers.TraceCaught("onChange:" .. tostring(path), err)
         KCM.Say("onChange for " .. tostring(path) .. " failed: " .. tostring(err))
     end
 end
@@ -420,11 +448,13 @@ function Helpers.CreatePanel(name, title, opts)
         -- yet. EnsureDefaultsButton wires this up when it builds it.
         ctx.panel.defaultsOnClick = function()
             if InCombatLockdown and InCombatLockdown() then
+                Helpers.TraceCombatRefused(tostring(opts.panelKey) .. " Defaults")
                 KCM.Say("in combat — Defaults is blocked until combat ends.")
                 return
             end
             local ok, err = pcall(opts.defaultsAction)
             if not ok then
+                Helpers.TraceCaught(tostring(opts.panelKey) .. " Defaults", err)
                 KCM.Say("defaults action failed: " .. tostring(err))
             end
         end
@@ -620,6 +650,7 @@ local function makeButton(parent, spec, relativeWidth)
         if not spec.onClick then return end
         local ok, err = pcall(spec.onClick)
         if not ok then
+            Helpers.TraceCaught("button '" .. tostring(spec.text) .. "'", err)
             KCM.Say("button onClick failed: " .. tostring(err))
         end
     end)
@@ -893,6 +924,7 @@ function Helpers.SetAndRefresh(path, value)
         -- here: every caller is addon code naming its own rows. A refused VALUE
         -- is the player's, and its rule always says why, so it is reported.
         if why ~= nil then
+            Helpers.TraceRefused(tostring(path), tostring(why or err))
             KCM.Say("invalid value for " .. tostring(path) .. ": " .. tostring(why or err))
         end
         return false
@@ -925,6 +957,7 @@ function Helpers.SetManyAndRefresh(entries, opts)
     if not ok then
         if why ~= nil then
             local e = entries and entries[at]
+            Helpers.TraceRefused(tostring(e and e.path), tostring(why or err))
             KCM.Say("invalid value for " .. tostring(e and e.path) .. ": " .. tostring(why or err))
         end
         return false

@@ -78,6 +78,7 @@ if not lib then
     function DL.SetEnabled(on)
         on = on and true or false
         if KCM.State then KCM.State.debug = on end
+        if on and KCM.DebugQuiet then KCM.DebugQuiet.Reset() end
         if KCM.Say then
             KCM.Say("debug logging " .. (on and "|cff40ff40ON|r" or "|cffff4040OFF|r"))
         end
@@ -134,6 +135,33 @@ if not lib then
     return
 end
 
+-- The [Init] line's two state clauses (debug-logging-§8's diagnosis list), each
+-- absent in the normal case. Logging starts off every session, so a stand-down
+-- that happened before it was switched on has no edge line in the log: the
+-- summary names it. The dependency check is the once-at-enable line: an
+-- optional library the addon degrades without, named only when it is missing.
+local OPTIONAL_LIBS = {
+    "LibKa0s-Lifecycle-1.0", "LibKa0s-Perf-1.0", "LibKa0s-Launcher-1.0", "LibKa0s-Slash-1.0",
+    "LibKa0s-Schema-1.0", "LibKa0s-Options-1.0", "LibKa0s-Widgets-1.0", "LibKa0s-Compat-1.0",
+    "LibKa0s-Bus-1.0", "AceGUI-3.0", "AceDBOptions-3.0", "AceConfigDialog-3.0",
+    "LibSharedMedia-3.0", "LibDataBroker-1.1", "LibDBIcon-1.0",
+}
+
+local function standDownClause()
+    if not (KCM.IsStoodDown and KCM.IsStoodDown()) then return "" end
+    local holds = KCM.Lifecycle and KCM.Lifecycle:Holds() or {}
+    return ", stood down (holds: " .. table.concat(holds, ", ") .. ")"
+end
+
+local function missingClause()
+    local missing = {}
+    for _, major in ipairs(OPTIONAL_LIBS) do
+        if not (LibStub and LibStub(major, true)) then missing[#missing + 1] = major end
+    end
+    if #missing == 0 then return "" end
+    return ", missing libraries: " .. table.concat(missing, ", ")
+end
+
 local D = lib:New({
     -- Seeds the frame globals: <name>DebugWindow. Exactly reproduces the old
     -- WIN_NAME, which is what /framestack and any user layout addon knows —
@@ -166,6 +194,10 @@ local D = lib:New({
     isEnabled  = function() return KCM.State and KCM.State.debug == true end,
     setEnabled = function(on)
         if KCM.State then KCM.State.debug = on end
+        -- A fresh logging window starts from the current state: the change-gated
+        -- lines (core/ConsumableMaster.lua's KCM.DebugQuiet) forget what an
+        -- earlier window logged, so their first pass is written, not hidden.
+        if on and KCM.DebugQuiet then KCM.DebugQuiet.Reset() end
         -- The one thing the library's own SetEnabled has no hook for. Resolved
         -- at call time: settings/Panel.lua creates KCM.Options long after this
         -- file loads.
@@ -195,7 +227,7 @@ local D = lib:New({
         if type(rejected) == "table" and #rejected > 0 then
             line = line .. ", rejected events: " .. table.concat(rejected, ", ")
         end
-        return line
+        return line .. standDownClause() .. missingClause()
     end,
 
     -- The diagnostics report (debug-logging-§14). `brandName` is the plain-text

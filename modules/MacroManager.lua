@@ -431,9 +431,10 @@ local function queueForCombat(macroName, body, iconItemID, catKey, opts, pending
         cat      = opts.cat,
         attempts = pending and pending.attempts or 0,
     }
-    if isDebugOn() then
-        KCM.Debug("Macro", opts.deferDebugFmt or "deferred %s (combat)", macroName)
-    end
+    -- No line per macro here (debug-logging-§9): every pass in a fight re-queues
+    -- the macros it could not write, so a per-macro line repeated one line per
+    -- held macro per pass -- fifteen at once after a forced rewrite. The queue is
+    -- reported once per change by M.TraceHeld, after the pass.
     return "deferred"
 end
 
@@ -593,7 +594,6 @@ function M.SetCompositeMacro(cat, scoreCache)
         end,
         oversizeDebugFmt = "%s composite body exceeds %s bytes: %s",
         oversizeSay      = "%s macro body exceeds 255 bytes — macro is inert until the composite body fits. Please report this.",
-        deferDebugFmt    = "deferred %s composite (combat)",
     })
 end
 
@@ -614,12 +614,32 @@ end
 -- diagnostics report; InvalidateState clears it with the oversize gate.
 local gaveUp = {}
 
+-- A queued write that failed on replay, said once per distinct error
+-- (debug-logging-§8): the retry comes back every combat, and the message is
+-- what explains the eventual give-up. `err` is the pcall's message, or the
+-- write tail's "error" answer when the write itself refused.
+local function traceFlushFailure(name, attempts, err)
+    if not isDebugOn() then return end
+    local Q = KCM.DebugQuiet
+    local msg = tostring(err)
+    if Q and not Q.First("flush:" .. tostring(name) .. ":" .. msg) then return end
+    KCM.Debug("Macro", "flush of %s failed (attempt %s of %s): %s", name, attempts, MAX_FLUSH_ATTEMPTS, msg)
+end
+
+local function countEntries(t)
+    local n = 0
+    for _ in pairs(t or {}) do n = n + 1 end
+    return n
+end
+
+--- Answers the writes applied and the writes still held after the flush (a
+--- failure kept for its next attempt, or combat re-entered mid-flush).
 function M.FlushPending()
     if InCombatLockdown and InCombatLockdown() then
         -- Shouldn't happen — PLAYER_REGEN_ENABLED fires out of combat — but
         -- guard anyway so a caller invoking us at the wrong time doesn't
         -- taint.
-        return 0
+        return 0, countEntries(pendingUpdates)
     end
     local applied = 0
     local still = {}
@@ -632,6 +652,7 @@ function M.FlushPending()
         end
         if not ok or result == "error" then
             entry.attempts = (entry.attempts or 0) + 1
+            traceFlushFailure(name, entry.attempts, result)
             if entry.attempts >= MAX_FLUSH_ATTEMPTS then
                 KCM.Say("gave up on %s after %s failed writes — check /cm debug output.", name, entry.attempts)
                 gaveUp[name] = entry.attempts
@@ -650,7 +671,27 @@ function M.FlushPending()
         end
     end
     pendingUpdates = still
-    return applied
+    -- The hold is over: the next one logs its held line whatever it names.
+    if KCM.DebugQuiet then KCM.DebugQuiet.Forget("macro.held") end
+    return applied, countEntries(still)
+end
+
+--- The combat queue in one line, logged only when it moved (debug-logging-§8's
+--- deferred work, §9's quiet steady state). Called after each pipeline pass
+--- behind the caller's debug gate; the name list is built only then. An empty
+--- queue logs nothing and forgets the last line, so the next hold is shown.
+function M.TraceHeld()
+    local Q = KCM.DebugQuiet
+    if not (Q and isDebugOn()) then return end
+    local names = {}
+    for name in pairs(pendingUpdates) do names[#names + 1] = name end
+    if #names == 0 then
+        Q.Forget("macro.held")
+        return
+    end
+    table.sort(names)
+    local summary = ("held %d write(s) for combat: %s"):format(#names, table.concat(names, ", "))
+    if Q.Changed("macro.held", summary) then KCM.Debug("Macro", "%s", summary) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -665,12 +706,6 @@ end
 -- v2.44.0), so it leaves one [Macro] line saying how much it forgot. The
 -- counting sits behind the debug gate, so debug-off costs nothing.
 -- ---------------------------------------------------------------------------
-
-local function countEntries(t)
-    local n = 0
-    for _ in pairs(t or {}) do n = n + 1 end
-    return n
-end
 
 function M.InvalidateState()
     if isDebugOn() then

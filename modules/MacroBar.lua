@@ -66,6 +66,20 @@ local function inCombat()
     return InCombatLockdown and InCombatLockdown() and true or false
 end
 
+local function isDebugOn()
+    return KCM.State and KCM.State.debug and KCM.Debug and true or false
+end
+
+-- Park bar work for combat's end (debug-logging-§8's deferred work). The line
+-- lands on the not-held -> held EDGE only: a fight re-requests the same work on
+-- every refresh, and one hold is one line. MB.FlushPending logs its release.
+local function holdUpdate(why)
+    if not pendingUpdate and isDebugOn() then
+        KCM.Debug("Bar", "%s held for combat", why)
+    end
+    pendingUpdate = true
+end
+
 -- A stored swatch resolved through its "use class color" companion
 -- (options-ui-§17). One resolver for the whole addon, in core/CoreSetup.lua, so
 -- the bar's backdrop and its border cannot disagree about whether the stored
@@ -416,7 +430,7 @@ function MB.Refresh()
             KCM.MacroBarFlyout.Apply(btn, c)
         end
     end
-    if combat and c.flyout then pendingUpdate = true end
+    if combat and c.flyout then holdUpdate("flyout rebuild") end
 end
 
 -- The one path that runs at near-frame frequency in combat: SPELL_UPDATE_COOLDOWN
@@ -468,7 +482,7 @@ function MB.Update()
     -- One combat gate for the whole function, including the disable path: both
     -- Hide() and the anchoring below touch protected frames.
     if inCombat() then
-        pendingUpdate = true
+        holdUpdate("update")
         return false
     end
     -- ONE SHOW LADDER for both reasons the bar can be off: the player's own
@@ -507,6 +521,7 @@ end
 function MB.FlushPending()
     if not pendingUpdate then return false end
     pendingUpdate = false
+    if isDebugOn() then KCM.Debug("Bar", "flushed the held update") end
     return MB.Update()
 end
 
@@ -576,7 +591,7 @@ function MB.ResetPosition()
     c.point, c.relPoint, c.x, c.y = d.point or "CENTER", d.relPoint or "CENTER", d.x or 0, d.y or 0
     if not bar then return true end
     if inCombat() then
-        pendingUpdate = true      -- re-anchoring moves protected children
+        holdUpdate("position reset")      -- re-anchoring moves protected children
     else
         applyPosition()
     end
@@ -591,6 +606,7 @@ function MB.SwapSlots(fromKey, toKey)
     local c = cfg()
     if not c then return false end
     if inCombat() then
+        if isDebugOn() then KCM.Debug("Cmd", "macro bar reorder refused: in combat") end
         KCM.Say("in combat — macro bar reorder is blocked until combat ends.")
         return false
     end

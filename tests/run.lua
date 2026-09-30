@@ -474,6 +474,8 @@ local SUITES = {
     "test_database",
     "test_debug",
     "test_debuglog",
+    -- What the log carries and what it holds back (debug-logging-§8/§9, DL-CM-02).
+    "test_debugcoverage",
     "test_docmap",
     "test_defaults",
     "test_disabled",
