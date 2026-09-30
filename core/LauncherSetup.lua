@@ -215,4 +215,14 @@ KCM.Launcher = lib:New({
     debug = function(tag, message)
         if KCM.Debug then KCM.Debug(tag, "%s", tostring(message)) end
     end,
+    -- Register's four STATE lines (LibDataBroker-1.1 or LibDBIcon-1.0 absent,
+    -- no minimap table, `registered`; Launcher minor 5) run at OnInitialize,
+    -- while the session-only flag is still off, so through `debug` above they
+    -- were gated off and never landed. The console's at-enable queue
+    -- (core/Debug.lua's KCM.DebugAtEnable) holds them and writes them the first
+    -- time logging is turned on, after the [Init] summary (debug-logging-§8).
+    -- Guarded for the same reason as `debug`.
+    debugAtEnable = function(tag, message)
+        if KCM.DebugAtEnable then KCM.DebugAtEnable(tag, "%s", tostring(message)) end
+    end,
 })

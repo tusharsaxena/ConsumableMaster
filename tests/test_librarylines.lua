@@ -160,3 +160,33 @@ test("Library lines: a page's Defaults refused under the combat lock is one [Cfg
     t.eq(count(D, "[Cfg] defaults "), 1, "the library's line names the act: " .. dump(D))
     t.eq(count(D, "Defaults refused: in combat"), 0, "and no host copy: " .. dump(D))
 end)
+
+-- ---------------------------------------------------------------------------
+-- Launcher (minor 5): the registration state, held until logging is turned on
+-- ---------------------------------------------------------------------------
+
+-- red under: core/LauncherSetup.lua's descriptor passing no `debugAtEnable`.
+-- Register runs at OnInitialize, with the session-only flag off, so its state
+-- lines went to the gated `debug` and never landed at all.
+test("Library lines: the launcher's registration lands when logging is first turned on", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local D = KCM.DebugLog.instance
+    t.falsy(KCM.State and KCM.State.debug, "logging was off when Register ran")
+    D:Clear()
+    KCM.DebugLog.SetEnabled(true)
+    local l = lines(D)
+    local init, reg
+    for i, line in ipairs(l) do
+        if line:find("[Init] ", 1, true) then init = init or i end
+        if line:find("[Launcher] registered", 1, true) then reg = reg or i end
+    end
+    t.truthy(reg, "the held line is written on the enable edge: " .. dump(D))
+    t.truthy(init and reg and init < reg, "after the [Init] summary")
+    t.eq(count(D, "[Launcher] registered"), 1, "once")
+    -- One-shot: the next logging window does not repeat a state line it already showed.
+    KCM.DebugLog.SetEnabled(false)
+    D:Clear()
+    KCM.DebugLog.SetEnabled(true)
+    t.eq(count(D, "[Launcher] registered"), 0, "not held again: " .. dump(D))
+    KCM.DebugLog.SetEnabled(false)
+end)
