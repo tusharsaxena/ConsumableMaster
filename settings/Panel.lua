@@ -444,12 +444,11 @@ function Helpers.CreatePanel(name, title, opts)
     if opts.defaultsAction then
         -- Parked on the PANEL, not on the button: the button does not exist
         -- yet. EnsureDefaultsButton wires this up when it builds it.
+        -- No combat guard here: every route in (the footer OnDefault, the
+        -- header Defaults button, RestoreDefaults) is refused first by the
+        -- library's combat lock, which writes the one [Cfg] line and prints
+        -- the notice itself (LibKa0s-Options-1.0 minor 22).
         ctx.panel.defaultsOnClick = function()
-            if InCombatLockdown and InCombatLockdown() then
-                Helpers.TraceCombatRefused(tostring(opts.panelKey) .. " Defaults")
-                KCM.Say("in combat — Defaults is blocked until combat ends.")
-                return
-            end
             local ok, err = pcall(opts.defaultsAction)
             if not ok then
                 Helpers.TraceCaught(tostring(opts.panelKey) .. " Defaults", err)

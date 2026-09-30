@@ -240,7 +240,6 @@ local RESIDUE = {
     {"settings/Panel.lua", "missing or empty `path`", "DIAGNOSTIC"},
     {"settings/Panel.lua", ", so the settings panel is unavailable, and so are /cm list, ", "DEGRADED STEM"},
     {"settings/Panel.lua", "the list.", "DEGRADED STEM"},
-    {"settings/Panel.lua", "in combat — Defaults is blocked until combat ends.", "NOT YET ROUTED"},
     {"settings/Panel.lua", "defaults action failed: ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "onChange for ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "button onClick failed: ", "DIAGNOSTIC"},
