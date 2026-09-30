@@ -59,12 +59,12 @@ If a better pick turns up while you're in combat, the macro updates the moment y
 
 Log in after installing and the macros are already there. Consumable Master reads your bags, scores what it finds and writes all fifteen. It also puts a bar of its own on screen that holds those macros and nothing else. The bar starts unlocked so you can drag it where you want it, and `/cm lock` pins it in place.
 
-Getting the picks right for your character takes four steps.
+Getting the picks right for your character takes four steps, in this order.
 
-1. Put the macros within reach. The addon's own bar is the easy option. Hover the shaded strip along the edge of a button and a flyout lists everything in that category you can use right now, best first. If you'd rather use your own bars, drag the macros out of the macro window, or grab the small icon under the title of a category tab on the Macros page. `/cm bar off` hides the addon's bar.
-2. Set your stat order. Flask, Combat Potion, Stat Food and Weapon Enchant rank by the stats your spec wants, and they read that order from the Stat Priority page. Drag Crit, Haste, Mastery and Versatility into the order you want. Click a stat's green tick and it drops to the bottom, where it counts for nothing. The banner tells you which spec you're editing.
-3. Check the picks. Each category has a tab on the Macros page that lists its candidates in order. A green check marks the ones you own, and a yellow star marks the one the macro is using right now. The blue info button on each row explains why it landed where it did.
-4. Overrule anything you disagree with. Drag a row by its handle and drop it higher to pin it above the score. Press × to block it, and a later bag scan won't put it back. For something the addon has never heard of, use **Add item or spell by ID** at the top of the tab: pick Item or Spell, then type the ID or the name, or shift-click it into the box.
+- Put the macros within reach. The addon's own bar is the easy option. Hover the shaded strip along the edge of a button and a flyout lists everything in that category you can use right now, best first. If you'd rather use your own bars, drag the macros out of the macro window, or grab the small icon under the title of a category tab on the Macros page. `/cm bar off` hides the addon's bar.
+- Set your stat order. Flask, Combat Potion, Stat Food and Weapon Enchant rank by the stats your spec wants, and they read that order from the Stat Priority page. Drag Crit, Haste, Mastery and Versatility into the order you want. Click a stat's green tick and it drops to the bottom, where it counts for nothing. The banner tells you which spec you're editing.
+- Check the picks. Each category has a tab on the Macros page that lists its candidates in order. A green check marks the ones you own, and a yellow star marks the one the macro is using right now. The blue info button on each row explains why it landed where it did.
+- Overrule anything you disagree with. Drag a row by its handle and drop it higher to pin it above the score. Press × to block it, and a later bag scan won't put it back. For something the addon has never heard of, use **Add item or spell by ID** at the top of the tab: pick Item or Spell, then type the ID or the name, or shift-click it into the box.
 
 After that the macros look after themselves. If a pick ever looks stale, `/cm resync` checks them all again. The minimap button opens the settings with a left-click, and a right-click gives you two switches, Enabled and Locked.
 
@@ -74,10 +74,10 @@ Everything else is on the addon's page under Settings → AddOns, and `/cm` open
 
 The macros are ordinary WoW macros. The addon creates and edits them with the game's own macro functions, which is why any bar addon can hold them. The game locks those functions during combat, so a better pick found mid-fight waits until you leave combat.
 
-Each macro is built in four steps.
+Each macro is built in four steps, in this order.
 
-1.  Gather the candidates. That's everything in the built-in default list, anything you added by hand and anything found in your bags, minus whatever you blocked with **×**.
-2.  Score each candidate. Higher is better, and each category scores differently:
+- Gather the candidates. That's everything in the built-in default list, anything you added by hand and anything found in your bags, minus whatever you blocked with **×**.
+- Score each candidate. Higher is better, and each category scores differently:
     *   Food and Drink score on how much they heal or restore, with a bonus for conjured items and percentage-based ones. That's why Midnight's %-based food beats older flat food.
     *   HP and MP potions score on how much they restore. An instant potion beats a heal-over-time one unless the heal-over-time total is more than 20% bigger. A slightly larger slow heal won't win you an emergency.
     *   For Stat Food, Combat Potion and Flask, what counts is how well the item matches your spec's stat priority. Primary stat always beats secondary. Among secondary stats, the ones you put earlier count for more.
@@ -85,8 +85,8 @@ Each macro is built in four steps.
     *   Augment Rune picks the rune that grants the most primary stat. "Permanent" runes like Ethereal and Dreambound don't give a longer buff. They just aren't consumed, so they win ties and nothing else. The addon discovers new runes from their tooltip, which means a future one works without an addon update.
     *   Healthstone has a small preference for modern auto-leveling stones over old ones.
     *   Spell entries are class abilities (Recuperate as a Food entry, say). They score above every item, so they sit at the top by default. Pin items above them if you prefer.
-3.  Apply your pins. Any rows you dragged into place override the score.
-4.  Pick the first one you have, meaning the first item you own or spell you know. If you have none of them, clicking the macro prints a friendly `[CM] no category` note.
+- Apply your pins. Any rows you dragged into place override the score.
+- Pick the first one you have, meaning the first item you own or spell you know. If you have none of them, clicking the macro prints a friendly `[CM] no category` note.
 
 Hover the blue info button on any row to see exactly why it landed where it did.
 
@@ -129,11 +129,11 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 
 ## Reporting a bug
 
-1. Type `/cm debug on` and reproduce the bug.
-2. Type `/cm diagnostics`.
-3. If the debug window isn't open, open it with `/cm debug`. Press **Copy**, copy the entire output, and include it with your bug report.
+- Type `/cm debug on` and reproduce the bug.
+- Type `/cm diagnostics`.
+- If the debug window isn't open, open it with `/cm debug`. Press **Copy**, copy the entire output, and include it with your bug report.
 
-The diagnostics report is added after the debug trace in the same window, so one copy gets you both.
+The report is added after the debug trace in the same window, so one copy carries both.
 
 ## Issues and feature requests
 
