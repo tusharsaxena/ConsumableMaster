@@ -488,6 +488,9 @@ local SUITES = {
     "test_harness",
     "test_id",
     "test_libka0s",
+    -- The lines LibKa0s writes into this addon's log through the `debug` each
+    -- descriptor is handed, once and never beside a host copy (DG-CM-01).
+    "test_librarylines",
     "test_launcher",
     "test_lintconfig",
     "test_load",
@@ -525,7 +528,7 @@ local SUITES = {
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
     -- literal form testing-§9 prescribes; the kit (revision 34, as vendored from
-    -- LibKa0s v1.64.0; since revision 25) resolves the relative `dir` against the
+    -- LibKa0s v1.65.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive

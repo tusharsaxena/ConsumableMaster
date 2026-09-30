@@ -62,7 +62,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec, spell and item APIs) | `core/Compat.lua` | [compat-layer.md](./compat-layer.md) |
 | LibKa0s seams (media, TOC manifest, item-link primitive) | `core/MediaSetup.lua`, `core/EnvSetup.lua`, `core/ItemSetup.lua` | [module-map.md](./module-map.md) |
-| Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua`; the diagnostics report: `core/Diagnostics.lua`, `libs/LibKa0s/DebugLogDiagnostics.lua` | [debug.md](./debug.md) |
+| Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua`; the diagnostics report: `core/Diagnostics.lua`, `libs/LibKa0s/DebugLogDiagnostics.lua`; the change gates and at-enable queue: `core/Debug.lua`, `libs/LibKa0s/DebugLogGates.lua` | [debug.md](./debug.md) |
 | Perf A/B capture (`/cm perf`) | `core/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [module-map.md](./module-map.md) |
@@ -400,7 +400,7 @@ git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l |
 ```
 
 and re-measured 2026-09-26 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
-`layoutcap:` cases; the largest authored file is `settings/Panel.lua`, at 1199 lines (measured 2026-09-30).
+`layoutcap:` cases; the largest authored file is `settings/Panel.lua`, at 1196 lines (measured 2026-10-01).
 
 | File | Lines | Disposition |
 |---|---|---|
@@ -413,8 +413,8 @@ emptied look identical on the page and are not the same claim. Rows alongside th
 too. The section itself stays whether or not there is a breach — it is where the rule is written
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-09-30):
-`settings/Panel.lua` (1199), `settings/MacroBar.lua` (1170), `settings/Category.lua` (1152),
+**The 1000–1500 band is on notice, not in breach** (measured 2026-10-01):
+`settings/Panel.lua` (1196), `settings/MacroBar.lua` (1170), `settings/Category.lua` (1150),
 `tests/test_schema.lua` (1023), `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile`
 fakes) and `tests/test_selector.lua` (1009). The three test suites that
 led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
@@ -423,9 +423,9 @@ led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
 reader can tell the band was looked at rather than missed; none needs a disposition until it
 crosses, with two exceptions. `settings/Panel.lua` and `settings/Category.lua` were carried as
 Accepted on the automated-test watch list at 1.6.0, 1.6.1 and 1.6.2, and `automated-tests-§4`
-refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1199) peels
+refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1196) peels
 its About page renderer into `settings/About.lua`
 ([#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)), and `settings/Category.lua`
-(1152) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
+(1150) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
 ([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)). How the four 2026-09 peels were cut, and where each moved case went, is
 [module-map.md → Peel history](./module-map.md#peel-history), beside issues #32 and #33.

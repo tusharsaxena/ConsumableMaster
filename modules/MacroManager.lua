@@ -431,11 +431,9 @@ end
 -- account macro quota refuses the same CreateMacro on every bag update). Said
 -- once per distinct (macro, error) for the logging window (debug-logging-§8).
 local function traceWriteFailure(macroName, err)
-    if not isDebugOn() then return end
-    local Q = KCM.DebugQuiet
+    if not (isDebugOn() and KCM.DebugOnce) then return end
     local msg = tostring(err)
-    if Q and not Q.First("write:" .. tostring(macroName) .. ":" .. msg) then return end
-    KCM.Debug("Macro", "%s failed — %s", macroName, msg)
+    KCM.DebugOnce("write:" .. tostring(macroName) .. ":" .. msg, "Macro", "%s failed — %s", macroName, msg)
 end
 
 -- True when the client already carries this body+icon AND no queued write
@@ -651,11 +649,10 @@ local gaveUp = {}
 -- what explains the eventual give-up. `err` is the pcall's message, or the
 -- write tail's "error" answer when the write itself refused.
 local function traceFlushFailure(name, attempts, err)
-    if not isDebugOn() then return end
-    local Q = KCM.DebugQuiet
+    if not (isDebugOn() and KCM.DebugOnce) then return end
     local msg = tostring(err)
-    if Q and not Q.First("flush:" .. tostring(name) .. ":" .. msg) then return end
-    KCM.Debug("Macro", "flush of %s failed (attempt %s of %s): %s", name, attempts, MAX_FLUSH_ATTEMPTS, msg)
+    KCM.DebugOnce("flush:" .. tostring(name) .. ":" .. msg,
+        "Macro", "flush of %s failed (attempt %s of %s): %s", name, attempts, MAX_FLUSH_ATTEMPTS, msg)
 end
 
 local function countEntries(t)
@@ -704,7 +701,7 @@ function M.FlushPending()
     end
     pendingUpdates = still
     -- The hold is over: the next one logs its held line whatever it names.
-    if KCM.DebugQuiet then KCM.DebugQuiet.Forget("macro.held") end
+    if KCM.DebugForget then KCM.DebugForget("macro.held") end
     return applied, countEntries(still)
 end
 
@@ -713,17 +710,15 @@ end
 --- behind the caller's debug gate; the name list is built only then. An empty
 --- queue logs nothing and forgets the last line, so the next hold is shown.
 function M.TraceHeld()
-    local Q = KCM.DebugQuiet
-    if not (Q and isDebugOn()) then return end
+    if not (isDebugOn() and KCM.DebugChanged) then return end
     local names = {}
     for name in pairs(pendingUpdates) do names[#names + 1] = name end
     if #names == 0 then
-        Q.Forget("macro.held")
+        KCM.DebugForget("macro.held")
         return
     end
     table.sort(names)
-    local summary = ("held %d write(s) for combat: %s"):format(#names, table.concat(names, ", "))
-    if Q.Changed("macro.held", summary) then KCM.Debug("Macro", "%s", summary) end
+    KCM.DebugChanged("macro.held", "Macro", "held %d write(s) for combat: %s", #names, table.concat(names, ", "))
 end
 
 -- ---------------------------------------------------------------------------

@@ -237,9 +237,12 @@ badge and any count quoted in the docs must agree with it.
 - DebugLogSetup: the folder name the descriptor carries names art that exists
 - DebugLogSetup: the console's font comes out of the payload, with a real client fallback
 
-### test_debugcoverage.lua (16)
+### test_debugcoverage.lua (19)
 
 - DebugQuiet.Changed answers nil on a repeat and the unlogged count on the next change
+- a Clear re-arms every change gate: the console's two and the counted one
+- the console's gates write nothing, and remember nothing, while logging is off
+- without a console the gates answer false and write nothing
 - repeated bag-update passes that change nothing log one [Scan] and one [Calc] line
 - a pass that writes, or a pass on an edge reason, always logs its [Calc] line
 - a gated line logs again after logging is switched off and back on
@@ -247,8 +250,8 @@ badge and any count quoted in the docs must agree with it.
 - a category whose recompute raises on every pass is one line per distinct error
 - writes refused on every pass log one failed line per macro and one [Calc] line
 - an oversized body that stays picked logs its oversize line once
-- disable and enable each leave one [State] line naming the holds
 - a stand-down in combat says its bar teardown is held, and regen says it finished
+- a stand-down out of combat writes no host [State] line: the edge is the library's
 - a reset refused in combat names the guard
 - a refused settings write names the rule, under [Cmd] and never [Set]
 - every slash command leaves one [Cmd] line as typed
@@ -416,6 +419,19 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: each attach file is paired to the shell minor it actually attached to
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
+
+### test_librarylines.lua (10)
+
+- Library lines: a feature verb refused while disabled is one [Cmd] refused line
+- Library lines: an unknown verb is one [Cmd] refused line
+- Library lines: a write the seam refuses under /cm set is the library's line alone
+- Library lines: a value /cm set cannot parse is one [Cmd] refused line
+- Library lines: disable and enable are one [Lifecycle] line each, and no host edge line
+- Library lines: a call that changes no edge writes no [Lifecycle] line
+- Library lines: a stand-down in combat is the library's edge, then the host's held line
+- Library lines: a page's Defaults refused under the combat lock is one [Cfg] line
+- Library lines: the settings panel opened in combat is one [Cfg] open refused line
+- Library lines: the launcher's registration lands when logging is first turned on
 
 ### test_launcher.lua (28)
 
@@ -1356,7 +1372,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 26 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 21 |
-| test_debugcoverage.lua | 16 |
+| test_debugcoverage.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 21 |
@@ -1367,6 +1383,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
+| test_librarylines.lua | 10 |
 | test_launcher.lua | 28 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
@@ -1406,4 +1423,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **1148** |
+| **Total** | **1161** |

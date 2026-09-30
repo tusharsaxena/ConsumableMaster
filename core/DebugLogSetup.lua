@@ -194,9 +194,11 @@ local D = lib:New({
     isEnabled  = function() return KCM.State and KCM.State.debug == true end,
     setEnabled = function(on)
         if KCM.State then KCM.State.debug = on end
-        -- A fresh logging window starts from the current state: the change-gated
-        -- lines (core/ConsumableMaster.lua's KCM.DebugQuiet) forget what an
-        -- earlier window logged, so their first pass is written, not hidden.
+        -- A fresh logging window starts from the current state: the counted
+        -- change gate (core/ConsumableMaster.lua's KCM.DebugQuiet) forgets what
+        -- an earlier window logged, so its first pass is written, not hidden.
+        -- The console's own gates (KCM.DebugOnce / KCM.DebugChanged) the
+        -- library re-arms itself on this same edge.
         if on and KCM.DebugQuiet then KCM.DebugQuiet.Reset() end
         -- The one thing the library's own SetEnabled has no hook for. Resolved
         -- at call time: settings/Panel.lua creates KCM.Options long after this
@@ -247,6 +249,14 @@ local D = lib:New({
     -- a closed console.
     onVisibilityChanged = function()
         if KCM.Options and KCM.Options.Refresh then KCM.Options.Refresh() end
+    end,
+
+    -- A Clear re-arms the counted change gate too (DebugLog minor 18). Without
+    -- it a cleared console stayed silent over an unchanged bag update until the
+    -- next change, and "nothing written" read as "nothing happening". The
+    -- console's own gates are re-armed by the library on the same Clear.
+    onClear = function()
+        if KCM.DebugQuiet and KCM.DebugQuiet.Reset then KCM.DebugQuiet.Reset() end
     end,
 
     -- Composes the library's console-checkbox tooltip. Inert today —
