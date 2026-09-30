@@ -59,6 +59,18 @@ local function inCombat()
     return InCombatLockdown and InCombatLockdown() and true or false
 end
 
+-- The addon's own enable and stand-down edges, one gated line each
+-- (debug-logging-§8's state edges). They name the holds, because "disabled" and
+-- "a perf capture's suspended arm" look the same from outside, and a stand-down
+-- in combat says its bar teardown is held: KCM:OnRegenEnabled logs the finish.
+local function traceEdge(edge, held)
+    if not (KCM.State and KCM.State.debug and KCM.Debug) then return end
+    local holds = KCM.Lifecycle and KCM.Lifecycle:Holds() or {}
+    KCM.Debug("State", "%s (holds: %s)%s", edge,
+        #holds > 0 and table.concat(holds, ", ") or "none",
+        held and "; bar teardown held for combat" or "")
+end
+
 -- ---------------------------------------------------------------------------
 -- STAND DOWN — every registration gone, every frame hidden at the SOURCE
 -- ---------------------------------------------------------------------------
@@ -95,9 +107,11 @@ local function standDown()
     -- Secure work -- the bar's state driver, its anchors, a macro rewrite -- MUST
     -- NOT be attempted under lockdown, so the stand-down is held pending and
     -- completed on regen. KCM:OnRegenEnabled releases it the moment it fires.
-    if inCombat() then
+    local held = inCombat()
+    if held then
         KCM.SafeRegisterEvent(KCM, "PLAYER_REGEN_ENABLED", "OnRegenEnabled", KCM.RejectedEvents)
     end
+    traceEdge("stood down", held)
 end
 
 -- ---------------------------------------------------------------------------
@@ -108,6 +122,7 @@ end
 -- changed while the addon is off -- the whole schema CLI answers while disabled
 -- (slash-commands-§2) -- and the rebuild has to reflect it.
 local function standUp()
+    traceEdge("stood up", false)
     if KCM.Bus and KCM.Bus.StandUp then KCM.Bus.StandUp() end
     -- KCM:OnEnable's own list, CALLED rather than copied, for the same reason
     -- the teardown does not copy it.

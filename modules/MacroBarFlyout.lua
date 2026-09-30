@@ -563,6 +563,15 @@ function FO.Apply(button, cfg)
     return true
 end
 
+-- The truncation line, once per change of that slot's cap or count
+-- (debug-logging-§9): every bar refresh re-runs this for every slot, so an
+-- unchanged cap would otherwise say the same thing after every bag update.
+local function traceCap(catKey, cap, available)
+    local Q = KCM.DebugQuiet
+    if Q and not Q.Changed("flyout:" .. tostring(catKey), cap .. "/" .. available) then return end
+    KCM.Debug("Bar", "%s flyout capped at %s of %s available", catKey, cap, available)
+end
+
 -- Ordered, capped candidate list for a slot. Order comes from the category's own
 -- ranking (top-ranked first, i.e. closest to the button) and `flyoutInvert`
 -- reverses it. Truncation is logged rather than silent.
@@ -571,9 +580,7 @@ function FO.Candidates(catKey, cfg)
     local ids = KCM.Selector.ListAvailable(catKey, nil, nil) or {}
     local cap = math.min(FO.MAX_ENTRIES, math.max(1, tonumber(cfg.flyoutMax) or 12))
     if #ids > cap then
-        if KCM.Debug and KCM.Debug.IsOn and KCM.Debug.IsOn() then
-            KCM.Debug("Bar", "%s flyout capped at %s of %s available", catKey, cap, #ids)
-        end
+        if KCM.Debug and KCM.Debug.IsOn and KCM.Debug.IsOn() then traceCap(catKey, cap, #ids) end
         local trimmed = {}
         for i = 1, cap do trimmed[i] = ids[i] end
         ids = trimmed

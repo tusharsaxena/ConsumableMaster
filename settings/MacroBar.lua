@@ -800,6 +800,7 @@ end
 --- helper's verdict, and a refusal repaints nothing.
 local function commitSlots(entries)
     if InCombatLockdown and InCombatLockdown() then
+        H.TraceCombatRefused("macroBar.order/shown")
         KCM.Say(L["in combat — macro bar buttons cannot be moved or hidden until combat ends."])
         return false
     end

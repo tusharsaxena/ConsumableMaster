@@ -474,6 +474,8 @@ local SUITES = {
     "test_database",
     "test_debug",
     "test_debuglog",
+    -- What the log carries and what it holds back (debug-logging-§8/§9, DL-CM-02).
+    "test_debugcoverage",
     "test_docmap",
     "test_defaults",
     "test_disabled",
@@ -522,8 +524,8 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-§9 prescribes; the kit (revision 32, as vendored from
-    -- LibKa0s v1.63.0; since revision 25) resolves the relative `dir` against the
+    -- literal form testing-§9 prescribes; the kit (revision 34, as vendored from
+    -- LibKa0s v1.64.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive

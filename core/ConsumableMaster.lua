@@ -109,6 +109,60 @@ local function isDebugOn()
     return false
 end
 
+-- QUIET STEADY STATE (debug-logging-§9). A repeating path logs on a CHANGE of
+-- its own summary, never on every pass; and an error a repeating path catches
+-- is one line per distinct error, not one per pass (debug-logging-§8). This is
+-- the memory both rules need, keyed by the caller. Every caller reaches it
+-- behind its own debug gate, so with logging off nothing is built or compared.
+-- Reset on every debug-enable (core/DebugLogSetup.lua), so a fresh logging
+-- window starts by showing the current state rather than hiding it as "same
+-- as a line from an earlier window".
+KCM.DebugQuiet = KCM.DebugQuiet or {}
+local Q = KCM.DebugQuiet
+local lastLogged, quietPasses, seenOnce = {}, {}, {}
+
+--- nil when `summary` is the one last logged under `key` (the pass is counted);
+--- otherwise the count of identical passes left unlogged since then (0 at first),
+--- and `summary` becomes the new last-logged one.
+function Q.Changed(key, summary)
+    if lastLogged[key] == summary then
+        quietPasses[key] = (quietPasses[key] or 0) + 1
+        return nil
+    end
+    lastLogged[key] = summary
+    local n = quietPasses[key] or 0
+    quietPasses[key] = 0
+    return n
+end
+
+--- true the first time `key` is seen this logging window, false after.
+function Q.First(key)
+    if seenOnce[key] then return false end
+    seenOnce[key] = true
+    return true
+end
+
+--- Forget one key, so its next summary logs whatever it says.
+function Q.Forget(key)
+    lastLogged[key], quietPasses[key] = nil, nil
+end
+
+function Q.Reset()
+    lastLogged, quietPasses, seenOnce = {}, {}, {}
+end
+
+-- The suffix a change-gated line carries when passes went unlogged before it.
+function Q.Suffix(n)
+    if not n or n == 0 then return "" end
+    return (" (after %d unchanged pass(es))"):format(n)
+end
+
+-- The reasons whose passes repeat with nothing changed: every bag update and
+-- every bag item's info arriving. Their [Scan] and no-write [Calc] lines are
+-- change-gated; every other reason (world entry, a spec change, a command, a
+-- profile act) is an edge and always logs.
+local REPEATING_REASON = { bag_update_delayed = true, item_info_received = true }
+
 function P.RecomputeOne(catKey, scoreCache, reason)
     if not KCM.Categories or not KCM.Selector or not KCM.MacroManager then
         return
@@ -154,7 +208,22 @@ local function macrosEnabled()
     return not (KCM.db and KCM.db.profile and KCM.db.profile.enabled == false)
 end
 
--- One write pass over every category, returning the tally the Calc line reports.
+-- A category's recompute raised. Every pass retries it, so the line is once per
+-- distinct error for the logging window (debug-logging-§8), not once per pass.
+local function traceRecomputeFailure(catKey, err)
+    if not isDebugOn() then return end
+    local msg = tostring(err)
+    if Q.First("recompute:" .. tostring(catKey) .. ":" .. msg) then
+        KCM.Debug("Macro", "%s recompute failed: %s", catKey, msg)
+    end
+end
+
+-- One write pass over every category, returning the tally the Calc line
+-- reports. A "deferred" answer is HELD, not rewritten: it is counted apart, so
+-- a pass in combat reads `rewrote 0/15 (skipped 12, held 3)` rather than
+-- claiming three writes that have not happened. An "error" answer (a refused
+-- write, such as a full macro quota) is FAILED and counted apart too, so a pass
+-- that wrote nothing stays a no-write pass and stays change-gated.
 local function runMacroPass(reason)
     -- Per-pass score cache. `fields[id]` memoizes GetItemInfo +
     -- TooltipCache.Get so items appearing across multiple categories
@@ -162,7 +231,7 @@ local function runMacroPass(reason)
     -- `[catKey][id]` memoizes the per-category score. Passing nil (as
     -- /cm dump / panel renders do) falls back to the uncached path.
     local scoreCache = { fields = {} }
-    local rewrote, skipped, total = 0, 0, 0
+    local rewrote, skipped, total, held, failed = 0, 0, 0, 0, 0
     for _, cat in ipairs(KCM.Categories.LIST) do
         -- Isolate each category so one bad scorer can't break the other
         -- fourteen macros. One pcall per category per recompute (15 per
@@ -171,14 +240,33 @@ local function runMacroPass(reason)
         total = total + 1
         local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
         if not ok then
-            if isDebugOn() then KCM.Debug("Macro", "%s recompute failed: %s", cat.key, tostring(res)) end
+            traceRecomputeFailure(cat.key, res)
         elseif res == "unchanged" then
             skipped = skipped + 1
+        elseif res == "deferred" then
+            held = held + 1
+        elseif res == "error" then
+            failed = failed + 1
         elseif res ~= nil then
-            rewrote = rewrote + 1   -- created / edited / deferred
+            rewrote = rewrote + 1   -- created / edited
         end
     end
-    return rewrote, skipped, total
+    return rewrote, skipped, total, held, failed
+end
+
+-- The pass's one [Calc] line. A pass that wrote something always logs: its
+-- [Macro] lines need the reason. A no-write pass on a repeating reason logs
+-- only when its summary moved (debug-logging-§9's quiet steady state): a
+-- dungeon's worth of loot that changes no pick is one line, not hundreds.
+local function traceCalc(reason, rewrote, skipped, total, held, failed)
+    local summary = P.CalcSummary(reason, rewrote, total, skipped, held, failed)
+    if rewrote > 0 or not REPEATING_REASON[reason] then
+        Q.Forget("calc")
+        KCM.Debug("Calc", "%s", summary)
+        return
+    end
+    local unlogged = Q.Changed("calc", summary)
+    if unlogged then KCM.Debug("Calc", "%s%s", summary, Q.Suffix(unlogged)) end
 end
 
 -- Tell the panel and the macro bar the pass is done.
@@ -220,9 +308,12 @@ function P.Recompute(reason)
     -- last-written body until standUp's RequestRecompute
     -- (core/LifecycleSetup.lua) runs on the off->on transition.
     if macrosEnabled() then
-        local rewrote, skipped, total = runMacroPass(reason)
+        local rewrote, skipped, total, held, failed = runMacroPass(reason)
         if isDebugOn() then
-            KCM.Debug("Calc", "%s", KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped))
+            traceCalc(reason, rewrote, skipped, total, held, failed)
+            -- The combat queue as the pass left it, change-gated: one line when
+            -- the held set moves, never one per macro per pass.
+            if KCM.MacroManager and KCM.MacroManager.TraceHeld then KCM.MacroManager.TraceHeld() end
         end
     elseif isDebugOn() then
         KCM.Debug("Calc", "skipped writes (disabled): reason=%s", tostring(reason))
@@ -334,6 +425,24 @@ local function discoverOne(itemID, reason, nowUnix, outNew)
     return added
 end
 
+-- The pass's one [Scan] line. On a repeating reason it is change-gated
+-- (debug-logging-§9): a bag update that leaves the same item set and finds
+-- nothing new is the steady state, and it logs nothing. A pass with a new item
+-- differs by construction, so a discovery is never hidden.
+local function traceScan(reason, scanned, newIds)
+    table.sort(scanned)
+    table.sort(newIds)
+    local scannedList, newList = table.concat(scanned, ","), table.concat(newIds, ",")
+    local suffix = ""
+    if REPEATING_REASON[reason] then
+        local unlogged = Q.Changed("scan", tostring(reason) .. "|" .. scannedList .. "|" .. newList)
+        if not unlogged then return end
+        suffix = Q.Suffix(unlogged)
+    end
+    KCM.Debug("Scan", "reason=%s scanned %s items, %s new. Scanned=[%s]. New=[%s]%s",
+        reason, #scanned, #newIds, scannedList, newList, suffix)
+end
+
 local function runAutoDiscovery(reason)
     if not (KCM.BagScanner and KCM.Classifier) then return 0 end
     local counts = KCM.BagScanner.Scan()
@@ -349,12 +458,7 @@ local function runAutoDiscovery(reason)
         if scanned then scanned[#scanned + 1] = id end
         discovered = discovered + discoverOne(id, reason, nowUnix, newIds)
     end
-    if debugOn and KCM.Debug then
-        table.sort(scanned)
-        table.sort(newIds)
-        KCM.Debug("Scan", "reason=%s scanned %s items, %s new. Scanned=[%s]. New=[%s]",
-            reason, #scanned, #newIds, table.concat(scanned, ","), table.concat(newIds, ","))
-    end
+    if debugOn and KCM.Debug then traceScan(reason, scanned, newIds) end
     return discovered
 end
 
@@ -376,9 +480,14 @@ end
 KCM.Pipeline.DiscoverAndSweep = discoverAndSweep
 
 -- Pure recompute-summary formatter (debug-logging-§8/debug-logging-§9, unit-tested).
-function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped)
-    return ("reason=%s rewrote %s/%s (skipped %s)"):format(
-        tostring(reason), tostring(rewrote), tostring(total), tostring(skipped))
+-- `held`, the writes the pass queued for combat's end, and `failed`, the writes
+-- the client refused, are each named only when there are any, so an ordinary
+-- line reads as it always has.
+function KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped, held, failed)
+    local heldPart = (held and held ~= 0) and (", held " .. tostring(held)) or ""
+    local failedPart = (failed and failed ~= 0) and (", failed " .. tostring(failed)) or ""
+    return ("reason=%s rewrote %s/%s (skipped %s%s%s)"):format(
+        tostring(reason), tostring(rewrote), tostring(total), tostring(skipped), heldPart, failedPart)
 end
 
 -- A hand-written reset USED TO LIVE HERE, naming three profile keys by hand:
@@ -584,9 +693,14 @@ end
 ---
 --- Returns true on success, or false plus why: 'combat' under lockdown, 'db' when
 --- the database is not ready yet.
+local function refuseReset(why, guard)
+    if isDebugOn() then KCM.Debug("Cmd", "reset profile refused: %s", guard) end
+    return false, why
+end
+
 function KCM.ResetAllToDefaults(reason)
-    if InCombatLockdown and InCombatLockdown() then return false, "combat" end
-    if not (KCM.db and KCM.db.ResetProfile) then return false, "db" end
+    if InCombatLockdown and InCombatLockdown() then return refuseReset("combat", "in combat") end
+    if not (KCM.db and KCM.db.ResetProfile) then return refuseReset("db", "db not ready") end
     local H = KCM.Settings and KCM.Settings.Helpers
     local seam = H and H.schema
     local function act()
@@ -666,15 +780,20 @@ function KCM:OnRegenEnabled(event)
     -- a disabled addon holds. No macro flush: a pending macro write is a feature,
     -- and the incoming body is recomputed from current state on the way back up.
     if KCM.IsStoodDown and KCM.IsStoodDown() then
+        -- The held half of a mid-fight stand-down, finished: the deferred-work
+        -- flush line for core/LifecycleSetup.lua's "bar teardown held" line.
+        traceEvent(event or "PLAYER_REGEN_ENABLED", " stood down: held bar teardown finished")
         if KCM.MacroBar and KCM.MacroBar.FlushPending then KCM.MacroBar.FlushPending() end
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
         return
     end
-    local flushed = 0
+    local flushed, still = 0, 0
     if KCM.MacroManager and KCM.MacroManager.FlushPending then
-        flushed = KCM.MacroManager.FlushPending()
+        flushed, still = KCM.MacroManager.FlushPending()
     end
-    traceEvent(event or "PLAYER_REGEN_ENABLED", " flushed=%s", flushed)
+    -- `held` is what the flush could not apply (a failed write kept for retry):
+    -- a hold that never empties is visible here, not only in /cm diagnostics.
+    traceEvent(event or "PLAYER_REGEN_ENABLED", " flushed=%s held=%s", flushed, still or 0)
     -- Any macro-bar work requested during the fight (build, relayout, restyle)
     -- was deferred because it anchors protected frames. Apply it now.
     if KCM.MacroBar and KCM.MacroBar.FlushPending then

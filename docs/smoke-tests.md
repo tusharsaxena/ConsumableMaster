@@ -17,7 +17,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | BAR-1 – BAR-30 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
-| DIAG-1 – DIAG-27 | Diagnostics | Debug console, the diagnostics report, the shared window chrome and marks, the perf harness. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
+| DIAG-1 – DIAG-36 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
 | DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
@@ -385,7 +385,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-25. A full macro pool on the bar.** With the bar on and the account pool full (MACRO-23) → slots whose macro does not exist yet show the fallback icon and do not error on click. Result:
 
-**BAR-26. The three media dropdowns are populated.** Macro Bar → open **Bar border style**, **Button border style** and **Label font** → each lists real entries (Blizzard's own at least, plus anything a media addon registered). One empty dropdown is the finding; a populated neighbor proves nothing. Pick a new value in each → bar edge, button edges and label face change, and the closed dropdown names it. Then `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → at least the `COMPOSE_MINOR` in `libs/LibKa0s/OptionsCompose.lua` (7 at LibKa0s v1.63.0); a lower number means the client loaded an older payload than this build vendors, and the dropdown check above proved nothing. Result:
+**BAR-26. The three media dropdowns are populated.** Macro Bar → open **Bar border style**, **Button border style** and **Label font** → each lists real entries (Blizzard's own at least, plus anything a media addon registered). One empty dropdown is the finding; a populated neighbor proves nothing. Pick a new value in each → bar edge, button edges and label face change, and the closed dropdown names it. Then `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → at least the `COMPOSE_MINOR` in `libs/LibKa0s/OptionsCompose.lua` (7 at LibKa0s v1.64.0); a lower number means the client loaded an older payload than this build vendors, and the dropdown check above proved nothing. Result:
 
 **BAR-27. A border style from chat is validated.** `/cm set macroBar.barBorderStyle Not A Border` → `Invalid value for macroBar.barBorderStyle` and an `allowed values:` line. `/cm set macroBar.barBorderStyle Blizzard Tooltip` → accepted and the panel tracks it. Type the value without quotes: the quotes become part of it and the set is refused. A validator that does not normalize the composed row's map stops rejecting anything. Result:
 
@@ -445,7 +445,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **COMBAT-14. A mid-key reload does not blank the macros.** In a Mythic+ key, out of combat between pulls, `/reload`, then finish the key without typing any `/cm` command → within a second of completion every KCM macro on the action bar shows its item or spell icon again, with no Lua error. Result:
 
-**COMBAT-15. The restriction trace through a key.** Same key, `/cm debug on` straight after the reload, play to the end → the console carries `[Event] ADDON_RESTRICTION_STATE_CHANGED lockdown=… type=<n> active=<0|1|2> rewrite=yes|no` lines and `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=<n>` at each kill; after a `rewrite=yes` line, one `[Macro] marked N macro(s) stale …`, a `[Calc] … reason=restriction_lifted` line and one `[Macro] KCM_… edited item=… icon=…` per macro. Note the `type=` values at the key's start, at a boss and at its end, and whether bar icons were placeholders during the key; copy the console into the bug thread. Result:
+**COMBAT-15. The restriction trace through a key.** Same key, `/cm debug on` straight after the reload, play to the end → the console carries `[Event] ADDON_RESTRICTION_STATE_CHANGED lockdown=… type=<n> active=<0|1|2> rewrite=yes|no` lines and `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=<n> held=0` at each kill; after a `rewrite=yes` line, one `[Macro] marked N macro(s) stale …`, a `[Calc] … reason=restriction_lifted` line and one `[Macro] KCM_… edited item=… icon=…` per macro. Note the `type=` values at the key's start, at a boss and at its end, and whether bar icons were placeholders during the key; copy the console into the bug thread. Result:
 
 **COMBAT-16. The restriction trace at any boss.** A follower dungeon or LFR boss with `/cm debug on` → `… type=1 active=1 rewrite=no` at the pull; at the kill `… type=1 active=0 rewrite=yes`, then one `[Macro] … edited` line per macro (after combat if still in it). Action-bar icons stay unchanged; no Lua error. Result:
 
@@ -479,7 +479,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DIAG-13. The report is read-only.** Note a macro body and the bar's position, run the report → neither moved, no macro was rewritten, and the Macros page lists are unchanged. Result:
 
-**DIAG-14. The report with logging off.** `/cm debug off`, `/cm diagnostics` → the full report lands, the header still reads red `Debug: OFF`, and the next `/cm resync` writes no `[Calc]` line. Result:
+**DIAG-14. The report turns logging on for the session.** `/cm debug off`, `/cm diagnostics` → logging turns on first: the header reads green `Debug: ON`, chat prints the `debug logging ON` line, and the console gains `[Debug] logging enabled` and the `[Init]` summary; then the full report lands after them, its header reading `debug logging: on`, and the next `/cm resync` writes its `[Calc]` line. Run `/cm diagnostics` again → the report appends once more with no second `logging enabled` line. `/reload` → the header reads red `Debug: OFF` again. Result:
 
 **DIAG-15. The report opens a hidden console.** Close the console, `/cm diagnostics` → it opens with the report at the bottom. Result:
 
@@ -506,6 +506,24 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 **DIAG-26. Cancel restores the addon.** `start`, `measure b`, then `cancel` → the addon comes back exactly as after `finish`. Result:
 
 **DIAG-27. Perf strings read US English.** `/cm perf start mylabel`, then `finish` → the started line and the report header name the label. `/cm perf start` with no label, then `cancel` → the start line, the report header and the cancel line read `unlabeled` and `perf run CANCELED`, never a doubled L. Result:
+
+**DIAG-28. The console resizes from its corner.** Open the console → it opens at its usual size (700 × 344) with a small size grip in the bottom-right corner, drawn over the log. Drag the grip out and in, on both axes → the log reflows to the new size, the scrollbar runs the full height and its thumb still tracks the log, the `N / 3000 lines` counter stays bottom-right and clear of the grip, and the title, the `Debug: ON/OFF` toggle and the copy, clear and close marks stay in the title bar. The lines already logged and the scroll position are kept. Result:
+
+**DIAG-29. The console stops at its minimum.** Drag the grip as far up and left as it goes → the window stops shrinking while the whole title and every title-bar control are still visible, with the status bar and a few log lines between them. Nothing overlaps and nothing is clipped. Result:
+
+**DIAG-30. The console's size lasts the session only.** Resize the console, close it (close mark or Escape) and reopen it with `/cm debug` → it comes back at the size you left it. `/reload` and open it again → it is back at the default 700 × 344. Result:
+
+**DIAG-31. The copy window resizes on its own.** Resize the console, then press Copy → the copy window opens at its own default size, not the console's, with a grip bottom-right. Drag it on both axes → the text box widens and narrows with the window (no text clipped at the right edge, no gap), and the scroll bar's down arrow sits above the grip and takes every click. It stops at a minimum with the close mark still reachable. Close and press Copy again → the size you left; `/reload` → back to the default. Result:
+
+**DIAG-32. The perf panel resizes in width only.** `/cm perf` → the panel opens at its usual size with a grip bottom-right. Drag it → only the width changes, every step row stretches to the new width with its `/cm perf …` command still right-aligned, and it will not go narrower than it opened. Close and reopen → the width you left; `/reload` → back to the default. Result:
+
+**DIAG-33. Another addon's console keeps its own size.** With another Ka0s addon loaded, resize this addon's console, then open the other addon's console → it opens at its own size, not this one's. Resize it → this addon's console keeps the size you gave it. Result:
+
+**DIAG-34. A dungeon of looting is not a wall of lines.** `/cm debug on`, then loot and drink through a few pulls with nothing new entering your bags → the console gains one `[Scan]` and one `[Calc]` line for the first unchanged bag update, and none for the ones after it, until an item arrives or leaves; the line that logs then ends `(after N unchanged pass(es))`. Result:
+
+**DIAG-35. Combat holds are one line each way.** `/cm debug on`, pull a dummy, and in combat `/cm rewritemacros` → one `[Macro] held N write(s) for combat: KCM_…` line, not one `deferred` line per macro, and nothing more while the fight goes on; drop combat → `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=N held=0` and one `[Macro] KCM_… edited …` line per macro. Result:
+
+**DIAG-36. The Diagnostics link.** Bare `/cm debug` → in the title bar, top left, the word **Diagnostics** sits just right of the `Debug: ON/OFF` label with a small gap, drawn orange in the same plain text as that label: no button art, border or background. Hover it → it brightens; move off → orange again. With logging off, click it → logging turns on first, as DIAG-14, then the report is written after the `[Init]` summary with the one chat line giving its line count. Click it again → the report appends once more, with no second `logging enabled` line. Toggle the label between ON and OFF → the gap after it holds for either word. Drag the console in as far as it goes → the link still fits beside the label and the title. Result:
 
 ## Degraded install
 
@@ -582,8 +600,12 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | COMBAT-13 | §11a step 14 | Corrected: the in-combat changes are made from chat; the Macro Bar page is covered |
 | COMBAT-14 – COMBAT-17 | Mid-key reload and the event trace (2026-09-29) | Never run |
 | DIAG-1 | §7 step 7, §11 step 5, seam step 10 | Corrected: logging follows `/cm debug on`/`off` and the console header's toggle, not the Debug console box |
+| DIAG-14 | §7d step 4 | Corrected: the report turns logging on for the session, and a `/reload` turns it off (LibKa0s v1.64.0, kit revision 34) |
 | DIAG-17 | §7d step 7 | Corrected: `/cm diag` answers `Unknown command: diag` |
 | DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
+| DIAG-28 – DIAG-33 | New | The resizable console, copy window and perf panel (LibKa0s v1.64.0), never run in a client |
+| DIAG-34, DIAG-35 | New | The quiet steady state and the combat hold line (DL-CM-02), never run in a client |
+| DIAG-36 | New | The console's Diagnostics link (LibKa0s v1.64.0, DL-CM-03), never run in a client |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
 | LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |

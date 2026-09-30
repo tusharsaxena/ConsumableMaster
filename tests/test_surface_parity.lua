@@ -172,7 +172,7 @@ local DEBUGLOG_SEAM = {
     "RunDiagnostics",
 }
 
--- Live-only ON PURPOSE, each argued at core/DebugLogSetup.lua:123-133:
+-- Live-only ON PURPOSE, each argued at core/DebugLogSetup.lua:124-134:
 --   * `instance` is WITHHELD, and that is the load-bearing one: core/Debug.lua's
 --     emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
 --     whether a console exists and falls back to the chat frame when it does not.

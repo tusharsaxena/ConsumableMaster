@@ -237,6 +237,25 @@ badge and any count quoted in the docs must agree with it.
 - DebugLogSetup: the folder name the descriptor carries names art that exists
 - DebugLogSetup: the console's font comes out of the payload, with a real client fallback
 
+### test_debugcoverage.lua (16)
+
+- DebugQuiet.Changed answers nil on a repeat and the unlogged count on the next change
+- repeated bag-update passes that change nothing log one [Scan] and one [Calc] line
+- a pass that writes, or a pass on an edge reason, always logs its [Calc] line
+- a gated line logs again after logging is switched off and back on
+- a forced rewrite in combat is one held line, quiet on repeat, and a flush line at regen
+- a category whose recompute raises on every pass is one line per distinct error
+- writes refused on every pass log one failed line per macro and one [Calc] line
+- an oversized body that stays picked logs its oversize line once
+- disable and enable each leave one [State] line naming the holds
+- a stand-down in combat says its bar teardown is held, and regen says it finished
+- a reset refused in combat names the guard
+- a refused settings write names the rule, under [Cmd] and never [Set]
+- every slash command leaves one [Cmd] line as typed
+- the macro bar's combat hold is one line however often it is asked, and its flush one more
+- a flyout cap is logged once while it holds, and again when it moves
+- [Init] names a stand-down and a missing optional library, and neither when all is well
+
 ### test_docmap.lua (1)
 
 - docmap: every Tier 2 row agrees with what docs/ holds
@@ -1309,13 +1328,15 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
-### test_diagnostics_contract.lua (7)
+### test_diagnostics_contract.lua (9)
 
 - diagnostics contract: both forms run the report
 - diagnostics contract: the debug word is matched in any case
 - diagnostics contract: both markers carry the brand and the end counts the report
 - diagnostics contract: the report appends after what the console already holds
-- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: the report lands with logging off and turns it on for the session
+- diagnostics contract: an addon that opts out lands the report and leaves logging off (skipped: this addon keeps the default (Kit.diagnostics.enablesLogging is not false), so its report turns logging on; the case above holds it)
+- diagnostics contract: with logging already on, the report writes no second enable line
 - diagnostics contract: both forms run while the addon is disabled
 - diagnostics contract: no other name runs the report
 
@@ -1335,6 +1356,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 26 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 21 |
+| test_debugcoverage.lua | 16 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 21 |
@@ -1383,5 +1405,5 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 7 |
-| **Total** | **1130** |
+| test_diagnostics_contract.lua | 9 |
+| **Total** | **1148** |

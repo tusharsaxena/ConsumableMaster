@@ -310,7 +310,7 @@ KCM.Pipeline.DiscoverAndSweep(reason)        -- RunAutoDiscovery, then Selector.
                                              --   login (PEW) and the stand-up both run it
 
 -- Pure debug-summary formatter (frame-free, unit-tested; see debug.md)
-KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped) -> string -- [Calc] line
+KCM.Pipeline.CalcSummary(reason, rewrote, total, skipped, held, failed) -> string -- [Calc] line
 
 -- Sentinel helpers (also see schema.md)
 KCM.ID.AsSpell(spellID)  -> negative

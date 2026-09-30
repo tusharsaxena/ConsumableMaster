@@ -44,7 +44,7 @@ print them:
 | `disable` | host | The same write with `false`. Neither verb holds state of its own (`slash-commands-§2`); with `libs/LibKa0s/` absent there is no `enabled` row to write and both say so rather than going inert. |
 | `perf` | LibKa0s-Perf | Resolves `KCM.Perf` at **call** time, prints the lines it returns. |
 | `debug` | host | Bare toggles the console window; `on`/`off` set logging through `DebugLog.SetEnabled`; `diagnostics`, tested first in any case, writes the diagnostics report. Any other word, `diag` included, toggles the window. |
-| `diagnostics` | LibKa0s-DebugLog | Writes the diagnostics report (`debug-logging-§14`) into the debug console through `DebugLog.RunDiagnostics`, after whatever trace is there. The sections are `core/Diagnostics.lua`'s. On the live set, so it answers while the addon is disabled. With the library absent the stub prints the one library-absent line. |
+| `diagnostics` | LibKa0s-DebugLog | Writes the diagnostics report (`debug-logging-§14`) into the debug console through `DebugLog.RunDiagnostics`, after whatever trace is there, turning logging on for the session first when it is off. The sections are `core/Diagnostics.lua`'s. On the live set, so it answers while the addon is disabled. With the library absent the stub prints the one library-absent line. |
 | `resync` | host | Invalidate the tooltip cache, run auto-discovery, recompute every category. |
 | `rewritemacros` (alias `rewrite`) | host | Invalidate macro state and rewrite every body and icon. |
 | `reset <path>` | library | Reset **one** schema row to its default. |
@@ -283,7 +283,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:725`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:730`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the

@@ -360,6 +360,7 @@ local function makeIconBtn(parent, opts)
         btn:SetCallback("OnClick", function()
             local ok, err = pcall(opts.onClick)
             if not ok then
+                H.TraceCaught("icon-button '" .. tostring(opts.label) .. "'", err)
                 KCM.Say("icon-button onClick failed: " .. tostring(err))
             end
         end)
@@ -745,6 +746,17 @@ local function makePriorityList(ctx, cat, specKey, priority)
     }))
 end
 
+-- The page's paint line, once per change of what it shows (debug-logging-§9): an
+-- open page repaints after every pipeline pass, so an unchanged list would
+-- otherwise say the same thing after every bag update. A different category,
+-- spec or row count is a change and logs.
+local function tracePaint(catKey, rows, specKey)
+    local Q = KCM.DebugQuiet
+    local summary = tostring(catKey) .. "|" .. tostring(rows) .. "|" .. tostring(specKey)
+    if Q and not Q.Changed("prio.paint", summary) then return end
+    KCM.Debug("Prio", "paint %s rows=%s spec=%s", catKey, rows, tostring(specKey))
+end
+
 -- The priority list proper: the no-spec and empty states, or one row per candidate.
 local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAff)
     local priority = (KCM.Selector and KCM.Selector.GetEffectivePriority
@@ -759,9 +771,7 @@ local function renderPriorityList(ctx, scroll, cat, specKey, mh, oh, mhAff, ohAf
     local p = priorityRowContext(cat, specKey, priority, mh, oh, mhAff, ohAff)
     local list = makePriorityList(ctx, cat, specKey, priority)
 
-    if isDebugOn() and KCM.Debug then
-        KCM.Debug("Prio", "paint %s rows=%s spec=%s", cat.key, #priority, tostring(specKey))
-    end
+    if isDebugOn() and KCM.Debug then tracePaint(cat.key, #priority, specKey) end
 
     for _, id in ipairs(priority) do
         renderPriorityRow(scroll, cat, specKey, id, list, p)
