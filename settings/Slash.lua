@@ -26,13 +26,12 @@ local KCM = NS
 -- core/CoreSetup.lua): the [CM] tag is unconditional and a combat "secret" can never raise mid-line.
 local say = KCM.Say
 
--- The locale seam (localization-§1) is no longer reached from this file. The one
--- string that went through it was the disabled-verb refusal, and that line is the
--- LIBRARY's now: slash-commands-§7 fixes one shape collection-wide and forbids
--- re-spelling it per addon, so an `L` override could only ever make this addon's
--- copy disagree with the other ten. The rest of the `/cm` surface is the CLI
--- SURFACE residue tests/test_locale.lua registers, which is one decision about the
--- whole command listing rather than a string-by-string one.
+-- The locale seam (localization-§1) reaches ONE row here: `profile`'s description,
+-- the collection's shared wording for the shared verb (LibKa0s-Slash minor 17). The
+-- disabled-verb refusal that used to go through it is the LIBRARY's line now
+-- (slash-commands-§7 forbids re-spelling it per addon). The rest of the `/cm`
+-- surface is the CLI SURFACE residue tests/test_locale.lua registers.
+local L = KCM.L
 
 -- The verb bodies, owned by core/SlashCommands.lua. Resolved once here rather
 -- than per call: settings/ loads after core/, so the table is already populated,
@@ -65,7 +64,7 @@ local function schema()
 end
 
 -- Bound at the foot of this file, once the Slash instance exists.
-local cliList, cliGet, cliSet, cliReset
+local cliList, cliGet, cliSet, cliReset, cliProfile, profileSwitch
 
 -- ---------------------------------------------------------------------------
 -- Top-level COMMANDS table + dispatcher
@@ -147,19 +146,19 @@ local ALIASES = { rewrite = "rewritemacros" }
 
 -- The verbs that actually ROUTE THROUGH LibKa0s, and therefore stop answering
 -- when it is absent (slash-commands-§1). `help` and the four schema CLI verbs
--- go to LibKa0s-Slash-1.0; `perf` goes to LibKa0s-Perf-1.0 by way of
--- core/PerfSetup.lua, which never publishes KCM.Perf on a build without it.
+-- go to LibKa0s-Slash-1.0, and so does `profile`; `perf` goes to LibKa0s-Perf-1.0
+-- by way of core/PerfSetup.lua, which never publishes KCM.Perf on a build without it.
 --
 -- Every OTHER verb in COMMANDS is the host's own and keeps working, which is
 -- the whole point: this table exists so the degraded notice can name what is
 -- gone by reading COMMANDS rather than by repeating a hand-written list that a
--- new verb would silently fall out of. `perf` and `diagnostics` still DISPATCH
--- on the degraded path — `perf` answers "perf capture unavailable." itself and
--- `diagnostics` reaches core/DebugLogSetup.lua's stub, which says the report is
--- unavailable — they are only kept off the "these still work" half of the notice.
+-- new verb would silently fall out of. `perf`, `diagnostics` and `profile` still
+-- DISPATCH on the degraded path — `perf` answers "perf capture unavailable."
+-- itself, `diagnostics` reaches core/DebugLogSetup.lua's stub, and `profile` prints
+-- the library-absent line — they are only kept off the "these still work" half.
 local LIB_BACKED_VERBS = {
     help = true, list = true, get = true, set = true, reset = true, perf = true,
-    diagnostics = true,
+    diagnostics = true, profile = true,
 }
 
 local COMMANDS = {
@@ -276,6 +275,13 @@ local COMMANDS = {
         function(rest) cliGet(rest) end},
     {"set",           "Set a setting — `/cm set <path> <value>` (try /cm list)",
         function(rest) cliSet(rest) end},
+    -- The shared profile verb (LibKa0s-Slash-1.0 minor 17): bare lists the
+    -- profiles, `profile <name>` switches to an EXISTING one and never creates it.
+    -- The library owns all of that; the switch's side effects and its one
+    -- [Profile] log line are KCM.RegisterProfileCallbacks' (core/ConsumableMaster.lua).
+    -- On LIVE_VERBS below, and library-absent it takes route (b).
+    {"profile",       L["List profiles, or switch to one: profile <name>"],
+        function(rest) cliProfile(rest) end},
     {"bar",           "Macro bar — `/cm bar [on|off|lock|unlock|reset]` (bare toggles it)",
         function(rest) V.RunBar(rest) end},
     -- THE CANONICAL SPELLING OF THE LOCK, and `/cm bar lock|unlock` is kept beside
@@ -330,9 +336,18 @@ local COMMANDS = {
 -- are live for. Refusing it would take the diagnostic away at the one moment
 -- somebody is asking why the addon is quiet.
 --
+-- `profile` IS THE FIFTEENTH. It is not reserved, so lib.LIVE_VERBS does not carry
+-- it (Slash minor 17), and it does write: it switches the active profile. It is
+-- live because a switch is a way back ON. The AceDB profile callbacks survive the
+-- disabled state on purpose, so switching into a profile whose `enabled` is true
+-- stands the addon up (KCM.RegisterProfileCallbacks re-reads the latch first);
+-- refusing the verb would leave that door open to the Profiles page and shut to
+-- the keyboard. A player who is off needs to repair settings, and a profile is a
+-- whole set of them.
+--
 -- THE SET IS AN ARRAY BECAUSE IT IS HANDED TO THE LIBRARY as the descriptor's
 -- `liveVerbs` (Slash minor 13). Passing it WIDENS lib.LIVE_VERBS by this addon's
--- one extra verb; it must never be used to NARROW it. v2.56.0 of the standard cut
+-- two extra verbs; it must never be used to NARROW it. v2.56.0 of the standard cut
 -- the disabled surface to `enable` and `help`, the owner tested that and reversed
 -- it at v2.57.0 -- `/cm` on a disabled addon answered with a refusal instead of
 -- opening the settings panel, which is the one surface a player uses to switch it
@@ -341,7 +356,7 @@ local COMMANDS = {
 local LIVE_VERBS = {
     "help", "config", "version", "enable", "disable", "debug",
     "perf", "diagnostics", "get", "set", "list", "reset", "resetall",
-    "dump",
+    "dump", "profile",
 }
 
 -- Read through the same seam the checkbox and `/cm get enabled` read, never a
@@ -384,7 +399,7 @@ KCM.COMMANDS = COMMANDS
 -- LibKa0s-Slash-1.0 — the dispatcher
 -- ---------------------------------------------------------------------
 --
--- Everything above is this addon's: twenty-two verbs, five sub-command tables
+-- Everything above is this addon's: twenty-three verbs, five sub-command tables
 -- with three different handler arities, the dump targets, and the schema CLI.
 -- What the library takes is the part that is the same in every Ka0s addon —
 -- trim, split, lowercase the verb only, apply the alias, find the entry, call
@@ -535,8 +550,8 @@ if slashLib then
         -- as a literal in both places and pinned against each other by
         -- tests/test_disabled.lua, rather than one file reaching into the other.
         brandName    = "Ka0s Consumable Master",
-        -- WIDENS the library's thirteen by this addon's read-only `dump`; it must
-        -- never narrow them. See LIVE_VERBS above.
+        -- WIDENS the library's thirteen by this addon's read-only `dump` and by
+        -- `profile`; it must never narrow them. See LIVE_VERBS above.
         liveVerbs    = LIVE_VERBS,
         -- A thunk, not `say` bare: the library snapshots the printer at :New.
         -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
@@ -588,6 +603,12 @@ if slashLib then
         -- The whole-value rows' reader and renderer (see parseValue / formatValue).
         parse        = parseValue,
         format       = formatValue,
+
+        -- The profile store the `profile` verb lists and switches (Slash minor 17),
+        -- asked at CALL time: KCM.db is built at ADDON_LOADED, after this file ran.
+        -- Before then the thunk answers nil and the verb says profiles are not
+        -- available rather than raising.
+        profiles     = function() return KCM.db end,
     })
     -- The instance, so the suite can assert identity rather than lookalike
     -- behavior. Mirrors KCM.DebugLog.instance and Settings.Helpers.instance.
@@ -607,6 +628,8 @@ if slashLib then
     -- formatter `list` / `get` / `set` / `reset` all use, so `/cm enable` cannot
     -- drift from `/cm set enabled true`.
     echoEnabled = function() Sl:CliGet(ENABLED_PATH) end
+    cliProfile    = function(rest) Sl:CliProfile(rest) end
+    profileSwitch = function(name) return Sl:ProfileSwitch(name) end
 else
     -- LibKa0s is vendored, so this is a tampered install rather than a
     -- supported state. The dispatcher is still not re-implemented here — see
@@ -631,6 +654,12 @@ else
     -- it fires unprompted; this one only ever fires because the user typed).
     printHelp = sayDegraded
     cliList, cliGet, cliSet, cliReset = sayDegraded, sayDegraded, sayDegraded, sayDegraded
+    -- The profile verb is the library's (Slash minor 17), and with the library absent
+    -- there is no store adapter to trust, so both members take route (b): the one
+    -- library-absent line for `/cm profile`, and no switch -- AceDB's SetProfile
+    -- would CREATE whatever name it was handed.
+    cliProfile    = function() refuseLibraryAbsent("profile") end
+    profileSwitch = function() refuseLibraryAbsent("profile"); return false end
 end
 
 -- The About panel's command rows, RENDERED -- convergence #2 (LIBKA0S-13).
@@ -665,6 +694,14 @@ function KCM.SlashCommands.GetLandingRows()
     if not Sl then return {} end
     return Sl:LandingRows()
 end
+
+-- The profile pair, on BOTH arms (Slash minor 17). The live instance has
+-- CliProfile and ProfileSwitch, so the degraded arm owes both (slash-commands-§1):
+-- the version 17 document's stub rule, pinned here by
+-- tests/test_surface_parity.lua's SLASH_SEAM. Live, they reach the instance;
+-- library-absent, both print the library-absent line and switch nothing.
+function KCM.SlashCommands.CliProfile(rest) return cliProfile(rest) end
+function KCM.SlashCommands.ProfileSwitch(name) return profileSwitch(name) end
 
 -- The degraded dispatcher (slash-commands-§1, CM-A-32).
 --

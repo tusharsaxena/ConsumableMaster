@@ -547,6 +547,27 @@ test("AceDB fake: DeleteProfile of the active profile raises AceDB's own message
     t.eq(KCM.db.profiles.Alt, nil, "an inactive profile is deleted")
 end)
 
+-- AceDB-3.0.lua:488-514: GetProfiles clears the table it is handed, lists every
+-- stored profile, and answers the count beside it. `/cm profile` switches only to a
+-- name this lists (LibKa0s-Slash minor 17), so a fake without it answers every
+-- `/cm profile` as unavailable and the verb's cases would test nothing.
+--
+-- red under: a fake with no GetProfiles, or one that keeps a reused table's stale rows.
+test("AceDB fake: GetProfiles lists every stored profile and answers the count", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db:SetProfile("Alt")
+    KCM.db:SetProfile("Default")
+    local reused = { "stale", "rows", "here" }
+    local got, n = KCM.db:GetProfiles(reused)
+    t.truthy(got == reused, "the table handed in is the table answered")
+    t.eq(n, 2, "two profiles counted")
+    table.sort(got)
+    t.eqList(got, { "Alt", "Default" }, "every stored profile, and nothing left over")
+    local fresh, m = KCM.db:GetProfiles()
+    t.eq(m, 2, "a fresh table when none is handed in")
+    t.eq(#fresh, 2, "holding the same two")
+end)
+
 -- ---------------------------------------------------------------------------
 -- /cm reset on a color row (ConsumableMaster-R-02)
 -- ---------------------------------------------------------------------------

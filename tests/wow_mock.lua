@@ -562,6 +562,28 @@ local function makeAceDB()
 
         db.GetCurrentProfile = function() return current end
 
+        -- db:GetProfiles(tbl) -> tbl, n, AceDB-3.0's own shape (AceDB-3.0.lua:488-514):
+        -- the container is cleared (or made), filled with every key of the profile
+        -- store in `pairs` order, and the current profile is appended when the store
+        -- does not hold it yet. Modeled because `/cm profile` (LibKa0s-Slash minor 17)
+        -- switches only to a name this lists, which is what stops a typo creating a
+        -- profile: a fake without it answers every `/cm profile` as unavailable.
+        db.GetProfiles = function(_, tbl)
+            tbl = tbl or {}
+            for k in pairs(tbl) do tbl[k] = nil end
+            local n, cur = 0, current
+            for name in pairs(db.profiles) do
+                n = n + 1
+                tbl[n] = name
+                if name == cur then cur = nil end
+            end
+            if cur then
+                n = n + 1
+                tbl[n] = cur
+            end
+            return tbl, n
+        end
+
         return db
     end
     return AceDB

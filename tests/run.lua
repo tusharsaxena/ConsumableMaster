@@ -512,6 +512,7 @@ local SUITES = {
     "test_settingsui_optionsui",
     "test_slash",
     "test_slash_degraded",
+    "test_slash_profile",
     "test_slash_store",
     "test_slashsetup",
     "test_spechelper",
@@ -521,8 +522,8 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-§9 prescribes; the kit (revision 31, as vendored from
-    -- LibKa0s v1.62.0; since revision 25) resolves the relative `dir` against the
+    -- literal form testing-§9 prescribes; the kit (revision 32, as vendored from
+    -- LibKa0s v1.63.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive

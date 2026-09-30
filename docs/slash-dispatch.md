@@ -2,10 +2,10 @@
 
 `/cm` and `/consumablemaster` reach one dispatcher: the **LibKa0s-Slash-1.0** instance built in
 `settings/Slash.lua`. The library owns the parse, the help renderer, the row and value formatters and
-the schema CLI. This addon owns twenty-two verbs, five sub-command tables with three different handler
+the schema CLI. This addon owns twenty-three verbs, five sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — twenty-two verbs is over eight, and four verbs
+Both halves of `documentation-§3`'s trigger fire here — twenty-three verbs is over eight, and four verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -19,20 +19,20 @@ Three files, and the split is deliberate:
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
-`COMMANDS` is built. That is why `settings/Slash.lua:40` resolves it once at load rather than per
+`COMMANDS` is built. That is why `settings/Slash.lua:39` resolves it once at load rather than per
 call: a missing key there would be a load-order bug worth failing loudly on, not a condition to
 tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:165`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:381` so the verb set has one source
+`COMMANDS` (`settings/Slash.lua:164`) is an ordered list of positional triples
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:396` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
 renderer's input.
 
-The twenty-two verbs, in declaration order, which is also the order `/cm help` and the About page
+The twenty-three verbs, in declaration order, which is also the order `/cm help` and the About page
 print them:
 
 | Verb | Backed by | Behavior |
@@ -52,6 +52,7 @@ print them:
 | `list` | library | Every schema row and its value, grouped by the row's `panel`. |
 | `get <path>` | library | One row's value. |
 | `set <path> <value>` | library | Type-aware parse, then `Helpers.SetAndRefresh`. |
+| `profile [<name>]` | library | The shared profile verb (`LibKa0s-Slash-1.0` minor 17, `Sl:CliProfile`). Bare lists the profiles with the active one marked; a name (one pair of quotes stripped, case and inner spaces kept) switches to that **existing** profile, and an unknown name is refused with the list and never created. Refused in combat. The descriptor's `profiles` thunk hands the library `KCM.db`; what a switch sets off, and its one `[Profile]` log line, are the profile handler's ([profiles.md](./profiles.md#switching-from-chat-cm-profile)). Live while disabled. |
 | `bar` | host | The macro-bar tree. |
 | `lock` / `unlock` | host | The macro bar's lock, through `V.RunLock` — the canonical spelling of what `bar lock` / `bar unlock` also do. |
 | `priority` | host | The per-category priority tree. |
@@ -168,7 +169,7 @@ Ka0s Consumable Master v1.7.0 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:409`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:424`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -213,7 +214,7 @@ and nothing else. `isEnabled` is asked at dispatch time and never cached, so the
 beside the library's would have to agree with it about which verbs are live and about how the
 refusal is worded, which is the drift the shared dispatcher exists to end.
 
-**The live set is `liveVerbs`, named once as data**, and it **WIDENS** the library's thirteen by one —
+**The live set is `liveVerbs`, named once as data**, and it **WIDENS** the library's thirteen by two —
 it must never be used to narrow them. The thirteen are `slash-commands-§2`'s, and the reasoning is that
 a player must be able to read and repair settings, and to reach the panel, while the addon is off —
 which is precisely when they are most likely to need to — and `enable` above all, or the pair is
@@ -221,7 +222,7 @@ one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
-| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`** | `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
 
 `diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
 `debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the
@@ -236,6 +237,14 @@ both. What the report prints is in [debug.md](./debug.md#the-diagnostics-report-
 invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
 `debug` and `perf` are live for. Refusing it would take the diagnostic away at the one moment
 somebody is asking why the addon has gone quiet.
+
+`profile` is the fifteenth, and it is live for a different reason: it writes, but a switch is a way
+back on. `profile` is not a reserved verb, so the library's `lib.LIVE_VERBS` does not carry it
+(`LibKa0s-Slash-1.0` minor 17) and this addon adds it by hand. The AceDB profile callbacks survive
+the disabled state on purpose, and `KCM.RegisterProfileCallbacks` re-reads the stand-down latch
+before anything else, so switching into a profile whose `enabled` is true stands the addon up.
+Refusing the verb would leave that route open on the Profiles page and closed from the keyboard.
+`tests/test_disabled.lua` step 7f pins it.
 
 The refusal reads `Ka0s Consumable Master is disabled — enable it with /cm enable`, with the command
 gold. **The wording is the collection's, not this addon's**: `slash-commands-§7` fixes one shape for
@@ -257,15 +266,15 @@ not act, because a case reading only the chat line passes over a verb that print
 then did the thing anyway — which, given the silent no-op above, would look exactly like the bug. One
 of them sweeps every entry in `KCM.COMMANDS`, so a verb added tomorrow is covered on the day it is
 declared. `tests/test_disabled.lua` is where the surface as a whole is pinned — all thirteen reserved
-verbs, the bare `/cm`, and the shape of the refusal line itself.
+verbs, the bare `/cm`, `profile`, and the shape of the refusal line itself.
 
 ## When the library is absent
 
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:160`) names the seven verbs that actually route through the
-library — `help`, `list`, `get`, `set`, `reset`, `perf` and `diagnostics`. Everything else is the host's own and
+`LIB_BACKED_VERBS` (`settings/Slash.lua:159`) names the eight verbs that actually route through the
+library — `help`, `list`, `get`, `set`, `reset`, `perf`, `diagnostics` and `profile`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
 `/cm is unavailable`, which was untrue of thirteen of the nineteen verbs and told the player to stop
@@ -274,7 +283,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:688`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:725`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the
@@ -302,7 +311,10 @@ nothing. Taking route (b) for `enable`/`disable` is a recorded deviation
 ([ARCHITECTURE.md](./ARCHITECTURE.md#documented-deviations)). `bar`, `bar on` and `bar off` write the
 hand-declared `macroBar.enabled` row, so they keep working here; like every macro-bar verb they print
 their success line only when `KCM.MacroBar.SetEnabled` / `SetLocked` answered true, so no write the
-seam refused is ever reported as done. `tests/test_slash_degraded.lua` pins all of it.
+seam refused is ever reported as done. `profile` takes route (b) as well: with no store adapter to
+trust it prints the library-absent line for `/cm profile`, whatever followed the verb, and switches
+nothing, and the published `KCM.SlashCommands.CliProfile` and `ProfileSwitch` do the same.
+`tests/test_slash_degraded.lua` pins all of it.
 
 `GetLandingRows` returns an **empty** list in that state rather than a host-formatted fallback: with
 LibKa0s missing the settings panel is never registered, so there is no About page to render into, and

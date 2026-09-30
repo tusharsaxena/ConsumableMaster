@@ -105,7 +105,7 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
    ```
    The `pick` dump prints the effective priority list with per-entry Ranker scores AND the owned-item walk result, so you can confirm the seed ordering and the actual pick in one shot. `<catKey>` is the lower- or upper-case category key (e.g. `flask`, `HP_POT`, `hp_aio`).
 
-   For full coverage after a seed refresh — especially if the refresh introduced a new subType or tooltip phrasing — also run the [auto-discovery section](../docs/smoke-tests.md#2-auto-discovery) and the [quick smoke](../docs/smoke-tests.md#quick-smoke) from the smoke-test playbook.
+   For full coverage after a seed refresh — especially if the refresh introduced a new subType or tooltip phrasing — also run the [Discovery checks](../docs/smoke-tests.md#discovery) and the quick pass MACRO-1 ([Macros](../docs/smoke-tests.md#macros)) from the smoke-test suite.
 
 ## Common pitfalls
 

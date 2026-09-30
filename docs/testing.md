@@ -143,7 +143,7 @@ merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 31, vendored from LibKa0s v1.62.0; wired since revision 25), which `layout-§1` makes
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 32, vendored from LibKa0s v1.63.0; wired since revision 25), which `layout-§1` makes
 the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
 census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
 [ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
@@ -319,6 +319,6 @@ output. Bundles are never edited and never pruned.
 
 ## In-game smoke tests
 
-The headless suite can't exercise real client behavior. The manual in-game playbook — a
-quick post-change smoke plus the full section-by-section suite — lives at
+The headless suite can't exercise real client behavior. The manual in-game suite, one
+deduplicated set of checks grouped by theme with an index of what to run for a change, lives at
 [smoke-tests.md](./smoke-tests.md). Run it before a release.

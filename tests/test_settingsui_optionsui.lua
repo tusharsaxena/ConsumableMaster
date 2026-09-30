@@ -733,7 +733,7 @@ end)
 -- mock raises "Interface action failed because of an AddOn" — so what is pinned
 -- is the observable half: nothing registers under lockdown, the end of combat
 -- registers it exactly once, and it does so whatever the addon's stand-down
--- state. docs/smoke-tests.md § 6a owns the in-client half.
+-- state. docs/smoke-tests.md COMBAT-5 and COMBAT-6 own the in-client half.
 
 --- A `Settings` whose category calls answer and are counted. The mock's own
 --- answers nil from every member, which a real registration cannot get past.

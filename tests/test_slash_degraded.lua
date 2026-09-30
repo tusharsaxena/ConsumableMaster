@@ -98,6 +98,33 @@ for _, spec in ipairs({ { "bar on", true }, { "bar off", false }, { "bar", false
         end)
 end
 
+-- `/cm profile` is LibKa0s-Slash-1.0's verb (minor 17), so with the library absent
+-- there is no store adapter to trust and it takes route (b) like the composed-row
+-- verbs: the one library-absent line for `/cm profile`, whatever followed the verb,
+-- and no switch. AceDB would CREATE a typed name, so switching here unguarded is
+-- the worse failure, not a kinder one. The published ProfileSwitch says the same.
+--
+-- red under: routing the degraded verb to db:SetProfile, or leaving it unbound (a
+-- Lua error on a nil upvalue).
+test("Slash: with LibKa0s absent, /cm profile prints the library-absent line and switches nothing",
+    function(t)
+        local KCM, mock = degraded()
+        local names = {}
+        for name in pairs(KCM.db.profiles) do names[#names + 1] = name end
+        for _, line in ipairs({ "profile", "profile Alt", "profile \"My Main\"" }) do
+            local ok, err, out = runVerb(KCM, mock, line)
+            t.truthy(ok, "no Lua error: " .. tostring(err))
+            t.eqList(out, { absentLine(KCM, "profile") }, "/cm " .. line .. ": the one line")
+        end
+        mock.output = {}
+        t.eq(KCM.SlashCommands.ProfileSwitch("Alt"), false, "ProfileSwitch answers false")
+        t.eqList(mock.output, { absentLine(KCM, "profile") }, "with the same line")
+        t.eq(KCM.db:GetCurrentProfile(), "Default", "nothing switched")
+        local after = {}
+        for name in pairs(KCM.db.profiles) do after[#after + 1] = name end
+        t.eq(#after, #names, "and nothing was created")
+    end)
+
 -- Red under: printing the success line without checking SetEnabled's verdict.
 test("Slash: /cm bar on over a refused write never says ON", function(t)
     local KCM, mock = degraded()

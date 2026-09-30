@@ -53,7 +53,7 @@ So `MacroDisplay.CooldownForID` returns `active, durationObject, start, duration
 
 Items are **not** cooldown-restricted — `C_Item.GetItemCooldown` declares no secret predicate — so their plain triple stays readable. It gets wrapped in a duration object regardless, so the frame layer has exactly one path.
 
-Don't reintroduce a numeric comparison or a raw `SetCooldown` on the spell path; both are silent out of combat and error the moment a fight starts. `tests/wow_mock.lua` models this (`mock.setCooldownsRestricted`, `mock.secret`, `mock.makeDuration`) so the regression is caught headlessly, and [smoke-tests.md](./smoke-tests.md) step 7a covers it in-game.
+Don't reintroduce a numeric comparison or a raw `SetCooldown` on the spell path; both are silent out of combat and error the moment a fight starts. `tests/wow_mock.lua` models this (`mock.setCooldownsRestricted`, `mock.secret`, `mock.makeDuration`) so the regression is caught headlessly, and [smoke-tests.md](./smoke-tests.md) COMBAT-10 covers it in-game.
 
 ### Chat and debug output
 

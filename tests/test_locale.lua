@@ -206,12 +206,15 @@ end
 --                   them (LIBKA0S-09, issue #16). Routing a string nothing
 --                   renders is noise.
 --   CLI SURFACE     A `/cm` verb description or reply. `/cm` prints these
---                   twenty-two verbs and core/SlashCommands.lua's five
---                   sub-command tables through one lib.FormatRow, and four
---                   fifths of that listing lives outside the scanned surface.
---                   Routing this fifth alone would split one help listing
---                   between two locales; the command surface is one decision,
---                   and it is not this one.
+--                   verbs and core/SlashCommands.lua's five sub-command
+--                   tables through one lib.FormatRow, and four fifths of that
+--                   listing lives outside the scanned surface. Routing this
+--                   fifth alone would split one help listing between two
+--                   locales; the command surface is one decision, and it is
+--                   not this one. The one routed row, `profile`, is the
+--                   exception by origin: its description is the collection's
+--                   shared wording for the shared LibKa0s-Slash minor 17 verb,
+--                   the same in all eleven addons, so it goes through KCM.L.
 --   NOT YET ROUTED  A plain user-facing sentence in a settings page that would
 --                   route cleanly and simply has not been. M4-21 scoped this
 --                   repository's routing to the six widget labels
@@ -280,7 +283,7 @@ local RESIDUE = {
     -- settings/Category.lua
     {"settings/Category.lua", "icon-button onClick failed: ", "DIAGNOSTIC"},
 
-    -- settings/Slash.lua — the nineteen verb descriptions and their replies.
+    -- settings/Slash.lua — the twenty-two unrouted verb descriptions and their replies.
     {"settings/Slash.lua", "Show this help", "CLI SURFACE"},
     {"settings/Slash.lua", "Open the settings panel", "CLI SURFACE"},
     {"settings/Slash.lua", "Settings panel unavailable.", "CLI SURFACE"},

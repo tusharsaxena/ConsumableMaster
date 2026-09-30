@@ -304,6 +304,10 @@ test("Slash: with the library absent only the five library-backed verbs degrade"
     -- dispatches and says it cannot run, and is kept off the "still work" half.
     t.falsy(text:find("diagnostics", 1, true),
         "…and not diagnostics, which needs LibKa0s-DebugLog to write: " .. text)
+    -- Nor profile: the verb is LibKa0s-Slash-1.0's (minor 17), and degraded it
+    -- answers the library-absent line for itself (tests/test_slash_degraded.lua).
+    t.falsy(text:find("profile", 1, true),
+        "…and not profile, which needs LibKa0s-Slash to switch: " .. text)
 end)
 
 test("Slash: with the library absent /cm diagnostics says the one line and floods nothing", function(t)

@@ -685,7 +685,7 @@ end
 -- would be a visibility change made by a gesture that means "move".
 --
 -- EVERY SLOT MAY BE HIDDEN. The checkboxes this list replaced allowed it, and the
--- bar collapses to its backdrop rather than erroring (docs/smoke-tests.md §11a).
+-- bar collapses to its backdrop rather than erroring (docs/smoke-tests.md BAR-18).
 -- MultiMeters refuses to hide a window's last column, because a meter window with
 -- no columns shows nothing it can be told apart by; a bar with no buttons is an
 -- odd choice but a legible one, and turning the bar off is one tab away.
