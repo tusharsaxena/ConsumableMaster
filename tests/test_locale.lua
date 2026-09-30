@@ -127,12 +127,15 @@ local function scanLiterals(src)
                 text      = src:sub(i + 1, j - 1),
                 line      = line,
                 wrapped   = lDepth > 0,
-                -- `KCM.Debug(tag, fmt, …)` is the debug console's sink, not chat.
-                -- Its format strings are developer diagnostics that docs/debug.md
+                -- `KCM.Debug(tag, fmt, …)` is the debug console's sink, not chat,
+                -- and so are its gated siblings `KCM.DebugOnce(key, tag, fmt, …)`,
+                -- `KCM.DebugChanged(…)` and `KCM.DebugAtEnable(tag, fmt, …)`
+                -- (core/Debug.lua, the console's gates from LibKa0s v1.65.0).
+                -- Their format strings are developer diagnostics that docs/debug.md
                 -- governs and that no translator should ever be shown. Every such
                 -- call in the scanned surface opens on the line its format string
                 -- sits on, which is what makes the same-line test sufficient.
-                debugArg  = src:sub(lineStart, i - 1):find("KCM.Debug(", 1, true) ~= nil,
+                debugArg  = src:sub(lineStart, i - 1):find("KCM%.Debug%a*%(") ~= nil,
                 statement = src:sub(lineStart, i - 1),
             }
             i = j + 1

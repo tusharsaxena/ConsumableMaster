@@ -567,9 +567,9 @@ end
 -- (debug-logging-§9): every bar refresh re-runs this for every slot, so an
 -- unchanged cap would otherwise say the same thing after every bag update.
 local function traceCap(catKey, cap, available)
-    local Q = KCM.DebugQuiet
-    if Q and not Q.Changed("flyout:" .. tostring(catKey), cap .. "/" .. available) then return end
-    KCM.Debug("Bar", "%s flyout capped at %s of %s available", catKey, cap, available)
+    if not KCM.DebugChanged then return end
+    KCM.DebugChanged("flyout:" .. tostring(catKey), "Bar", "%s flyout capped at %s of %s available",
+        catKey, cap, available)
 end
 
 -- Ordered, capped candidate list for a slot. Order comes from the category's own

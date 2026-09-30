@@ -751,10 +751,8 @@ end
 -- otherwise say the same thing after every bag update. A different category,
 -- spec or row count is a change and logs.
 local function tracePaint(catKey, rows, specKey)
-    local Q = KCM.DebugQuiet
-    local summary = tostring(catKey) .. "|" .. tostring(rows) .. "|" .. tostring(specKey)
-    if Q and not Q.Changed("prio.paint", summary) then return end
-    KCM.Debug("Prio", "paint %s rows=%s spec=%s", catKey, rows, tostring(specKey))
+    if not KCM.DebugChanged then return end
+    KCM.DebugChanged("prio.paint", "Prio", "paint %s rows=%s spec=%s", catKey, rows, tostring(specKey))
 end
 
 -- The priority list proper: the no-spec and empty states, or one row per candidate.

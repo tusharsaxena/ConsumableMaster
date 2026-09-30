@@ -54,3 +54,48 @@ local mt = {
     end,
 }
 setmetatable(KCM.Debug, mt)
+
+-- The console's change gates and at-enable queue (LibKa0s-DebugLog-1.0's
+-- DebugLogGates.lua, from LibKa0s v1.65.0), reached through the same probe as
+-- the sink above and for the same reason: this file loads before the console
+-- exists. A "log once" line goes through KCM.DebugOnce, a "log when it
+-- changes" line through KCM.DebugChanged, and both are gated and formatted as
+-- KCM.Debug is and re-armed by the console itself, on Clear() and on turning
+-- logging on (debug-logging-§9). A STATE line written while logging is off
+-- (the launcher's registration) goes through KCM.DebugAtEnable, which holds it
+-- until logging is turned on (debug-logging-§8).
+--
+-- With no console -- early boot, or a degraded install that publishes no
+-- instance -- each answers false and writes nothing, as the standard's
+-- DebugLog stub does (debug-logging-§7). They are NOT the chat fallback the
+-- sink takes: a gate exists because its path repeats, and a repeating line
+-- with no memory behind it would flood the chat frame.
+local function gates()
+    local DL = KCM.DebugLog
+    local D = DL and DL.instance
+    if D and D.DebugOnce then return D end
+    return nil
+end
+
+function KCM.DebugOnce(key, tag, fmt, ...)
+    local D = gates()
+    if not D then return false end
+    return D.DebugOnce(key, tag, fmt, ...)
+end
+
+function KCM.DebugChanged(key, tag, fmt, ...)
+    local D = gates()
+    if not D then return false end
+    return D.DebugChanged(key, tag, fmt, ...)
+end
+
+function KCM.DebugForget(key)
+    local D = gates()
+    if D then D.DebugForget(key) end
+end
+
+function KCM.DebugAtEnable(tag, fmt, ...)
+    local D = gates()
+    if not D then return false end
+    return D.DebugAtEnable(tag, fmt, ...)
+end

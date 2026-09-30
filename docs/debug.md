@@ -11,6 +11,10 @@ The console window is drawn by **`LibKa0s-DebugLog-1.0`** (`libs/LibKa0s/DebugLo
 ```lua
 KCM.Debug.IsOn()      -- bool; reads the flag (DebugLog.IsEnabled, else State.debug)
 KCM.Debug(tag, fmt, ...)        -- callable sink: gated, secret-safe line to the console
+KCM.DebugOnce(key, tag, fmt, ...)     -- the console's log-once gate; false with no console
+KCM.DebugChanged(key, tag, fmt, ...)  -- the console's log-on-change gate (whole line compared)
+KCM.DebugForget(key)                  -- re-arm one key in both gates
+KCM.DebugAtEnable(tag, fmt, ...)      -- a state line held until logging is turned on
                                 -- read side only: core/Debug.lua publishes no Toggle,
                                 -- because SetEnabled below is the single write path (debug-logging-§5)
 
@@ -86,7 +90,7 @@ What the log carries, by tag, so a pasted log can be read back into what happene
 | `Perf` | `LibKa0s-Perf-1.0` through `core/PerfSetup.lua` | The capture's lifecycle, ungated (a run the player started reports itself). |
 | `Diag` | the library's diagnostics report | The report's markers, ungated ([below](#the-diagnostics-report-cm-diagnostics)). |
 
-**The quiet steady state.** Three kinds of repeating path, and how each is kept quiet: the pass summaries on a repeating reason (`[Scan]`, no-write `[Calc]`) the per-view lines (`[Prio] paint`, `[Bar] … capped`) and the oversize line (`[Macro] <CAT> body exceeds …`) are **change-gated** on their own summary through `KCM.DebugQuiet` (`core/ConsumableMaster.lua`); the combat holds (`[Macro] held …`, `[Bar] … held`) log on their **edge**; and an error a repeating path catches is logged **once per distinct error**. The memory is reset on every debug-enable, so a new logging window starts by showing the current state. The console's `(xN)` repeat folding is not relied on for any of this. The cooldown repaint (`SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN`), the bar's fade tick and the flyout's idle poll log nothing at all. `tests/test_debugcoverage.lua` pins each rule with a repeat-N-times case.
+**The quiet steady state.** Three kinds of repeating path, and how each is kept quiet: the per-view lines (`[Prio] paint`, `[Bar] … capped`) and the combat queue's `[Macro] held …` are **change-gated** through the console's own gate, `KCM.DebugChanged` (`core/Debug.lua` over `LibKa0s-DebugLog-1.0`'s `DebugChanged`, from LibKa0s v1.65.0); the pass summaries on a repeating reason (`[Scan]`, no-write `[Calc]`) and the oversize line (`[Macro] <CAT> body exceeds …`) are change-gated on their own summary through `KCM.DebugQuiet` (`core/ConsumableMaster.lua`), the one gate the addon keeps, because it **counts** the passes it held back for the `(after N unchanged pass(es))` suffix and the console's gate compares whole lines; the bar's holds (`[Bar] … held`) log on their **edge**; and an error a repeating path catches is logged **once per distinct error**, through `KCM.DebugOnce`. Every one of them is re-armed on each debug-enable and on each **Clear** of the console (the library re-arms its own gates; `core/DebugLogSetup.lua`'s `setEnabled` and `onClear` reset `KCM.DebugQuiet`), so a new logging window or a cleared console starts by showing the current state. The console's `(xN)` repeat folding is not relied on for any of this. The cooldown repaint (`SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN`), the bar's fade tick and the flyout's idle poll log nothing at all. `tests/test_debugcoverage.lua` pins each rule with a repeat-N-times case.
 
 ## Dump internals
 

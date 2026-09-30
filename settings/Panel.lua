@@ -108,11 +108,9 @@ function Helpers.TraceCombatRefused(what)
 end
 
 function Helpers.TraceCaught(site, err)
-    if not logOn() then return end
+    if not (logOn() and KCM.DebugOnce) then return end
     local msg = tostring(err)
-    local Q = KCM.DebugQuiet
-    if Q and not Q.First("caught:" .. tostring(site) .. ":" .. msg) then return end
-    KCM.Debug("Cmd", "%s failed: %s", site, msg)
+    KCM.DebugOnce("caught:" .. tostring(site) .. ":" .. msg, "Cmd", "%s failed: %s", site, msg)
 end
 
 -- The shim TABLE is created here and filled in settings/OptionsShim.lua, which

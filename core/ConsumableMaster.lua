@@ -111,15 +111,27 @@ end
 
 -- QUIET STEADY STATE (debug-logging-§9). A repeating path logs on a CHANGE of
 -- its own summary, never on every pass; and an error a repeating path catches
--- is one line per distinct error, not one per pass (debug-logging-§8). This is
--- the memory both rules need, keyed by the caller. Every caller reaches it
--- behind its own debug gate, so with logging off nothing is built or compared.
--- Reset on every debug-enable (core/DebugLogSetup.lua), so a fresh logging
--- window starts by showing the current state rather than hiding it as "same
--- as a line from an earlier window".
+-- is one line per distinct error, not one per pass (debug-logging-§8).
+--
+-- Most of that is the CONSOLE'S now (LibKa0s v1.65.0): a "log once" line goes
+-- through KCM.DebugOnce and a "log when it changes" line whose text is its own
+-- summary through KCM.DebugChanged (core/Debug.lua), both re-armed by the
+-- console on Clear and on turning logging on. What stays here is the one thing
+-- those gates cannot do: COUNT the passes a change-gated line held back, so the
+-- line that finally logs can end `(after N unchanged pass(es))`. The console's
+-- DebugChanged compares the whole line, and a line carrying its own count
+-- differs from the last one by construction, so the count needs a memory keyed
+-- on the summary alone -- which is this, and only this. Its three callers are
+-- the [Scan] and no-write [Calc] pass summaries and the oversize line.
+--
+-- Every caller reaches it behind its own debug gate, so with logging off
+-- nothing is built or compared. Reset on every debug-enable and on every Clear
+-- (core/DebugLogSetup.lua's setEnabled and onClear), so a fresh logging window
+-- and a cleared console both start by showing the current state rather than
+-- hiding it as "same as a line nobody can see any more".
 KCM.DebugQuiet = KCM.DebugQuiet or {}
 local Q = KCM.DebugQuiet
-local lastLogged, quietPasses, seenOnce = {}, {}, {}
+local lastLogged, quietPasses = {}, {}
 
 --- nil when `summary` is the one last logged under `key` (the pass is counted);
 --- otherwise the count of identical passes left unlogged since then (0 at first),
@@ -135,20 +147,13 @@ function Q.Changed(key, summary)
     return n
 end
 
---- true the first time `key` is seen this logging window, false after.
-function Q.First(key)
-    if seenOnce[key] then return false end
-    seenOnce[key] = true
-    return true
-end
-
 --- Forget one key, so its next summary logs whatever it says.
 function Q.Forget(key)
     lastLogged[key], quietPasses[key] = nil, nil
 end
 
 function Q.Reset()
-    lastLogged, quietPasses, seenOnce = {}, {}, {}
+    lastLogged, quietPasses = {}, {}
 end
 
 -- The suffix a change-gated line carries when passes went unlogged before it.
@@ -211,11 +216,10 @@ end
 -- A category's recompute raised. Every pass retries it, so the line is once per
 -- distinct error for the logging window (debug-logging-§8), not once per pass.
 local function traceRecomputeFailure(catKey, err)
-    if not isDebugOn() then return end
+    if not (isDebugOn() and KCM.DebugOnce) then return end
     local msg = tostring(err)
-    if Q.First("recompute:" .. tostring(catKey) .. ":" .. msg) then
-        KCM.Debug("Macro", "%s recompute failed: %s", catKey, msg)
-    end
+    KCM.DebugOnce("recompute:" .. tostring(catKey) .. ":" .. msg,
+        "Macro", "%s recompute failed: %s", catKey, msg)
 end
 
 -- One write pass over every category, returning the tally the Calc line

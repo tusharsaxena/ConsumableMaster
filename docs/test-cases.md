@@ -237,9 +237,12 @@ badge and any count quoted in the docs must agree with it.
 - DebugLogSetup: the folder name the descriptor carries names art that exists
 - DebugLogSetup: the console's font comes out of the payload, with a real client fallback
 
-### test_debugcoverage.lua (16)
+### test_debugcoverage.lua (19)
 
 - DebugQuiet.Changed answers nil on a repeat and the unlogged count on the next change
+- a Clear re-arms every change gate: the console's two and the counted one
+- the console's gates write nothing, and remember nothing, while logging is off
+- without a console the gates answer false and write nothing
 - repeated bag-update passes that change nothing log one [Scan] and one [Calc] line
 - a pass that writes, or a pass on an edge reason, always logs its [Calc] line
 - a gated line logs again after logging is switched off and back on
@@ -1367,7 +1370,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 26 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 21 |
-| test_debugcoverage.lua | 16 |
+| test_debugcoverage.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
 | test_disabled.lua | 21 |
@@ -1418,4 +1421,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **1156** |
+| **Total** | **1159** |

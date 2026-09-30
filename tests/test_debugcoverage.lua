@@ -15,6 +15,13 @@ local test = h.test
 -- it (each argument stringified first). A pure load has no sink, so install
 -- one; the full load's call sites reach KCM.Debug at call time too, so the same
 -- recorder captures them. The quiet gate is reset so each case starts clean.
+--
+-- The console's change gates (KCM.DebugOnce / KCM.DebugChanged, LibKa0s
+-- v1.65.0) write through the console instance's Add, not through KCM.Debug, so
+-- where there IS a console (loadConsole, loadFullAddon) its Add is recorded
+-- too. The two paths are disjoint -- the recorder above replaces the sink that
+-- would otherwise reach Add -- so no line is recorded twice. A pure load has no
+-- console and so no gates: a case pinning a gated line loads the console.
 local function record(KCM)
     local lines = {}
     KCM.State = KCM.State or {}
@@ -27,6 +34,14 @@ local function record(KCM)
             lines[#lines + 1] = "[" .. tostring(tag) .. "] " .. tostring(fmt):format(unpack(args, 1, n))
         end,
     })
+    local D = KCM.DebugLog and KCM.DebugLog.instance
+    if D then
+        local add = D.Add
+        D.Add = function(self, tag, msg)
+            lines[#lines + 1] = "[" .. tostring(tag) .. "] " .. tostring(msg)
+            return add(self, tag, msg)
+        end
+    end
     KCM.DebugQuiet.Reset()
     return lines
 end
@@ -67,8 +82,56 @@ test("DebugQuiet.Changed answers nil on a repeat and the unlogged count on the n
     t.eq(Q.Suffix(0), "", "and none when nothing was held back")
     Q.Forget("k")
     t.eq(Q.Changed("k", "b"), 0, "a forgotten key logs whatever it says next")
-    t.truthy(Q.First("e"), "First is true the first time")
-    t.falsy(Q.First("e"), "and false after")
+    -- red under: a First (or any "log once" memo) coming back here. Log-once is
+    -- the console's KCM.DebugOnce from LibKa0s v1.65.0 (debug-logging-§9).
+    t.eq(Q.First, nil, "no hand-rolled log-once memo")
+end)
+
+-- red under: KCM.DebugOnce / KCM.DebugChanged binding a memo of the host's own
+-- rather than the console's gates, or core/DebugLogSetup.lua passing no
+-- onClear, so a Clear left the counted gate holding a line nobody can see.
+test("a Clear re-arms every change gate: the console's two and the counted one", function(t)
+    local KCM = h.loader.loadConsole()
+    local D = KCM.DebugLog.instance
+    local lines = record(KCM)
+    local Q = KCM.DebugQuiet
+    t.truthy(KCM.DebugOnce("k1", "T", "once %s", 1), "the first once line writes")
+    t.falsy(KCM.DebugOnce("k1", "T", "once %s", 1), "the second is held")
+    t.truthy(KCM.DebugChanged("k2", "T", "changed %s", "a"), "the first changed line writes")
+    t.falsy(KCM.DebugChanged("k2", "T", "changed %s", "a"), "the same line is held")
+    t.eq(Q.Changed("k3", "s"), 0, "the counted gate logs its first summary")
+    t.eq(Q.Changed("k3", "s"), nil, "and holds the repeat")
+    D:Clear()
+    t.truthy(KCM.DebugOnce("k1", "T", "once %s", 1), "after a Clear the once line writes again")
+    t.truthy(KCM.DebugChanged("k2", "T", "changed %s", "a"), "and the changed line")
+    t.eq(Q.Changed("k3", "s"), 0, "and the counted gate starts over")
+    t.eq(count(lines, "[T] once 1"), 2, "each once line landed in the console")
+    t.eq(count(lines, "[T] changed a"), 2, "each changed line too")
+end)
+
+test("the console's gates write nothing, and remember nothing, while logging is off", function(t)
+    local KCM = h.loader.loadConsole()
+    local lines = record(KCM)
+    KCM.State.debug = false
+    t.falsy(KCM.DebugOnce("k", "T", "once"), "off: nothing written")
+    KCM.State.debug = true
+    t.truthy(KCM.DebugOnce("k", "T", "once"), "on: the key was never spent while off")
+    t.eq(count(lines, "[T] once"), 1, "one line")
+end)
+
+test("without a console the gates answer false and write nothing", function(t)
+    local KCM = h.loader.loadConsole(true)
+    KCM.State = KCM.State or {}
+    KCM.State.debug = true
+    local said = 0
+    local realSay = KCM.Say
+    KCM.Say = function() said = said + 1 end
+    t.falsy(KCM.DebugOnce("k", "T", "once"), "DebugOnce")
+    t.falsy(KCM.DebugChanged("k", "T", "changed"), "DebugChanged")
+    t.falsy(KCM.DebugAtEnable("T", "state"), "DebugAtEnable")
+    KCM.DebugForget("k")
+    KCM.Say = realSay
+    t.eq(said, 0, "no chat fallback for a gated line")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -134,7 +197,7 @@ end)
 -- in combat marks every macro stale, and the old line fired once per macro per
 -- pass: fifteen lines at once, then fifteen more on every pass until regen.
 test("a forced rewrite in combat is one held line, quiet on repeat, and a flush line at regen", function(t)
-    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local KCM, mock = h.loader.loadConsole(), h.loader.mock
     ownFood(mock, 950004)
     KCM.Pipeline.Recompute("setup")
     local total = #KCM.Categories.LIST
@@ -164,7 +227,7 @@ end)
 
 -- red under: runMacroPass logging its pcall's error on every pass.
 test("a category whose recompute raises on every pass is one line per distinct error", function(t)
-    local KCM = h.loader.loadPure()
+    local KCM = h.loader.loadConsole()
     local real = KCM.Pipeline.RecomputeOne
     KCM.Pipeline.RecomputeOne = function(catKey, ...)
         if catKey == "FOOD" then error("scorer broke", 0) end
@@ -182,7 +245,7 @@ end)
 -- every bag update retried it: fifteen [Macro] lines plus a [Calc] line that
 -- claimed fifteen writes (and so bypassed the no-write gate) on every pass.
 test("writes refused on every pass log one failed line per macro and one [Calc] line", function(t)
-    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local KCM, mock = h.loader.loadConsole(), h.loader.mock
     ownFood(mock, 950010)
     local total = #KCM.Categories.LIST
     local saved = _G.GetNumMacros
