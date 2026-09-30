@@ -395,15 +395,25 @@ end)
 
 test("DebugLog: RunDiagnostics forwards to the library instance and answers its count", function(t)
     -- The live facade is a plain forwarder, like its siblings: the report is the
-    -- library's, the line count is the instance's, and the flag stays off.
+    -- library's, the line count is the instance's, and a run with logging off turns
+    -- it on for the session first (debug-logging-§14 at v2.71.0). The count is the
+    -- report's alone: the enable line and the [Init] summary are SetEnabled's, so
+    -- the exact buffer arithmetic is pinned on a second run, with logging already on.
     local KCM, DL = load()
     KCM.State.debug = false
     local before = DL.instance:BufferSize()
     local n = DL.RunDiagnostics()
     t.eq(type(n), "number", "a line count comes back")
     t.truthy(n > 0, "the report wrote lines")
-    t.eq(DL.instance:BufferSize(), before + n, "every counted line landed in the console")
-    t.falsy(KCM.State.debug, "the report never switches logging on")
+    t.truthy(DL.instance:BufferSize() > before + n,
+        "the report and the enable lines ahead of it landed in the console")
+    t.truthy(KCM.State.debug, "the report switched logging on for the session")
+    before = DL.instance:BufferSize()
+    local again = DL.RunDiagnostics()
+    t.eq(DL.instance:BufferSize(), before + again,
+        "with logging already on, every counted line landed and nothing else")
+    t.truthy(KCM.State.debug, "a second run leaves logging on")
+    KCM.State.debug = false
 end)
 
 -- ── the descriptor field the title bar's art hangs on ─────────────────────────

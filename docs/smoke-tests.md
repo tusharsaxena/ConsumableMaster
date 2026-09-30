@@ -17,7 +17,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | BAR-1 – BAR-30 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
-| DIAG-1 – DIAG-35 | Diagnostics | Debug console, the diagnostics report, what the log carries and holds back, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
+| DIAG-1 – DIAG-36 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
 | DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
@@ -479,7 +479,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DIAG-13. The report is read-only.** Note a macro body and the bar's position, run the report → neither moved, no macro was rewritten, and the Macros page lists are unchanged. Result:
 
-**DIAG-14. The report with logging off.** `/cm debug off`, `/cm diagnostics` → the full report lands, the header still reads red `Debug: OFF`, and the next `/cm resync` writes no `[Calc]` line. Result:
+**DIAG-14. The report turns logging on for the session.** `/cm debug off`, `/cm diagnostics` → logging turns on first: the header reads green `Debug: ON`, chat prints the `debug logging ON` line, and the console gains `[Debug] logging enabled` and the `[Init]` summary; then the full report lands after them, its header reading `debug logging: on`, and the next `/cm resync` writes its `[Calc]` line. Run `/cm diagnostics` again → the report appends once more with no second `logging enabled` line. `/reload` → the header reads red `Debug: OFF` again. Result:
 
 **DIAG-15. The report opens a hidden console.** Close the console, `/cm diagnostics` → it opens with the report at the bottom. Result:
 
@@ -522,6 +522,8 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 **DIAG-34. A dungeon of looting is not a wall of lines.** `/cm debug on`, then loot and drink through a few pulls with nothing new entering your bags → the console gains one `[Scan]` and one `[Calc]` line for the first unchanged bag update, and none for the ones after it, until an item arrives or leaves; the line that logs then ends `(after N unchanged pass(es))`. Result:
 
 **DIAG-35. Combat holds are one line each way.** `/cm debug on`, pull a dummy, and in combat `/cm rewritemacros` → one `[Macro] held N write(s) for combat: KCM_…` line, not one `deferred` line per macro, and nothing more while the fight goes on; drop combat → `[Event] PLAYER_REGEN_ENABLED lockdown=false flushed=N held=0` and one `[Macro] KCM_… edited …` line per macro. Result:
+
+**DIAG-36. The Diagnostics link.** Bare `/cm debug` → in the title bar, top left, the word **Diagnostics** sits just right of the `Debug: ON/OFF` label with a small gap, drawn orange in the same plain text as that label: no button art, border or background. Hover it → it brightens; move off → orange again. With logging off, click it → logging turns on first, as DIAG-14, then the report is written after the `[Init]` summary with the one chat line giving its line count. Click it again → the report appends once more, with no second `logging enabled` line. Toggle the label between ON and OFF → the gap after it holds for either word. Drag the console in as far as it goes → the link still fits beside the label and the title. Result:
 
 ## Degraded install
 
@@ -598,10 +600,12 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | COMBAT-13 | §11a step 14 | Corrected: the in-combat changes are made from chat; the Macro Bar page is covered |
 | COMBAT-14 – COMBAT-17 | Mid-key reload and the event trace (2026-09-29) | Never run |
 | DIAG-1 | §7 step 7, §11 step 5, seam step 10 | Corrected: logging follows `/cm debug on`/`off` and the console header's toggle, not the Debug console box |
+| DIAG-14 | §7d step 4 | Corrected: the report turns logging on for the session, and a `/reload` turns it off (LibKa0s v1.64.0, kit revision 34) |
 | DIAG-17 | §7d step 7 | Corrected: `/cm diag` answers `Unknown command: diag` |
 | DIAG-27 | Perf harness step 7 | Never run: the US perf strings (`M4-01`) |
 | DIAG-28 – DIAG-33 | New | The resizable console, copy window and perf panel (LibKa0s v1.64.0), never run in a client |
 | DIAG-34, DIAG-35 | New | The quiet steady state and the combat hold line (DL-CM-02), never run in a client |
+| DIAG-36 | New | The console's Diagnostics link (LibKa0s v1.64.0, DL-CM-03), never run in a client |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
 | LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |
