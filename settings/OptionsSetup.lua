@@ -225,6 +225,17 @@ if optionsLib and AceGUI then
         -- OpenOptionsPanel prints for /cm config mid-fight.
         print = function(line) KCM.Say(line) end,
 
+        -- The host's gated sink. The library writes its own `[Cfg]` lines
+        -- through it: the combat lock's refusals (`<what> refused (in combat)`,
+        -- once per text per combat, Options minor 27), the registration parked
+        -- in combat and its `register flushed (combat ended)`, and the panel's
+        -- open and open-refused. No page file restates one (debug-logging-§4).
+        -- Call-time, because core/Debug.lua's KCM.Debug is resolved when a line
+        -- is written; `%s`, because a refused row's label may carry a `%`.
+        debug = function(tag, message)
+            if KCM.Debug then KCM.Debug(tag, "%s", tostring(message)) end
+        end,
+
         -- The panel registry is the library's (CreateOptionsPanel, reached from
         -- settings/Panel.lua's registerPanel), so the main canvas and the
         -- schema check it runs first are declared here. Both are thunks:

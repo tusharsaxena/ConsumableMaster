@@ -17,7 +17,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | BAR-1 – BAR-30 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
-| DIAG-1 – DIAG-36 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
+| DIAG-1 – DIAG-39 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the lines the library writes into it, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
 | DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
@@ -525,6 +525,12 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **DIAG-36. The Diagnostics link.** Bare `/cm debug` → in the title bar, top left, the word **Diagnostics** sits just right of the `Debug: ON/OFF` label with a small gap, drawn orange in the same plain text as that label: no button art, border or background. Hover it → it brightens; move off → orange again. With logging off, click it → logging turns on first, as DIAG-14, then the report is written after the `[Init]` summary with the one chat line giving its line count. Click it again → the report appends once more, with no second `logging enabled` line. Toggle the label between ON and OFF → the gap after it holds for either word. Drag the console in as far as it goes → the link still fits beside the label and the title. Result:
 
+**DIAG-37. A slash refusal shows in the console.** `/cm debug on`, `/cm disable`, then `/cm bar on` → chat prints the one disabled line, and the console gains `[Cmd] /cm bar on` then `[Cmd] refused bar: disabled`, and no third `[Cmd]` line for it. `/cm frobnicate` → `[Cmd] refused frobnicate: unknown verb` after the command line. `/cm set enabled perhaps` → `[Cmd] refused set enabled: parse (…)`, once. `/cm enable`. Result:
+
+**DIAG-38. A stand-down edge shows in the console.** `/cm debug on`, `/cm disable` → one `[Lifecycle] stood down: added disabled (holds: disabled)` line and no `[State] stood down` line beside it; `/cm enable` → one `[Lifecycle] stood up: released disabled (holds: none)`. `/cm enable` again → no new `[Lifecycle]` line. Pull a dummy and `/cm disable` in combat → the `[Lifecycle]` edge, then `[State] stood down: bar teardown held for combat`; drop combat → `[Event] PLAYER_REGEN_ENABLED … stood down: held bar teardown finished`. `/cm enable`. Result:
+
+**DIAG-39. A combat-locked panel says what it refused.** `/cm debug on`, open the General page, pull a dummy → the page is covered (COMBAT-8). Click the Settings window's own **Defaults** button, below the cover, twice → chat prints the one gray combat notice, and the console gains one `[Cfg] defaults … refused (in combat)` line however often you click, and no `[Cmd] … Defaults refused` line. Click **Macros** in the sidebar → one `[Cfg] show … refused (in combat)` line. Drop combat, pull again and click **Defaults** → it logs once more (one line per combat). Result:
+
 ## Degraded install
 
 Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` and `/reload` for these checks; rename it back and `/reload` afterward.
@@ -606,6 +612,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | DIAG-28 – DIAG-33 | New | The resizable console, copy window and perf panel (LibKa0s v1.64.0), never run in a client |
 | DIAG-34, DIAG-35 | New | The quiet steady state and the combat hold line (DL-CM-02), never run in a client |
 | DIAG-36 | New | The console's Diagnostics link (LibKa0s v1.64.0, DL-CM-03), never run in a client |
+| DIAG-37 – DIAG-39 | New | The library's own `[Cmd]`, `[Lifecycle]` and `[Cfg]` lines in this log (LibKa0s v1.65.0, DG-CM-01), never run in a client |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
 | LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |

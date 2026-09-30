@@ -557,6 +557,15 @@ if slashLib then
         -- Same note as core/CoreSetup.lua's sink and core/DebugLogSetup.lua's
         -- print.
         print        = function(line) KCM.Say(line) end,
+        -- The host's gated sink (Slash minor 18): every refusal the dispatcher
+        -- decides -- the disabled gate, an unknown verb, get/set/reset usage
+        -- and not-found, a parse or write refusal, a reset with no default, the
+        -- profile verb's refusals -- writes ONE `[Cmd] refused <verb>: <guard>`
+        -- line through it, after its chat line. This file writes none of those
+        -- itself (debug-logging-§4). Call-time and `%s`, as the launcher's.
+        debug        = function(tag, message)
+            if KCM.Debug then KCM.Debug(tag, "%s", tostring(message)) end
+        end,
         L            = SLASH_STRINGS,
 
         -- The schema half. Every one of these resolves through KCM.Settings at
@@ -566,18 +575,15 @@ if slashLib then
         -- `set` is the seam's own Set, not SetAndRefresh: it answers
         -- `false, err, why` on a refusal (Slash minor 15), so CliSet prints the
         -- library's INVALID line and the reason ONCE, and the host prints no
-        -- second line of its own. `applyDefault` is the seam's ApplyDefault,
-        -- whose exact `false` for a row with no default is the NO_DEFAULT line.
+        -- second line of its own -- in chat or in the log, where the library's
+        -- `[Cmd] refused set <path>: write refused (...)` line is the one.
+        -- `applyDefault` is the seam's ApplyDefault, whose exact `false` for a
+        -- row with no default is the NO_DEFAULT line.
         get          = function(path) local H = helpers(); return H and H.Get(path) end,
         set          = function(path, value)
             local S = schema()
             if not S then return false end
-            local ok, err, why = S.Set(path, value)
-            -- The library prints the refusal; the log gets it too, guard named.
-            if not ok and KCM.State and KCM.State.debug and KCM.Debug then
-                KCM.Debug("Cmd", "%s refused: %s", tostring(path), tostring(why or err))
-            end
-            return ok, err, why
+            return S.Set(path, value)
         end,
         findRow      = function(path) local S = schema(); return S and S.FindRow(path) end,
         allRows      = function() return (KCM.Settings and KCM.Settings.Schema) or {} end,
@@ -755,9 +761,9 @@ end
 
 -- Every command, one gated line as typed (debug-logging-§8): a support read of
 -- the log needs what the player asked for before what the addon did about it.
--- Refusals the library's dispatcher answers (a feature verb while stood down,
--- an unknown verb) print to chat only; this line and the [State] edges are what
--- put them in the log.
+-- A refusal the library's dispatcher answers (a feature verb while stood down,
+-- an unknown verb, a refused write) follows it as the library's own
+-- `[Cmd] refused ...` line, through the descriptor's `debug` above.
 local function traceCommand(msg)
     if KCM.State and KCM.State.debug and KCM.Debug then
         KCM.Debug("Cmd", "/cm %s", (msg or ""):match("^%s*(.-)%s*$") or "")

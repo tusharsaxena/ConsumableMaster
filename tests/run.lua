@@ -488,6 +488,9 @@ local SUITES = {
     "test_harness",
     "test_id",
     "test_libka0s",
+    -- The lines LibKa0s writes into this addon's log through the `debug` each
+    -- descriptor is handed, once and never beside a host copy (DG-CM-01).
+    "test_librarylines",
     "test_launcher",
     "test_lintconfig",
     "test_load",

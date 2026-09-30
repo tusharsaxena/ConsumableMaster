@@ -225,18 +225,10 @@ end)
 -- The addon's own state edges and refusals
 -- ---------------------------------------------------------------------------
 
--- red under: standDown / standUp writing no line. Without them a log shows the
--- addon going quiet with nothing to say why.
-test("disable and enable each leave one [State] line naming the holds", function(t)
-    local KCM = h.loader.loadPure()
-    local lines = record(KCM)
-    KCM.OnEnabledChanged(false)
-    KCM.OnEnabledChanged(true)
-    t.truthy(find(lines, "[State] stood down (holds: disabled)"), "the stand-down, and why")
-    t.truthy(find(lines, "[State] stood up (holds: none)"), "and the stand-up")
-    t.eq(count(lines, "[State] "), 2, "one line per edge")
-end)
-
+-- The stand-down and stand-up EDGES are the library's lines from LibKa0s
+-- v1.65.0 (Lifecycle minor 3); tests/test_librarylines.lua pins them landing in
+-- this log once each, and no host copy beside them. What stays the host's is
+-- the held teardown and its finish.
 test("a stand-down in combat says its bar teardown is held, and regen says it finished", function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     local lines = record(KCM)
@@ -244,8 +236,16 @@ test("a stand-down in combat says its bar teardown is held, and regen says it fi
     KCM.OnEnabledChanged(false)
     mock.setCombat(false)
     KCM:OnRegenEnabled("PLAYER_REGEN_ENABLED")
-    t.truthy(find(lines, "stood down (holds: disabled); bar teardown held for combat"), "the hold")
+    t.truthy(find(lines, "[State] stood down: bar teardown held for combat"), "the hold")
     t.truthy(find(lines, "stood down: held bar teardown finished"), "and its finish")
+end)
+
+test("a stand-down out of combat writes no host [State] line: the edge is the library's", function(t)
+    local KCM = h.loader.loadPure()
+    local lines = record(KCM)
+    KCM.OnEnabledChanged(false)
+    KCM.OnEnabledChanged(true)
+    t.eq(count(lines, "[State] "), 0, "no host edge line")
 end)
 
 -- red under: KCM.ResetAllToDefaults refusing silently in the log.

@@ -59,16 +59,16 @@ local function inCombat()
     return InCombatLockdown and InCombatLockdown() and true or false
 end
 
--- The addon's own enable and stand-down edges, one gated line each
--- (debug-logging-§8's state edges). They name the holds, because "disabled" and
--- "a perf capture's suspended arm" look the same from outside, and a stand-down
--- in combat says its bar teardown is held: KCM:OnRegenEnabled logs the finish.
-local function traceEdge(edge, held)
+-- The stand-down and stand-up EDGES are the library's lines now (Lifecycle
+-- minor 3, through the descriptor's `debug` below): one `[Lifecycle]` line per
+-- edge naming the hold that caused it and the resulting set, written before the
+-- callback runs. The host writes none of its own (debug-logging-§4, "The
+-- library's own lines"). What the latch cannot know is that this addon's
+-- teardown is HELD in combat, so that one line stays the host's, after the
+-- library's edge line: KCM:OnRegenEnabled logs the finish.
+local function traceTeardownHeld()
     if not (KCM.State and KCM.State.debug and KCM.Debug) then return end
-    local holds = KCM.Lifecycle and KCM.Lifecycle:Holds() or {}
-    KCM.Debug("State", "%s (holds: %s)%s", edge,
-        #holds > 0 and table.concat(holds, ", ") or "none",
-        held and "; bar teardown held for combat" or "")
+    KCM.Debug("State", "stood down: bar teardown held for combat")
 end
 
 -- ---------------------------------------------------------------------------
@@ -110,8 +110,8 @@ local function standDown()
     local held = inCombat()
     if held then
         KCM.SafeRegisterEvent(KCM, "PLAYER_REGEN_ENABLED", "OnRegenEnabled", KCM.RejectedEvents)
+        traceTeardownHeld()
     end
-    traceEdge("stood down", held)
 end
 
 -- ---------------------------------------------------------------------------
@@ -122,7 +122,6 @@ end
 -- changed while the addon is off -- the whole schema CLI answers while disabled
 -- (slash-commands-§2) -- and the rebuild has to reflect it.
 local function standUp()
-    traceEdge("stood up", false)
     if KCM.Bus and KCM.Bus.StandUp then KCM.Bus.StandUp() end
     -- KCM:OnEnable's own list, CALLED rather than copied, for the same reason
     -- the teardown does not copy it.
@@ -146,6 +145,13 @@ KCM.Lifecycle = lib:New({
     -- A thunk, never bare: lib:New snapshots it, and core/CoreSetup.lua has not
     -- run yet at this point in the TOC. Read only by :PrintHolds().
     print     = function(line) KCM.Say(line) end,
+    -- The host's gated sink (Lifecycle minor 3), as a CALL-TIME forwarder:
+    -- core/Debug.lua sits below this file in the TOC, so a captured KCM.Debug
+    -- would be nil forever. `%s` rather than the message as a format string --
+    -- a hold key carrying a literal `%` would otherwise raise in string.format.
+    debug     = function(tag, message)
+        if KCM.Debug then KCM.Debug(tag, "%s", tostring(message)) end
+    end,
 })
 
 --- Is the addon stood down right now -- for either reason?
