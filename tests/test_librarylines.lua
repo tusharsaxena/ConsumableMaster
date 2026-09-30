@@ -161,6 +161,20 @@ test("Library lines: a page's Defaults refused under the combat lock is one [Cfg
     t.eq(count(D, "Defaults refused: in combat"), 0, "and no host copy: " .. dump(D))
 end)
 
+-- red under: settings/OptionsShim.lua's O.Open keeping its own `[Cmd] settings
+-- panel refused: in combat` line. OpenOptionsPanel writes the refusal itself
+-- through the descriptor's `debug`, so the host copy made one refusal two lines.
+test("Library lines: the settings panel opened in combat is one [Cfg] open refused line", function(t)
+    local KCM, D, mock = build()
+    mock.setCombat(true)
+    local ok, opened = pcall(KCM.Options.Open)
+    mock.setCombat(false)
+    t.truthy(ok, tostring(opened))
+    t.eq(opened, false, "O.Open answers false on a refusal")
+    t.eq(count(D, "[Cfg] open refused (in combat)"), 1, "the library's line, once: " .. dump(D))
+    t.eq(count(D, "settings panel refused"), 0, "and no host copy: " .. dump(D))
+end)
+
 -- ---------------------------------------------------------------------------
 -- Launcher (minor 5): the registration state, held until logging is turned on
 -- ---------------------------------------------------------------------------

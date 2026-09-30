@@ -197,13 +197,10 @@ function O.Open()
     end
     local opened = UI.OpenOptionsPanel()
     if opened then return true end
-    -- false: refused in combat, and the library has already said so.
-    if opened == false then
-        if KCM.State and KCM.State.debug and KCM.Debug then
-            KCM.Debug("Cmd", "settings panel refused: in combat")
-        end
-        return false
-    end
+    -- false: refused in combat. The library has already said so in chat and
+    -- written `[Cfg] open refused (in combat)` through the descriptor's `debug`
+    -- (settings/OptionsSetup.lua), so there is no host line here (debug-logging-§4).
+    if opened == false then return false end
     KCM.Say("settings panel unavailable on this client; use /cm help.")
     return false
 end

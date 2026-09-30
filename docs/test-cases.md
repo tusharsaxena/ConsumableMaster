@@ -420,7 +420,7 @@ badge and any count quoted in the docs must agree with it.
 - LibKa0s: library file basenames are unique across every vendored major
 - LibKa0s: omitting the vendored files leaves every major absent, not half-wired
 
-### test_librarylines.lua (9)
+### test_librarylines.lua (10)
 
 - Library lines: a feature verb refused while disabled is one [Cmd] refused line
 - Library lines: an unknown verb is one [Cmd] refused line
@@ -430,6 +430,7 @@ badge and any count quoted in the docs must agree with it.
 - Library lines: a call that changes no edge writes no [Lifecycle] line
 - Library lines: a stand-down in combat is the library's edge, then the host's held line
 - Library lines: a page's Defaults refused under the combat lock is one [Cfg] line
+- Library lines: the settings panel opened in combat is one [Cfg] open refused line
 - Library lines: the launcher's registration lands when logging is first turned on
 
 ### test_launcher.lua (28)
@@ -1382,7 +1383,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
-| test_librarylines.lua | 9 |
+| test_librarylines.lua | 10 |
 | test_launcher.lua | 28 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
@@ -1422,4 +1423,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **1160** |
+| **Total** | **1161** |
