@@ -332,7 +332,7 @@ local function slotSequence(KCM)
     AceGUI.Create = function(self, wtype, ...)
         local w = realCreate(self, wtype, ...)
         rawset(w, "kcmType", wtype)
-        rawset(w, "SetHeight", function(self, v) rawset(self, "kcmHeight", v); return self end)
+        rawset(w, "SetHeight", function(widget, v) rawset(widget, "kcmHeight", v); return widget end)
         rawset(w, "AddChild", function(parent, child)
             adds[#adds + 1] = { parent = parent, child = child }
             return parent
