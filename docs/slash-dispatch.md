@@ -14,7 +14,7 @@ Three files, and the split is deliberate:
 
 | File | Owns |
 |---|---|
-| `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. |
+| `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. It publishes the sub-command vocabulary as `KCM.SlashCommands.SplitVerb` / `FindCommand` / `CommandRows` on both arms: the library's own functions live, and on the degraded arm a minimal split, an exact lookup and plain `cmd  desc` rows. |
 | `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes six entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
@@ -92,15 +92,17 @@ General page's own combat wording), or *Reset failed (DB not ready).*
 ## The sub-command trees
 
 Four verbs dispatch a sub-verb of their own, from five ordered tables in two files. Every one of them
-is a table plus a `findCommand` lookup — never an `if` ladder — so the help output and the dispatch
-read the same rows and cannot drift.
+is a table plus a lookup through the library's `FindCommand` (read as `KCM.SlashCommands.FindCommand`)
+— never an `if` ladder — and the four in `core/SlashCommands.lua` render their help rows through
+`lib.CommandRows`, the formatter `/cm help` uses, so the help output and the dispatch read the same
+rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table and padded rows.
 
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
-| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:451`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (`:602`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
-| `aio` | `AIO_COMMANDS` (`:807`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:930`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:446`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
+| `stat` | `STAT_COMMANDS` (`:595`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `aio` | `AIO_COMMANDS` (`:798`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
+| `bar` | `BAR_COMMANDS` (`:919`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:405`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
@@ -134,7 +136,7 @@ behind the second spelling.
 declined on the grounds that it bought the addon one fewer spelling of the same act at a cost of two
 words to the player. That traded the wrong way round in practice. `/cm unlock` is what the rest of
 the collection answers to (`/pfe lock`, `/pfe unlock`); it is what the bar's own tooltip sends a
-player off to type; and `findCommand` matches EXACTLY, so the guess every other addon rewards landed
+player off to type; and the lookup matches EXACTLY, so the guess every other addon rewards landed
 on `unknown command` here — a player who typed it got no bar movement and no clue why. The sub-tree
 stays because it is the Macro Bar page's CLI parity and `/cm bar help` should still list everything
 the bar can be told to do. A MAY taken is no more a deviation than a MAY declined, and neither owes
@@ -150,8 +152,10 @@ plus one `DUMP_ORDER` name — the order table exists so help output is stable r
 
 ## Case-preserving parse
 
-The library lowercases the verb and leaves the remainder alone, and every tree below repeats the rule
-through `lowerFirst`: the sub-verb folds, its arguments do not. Schema paths are case-sensitive
+The library lowercases the verb and leaves the remainder alone, and every tree below applies the same
+rule by calling the library's own split, `lib.SplitVerb` (read as `KCM.SlashCommands.SplitVerb`,
+at call time, because `settings/Slash.lua` loads after `core/`): the sub-verb folds, its arguments do
+not. Schema paths are case-sensitive
 (`/cm set macroBar.iconSize 32`), a stat `specKey` may arrive as `SHAMAN:ENHANCEMENT`, and a color is
 several tokens whose internal spacing has to survive.
 
@@ -291,13 +295,17 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:737`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:773`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
-one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
+one alias and looks the verb up in `COMMANDS`, through the same split and exact lookup the degraded
+arm publishes for the sub levels (`stubSplitVerb`, `stubFindCommand`) — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the
 library loaded. The one alias, `rewrite` → `rewritemacros`, is a file local read by both arms, because
 two alias tables for one addon is the drift the convergence collapsed. A bare line runs `config` here
-too, as the library's `OnSlash` does, and on this path `config` answers that the panel is unavailable.
+too, as the library's `OnSlash` does, and on this path `config` answers that the panel is unavailable. The host's sub levels still dispatch on
+this arm, and their help prints plain `cmd  desc` rows — no color escape, no em dash between command
+and description — because a degraded row that copied `lib.FormatRow` would be a second formatter kept
+alive "just in case" (the Slash doc's degradation stub; smoke DEGRADED-8).
 
 **No feature verb refuses on this arm, and that is a decision rather than a gap.** The gate is the
 library's from minor 13 and so is the refusal line; with `libs/LibKa0s/` absent there is no builder

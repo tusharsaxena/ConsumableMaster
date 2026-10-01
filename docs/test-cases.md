@@ -1219,7 +1219,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
 
-### test_slashsetup.lua (25)
+### test_slashsetup.lua (26)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -1246,6 +1246,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: every sub-help row has the one row shape (priority/stat/aio/bar)
 - Slash: sub-verbs fold case and tolerate extra spaces, arguments keep theirs
 - Slash: an unknown sub-verb still names itself in lowercase
+- Slash: the sub-command vocabulary IS the library's, published at the seam
 
 ### test_spechelper.lua (16)
 
@@ -1452,7 +1453,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
-| test_slashsetup.lua | 25 |
+| test_slashsetup.lua | 26 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1464,4 +1465,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1194** |
+| **Total** | **1195** |

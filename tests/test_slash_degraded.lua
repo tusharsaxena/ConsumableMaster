@@ -184,6 +184,21 @@ test("Slash: with LibKa0s absent, every sub-help still answers", function(t)
             t.truthy(text:find(spec.prefix .. " " .. verb, 1, true),
                 "/cm " .. spec.line .. " names " .. spec.prefix .. " " .. verb)
         end
+        -- The stub's plain shape (Slash doc, "The degradation stub"): command,
+        -- two spaces, description. No color escape and no em dash between the
+        -- two, because a degraded row must not copy lib.FormatRow.
+        local lead, rows = KCM.PREFIX .. " " .. "  " .. spec.prefix .. " ", 0
+        for _, line in ipairs(out) do
+            if line:sub(1, #lead) == lead then
+                rows = rows + 1
+                local verb, desc = line:sub(#lead + 1):match("^(%S+)  (.*)$")
+                t.eq(verb, spec.verbs[rows], "/cm " .. spec.line .. " row " .. rows .. " names its verb, in order")
+                t.falsy(line:sub(#KCM.PREFIX + 1):find("|c", 1, true), "no color escape: " .. line)
+                t.falsy(line:find(verb .. " \226\128\148", 1, true), "no em dash after the command: " .. line)
+                t.truthy(desc and desc ~= "", "a description follows: " .. line)
+            end
+        end
+        t.eq(rows, #spec.verbs, "/cm " .. spec.line .. ": one plain row per sub-verb")
     end
 end)
 

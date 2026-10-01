@@ -220,8 +220,13 @@ end)
 -- `ProfileSwitch` are the instance's two Slash minor 17 members, published by
 -- settings/Slash.lua on both arms: the version 17 document's stub rule says a
 -- degraded build carries both (each printing the library-absent line), and this
--- four-argument case is where this addon pins it.
-local SLASH_SEAM = { "Verbs", "GetLandingRows", "CliProfile", "ProfileSwitch" }
+-- four-argument case is where this addon pins it. `SplitVerb`, `FindCommand` and
+-- `CommandRows` are the sub-command vocabulary core/SlashCommands.lua reads at call
+-- time (ConsumableMaster#44): the library's own functions live, and the degraded
+-- arm's minimal split, exact lookup and plain `cmd  desc` rows, so the host's
+-- priority / stat / aio / bar verbs keep answering without the library.
+local SLASH_SEAM = { "Verbs", "GetLandingRows", "CliProfile", "ProfileSwitch",
+    "SplitVerb", "FindCommand", "CommandRows" }
 
 -- `instance` is the library object, published at the foot of settings/Slash.lua purely so
 -- the suite can assert identity rather than lookalike behavior.

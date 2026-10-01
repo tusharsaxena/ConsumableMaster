@@ -577,9 +577,8 @@ test("Slash: every sub-help row has the one row shape (priority/stat/aio/bar)", 
             local command, desc = body:match(ROW_PATTERN)
             t.eq(command, spec.prefix .. " " .. tostring(spec.verbs[i]),
                 "/cm " .. spec.line .. " row " .. i .. " names its verb, in table order")
-            t.eq(row:lower(),
-                (KCM.PREFIX .. " " .. "  " .. lib.FormatRow(tostring(command), tostring(desc))):lower(),
-                "/cm " .. spec.line .. " row " .. i .. " is lib.FormatRow's shape, indented")
+            t.eq(row, KCM.PREFIX .. " " .. "  " .. lib.FormatRow(tostring(command), tostring(desc)),
+                "/cm " .. spec.line .. " row " .. i .. " is lib.FormatRow's output, indented")
         end
     end
 end)
@@ -612,4 +611,15 @@ test("Slash: an unknown sub-verb still names itself in lowercase", function(t)
     local out = table.concat(mock.output, "\n")
     t.truthy(out:find("unknown stat subcommand 'frob'", 1, true), "the refusal names the folded verb: " .. out)
     t.truthy(out:find("stat subcommands", 1, true), "…and prints the stat help")
+end)
+
+-- Identity, not lookalike, mirroring `instance`: the sub levels read the
+-- library's own functions through the one Slash seam (settings/Slash.lua).
+-- red under: a host copy of the split, the lookup or the row renderer.
+test("Slash: the sub-command vocabulary IS the library's, published at the seam", function(t)
+    local KCM = load()
+    local lib = LibStub("LibKa0s-Slash-1.0")
+    for _, name in ipairs({ "SplitVerb", "FindCommand", "CommandRows" }) do
+        t.truthy(KCM.SlashCommands[name] == lib[name], "KCM.SlashCommands." .. name .. " is lib." .. name)
+    end
 end)
