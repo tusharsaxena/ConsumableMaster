@@ -186,7 +186,11 @@ test("Slash: the schema CLI reads the addon's shapes through the library", funct
     mock.output = {}
     KCM:OnSlashCommand("set macroBar.orientation sideways")
     local text = table.concat(mock.output, "\n")
-    t.truthy(text:lower():find("allowed values: horizontal, vertical", 1, true),
+    -- Case-sensitive on the shipped wording: through Slash minor 18 the host's
+    -- "Allowed values: %s" never reached this line and the library's lowercase
+    -- "allowed values: %s" did, which a lowercased match could not tell apart
+    -- (ConsumableMaster#16).
+    t.truthy(text:find("Allowed values: HORIZONTAL, VERTICAL", 1, true),
         "an ordered-array enum lists its real values, not the array's 1, 2 keys: " .. text)
 
     -- Round-trip a color: written through the codec into the addon's positional
@@ -198,6 +202,55 @@ test("Slash: the schema CLI reads the addon's shapes through the library", funct
     t.eq(stored.r, nil, "and not in the library's named-key form")
     t.truthy(table.concat(mock.output, "\n"):find("{0.25, 0.50, 0.75, 1.00}", 1, true),
         "the echo renders it back through the same codec")
+end)
+
+-- ConsumableMaster#16 (LibKa0s#40): the three parse refusals this addon words in its
+-- Slash `L` -- ERR_BOOL, ERR_ALLOWED, ERR_COLOR -- reach chat. Through Slash minor 18
+-- the library's file-level parsers read lib.STRINGS and never the host's table; from
+-- minor 19 the instance hands its resolver to the descriptor's `parse`, and this
+-- addon's parseValue passes it on to lib.ParseValue.
+--
+-- red under: a parseValue that calls slashLib.ParseValue(row, text) with no resolver.
+local function refusal(KCM, mock, line)
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    return table.concat(mock.output, "\n")
+end
+
+test("Slash: a bad boolean is refused in this addon's ERR_BOOL wording", function(t)
+    local KCM, mock = load()
+    local text = refusal(KCM, mock, "set macroBar.showCount maybe")
+    -- The host's line is a prefix of the library's ("...1/0/yes/no"), so the
+    -- library's tail is what tells the two apart.
+    t.truthy(text:find("expected true/false/on/off/1/0", 1, true), "the refusal names the forms: " .. text)
+    t.falsy(text:find("/yes/no", 1, true), "in the host's wording, not the library's: " .. text)
+end)
+
+test("Slash: a value outside an enum is refused in this addon's ERR_ALLOWED wording", function(t)
+    local KCM, mock = load()
+    local text = refusal(KCM, mock, "set macroBar.orientation sideways")
+    t.truthy(text:find("Allowed values: ", 1, true), "capitalized, as the host words it: " .. text)
+    t.falsy(text:find("allowed values: ", 1, true), "not the library's lowercase line: " .. text)
+end)
+
+test("Slash: a bad color is refused through this addon's ERR_COLOR", function(t)
+    local KCM, mock = load()
+    local text = refusal(KCM, mock, "set macroBar.barBackdropColor red")
+    t.truthy(text:find("expected: r g b [a] (each 0-1 or 0-255)", 1, true),
+        "the refusal states the tuple: " .. text)
+    -- The host's ERR_COLOR is word for word the library's, so the text alone cannot
+    -- show which table it came from. Route the key through the instance's resolver
+    -- instead: a line that changes with Sl:Text is a line the host's `L` reaches.
+    local Sl = KCM.SlashCommands.instance
+    local realText = Sl.Text
+    Sl.Text = function(self, key)
+        if key == "ERR_COLOR" then return "ERR_COLOR via the instance" end
+        return realText(self, key)
+    end
+    local routed = refusal(KCM, mock, "set macroBar.barBackdropColor red")
+    Sl.Text = realText
+    t.truthy(routed:find("ERR_COLOR via the instance", 1, true),
+        "the color parser reads the instance's resolver: " .. routed)
 end)
 
 -- Slash minor 10 (LibKa0s v1.34.0): a `string` row takes the WHOLE value after

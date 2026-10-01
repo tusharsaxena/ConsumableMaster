@@ -1197,7 +1197,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
 
-### test_slashsetup.lua (19)
+### test_slashsetup.lua (22)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -1209,6 +1209,9 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
+- Slash: a bad boolean is refused in this addon's ERR_BOOL wording
+- Slash: a value outside an enum is refused in this addon's ERR_ALLOWED wording
+- Slash: a bad color is refused through this addon's ERR_COLOR
 - Slash: /cm set keeps a multi-word font name whole
 - Slash: with the library absent every host-owned verb still dispatches
 - Slash: with the library absent only the five library-backed verbs degrade
@@ -1423,7 +1426,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash_degraded.lua | 13 |
 | test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
-| test_slashsetup.lua | 19 |
+| test_slashsetup.lua | 22 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1435,4 +1438,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1169** |
+| **Total** | **1172** |
