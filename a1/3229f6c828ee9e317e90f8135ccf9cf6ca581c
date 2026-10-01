@@ -1,0 +1,1 @@
+OK GI-CM-02 — mergePins 18->5 and renderSlotList 16->8 are behavior-preserving splits; characterization cases go red under mutation (pin slot match, leftover append, debug sink); sighted complexity 0 warnings, maxCcn 15, blindFiles 0
