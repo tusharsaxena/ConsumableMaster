@@ -139,6 +139,60 @@ end
 --     they appear in the pins array (stable).
 --   - Positions past the end clamp to the last available slot.
 
+--- The pins whose item is still a candidate and that carry a position, sorted by
+--- position with ties in listing order. Empty when none survive.
+local function activePins(autoSet, pins)
+    local active = {}
+    for i, p in ipairs(pins) do
+        if p.itemID and autoSet[p.itemID] and p.position then
+            table.insert(active, { itemID = p.itemID, position = p.position, _order = i })
+        end
+    end
+    table.sort(active, function(a, b)
+        if a.position == b.position then return a._order < b._order end
+        return a.position < b.position
+    end)
+    return active
+end
+
+--- autoRanked with every pinned ID stripped, order preserved.
+local function unpinned(autoRanked, active)
+    local pinnedSet = {}
+    for _, p in ipairs(active) do pinnedSet[p.itemID] = true end
+    local rest = {}
+    for _, id in ipairs(autoRanked) do
+        if not pinnedSet[id] then table.insert(rest, id) end
+    end
+    return rest
+end
+
+--- Fill slots 1..n: the next pin when its position is this slot, otherwise the
+--- next unpinned item; stop early when the unpinned items run out. Answers the
+--- indices of the next unused pin and unused unpinned item.
+local function fillSlots(result, n, active, rest)
+    local pinIdx, restIdx = 1, 1
+    for slot = 1, n do
+        local pin = active[pinIdx]
+        if pin and pin.position == slot then
+            table.insert(result, pin.itemID)
+            pinIdx = pinIdx + 1
+        elseif restIdx <= #rest then
+            table.insert(result, rest[restIdx])
+            restIdx = restIdx + 1
+        else
+            -- ran out of non-pinned items; remaining pins go after.
+            break
+        end
+    end
+    return pinIdx, restIdx
+end
+
+--- Append the pins from index `from` on, then the unpinned items from `restFrom` on.
+local function appendLeftovers(result, active, from, rest, restFrom)
+    for i = from, #active do table.insert(result, active[i].itemID) end
+    for i = restFrom, #rest do table.insert(result, rest[i]) end
+end
+
 local function mergePins(autoRanked, pins)
     if not pins or #pins == 0 then return autoRanked end
 
@@ -147,57 +201,17 @@ local function mergePins(autoRanked, pins)
 
     -- Copy + sort pins by position ascending, dropping any pin whose item
     -- isn't a candidate anymore.
-    local active = {}
-    for i, p in ipairs(pins) do
-        if p.itemID and autoSet[p.itemID] and p.position then
-            table.insert(active, { itemID = p.itemID, position = p.position, _order = i })
-        end
-    end
+    local active = activePins(autoSet, pins)
     if #active == 0 then return autoRanked end
-    table.sort(active, function(a, b)
-        if a.position == b.position then return a._order < b._order end
-        return a.position < b.position
-    end)
-
-    -- Strip pinned IDs from autoRanked, preserving order.
-    local pinnedSet = {}
-    for _, p in ipairs(active) do pinnedSet[p.itemID] = true end
-    local rest = {}
-    for _, id in ipairs(autoRanked) do
-        if not pinnedSet[id] then table.insert(rest, id) end
-    end
 
     -- Interleave: fill slot 1..N, inserting a pin when its position matches,
-    -- otherwise the next item from `rest`. Pins whose position overshoots are
-    -- appended at the end.
+    -- otherwise the next unpinned item. Pins whose position overshoots (or that
+    -- no slot ever equals) are appended at the end, then any unpinned leftover
+    -- (only possible when one item is pinned twice).
+    local rest = unpinned(autoRanked, active)
     local result = {}
-    local pinIdx, restIdx = 1, 1
-    local slot = 1
-    while slot <= #autoRanked do
-        if pinIdx <= #active and active[pinIdx].position == slot then
-            table.insert(result, active[pinIdx].itemID)
-            pinIdx = pinIdx + 1
-        else
-            if restIdx <= #rest then
-                table.insert(result, rest[restIdx])
-                restIdx = restIdx + 1
-            else
-                -- ran out of non-pinned items; remaining pins go here.
-                break
-            end
-        end
-        slot = slot + 1
-    end
-    -- Overshoot / leftover pins.
-    while pinIdx <= #active do
-        table.insert(result, active[pinIdx].itemID)
-        pinIdx = pinIdx + 1
-    end
-    -- Leftover rest (shouldn't happen if autoRanked was the union, but guard).
-    while restIdx <= #rest do
-        table.insert(result, rest[restIdx])
-        restIdx = restIdx + 1
-    end
+    local pinIdx, restIdx = fillSlots(result, #autoRanked, active, rest)
+    appendLeftovers(result, active, pinIdx, rest, restIdx)
     return result
 end
 

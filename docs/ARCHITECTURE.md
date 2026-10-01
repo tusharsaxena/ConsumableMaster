@@ -414,7 +414,7 @@ too. The section itself stays whether or not there is a breach — it is where t
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
 **The 1000–1500 band is on notice, not in breach** (measured 2026-10-01):
-`settings/Panel.lua` (1196), `settings/MacroBar.lua` (1170), `settings/Category.lua` (1150),
+`settings/Panel.lua` (1196), `settings/MacroBar.lua` (1182), `settings/Category.lua` (1150),
 `tests/test_schema.lua` (1023), `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile`
 fakes) and `tests/test_selector.lua` (1009). The three test suites that
 led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
