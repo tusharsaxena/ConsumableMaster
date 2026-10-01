@@ -156,3 +156,52 @@ test("Slash: the live disabled refusal is built from the library's DISABLED_LINE
     format = format:sub(1, v - 1) .. "%s" .. format:sub(v + #verb)
     h.assertLibraryConstant(format, "LibKa0s-Slash-1.0", "DISABLED_LINE_FORMAT")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The sub-command namespaces, library absent (ConsumableMaster#44)
+-- ---------------------------------------------------------------------------
+--
+-- priority / stat / aio / bar are host verbs, so degradedDispatch still reaches
+-- them and their sub-help and sub-dispatch must keep answering.
+local SUB_HELP = {
+    { line = "priority", prefix = "/cm priority <cat>",
+      verbs = { "list", "add", "remove", "up", "down", "reset" } },
+    { line = "stat",     prefix = "/cm stat",
+      verbs = { "list", "primary", "secondary", "reset" } },
+    { line = "aio",      prefix = "/cm aio <key>",
+      verbs = { "list", "toggle", "up", "down", "reset" } },
+    { line = "bar help", prefix = "/cm bar",
+      verbs = { "on", "off", "lock", "unlock", "reset" } },
+}
+
+test("Slash: with LibKa0s absent, every sub-help still answers", function(t)
+    local KCM, mock = degraded()
+    for _, spec in ipairs(SUB_HELP) do
+        local ok, err, out = runVerb(KCM, mock, spec.line)
+        t.truthy(ok, "/cm " .. spec.line .. ": no Lua error: " .. tostring(err))
+        local text = table.concat(out, "\n")
+        for _, verb in ipairs(spec.verbs) do
+            t.truthy(text:find(spec.prefix .. " " .. verb, 1, true),
+                "/cm " .. spec.line .. " names " .. spec.prefix .. " " .. verb)
+        end
+    end
+end)
+
+test("Slash: with LibKa0s absent, a sub-verb still dispatches", function(t)
+    local KCM, mock = degraded()
+    local function effective()
+        local set = {}
+        for _, id in ipairs(KCM.Selector.GetEffectivePriority("FOOD")) do set[id] = true end
+        return set
+    end
+    local ok, err = runVerb(KCM, mock, "priority food add 987654")
+    t.truthy(ok, "no Lua error: " .. tostring(err))
+    t.truthy(effective()[987654], "the added item is present")
+    runVerb(KCM, mock, "priority food remove 987654")
+    t.falsy(effective()[987654], "the removed item is gone")
+    -- An explicit specKey: the current-spec read goes through KCM.Compat's
+    -- spec ladder, which is library-backed and answers nothing on this arm.
+    ok, err = runVerb(KCM, mock, "stat primary INT 7_263")
+    t.truthy(ok, "no Lua error: " .. tostring(err))
+    t.eq(KCM.db.profile.statPriority["7_263"].primary, "INT", "the primary stat is set")
+end)

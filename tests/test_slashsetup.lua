@@ -533,3 +533,83 @@ function(t)
     t.eq(type(nr) .. type(ng) .. type(nb) .. type(na), "numbernumbernumbernumber",
         "the panel's decode must never hand the color picker a nil channel")
 end)
+
+-- ── The sub-command vocabulary (ConsumableMaster#44) ───────────────────────
+--
+-- `/cm priority`, `/cm stat`, `/cm aio` and `/cm bar` each own a sub-command
+-- table. Their help rows are meant to read exactly like `/cm help`'s, and their
+-- verb split and lookup to answer exactly like the library's. These cases pin
+-- what a player sees and types; the identity case below pins where it comes from.
+local SUB_HELP = {
+    { line = "priority", prefix = "/cm priority <cat>",
+      verbs = { "list", "add", "remove", "up", "down", "reset" } },
+    { line = "stat",     prefix = "/cm stat",
+      verbs = { "list", "primary", "secondary", "reset" } },
+    { line = "aio",      prefix = "/cm aio <key>",
+      verbs = { "list", "toggle", "up", "down", "reset" } },
+    { line = "bar help", prefix = "/cm bar",
+      verbs = { "on", "off", "lock", "unlock", "reset" } },
+}
+
+-- The printed rows that are command rows: the tagged, two-space-indented lines
+-- that open on a color escape. Headers and the trailing known-cats / specKey /
+-- composites / layout lines do not.
+local function subHelpRows(KCM, mock, line)
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    local rows, lead = {}, KCM.PREFIX .. " " .. "  |c"
+    for _, out in ipairs(mock.output) do
+        if out:sub(1, #lead) == lead then rows[#rows + 1] = out end
+    end
+    return rows
+end
+
+local ROW_PATTERN = "^  |c%x%x%x%x%x%x%x%x(.-)|r \226\128\148 |c%x%x%x%x%x%x%x%x(.*)|r$"
+
+test("Slash: every sub-help row has the one row shape (priority/stat/aio/bar)", function(t)
+    local KCM, mock = load()
+    local lib = LibStub("LibKa0s-Slash-1.0")
+    for _, spec in ipairs(SUB_HELP) do
+        local rows = subHelpRows(KCM, mock, spec.line)
+        t.eq(#rows, #spec.verbs, "/cm " .. spec.line .. ": one row per sub-verb")
+        for i, row in ipairs(rows) do
+            local body = row:sub(#KCM.PREFIX + 2)
+            local command, desc = body:match(ROW_PATTERN)
+            t.eq(command, spec.prefix .. " " .. tostring(spec.verbs[i]),
+                "/cm " .. spec.line .. " row " .. i .. " names its verb, in table order")
+            t.eq(row:lower(),
+                (KCM.PREFIX .. " " .. "  " .. lib.FormatRow(tostring(command), tostring(desc))):lower(),
+                "/cm " .. spec.line .. " row " .. i .. " is lib.FormatRow's shape, indented")
+        end
+    end
+end)
+
+test("Slash: sub-verbs fold case and tolerate extra spaces, arguments keep theirs", function(t)
+    local KCM, mock = load()
+    local function text(line)
+        mock.output = {}
+        KCM:OnSlashCommand(line)
+        return table.concat(mock.output, "\n")
+    end
+    for _, line in ipairs({ "priority FOOD LiSt", "priority   food    list" }) do
+        t.truthy(text(line):find("FOOD: ", 1, true), "/cm " .. line .. " prints the FOOD list")
+    end
+    local stat = text("stat LIST")
+    t.truthy(stat:find("primary:", 1, true), "/cm stat LIST prints the stat list")
+    t.falsy(stat:find("unknown stat subcommand", 1, true), "…and is not refused")
+    t.truthy(text("aio HP_AIO List"):find("HP_AIO", 1, true), "/cm aio HP_AIO List prints the composite")
+    KCM.db.profile.macroBar.enabled = false
+    text("bar ON")
+    t.eq(KCM.db.profile.macroBar.enabled, true, "/cm bar ON shows the bar")
+    text("bar   ")
+    t.eq(KCM.db.profile.macroBar.enabled, false, "a bare /cm bar with trailing spaces toggles")
+end)
+
+test("Slash: an unknown sub-verb still names itself in lowercase", function(t)
+    local KCM, mock = load()
+    mock.output = {}
+    KCM:OnSlashCommand("stat FROB")
+    local out = table.concat(mock.output, "\n")
+    t.truthy(out:find("unknown stat subcommand 'frob'", 1, true), "the refusal names the folded verb: " .. out)
+    t.truthy(out:find("stat subcommands", 1, true), "…and prints the stat help")
+end)
