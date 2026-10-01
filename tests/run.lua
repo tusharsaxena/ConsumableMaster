@@ -512,6 +512,7 @@ local SUITES = {
     "test_schema",
     "test_schema_adoption",
     "test_selector",
+    "test_selector_pins",
     "test_settingsui",
     "test_settingsui_category",
     "test_settingsui_optionsui",

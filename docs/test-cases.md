@@ -551,7 +551,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar handle: the X widens the label's reserve by the close mark's frame
 - macrobar handle: in combat the X stores the flag and the bar hides at combat end
 
-### test_macrobar_buttons.lua (8)
+### test_macrobar_buttons.lua (14)
 
 - Buttons: shown slots first in order, then hidden ones dimmed and handle-less, boundary = shown count
 - Buttons: a drag splices the shown group and writes the order once; a drop in place writes nothing
@@ -561,6 +561,12 @@ badge and any count quoted in the docs must agree with it.
 - Buttons: in combat a drag and a tick are refused, write nothing and repaint nothing
 - Buttons: each act re-applies the bar once, and the bar carries the new order and set
 - macrobar: the slot swap, the list's drag and its tick write through the schema helper
+- Buttons: the rule sits between the groups, and only when both have a slot
+- Buttons: the list's options -- stride, boundary, handle icon and tooltip, move, no debug sink
+- Buttons: with logging on the list's sink writes [Bar] lines
+- Buttons: with no icon helper the handle carries no icon
+- Buttons: without the library's reorder list the rows still draw, with no controller
+- Buttons: with no bar config the list draws nothing
 
 ### test_macrobar_layout.lua (39)
 
@@ -977,6 +983,18 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetBucket clears one bucket's added/blocked/pins and keeps discovered
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
+
+### test_selector_pins.lua (9)
+
+- Pins: no pins, or an empty array, answer the auto-ranked list
+- Pins: a pin missing its item, its position or its candidate is dropped
+- Pins: one pin mid-list lands exactly there, the rest in auto order around it
+- Pins: pins listed out of position order are placed by position
+- Pins: a pin on the last slot is last
+- Pins: overshooting pins follow the list, in position then listing order
+- Pins: two pins on one slot -- the first wins it, the second goes to the end
+- Pins: a position no slot equals holds every later pin back to the end
+- Pins: an item pinned at two slots appears at both
 
 ### test_settingsui.lua (28)
 
@@ -1404,7 +1422,7 @@ badge and any count quoted in the docs must agree with it.
 | test_locale.lua | 10 |
 | test_macrobar.lua | 35 |
 | test_macrobar_chrome.lua | 22 |
-| test_macrobar_buttons.lua | 8 |
+| test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 19 |
@@ -1419,6 +1437,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
+| test_selector_pins.lua | 9 |
 | test_settingsui.lua | 28 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
@@ -1438,4 +1457,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1172** |
+| **Total** | **1187** |

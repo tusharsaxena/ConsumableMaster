@@ -315,3 +315,127 @@ test("macrobar: the slot swap, the list's drag and its tick write through the sc
         "a swap and a drag are one whole-order write each, a tick the map and then the order")
     t.eq(KCM.db.profile.macroBar.shown.HS, false, "and the tick's write landed as a real boolean")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The list's shape, pinned before renderSlotList was split under CCN 15
+-- (GI-CM-02, WowAddonStandards#6). Each case is green before and after.
+-- ---------------------------------------------------------------------------
+
+--- Draw the Buttons tab with every AceGUI widget tagged by its type, and answer
+--- the types the slot rows' container received, in order: "S" for a slot row's
+--- SimpleGroup (a stride, 32px, tall), "H" for a Heading. The page's 8px spacer
+--- above the list is a SimpleGroup too, and is not a slot.
+local function slotSequence(KCM)
+    local AceGUI = LibStub("AceGUI-3.0")
+    local realCreate = AceGUI.Create
+    local adds = {}
+    AceGUI.Create = function(self, wtype, ...)
+        local w = realCreate(self, wtype, ...)
+        rawset(w, "kcmType", wtype)
+        rawset(w, "SetHeight", function(self, v) rawset(self, "kcmHeight", v); return self end)
+        rawset(w, "AddChild", function(parent, child)
+            adds[#adds + 1] = { parent = parent, child = child }
+            return parent
+        end)
+        return w
+    end
+    local ok, ctx = pcall(openButtons, KCM)
+    AceGUI.Create = realCreate
+    assert(ok, ctx)
+    local host
+    for _, a in ipairs(adds) do
+        if a.child.kcmType == "SimpleGroup" and a.child.kcmHeight == 32 then host = a.parent end
+    end
+    local seq = {}
+    for _, a in ipairs(adds) do
+        if a.parent == host then
+            local ty = a.child.kcmType
+            if ty == "SimpleGroup" and a.child.kcmHeight == 32 then seq[#seq + 1] = "S"
+            elseif ty == "Heading" then seq[#seq + 1] = "H" end
+        end
+    end
+    return table.concat(seq), ctx
+end
+
+test("Buttons: the rule sits between the groups, and only when both have a slot", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db.profile.macroBar.shown = { DRINK = false, HS = false }
+    t.eq(slotSequence(KCM), ("S"):rep(13) .. "H" .. ("S"):rep(2), "13 shown, the rule, 2 hidden")
+
+    KCM = h.loader.loadFullAddon()
+    t.eq(slotSequence(KCM), ("S"):rep(15), "every slot shown: no rule")
+
+    KCM = h.loader.loadFullAddon()
+    local none = {}
+    for _, k in ipairs(shipped(KCM)) do none[k] = false end
+    KCM.db.profile.macroBar.shown = none
+    t.eq(slotSequence(KCM), ("S"):rep(15), "every slot hidden: no rule")
+end)
+
+test("Buttons: the list's options -- stride, boundary, handle icon and tooltip, move, no debug sink", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local lists = captureLists()
+    KCM.State.debug = false
+    KCM.db.profile.macroBar.shown = { DRINK = false }
+    local ctx = openButtons(KCM)
+    local opts = lists[#lists].opts
+    t.eq(opts.stride, 32, "the stride is the row height plus its 4px gap")
+    t.eq(opts.boundary, 14, "the boundary is the shown count")
+    t.eq(opts.handleIcon, KCM.Icon("segment"), "the handle is the shared segment glyph")
+    t.eq(opts.handleTooltip, KCM.L["Drag to reorder"], "and says what it does")
+    t.eq(type(opts.onMove), "function", "a drop is handed to the page")
+    t.eq(opts.debug, nil, "with logging off the list is given no sink")
+    t.eq(#(ctx.kcmReorder or {}), 1, "the controller is remembered for the next render's cancel")
+end)
+
+test("Buttons: with logging on the list's sink writes [Bar] lines", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local lists = captureLists()
+    armLog(KCM)
+    openButtons(KCM)
+    local sink = lists[#lists].opts.debug
+    t.eq(type(sink), "function", "a sink is handed over")
+    KCM.DebugLog.instance:Clear()
+    sink("probe %d", 7)
+    local found = false
+    for _, line in ipairs(KCM.DebugLog.instance.buffer) do
+        if line:find("[Bar] probe 7", 1, true) then found = true end
+    end
+    t.truthy(found, "the sink formats into the console under [Bar]")
+    KCM.State.debug = false
+end)
+
+test("Buttons: with no icon helper the handle carries no icon", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local lists = captureLists()
+    local realIcon = KCM.Icon
+    KCM.Icon = nil
+    local ok, err = pcall(openButtons, KCM)
+    KCM.Icon = realIcon
+    t.truthy(ok, tostring(err))
+    t.eq(lists[#lists].opts.handleIcon, nil, "the library's default handle")
+end)
+
+test("Buttons: without the library's reorder list the rows still draw, with no controller", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local W = LibStub("LibKa0s-Widgets-1.0")
+    local real = W.ReorderList
+    W.ReorderList = nil
+    local ok, ctx = pcall(openButtons, KCM)
+    W.ReorderList = real
+    t.truthy(ok, tostring(ctx))
+    t.eqList(rowKeys(ctx), shipped(KCM), "every slot drawn, in the bar's order")
+    t.eq(ctx.kcmReorder, nil, "no controller to cancel")
+end)
+
+test("Buttons: with no bar config the list draws nothing", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local model = KCM.MacroBarModel
+    local realConfig = model.Config
+    model.Config = function() return nil end
+    local ok, ctx = pcall(openButtons, KCM)
+    model.Config = realConfig
+    t.truthy(ok, tostring(ctx))
+    t.eq(ctx.kcmSlotRows, nil, "no rows were started")
+    t.eq(ctx.kcmReorder, nil, "and no list was built")
+end)
