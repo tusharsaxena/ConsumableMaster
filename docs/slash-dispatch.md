@@ -168,7 +168,7 @@ Ka0s Consumable Master v1.7.0 — slash commands (alias: /consumablemaster)
   /cm config — Open the settings panel
 ```
 
-The header, the alias clause and the two usage lines this addon overrides are `SLASH_STRINGS`
+The header, the alias clause, the two usage lines and the three parse refusals this addon overrides are `SLASH_STRINGS`
 (`settings/Slash.lua:424`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
@@ -179,6 +179,14 @@ reason worth keeping in view:
 - `USAGE_GET` carries **one** `%s`, not two. `Sl:CliGet` formats it with `d.slash` alone, so a second
   placeholder is not an unused argument but a **missing** one, and `string.format` raises. A bare
   `/cm get` threw a Lua error in game for exactly as long as that line had two.
+
+The three parse refusals, `ERR_BOOL`, `ERR_ALLOWED` and `ERR_COLOR`, keep the wording this addon
+shipped before it took the library's parser: `expected true/false/on/off/1/0` with no `/yes/no`, and a
+capitalized `Allowed values:`. The parsers are lib-level (`SlashParse.lua`), so these reach chat only
+because `LibKa0s-Slash-1.0` minor 19 (LibKa0s v1.66.0) hands the instance's resolver to the
+descriptor's `parse`, and `parseValue` passes it on. Through minor 18 they were dead strings
+([#16](https://github.com/tusharsaxena/ConsumableMaster/issues/16)). SLASH-15 in
+[smoke-tests.md](./smoke-tests.md) checks all three in a client.
 
 Every line goes out through `KCM.Say` (`core/CoreSetup.lua`, over `KCM.PREFIX` from `core/Constants.lua`), the secret-safe sink: the `[CM]` tag is
 unconditional and a combat secret can never raise mid-line. The printer crosses to the library as a
@@ -283,7 +291,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:730`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:737`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS` — the same five steps the library's own `OnSlash`
 takes, because doing fewer would change what the same typed line means depending on whether the

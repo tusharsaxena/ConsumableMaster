@@ -55,7 +55,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **SLASH-3. `/cm list` groups rows by page.** `/cm list` → under `Available settings`, in this order: `[general]` (`enabled` among its rows), `[macrobar]` (the `macroBar.*` set), `[statpriority]` (`statPriority`), then `[macros]` (each composite's flags and section orders, Battle Rez's mouseover). No row renders as `table: 0x…`, and `debug`, the logging flag, is absent (session state, not a schema row). Result:
 
-**SLASH-4. `/cm get` and `/cm set` on one row.** With General open: `/cm get enabled`, `/cm get macroBar.orientation`, then `/cm set enabled false` → each get prints one row; the set turns the addon off and the **Enable** checkbox follows. `/cm set enabled banana` → two lines, `Invalid value for enabled` and `expected true/false/on/off/1/0` (this addon's wording, with no `/yes/no`), and nothing changes. `/cm set enabled true` afterward. Result:
+**SLASH-4. `/cm get` and `/cm set` on one row.** With General open: `/cm get enabled`, `/cm get macroBar.orientation`, then `/cm set enabled false` → each get prints one row; the set turns the addon off and the **Enable** checkbox follows. `/cm set enabled banana` → two lines, `Invalid value for enabled` and `expected true/false/on/off/1/0` (this addon's wording, with no `/yes/no`), and nothing changes. `/cm set enabled true` afterward. Result: pass (owner, 2026-10-02)
 
 **SLASH-5. `/cm reset` resets one row, never the profile.** Bare `/cm reset`, then `/cm reset macroBar.orientation` → the bare form prints the usage line naming `/cm resetall` and raises no popup; the path form echoes that row and nothing else moves. Result:
 
@@ -77,7 +77,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **SLASH-14. The rest of the surface answers while disabled.** Still disabled: `/cm help`, `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm diagnostics`, `/cm list`, `/cm get enabled`, `/cm set scale 1.1`, `/cm reset scale`, `/cm resetall`, `/cm dump categories`, `/cm profile`, bare `/cm`, and `/cm enable` → each answers normally; `/cm help` prints the full index with the refusal line under the header, not instead of it; bare `/cm` opens the panel; `/cm enable` never refuses. A typo (`/cm resyncc`) gets `Unknown command: resyncc` and the index, not the refusal. Result:
 
-**SLASH-15. A parse refusal is in this addon's wording.** `/cm set macroBar.showCount maybe` → `expected true/false/on/off/1/0`, with no `/yes/no`; `/cm set macroBar.orientation sideways` → `Allowed values: HORIZONTAL, VERTICAL`, capital A; `/cm set macroBar.barBackdropColor red` → `expected: r g b [a] (each 0-1 or 0-255)`. Nothing is written by any of them. A lowercase `allowed values:` or a trailing `/yes/no` means the host's `L` is not reaching the library's parser (ConsumableMaster#16, LibKa0s Slash minor 19). Result:
+**SLASH-15. A parse refusal is in this addon's wording.** `/cm set macroBar.showCount maybe` → `expected true/false/on/off/1/0`, with no `/yes/no`; `/cm set macroBar.orientation sideways` → `Allowed values: HORIZONTAL, VERTICAL`, capital A; `/cm set macroBar.barBackdropColor red` → `expected: r g b [a] (each 0-1 or 0-255)`. Nothing is written by any of them. A lowercase `allowed values:` or a trailing `/yes/no` means the host's `L` is not reaching the library's parser (ConsumableMaster#16, LibKa0s Slash minor 19). Result: pass (owner, 2026-10-02)
 
 ## Settings panel
 
@@ -389,7 +389,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-26. The three media dropdowns are populated.** Macro Bar → open **Bar border style**, **Button border style** and **Label font** → each lists real entries (Blizzard's own at least, plus anything a media addon registered). One empty dropdown is the finding; a populated neighbor proves nothing. Pick a new value in each → bar edge, button edges and label face change, and the closed dropdown names it. Then `/dump LibStub("LibKa0s-Options-1.0").MODULES.OptionsCompose` → at least the `COMPOSE_MINOR` in `libs/LibKa0s/OptionsCompose.lua` (7 at LibKa0s v1.64.0); a lower number means the client loaded an older payload than this build vendors, and the dropdown check above proved nothing. Result:
 
-**BAR-27. A border style from chat is validated.** `/cm set macroBar.barBorderStyle Not A Border` → `Invalid value for macroBar.barBorderStyle` and an `Allowed values:` line, capitalized. `/cm set macroBar.barBorderStyle Blizzard Tooltip` → accepted and the panel tracks it. Type the value without quotes: the quotes become part of it and the set is refused. A validator that does not normalize the composed row's map stops rejecting anything. Result:
+**BAR-27. A border style from chat is validated.** `/cm set macroBar.barBorderStyle Not A Border` → `Invalid value for macroBar.barBorderStyle` and an `Allowed values:` line, capitalized. `/cm set macroBar.barBorderStyle Blizzard Tooltip` → accepted and the panel tracks it. Type the value without quotes: the quotes become part of it and the set is refused. A validator that does not normalize the composed row's map stops rejecting anything. Result: pass (owner, 2026-10-02)
 
 **BAR-28. The Border dropdown with five Ka0s addons loaded.** Enable KickCD, PanelMaster, AbsorbTracker, ConsumableMaster and MultiMeters, log in, open every addon's Border dropdown (here: Macro Bar → Bar border style and Button border style) → in all five the closed control is flush with the rows stacked with it, no ~42px gap, and the open list draws per-row previews. Change the load order (disable and re-enable addons), `/reload`, walk them again → nothing differs and no Lua error appears. One dropdown unlike the others, or one that changes with load order, is the finding. Result:
 
@@ -568,11 +568,9 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | INSTALL-1 | §1 steps 1-5 | Corrected: the fresh-install step deletes the real SavedVariables file, `ConsumableMaster.lua`, not a `ConsumableMasterDB.lua` that never existed |
 | INSTALL-4, INSTALL-5 | §11a steps 1a, 1b | Corrected: the steps edit the live SavedVariables file, not a copy the client never loads |
 | SLASH-3 | §11 step 7 | Corrected: `[statpriority]` prints before `[macros]` |
-| SLASH-4 | §11 steps 8, 9 | Corrected: the refusal is two lines, in this addon's wording `expected true/false/on/off/1/0` (GI-CM-01, LibKa0s v1.66.0) |
 | SLASH-6, SLASH-7 | §11 step 9b (#35) | Owed since the 2026-09-12 triage batch; SLASH-7 also carries its bulk-reset one-line rule |
 | SLASH-12 | §11 step 19b | Never run: Session CM step CM.4 of the 2026-09-23 remediation (`CM-15`) |
 | SLASH-14 | §11 step 14b | New: `/cm profile` answers while disabled. Corrected: the typo line reads `Unknown command: resyncc` |
-| SLASH-15 | New | The three parse refusals in the host's wording (ConsumableMaster#16, LibKa0s v1.66.0, GI-CM-01), never run in a client |
 | PANEL-1 | §7 steps 1, 2, seam step 2 | Never run: Session CM step CM.3, the About logo (`CM-21`) |
 | PANEL-6 | §7 step 4, §7b tabs step 19 | Corrected: the Maintenance button reads `Force rewrite macros` |
 | PANEL-9 | §7 step 8 | Corrected: `/cm resync` in combat recomputes with a notice rather than refusing |
@@ -602,7 +600,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | BAR-16 | §11a step 8a | Never run: Session CM step CM.8, the Buttons-tab reorder (`CM-20`) |
 | BAR-23 | §11a step 15 | Never run: Session CM step CM.6's enum refusal (`CM-17`), and the ConsumableMaster enum row of the 2026-09-23 step X1.3, whose record covers only `/bl` and `/mm` |
 | BAR-24 | §11a step 16 (#36) | Owed since the 2026-09-12 triage batch |
-| BAR-26, BAR-27 | Seam step 17 | Never run: the composed media dropdowns (LibKa0s v1.26.0). Corrected: BAR-26's minor, BAR-27's unquoted values and its capitalized `Allowed values:` (GI-CM-01) |
+| BAR-26 | Seam step 17 | Never run: the composed media dropdowns (LibKa0s v1.26.0). Corrected: its minor. (BAR-27, signed off 2026-10-02, shared this row) |
 | BAR-28 | Seam step 19 | Never run: `LSM30_Border` shared by five addons (`M4-03`) |
 | BAR-29, BAR-30 | Seam step 20 | Never run: the stored color codec (`M4-18`). BAR-30 now edits the live file |
 | LAUNCH-6 | §7c steps 5, 6 | Never run: Session CM steps CM.1 and CM.2, the row in its `shown` sense (`CM-19`) |
