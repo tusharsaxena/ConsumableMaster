@@ -1,0 +1,1 @@
+OK GI-CM-01 — parseValue forwards Slash 19's resolver to ParseValue; reverting it turns 4 cases red (case-sensitive enum, bool, enum, color-via-Sl:Text); DEAD class retired, smoke SLASH-4/15/BAR-27 updated and pending
