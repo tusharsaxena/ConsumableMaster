@@ -551,7 +551,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar handle: the X widens the label's reserve by the close mark's frame
 - macrobar handle: in combat the X stores the flag and the bar hides at combat end
 
-### test_macrobar_buttons.lua (8)
+### test_macrobar_buttons.lua (14)
 
 - Buttons: shown slots first in order, then hidden ones dimmed and handle-less, boundary = shown count
 - Buttons: a drag splices the shown group and writes the order once; a drop in place writes nothing
@@ -561,6 +561,12 @@ badge and any count quoted in the docs must agree with it.
 - Buttons: in combat a drag and a tick are refused, write nothing and repaint nothing
 - Buttons: each act re-applies the bar once, and the bar carries the new order and set
 - macrobar: the slot swap, the list's drag and its tick write through the schema helper
+- Buttons: the rule sits between the groups, and only when both have a slot
+- Buttons: the list's options -- stride, boundary, handle icon and tooltip, move, no debug sink
+- Buttons: with logging on the list's sink writes [Bar] lines
+- Buttons: with no icon helper the handle carries no icon
+- Buttons: without the library's reorder list the rows still draw, with no controller
+- Buttons: with no bar config the list draws nothing
 
 ### test_macrobar_layout.lua (39)
 
@@ -978,6 +984,18 @@ badge and any count quoted in the docs must agree with it.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
+### test_selector_pins.lua (9)
+
+- Pins: no pins, or an empty array, answer the auto-ranked list
+- Pins: a pin missing its item, its position or its candidate is dropped
+- Pins: one pin mid-list lands exactly there, the rest in auto order around it
+- Pins: pins listed out of position order are placed by position
+- Pins: a pin on the last slot is last
+- Pins: overshooting pins follow the list, in position then listing order
+- Pins: two pins on one slot -- the first wins it, the second goes to the end
+- Pins: a position no slot equals holds every later pin back to the end
+- Pins: an item pinned at two slots appears at both
+
 ### test_settingsui.lua (28)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
@@ -1197,7 +1215,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
 
-### test_slashsetup.lua (19)
+### test_slashsetup.lua (22)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -1209,6 +1227,9 @@ badge and any count quoted in the docs must agree with it.
 - Slash: a bare /cm get answers with its usage line rather than raising
 - Slash: a bare /cm reset points at /cm resetall rather than wiping
 - Slash: the schema CLI reads the addon's shapes through the library
+- Slash: a bad boolean is refused in this addon's ERR_BOOL wording
+- Slash: a value outside an enum is refused in this addon's ERR_ALLOWED wording
+- Slash: a bad color is refused through this addon's ERR_COLOR
 - Slash: /cm set keeps a multi-word font name whole
 - Slash: with the library absent every host-owned verb still dispatches
 - Slash: with the library absent only the five library-backed verbs degrade
@@ -1356,6 +1377,17 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics contract: both forms run while the addon is disabled
 - diagnostics contract: no other name runs the report
 
+### test_lizard_sighted.lua (8)
+
+- lizard sighted: every hazard lizard loses a function over is neutralized
+- lizard sighted: fields, strings, comments and look-alike names come through unchanged
+- lizard sighted: a method definition is rewritten to its dot form with self
+- lizard sighted: no line is added or removed, CRLF included
+- lizard sighted: countFunctions counts the keyword, not strings, comments or longer names
+- lizard sighted: listedCounts reads the per-file table, once per file
+- lizard sighted: parity names every file whose counts differ, and only those
+- lizard sighted: lizard lists every function of a hazard fixture once it is sanitized
+
 ## Totals
 
 | Suite | Cases |
@@ -1390,7 +1422,7 @@ badge and any count quoted in the docs must agree with it.
 | test_locale.lua | 10 |
 | test_macrobar.lua | 35 |
 | test_macrobar_chrome.lua | 22 |
-| test_macrobar_buttons.lua | 8 |
+| test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 19 |
@@ -1405,6 +1437,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
+| test_selector_pins.lua | 9 |
 | test_settingsui.lua | 28 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
@@ -1412,7 +1445,7 @@ badge and any count quoted in the docs must agree with it.
 | test_slash_degraded.lua | 13 |
 | test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
-| test_slashsetup.lua | 19 |
+| test_slashsetup.lua | 22 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1423,4 +1456,5 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **1161** |
+| test_lizard_sighted.lua | 8 |
+| **Total** | **1187** |

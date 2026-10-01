@@ -999,6 +999,29 @@ local function addBoundaryRule(scroll)
     scroll:AddChild(rule)
 end
 
+--- The list's `[Bar]` sink while logging is on, else nil (the library logs nothing).
+local function slotListDebug()
+    if not (KCM.State and KCM.State.debug and KCM.Debug) then return nil end
+    return function(fmt, ...) KCM.Debug("Bar", fmt, ...) end
+end
+
+--- The reorder controller for `shownCount` draggable slots, or nil with
+--- LibKa0s-Widgets absent (the rows then draw without handles).
+local function newSlotList(shownCount)
+    local W = reorderWidgets()
+    if not W then return nil end
+    return W.ReorderList({
+        -- The STRIDE, not the row height: the drop arithmetic is top of row to top
+        -- of row.
+        stride        = SLOT_ROW_STRIDE,
+        boundary      = shownCount,
+        handleIcon    = KCM.Icon and KCM.Icon(SLOT_HANDLE_ICON) or nil,
+        handleTooltip = L["Drag to reorder"],
+        onMove        = moveSlot,
+        debug         = slotListDebug(),
+    })
+end
+
 local function renderSlotList(ctx, scroll)
     local order, shown = slotState()
     if not order then return end
@@ -1008,18 +1031,7 @@ local function renderSlotList(ctx, scroll)
     -- reach a row.
     ctx.kcmSlotRows = {}
 
-    local W = reorderWidgets()
-    local list = trackReorder(ctx, W and W.ReorderList({
-        -- The STRIDE, not the row height: the drop arithmetic is top of row to top
-        -- of row.
-        stride        = SLOT_ROW_STRIDE,
-        boundary      = #on,
-        handleIcon    = KCM.Icon and KCM.Icon(SLOT_HANDLE_ICON) or nil,
-        handleTooltip = L["Drag to reorder"],
-        onMove        = moveSlot,
-        debug         = (KCM.State and KCM.State.debug and KCM.Debug)
-            and function(fmt, ...) KCM.Debug("Bar", fmt, ...) end or nil,
-    }) or nil)
+    local list = trackReorder(ctx, newSlotList(#on))
 
     for _, key in ipairs(on) do renderSlotRow(ctx, scroll, list, key, true) end
     if #on > 0 and #off > 0 then addBoundaryRule(scroll) end

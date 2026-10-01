@@ -203,11 +203,6 @@ end
 --                   supply these even if it were passed. A translator restores
 --                   them by handing the descriptor a PLAIN table of just these
 --                   keys; locales/enUS.lua records that.
---   DEAD            Kept as a record of the wording it was meant to restore. The
---                   library's own parsers read lib.STRINGS directly and never
---                   pass through Sl:Text, so an instance override cannot reach
---                   them (LIBKA0S-09, issue #16). Routing a string nothing
---                   renders is noise.
 --   CLI SURFACE     A `/cm` verb description or reply. `/cm` prints these
 --                   verbs and core/SlashCommands.lua's five sub-command
 --                   tables through one lib.FormatRow, and four fifths of that
@@ -336,9 +331,9 @@ local RESIDUE = {
     {"settings/Slash.lua", "Usage: %s reset <path> \\226\\128\\148 this resets ONE setting. ", "LIB DESCRIPTOR"},
     {"settings/Slash.lua", "The old global wipe is now |cffffff00/cm resetall|r, ", "LIB DESCRIPTOR"},
     {"settings/Slash.lua", "which still asks before it wipes.", "LIB DESCRIPTOR"},
-    {"settings/Slash.lua", "expected true/false/on/off/1/0", "DEAD"},
-    {"settings/Slash.lua", "Allowed values: %s", "DEAD"},
-    {"settings/Slash.lua", "expected: r g b [a] (each 0-1 or 0-255)", "DEAD"},
+    {"settings/Slash.lua", "expected true/false/on/off/1/0", "LIB DESCRIPTOR"},
+    {"settings/Slash.lua", "Allowed values: %s", "LIB DESCRIPTOR"},
+    {"settings/Slash.lua", "expected: r g b [a] (each 0-1 or 0-255)", "LIB DESCRIPTOR"},
 
     -- settings/Slash.lua — the degraded dispatcher's notice.
     {"settings/Slash.lua", "The LibKa0s library is missing", "DEGRADED STEM"},
@@ -349,7 +344,7 @@ local RESIDUE = {
 local CLASSES = {
     ["DIAGNOSTIC"] = true, ["VALIDATOR"] = true, ["DEGRADED STEM"] = true,
     ["SPLIT COLOR"] = true, ["FRAGMENT"] = true, ["LIB DESCRIPTOR"] = true,
-    ["DEAD"] = true, ["CLI SURFACE"] = true, ["NOT YET ROUTED"] = true,
+    ["CLI SURFACE"] = true, ["NOT YET ROUTED"] = true,
     ["DEBUG SCOPE"] = true,
 }
 

@@ -443,12 +443,11 @@ local SLASH_STRINGS = {
     USAGE_RESET     = "Usage: %s reset <path> \226\128\148 this resets ONE setting. " ..
                       "The old global wipe is now |cffffff00/cm resetall|r, " ..
                       "which still asks before it wipes.",
-    -- These three are DEAD and kept only as a record of the wording they were
-    -- meant to restore. The parsers that emit them are lib-level (Slash.lua's
-    -- parseBool / allowedText / parseColor sit above lib:New), so they read
-    -- lib.STRINGS directly and never pass through Sl:Text — an instance
-    -- override cannot reach them. Reported upstream rather than worked around
-    -- here; see LIBKA0S-09 (issue #16).
+    -- The three parse refusals, in the wording this addon shipped before it took
+    -- the library's parser. The parsers are lib-level (SlashParse.lua); from Slash
+    -- minor 19 the instance hands its resolver to the descriptor's `parse`, and
+    -- parseValue below passes it on, so these reach chat. Through minor 18 they
+    -- were dead (issue #16, LibKa0s#40).
     ERR_BOOL        = "expected true/false/on/off/1/0",
     ERR_ALLOWED     = "Allowed values: %s",
     ERR_COLOR       = "expected: r g b [a] (each 0-1 or 0-255)",
@@ -499,13 +498,15 @@ local function parseFlagMap(row, text)
     return out
 end
 
-local function parseValue(row, text)
+-- `textOf` is the instance's string resolver (Slash minor 19), passed on so the
+-- library's parse refusals read SLASH_STRINGS first.
+local function parseValue(row, text, textOf)
     if row and row.type == "order" then return parseKeyList(row, text) end
     if row and row.type == "map" then
         if row.valueType == "bool" then return parseFlagMap(row, text) end
         return nil, ("edited with %s, not with /cm set"):format(tostring(row.cliHint))
     end
-    return slashLib.ParseValue(row, text)
+    return slashLib.ParseValue(row, text, textOf)
 end
 
 -- The descriptor's `format`, which outranks the color codec, so it decodes a

@@ -130,7 +130,7 @@ Run these from the repo root. Both must be green; the third is a report, not a g
 ```sh
 lua5.1 tests/run.lua                                    # headless suite — exits non-zero on failure
 luacheck .                                              # lint — must be 0 warnings, 0 errors
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .       # complexity report (performance-§10)
+bash tests/_kit/run-automated-tests.sh --suite complexity   # sighted complexity report (automated-tests-§3)
 ```
 
 The first two are the commit gate. The third is the **release** checkpoint — regenerate
