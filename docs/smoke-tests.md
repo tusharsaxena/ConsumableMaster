@@ -8,7 +8,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 |---|---|---|
 | INSTALL-1 – INSTALL-6 | Install | Fresh install, re-login, the v2 and v3 SavedVariables upgrades, the TOC version and notes. Run for `core/Database.lua` migrations, TOC edits and `core/EnvSetup.lua`. |
 | SLASH-1 – SLASH-15 | Slash commands | Every `/cm` verb, the schema CLI, `[Set]` logging, the disabled refusal and what still answers while disabled. Run for `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, schema rows and a new verb. |
-| PANEL-1 – PANEL-31 | Settings panel | Landing page, sidebar, header, the General page and its resets, Defaults buttons, refresh behavior, the Macros tab strip. Run for `settings/Panel.lua`, `settings/General.lua`, `settings/OptionsSetup.lua`, `settings/OptionsShim.lua`, `reset` / `resetall` and the confirm popup. |
+| PANEL-1 – PANEL-32 | Settings panel | Landing page, sidebar, header, the General page and its resets, Defaults buttons, refresh behavior, the Macros tab strip. Run for `settings/Panel.lua`, `settings/General.lua`, `settings/OptionsSetup.lua`, `settings/OptionsShim.lua`, `reset` / `resetall` and the confirm popup. |
 | PROFILE-1 – PROFILE-21 | Profiles | The Profiles page (new, switch, copy, reset, delete), per-profile migration, what stays out of a profile, and the `/cm profile` verb. Run for `settings/Profiles.lua`, the profile hooks in `core/ConsumableMaster.lua`, `PROFILE_CHANGED` receivers, `KCM.Settings.VetoedFromResetAll`, the vendored AceConfig / AceDBOptions; for the `/cm profile` verb (PROFILE-15 – PROFILE-21), its `profile` row in `settings/Slash.lua`'s `COMMANDS`, its `LIVE_VERBS` entry, the descriptor's `profiles` thunk and a LibKa0s `Slash.lua` re-vendor (`CliProfile`, `ProfileSwitch`). |
 | STATE-1 – STATE-9 | State | Master enable and the stand-down, the lock and its four doors. Run for `core/LifecycleSetup.lua`, the enable row and `KCM.MacroBar.SetLocked`. |
 | MACRO-1 – MACRO-23 | Macros | What each category's macro body picks and writes: single-pick, Weapon Enchant, Augment Rune, Bloodlust and Battle Rez, the AIO composites, spec changes, edge cases. Run for the Ranker, Selector, `core/WeaponSlots.lua`, MacroManager body builders, `TooltipCache.IsUsableByPlayer`, seed files. |
@@ -142,6 +142,8 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 **PANEL-30. The first-open item storm fills the list once.** Log in fresh (not `/reload`, so the item cache is cold), go straight to `/cm config` → Macros → a tab with many rows → rows start as `[Loading]`, then within about a second of the last item arriving the list fills in once, as a single hitch at most. A list that flickers row by row stopped debouncing; one still reading `[Loading]` ten seconds later, with the items known to `/cm get`, stopped firing. Result:
 
 **PANEL-31. The refresh cap holds under constant traffic.** Leave the panel open on that page and keep bag traffic going for more than three seconds without pause (move stacks between bags, or sell and buy back) → the list updates during the traffic, about three seconds after the first request, not only once it stops, and each rebuild is a single hitch at most. Result:
+
+**PANEL-32. The panel still opens with the descriptor naming its folder.** `/reload` with BugSack (or `/console scriptErrors 1`) on, then `/cm config` → the landing page draws, and each of the five sub-pages and every tab on them renders as before, with no Lua error on load or on open. The Options descriptor now passes `addonName` (LibKa0s#42, Options minor 28); this addon draws no item-list help marks, so there is nothing new to see, and a changed page or an error means the field reached something it should not have. Result:
 
 ## Profiles
 
@@ -583,6 +585,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | PANEL-27, PANEL-28 | §7b tabs steps 5, 21 | Never run: Session CM step CM.8, the strips at the narrowest width (`CM-20`) |
 | PANEL-29 | Seam step 18 | Never run: the pooled tab strip (`M4-01`, LibKa0s v1.27.0) |
 | PANEL-30, PANEL-31 | §7a step 4 | Never run: the refresh burst and cap (`M4-22`) |
+| PANEL-32 | New | The Options descriptor's `addonName` (LibKa0s v1.67.0, LibKa0s#42, CA-CM-NM), never run in a client |
 | PROFILE-2, PROFILE-5 | §13 steps 2-5, §13a step 2 | Corrected: the live SavedVariables file, not a copy |
 | PROFILE-6 | §13 step 6 | Never run: step 5 of §5.2 on the 2026-09-07 checklist (`M2-07`), the bar that stays off after the one-time v2 step |
 | PROFILE-8, PROFILE-9 | §13a steps 7, 8 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |

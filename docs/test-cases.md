@@ -996,7 +996,7 @@ badge and any count quoted in the docs must agree with it.
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
 
-### test_settingsui.lua (28)
+### test_settingsui.lua (30)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -1009,6 +1009,8 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
 - Settings UI: the About logo path follows the folder name
+- Settings UI: the Options descriptor passes addonName, and it is the first vararg
+- Settings UI: the info art the descriptor's addonName reaches is in the vendored payload
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
@@ -1438,7 +1440,7 @@ badge and any count quoted in the docs must agree with it.
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
 | test_selector_pins.lua | 9 |
-| test_settingsui.lua | 28 |
+| test_settingsui.lua | 30 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 88 |
@@ -1457,4 +1459,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1187** |
+| **Total** | **1189** |

@@ -310,6 +310,36 @@ test("Settings UI: the About logo path follows the folder name", function(t)
         "the logo path is built from the folder name, got " .. tostring(path))
 end)
 
+-- The Options descriptor's `addonName` (LibKa0s#42, Options minor 28 /
+-- OptionsIdList minor 3). It is the addon FOLDER, the one route an IdList help
+-- mark has to the library's shipped `info` art; without it the library draws
+-- the client's blue disc, and with a wrong one (the MasterControls display
+-- label, a typo) the loaded-addon guard does the same. This addon draws no
+-- IdList today, so the field is latent here: what is worth pinning is the
+-- argument, as the DebugLog descriptor guard in tests/test_debuglog.lua does.
+test("Settings UI: the Options descriptor passes addonName, and it is the first vararg", function(t)
+    -- red under: deleting the descriptor's addonName line, or reverting the
+    -- file's first local to `_`, which turns the field into a silent nil.
+    local root = _G.KCM_TEST_ROOT or "."
+    local f = assert(io.open(root .. "/settings/OptionsSetup.lua", "r"),
+        "cannot open settings/OptionsSetup.lua (tests run from the repo root)")
+    local src = f:read("*a")
+    f:close()
+    t.truthy(src:find("\n%s*addonName%s*=%s*addonName%s*,"),
+        "the optionsLib:New descriptor no longer passes addonName = addonName")
+    t.truthy(src:find("\nlocal addonName, NS = %.%.%."),
+        "the file discards its first vararg, so the descriptor's addonName is nil")
+end)
+
+test("Settings UI: the info art the descriptor's addonName reaches is in the vendored payload", function(t)
+    -- The name is only half the fact: Media.Icon builds a path without asking
+    -- whether the file is there, so a re-vendor that dropped it draws nothing.
+    local root = _G.KCM_TEST_ROOT or "."
+    local fh = io.open(root .. "/libs/LibKa0s/media/icons/info.tga", "rb")
+    t.truthy(fh, "libs/LibKa0s/media/icons/info.tga is missing from this build")
+    if fh then fh:close() end
+end)
+
 test("Settings UI: the library's user-visible strings resolve to prose, not to their own keys",
     function(t)
         local KCM  = loader.loadWithSchema()

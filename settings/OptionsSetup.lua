@@ -24,7 +24,7 @@
 -- Loads BEFORE settings/Panel.lua (see the TOC's `# Settings` block): Panel.lua
 -- takes the instance as a file-scope local, so the instance has to exist first.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 local L = KCM.L
 
@@ -216,6 +216,12 @@ if optionsLib and AceGUI then
 
         -- The breadcrumb's left half, so a sub-page reads "<brand> > <page>".
         parentTitle = PANEL_TITLE,
+
+        -- The addon FOLDER (the first vararg), not a display label: the one
+        -- route an IdList help mark has to the library's shipped `info` art
+        -- (LibKa0s#42). The library takes it only when the client says that
+        -- addon is loaded, so a wrong name draws the client glyph, not nothing.
+        addonName = addonName,
 
         -- A thunk, not `KCM.Say` bare: the library snapshots the printer at
         -- :New, so a captured value would freeze the load-time function object.
