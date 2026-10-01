@@ -527,8 +527,8 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-§9 prescribes; the kit (revision 34, as vendored from
-    -- LibKa0s v1.65.0; since revision 25) resolves the relative `dir` against the
+    -- literal form testing-§9 prescribes; the kit (revision 35, as vendored from
+    -- LibKa0s v1.66.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive
@@ -541,10 +541,13 @@ local SUITES = {
     --                      docs/ARCHITECTURE.md (kit revision 25)
     --   test_diagnostics_contract -- the debug-logging-§14 dispatcher contract (kit
     --                      revision 27), wired below through Kit.diagnostics
+    --   test_lizard_sighted -- the sighted complexity shadow and its parity reader
+    --                      (kit revision 35, automated-tests-§3)
     { name = "test_eol",                  dir = "tests/_kit/" },
     { name = "test_prose",                dir = "tests/_kit/" },
     { name = "test_layout_cap",           dir = "tests/_kit/" },
     { name = "test_diagnostics_contract", dir = "tests/_kit/" },
+    { name = "test_lizard_sighted",       dir = "tests/_kit/" },
 }
 
 -- The kit's diagnostics contract (debug-logging-§14), wired to THIS addon's dispatcher: the five

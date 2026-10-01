@@ -52,7 +52,16 @@ local MAJORS = {
             { file = "DebugLogGates",       minor = "__gatesMinor", shell = "__gatesShellMinor" },
         },
     },
-    { major = "LibKa0s-Slash-1.0",    files = { "Slash" } },
+    {
+        major = "LibKa0s-Slash-1.0",
+        -- SlashParse joined at LibKa0s v1.66.0: the value parser peeled out of Slash.lua,
+        -- paired on the shell's minor.
+        files = { "Slash", "SlashParse" },
+        primary = "Slash",
+        paired = {
+            { file = "SlashParse", minor = "__parseMinor", shell = "__parseShellMinor" },
+        },
+    },
     { major = "LibKa0s-Launcher-1.0", files = { "Launcher" } },
     {
         major = "LibKa0s-Options-1.0",
@@ -85,10 +94,14 @@ local MAJORS = {
     },
     {
         major = "LibKa0s-Perf-1.0",
-        files = { "Perf", "PerfPanel" },
+        -- PerfSampler and PerfCommands joined at LibKa0s v1.66.0: the capture and the
+        -- command surface peeled out of Perf.lua, each paired on the probe's minor.
+        files = { "Perf", "PerfSampler", "PerfCommands", "PerfPanel" },
         primary = "Perf",
         paired = {
-            { file = "PerfPanel", minor = "__panelMinor", shell = "__panelProbeMinor" },
+            { file = "PerfSampler",  minor = "__samplerMinor",  shell = "__samplerShellMinor" },
+            { file = "PerfCommands", minor = "__commandsMinor", shell = "__commandsShellMinor" },
+            { file = "PerfPanel",    minor = "__panelMinor",    shell = "__panelProbeMinor" },
         },
     },
 }
