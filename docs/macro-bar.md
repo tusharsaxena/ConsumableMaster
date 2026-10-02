@@ -25,9 +25,9 @@ files, which `tests/test_macrobar.lua` and its peeled siblings
 `tests/test_macrobar_chrome.lua` for the chrome appliers) exercise headlessly. The `modules/`
 files are a thin apply pass whose behavior is otherwise validated in-game
 (see [smoke-tests.md](./smoke-tests.md)) — the one exception is the drag
-handle's two tooltips, its mark tint and its close mark, which are plain Lua
-closures over the lock and the `macroBar.enabled` write, hovered and clicked
-headlessly in `tests/test_macrobar_chrome.lua`.
+handle's three tooltips and where they sit, its mark tint and its close mark,
+which are plain Lua closures over the lock and the `macroBar.enabled` write,
+hovered and clicked headlessly in `tests/test_macrobar_chrome.lua`.
 
 `core/MacroDisplay.lua` is also used by `modules/KCMMacroDragIcon.lua` — the
 per-category drag icon in the settings panel — so icon/tooltip resolution can't
@@ -377,6 +377,20 @@ same way back. In combat the flag is written at once and the hide waits for
 `PLAYER_REGEN_ENABLED`, like any other bar-off. The mark widens the strip: the
 widget reserves its frame on both sides of the label, so the label stays
 centered.
+
+**Where the tooltips sit.** All three — the strip's, the help icon's and the
+X's — open **beside the strip**: to its right, or to its left when the strip's
+right edge plus the tooltip's width would leave the screen. The strip hands the
+widget `MB.PlaceTooltipBeside` as its `tooltipPlace` (LibKa0s WidgetsDragHandle
+minor 4), so no descriptor names an owner or an anchor. A mark resolves to its
+strip, so the three share one position. The comparison is in screen pixels,
+because the bar takes the master scale and the strip inherits it. Every
+geometry read is asked whether it is nil or secret first; any such read answers
+nil, nothing is anchored, and the widget shows the same tooltip at the cursor.
+It is the same rule, line for line, as every Ka0s drag strip (KickCD's
+`NS.Util.PlaceTooltipBeside` is the reference): the owner chose one placement
+across the collection over the `ANCHOR_TOP` / `ANCHOR_TOPRIGHT` pair this bar
+used before (TP-CM-02).
 
 ## Defaults & the v2 / v3 migrations
 
