@@ -7,8 +7,8 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | ID range | Theme | What it covers |
 |---|---|---|
 | INSTALL-1 – INSTALL-6 | Install | Fresh install, re-login, the v2 and v3 SavedVariables upgrades, the TOC version and notes. Run for `core/Database.lua` migrations, TOC edits and `core/EnvSetup.lua`. |
-| SLASH-1 – SLASH-15 | Slash commands | Every `/cm` verb, the schema CLI, `[Set]` logging, the disabled refusal and what still answers while disabled. Run for `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, schema rows and a new verb. |
-| PANEL-1 – PANEL-31 | Settings panel | Landing page, sidebar, header, the General page and its resets, Defaults buttons, refresh behavior, the Macros tab strip. Run for `settings/Panel.lua`, `settings/General.lua`, `settings/OptionsSetup.lua`, `settings/OptionsShim.lua`, `reset` / `resetall` and the confirm popup. |
+| SLASH-1 – SLASH-16 | Slash commands | Every `/cm` verb, the schema CLI, `[Set]` logging, the disabled refusal, what still answers while disabled and the sub-command help rows. Run for `settings/Slash.lua`, `core/SlashCommands.lua`, `core/SlashDump.lua`, schema rows and a new verb. |
+| PANEL-1 – PANEL-32 | Settings panel | Landing page, sidebar, header, the General page and its resets, Defaults buttons, refresh behavior, the Macros tab strip. Run for `settings/Panel.lua`, `settings/General.lua`, `settings/OptionsSetup.lua`, `settings/OptionsShim.lua`, `reset` / `resetall` and the confirm popup. |
 | PROFILE-1 – PROFILE-21 | Profiles | The Profiles page (new, switch, copy, reset, delete), per-profile migration, what stays out of a profile, and the `/cm profile` verb. Run for `settings/Profiles.lua`, the profile hooks in `core/ConsumableMaster.lua`, `PROFILE_CHANGED` receivers, `KCM.Settings.VetoedFromResetAll`, the vendored AceConfig / AceDBOptions; for the `/cm profile` verb (PROFILE-15 – PROFILE-21), its `profile` row in `settings/Slash.lua`'s `COMMANDS`, its `LIVE_VERBS` entry, the descriptor's `profiles` thunk and a LibKa0s `Slash.lua` re-vendor (`CliProfile`, `ProfileSwitch`). |
 | STATE-1 – STATE-9 | State | Master enable and the stand-down, the lock and its four doors. Run for `core/LifecycleSetup.lua`, the enable row and `KCM.MacroBar.SetLocked`. |
 | MACRO-1 – MACRO-23 | Macros | What each category's macro body picks and writes: single-pick, Weapon Enchant, Augment Rune, Bloodlust and Battle Rez, the AIO composites, spec changes, edge cases. Run for the Ranker, Selector, `core/WeaponSlots.lua`, MacroManager body builders, `TooltipCache.IsUsableByPlayer`, seed files. |
@@ -18,7 +18,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
 | DIAG-1 – DIAG-41 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the lines the library writes into it, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
-| DEGRADED-1 – DEGRADED-7 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
+| DEGRADED-1 – DEGRADED-8 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
 Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Slash.lua`, `core/PerfSetup.lua`): run INSTALL-6, SLASH-1, SLASH-2, PANEL, PROFILE-1, PROFILE-15 – PROFILE-21, DIAG, BAR-6, BAR-12 and BAR-26 – BAR-30. The swap is meant to be pixel-identical, so anything that looks different is the finding. A change to `.luacheckrc`, a headless-only gate or a doc needs no smoke run.
@@ -78,6 +78,8 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 **SLASH-14. The rest of the surface answers while disabled.** Still disabled: `/cm help`, `/cm config`, `/cm version`, `/cm debug`, `/cm perf`, `/cm diagnostics`, `/cm list`, `/cm get enabled`, `/cm set scale 1.1`, `/cm reset scale`, `/cm resetall`, `/cm dump categories`, `/cm profile`, bare `/cm`, and `/cm enable` → each answers normally; `/cm help` prints the full index with the refusal line under the header, not instead of it; bare `/cm` opens the panel; `/cm enable` never refuses. A typo (`/cm resyncc`) gets `Unknown command: resyncc` and the index, not the refusal. Result:
 
 **SLASH-15. A parse refusal is in this addon's wording.** `/cm set macroBar.showCount maybe` → `expected true/false/on/off/1/0`, with no `/yes/no`; `/cm set macroBar.orientation sideways` → `Allowed values: HORIZONTAL, VERTICAL`, capital A; `/cm set macroBar.barBackdropColor red` → `expected: r g b [a] (each 0-1 or 0-255)`. Nothing is written by any of them. A lowercase `allowed values:` or a trailing `/yes/no` means the host's `L` is not reaching the library's parser (ConsumableMaster#16, LibKa0s Slash minor 19). Result: pass (owner, 2026-10-02)
+
+**SLASH-16. Sub-command help reads like `/cm help`.** `/cm priority`, `/cm stat`, `/cm aio`, then `/cm bar help` → each prints its header, then one two-space-indented `[CM]` row per sub-verb: the gold command (`/cm priority <cat> list`, `/cm stat primary`, `/cm aio <key> toggle`, `/cm bar unlock`), an em dash, and the white description, in the same colors and spacing as the `/cm help` rows. The trailing `known cats`, `specKey` and `known composites` lines and the bar's `layout / appearance` line are unchanged. Then `/cm priority FOOD List`, `/cm stat LIST` and `/cm bar ON` → each acts as its lowercase form does, and `/cm stat FROB` answers `unknown stat subcommand 'frob'` with the stat help. A row in a different color or spacing from `/cm help` means a sub level stopped rendering through the library's `CommandRows` (ConsumableMaster#44). Result:
 
 ## Settings panel
 
@@ -142,6 +144,8 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 **PANEL-30. The first-open item storm fills the list once.** Log in fresh (not `/reload`, so the item cache is cold), go straight to `/cm config` → Macros → a tab with many rows → rows start as `[Loading]`, then within about a second of the last item arriving the list fills in once, as a single hitch at most. A list that flickers row by row stopped debouncing; one still reading `[Loading]` ten seconds later, with the items known to `/cm get`, stopped firing. Result:
 
 **PANEL-31. The refresh cap holds under constant traffic.** Leave the panel open on that page and keep bag traffic going for more than three seconds without pause (move stacks between bags, or sell and buy back) → the list updates during the traffic, about three seconds after the first request, not only once it stops, and each rebuild is a single hitch at most. Result:
+
+**PANEL-32. The panel still opens with the descriptor naming its folder.** `/reload` with BugSack (or `/console scriptErrors 1`) on, then `/cm config` → the landing page draws, and each of the five sub-pages and every tab on them renders as before, with no Lua error on load or on open. The Options descriptor now passes `addonName` (LibKa0s#42, Options minor 28); this addon draws no item-list help marks, so there is nothing new to see, and a changed page or an error means the field reached something it should not have. Result:
 
 ## Profiles
 
@@ -555,6 +559,8 @@ Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` an
 
 **DEGRADED-7. The chrome loses its art, not its controls.** → The icons and JetBrains Mono live in the renamed payload, so `KCM.Icon` and `KCM.MediaFont` answer nil: the bar handle's help control falls back to Blizzard's `InformationIcon` and is still drawn, and a console would fall back to word buttons and a `×`; a blank square there means a texture path was built by concatenation around the nil. Result:
 
+**DEGRADED-8. Sub-commands still answer without the library.** `/cm priority`, `/cm stat`, `/cm aio` and `/cm bar help` → each prints its rows as plain text (`/cm stat primary  Set primary stat — …`), with no gold, no color codes and no em dash between the command and its description (an em dash inside a description is its own text). `/cm priority food list` and `/cm stat list 7_263` still do what they name, with no Lua error. Gold rows here mean the degraded arm is copying the library's formatter (ConsumableMaster#44). Result:
+
 ## Non-English client
 
 **LOC-1. Classification on a localized client.** On a deDE, frFR or other non-English client (a language pack on PTR or beta, or a non-English account), reload with the DISC-4 consumables in bags → `/cm dump item <id>` shows a localized `subType` (such as `"Tränke"`), `classified:` is still correct, and the `KCM_*` macros populate. Before the numeric-class change every consumable classified as `(none)` on such a client. Without one, the headless cases `classifier: keys on numeric subclass, not the localized subType` and its WeaponSlots equivalent, plus DISC-4, DISC-5, MACRO-9 and MACRO-10 on English, are the sign-off. Result:
@@ -571,6 +577,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | SLASH-6, SLASH-7 | §11 step 9b (#35) | Owed since the 2026-09-12 triage batch; SLASH-7 also carries its bulk-reset one-line rule |
 | SLASH-12 | §11 step 19b | Never run: Session CM step CM.4 of the 2026-09-23 remediation (`CM-15`) |
 | SLASH-14 | §11 step 14b | New: `/cm profile` answers while disabled. Corrected: the typo line reads `Unknown command: resyncc` |
+| SLASH-16 | New | New: ConsumableMaster#44, LibKa0s Slash.SplitVerb/FindCommand/CommandRows adoption (CA-CM-01), never run in a client |
 | PANEL-1 | §7 steps 1, 2, seam step 2 | Never run: Session CM step CM.3, the About logo (`CM-21`) |
 | PANEL-6 | §7 step 4, §7b tabs step 19 | Corrected: the Maintenance button reads `Force rewrite macros` |
 | PANEL-9 | §7 step 8 | Corrected: `/cm resync` in combat recomputes with a notice rather than refusing |
@@ -583,6 +590,7 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | PANEL-27, PANEL-28 | §7b tabs steps 5, 21 | Never run: Session CM step CM.8, the strips at the narrowest width (`CM-20`) |
 | PANEL-29 | Seam step 18 | Never run: the pooled tab strip (`M4-01`, LibKa0s v1.27.0) |
 | PANEL-30, PANEL-31 | §7a step 4 | Never run: the refresh burst and cap (`M4-22`) |
+| PANEL-32 | New | The Options descriptor's `addonName` (LibKa0s v1.67.0, LibKa0s#42, CA-CM-NM), never run in a client |
 | PROFILE-2, PROFILE-5 | §13 steps 2-5, §13a step 2 | Corrected: the live SavedVariables file, not a copy |
 | PROFILE-6 | §13 step 6 | Never run: step 5 of §5.2 on the 2026-09-07 checklist (`M2-07`), the bar that stays off after the one-time v2 step |
 | PROFILE-8, PROFILE-9 | §13a steps 7, 8 | The bulk-reset one-line logging, owed since the 2026-09-12 triage batch |
@@ -622,4 +630,5 @@ No client pass is recorded for these. They are the owner checks carried over fro
 | DIAG-41 | New | The launcher's state line held for the first enable (`debugAtEnable`, LibKa0s v1.65.0, DG-CM-01), never run in a client |
 | DEGRADED-1, DEGRADED-3 | Degraded bullets 1, 3 | Corrected: `/cm list`, `/cm get` and `/cm set` are unavailable without the library; the panel notice prints at the reload, and `/cm config` prints only `Settings panel unavailable.` |
 | DEGRADED-5 | Degraded bullet 5 | New: `/cm profile` refuses without the library |
+| DEGRADED-8 | New | New: ConsumableMaster#44, LibKa0s Slash.SplitVerb/FindCommand/CommandRows adoption (CA-CM-01): the degraded sub-help's plain rows, never run in a client |
 | LOC-1 | §3c step 5 | Never run: the non-English session of the 2026-09-07 checklist (its §6.7) |

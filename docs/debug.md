@@ -223,7 +223,7 @@ Three CLI namespaces cover the list-shaped state. The per-category priority list
 | `/cm stat` | `list / primary / secondary / reset [<specKey>]` | `<specKey>` is canonical `<classID>_<specID>` or friendly `CLASS:SPEC` (e.g. `SHAMAN:ENHANCEMENT`); defaults to current spec. |
 | `/cm aio <key>` | `list / toggle / up / down / reset` | Sub-categories are locked to their section, so `up` / `down` infer the section from where the ref appears. |
 
-All three namespaces dispatch through `findCommand` against an ordered `*_COMMANDS` table; help is generated from the same table. Adding a verb = one row.
+All three namespaces dispatch through the library's `FindCommand` (via `KCM.SlashCommands.FindCommand`) against an ordered `*_COMMANDS` table; help is rendered from the same table by `lib.CommandRows`. Adding a verb = one row.
 
 ## Per-category recompute log
 

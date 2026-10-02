@@ -18,6 +18,12 @@
 local _, NS = ...
 local KCM = NS
 KCM.SlashCommands = {}
+-- The sub-command vocabulary -- SC.SplitVerb, SC.FindCommand, SC.CommandRows --
+-- is LibKa0s-Slash-1.0's, published by settings/Slash.lua on both arms of its
+-- one Slash seam (ConsumableMaster#44). That file loads AFTER this one, so it
+-- is read through SC at CALL time, inside the verb bodies; a file-scope capture
+-- here would bind nil.
+local SC = KCM.SlashCommands
 
 local L = KCM.L
 
@@ -78,17 +84,6 @@ local function tokenize(s)
     local out = {}
     for w in (s or ""):gmatch("%S+") do out[#out + 1] = w end
     return out
-end
-
-local function lowerFirst(rest)
-    local first, remainder = (rest or ""):match("^(%S*)%s*(.*)$")
-    return (first or ""):lower(), remainder or ""
-end
-
-local function findCommand(list, name)
-    for _, entry in ipairs(list) do
-        if entry[1] == name then return entry end
-    end
 end
 
 -- Every panel mutation funnels through here: request a pipeline recompute so
@@ -465,9 +460,7 @@ local PRIORITY_COMMANDS = {
 
 local function priorityHelp()
     say("priority subcommands")
-    for _, entry in ipairs(PRIORITY_COMMANDS) do
-        say(("  |cffffff00/cm priority <cat> %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
-    end
+    for _, row in ipairs(SC.CommandRows("/cm priority <cat>", PRIORITY_COMMANDS, "  ")) do say(row) end
     if KCM.Categories and KCM.Categories.LIST then
         local keys = {}
         for _, c in ipairs(KCM.Categories.LIST) do keys[#keys + 1] = c.key:lower() end
@@ -476,7 +469,7 @@ local function priorityHelp()
 end
 
 local function runPriority(rest)
-    local catTok, rem = lowerFirst(rest)
+    local catTok, rem = SC.SplitVerb(rest)
     if catTok == "" then return priorityHelp() end
     local catKey = resolveCatKey(catTok)
     if not catKey then
@@ -484,12 +477,12 @@ local function runPriority(rest)
         return priorityHelp()
     end
     local cat = KCM.Categories.Get(catKey)
-    local sub, tail = lowerFirst(rem)
+    local sub, tail = SC.SplitVerb(rem)
     if sub == "" then
         -- bare `/cm priority <cat>` defaults to list
         return priorityList(cat, "")
     end
-    local entry = findCommand(PRIORITY_COMMANDS, sub)
+    local entry = SC.FindCommand(PRIORITY_COMMANDS, sub)
     if entry then return entry[3](cat, tail) end
     say("unknown priority subcommand '" .. sub .. "'")
     priorityHelp()
@@ -612,16 +605,14 @@ local STAT_COMMANDS = {
 
 local function statHelp()
     say("stat subcommands")
-    for _, entry in ipairs(STAT_COMMANDS) do
-        say(("  |cffffff00/cm stat %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
-    end
+    for _, row in ipairs(SC.CommandRows("/cm stat", STAT_COMMANDS, "  ")) do say(row) end
     say("  specKey: <classID>_<specID> (e.g. 7_263) or CLASS:SPEC (e.g. SHAMAN:ENHANCEMENT). Defaults to current spec.")
 end
 
 local function runStat(rest)
-    local sub, tail = lowerFirst(rest)
+    local sub, tail = SC.SplitVerb(rest)
     if sub == "" then return statHelp() end
-    local entry = findCommand(STAT_COMMANDS, sub)
+    local entry = SC.FindCommand(STAT_COMMANDS, sub)
     if entry then return entry[3](tail) end
     say("unknown stat subcommand '" .. sub .. "'")
     statHelp()
@@ -819,9 +810,7 @@ local AIO_COMMANDS = {
 
 local function aioHelp()
     say("aio subcommands")
-    for _, entry in ipairs(AIO_COMMANDS) do
-        say(("  |cffffff00/cm aio <key> %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
-    end
+    for _, row in ipairs(SC.CommandRows("/cm aio <key>", AIO_COMMANDS, "  ")) do say(row) end
     if KCM.Categories and KCM.Categories.LIST then
         local keys = {}
         for _, c in ipairs(KCM.Categories.LIST) do
@@ -832,7 +821,7 @@ local function aioHelp()
 end
 
 local function runAIO(rest)
-    local keyTok, rem = lowerFirst(rest)
+    local keyTok, rem = SC.SplitVerb(rest)
     if keyTok == "" then return aioHelp() end
     local catKey = resolveCatKey(keyTok)
     local cat = catKey and KCM.Categories.Get(catKey)
@@ -840,9 +829,9 @@ local function runAIO(rest)
         say("unknown composite category '" .. keyTok .. "'.")
         return aioHelp()
     end
-    local sub, tail = lowerFirst(rem)
+    local sub, tail = SC.SplitVerb(rem)
     if sub == "" then return aioList(cat) end
-    local entry = findCommand(AIO_COMMANDS, sub)
+    local entry = SC.FindCommand(AIO_COMMANDS, sub)
     if entry then return entry[3](cat, tail) end
     say("unknown aio subcommand '" .. sub .. "'")
     aioHelp()
@@ -945,9 +934,7 @@ local function barHelp()
     say(("macro bar: %s, %s"):format(
         cfg.enabled and "|cff00ff00ON|r" or "|cffff5555OFF|r",
         cfg.locked  and "locked" or "unlocked"))
-    for _, entry in ipairs(BAR_COMMANDS) do
-        say(("  |cffffff00/cm bar %s|r — |cffffffff%s|r"):format(entry[1], entry[2]))
-    end
+    for _, row in ipairs(SC.CommandRows("/cm bar", BAR_COMMANDS, "  ")) do say(row) end
     say("  layout / appearance: |cffffff00/cm set macroBar.<field>|r (see /cm list)")
 end
 
@@ -955,7 +942,7 @@ local function runBar(rest)
     if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then
         return say("macro bar unavailable.")
     end
-    local sub = lowerFirst(rest)
+    local sub = SC.SplitVerb(rest)
     -- Bare `/cm bar` toggles, matching how `/cm debug` reads as a switch.
     -- It flips the STORED flag, not IsEnabled(): IsEnabled answers false under
     -- any stand-down hold, a perf capture's suspended arm included
@@ -966,7 +953,7 @@ local function runBar(rest)
         return setBarShown(not (KCM.MacroBarModel.Config() or {}).enabled, "bar")
     end
     if sub == "help" then return barHelp() end
-    local entry = findCommand(BAR_COMMANDS, sub)
+    local entry = SC.FindCommand(BAR_COMMANDS, sub)
     if entry then return entry[3]() end
     say("unknown bar subcommand '" .. sub .. "'")
     barHelp()

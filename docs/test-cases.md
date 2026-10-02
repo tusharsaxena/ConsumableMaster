@@ -996,7 +996,7 @@ badge and any count quoted in the docs must agree with it.
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
 
-### test_settingsui.lua (28)
+### test_settingsui.lua (30)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -1009,6 +1009,8 @@ badge and any count quoted in the docs must agree with it.
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
 - Settings UI: the About logo path follows the folder name
+- Settings UI: the Options descriptor passes addonName, and it is the first vararg
+- Settings UI: the info art the descriptor's addonName reaches is in the vendored payload
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
@@ -1159,7 +1161,7 @@ badge and any count quoted in the docs must agree with it.
 - /cm set on a string dropdown still matches by text
 - /cm list covers every row in the settings schema
 
-### test_slash_degraded.lua (13)
+### test_slash_degraded.lua (15)
 
 - Slash: the library-absent line is WS-02's sentence, through the locale
 - Slash: with LibKa0s absent, /cm enable prints the library-absent line and writes nothing
@@ -1174,6 +1176,8 @@ badge and any count quoted in the docs must agree with it.
 - Slash: with LibKa0s absent, /cm profile prints the library-absent line and switches nothing
 - Slash: /cm bar on over a refused write never says ON
 - Slash: the live disabled refusal is built from the library's DISABLED_LINE_FORMAT
+- Slash: with LibKa0s absent, every sub-help still answers
+- Slash: with LibKa0s absent, a sub-verb still dispatches
 
 ### test_slash_profile.lua (9)
 
@@ -1215,7 +1219,7 @@ badge and any count quoted in the docs must agree with it.
 - Slash: enable itself still works while disabled, or the pair is one-way
 - Slash: with LibKa0s absent there is no refusal to print, and the verb acts
 
-### test_slashsetup.lua (22)
+### test_slashsetup.lua (26)
 
 - Slash: the dispatcher IS the library's instance, not a host lookalike
 - Slash: /cm routes through the instance rather than a parallel path
@@ -1239,6 +1243,10 @@ badge and any count quoted in the docs must agree with it.
 - Slash: the degraded path keeps the library's parse — verb only is lowercased
 - Slash: the panel's degraded advice agrees with what /cm actually answers
 - Slash: `/cm get` and the settings panel decode one stored color the same way
+- Slash: every sub-help row has the one row shape (priority/stat/aio/bar)
+- Slash: sub-verbs fold case and tolerate extra spaces, arguments keep theirs
+- Slash: an unknown sub-verb still names itself in lowercase
+- Slash: the sub-command vocabulary IS the library's, published at the seam
 
 ### test_spechelper.lua (16)
 
@@ -1438,14 +1446,14 @@ badge and any count quoted in the docs must agree with it.
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 55 |
 | test_selector_pins.lua | 9 |
-| test_settingsui.lua | 28 |
+| test_settingsui.lua | 30 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 88 |
-| test_slash_degraded.lua | 13 |
+| test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
-| test_slashsetup.lua | 22 |
+| test_slashsetup.lua | 26 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1457,4 +1465,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1187** |
+| **Total** | **1195** |

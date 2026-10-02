@@ -216,7 +216,7 @@ end)
 --
 -- The lock was reachable only as `/cm bar unlock`, and `/cm unlock` — which is
 -- what the collection's other addons answer to, and what a player types — fell
--- through findCommand's exact match to "unknown command". These assert the
+-- through the dispatcher's exact match to "unknown command". These assert the
 -- STORED FLAG rather than the printed line, because a handler that says "macro
 -- bar unlocked" and writes nothing prints exactly the same thing.
 

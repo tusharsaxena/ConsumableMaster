@@ -164,7 +164,7 @@ files["modules/Ranker.lua"] = {
 -- StaticPopupDialogs OnAccept at settings/Category.lua:209, which reads only the `data` payload
 -- Blizzard hands it; KCM.Schema:Set (settings/Panel.lua:890), published with method sugar per
 -- architecture-§5 and forwarding straight to Helpers.SetAndRefresh; and KCM:OnSlashCommand
--- (settings/Slash.lua:751), which AceConsole invokes on the addon object.
+-- (settings/Slash.lua:809), which AceConsole invokes on the addon object.
 files["settings/Category.lua"] = { ignore = { "212/self" } }
 files["settings/Panel.lua"]    = { ignore = { "212/self" } }
 files["settings/Slash.lua"]    = { ignore = { "212/self" } }

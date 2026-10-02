@@ -523,6 +523,35 @@ local function formatValue(row, value)
     return slashLib.FormatValue(row, value)
 end
 
+-- The sub-command vocabulary's library-absent stub (ConsumableMaster#44,
+-- slash-commands-§1). core/SlashCommands.lua's priority / stat / aio / bar are
+-- host verbs that degradedDispatch still reaches, so the degraded arm owes them
+-- a verb split and a lookup -- the minimal stub dispatch the Slash doc's
+-- "The degradation stub" sanctions, and the same pair degradedDispatch below
+-- uses, so the addon carries one of each. The split is the library's: only the
+-- verb is lowercased, and the remainder keeps its case and internal spacing.
+local function stubSplitVerb(rest)
+    local verb, remainder = (rest or ""):match("^(%S*)%s*(.*)$")
+    return (verb or ""):lower(), remainder or ""
+end
+
+local function stubFindCommand(list, name)
+    for _, entry in ipairs(list) do
+        if entry[1] == name then return entry end
+    end
+end
+
+-- Plain `cmd  desc` rows: no color escape and no em dash between the two. A
+-- degraded row that reproduced lib.FormatRow would be a second formatter kept
+-- alive "just in case" (anti-pattern #73).
+local function stubCommandRows(prefix, commands, indent)
+    local out = {}
+    for _, entry in ipairs(commands) do
+        out[#out + 1] = (indent or "") .. prefix .. " " .. entry[1] .. "  " .. entry[2]
+    end
+    return out
+end
+
 if slashLib then
     Sl = slashLib:New({
         slash        = "/cm",
@@ -625,6 +654,12 @@ if slashLib then
     -- The instance, so the suite can assert identity rather than lookalike
     -- behavior. Mirrors KCM.DebugLog.instance and Settings.Helpers.instance.
     KCM.SlashCommands.instance = Sl
+    -- The sub-command vocabulary, the library's own functions by identity
+    -- (ConsumableMaster#44): core/SlashCommands.lua's sub levels split, look up
+    -- and render their rows through these, so `/cm stat` reads like `/cm help`.
+    KCM.SlashCommands.SplitVerb   = slashLib.SplitVerb
+    KCM.SlashCommands.FindCommand = slashLib.FindCommand
+    KCM.SlashCommands.CommandRows = slashLib.CommandRows
 
     printHelp = function() Sl:PrintHelp() end
     cliList   = function() Sl:CliList() end
@@ -672,6 +707,11 @@ else
     -- would CREATE whatever name it was handed.
     cliProfile    = function() refuseLibraryAbsent("profile") end
     profileSwitch = function() refuseLibraryAbsent("profile"); return false end
+    -- The sub-command vocabulary's stub (above): the host's sub levels keep
+    -- dispatching, and their help prints plain rows.
+    KCM.SlashCommands.SplitVerb   = stubSplitVerb
+    KCM.SlashCommands.FindCommand = stubFindCommand
+    KCM.SlashCommands.CommandRows = stubCommandRows
 end
 
 -- The About panel's command rows, RENDERED -- convergence #2 (LIBKA0S-13).
@@ -727,12 +767,8 @@ function KCM.SlashCommands.ProfileSwitch(name) return profileSwitch(name) end
 -- tables, no landing rows. It trims, splits, lowercases the verb, applies the
 -- one alias and looks the verb up in COMMANDS — the same five steps the
 -- library's own OnSlash takes, because doing fewer would change what the same
--- typed line means depending on whether the library loaded.
-local function findCommand(cmd)
-    for _, entry in ipairs(COMMANDS) do
-        if entry[1] == cmd then return entry end
-    end
-end
+-- typed line means depending on whether the library loaded. The split and the
+-- lookup are the vocabulary stub above, the same pair the sub levels get here.
 
 local function degradedDispatch(msg)
     local raw = (msg or ""):match("^%s*(.-)%s*$") or ""
@@ -741,7 +777,7 @@ local function degradedDispatch(msg)
     -- so on this path it reaches KCM.Options.Open, which says the panel is
     -- unavailable. With no `config` row it falls back to help, as the library does.
     if raw == "" then
-        local config = findCommand("config")
+        local config = stubFindCommand(COMMANDS, "config")
         if config then return config[3]("") end
         return printHelp()
     end
@@ -749,12 +785,11 @@ local function degradedDispatch(msg)
     -- Only the verb is lowercased. `rest` keeps its case because schema paths
     -- are case-sensitive, and its internal spacing because a color is several
     -- tokens. Same split as the library's.
-    local cmd, rest = raw:match("^(%S+)%s*(.*)$")
-    cmd = (cmd or ""):lower()
+    local cmd, rest = stubSplitVerb(raw)
     cmd = ALIASES[cmd] or cmd
 
-    local entry = findCommand(cmd)
-    if entry then return entry[3](rest or "") end
+    local entry = stubFindCommand(COMMANDS, cmd)
+    if entry then return entry[3](rest) end
 
     say(SLASH_STRINGS.UNKNOWN_COMMAND:format(cmd))
     return printHelp()

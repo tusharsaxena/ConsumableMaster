@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.66.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.67.0 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
@@ -68,7 +68,7 @@ disagree is exactly the drift the gate exists to catch. It lives here rather tha
 because it answers a maintainer's question on a page written for players — the kit stopped reading
 `README.md` at revision 9 (LibKa0s v1.8.1), and there is no fallback.
 
-LibKa0s supplies the chat printer, the debug console, the slash dispatcher, schema CLI and profile verb, the
+LibKa0s supplies the chat printer, the debug console, the slash dispatcher, schema CLI, profile verb and sub-command vocabulary, the
 settings-panel shell, its row widgets and the schema composers behind the Master controls tab and the font / border / color blocks, the reorder drag behind the priority rows, a composite's two combat sections and the stat-priority list, the shipped art and font, the TOC-manifest reader behind
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
 harness, the minimap button and broker plugin behind `core/LauncherSetup.lua`, and the **latch** the
