@@ -413,10 +413,11 @@ emptied look identical on the page and are not the same claim. Rows alongside th
 too. The section itself stays whether or not there is a breach — it is where the rule is written
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-10-01):
+**The 1000–1500 band is on notice, not in breach** (measured 2026-10-02):
 `settings/Panel.lua` (1196), `settings/MacroBar.lua` (1182), `settings/Category.lua` (1150),
 `tests/test_schema.lua` (1023), `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile`
-fakes) and `tests/test_selector.lua` (1009). The three test suites that
+fakes), `tests/test_selector.lua` (1009) and `tests/test_settingsui.lua` (1002, back over 1000 with
+the 2026-10-02 `addonName` descriptor cases). The three test suites that
 led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
 `tests/test_settingsui.lua` (1440) — were peeled below 1000 on 2026-09-26 (see
 [module-map.md → Peel history](./module-map.md#peel-history)). They are named here so a later
