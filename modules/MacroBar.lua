@@ -143,6 +143,68 @@ local function fadeTick(self, elapsed)
     if self:GetAlpha() ~= target then self:SetAlpha(target) end
 end
 
+-- ---------------------------------------------------------------------------
+-- Drag strip tooltip placement (TP-CM-02, LibKa0s WidgetsDragHandle minor 4)
+--
+-- The strip passes this as LibKa0s-Widgets' `tooltipPlace`, so its tooltip and
+-- both marks' (? and X) open BESIDE the strip: to its right, or to its left
+-- when that would leave the screen. The same rule, line for line, as every Ka0s
+-- drag strip (KickCD's NS.Util.PlaceTooltipBeside is the reference). The widget
+-- owns GameTooltip by UIParent at ANCHOR_NONE, draws and shows it, then calls
+-- this under pcall; only a literal `true` means placed, and anything else falls
+-- back to the cursor tooltip with the same lines.
+-- ---------------------------------------------------------------------------
+
+-- The gap between the strip's edge and the tooltip, in the tooltip's own units
+-- (SetPoint's).
+local TIP_GAP = 4
+
+--- A frame geometry read as a plain number, or nil when the method is missing
+--- or the answer is nil, secret (KCM.Compat.IsSecret) or not a number. Asked
+--- before any arithmetic, because arithmetic on a secret raises.
+local function plainRead(frame, method)
+    local fn = frame and frame[method]
+    if not fn then return nil end
+    local v = fn(frame)
+    if v == nil or KCM.Compat.IsSecret(v) or type(v) ~= "number" then return nil end
+    return v
+end
+
+--- `method`'s answer in SCREEN px (times the frame's effective scale), or nil.
+--- The bar takes the master scale and the strip inherits it, so a raw edge and
+--- a raw screen width are in different units and comparing them would flip on
+--- the wrong side.
+local function screenRead(frame, method)
+    local v, s = plainRead(frame, method), plainRead(frame, "GetEffectiveScale")
+    return v and s and v * s or nil
+end
+
+--- Place a strip tooltip beside the strip: to its right, or to its left when
+--- the strip's right edge plus the tooltip's width would pass the screen's right
+--- edge. `frame` is the frame hovered: the strip itself (it carries the widget's
+--- `help` field) or one of its marks, whose parent is the strip, so all three
+--- tooltips show in one place.
+--- @return true|nil  true only once the tooltip is anchored; nil (the widget's
+---                   cursor fallback) when any read is missing, nil or secret,
+---                   with nothing anchored.
+function MB.PlaceTooltipBeside(tip, frame)
+    if not (tip and frame) then return nil end
+    local strip = frame
+    if not frame.help and frame.GetParent then strip = frame:GetParent() end
+    local right    = screenRead(strip, "GetRight")
+    local width    = screenRead(tip, "GetWidth")
+    local screen   = screenRead(UIParent, "GetRight")
+    local tipScale = plainRead(tip, "GetEffectiveScale")
+    if not (right and width and screen and tipScale) then return nil end
+    tip:ClearAllPoints()
+    if right + TIP_GAP * tipScale + width <= screen then
+        tip:SetPoint("TOPLEFT", strip, "TOPRIGHT", TIP_GAP, 0)
+    else
+        tip:SetPoint("TOPRIGHT", strip, "TOPLEFT", -TIP_GAP, 0)
+    end
+    return true
+end
+
 -- The drag handle's close mark (X-01, X-02). It turns off the smallest thing the
 -- strip drags -- this bar -- through MB.SetEnabled, the same write as
 -- `/cm bar off` and the Macro Bar page's Enabled row. Never `profile.enabled`:
@@ -222,19 +284,20 @@ local function buildBar()
         closeIcon    = KCM.Icon and KCM.Icon("close") or nil,
         closeTooltip = {
             title  = KCM.L["Hide the macro bar"],
-            anchor = "ANCHOR_TOPRIGHT",
             body   = {
                 KCM.L["Click to hide the macro bar. Its layout and position are kept."],
                 KCM.L["/cm bar on brings it back."],
             },
         },
-        -- The STRIP's tooltip: titled for the addon, anchored above the strip.
-        -- Its one body line is a FUNCTION rather than a string because it is
-        -- read on every hover, and the lock can change between two hovers of the
-        -- same strip.
+        -- WHERE all three tooltips sit (the strip's, the ?'s and the X's) is
+        -- this one hook's, beside the strip; no descriptor names an owner or an
+        -- anchor, because the hook replaces both (TP-CM-02).
+        tooltipPlace = MB.PlaceTooltipBeside,
+        -- The STRIP's tooltip: titled for the addon. Its one body line is a
+        -- FUNCTION rather than a string because it is read on every hover, and
+        -- the lock can change between two hovers of the same strip.
         tooltip = {
             title  = KCM.L["Consumable Master"],
-            anchor = "ANCHOR_TOP",
             body   = {
                 function()
                     local locked = (cfg() or {}).locked
@@ -244,12 +307,11 @@ local function buildBar()
             },
         },
         -- The MARK's own, and the reason there are two descriptors rather than
-        -- one: a different title, a different body and a different anchor, off
-        -- the mark instead of off the strip. The blank spacer above the footer
-        -- is the widget's, drawn only when a footer line survives the hover.
+        -- one: a different title and a different body. The blank spacer above
+        -- the footer is the widget's, drawn only when a footer line survives
+        -- the hover.
         helpTooltip = {
             title  = KCM.L["Macro bar"],
-            anchor = "ANCHOR_TOPRIGHT",
             body   = {
                 KCM.L["Drag this handle to move the bar."],
                 KCM.L["Drag a button onto another to swap them."],

@@ -526,7 +526,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (22)
+### test_macrobar_chrome.lua (29)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -541,9 +541,16 @@ badge and any count quoted in the docs must agree with it.
 - macrobar label: the font FACE, FLAGS and SHADOW reach the FontString
 - macrobar label: the class-color companion repaints the label, alpha and all
 - macrobar button: an unresolvable class falls through to the stored swatch
-- macrobar handle: the strip's tooltip is the addon's, drawn above the strip itself
-- macrobar handle: the mark's tooltip is the bar's, drawn off the mark at its own anchor
-- macrobar handle: the strip and the mark draw two distinct tooltips
+- macrobar handle: the strip's tooltip is the addon's, drawn beside the strip
+- macrobar handle: the mark's tooltip is the bar's, drawn beside the strip
+- macrobar handle: the strip and the mark draw two distinct tooltips in one place
+- PlaceTooltipBeside puts the tooltip to the strip's right when it fits
+- PlaceTooltipBeside flips to the strip's left when the right side would leave the screen
+- PlaceTooltipBeside anchors to the STRIP when the hovered frame is its ? or X mark
+- PlaceTooltipBeside compares in screen pixels, so a scaled strip flips when it should
+- PlaceTooltipBeside answers non-true and anchors nothing when a read is secret
+- PlaceTooltipBeside answers non-true and anchors nothing when a read is nil
+- macrobar handle: an unreadable strip falls back to the cursor with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark holds its resting gray, because no click is wired here
 - macrobar handle: the X hides the bar through macroBar.enabled and says the way back
@@ -1429,7 +1436,7 @@ badge and any count quoted in the docs must agree with it.
 | test_load.lua | 1 |
 | test_locale.lua | 10 |
 | test_macrobar.lua | 35 |
-| test_macrobar_chrome.lua | 22 |
+| test_macrobar_chrome.lua | 29 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
@@ -1465,4 +1472,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1195** |
+| **Total** | **1202** |

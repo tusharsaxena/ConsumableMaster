@@ -44,7 +44,7 @@ end
 ---
 --- Shared for the same reason `fcfg` is. tests/test_macrobar.lua drives it for
 --- the lock's visible consequences and tests/test_macrobar_chrome.lua drives
---- it for the drag handle's two tooltips; a copy is the shape that stops being
+--- it for the drag handle's three tooltips; a copy is the shape that stops being
 --- correct the first time one side is taught something the other is not.
 function S.buildBar(KCM)
     local mock = _G.KCM_TEST.loader.mock
