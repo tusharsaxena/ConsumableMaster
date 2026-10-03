@@ -81,7 +81,9 @@ function stubLib.SameValue(a, b)
 end
 
 -- The instance's read half and its registry: rows held by reference, a linear
--- first-match FindRow, Reindex a no-op.
+-- first-match FindRow, Reindex a no-op. Reindex has no caller here: it mirrors
+-- the LibKa0s Schema surface for the library-absent load, and
+-- tests/test_surface_parity.lua pins that surface.
 local function addRegistry(S, d)
     local rows = d.rows
     function S.AllRows() return rows end
@@ -188,7 +190,9 @@ local function addWrites(S, d, prepare)
 end
 
 -- The bracket keeps its depth, because ApplyDefault's sweep veto reads it; it
--- counts nothing and logs nothing.
+-- counts nothing and logs nothing. BulkAdd, InBulk, CountOffDefault and
+-- Validate have no caller in this addon: they mirror the LibKa0s Schema surface
+-- for the library-absent load, and tests/test_surface_parity.lua pins that surface.
 local function addBracket(S, d)
     local depth = 0
     function S.ApplyDefault(row, id)

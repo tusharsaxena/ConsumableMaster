@@ -284,6 +284,8 @@ function DL.IsEnabled()        return D:IsEnabled() end
 function DL.Show()             D:Show() end
 function DL.Hide()             D:Hide() end
 function DL.Clear()            D:Clear() end
+-- ShowCopy, RefreshHeader, UpdateScrollBar and UpdateStatus are test seams:
+-- no shipped file calls them (tests/test_debuglog.lua, tests/test_surface_parity.lua).
 function DL.ShowCopy()         D:ShowCopy() end
 function DL.RefreshHeader()    D:RefreshHeader() end
 function DL.UpdateScrollBar()  D:UpdateScrollBar() end

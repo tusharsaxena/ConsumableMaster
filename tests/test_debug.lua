@@ -163,7 +163,7 @@ end)
 -- The rule the secret guard rests on, checked against the source
 -- ---------------------------------------------------------------------------
 
--- docs/debug.md:30 states it normatively: a KCM.Debug placeholder is always
+-- docs/debug.md:35 states it normatively: a KCM.Debug placeholder is always
 -- `%s`, never `%d`/`%f`. That is a correctness rule, not a house style.
 -- KCM.SafeToString runs over every vararg BEFORE the format pass, so what
 -- reaches a slot is already a STRING -- and a combat-protected value reaches it
