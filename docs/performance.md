@@ -102,7 +102,7 @@ print or export it. With `LibKa0s-Perf-1.0` absent the verb still dispatches and
 
 At the end of a run, `/cm perf report` prints the summary a human reads and `/cm perf dump` prints
 the record as one line of JSON; the debug window's **Copy** button carries both, plus the run's
-lifecycle lines, out of the client in one paste. That paste is what `/wow-addon:perf-analysis` turns
+lifecycle lines, out of the client in one paste. That paste is what `/dev-copilot:wow-perf-analysis` turns
 into a bundle under [`perf-analysis/`](./perf-analysis/README.md).
 
 ## Offline

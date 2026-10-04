@@ -30,7 +30,7 @@ commit.** A threshold that fails a run teaches everyone to reach for `--no-verif
 gate protects nothing and the habit remains. They contribute `amber`, which is a signal rather than a
 stop.
 
-**At the tag, all four gate.** `/wow-addon:bump-version` reads the release run's `manifest.json` and
+**At the tag, all four gate.** `/dev-copilot:bump-version` reads the release run's `manifest.json` and
 refuses the bump unless every suite reads `pass` and `suites.complexity.warnings` is `0`. A `skip` is
 **not evaluated** rather than a pass, so a release cannot claim zero CCN > 15 on a run where `lizard`
 never executed; the one sanctioned exception is `perf` skipped because the addon ships no

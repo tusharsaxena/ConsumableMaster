@@ -47,7 +47,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 - **Never auto-stage, auto-commit, or auto-push.** Editing files on disk is fine; touching the git
   index is not — that includes `git add <file>`, `-A`, `-p`, `--renormalize`, and `git stash`.
   Offering to stage or commit at the end of a turn is fine; doing it yourself is not. **Exception:**
-  invoking a commit-purpose slash command (e.g. `/wow-addon:commit`) *is* the instruction — a `y`
+  invoking a commit-purpose slash command (e.g. `/dev-copilot:commit`) *is* the instruction — a `y`
   through its confirmation flow authorizes `git add` + `git commit` on the files it named. Pushing
   still needs a separate ask.
 - **Never bump the version without an explicit instruction.** Not `KCM.VERSION`
@@ -108,7 +108,7 @@ Both must be green before committing. Neither gate can see the vendored library,
 and review its diff before the tag — in the same
 change that bumps the version. Between commits it is a **report, not a gate**: never fail a run or
 block a commit on it, never tune the invocation, never hand-edit the output. **At the tag it gates** —
-`/wow-addon:bump-version` refuses the bump unless the release run's `manifest.json` shows all four
+`/dev-copilot:bump-version` refuses the bump unless the release run's `manifest.json` shows all four
 suites at `pass` and zero functions above CCN 15, where a `skip` is not evaluated rather than a pass.
 Rules: `performance-§10`, `automated-tests-§3`; how-to:
 [docs/testing.md](./docs/testing.md#automated-test-records--the-consolidated-run).
