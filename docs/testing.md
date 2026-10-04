@@ -288,7 +288,7 @@ gate protects nothing and the habit remains. They contribute `amber`, which is a
 stop. **A missing tool is a skip recorded with its reason**, never a pass.
 
 **At the tag they do gate**, and that is a different checkpoint evaluated by a different actor:
-`/wow-addon:bump-version` reads the release run's `manifest.json` and refuses the bump unless all
+`/dev-copilot:bump-version` reads the release run's `manifest.json` and refuses the bump unless all
 **four** suites read `pass` and `suites.complexity.warnings` is `0`. A `skip` is **not evaluated** —
 it is a gate that did not pass, never a pass. `automated-tests-§3` sanctions one exception — `perf`
 skipped because the addon ships no `tests/perf.lua`, stated out loud in the release notes — and it
