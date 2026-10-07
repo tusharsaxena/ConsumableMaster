@@ -63,15 +63,17 @@ local Env = LibStub and LibStub("LibKa0s-Env-1.0", true)
 --- TOC does not carry also answers nil on a perfectly healthy client. Callers
 --- that need a value supply their own — settings/Panel.lua's `or ""`.
 ---
+--- Two rungs: LibKa0s-Env first, then C_AddOns.GetAddOnMetadata, else nil.
+--- There is no bare-global GetAddOnMetadata rung: the 11.0 AddOns purge removed
+--- that global and no admitted client (## Interface 120100) can reach it
+--- (tests/test_envsetup.lua pins that it is never read).
+---
 --- @param field string  a TOC key: "Version", "Title", "Notes", "Author", …
 --- @return string|nil
 function KCM.Meta(field)
     if Env then return Env.GetAddOnMetadata(addonName, field) end
     if C_AddOns and C_AddOns.GetAddOnMetadata then
         return C_AddOns.GetAddOnMetadata(addonName, field)
-    end
-    if GetAddOnMetadata then
-        return GetAddOnMetadata(addonName, field)
     end
     return nil
 end

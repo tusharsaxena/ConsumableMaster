@@ -339,12 +339,13 @@ Total.
 - Diagnostics: `debug diagnostics` runs the report before the window toggle
 - Diagnostics: `diagnostics` is a COMMANDS row right after `debug`
 
-### test_envsetup.lua (5)
+### test_envsetup.lua (6)
 
 - EnvSetup: KCM.Meta reads THIS addon's TOC
 - EnvSetup: KCM.Version prefers the TOC over the in-code constant
 - EnvSetup: KCM.Version falls back to this addon's own constant
 - EnvSetup: the seam still answers with LibKa0s absent
+- EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
 ### test_itemsetup.lua (5)
@@ -1439,7 +1440,7 @@ Total.
 | test_defaults.lua | 28 |
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
-| test_envsetup.lua | 5 |
+| test_envsetup.lua | 6 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1488,4 +1489,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1214** |
+| **Total** | **1215** |
