@@ -130,7 +130,7 @@ file after the **addon**, not after the globals it declares, so `ConsumableMaste
 `ConsumableMasterPerfDB` share it. The perf ring is a separate top-level global on purpose, so a
 profile copy, reset or switch never touches it.
 
-The write-up is produced by `/wow-addon:perf-analysis`, which splits the paste, validates the record
+The write-up is produced by `/dev-copilot:wow-perf-analysis`, which splits the paste, validates the record
 against the repo and the TOC, stamps the bundle and writes `ANALYSIS.md`.
 
 ## Capture index
