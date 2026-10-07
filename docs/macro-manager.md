@@ -136,7 +136,7 @@ SetMacro(name, id, catKey):
     icon = iconFor(effectiveItemID)
     state   = macroState[name]
     pending = pendingUpdates[name]
-    if not stale[name] and state.lastBody == body and state.lastIcon == icon and (pending == nil or pending.body == body):
+    if not stale[name] and state.lastBody == body and state.lastIcon == icon and liveBody(name) == body and (pending == nil or pending.body == body):
         clear pendingUpdates[name] if redundant
         return "unchanged"
     if InCombatLockdown():
@@ -148,6 +148,8 @@ SetMacro(name, id, catKey):
     stale[name] = nil
     return result
 ```
+
+**The fingerprint is a cache, and the live macro is the truth.** `macroState` records this profile's own last write, but `KCM_*` macros are account-wide: another character on a different profile may have written its own body to the same macro since, or the player may have deleted it. So before the "unchanged" early-out, `alreadyApplied` re-reads the live body through `liveBody(macroName)` (`GetMacroIndexByName` then the third return of `GetMacroInfo`, both unprotected reads that are safe in combat) and trusts the fingerprint only when the live body still equals it. A missing macro or a different live body falls through to the ordinary path: queued in combat, otherwise written by `doEdit`, which creates a missing macro, and the fingerprint stored again. The live icon is not compared, because `GetMacroInfo` returns a texture rather than the stored icon key. This is what makes "each character rewrites on arrival" ([scope.md](./scope.md)) and the README's profile answer true (CM-R-01).
 
 `SetCompositeMacro` **is** that ladder — it builds its body from `buildCompositeBody(cat, pickFor)` instead of `BuildBody` and then calls `commitMacro` (F-006). It used to re-implement all five steps inline, and the two copies had drifted in the oversize wording, the icon decision and the pending-entry shape. `commitMacro`'s `opts` carries the whole of the remaining difference:
 

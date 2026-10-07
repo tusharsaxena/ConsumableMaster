@@ -675,7 +675,7 @@ Total.
 - macrobar flyout: Close hides the strip and stands down in combat
 - macrobar flyout: Close tolerates a nil flyout
 
-### test_macromanager.lua (56)
+### test_macromanager.lua (60)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -696,6 +696,10 @@ Total.
 - MacroManager.SetMacro creates the macro on the first write
 - MacroManager.SetMacro records the body and icon it wrote
 - MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat
+- MacroManager.SetMacro rewrites a macro another profile overwrote with its own body
+- MacroManager.SetMacro recreates a KCM_ macro the player deleted
+- MacroManager.SetMacro queues the rewrite of an overwritten macro in combat
+- MacroManager.SetMacro stays 'unchanged' when the live body matches, whatever the live icon
 - MacroManager.MarkAllStale forces one write of an identical body, then short-circuits again
 - MacroManager.MarkAllStale in combat defers the write and keeps the pick the bar draws
 - MacroManager.SetMacro edits in place when the pick changes
@@ -1443,7 +1447,7 @@ Total.
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 19 |
-| test_macromanager.lua | 56 |
+| test_macromanager.lua | 60 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 31 |
@@ -1475,4 +1479,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1201** |
+| **Total** | **1205** |
