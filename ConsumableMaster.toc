@@ -95,8 +95,9 @@ core\ConsumableMaster.lua
 core\Bus.lua
 core\Constants.lua
 # CoreSetup builds KCM.Say / KCM.SafeToString from LibKa0s-Core-1.0. It has to
-# sit after Constants.lua (KCM.PREFIX) and before core\SlashCommands.lua, which
-# takes the printer as a file-scope upvalue.
+# sit after Constants.lua (KCM.PREFIX) and before core\SlashDump.lua and
+# core\SlashCommands.lua, which each take the printer as a file-scope upvalue
+# (`local say = KCM.Say`); loaded above CoreSetup, either would capture nil.
 core\CoreSetup.lua
 core\Compat.lua
 # EnvSetup reads this addon's own TOC manifest through LibKa0s-Env-1.0 (the
@@ -154,6 +155,9 @@ core\Diagnostics.lua
 # it lived at the top of core/ConsumableMaster.lua — after the whole # Core
 # block, before defaults/Categories.lua, which its `perRow` comment relies on.
 defaults\Profile.lua
+# Categories.lua and the Defaults_*.lua seed files below: position is CONVENTIONAL.
+# Categories.lua builds KCM.Categories from literals (KCM.PREFIX only at call time);
+# each seed file reaches only KCM.ID and its own KCM.SEED slot; none reads KCM.Categories.
 defaults\Categories.lua
 defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
