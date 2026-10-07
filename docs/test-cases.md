@@ -355,7 +355,7 @@ Total.
 - ItemSetup: a SPELL link is not mistaken for an item
 - ItemSetup: the degraded stub answers exactly what the library does
 
-### test_events.lua (29)
+### test_events.lua (30)
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
@@ -369,6 +369,7 @@ Total.
 - PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
 - BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
 - PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack
+- PLAYER_SPECIALIZATION_CHANGED ignores a groupmate's respec
 - LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked
 - PLAYER_EQUIPMENT_CHANGED recomputes for a main-hand or off-hand swap
 - PLAYER_EQUIPMENT_CHANGED ignores every non-weapon slot
@@ -767,7 +768,7 @@ Total.
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
-### test_pipeline.lua (31)
+### test_pipeline.lua (32)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
@@ -785,6 +786,7 @@ Total.
 - Pipeline.CalcSummary renders the reason and the rewrite/skip tally
 - Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set
 - Pipeline.RunAutoDiscovery reports zero when nothing new is in bags
+- a spec change discovers bag items for the new spec before it recomputes
 - discovery reports through the bulk summary, not per item, on a bag pass
 - discovery prints a per-item line for a standalone item-info retry
 - discovery stays silent for a bag item that matches no category
@@ -1432,7 +1434,7 @@ Total.
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 5 |
 | test_itemsetup.lua | 5 |
-| test_events.lua | 29 |
+| test_events.lua | 30 |
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
@@ -1450,7 +1452,7 @@ Total.
 | test_macromanager.lua | 60 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
-| test_pipeline.lua | 31 |
+| test_pipeline.lua | 32 |
 | test_profiles.lua | 22 |
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
@@ -1479,4 +1481,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1205** |
+| **Total** | **1207** |

@@ -165,16 +165,16 @@ Every client event this addon listens to is declared in one place — the `KCM.E
 
 | Event | Handler | Purpose |
 |---|---|---|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:730`) | Login and `/reload`: auto-discovery, then the discovered-set sweep (the two are `discoverAndSweep`, which the stand-up shares), then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
-| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:752`) | Bag contents moved; re-run discovery and request a coalesced recompute |
-| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:757`) | Recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:768`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle. A settings-category registration parked in combat is `LibKa0s-Options-1.0`'s to replay, on its own frame |
-| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:826`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
-| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:847`) | A spell-backed candidate became known after the spell book hydrated; recompute |
-| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:855`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
-| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:746`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
-| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:746`) | The same repaint, from the item-cooldown side |
-| `ADDON_RESTRICTION_STATE_CHANGED` | `OnRestrictionChanged` (`:814`) | A non-combat addon restriction lifted (an encounter, a key or a match ended; type `0`, combat, is left to `PLAYER_REGEN_ENABLED`): `MacroManager.MarkAllStale` owes every macro one write, then a coalesced recompute writes them, identical bodies included. The write is what makes the client re-resolve a `#showtooltip` icon, which a `/reload` or relog mid-key left blank on the action bar until the next `/reload` |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` (`:740`) | Login and `/reload`: auto-discovery, then the discovered-set sweep (the two are `discoverAndSweep`, which the stand-up shares), then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
+| `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` (`:762`) | Bag contents moved; re-run discovery and request a coalesced recompute |
+| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` (`:767`) | The player's own respec only (a groupmate's `unit` returns early; a nil unit passes): re-run discovery so the new spec's per-spec buckets see what is already in bags, recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` (`:784`) | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle. A settings-category registration parked in combat is `LibKa0s-Options-1.0`'s to replay, on its own frame |
+| `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` (`:842`) | Item metadata arrived: invalidate that item's cache entry, then a full recompute only if it is a bag item — everything else takes the debounced `PANEL_REFRESH` path instead |
+| `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` (`:863`) | A spell-backed candidate became known after the spell book hydrated; recompute |
+| `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` (`:871`) | Recompute on main-hand (16) / off-hand (17) swaps only — the per-hand `WPN_ENCH` pick; every other slot is a no-op |
+| `SPELL_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:756`) | Repaint macro-bar and flyout cooldown swipes. Bar-only, with an early-out when the bar is disabled |
+| `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` (`:756`) | The same repaint, from the item-cooldown side |
+| `ADDON_RESTRICTION_STATE_CHANGED` | `OnRestrictionChanged` (`:830`) | A non-combat addon restriction lifted (an encounter, a key or a match ended; type `0`, combat, is left to `PLAYER_REGEN_ENABLED`): `MacroManager.MarkAllStale` owes every macro one write, then a coalesced recompute writes them, identical bodies included. The write is what makes the client re-resolve a `#showtooltip` icon, which a `/reload` or relog mid-key left blank on the action bar until the next `/reload` |
 
 Internal control flow that crosses a feature boundary does **not** ride a client event — it rides the closed bus above.
 
