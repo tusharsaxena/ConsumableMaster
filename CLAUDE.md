@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.70.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.71.0 (MIT).
 
 That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
 not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
@@ -104,7 +104,7 @@ luacheck .              # lint
 Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
 **At release, not at commit.** Produce a full automated-test bundle (its complexity suite is
-`bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 35)
+`bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 38)
 and review its diff before the tag — in the same
 change that bumps the version. Between commits it is a **report, not a gate**: never fail a run or
 block a commit on it, never tune the invocation, never hand-edit the output. **At the tag it gates** —
