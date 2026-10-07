@@ -340,14 +340,30 @@ test("Defaults: every stat-priority key is a well-formed classID_specID pair", f
     end
 end)
 
-test("Defaults: stat priority covers all thirteen classes", function(t)
+-- Every playable <classID>_<specID> key (Initial/unspecced specs excluded),
+-- pinned here so a missing spec seed is caught per spec, not per class.
+-- red under: removing ["12_1480"] (Devourer) from Defaults_StatPriority.lua.
+local PLAYABLE_SPEC_KEYS = {
+    "1_71", "1_72", "1_73",                 -- Warrior
+    "2_65", "2_66", "2_70",                 -- Paladin
+    "3_253", "3_254", "3_255",              -- Hunter
+    "4_259", "4_260", "4_261",              -- Rogue
+    "5_256", "5_257", "5_258",              -- Priest
+    "6_250", "6_251", "6_252",              -- Death Knight
+    "7_262", "7_263", "7_264",              -- Shaman
+    "8_62", "8_63", "8_64",                 -- Mage
+    "9_265", "9_266", "9_267",              -- Warlock
+    "10_268", "10_269", "10_270",           -- Monk
+    "11_102", "11_103", "11_104", "11_105", -- Druid
+    "12_577", "12_581", "12_1480",          -- Demon Hunter (Havoc, Vengeance, Devourer)
+    "13_1467", "13_1468", "13_1473",        -- Evoker
+}
+
+test("Defaults: stat priority seeds every playable spec", function(t)
     local KCM = h.loader.loadPure()
-    local byClass = {}
-    for key in pairs(KCM.SEED.STAT_PRIORITY) do
-        byClass[tonumber(key:match("^(%d+)_"))] = true
-    end
-    for classID = 1, 13 do
-        t.truthy(byClass[classID], "classID " .. classID .. " has at least one seeded spec")
+    t.eq(#PLAYABLE_SPEC_KEYS, 40, "the pinned list names all 40 playable specs")
+    for _, key in ipairs(PLAYABLE_SPEC_KEYS) do
+        t.truthy(KCM.SEED.STAT_PRIORITY[key], key .. " has a stat-priority seed row")
     end
 end)
 

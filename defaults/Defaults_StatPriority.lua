@@ -49,13 +49,13 @@
 --   Warlock       : affliction, demonology, destruction
 --   Monk          : brewmaster, windwalker, mistweaver
 --   Druid         : balance, feral, guardian, restoration
---   Demon-Hunter  : havoc, vengeance                     (class slug: demon-hunter)
+--   Demon-Hunter  : havoc, vengeance, devourer           (class slug: demon-hunter)
 --   Evoker        : devastation, preservation, augmentation
 --
 -- Refresh cadence: once per major patch (0.1, 0.2, 1.0, ...) is enough —
 -- archon.gg re-ranks weekly but the top-to-bottom order only shuffles
 -- significantly around balance patches. When refreshing:
---   1. Walk the 39 specs above.
+--   1. Walk the 40 specs above.
 --   2. Paste the new ordering into the relevant row.
 --   3. Update the "Last refreshed" line directly below.
 --   4. Bump defaults/README.md's snapshot date to match.
@@ -126,6 +126,11 @@ KCM.SEED.STAT_PRIORITY = {
     -- Demon Hunter
     ["12_577"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },      -- Havoc
     ["12_581"] = { primary = "AGI", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },      -- Vengeance
+    -- Devourer: secondary order UNSOURCED. On 2026-10-07 the archon.gg page
+    -- (.../builds/devourer/demon-hunter/mythic-plus/overview/10/all-dungeons/this-week)
+    -- answered HTTP 403 to every fetch, so no order could be read. Left empty
+    -- rather than guessed; fill it in on the next refresh.
+    ["12_1480"] = { primary = "INT", secondary = {} },                                              -- Devourer
 
     -- Evoker
     ["13_1467"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },     -- Devastation

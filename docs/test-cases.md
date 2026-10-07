@@ -291,7 +291,7 @@ Total.
 - Defaults: every reusable augment rune the Classifier knows is in the seed
 - Defaults: a consumed augment rune is not flagged reusable
 - Defaults: every stat-priority key is a well-formed classID_specID pair
-- Defaults: stat priority covers all thirteen classes
+- Defaults: stat priority seeds every playable spec
 - Defaults: every seeded spec names a primary stat the Ranker weights
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
