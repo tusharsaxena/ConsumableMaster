@@ -107,6 +107,7 @@ The same `scoreCache` is also handed to `MacroManager.SetCompositeMacro`, which 
 
 - Created at the top of `Pipeline.Recompute`.
 - Discarded when `Pipeline.Recompute` returns.
+- **The macro bar's flyout rebuild** keeps a pass of its own: an out-of-combat `MacroBar.Refresh` builds one `{ fields = {} }` and shares it across every shown slot's `MacroBarFlyout.Apply` → `Candidates` → `Selector.ListAvailable`, discarded when the refresh returns ([macro-bar.md](./macro-bar.md#the-flyout)).
 - **Panel-only renders** (Options panel building rows, `/cm dump pick`) pass `nil` and fall back to direct computation. Ranker tolerates a nil cache. This preserves the live-data view — panel rows always reflect current state, never a stale snapshot.
 
 ### Why one pass, not persistent

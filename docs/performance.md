@@ -16,7 +16,12 @@ so what it measures is the addon's **in-combat** cost and nothing else.
 That framing matters, because this addon's genuinely expensive paths are deliberately **out** of
 combat:
 
-* the macro bar's flyout rebuild is skipped in combat;
+* the macro bar's flyout rebuild is skipped in combat, and out of combat one refresh shares one
+  `scoreCache` across every slot's flyout, so each candidate is scored once per refresh rather than
+  once per slot that lists it ([macro-bar.md](./macro-bar.md#the-flyout)). The claim is that fill
+  count, not a byte figure: `tests/wow_mock.lua`'s `C_TooltipInfo.GetItemByID` answers nil, so the
+  tooltip cache refetches on every call and any allocation measured off this mock is that refetch,
+  which the client memoizes. No number is quoted until a scenario's mock returns real tooltip lines;
 * `MacroBar.Update` defers wholesale until regen;
 * macro writes queue and flush after combat.
 

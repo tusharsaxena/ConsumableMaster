@@ -77,7 +77,8 @@ local PRIMARY_WEIGHT = 1000
 
 -- `scoreCache.fields[id]` memoizes a single KCM.Compat.GetItemInfo +
 -- TooltipCache.Get result across every scorer call that touches the same
--- itemID within one Pipeline.Recompute pass. Callers that pass
+-- itemID within one Pipeline.Recompute pass, or one out-of-combat
+-- MacroBar.Refresh (shared across every slot's flyout). Callers that pass
 -- `scoreCache = nil` get the original uncached path — keeps /cm dump, Explain,
 -- and panel renders behavior-identical.
 --

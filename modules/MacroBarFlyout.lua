@@ -527,8 +527,10 @@ end
 
 -- Rebuild one slot's flyout: resolve the available candidates, grow the pool,
 -- bind and position the entries, and record the count the secure snippet gates
--- on. No-op in combat — every step here is protected.
-function FO.Apply(button, cfg)
+-- on. No-op in combat — every step here is protected. `scoreCache` is the
+-- caller's per-pass cache (MacroBar.Refresh shares one across every slot); nil
+-- takes Ranker's uncached path.
+function FO.Apply(button, cfg, scoreCache)
     local flyout = button and button.flyout
     if not (flyout and cfg) then return false end
     if inCombat() then return false end
@@ -540,7 +542,7 @@ function FO.Apply(button, cfg)
 
     applyIndicator(button, cfg)
 
-    local ids = FO.Candidates(button.catKey, cfg)
+    local ids = FO.Candidates(button.catKey, cfg, scoreCache)
     local grid = KCM.MacroBarLayout.Flyout(#ids, cfg)
 
     flyout:ClearAllPoints()
@@ -574,10 +576,11 @@ end
 
 -- Ordered, capped candidate list for a slot. Order comes from the category's own
 -- ranking (top-ranked first, i.e. closest to the button) and `flyoutInvert`
--- reverses it. Truncation is logged rather than silent.
-function FO.Candidates(catKey, cfg)
+-- reverses it. Truncation is logged rather than silent. `scoreCache` is passed
+-- straight to Selector.ListAvailable; nil keeps the uncached path.
+function FO.Candidates(catKey, cfg, scoreCache)
     if not (KCM.Selector and KCM.Selector.ListAvailable) then return {} end
-    local ids = KCM.Selector.ListAvailable(catKey, nil, nil) or {}
+    local ids = KCM.Selector.ListAvailable(catKey, nil, scoreCache) or {}
     local cap = math.min(FO.MAX_ENTRIES, math.max(1, tonumber(cfg.flyoutMax) or 12))
     if #ids > cap then
         if KCM.Debug and KCM.Debug.IsOn and KCM.Debug.IsOn() then traceCap(catKey, cap, #ids) end

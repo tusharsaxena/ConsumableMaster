@@ -654,7 +654,7 @@ Total.
 - macrobar cooldowns: the inactive path still applies the correct bling state
 - macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 
-### test_macrobar_flyout.lua (19)
+### test_macrobar_flyout.lua (21)
 
 - macrobar flyout: candidates come back in rank order, best first
 - macrobar flyout: invert reverses the order without dropping anything
@@ -675,6 +675,8 @@ Total.
 - macrobar flyout: an auto-close of 0 never closes on idle
 - macrobar flyout: Close hides the strip and stands down in combat
 - macrobar flyout: Close tolerates a nil flyout
+- macrobar flyout: an out-of-combat bar refresh scores each candidate once
+- macrobar flyout: an in-combat bar refresh builds no flyout and scores nothing
 
 ### test_macromanager.lua (60)
 
@@ -1453,7 +1455,7 @@ Total.
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
-| test_macrobar_flyout.lua | 19 |
+| test_macrobar_flyout.lua | 21 |
 | test_macromanager.lua | 60 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
@@ -1486,4 +1488,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1212** |
+| **Total** | **1214** |
