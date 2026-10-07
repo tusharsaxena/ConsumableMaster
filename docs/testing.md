@@ -283,7 +283,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 35) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 38) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 *Note:* what the runner executes inside that sighted shadow is `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`. Do not run that line in the repo itself: run blind, `lizard` misses or mis-measures functions the shadow sanitizes, so quote the runner, not the raw command.
 
