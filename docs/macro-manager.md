@@ -12,6 +12,7 @@ KCM.MacroManager.FlushPending()                          -> applied:int    -- on
 KCM.MacroManager.BuildBody(catKey, id)                   -> string         -- pure helper
 KCM.MacroManager.BuildCompositeBody(cat, pickFor)        -> string|nil     -- pure helper, exposed for /cm dump pick
 KCM.MacroManager.CompositeDisplayPick(cat, inCombat, pickFor) -> id|nil   -- the step #showtooltip shows, for the bar tooltip
+KCM.MacroManager.CompositeConfig(cat)                    -> enabled, orderIn, orderOut | nil  -- the composite config rule; nil with no saved bucket. Selector's flyout list walks it too
 KCM.MacroManager.InvalidateState()                       -- clears macroState + pendingUpdates + oversize warnings + give-up record + stale marks
 KCM.MacroManager.MarkAllStale()                          -- owes every stored macro one write past the early-out; keeps the fingerprints
 KCM.MacroManager.PendingSnapshot()                       -> { {name, catKey, itemID, attempts, composite, bytes}, ... }  -- read-only copy, sorted by name

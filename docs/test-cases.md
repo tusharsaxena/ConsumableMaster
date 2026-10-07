@@ -941,7 +941,7 @@ Total.
 - adoption: the [Set] line is written before the row's apply runs
 - adoption: a normalize refusal reaches /cm set as one INVALID line
 
-### test_selector.lua (55)
+### test_selector.lua (58)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -987,6 +987,9 @@ Total.
 - Selector: ListAvailable on a per-hand category is empty with no weapon equipped
 - Selector: ListAvailable on a composite unions its components, deduped
 - Selector: ListAvailable on a composite honors disabled components
+- Selector: ListAvailable on a composite walks the default orderings
+- Selector: ListAvailable on a composite follows the saved orderings and enable set
+- Selector: ListAvailable on a composite with no saved bucket takes MacroManager's answer
 - Selector: ListAvailable returns an empty list for an unknown category
 - Selector.PickBestForCategory skips an item the player is over the cap for
 - Selector.ListAvailable omits an item the player is over the cap for
@@ -1461,7 +1464,7 @@ Total.
 | test_runner_list.lua | 4 |
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
-| test_selector.lua | 55 |
+| test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
 | test_settingsui.lua | 30 |
 | test_settingsui_category.lua | 14 |
@@ -1483,4 +1486,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1209** |
+| **Total** | **1212** |

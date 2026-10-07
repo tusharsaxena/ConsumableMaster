@@ -419,13 +419,12 @@ local function availableForHands(catKey, scoreCache)
 end
 
 -- Sub-category refs of a composite in body order, honoring the user's
--- enabled / reorder state (same precedence MacroManager uses).
+-- enabled / reorder state. The rule is MacroManager.CompositeConfig's (looked
+-- up at call time: MacroManager loads after this file); no saved bucket means
+-- no refs, the same answer the macro body gets.
 local function compositeRefs(cat)
-    local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
-        and KCM.db.profile.categories[cat.key]
-    local enabled  = (cfg and cfg.enabled) or {}
-    local orderIn  = (cfg and cfg.orderInCombat)    or cat.components.inCombat    or {}
-    local orderOut = (cfg and cfg.orderOutOfCombat) or cat.components.outOfCombat or {}
+    local enabled, orderIn, orderOut = KCM.MacroManager.CompositeConfig(cat)
+    if not enabled then return {} end
     local refs = {}
     for _, list in ipairs({ orderIn, orderOut }) do
         for _, ref in ipairs(list) do

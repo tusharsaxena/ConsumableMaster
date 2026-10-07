@@ -727,6 +727,46 @@ test("Selector: ListAvailable on a composite honors disabled components", functi
     end
 end)
 
+-- The composite config rule (enable set + the two orderings) is MacroManager's
+-- CompositeConfig; the flyout walks the same answer the macro body is built from.
+local function compositeFixture(KCM, mock)
+    local hp, food = KCM.SEED.HP_POT[1], nil
+    for _, id in ipairs(KCM.SEED.FOOD) do
+        if KCM.ID.IsItem(id) then food = id; break end
+    end
+    mock.setBag(hp, 1)
+    mock.setBag(food, 1)
+    return hp, food
+end
+
+test("Selector: ListAvailable on a composite walks the default orderings", function(t)
+    local KCM = h.loader.loadPure()
+    local hp, food = compositeFixture(KCM, h.loader.mock)
+    t.eqList(KCM.Selector.ListAvailable("HP_AIO"), { hp, food },
+        "in-combat components first, then out-of-combat, in Categories order")
+end)
+
+test("Selector: ListAvailable on a composite follows the saved orderings and enable set", function(t)
+    local KCM = h.loader.loadPure()
+    local hp, food = compositeFixture(KCM, h.loader.mock)
+    local cfg = KCM.db.profile.categories.HP_AIO
+    cfg.orderInCombat    = { "FOOD", "HS" }
+    cfg.orderOutOfCombat = { "HP_POT" }
+    cfg.enabled.HS = false
+    t.eqList(KCM.Selector.ListAvailable("HP_AIO"), { food, hp },
+        "the saved orderings decide the walk; a disabled ref is skipped")
+end)
+
+test("Selector: ListAvailable on a composite with no saved bucket takes MacroManager's answer", function(t)
+    local KCM = h.loader.loadPure()
+    compositeFixture(KCM, h.loader.mock)
+    KCM.db.profile.categories.HP_AIO = nil
+    t.eq(KCM.MacroManager.CompositeConfig(KCM.Categories.Get("HP_AIO")), nil,
+        "MacroManager has no config for a composite without a bucket")
+    t.eqList(KCM.Selector.ListAvailable("HP_AIO"), {},
+        "the flyout offers nothing, matching the macro body")
+end)
+
 test("Selector: ListAvailable returns an empty list for an unknown category", function(t)
     local KCM = h.loader.loadPure()
     t.eq(#KCM.Selector.ListAvailable("NOPE"), 0, "no such category -> empty")

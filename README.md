@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1209%2F1209_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1212%2F1212_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 

@@ -173,7 +173,8 @@ end
 -- `Selector.PickBestForCategory`.
 -- The saved config a composite body is assembled from: the per-ref enable set
 -- and the two orderings, each falling back to the Categories metadata. Returns
--- nil when the category or its saved bucket isn't usable.
+-- nil when the category or its saved bucket isn't usable. Published as
+-- M.CompositeConfig so the flyout (Selector) walks the same rule.
 local function compositeConfig(cat)
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
         and KCM.db.profile.categories[cat.key]
@@ -182,6 +183,8 @@ local function compositeConfig(cat)
         cfg.orderInCombat    or cat.components.inCombat    or {},
         cfg.orderOutOfCombat or cat.components.outOfCombat or {}
 end
+
+M.CompositeConfig = compositeConfig
 
 -- In-combat: collect every enabled sub-cat's pick into one /castsequence line,
 -- or nil when none of them resolves. `enabled[ref] ~= false` defaults to true
