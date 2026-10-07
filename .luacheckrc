@@ -64,7 +64,7 @@ read_globals = {
     "BackdropTemplateMixin", "ScrollingMessageFrame_OnMouseWheel",
     "StaticPopup_Show", "YES", "NO", "OKAY", "CANCEL",
     "GameFontNormal", "GameFontHighlight", "GameFontDisable", "NORMAL_FONT_COLOR",
-    "Settings", "SettingsPanel", "HideUIPanel", "GetAddOnMetadata", "GetItemIcon",
+    "Settings", "SettingsPanel", "HideUIPanel", "GetItemIcon",
     "NUM_BAG_SLOTS", "NUM_TOTAL_EQUIPPED_BAG_SLOTS", "GetNumClasses",
     -- Combat / unit
     "InCombatLockdown", "UnitClass", "UnitLevel", "UnitName", "UnitGUID",

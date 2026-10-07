@@ -232,6 +232,30 @@ test("PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack", 
         "the Stat Priority page retracks via its own SPEC_CHANGED receiver (architecture-§4)")
 end)
 
+-- PLAYER_SPECIALIZATION_CHANGED carries a unit and fires for group members too;
+-- only the player's own respec changes a pick.
+--
+-- red under: OnSpecChanged(event) with no unit filter (party1 recomputes and
+-- sends SPEC_CHANGED like the player's own respec).
+test("PLAYER_SPECIALIZATION_CHANGED ignores a groupmate's respec", function(t)
+    local KCM, _, reasons = loadRouted()
+    local specChanges = 0
+    local target = KCM.NewBusTarget()
+    target:RegisterMessage(KCM.MSG.SPEC_CHANGED, function() specChanges = specChanges + 1 end)
+
+    KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED", "party1")
+    t.eqList(reasons, {}, "a groupmate's respec costs no recompute")
+    t.eq(specChanges, 0, "and does not retrack the Stat Priority page")
+
+    KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED", "player")
+    t.eqList(reasons, { "spec_changed" }, "the player's own respec recomputes once")
+    t.eq(specChanges, 1, "and sends one SPEC_CHANGED")
+
+    KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED", nil)
+    t.eqList(reasons, { "spec_changed", "spec_changed" }, "a nil unit passes the filter")
+    t.eq(specChanges, 2, "and sends its SPEC_CHANGED too")
+end)
+
 test("LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked", function(t)
     local KCM, _, reasons = loadRouted()
     KCM:OnLearnedSpell()

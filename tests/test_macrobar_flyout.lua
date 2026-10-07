@@ -329,3 +329,68 @@ test("macrobar flyout: Close tolerates a nil flyout", function(t)
     KCM.MacroBarFlyout.Close(nil)
     t.truthy(true, "no error")
 end)
+
+-- ---------------------------------------------------------------------------
+-- One scoring pass per refresh (CM-R-03)
+-- ---------------------------------------------------------------------------
+-- An out-of-combat MB.Refresh rebuilds every shown slot's flyout, and each one
+-- ranks its category through Selector.ListAvailable. HP_POT's own slot and the
+-- HP_AIO composite's slot rank the same potions, so without a shared scoreCache
+-- every potion's item fields (GetItemInfo + tooltip) are filled once per slot
+-- that lists it. The claim is the fill count, not a byte figure: wow_mock's
+-- GetItemByID answers nil, so any allocation number off this mock is the
+-- tooltip cache refetching, which the client memoizes.
+
+-- Counts KCM.Compat.GetItemInfo calls made from modules/Ranker.lua — the
+-- itemFields seam is the only Ranker caller — keyed by item ID.
+local function spyRankerFills(KCM)
+    local fills, real = {}, KCM.Compat.GetItemInfo
+    KCM.Compat.GetItemInfo = function(id, ...)
+        local info = debug.getinfo(2, "S")
+        if info and info.source and info.source:find("modules/Ranker.lua", 1, true) then
+            fills[id] = (fills[id] or 0) + 1
+        end
+        return real(id, ...)
+    end
+    return fills, function() KCM.Compat.GetItemInfo = real end
+end
+
+-- red under: MB.Refresh calling FO.Apply(btn, c) with no cache, or
+-- FO.Candidates passing nil to Selector.ListAvailable — every shared potion is
+-- filled once per slot that lists it (twice: HP_POT and HP_AIO).
+test("macrobar flyout: an out-of-combat bar refresh scores each candidate once", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local seed = KCM.SEED.HP_POT
+    for i = 1, 3 do mock.setBag(seed[i], 1) end
+    mock.setCombat(false)
+    KCM.MacroBar.Update()
+
+    local fills, restore = spyRankerFills(KCM)
+    KCM.MacroBar.Refresh()
+    restore()
+
+    t.truthy(next(fills) ~= nil, "the refresh ranked something, so the spy is live")
+    for i = 1, 3 do
+        t.eq(fills[seed[i]], 1, "owned potion " .. tostring(seed[i]) .. " is filled once")
+    end
+    for id, n in pairs(fills) do
+        if n ~= 1 then t.eq(n, 1, "item " .. tostring(id) .. " is filled once per refresh") end
+    end
+end)
+
+test("macrobar flyout: an in-combat bar refresh builds no flyout and scores nothing", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    local seed = KCM.SEED.HP_POT
+    for i = 1, 3 do mock.setBag(seed[i], 1) end
+    mock.setCombat(false)
+    KCM.MacroBar.Update()
+
+    mock.setCombat(true)
+    local fills, restore = spyRankerFills(KCM)
+    KCM.MacroBar.Refresh()
+    restore()
+    mock.setCombat(false)
+    t.eq(next(fills), nil, "no flyout candidate walk mid-fight")
+end)

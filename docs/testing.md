@@ -132,18 +132,21 @@ the same change. Confirm they match with:
 diff <(lua5.1 tests/run.lua --list) docs/test-cases.md   # no output = in sync
 ```
 
-`<PASS>` and `<TOTAL>` are allowed to differ, and the gap is always a **declared skip**
-— a case registered with a third argument giving its reason, which the runner never
-executes, never folds into the pass count, and never lets change the exit code. The
-inventory discloses each one inline as `(skipped: <reason>)`, so the two numbers together
-say "N cases exist, N-k of them are being evaluated" rather than hiding the difference.
+`<TOTAL>` is the inventory's `| **Total** |` row, which counts only the cases that run, and
+a declared skip is in neither figure (`testing-§5`). A **declared skip** is a case
+registered with a third argument giving its reason, which the runner never executes,
+never folds into the pass count, and never lets change the exit code. The inventory
+discloses each one inline as `(skipped: <reason>)` and counts it on its own `| Skipped |`
+row just above Total (kit revision 38, LibKa0s v1.71.0; revision 37 folded skips into
+Total, which left the badge's total one above what runs), so the difference stays visible
+without being counted as a pass.
 A skip is for a case that has been written and watched failing against a defect the fix
 for which is a separate change; it is never a way to park a case whose assertion is
 merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 37, vendored from LibKa0s v1.69.0; wired since revision 25), which `layout-§1` makes
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 38, vendored from LibKa0s v1.71.0; wired since revision 25), which `layout-§1` makes
 the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
 census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
 [ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
@@ -280,7 +283,9 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`, run sighted over the kit's sanitized shadow with function-count parity (kit revision 35; `--suite complexity`) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 38) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+
+*Note:* what the runner executes inside that sighted shadow is `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`. Do not run that line in the repo itself: run blind, `lizard` misses or mis-measures functions the shadow sanitizes, so quote the runner, not the raw command.
 
 **`perf` and `complexity` never fail a run and never gate a commit.** They are measured, recorded and
 diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which the

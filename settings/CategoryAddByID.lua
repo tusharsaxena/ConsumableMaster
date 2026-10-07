@@ -210,6 +210,7 @@ local NO_SPEC_STRINGS = {
 local function resolveAddByID(cat, text, specless, candidates)
     if specless then return nil, "notFound" end
     local kind = addKindOf(cat)
+    -- Same digit grammar as the slash door, parsePriorityID (core/SlashCommands.lua).
     local id = tonumber(text:match("^%d+$")) or kind.fromLink(text)
     local name
     if not id then

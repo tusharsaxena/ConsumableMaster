@@ -173,7 +173,8 @@ end
 -- `Selector.PickBestForCategory`.
 -- The saved config a composite body is assembled from: the per-ref enable set
 -- and the two orderings, each falling back to the Categories metadata. Returns
--- nil when the category or its saved bucket isn't usable.
+-- nil when the category or its saved bucket isn't usable. Published as
+-- M.CompositeConfig so the flyout (Selector) walks the same rule.
 local function compositeConfig(cat)
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
         and KCM.db.profile.categories[cat.key]
@@ -182,6 +183,8 @@ local function compositeConfig(cat)
         cfg.orderInCombat    or cat.components.inCombat    or {},
         cfg.orderOutOfCombat or cat.components.outOfCombat or {}
 end
+
+M.CompositeConfig = compositeConfig
 
 -- In-combat: collect every enabled sub-cat's pick into one /castsequence line,
 -- or nil when none of them resolves. `enabled[ref] ~= false` defaults to true
@@ -436,11 +439,26 @@ local function traceWriteFailure(macroName, err)
     KCM.DebugOnce("write:" .. tostring(macroName) .. ":" .. msg, "Macro", "%s failed — %s", macroName, msg)
 end
 
+-- The body the client holds for this macro right now, or nil when it does not
+-- exist. Both calls are unprotected reads, safe in combat.
+local function liveBody(macroName)
+    local idx = GetMacroIndexByName and GetMacroIndexByName(macroName)
+    if not idx or idx == 0 or not GetMacroInfo then return nil end
+    local _, _, body = GetMacroInfo(idx)
+    return body
+end
+
 -- True when the client already carries this body+icon AND no queued write
 -- disagrees with it. A pending write matching the live body is redundant, so it
 -- is dropped by the caller rather than replayed.
-local function alreadyApplied(state, pending, body, icon)
+--
+-- The fingerprint caches this profile's own last write, but KCM_* macros are
+-- account-wide: another character's profile may have written its body since,
+-- or the player deleted the macro (CM-R-01). So the live body is re-read; the
+-- live icon is not, because GetMacroInfo returns a texture, not the stored key.
+local function alreadyApplied(macroName, state, pending, body, icon)
     if not (state and state.lastBody == body and state.lastIcon == icon) then return false end
+    if liveBody(macroName) ~= body then return false end
     return pending == nil or pending.body == body
 end
 
@@ -513,7 +531,7 @@ local function commitMacro(macroName, body, iconItemID, catKey, opts)
     local state   = KCM.db.profile.macroState[macroName]
     local pending = pendingUpdates[macroName]
 
-    if not stale[macroName] and alreadyApplied(state, pending, body, icon) then
+    if not stale[macroName] and alreadyApplied(macroName, state, pending, body, icon) then
         pendingUpdates[macroName] = nil
         return "unchanged"
     end

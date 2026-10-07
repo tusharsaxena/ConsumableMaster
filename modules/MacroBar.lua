@@ -484,12 +484,18 @@ function MB.Refresh()
     -- attribute. Queue it for regen instead, which is why a flyout's entries are
     -- frozen for the duration of a fight (see modules/MacroBarFlyout.lua).
     local combat = inCombat()
+    -- One scoreCache per out-of-combat refresh, shared by every slot's flyout:
+    -- HP_POT's slot and the HP_AIO composite's rank the same potions, and each
+    -- candidate's item fields are filled once, not once per slot that lists it
+    -- (CM-R-03). A local, never stored on the module, so the next refresh (a
+    -- bag change, a spec change) ranks from fresh data.
+    local scoreCache = not combat and { fields = {} } or nil
     for _, btn in pairs(buttons) do
         KCM.MacroBarButton.Refresh(btn)
         -- Hidden slots (macros toggled off the bar) have nothing to show, so
         -- skip the candidate walk for them entirely.
         if not combat and KCM.MacroBarFlyout and btn:IsShown() then
-            KCM.MacroBarFlyout.Apply(btn, c)
+            KCM.MacroBarFlyout.Apply(btn, c, scoreCache)
         end
     end
     if combat and c.flyout then holdUpdate("flyout rebuild") end

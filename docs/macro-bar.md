@@ -144,6 +144,14 @@ as the user reached into it.
 applies `flyoutInvert`. Truncation emits a debug line rather than silently
 dropping entries.
 
+An out-of-combat `MacroBar.Refresh` builds **one** `scoreCache = { fields = {} }`
+and hands it to every shown slot's `MacroBarFlyout.Apply` → `Candidates` →
+`Selector.ListAvailable`, so a candidate listed by two slots (an `HP_POT` potion
+also sits in the `HP_AIO` flyout) is scored once per refresh, not once per slot.
+The cache is a local of that one refresh and is never stored, so the next refresh
+(a bag change, a spec change) ranks from fresh data. In combat the refresh builds
+no flyout and no cache. A caller that passes no cache gets Ranker's uncached path.
+
 Entries are **not** drag-registered: they launch one specific candidate, and
 picking one up would just put a bare item on the cursor.
 

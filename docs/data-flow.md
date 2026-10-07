@@ -107,6 +107,7 @@ The same `scoreCache` is also handed to `MacroManager.SetCompositeMacro`, which 
 
 - Created at the top of `Pipeline.Recompute`.
 - Discarded when `Pipeline.Recompute` returns.
+- **The macro bar's flyout rebuild** keeps a pass of its own: an out-of-combat `MacroBar.Refresh` builds one `{ fields = {} }` and shares it across every shown slot's `MacroBarFlyout.Apply` → `Candidates` → `Selector.ListAvailable`, discarded when the refresh returns ([macro-bar.md](./macro-bar.md#the-flyout)).
 - **Panel-only renders** (Options panel building rows, `/cm dump pick`) pass `nil` and fall back to direct computation. Ranker tolerates a nil cache. This preserves the live-data view — panel rows always reflect current state, never a stale snapshot.
 
 ### Why one pass, not persistent
@@ -121,7 +122,7 @@ Wired in `OnEnable` (`core/ConsumableMaster.lua`). The recompute-driving handler
 |-------|---------|--------------|
 | `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `discoverAndSweep` (published as `Pipeline.DiscoverAndSweep`): `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`. Then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. Finally `MacroBar.Update()`, which builds / re-shows the macro bar (a no-op if the user switched it off). |
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + publish `RECOMPUTE`. |
-| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
+| `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Player only: a groupmate's respec (any `unit` other than `"player"`; a nil unit passes) is ignored. `runAutoDiscovery("spec_changed")` first, because discovery is filed per spec and the new spec's buckets have not seen what is already in bags; then publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
 | `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes — then `MacroBar.FlushPending()`, which applies any macro-bar build / relayout / restyle deferred because slots are protected frames. A settings-category registration parked in combat is not replayed here: `LibKa0s-Options-1.0` parks and replays it on its own frame, whatever the stand-down state. |
 | `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → publish `PANEL_REFRESH` only (which the options layer debounces into a rebuild). See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |

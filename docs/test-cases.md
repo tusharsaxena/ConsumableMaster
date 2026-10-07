@@ -1,8 +1,10 @@
 # Test Cases
 
 The full inventory of every headless test case in this repo, grouped by the suite file it
-lives in. The `## Totals` table below is the **authoritative pass count** — the README test
-badge and any count quoted in the docs must agree with it.
+lives in. The `## Totals` table below counts the cases that run: its **Total** is the
+authoritative pass count, and the README test badge and any count quoted in the docs must equal
+it. A declared skip is listed by name in its group and counted on the `Skipped` row, never in
+Total.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
@@ -289,7 +291,7 @@ badge and any count quoted in the docs must agree with it.
 - Defaults: every reusable augment rune the Classifier knows is in the seed
 - Defaults: a consumed augment rune is not flagged reusable
 - Defaults: every stat-priority key is a well-formed classID_specID pair
-- Defaults: stat priority covers all thirteen classes
+- Defaults: stat priority seeds every playable spec
 - Defaults: every seeded spec names a primary stat the Ranker weights
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
@@ -337,12 +339,13 @@ badge and any count quoted in the docs must agree with it.
 - Diagnostics: `debug diagnostics` runs the report before the window toggle
 - Diagnostics: `diagnostics` is a COMMANDS row right after `debug`
 
-### test_envsetup.lua (5)
+### test_envsetup.lua (6)
 
 - EnvSetup: KCM.Meta reads THIS addon's TOC
 - EnvSetup: KCM.Version prefers the TOC over the in-code constant
 - EnvSetup: KCM.Version falls back to this addon's own constant
 - EnvSetup: the seam still answers with LibKa0s absent
+- EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
 ### test_itemsetup.lua (5)
@@ -353,7 +356,7 @@ badge and any count quoted in the docs must agree with it.
 - ItemSetup: a SPELL link is not mistaken for an item
 - ItemSetup: the degraded stub answers exactly what the library does
 
-### test_events.lua (29)
+### test_events.lua (30)
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
@@ -367,6 +370,7 @@ badge and any count quoted in the docs must agree with it.
 - PLAYER_ENTERING_WORLD picks up a bag item that no seed ships
 - BAG_UPDATE_DELAYED rediscovers and recomputes with the bag reason
 - PLAYER_SPECIALIZATION_CHANGED recomputes and tells the panel to retrack
+- PLAYER_SPECIALIZATION_CHANGED ignores a groupmate's respec
 - LEARNED_SPELL_IN_SKILL_LINE recomputes so a late-known spell can be picked
 - PLAYER_EQUIPMENT_CHANGED recomputes for a main-hand or off-hand swap
 - PLAYER_EQUIPMENT_CHANGED ignores every non-weapon slot
@@ -651,7 +655,7 @@ badge and any count quoted in the docs must agree with it.
 - macrobar cooldowns: the inactive path still applies the correct bling state
 - macrobar cooldowns: a frame lacking SetDrawBling degrades without error
 
-### test_macrobar_flyout.lua (19)
+### test_macrobar_flyout.lua (21)
 
 - macrobar flyout: candidates come back in rank order, best first
 - macrobar flyout: invert reverses the order without dropping anything
@@ -672,8 +676,10 @@ badge and any count quoted in the docs must agree with it.
 - macrobar flyout: an auto-close of 0 never closes on idle
 - macrobar flyout: Close hides the strip and stands down in combat
 - macrobar flyout: Close tolerates a nil flyout
+- macrobar flyout: an out-of-combat bar refresh scores each candidate once
+- macrobar flyout: an in-combat bar refresh builds no flyout and scores nothing
 
-### test_macromanager.lua (56)
+### test_macromanager.lua (60)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
 - MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
@@ -694,6 +700,10 @@ badge and any count quoted in the docs must agree with it.
 - MacroManager.SetMacro creates the macro on the first write
 - MacroManager.SetMacro records the body and icon it wrote
 - MacroManager.SetMacro reports 'unchanged' and makes no API call on a repeat
+- MacroManager.SetMacro rewrites a macro another profile overwrote with its own body
+- MacroManager.SetMacro recreates a KCM_ macro the player deleted
+- MacroManager.SetMacro queues the rewrite of an overwritten macro in combat
+- MacroManager.SetMacro stays 'unchanged' when the live body matches, whatever the live icon
 - MacroManager.MarkAllStale forces one write of an identical body, then short-circuits again
 - MacroManager.MarkAllStale in combat defers the write and keeps the pick the bar draws
 - MacroManager.SetMacro edits in place when the pick changes
@@ -761,7 +771,7 @@ badge and any count quoted in the docs must agree with it.
 - Perf: every Note call site sits in a file that gates on the capture flag
 - Perf: with the library absent the feature is absent, and /cm perf says so
 
-### test_pipeline.lua (31)
+### test_pipeline.lua (32)
 
 - Pipeline.RequestRecompute coalesces a burst into a single run
 - Pipeline.RunAutoDiscovery adds a classifiable bag item to its category
@@ -779,6 +789,7 @@ badge and any count quoted in the docs must agree with it.
 - Pipeline.CalcSummary renders the reason and the rewrite/skip tally
 - Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set
 - Pipeline.RunAutoDiscovery reports zero when nothing new is in bags
+- a spec change discovers bag items for the new spec before it recomputes
 - discovery reports through the bulk summary, not per item, on a bag pass
 - discovery prints a per-item line for a standalone item-info retry
 - discovery stays silent for a bag item that matches no category
@@ -856,7 +867,7 @@ badge and any count quoted in the docs must agree with it.
 ### test_runner_list.lua (4)
 
 - --list groups cases by suite file with counts
-- --list emits a Totals table summing all cases
+- --list emits a Totals table: Total plus Skipped sums the suite counts
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
@@ -933,7 +944,7 @@ badge and any count quoted in the docs must agree with it.
 - adoption: the [Set] line is written before the row's apply runs
 - adoption: a normalize refusal reaches /cm set as one INVALID line
 
-### test_selector.lua (55)
+### test_selector.lua (58)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -979,6 +990,9 @@ badge and any count quoted in the docs must agree with it.
 - Selector: ListAvailable on a per-hand category is empty with no weapon equipped
 - Selector: ListAvailable on a composite unions its components, deduped
 - Selector: ListAvailable on a composite honors disabled components
+- Selector: ListAvailable on a composite walks the default orderings
+- Selector: ListAvailable on a composite follows the saved orderings and enable set
+- Selector: ListAvailable on a composite with no saved bucket takes MacroManager's answer
 - Selector: ListAvailable returns an empty list for an unknown category
 - Selector.PickBestForCategory skips an item the player is over the cap for
 - Selector.ListAvailable omits an item the player is over the cap for
@@ -1077,7 +1091,7 @@ badge and any count quoted in the docs must agree with it.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (88)
+### test_slash.lua (90)
 
 - /cm set toggles a bool setting through the schema
 - /cm disable prints exactly one line, the enabled echo
@@ -1111,6 +1125,8 @@ badge and any count quoted in the docs must agree with it.
 - /cm priority list renders item and spell rows in the same columns
 - /cm priority on a spec-aware category with no spec explains the refusal
 - /cm priority rejects an unparseable id with a usage line
+- /cm priority add/remove refuse non-positive, non-decimal ids with the usage line
+- /cm priority add still takes a positive item ID and s:/S: spell IDs
 - /cm priority reset clears the user's edits but keeps discoveries
 - /cm priority up reorders the list by pinning
 - /cm priority up on the top entry reports the edge instead of reordering
@@ -1424,9 +1440,9 @@ badge and any count quoted in the docs must agree with it.
 | test_defaults.lua | 28 |
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
-| test_envsetup.lua | 5 |
+| test_envsetup.lua | 6 |
 | test_itemsetup.lua | 5 |
-| test_events.lua | 29 |
+| test_events.lua | 30 |
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
 | test_libka0s.lua | 8 |
@@ -1440,23 +1456,23 @@ badge and any count quoted in the docs must agree with it.
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
-| test_macrobar_flyout.lua | 19 |
-| test_macromanager.lua | 56 |
+| test_macrobar_flyout.lua | 21 |
+| test_macromanager.lua | 60 |
 | test_mediasetup.lua | 12 |
 | test_perfsetup.lua | 11 |
-| test_pipeline.lua | 31 |
+| test_pipeline.lua | 32 |
 | test_profiles.lua | 22 |
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
 | test_schema.lua | 54 |
 | test_schema_adoption.lua | 13 |
-| test_selector.lua | 55 |
+| test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
 | test_settingsui.lua | 30 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 88 |
+| test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
@@ -1470,6 +1486,7 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 9 |
+| test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **1202** |
+| Skipped | 1 |
+| **Total** | **1215** |

@@ -250,6 +250,61 @@ test("MacroManager.SetMacro reports 'unchanged' and makes no API call on a repea
     t.eq(edits, 0, "no protected API is touched for a no-op recompute")
 end)
 
+-- The fingerprint caches this profile's last write, but KCM_* macros are
+-- account-wide: another character's profile, or the player, can change the
+-- live macro under it (CM-R-01).
+test("MacroManager.SetMacro rewrites a macro another profile overwrote with its own body", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 950001)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950001, "FOOD")
+    mock.macros["KCM_FOOD"].body = "#showtooltip\n/use item:950002"  -- another character's pick
+    -- red under: alreadyApplied trusting the fingerprint without the liveBody comparison
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 950001, "FOOD"), "edited", "the live body disagreed")
+    t.eq(mock.macros["KCM_FOOD"].body, KCM.db.profile.macroState["KCM_FOOD"].lastBody,
+        "the account macro holds this profile's body again")
+    t.truthy(mock.macros["KCM_FOOD"].body:find("950001", 1, true), "this profile's pick")
+end)
+
+test("MacroManager.SetMacro recreates a KCM_ macro the player deleted", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 950003)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950003, "FOOD")
+    mock.macros["KCM_FOOD"] = nil
+    -- red under: alreadyApplied trusting the fingerprint without the liveBody comparison
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 950003, "FOOD"), "created", "a missing macro is written")
+    t.truthy(mock.macros["KCM_FOOD"].body:find("950003", 1, true), "with the pick")
+end)
+
+test("MacroManager.SetMacro queues the rewrite of an overwritten macro in combat", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 950004)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950004, "FOOD")
+    mock.macros["KCM_FOOD"].body = "#showtooltip\n/use item:950005"
+    mock.setCombat(true)
+    -- red under: alreadyApplied trusting the fingerprint without the liveBody comparison
+    t.eq(KCM.MacroManager.SetMacro("KCM_FOOD", 950004, "FOOD"), "deferred", "no protected write in combat")
+    mock.setCombat(false)
+    t.eq(KCM.MacroManager.FlushPending(), 1, "the rewrite lands when combat ends")
+    t.truthy(mock.macros["KCM_FOOD"].body:find("950004", 1, true), "with this profile's pick")
+end)
+
+test("MacroManager.SetMacro stays 'unchanged' when the live body matches, whatever the live icon", function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    ownFood(mock, 950006)
+    KCM.MacroManager.SetMacro("KCM_FOOD", 950006, "FOOD")
+    -- GetMacroInfo hands back a texture, not the stored icon key, so the icon is never compared.
+    mock.macros["KCM_FOOD"].icon = 999999
+
+    local edits = 0
+    local realEdit = _G.EditMacro
+    _G.EditMacro = function(...) edits = edits + 1; return realEdit(...) end
+    local result = KCM.MacroManager.SetMacro("KCM_FOOD", 950006, "FOOD")
+    _G.EditMacro = realEdit
+
+    t.eq(result, "unchanged", "the live body still holds the fingerprint")
+    t.eq(edits, 0, "no EditMacro")
+end)
+
 test("MacroManager.MarkAllStale forces one write of an identical body, then short-circuits again", function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     ownFood(mock, 940006)

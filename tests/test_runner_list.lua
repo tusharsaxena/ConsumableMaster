@@ -32,15 +32,19 @@ test("--list groups cases by suite file with counts", function(t)
     t.truthy(out:find("\n- ", 1, true), "cases are listed as bullets")
 end)
 
-test("--list emits a Totals table summing all cases", function(t)
+-- Kit revision 38 (LibKa0s v1.71.0): Total counts only the cases that run. A declared
+-- skip stays in its suite heading's count and moves to a `Skipped` row, so the headings
+-- sum to Total plus Skipped, and Total is the number the README badge carries (testing-§5).
+test("--list emits a Totals table: Total plus Skipped sums the suite counts", function(t)
     local out = listOutput()
     t.truthy(out:find("## Totals", 1, true), "has Totals section")
     local total = tonumber(out:match("|%s*%*%*Total%*%*%s*|%s*%*%*(%d+)%*%*%s*|"))
     t.truthy(total, "the Totals row reports a number")
+    local skipped = tonumber(out:match("\n|%s*Skipped%s*|%s*(%d+)%s*|")) or 0
     local sum = 0
     for n in out:gmatch("### test_[%w_]+%.lua %((%d+)%)") do sum = sum + tonumber(n) end
     t.truthy(sum > 0, "at least one suite section was counted")
-    t.eq(total, sum, "the Totals row is the sum of the per-suite counts")
+    t.eq(total + skipped, sum, "Total plus Skipped is the sum of the per-suite counts")
 end)
 
 test("--list prints the inventory and runs no tests", function(t)

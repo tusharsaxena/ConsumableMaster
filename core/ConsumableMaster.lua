@@ -764,8 +764,14 @@ function KCM:OnBagUpdateDelayed()
     requestRecompute("bag_update_delayed")
 end
 
-function KCM:OnSpecChanged(event)
+function KCM:OnSpecChanged(event, unit)
+    -- The event carries a unit and fires for group members too; only the
+    -- player's own respec changes a pick. A nil unit passes.
+    if unit and unit ~= "player" then return end
     traceEvent(event or "PLAYER_SPECIALIZATION_CHANGED")
+    -- Discovery is filed per spec, so the new spec's buckets have not seen
+    -- what is already in bags: scan for them before the recompute picks.
+    runAutoDiscovery("spec_changed")
     requestRecompute("spec_changed")
     -- The Stat Priority page's retrack-to-current-spec behavior is a panel
     -- concern, so it is published as SPEC_CHANGED and handled by the options

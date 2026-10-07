@@ -192,6 +192,28 @@ test("Pipeline.RunAutoDiscovery reports zero when nothing new is in bags", funct
     t.eq(KCM.Pipeline.RunAutoDiscovery("test"), 0, "empty bags discover nothing")
 end)
 
+-- Discovery is filed per spec for a spec-aware category, so an item first seen
+-- under one spec is unknown to the other's bucket until something rescans bags.
+--
+-- red under: OnSpecChanged calling only requestRecompute ('expected 931701,
+-- got nil' -- the new spec's bucket stays empty until the next bag change).
+test("a spec change discovers bag items for the new spec before it recomputes", function(t)
+    local KCM, mock = load()
+    mock.setSpec(7, 1, 263, "Enhancement")
+    mock.setItem(931701, { subType = "Flasks & Phials", tt = {} })
+    mock.setBag(931701, 1)
+    KCM.Pipeline.RunAutoDiscovery("test")
+    t.truthy(KCM.Selector.GetBucket("FLASK", "7_263").discovered[931701],
+        "precondition: discovered under the first spec")
+
+    mock.setSpec(7, 3, 264, "Restoration")
+    KCM:OnSpecChanged("PLAYER_SPECIALIZATION_CHANGED", "player")
+    t.truthy(KCM.Selector.GetBucket("FLASK", "7_264").discovered[931701],
+        "the new spec's bucket learns the bag item on the spec change itself")
+    t.eq(KCM.Selector.PickBestForCategory("FLASK"), 931701,
+        "and the new spec picks it without waiting for a bag change")
+end)
+
 -- Swap the callable KCM.Debug sink for a recorder. Debug is a table with a
 -- __call metamethod plus an IsOn probe, and runAutoDiscovery reads both, so the
 -- stand-in has to carry both.

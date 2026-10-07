@@ -12,7 +12,7 @@
 local _, NS = ...
 local KCM = NS
 
--- Same secret-safe seam as every other chat line (core/Constants.lua).
+-- Same secret-safe seam as every other chat line (core/CoreSetup.lua).
 local say = KCM.Say
 
 -- ---------------------------------------------------------------------------
