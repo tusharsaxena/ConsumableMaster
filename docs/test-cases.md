@@ -1085,7 +1085,7 @@ Total.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
-### test_slash.lua (88)
+### test_slash.lua (90)
 
 - /cm set toggles a bool setting through the schema
 - /cm disable prints exactly one line, the enabled echo
@@ -1119,6 +1119,8 @@ Total.
 - /cm priority list renders item and spell rows in the same columns
 - /cm priority on a spec-aware category with no spec explains the refusal
 - /cm priority rejects an unparseable id with a usage line
+- /cm priority add/remove refuse non-positive, non-decimal ids with the usage line
+- /cm priority add still takes a positive item ID and s:/S: spell IDs
 - /cm priority reset clears the user's edits but keeps discoveries
 - /cm priority up reorders the list by pinning
 - /cm priority up on the top entry reports the edge instead of reordering
@@ -1464,7 +1466,7 @@ Total.
 | test_settingsui.lua | 30 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
-| test_slash.lua | 88 |
+| test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
 | test_slash_store.lua | 25 |
@@ -1481,4 +1483,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1207** |
+| **Total** | **1209** |

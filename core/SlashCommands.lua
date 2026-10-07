@@ -188,21 +188,24 @@ end
 -- ---------------------------------------------------------------------------
 -- ID parsing for /cm priority
 -- ---------------------------------------------------------------------------
--- Accepts:
+-- Accepts only decimal digits, with a value above zero:
 --   * "12345"        — itemID
 --   * "s:5512"       — spell sentinel (composed via KCM.ID.AsSpell)
 -- Returns the stored opaque ID (positive itemID or negative spell sentinel)
--- or nil if unparseable.
+-- or nil for anything else -- 0, 1.5, 0x10, 1e3, a bare -20484, nan, inf --
+-- so the caller prints its usage line (CM-R-06). A bare tonumber(token) used
+-- to file those into added/blocked. Same digit grammar as the panel's
+-- resolveAddByID (settings/CategoryAddByID.lua), which also takes links and names.
 
 local function parsePriorityID(token)
     if not token then return nil end
-    local sid = token:match("^s:(%d+)$") or token:match("^S:(%d+)$")
+    local sid = token:match("^[sS]:(%d+)$")
+    local n = tonumber(sid or token:match("^%d+$"))
+    if not n or n <= 0 then return nil end
     if sid then
-        local n = tonumber(sid)
-        if not n then return nil end
         return KCM.ID and KCM.ID.AsSpell and KCM.ID.AsSpell(n) or -n
     end
-    return tonumber(token)
+    return n
 end
 
 local function nameForStoredID(id)

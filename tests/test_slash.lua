@@ -410,6 +410,36 @@ test("/cm priority rejects an unparseable id with a usage line", function(t)
     t.truthy(text:find("Usage: /cm priority <cat> add", 1, true), "usage is echoed rather than failing silently")
 end)
 
+-- CM-R-06: the slash door took any tonumber() token, so 0, fractions, hex,
+-- exponents and a bare negative (a spell sentinel without the s: prefix) were
+-- filed into added/blocked. It now takes the panel's grammar: a positive item ID
+-- or s:<positive spell ID>; anything else prints the usage line.
+test("/cm priority add/remove refuse non-positive, non-decimal ids with the usage line", function(t)
+    -- red under: parsePriorityID falling through to a bare tonumber(token)
+    local KCM, mock = load()
+    for _, token in ipairs({ "0", "1.5", "0x10", "1e3", "-20484", "nan", "inf", "s:0" }) do
+        for _, verb in ipairs({ "add", "remove" }) do
+            local text = say(KCM, mock, ("priority food %s %s"):format(verb, token))
+            t.truthy(text:find("Usage: /cm priority <cat> " .. verb, 1, true),
+                verb .. " " .. token .. " prints the usage line: " .. text)
+        end
+    end
+    local bucket = KCM.Selector.GetBucket("FOOD")
+    t.eq(next(bucket.added), nil, "nothing was filed into added")
+    t.eq(next(bucket.blocked), nil, "nothing was filed into blocked")
+end)
+
+test("/cm priority add still takes a positive item ID and s:/S: spell IDs", function(t)
+    local KCM = load()
+    KCM:OnSlashCommand("priority food add 12345")
+    KCM:OnSlashCommand("priority food add s:123")
+    KCM:OnSlashCommand("priority food add S:124")
+    local bucket = KCM.Selector.GetBucket("FOOD")
+    t.truthy(bucket.added[12345], "item ID added")
+    t.truthy(bucket.added[KCM.ID.AsSpell(123)], "s: spell added")
+    t.truthy(bucket.added[KCM.ID.AsSpell(124)], "S: spell added")
+end)
+
 test("/cm priority reset clears the user's edits but keeps discoveries", function(t)
     local KCM, mock = load()
     KCM.Selector.MarkDiscovered("FOOD", 960002)
@@ -437,7 +467,9 @@ end)
 test("/cm priority up on the top entry reports the edge instead of reordering", function(t)
     local KCM, mock = load()
     local first = KCM.Selector.GetEffectivePriority("FOOD")[1]
-    local text = say(KCM, mock, "priority food up " .. first)
+    -- A spell entry is typed s:<spellID>; a bare negative sentinel is refused (CM-R-06).
+    local token = KCM.ID.IsSpell(first) and ("s:" .. KCM.ID.SpellID(first)) or tostring(first)
+    local text = say(KCM, mock, "priority food up " .. token)
     t.truthy(text:find("already at edge", 1, true), "no silent no-op")
 end)
 
