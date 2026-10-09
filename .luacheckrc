@@ -131,8 +131,8 @@ files["tests/"] = {
 -- AceEvent hands a handler the event name first and calls it as a method, and AceAddon calls
 -- OnEnable / OnPlayerEnteringWorld the same way, so `self` and `event` arrive whether the body
 -- reads them or not. `reason` is the label that threads the whole recompute chain — P.Recompute
--- logs it at :185 and :188 — and P.RecomputeOne (:87) takes it so the per-category entry point has
--- the same shape as runMacroPass, which passes it straight through at :135.
+-- logs it at :317 and :323 — and P.RecomputeOne (:171) takes it so the per-category entry point has
+-- the same shape as runMacroPass, which passes it straight through at :245.
 files["core/ConsumableMaster.lua"] = {
     ignore = { "212/self", "212/event", "212/reason" },
 }

@@ -99,10 +99,10 @@ rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table an
 
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
-| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:446`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (`:595`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
-| `aio` | `AIO_COMMANDS` (`:798`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:919`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:449`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
+| `stat` | `STAT_COMMANDS` (`:598`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
+| `bar` | `BAR_COMMANDS` (`:922`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:405`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a

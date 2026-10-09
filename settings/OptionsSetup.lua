@@ -52,7 +52,7 @@ KCM.Settings.PANEL_TITLE = PANEL_TITLE
 --
 -- WHY THIS SURFACE CANNOT TAKE THE NIL the decoder answers for an absent
 -- channel: the library passes what colorDecode returns to the AceGUI picker's
--- SetColor (libs/LibKa0s/OptionsWidgets.lua:855-862), and SetColor passes its
+-- SetColor (libs/LibKa0s/OptionsWidgets.lua:864-871), and SetColor passes its
 -- four arguments straight into Texture:SetVertexColor
 -- (libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua:149), which RAISES on a
 -- nil. A swatch cannot draw "absent", so it draws something — but it no longer
@@ -192,8 +192,8 @@ if optionsLib and AceGUI then
     -- registration per host again, which is the shape being removed.
     --
     -- HERE, AT FILE LOAD, is early enough. ConsumableMaster.toc pulls
-    -- libs\AceGUI-3.0-SharedMediaWidgets\widget.xml in at :30, well before
-    -- settings\OptionsSetup.lua at :155, so the slot already holds AGSMW's own
+    -- libs\AceGUI-3.0-SharedMediaWidgets\widget.xml in at :39, well before
+    -- settings\OptionsSetup.lua at :200, so the slot already holds AGSMW's own
     -- constructor when this line runs — and a registration whose version is not
     -- strictly higher is refused, so another addon's later copy of AGSMW cannot
     -- take the slot back at its own fixed number. (Worded around the AceGUI entry

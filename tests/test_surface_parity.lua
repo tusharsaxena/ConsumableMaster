@@ -110,8 +110,8 @@ end
 -- Member list produced by:
 --     grep -n '^KCM\.[A-Za-z0-9_]* =\|^function KCM\.' core/CoreSetup.lua
 -- which is the seam's live surface, whole: LIBKA0S_MISSING (:30), ColorDecode
--- (:54), IsConcatSafe (:118), SafeToString (:119), SwatchColor (:141), Say
--- (:169), MakeCloseButton (:186). The grep is the list, and the list is every
+-- (:54), IsConcatSafe (:133), SafeToString (:134), SafeRegisterEvent (:140),
+-- SwatchColor (:162), Say (:190), MakeCloseButton (:207). The grep is the list, and the list is every
 -- row it returns — a member the grep finds and this table omits is an
 -- omission encoded by SILENCE, which is the one thing the header above says
 -- this file exists to stop.
@@ -120,7 +120,7 @@ end
 -- whole story: LIBKA0S_MISSING and ColorDecode sit ABOVE the branch, so both
 -- arms share the same object — they are this addon's own message and its own
 -- storage contract, not anything the library owns. IsConcatSafe, SafeToString,
--- SwatchColor and Say are re-declared inside the degraded arm as real
+-- SafeRegisterEvent, SwatchColor and Say are re-declared inside the degraded arm as real
 -- fallbacks. MakeCloseButton is published PAST the branch's `return`, so the
 -- degraded arm has none, on purpose — see CORE_LIVE_ONLY.
 local CORE_SEAM = {
@@ -163,7 +163,7 @@ end)
 --
 -- Member list produced by:
 --     grep -n '^function DL\.\|^DL\.' core/DebugLogSetup.lua
--- which is the live surface (:229-:260). The degraded branch (:61-:135)
+-- which is the live surface (:282-:315). The degraded branch (:61-:135)
 -- publishes eight of them.
 local DEBUGLOG_SEAM = {
     "AddLine", "IsEnabled", "Show", "Hide", "Clear", "ShowCopy", "RefreshHeader",

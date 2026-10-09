@@ -432,7 +432,7 @@ One tab, **Priority**, under the spec banner.
 
   The two textures are the ones MultiMeters' blocks and the Macros page's *in bags* / *not in bags*
   swatches already wear — one glyph vocabulary across the collection. The rows are pooled and
-  released on `cancelReorder` for the reason `settings/ColumnBlocks.lua` documents at length: a raw
+  released on `cancelReorder` for the reason MultiMeters' `settings/ColumnBlocks.lua` documents at length: a raw
   frame parented to an AceGUI container rides that container into the process-wide pool when
   `ResetScroll` releases it, and turns up on the next thing to ask for a `SimpleGroup`. Every script
   reads the stat off the frame at fire time, never off an upvalue captured when the row was built.
