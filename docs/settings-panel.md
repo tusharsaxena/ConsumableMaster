@@ -37,7 +37,8 @@ cannot be clicked is that page's section label.
 The only exemptions are pages the host does not render through the flow engine at all, and there
 are two: the AceConfig-drawn **Profiles** sub-page (`settings/Profiles.lua`), which AceConfigDialog
 draws whole and which carries no schema rows, and the **landing page**, whose body is
-`Helpers.BuildAboutContent` and which declares no sections. `tests/test_settingsui_optionsui.lua`
+`Helpers.BuildAboutContent` (a call to the library's `BuildLandingPage`, which owns the logo's
+pooled-frame cleanup) and which declares no sections. `tests/test_settingsui_optionsui.lua`
 asserts the Profiles page draws **no** strip, rather than merely skipping it.
 
 The **Macros** page is why the strip exists here at all. Every macro category used to be its own
