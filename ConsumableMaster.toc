@@ -2,7 +2,7 @@
 ## Title: Ka0s Consumable Master
 ## Notes: Auto-managed account-wide consumable macros.
 ## Author: add1kted2ka0s
-## Version: 1.7.0
+## Version: 1.8.0
 ## IconTexture: Interface\AddOns\ConsumableMaster\media\logos\consumablemaster.logo.128.tga
 # ConsumableMasterPerfDB is the perf harness's own ring of captures, kept
 # separate from the AceDB tree on purpose: LibKa0s-Perf writes the global

@@ -167,7 +167,7 @@ on its About landing page (`slash-commands-§4`). `/cm help` prints the index. B
 ## Help output convention
 
 ```
-Ka0s Consumable Master v1.7.0 — slash commands (alias: /consumablemaster)
+Ka0s Consumable Master v1.8.0 — slash commands (alias: /consumablemaster)
   /cm help — Show this help
   /cm config — Open the settings panel
 ```
