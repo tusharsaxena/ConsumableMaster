@@ -1017,7 +1017,7 @@ Total.
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
 
-### test_settingsui.lua (30)
+### test_settingsui.lua (31)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -1030,6 +1030,7 @@ Total.
 - Settings UI: the render helpers are the instance's, not host copies
 - Settings UI: a panel comes from the library's registry, breadcrumb and all
 - Settings UI: the About logo path follows the folder name
+- Settings UI: the About page is drawn by the library's BuildLandingPage, logo and commands
 - Settings UI: the Options descriptor passes addonName, and it is the first vararg
 - Settings UI: the info art the descriptor's addonName reaches is in the vendored payload
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
@@ -1469,7 +1470,7 @@ Total.
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
-| test_settingsui.lua | 30 |
+| test_settingsui.lua | 31 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 90 |
@@ -1489,4 +1490,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1215** |
+| **Total** | **1216** |

@@ -272,7 +272,7 @@ end)
 -- demand a stub for a member no page reads.
 local OPTIONS_SEAM = {
     "AddRow", "AddRows", "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BorderGroup",
-    "BuildAboutContent", "Bulk", "Button", "ButtonPair", "CLASS_COLOR_NOTE",
+    "BuildAboutContent", "BuildLandingPage", "Bulk", "Button", "ButtonPair", "CLASS_COLOR_NOTE",
     "ColorDecode", "ColorPair",
     "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
     "FontGroup", "Get", "Grid", "Label", "MasterControls", "MuteSetLog",
@@ -299,7 +299,7 @@ local OPTIONS_SEAM = {
 -- answering an empty row list. What that costs is measured, not assumed —
 -- tests/test_settingsui.lua compares the schema row count on both arms.
 local OPTIONS_LIVE_ONLY = {
-    "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "CLASS_COLOR_NOTE",
+    "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BuildLandingPage", "CLASS_COLOR_NOTE",
     "CustomCheckbox", "EnsureScroll", "Grid", "PageBanner", "RenderField",
     "RenderRows", "ResetScroll", "SECTION_HEADING_H", "SetRenderer", "TabStrip",
     "instance",

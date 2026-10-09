@@ -144,8 +144,9 @@ KCM.Options = KCM.Options or {}
 -- here. They are not any more: options-ui-§8 says a host copy is the copy that
 -- goes stale, and the whole point of the library owning these is that five
 -- addons cannot drift apart. Both are published on the Options instance, which
--- `Helpers` delegates to through its `__index`, so the two draw sites below read
--- `Helpers.SECTION_HEADING_H` and `Helpers.BUTTON_PAIR_REL` directly. Neither
+-- `Helpers` delegates to through its `__index`, so the draw sites below read
+-- `Helpers.BUTTON_PAIR_REL` directly (the landing heading, SECTION_HEADING_H's
+-- last reader here, is the library's BuildLandingPage now). No draw
 -- site is reachable on a build without the library — nothing registers a panel
 -- there — so there is no nil arm to guard.
 
@@ -497,10 +498,8 @@ Helpers.ResetScroll = UI and UI.ClearScroll
 -- longer stack two overrides on one pooled AceGUI ScrollFrame.
 
 -- ---------------------------------------------------------------------
--- Section heading (AceGUI Heading with side dividers) + spacers.
+-- Section heading (AceGUI Heading with side dividers).
 -- ---------------------------------------------------------------------
-
-local addSpacer = UI and UI.AddSpacer
 
 -- A wrapper rather than a bare binding, and the one line it adds is
 -- load-bearing. The library sets ctx.lastGroup only inside its own two-column
@@ -1036,84 +1035,32 @@ local function readAddOnNotes()
     return KCM.Meta("Notes") or ""
 end
 
--- The logo block. SimpleGroup is full-width so AceGUI's List layout gives it a
--- known cell to live in; the texture inside is anchored TOPLEFT at native pixel
--- size so it renders left-aligned regardless of panel width.
-local function aboutLogo(scroll)
-    local logoGroup = AceGUI:Create("SimpleGroup")
-    logoGroup:SetLayout(nil)
-    logoGroup:SetFullWidth(true)
-    logoGroup:SetHeight(LOGO_PIXELS)
-
-    local logoTex = logoGroup.frame:CreateTexture(nil, "ARTWORK")
-    logoTex:SetTexture(LOGO_TEXTURE)
-    logoTex:SetSize(LOGO_PIXELS, LOGO_PIXELS)
-    logoTex:SetPoint("TOPLEFT", logoGroup.frame, "TOPLEFT", 0, 0)
-    scroll:AddChild(logoGroup)
-end
-
--- The addon's own Notes line, in the body font. Every `and` in the two font
--- guards is a guard over an AceGUI internal: `label` is the widget's own
--- fontstring and a widget skin is allowed not to have one, so a missing field
--- leaves the default font rather than raising inside a settings page.
-local function aboutNotes(scroll)
-    local desc = AceGUI:Create("Label")
-    desc:SetFullWidth(true)
-    desc:SetText(readAddOnNotes())
-    if desc.label and desc.label.SetFontObject and _G.GameFontHighlight then
-        desc.label:SetFontObject(_G.GameFontHighlight)
-    end
-    if desc.label and desc.label.SetJustifyH then
-        desc.label:SetJustifyH("LEFT")
-    end
-    scroll:AddChild(desc)
-end
-
--- The slash listing, heading and all.
+-- The parent canvas, through the library's builder (options-ui-§5): logo, the
+-- TOC notes line, then the Slash Commands heading and one row per command. It
+-- replaced a private copy that drew the logo as a texture straight on a pooled
+-- AceGUI SimpleGroup frame and never took it off: after a re-render the frame
+-- came back as another SimpleGroup (the spacer under the heading) still
+-- carrying the logo, so the page showed it twice. The builder keeps one
+-- texture per frame and hides it in the group's OnRelease.
 --
--- Convergence #2 (LIBKA0S-13): one row formatter for the whole addon. These
--- lines come back already rendered by lib.FormatRow, the same function
--- /cm help's rows go through -- so the panel and the chat cannot drift
--- apart again by an edit to one of them. The visible cost is the one every
--- other adopter paid: the spacing either side of the em dash halves, the
--- dash loses its white color span, and the description gains one.
-local function aboutSlashCommands(scroll)
-    local heading = AceGUI:Create("Heading")
-    heading:SetFullWidth(true)
-    heading:SetHeight(Helpers.SECTION_HEADING_H)
-    heading:SetText(L["Slash Commands"])
-    if heading.label and heading.label.SetFontObject and _G.GameFontNormalLarge then
-        heading.label:SetFontObject(_G.GameFontNormalLarge)
-    end
-    scroll:AddChild(heading)
-
-    addSpacer(scroll, 6)
-
-    local rows = (KCM.SlashCommands and KCM.SlashCommands.GetLandingRows)
-        and KCM.SlashCommands.GetLandingRows() or {}
-    for _, line in ipairs(rows) do
-        local row = AceGUI:Create("Label")
-        row:SetFullWidth(true)
-        row:SetText(line)
-        if row.label and row.label.SetJustifyH then
-            row.label:SetJustifyH("LEFT")
-        end
-        scroll:AddChild(row)
-    end
-end
-
--- The parent canvas, in the order the page reads: logo, notes, slash listing.
--- The three draw steps are named above rather than written out here, which is
--- what keeps this function the page's TABLE OF CONTENTS -- and what took it off
--- the complexity watch list: every guard below moved with the block it guards,
--- and not one of them was dropped.
+-- Convergence #2 (LIBKA0S-13): one row formatter for the whole addon. The
+-- rows come back already rendered by lib.FormatRow, the same function /cm
+-- help's rows go through -- so the panel and the chat cannot drift apart again
+-- by an edit to one of them. `rows` is a function so a re-render picks up a
+-- command registered since.
 function Helpers.BuildAboutContent(ctx)
-    local scroll = ensureScroll(ctx)
-    aboutLogo(scroll)
-    addSpacer(scroll, 8)
-    aboutNotes(scroll)
-    addSpacer(scroll, 12)
-    aboutSlashCommands(scroll)
+    Helpers.BuildLandingPage(ctx, {
+        logo     = LOGO_TEXTURE,
+        logoSize = LOGO_PIXELS,
+        notes    = readAddOnNotes,
+        sections = { {
+            heading = L["Slash Commands"],
+            rows    = function()
+                return (KCM.SlashCommands and KCM.SlashCommands.GetLandingRows)
+                    and KCM.SlashCommands.GetLandingRows() or {}
+            end,
+        } },
+    })
 end
 
 -- ---------------------------------------------------------------------

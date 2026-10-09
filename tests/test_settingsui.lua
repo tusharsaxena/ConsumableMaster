@@ -310,6 +310,32 @@ test("Settings UI: the About logo path follows the folder name", function(t)
         "the logo path is built from the folder name, got " .. tostring(path))
 end)
 
+-- Owner report: the About page showed the logo twice, the second under the
+-- Slash Commands heading. A private body drew it as a texture on a pooled
+-- AceGUI SimpleGroup frame and never took it off, so the frame came back from
+-- the pool as another SimpleGroup still carrying it. The library's
+-- BuildLandingPage hides it on release, so the page body must go through it.
+test("Settings UI: the About page is drawn by the library's BuildLandingPage, logo and commands", function(t)
+    -- red under: the private aboutLogo / aboutSlashCommands body in settings/Panel.lua
+    local KCM = loader.loadWithSchema()
+    local H = KCM.Settings.Helpers
+    -- This load stops short of core/SlashCommands.lua; the rows only have to
+    -- come from GetLandingRows, whatever it answers.
+    KCM.SlashCommands = { GetLandingRows = function() return { "row one", "row two" } end }
+    local seen
+    local real = H.BuildLandingPage
+    H.BuildLandingPage = function(ctx, spec) seen = spec; return real(ctx, spec) end
+    local ok, err = pcall(H.BuildAboutContent,
+        H.CreatePanel("KCMAboutPanel", "Ka0s Consumable Master", { isMain = true }))
+    H.BuildLandingPage = nil -- the own key came off; __index resolves the library's again
+    assert(ok, err)
+    t.truthy(seen ~= nil, "BuildAboutContent delegates to the library")
+    t.truthy(seen.logo:find("media\\logos\\consumablemaster.logo.tga", 1, true), seen.logo)
+    t.eq(seen.logoSize, 300, "the logo keeps its native size")
+    t.eq(#seen.sections, 1, "one section: the slash listing")
+    t.eq(seen.sections[1].rows()[2], "row two", "the rows are GetLandingRows' own")
+end)
+
 -- The Options descriptor's `addonName` (LibKa0s#42, Options minor 28 /
 -- OptionsIdList minor 3). It is the addon FOLDER, the one route an IdList help
 -- mark has to the library's shipped `info` art; without it the library draws
