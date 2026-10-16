@@ -65,7 +65,7 @@ local Env = LibStub and LibStub("LibKa0s-Env-1.0", true)
 ---
 --- Two rungs: LibKa0s-Env first, then C_AddOns.GetAddOnMetadata, else nil.
 --- There is no bare-global GetAddOnMetadata rung: the 11.0 AddOns purge removed
---- that global and no admitted client (## Interface 120100) can reach it
+--- that global and no admitted client (## Interface 120105) can reach it
 --- (tests/test_envsetup.lua pins that it is never read).
 ---
 --- @param field string  a TOC key: "Version", "Title", "Notes", "Author", …

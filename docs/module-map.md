@@ -838,7 +838,7 @@ Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)
 ### Shared infrastructure
 
 - `libs/` — vendored Ace3 (including AceConfig-3.0 and AceDBOptions-3.0, for the Profiles page alone, and AceGUI-3.0-SharedMediaWidgets) + LibStub + CallbackHandler-1.0 + LibSharedMedia + LibKa0s, tracked in git (standard WoW addon practice). Loaded before any addon source by the `# Libraries` block of `ConsumableMaster.toc`, which lists each library file directly (no `embeds.xml` wrapper — toc-file-§4).
-- `ConsumableMaster.toc` — Interface line (`120100`), version, SavedVariables, file load order. Sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`; order within a section is dependency order, not alphabetical.
+- `ConsumableMaster.toc` — Interface line (`120105`), version, SavedVariables, file load order. Sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`; order within a section is dependency order, not alphabetical.
 - `tests/` — headless harness (`lua5.1 tests/run.lua`; suite inventory in [test-cases.md](./test-cases.md)) over the addon's logic layer; `wow_mock.lua` stubs the WoW API + bus; `mock_menu.lua` is LibKa0s v1.58.0's own context-menu fake (`MenuUtil`), copied for the launcher-menu cases because the kit does not ship one.
 
 ### Top-level docs

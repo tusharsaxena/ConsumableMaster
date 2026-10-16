@@ -273,7 +273,7 @@ publishes the addon's flat, dot-callable names as forwarders onto it, and carrie
 for a missing library. The per-major table (host half, what the addon keeps), the three load-bearing
 rules and the declined surfaces are [module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption).
 
-The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, the Ace3 sub-libraries in dependency order, the two broker libraries, and LibKa0s last) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120100`.
+The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` (LibStub first, then CallbackHandler, LibSharedMedia, the Ace3 sub-libraries in dependency order, the two broker libraries, and LibKa0s last) — no `embeds.xml` wrapper (per the standard, toc-file-§4). The TOC's `## Interface:` line is `120105`.
 
 ## Load order
 

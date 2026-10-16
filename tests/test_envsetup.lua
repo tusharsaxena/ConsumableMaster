@@ -57,7 +57,7 @@ test("EnvSetup: Meta never reads the bare GetAddOnMetadata global", function(t)
     -- red under: the bare-global rung
     -- The library-absent ladder is two rungs: LibKa0s-Env, then
     -- C_AddOns.GetAddOnMetadata, else nil. The bare global left the client with
-    -- the 11.0 AddOns purge, so no admitted client (## Interface 120100) can
+    -- the 11.0 AddOns purge, so no admitted client (## Interface 120105) can
     -- reach a third rung; one planted here must never be asked.
     local KCM = loader.loadPureDegraded()
     local calls = 0

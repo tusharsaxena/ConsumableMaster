@@ -1,6 +1,6 @@
 # CLAUDE.md — Ka0s Consumable Master
 
-**Ka0s Consumable Master** — an auto-managed consumable-macro addon for WoW: Midnight (Interface 120100, Ace3, Lua 5.1, English only).
+**Ka0s Consumable Master** — an auto-managed consumable-macro addon for WoW: Midnight (Interface 120105, Ace3, Lua 5.1, English only).
 
 ## Standards compliance (read first)
 
