@@ -77,8 +77,10 @@ local MAJORS = {
         -- 1500-line cap: OptionsRegistry (out of Options), OptionsIds and OptionsIdList (out of
         -- OptionsWidgets) and OptionsCombat (out of OptionsTabs). No member moved, each with its
         -- own MODULES row and a paired minor and shell.
+        -- OptionsDrawer joined at LibKa0s v1.73.0 (O.Drawer), with its own MODULES row and a
+        -- paired minor and shell.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
-                  "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat" },
+                  "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -90,6 +92,7 @@ local MAJORS = {
             { file = "OptionsIds",      minor = "__idsMinor",      shell = "__idsShellMinor" },
             { file = "OptionsIdList",   minor = "__idListMinor",   shell = "__idListShellMinor" },
             { file = "OptionsCombat",   minor = "__combatMinor",   shell = "__combatShellMinor" },
+            { file = "OptionsDrawer",   minor = "__drawerMinor",   shell = "__drawerShellMinor" },
         },
     },
     {

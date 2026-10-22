@@ -29,6 +29,13 @@ diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit       # content — em
 diff -r ../LibKa0s/testkit tests/_kit                           # bytes  — SHOULD be empty
 ```
 
+**Run the four diffs at the re-vendor BEFORE the icon prune.** Since LibKa0s v1.74.0 the library
+copy is whole-folder except `media/icons/`, which `tools/prune-icons.lua` cuts to the
+`LibKa0s icons:` declaration under the provenance line in [`CLAUDE.md`](../CLAUDE.md)
+(`library-stack-§7`). After the prune every pruned icon shows as `Only in …/media/icons`, which is
+the declaration working, not a fork; from then on `tests/test_vendor_sync.lua` (kit revision 40 and
+up) is the check, holding `media/icons/` to exactly the declared marks.
+
 ### When these diffs are supposed to be non-empty
 
 They compare against the sibling checkout's **working tree** — whatever `../LibKa0s` happens to have
@@ -53,7 +60,7 @@ tag=$(grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' CLAUDE.md 
         | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
 rm -rf "/tmp/libka0s-$tag" && mkdir -p "/tmp/libka0s-$tag"
 git -C ../LibKa0s archive "$tag" | tar -x -C "/tmp/libka0s-$tag"
-diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty but for the pruned media/icons
 diff -r --strip-trailing-cr "/tmp/libka0s-$tag/testkit" tests/_kit     # MUST be empty
 ```
 
@@ -137,7 +144,7 @@ a declared skip is in neither figure (`testing-§5`). A **declared skip** is a c
 registered with a third argument giving its reason, which the runner never executes,
 never folds into the pass count, and never lets change the exit code. The inventory
 discloses each one inline as `(skipped: <reason>)` and counts it on its own `| Skipped |`
-row just above Total (kit revision 38, LibKa0s v1.71.0; revision 37 folded skips into
+row just above Total (this repo holds kit revision 41; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
 Total, which left the badge's total one above what runs), so the difference stays visible
 without being counted as a pass.
 A skip is for a case that has been written and watched failing against a defect the fix
@@ -146,7 +153,7 @@ merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 38, vendored from LibKa0s v1.71.0; wired since revision 25), which `layout-§1` makes
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 41, vendored from LibKa0s v1.75.0; wired since revision 25), which `layout-§1` makes
 the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
 census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
 [ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
@@ -283,7 +290,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 38) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 41, where a crashed run is fail (kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 *Note:* what the runner executes inside that sighted shadow is `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`. Do not run that line in the repo itself: run blind, `lizard` misses or mis-measures functions the shadow sanitizes, so quote the runner, not the raw command.
 

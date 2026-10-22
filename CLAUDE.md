@@ -58,13 +58,17 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.71.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.75.0 (MIT).
+LibKa0s icons: clear, close, copy, help, info, segment.
 
-That one line is the answer to "which LibKa0s does this build carry?", and it is a **gate input,
-not a comment**: `tests/test_vendor_sync.lua` greps it out of this file and compares both vendored
-payloads — `libs/LibKa0s/` and `tests/_kit/` — against that tag in the sibling `../LibKa0s`
-checkout. So it moves in the **same commit** as the bytes it describes; a line and a payload that
-disagree is exactly the drift the gate exists to catch. It lives here rather than in `README.md`
+Those two lines are the answer to "which LibKa0s does this build carry, and which of its icons?",
+and they are a **gate input, not a comment**: `tests/test_vendor_sync.lua` greps them out of this file
+and compares both vendored payloads — `libs/LibKa0s/` and `tests/_kit/` — against that tag in the
+sibling `../LibKa0s` checkout, with `media/icons/` held to exactly the declared marks. So they move in
+the **same commit** as the bytes they describe; a line and a payload that disagree is exactly the drift
+the gate exists to catch. The declaration names every mark this addon draws (`KCM.Icon`) and every
+mark the library draws on its behalf (the debug console's `close`, `copy`, `clear`; the perf panel's
+and copy window's `close`; the id list's `info`). They live here rather than in `README.md`
 because it answers a maintainer's question on a page written for players — the kit stopped reading
 `README.md` at revision 9 (LibKa0s v1.8.1), and there is no fallback.
 
@@ -80,7 +84,8 @@ of its majors are consumed — `Widgets` joined them when the priority rows took
 launcher adoption, `Lifecycle` at v1.41.0 with the stand-down
 ([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)), and `Compat` and `Bus` at
 v1.55.0, and `Schema` at v1.56.0 with the write seam
-([#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)); `Pool` ships in the payload unused. It is vendored whole-folder
+([#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)); `Pool`, `Glow` and `Sim` ship in the payload unused. It is vendored whole-folder,
+except `media/icons/`, which ships only the declared marks (`tools/prune-icons.lua`; `library-stack-§7`),
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 
 ## Read the docs
@@ -104,7 +109,7 @@ luacheck .              # lint
 Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
 **At release, not at commit.** Produce a full automated-test bundle (its complexity suite is
-`bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 38)
+`bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 41; a crashed or bounded lizard run is complexity fail, never a pass (`crashedFiles`))
 and review its diff before the tag — in the same
 change that bumps the version. Between commits it is a **report, not a gate**: never fail a run or
 block a commit on it, never tune the invocation, never hand-edit the output. **At the tag it gates** —
