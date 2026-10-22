@@ -68,6 +68,10 @@ local Media = LibStub and LibStub("LibKa0s-Media-1.0", true)
 --- exists to remove, which is a plausible path to a texture that does not load,
 --- draws nothing, and raises nothing.
 ---
+--- A PATH IS NOT ART. The re-vendor prunes media/icons/ to the `LibKa0s icons:`
+--- line under the CLAUDE.md provenance line, so a catalog name that was pruned
+--- still answers a path here and draws blank. Declare every name you draw there.
+---
 --- EXTENSIONLESS by contract. The library answers `…\media\icons\close`, never
 --- `close.tga`; the client appends the extension itself and a path carrying one
 --- is a recorded spelling that draws nothing.

@@ -101,9 +101,10 @@ step regenerates, so they are recorded here for their licensing rather than as d
 - **Logos and screenshots** — `media/logos/`, `media/screenshots/`. Hand-produced and committed.
   `media/screenshots/` is excluded from the package (`.pkgmeta` ignore list). These are the only
   assets this addon ships **of its own**.
-- **JetBrains Mono and the icon catalog** — no longer ours. They arrive inside the vendored LibKa0s
+- **JetBrains Mono and the declared icons** — no longer ours. They arrive inside the vendored LibKa0s
   payload (`libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf` under the SIL Open Font License,
-  `libs/LibKa0s/media/fonts/JetBrainsMono-OFL.txt`; `libs/LibKa0s/media/icons/*.tga`), and the
+  `libs/LibKa0s/media/fonts/JetBrainsMono-OFL.txt`; `libs/LibKa0s/media/icons/`, which carries only the six declared Open Iconic marks and
+  `LICENSE-open-iconic.txt`, cut by `tools/prune-icons.lua` at re-vendor), and the
   library owns both the bytes and the LibSharedMedia registration — `core/MediaSetup.lua` simply
   tells it this addon's folder name so it can build a path. This repo used to carry its own copy of
   the face under `media/fonts/` and register the same LSM key against its own path, which is one

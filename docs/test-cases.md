@@ -742,7 +742,7 @@ Total.
 - MacroManager.WriteTracking reports oversized categories and given-up macros
 - MacroManager: a landed write leaves one [Macro] line naming what it wrote; an unchanged pass none
 
-### test_mediasetup.lua (12)
+### test_mediasetup.lua (13)
 
 - MediaSetup: KCM.Icon answers the vendored path, extensionless
 - MediaSetup: an icon the library does not ship answers nil
@@ -752,7 +752,8 @@ Total.
 - MediaSetup: the console resolves its font through the seam, not a local copy
 - MediaSetup: this addon no longer ships its own copy of the face
 - MediaSetup: every mark this addon draws is one the library ships
-- MediaSetup: every name the library ships has a file in the vendored copy
+- MediaSetup: every declared icon has its file in the vendored copy, and no undeclared set ships
+- MediaSetup: every icon name the source draws is declared in CLAUDE.md
 - MediaSetup: the vendored payload carries the face and its license
 - MediaSetup: it loads before the file that resolves the console font
 - MediaSetup: with no library there is no art and no face, and that is not an error
@@ -1032,7 +1033,7 @@ Total.
 - Settings UI: the About logo path follows the folder name
 - Settings UI: the About page is drawn by the library's BuildLandingPage, logo and commands
 - Settings UI: the Options descriptor passes addonName, and it is the first vararg
-- Settings UI: the info art the descriptor's addonName reaches is in the vendored payload
+- Settings UI: the info art the descriptor's addonName reaches is declared and shipped
 - Settings UI: the library's user-visible strings resolve to prose, not to their own keys
 - Settings UI: ResetScroll reassigns the refresher list rather than wiping it
 - Settings UI: with the library absent no panel is registered, and it says why once
@@ -1459,7 +1460,7 @@ Total.
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 21 |
 | test_macromanager.lua | 60 |
-| test_mediasetup.lua | 12 |
+| test_mediasetup.lua | 13 |
 | test_perfsetup.lua | 11 |
 | test_pipeline.lua | 32 |
 | test_profiles.lua | 22 |
@@ -1490,4 +1491,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1216** |
+| **Total** | **1217** |

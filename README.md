@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1216%2F1216_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1217%2F1217_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
@@ -155,3 +155,7 @@ Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsa
 | 1.2.0 | 2026-04-24 | - Action-bar icons now show correctly on ElvUI, Bartender, and other bar addons; new `/cm rewritemacros` command (and Settings → General → Force rewrite macros); category drag icons now show the picked item's texture. |
 | 1.1.0 | 2026-04-24 | - Stability fixes: pinned items no longer cause macros to flip back and forth, over-long macros fall back cleanly instead of breaking, and spell names appear without a reload. Category tabs can be reordered, and empty categories show a fallback icon. |
 | 1.0.0 | 2026-04-24 | - Initial release: auto-updating account-wide macros across eight categories, spell entries in priority lists, an item/spell picker, and a per-row score tooltip that explains each ranking. |
+
+## Credits
+
+Icons: [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, MIT license.

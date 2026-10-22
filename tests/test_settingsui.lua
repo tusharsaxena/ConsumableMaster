@@ -357,10 +357,21 @@ test("Settings UI: the Options descriptor passes addonName, and it is the first 
         "the file discards its first vararg, so the descriptor's addonName is nil")
 end)
 
-test("Settings UI: the info art the descriptor's addonName reaches is in the vendored payload", function(t)
+test("Settings UI: the info art the descriptor's addonName reaches is declared and shipped", function(t)
     -- The name is only half the fact: Media.Icon builds a path without asking
-    -- whether the file is there, so a re-vendor that dropped it draws nothing.
+    -- whether the file is there, and since LibKa0s v1.74.0 the re-vendor prunes
+    -- media/icons/ to the CLAUDE.md `LibKa0s icons:` line, so `info` must be on
+    -- that line for the id list's help mark to keep its art.
     local root = _G.KCM_TEST_ROOT or "."
+    local VS = dofile(root .. "/tests/_kit/vendor_sync.lua")
+    local cf = assert(io.open(root .. "/CLAUDE.md", "rb"))
+    local decl = VS.iconDeclaration(cf:read("*a"))
+    cf:close()
+    local declared = false
+    for _, name in ipairs((decl and decl.names) or {}) do
+        if name == "info" then declared = true end
+    end
+    t.truthy(declared, "CLAUDE.md's LibKa0s icons: line does not declare info")
     local fh = io.open(root .. "/libs/LibKa0s/media/icons/info.tga", "rb")
     t.truthy(fh, "libs/LibKa0s/media/icons/info.tga is missing from this build")
     if fh then fh:close() end
