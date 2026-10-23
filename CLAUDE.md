@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.75.1 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.75.2 (MIT).
 LibKa0s icons: clear, close, copy, help, info, segment.
 
 Those two lines are the answer to "which LibKa0s does this build carry, and which of its icons?",
