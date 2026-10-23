@@ -37,3 +37,25 @@ Gate after the copy:
 
 No version bump and no CHANGELOG entry (CLAUDE.md hard rule). No smoke check owed: no code path
 CM runs changed.
+
+## Addendum: the tag moved (CM-RV2)
+
+The local tag v1.76.0 was moved from `9949368` to `7e81ff7` (tag object `2949c78`) for LK-91,
+which bounds step-panel labels before the command column so a long label truncates with an
+ellipsis instead of running under the slash command (owner report 2026-10-23, BankLedger
+`/bl sim`). Both payloads were copied whole again from the moved tag through `git archive`, and
+the tag's `tools/prune-icons.lua` cut `media/icons/` back to the same six declared TGAs and
+`LICENSE-open-iconic.txt` (5,833 removed). The provenance line already read v1.76.0 and is kept.
+
+Files that changed against the CM-RV copy:
+
+- `libs/LibKa0s/PerfPanel.lua`: panel minor 7 -> 8 (Perf key 15.1.1.7 -> 15.1.1.8), label
+  anchored on both sides with word wrap off. CM consumes Perf (`core/PerfSetup.lua`), so its
+  `/cm perf` step panel gets the fix; no CM code or test changed.
+- `libs/LibKa0s/SimPanel.lua`: same label bound, minor unchanged at 5 (already bumped in the
+  unpublished v1.76.0). Not consumed here.
+- Test kit unchanged (revision 41).
+
+Gate after the second copy: luacheck 0 warnings / 0 errors in 130 files; `lua5.1 tests/run.lua`
+1217 passed, 0 failed, 1 skipped (`test_vendor_sync` green against the moved tag); largest
+authored file `settings/MacroBar.lua` at 1182 lines. No version bump, no CHANGELOG entry.
