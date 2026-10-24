@@ -1108,6 +1108,16 @@ Total.
 - Settings: a registration parked by a stand-down in combat still registers on regen
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
+### test_settings_layout.lua (7)
+
+- Layout: Master controls takes the preview Lock frame tooltip and the two Macro Bar notes
+- Layout: Reset all priorities… ends in an ellipsis because it raises a popup
+- Layout: a single Macros tab reads Macro, Add an item or spell, Priority list
+- Layout: a spec-aware tab says where its spec is changed
+- Layout: the Macros empty states say where to fix them
+- Layout: a composite tab reads Macro, In combat, Out of combat, with In macro ticks
+- Layout: the Stat Priority banner lists the spec-aware tabs in strip order
+
 ### test_slash.lua (90)
 
 - /cm set toggles a bool setting through the schema
@@ -1490,6 +1500,7 @@ Total.
 | test_settingsui.lua | 33 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
+| test_settings_layout.lua | 7 |
 | test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
@@ -1507,4 +1518,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1229** |
+| **Total** | **1236** |

@@ -760,7 +760,8 @@ test("Settings: the Maintenance tab draws its three verbs and no schema row", fu
         local w = AceGUI.__created[i]
         if w.__text then seen[w.__text] = true end
     end
-    for _, verb in ipairs({ "Force resync", "Force rewrite macros", "Reset all priorities" }) do
+    -- Reset all priorities raises a StaticPopup, so it ends in an ellipsis (options-ui-§21).
+    for _, verb in ipairs({ "Force resync", "Force rewrite macros", "Reset all priorities…" }) do
         t.truthy(seen[KCM.L[verb]], verb .. " is drawn")
     end
 end)

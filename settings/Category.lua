@@ -6,23 +6,26 @@
 -- function still dispatches to the single or composite layout on cat.composite.
 --
 -- Single category layout:
---   1. KCMMacroDragIcon row.
---   2. Spec-aware subheader (FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH): "Spec-aware. Viewing: <spec>."
---   3. Section "Add item or spell by ID" — Type dropdown, then LibKa0s-Options-1.0's
+--   1. Section "Macro" — KCMMacroDragIcon row, then the spec-aware line (FLASK /
+--      CMBT_POT / STAT_FOOD / WPN_ENCH: "Spec-aware. Showing the list for <spec>.
+--      Change the spec in the Stat Priority page's banner.") and, on Battle Rez,
+--      the Cast on mouseover checkbox.
+--   2. (folded into 1 by item 020, CON-L18.)
+--   3. Section "Add an item or spell" — Type dropdown, then LibKa0s-Options-1.0's
 --      IdInput line: an ID, a shift-clicked link or a name | Add, over a status line,
 --      with a list of the category's matching IDs under the box as the player types.
 --   4. Section "Priority list" — legend label + one row per item:
 --        drag handle | KCMItemRow | KCMScoreButton | X
 --      The handle drags the row to a new priority. The gesture is
 --      LibKa0s-Widgets-1.0's ReorderList, shared with MultiMeters' Columns page.
---   5. Inline "Reset category" button (StaticPopup-confirmed).
+--   5. Inline "Reset category…" button (StaticPopup-confirmed, hence the ellipsis).
 --
 -- Composite layout (HP_AIO / MP_AIO):
---   1. KCMMacroDragIcon row.
---   2. Subheader description.
---   3. Section "In Combat"     — sub-cat rows (drag handle | KCMItemRow | Enabled).
---   4. Section "Out of Combat" — same shape, its OWN controller.
---   5. Inline "Reset category" button (StaticPopup-confirmed).
+--   1. Section "Macro" — KCMMacroDragIcon row, the description and the legend.
+--   2. (folded into 1 by item 020, CON-L18.)
+--   3. Section "In combat"     — sub-cat rows (drag handle | KCMItemRow | In macro).
+--   4. Section "Out of combat" — same shape, its OWN controller.
+--   5. Inline "Reset category…" button (StaticPopup-confirmed).
 --
 -- Reads from Selector / Categories / Ranker / BagScanner / SpecHelper; writes
 -- via Selector mutators (AddItem / Block / MoveTo / MoveUp / MoveDown). Every mutation
@@ -428,14 +431,20 @@ KCM.Settings.MacrosPage.AfterMutation = afterMutation
 -- Single-category render
 -- ---------------------------------------------------------------------
 
--- Drag icon, spec banner and the mouseover toggle — everything above the first Section.
+-- The "Macro" section: drag icon, spec line and the mouseover toggle. It has a
+-- heading of its own (item 020, CON-L18), so every tab reads Macro / Add an item or
+-- spell / Priority list, and the one schema-backed setting on a single tab (Cast on
+-- mouseover) sits under a heading that says it is this macro's behavior rather than
+-- floating above the Add block.
 local function renderCategoryHeader(ctx, scroll, cat, specKey)
+    H.Section(ctx, L["Macro"])
     makeMacroDragIcon(scroll, cat.macroName)
     H.AddSpacer(scroll, 6)
 
     if cat.specAware then
         H.Label(ctx,
-            (L["Spec-aware. Viewing: %s."]):format(O.FormatSpec and O.FormatSpec(specKey) or tostring(specKey)),
+            (L["Spec-aware. Showing the list for %s. Change the spec in the Stat Priority page's banner."])
+                :format(O.FormatSpec and O.FormatSpec(specKey) or tostring(specKey)),
             "medium")
     end
 
@@ -697,10 +706,10 @@ end
 -- guard ladder is not counted against the drawing function's complexity.
 local function priorityEmptyState(cat, specKey, priority)
     if cat.specAware and not specKey then
-        return L["|cffff8800No active spec.|r Spec-aware categories need a resolvable spec to display a priority list."]
+        return L["|cffff8800No active spec.|r Pick one in the Stat Priority page's banner to see this list."]
     end
     if #priority == 0 then
-        return L["|cffff8800(empty)|r — no candidates yet. Add an itemID above or pick up a matching item to trigger auto-discovery."]
+        return L["|cffff8800(empty)|r — no candidates yet. Add an item or spell above, or pick up a matching item to trigger auto-discovery."]
     end
     return nil
 end
@@ -845,7 +854,7 @@ local function renderSingle(ctx, cat)
     -- Inline reset
     H.AddSpacer(scroll, 12)
     H.Button(ctx, {
-        text    = L["Reset category"],
+        text    = L["Reset category…"],
         tooltip = L["Clear added/blocked items and pin overrides for this category"]
                   .. (cat.specAware and L[" (viewed spec only)"] or "")
                   .. L[". Discovered items (from bag scans) are preserved."],
@@ -891,7 +900,7 @@ local function renderCompositeRow(scroll, catKey, cfg, ref, list)
         fallbackName = refLabel,
     }, ITEM_ROW_RW_COMPOSITE)
     makeCheckbox(row, {
-        label    = L["Enabled"],
+        label    = L["In macro"],
         tooltip  = (L["Include %s in the macro body."]):format(refLabel),
         value    = (cfg.enabled == nil) or (cfg.enabled[ref] ~= false),
         width    = CHECK_W,
@@ -927,8 +936,8 @@ end
 -- The two combat-state sections a composite is made of. Sub-categories are
 -- LOCKED to their section, so this is a fixed pair, not user data.
 local AIO_SECTIONS = {
-    { orderField = "orderInCombat",    label = L["In Combat"]     },
-    { orderField = "orderOutOfCombat", label = L["Out of Combat"] },
+    { orderField = "orderInCombat",    label = L["In combat"]     },
+    { orderField = "orderOutOfCombat", label = L["Out of combat"] },
 }
 
 -- ONE CONTROLLER PER SECTION, and that is the shape the DATA has: the two sections are two
@@ -979,7 +988,9 @@ local function renderComposite(ctx, cat)
         and KCM.db.profile.categories[cat.key]
     if not cfg then return end
 
-    -- Drag icon
+    -- The "Macro" section (item 020, CON-L18): drag icon, description and legend,
+    -- the same heading a single tab opens on.
+    H.Section(ctx, L["Macro"])
     makeMacroDragIcon(scroll, cat.macroName)
     H.AddSpacer(scroll, 6)
 
@@ -1000,8 +1011,8 @@ local function renderComposite(ctx, cat)
     -- Inline reset
     H.AddSpacer(scroll, 12)
     H.Button(ctx, {
-        text    = L["Reset category"],
-        tooltip = L["Restore enabled flags and section order to defaults."],
+        text    = L["Reset category…"],
+        tooltip = L["Put back the shipped In macro ticks and the order of both sections."],
         onClick = function() promptResetCategory(cat) end,
     })
 
@@ -1042,7 +1053,9 @@ local function macroTabs()
             tabs[#tabs + 1] = {
                 key     = cat.key,
                 label   = cat.displayName,
-                tooltip = (L["Priority list and add-by-ID for the %s macro."])
+                tooltip = (cat.composite
+                    and L["Which categories the %s macro uses, in and out of combat, and their order."]
+                    or L["Add-by-ID and the priority list for the %s macro."])
                     :format(cat.macroName),
             }
         end

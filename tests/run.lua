@@ -518,6 +518,8 @@ local SUITES = {
     "test_settingsui",
     "test_settingsui_category",
     "test_settingsui_optionsui",
+    -- Item 020 (settings layout): what the General, Macros and Stat Priority pages say.
+    "test_settings_layout",
     "test_slash",
     "test_slash_degraded",
     "test_slash_profile",

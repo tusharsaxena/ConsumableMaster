@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1229%2F1229_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1236%2F1236_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
@@ -64,7 +64,7 @@ Getting the picks right for your character takes four steps, in this order.
 - Put the macros within reach. The addon's own bar is the easy option. Hover the shaded strip along the edge of a button and a flyout lists everything in that category you can use right now, best first. If you'd rather use your own bars, drag the macros out of the macro window, or grab the small icon under the title of a category tab on the Macros page. `/cm bar off` hides the addon's bar.
 - Set your stat order. Flask, Combat Potion, Stat Food and Weapon Enchant rank by the stats your spec wants, and they read that order from the Stat Priority page. Drag Crit, Haste, Mastery and Versatility into the order you want. Click a stat's green tick and it drops to the bottom, where it counts for nothing. The banner tells you which spec you're editing.
 - Check the picks. Each category has a tab on the Macros page that lists its candidates in order. A green check marks the ones you own, and a yellow star marks the one the macro is using right now. The blue info button on each row explains why it landed where it did.
-- Overrule anything you disagree with. Drag a row by its handle and drop it higher to pin it above the score. Press × to block it, and a later bag scan won't put it back. For something the addon has never heard of, use **Add item or spell by ID** at the top of the tab: pick Item or Spell, then type the ID or the name, or shift-click it into the box.
+- Overrule anything you disagree with. Drag a row by its handle and drop it higher to pin it above the score. Press × to block it, and a later bag scan won't put it back. For something the addon has never heard of, use **Add an item or spell** near the top of the tab: pick Item or Spell, then type the ID or the name, or shift-click it into the box.
 
 After that the macros look after themselves. If a pick ever looks stale, `/cm resync` checks them all again. The minimap button opens the settings with a left-click, and a right-click gives you two switches, Enabled and Locked.
 
@@ -99,9 +99,9 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 | Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food and Weapon Enchant depend on your stat priority, which changes with your spec. Weapon Enchant also looks at your weapon types. Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust and Battle Rez rank the same for every spec, so they share one list. |
 | How does it pick weapon enchants when I'm dual-wielding? | It picks for each hand separately. A whetstone only goes on a bladed weapon and a weightstone only on a blunt one. Oils fit any weapon at all, including a bow, gun or wand, which can't take a stone. So a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing equipped is left out of the macro. Swapping weapons updates it right away, and you don't need to reload. |
 | Why isn't it using my reusable (permanent) augment rune? | That's deliberate. A reusable rune like Ethereal or Dreambound doesn't give a longer buff. It just isn't consumed, so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, the addon picks that one instead. Drag the reusable one to the top of its list if you'd rather never spend charges. |
-| How do I add an item or spell the addon doesn't know about? | Open the category's page and use **Add item or spell by ID** at the top. Choose **Item** or **Spell**, then type the ID or the name, or shift-click the item (or spell) into the box, and press Enter or click **Add**. If it can't be found, the line under the box says so. An item's name only works once the game has seen that item this session. |
+| How do I add an item or spell the addon doesn't know about? | Open the category's tab on the Macros page and use **Add an item or spell**, under the Macro heading. Choose **Item** or **Spell**, then type the ID or the name, or shift-click the item (or spell) into the box, and press Enter or click **Add**. If it can't be found, the line under the box says so. An item's name only works once the game has seen that item this session. |
 | How do I force a specific item to always win? | Grab its row by the drag handle and drop it where you want it. A pinned item overrides the automatic ranking. |
-| How do I permanently remove an item? | Press **×** on its row. That blocks it, so it won't get auto-added again. **Reset category** or **Reset all priorities** clears the block. |
+| How do I permanently remove an item? | Press **×** on its row. That blocks it, so it won't get auto-added again. **Reset category…** or **Reset all priorities…** clears the block. |
 | Does it work with ElvUI / Bartender / other bar addons? | Yes. The macros are plain WoW macros. If a picked item's icon doesn't show on the bar, see Troubleshooting; a one-time **Force rewrite macros** plus `/reload` usually sorts it out after an upgrade. |
 | Can I use this in a non-English client? | Not fully, yet. Item and weapon *type* detection works on any client, but the addon reads heal, mana and stat amounts out of the tooltip text, and it expects that text in English. Full localization is planned for a later release. |
 | Will new patch flasks / potions work automatically? | Usually. It scans your bags and recognizes anything that matches by type and tooltip, so a freshly looted new flask joins the list on the next bag update. If a patch renames something, please file an issue. |
@@ -111,7 +111,7 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 
 | Symptom | Fix |
 |---------|-----|
-| Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Settings → General → Force rewrite macros** (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
+| Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Force rewrite macros** on the General page > Maintenance (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
 | The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it is blocked or its tooltip hasn't loaded yet. |
 | I just looted a better food / flask but the macro didn't update. | Give it a second; bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
@@ -123,7 +123,7 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 | Chat says it "gave up on a macro after 3 failed writes". | Something keeps blocking the macro write, usually another addon getting in the way. Follow [Reporting a bug](#reporting-a-bug) below and reproduce the failed writes at step 1. |
 | `/cm resetall` or "Reset all settings" says it didn't work. | The addon's saved data hasn't finished loading. Reload and try again. |
 | `/cm resetall` or "Reset all settings" says "reset deferred until regen". | You were in combat, so nothing was reset. Run it again once combat ends. |
-| I want to restore a default list after removing items by hand. | **Reset category** clears that one category. **Reset all priorities** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
+| I want to restore a default list after removing items by hand. | **Reset category…** clears that one category. **Reset all priorities…** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 | I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. `/cm profile` lists them, and `/cm profile <name>` switches to one you already have. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
 | Something looks wrong and I want to report it. | Follow [Reporting a bug](#reporting-a-bug) below. |
 

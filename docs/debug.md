@@ -46,7 +46,7 @@ A **bulk reset** is one line, not one per row (`debug-logging-§10`). Inside `He
 |---|---|
 | Macro Bar page **Defaults** | `[Set] reset Macro Bar page: N rows` |
 | General page **Defaults** | `[Set] reset General page: N rows` |
-| Macros page **Reset category** on a composite, and `/cm aio <key> reset` | `[Set] reset category <KEY>: N rows` |
+| Macros page **Reset category…** on a composite, and `/cm aio <key> reset` | `[Set] reset category <KEY>: N rows` |
 | **Reset all settings** / `/cm resetall` (`KCM.ResetAllToDefaults`) | `[Set] reset profile '<name>' to defaults: N rows`, from the `OnProfileReset` handler, N counted by the seam's `ResetCounted` before the reset; the session sweep runs under `Helpers.MuteSetLog` |
 | An AceDB profile copy | `[Set] copied profile 'A' → 'B'`, from the `OnProfileCopied` handler |
 | An AceDB profile switch | `[Profile] switched to '<name>'`, from the `OnProfileChanged` handler. It is not a `[Set]` line, but it silences an open bracket the same way |

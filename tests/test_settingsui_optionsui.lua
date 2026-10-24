@@ -714,7 +714,7 @@ test("Settings: the three maintenance verbs draw on their own tab", function(t)
     end
     t.truthy(seen[KCM.L["Force resync"]], "Force resync is on the Maintenance tab")
     t.truthy(seen[KCM.L["Force rewrite macros"]], "so is Force rewrite macros")
-    t.truthy(seen[KCM.L["Reset all priorities"]], "and so is Reset all priorities")
+    t.truthy(seen[KCM.L["Reset all priorities…"]], "and so is Reset all priorities…")
 end)
 
 -- ── the combat gate on category registration (events-frames-taint) ─────────
