@@ -103,7 +103,7 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
 
         t.eq(#drawn.general.tabs, 2,
             "General is Master controls plus Maintenance, one tab each")
-        t.eq(#drawn.macrobar.tabs, 8, "the Macro Bar page keeps its eight")
+        t.eq(#drawn.macrobar.tabs, 7, "the Macro Bar page keeps its seven")
         t.eq(#drawn.macros.tabs, #KCM.Categories.LIST,
             "the Macros page carries one tab per category")
         t.eq(#drawn.statpriority.tabs, 1,

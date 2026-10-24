@@ -508,13 +508,15 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
         -- (options-ui-§15); the appearance tabs gained the class-color companion
         -- beside every swatch (options-ui-§17) and Labels gained the font face, the font
         -- flags string and the font shadow the canonical font block mandates (options-ui-§16).
-        { "General",           1  },
+        -- Item 020 (CON-L04/L05/L06) folded the Visibility tab into General and moved
+        -- Show tooltips and Bar opacity there: General 1 -> 6, Bar appearance 9 -> 8,
+        -- Button appearance 13 -> 12, Visibility gone, still 64 rows in all.
+        { "General",           6  },
         { "Layout",            8  },
-        { "Bar appearance",    9  },
-        { "Button appearance", 13 },
+        { "Bar appearance",    8  },
+        { "Button appearance", 12 },
         { "Labels",            12 },
         { "Flyout",            16 },
-        { "Visibility",        3  },
         { "Buttons",           2  },
     }
 
@@ -542,7 +544,7 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
                 "'" .. group .. "' is bespoke and declares no schema row")
         end
     end
-    t.eq(#order, 8, "all eight tabs are schema-backed, and none repeats")
+    t.eq(#order, 7, "all seven tabs are schema-backed, and none repeats")
 
     local rows = 0
     for _, row in ipairs(KCM.Settings.Schema) do
@@ -766,10 +768,11 @@ end)
 test("schema: every mixed tab breaks its blocks up with subsection headings", function(t)
     local KCM = h.loader.loadFullAddon()
     local MIXED = {
-        ["Bar appearance"]    = { "Opacity", "Background", "Border" },
+        ["Layout"]            = { "Arrangement", "Size and spacing" },
+        ["Bar appearance"]    = { "Background", "Border" },
         ["Button appearance"] = { "Background", "Border", "Icon" },
-        ["Labels"]            = { "Text", "Layout", "Font" },
-        ["Flyout"]            = { "Layout", "Background", "Icon" },
+        ["Labels"]            = { "Text", "Position", "Font" },
+        ["Flyout"]            = { "Behavior", "Placement", "Background", "Indicator" },
     }
     local function repeatsTabName(subgroup, group)
         local sub = tostring(subgroup):lower()
@@ -1020,4 +1023,131 @@ test("schema: no runtime file writes a whole-value row's field around the helper
         end
     end
     t.eq(#offenders, 0, "direct writes around the helper: " .. table.concat(offenders, ", "))
+end)
+
+-- ---------------------------------------------------------------------------
+-- Item 020 (settings layout) -- the stored side does not move
+-- ---------------------------------------------------------------------------
+--
+-- The layout pass may move, regroup and relabel rows; it may not change a stored
+-- path, a default, a range, an enum's stored values or the SET of settings. This
+-- pin was written from the schema as it stood BEFORE the pass (2026-10-24, CM-LY),
+-- one line per row: path | type | default | min | max | step | stored enum values.
+-- A label, tooltip, group, subgroup or startsLine edit leaves every line alone;
+-- anything else turns this red.
+local function guardValue(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. guardValue(v[k]) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function guardLine(row)
+    local values = {}
+    if type(row.values) == "table" then
+        for _, e in ipairs(row.values) do
+            values[#values + 1] = tostring(type(e) == "table" and e.value or e)
+        end
+    end
+    return table.concat({
+        tostring(row.path), tostring(row.type), guardValue(row.default),
+        tostring(row.min), tostring(row.max), tostring(row.step),
+        table.concat(values, ","),
+    }, " | ")
+end
+
+local STORED_GUARD = {
+    "alpha | number | 1 | 0 | 1 | 0.05 | ",
+    "categories.BATTLE_REZ.mouseover | bool | true | nil | nil | nil | ",
+    "categories.HP_AIO.enabled | map | {FOOD=true,HP_POT=true,HS=true} | nil | nil | nil | ",
+    "categories.HP_AIO.orderInCombat | order | {1=HS,2=HP_POT} | nil | nil | nil | ",
+    "categories.HP_AIO.orderOutOfCombat | order | {1=FOOD} | nil | nil | nil | ",
+    "categories.MP_AIO.enabled | map | {DRINK=true,MP_POT=true} | nil | nil | nil | ",
+    "categories.MP_AIO.orderInCombat | order | {1=MP_POT} | nil | nil | nil | ",
+    "categories.MP_AIO.orderOutOfCombat | order | {1=DRINK} | nil | nil | nil | ",
+    "enabled | bool | true | nil | nil | nil | ",
+    "global.minimap.shown | bool | true | nil | nil | nil | ",
+    "macroBar.alpha | number | 1 | 0.1 | 1 | 0.05 | ",
+    "macroBar.barBackdrop | bool | true | nil | nil | nil | ",
+    "macroBar.barBackdropColor | color | {1=0,2=0,3=0,4=0.5} | nil | nil | nil | ",
+    "macroBar.barBorder | bool | true | nil | nil | nil | ",
+    "macroBar.barBorderColor | color | {1=0.25,2=0.25,3=0.25,4=1} | nil | nil | nil | ",
+    "macroBar.barBorderSize | number | 4 | 1 | 16 | 1 | ",
+    "macroBar.barBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",
+    "macroBar.buttonBackdrop | bool | true | nil | nil | nil | ",
+    "macroBar.buttonBackdropColor | color | {1=0,2=0,3=0,4=0.6} | nil | nil | nil | ",
+    "macroBar.buttonBorder | bool | true | nil | nil | nil | ",
+    "macroBar.buttonBorderColor | color | {1=1,2=1,3=1,4=1} | nil | nil | nil | ",
+    "macroBar.buttonBorderOffset | number | 2 | 0 | 16 | 1 | ",
+    "macroBar.buttonBorderSize | number | 4 | 1 | 16 | 1 | ",
+    "macroBar.buttonBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",
+    "macroBar.buttonLabel | bool | true | nil | nil | nil | ",
+    "macroBar.buttonSize | number | 36 | 16 | 64 | 1 | ",
+    "macroBar.combatMode | string | ALWAYS | nil | nil | nil | ALWAYS,HIDE_IN_COMBAT,ONLY_IN_COMBAT",
+    "macroBar.enabled | bool | true | nil | nil | nil | ",
+    "macroBar.fadeAlpha | number | 0.15 | 0 | 1 | 0.05 | ",
+    "macroBar.fadeUnlessHover | bool | false | nil | nil | nil | ",
+    "macroBar.flyout | bool | true | nil | nil | nil | ",
+    "macroBar.flyoutArrowScale | number | 100 | 25 | 250 | 5 | ",
+    "macroBar.flyoutAutoClose | number | 1 | 0 | 30 | 0.5 | ",
+    "macroBar.flyoutBackdrop | bool | true | nil | nil | nil | ",
+    "macroBar.flyoutBackdropColor | color | {1=0,2=0,3=0,4=0.85} | nil | nil | nil | ",
+    "macroBar.flyoutGap | number | 4 | 0 | 20 | 1 | ",
+    "macroBar.flyoutIndicatorScale | number | 33 | 5 | 50 | 1 | ",
+    "macroBar.flyoutInvert | bool | false | nil | nil | nil | ",
+    "macroBar.flyoutMax | number | 12 | 1 | 16 | 1 | ",
+    "macroBar.flyoutPadding | number | 3 | 0 | 16 | 1 | ",
+    "macroBar.flyoutPoint | string | TOP | nil | nil | nil | TOP,BOTTOM,LEFT,RIGHT",
+    "macroBar.flyoutScale | number | 100 | 40 | 150 | 5 | ",
+    "macroBar.flyoutShadeColor | color | {1=0,2=0,3=0,4=0.8} | nil | nil | nil | ",
+    "macroBar.flyoutSpacing | number | 2 | 0 | 16 | 1 | ",
+    "macroBar.growthH | string | RIGHT | nil | nil | nil | RIGHT,LEFT",
+    "macroBar.growthV | string | DOWN | nil | nil | nil | DOWN,UP",
+    "macroBar.iconZoom | number | 8 | 0 | 40 | 1 | ",
+    "macroBar.labelColor | color | {1=1,2=0.82,3=0,4=1} | nil | nil | nil | ",
+    "macroBar.labelFlags | string | OUTLINE | nil | nil | nil | ",
+    "macroBar.labelFont | string | Friz Quadrata TT | nil | nil | nil | ",
+    "macroBar.labelOffsetX | number | 0 | -20 | 20 | 1 | ",
+    "macroBar.labelOffsetY | number | 3 | -20 | 20 | 1 | ",
+    "macroBar.labelPlacement | string | OUTSIDE | nil | nil | nil | INSIDE,OUTSIDE",
+    "macroBar.labelPoint | string | BOTTOM_CENTER | nil | nil | nil | TOP_LEFT,TOP_CENTER,TOP_RIGHT,LEFT,CENTER,RIGHT,BOTTOM_LEFT,BOTTOM_CENTER,BOTTOM_RIGHT",
+    "macroBar.labelScale | number | 25 | 10 | 50 | 1 | ",
+    "macroBar.labelShadow | bool | false | nil | nil | nil | ",
+    "macroBar.labelText | string | SHORT | nil | nil | nil | AUTO,FULL,SHORT",
+    "macroBar.locked | bool | false | nil | nil | nil | ",
+    "macroBar.order | order | {1=FOOD,10=STAT_FOOD,11=WPN_ENCH,12=AUG_RUNE,13=VANTUS,14=BLOODLUST,15=BATTLE_REZ,2=DRINK,3=HP_POT,4=MP_POT,5=HS,6=HP_AIO,7=MP_AIO,8=FLASK,9=CMBT_POT} | nil | nil | nil | ",
+    "macroBar.orientation | string | HORIZONTAL | nil | nil | nil | HORIZONTAL,VERTICAL",
+    "macroBar.padding | number | 4 | 0 | 24 | 1 | ",
+    "macroBar.perRow | number | 15 | 1 | 15 | 1 | ",
+    "macroBar.scale | number | 1 | 0.5 | 2 | 0.05 | ",
+    "macroBar.showCount | bool | true | nil | nil | nil | ",
+    "macroBar.showGCD | bool | false | nil | nil | nil | ",
+    "macroBar.shown | map | {} | nil | nil | nil | ",
+    "macroBar.spacing | number | 4 | 0 | 24 | 1 | ",
+    "macroBar.tooltips | bool | true | nil | nil | nil | ",
+    "macroBar.useClassColorBarBackdrop | bool | false | nil | nil | nil | ",
+    "macroBar.useClassColorBarBorder | bool | false | nil | nil | nil | ",
+    "macroBar.useClassColorButtonBackdrop | bool | false | nil | nil | nil | ",
+    "macroBar.useClassColorButtonBorder | bool | false | nil | nil | nil | ",
+    "macroBar.useClassColorFlyoutBackdrop | bool | false | nil | nil | nil | ",
+    "macroBar.useClassColorFlyoutShade | bool | false | nil | nil | nil | ",
+    "macroBar.useClassColorLabel | bool | false | nil | nil | nil | ",
+    "scale | number | 1 | 0.5 | 2 | 0.05 | ",
+    "statPriority | map | {} | nil | nil | nil | ",
+    "state.debugConsole | bool | false | nil | nil | nil | ",
+    "visibility | string | always | nil | nil | nil | ",
+}
+
+test("schema: the layout pass moved no stored path, default, range or enum value", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local got = {}
+    for _, row in ipairs(KCM.Settings.Schema) do got[#got + 1] = guardLine(row) end
+    table.sort(got)
+    local want = {}
+    for _, l in ipairs(STORED_GUARD) do want[#want + 1] = l end
+    table.sort(want)
+    t.eqList(got, want, "every stored row as it stood before the layout pass")
 end)

@@ -884,7 +884,7 @@ Total.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (54)
+### test_schema.lua (55)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -940,6 +940,7 @@ Total.
 - schema: a flag map keeps its members' booleans, drops strangers and refuses anything else
 - schema: statPriority keeps well-formed overrides and repairs their lists
 - schema: no runtime file writes a whole-value row's field around the helper
+- schema: the layout pass moved no stored path, default, range or enum value
 
 ### test_schema_adoption.lua (13)
 
@@ -1030,7 +1031,7 @@ Total.
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
 
-### test_settingsui.lua (31)
+### test_settingsui.lua (33)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -1056,8 +1057,10 @@ Total.
 - Settings: the General page's strip is Master controls, then Maintenance
 - Settings: the Master controls tab draws the page's canonical rows and their tail
 - Settings: the Maintenance tab draws its three verbs and no schema row
-- Settings: the Macro Bar page keeps its eight tabs in order
+- Settings: the Macro Bar page keeps its seven tabs in order
 - Settings: every Macro Bar tab draws exactly its group's schema rows
+- Settings: the Macro Bar rows sit where the layout pass put them
+- Settings: Reset slot order is drawn under the Buttons list, not on General
 - Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover
 - Settings UI: a first-open refresh burst arms one timer, not one per call
 - Settings UI: the rebuild waits out the quiet window before it lands
@@ -1480,11 +1483,11 @@ Total.
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 54 |
+| test_schema.lua | 55 |
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
-| test_settingsui.lua | 31 |
+| test_settingsui.lua | 33 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_slash.lua | 90 |
@@ -1504,4 +1507,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1226** |
+| **Total** | **1229** |

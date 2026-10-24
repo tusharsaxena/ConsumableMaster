@@ -50,7 +50,7 @@ is down to five entries, the Profiles page among them. The strip is **generated*
 list, for the reason `options-ui-§13` gives against one — a list declared apart from the data goes
 stale the first time a category is renamed and nothing says so.
 
-The **Macro Bar** page's eight tabs are its schema rows' `group` values, partitioned in **declaration
+The **Macro Bar** page's seven tabs are its schema rows' `group` values, partitioned in **declaration
 order**. That is the same rule, one level down: the tab is the row's own field, so the strip cannot
 name a section the rows do not have. It also means a group's rows must be **contiguous** — a row filed
 under a group the page has already left draws that tab a second time — which `tests/test_schema.lua`
@@ -145,7 +145,7 @@ own UI and last in every Ka0s addon that ships one.
 | **General** | 2 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities; a host tab with no rows). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 8 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
+| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
 | **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -348,20 +348,32 @@ at a red cross beside *Healthstone* with nothing on the page explaining it.
 
 ### The Macro Bar strip, in tab order
 
-`KCM.Settings.MACROBAR_TABS`, and each tab's name is the `group` its rows declare. Four of the eight
-mix control types and therefore carry **subsection headings** (`options-ui-§7`), listed here as
-*italics*.
+`KCM.Settings.MACROBAR_TABS`, and each tab's name is the `group` its rows declare. Every
+schema-drawn tab covers more than one subject and therefore carries **subsection headings**
+(`options-ui-§7`), listed here as *italics*. General's first line is the one unheaded lead switch
+the rule allows.
 
 | # | Tab | Rows | Subsections |
 |---|---|---|---|
-| 1 | **General** | 1 | — enable; plus the Reset slot order button |
-| 2 | **Layout** | 8 | — per row, button size, spacing, padding, bar scale, orientation, both growth directions |
-| 3 | **Bar appearance** | 9 | *Opacity* · *Background* (toggle + swatch + companion) · *Border* (the composed four, led by its Show border toggle) |
-| 4 | **Button appearance** | 13 | *Background* · *Border* (the Show border toggle, the composed four, and border offset) · *Icon* (zoom, stack count, tooltips, GCD swipe) |
-| 5 | **Labels** | 12 | *Text* (show, label text) · *Layout* (anchor, placement, both offsets) · *Font* (the composed six) |
-| 6 | **Flyout** | 16 | *Layout* (nine) · *Background* (toggle + swatch + companion) · *Icon* (band, arrow, shade swatch + companion) |
-| 7 | **Visibility** | 3 | — combat mode, fade unless hover, faded opacity |
-| 8 | **Buttons** | 2 | `macroBar.order` and `macroBar.shown`, drawn as one draggable list (below), a length no schema knows |
+| 1 | **General** | 6 | `[Enable macro bar] [Show tooltips]` unheaded · *Visibility*: `[Combat visibility] [Fade unless hovered]` / `[Bar opacity] [Faded opacity]` |
+| 2 | **Layout** | 8 | *Arrangement*: `[Orientation] [Buttons per row]` / `[Horizontal growth] [Vertical growth]` · *Size and spacing*: `[Button size (px)] [Button spacing (px)]` / `[Bar padding (px)] [Bar scale]` |
+| 3 | **Bar appearance** | 8 | *Background* (Show background + swatch + companion) · *Border* (the composed four, led by its Show border toggle) |
+| 4 | **Button appearance** | 12 | *Background* (Show background + swatch + companion) · *Border* (the Show border toggle, the composed four, and border offset) · *Icon* (zoom, stack count, GCD swipe) |
+| 5 | **Labels** | 12 | *Text* (show, label text) · *Position* (anchor, placement, Label X offset (px), Label Y offset (px)) · *Font* (the composed six) |
+| 6 | **Flyout** | 16 | *Behavior*: `[Enable flyout] [Auto-close after (seconds)]` / `[Maximum flyout entries] [Reverse flyout order]` · *Placement*: `[Flyout side] [Gap from button (px)]` / `[Flyout button size (% of button)] [Flyout spacing (px)]` / `[Flyout padding (px)]` · *Background* (Show background + swatch + companion) · *Indicator* (band, arrow, shade swatch + companion) |
+| 7 | **Buttons** | 2 | `macroBar.order` and `macroBar.shown`, drawn as one draggable list (below), a length no schema knows, with **Reset slot order** under it |
+
+**The 2026-10-24 layout pass (item 020) moved rows, never storage.** Visibility was a three-row tab;
+its rows are General's *Visibility* block now, with *Bar opacity* beside *Faded opacity* (the two
+ends of one fade) and *Show tooltips* beside the bar's on/off switch (a bar-wide hover behavior that
+also gates the flyout entries' tooltips). *Reset slot order* moved from General to under the list it
+resets. Layout and Flyout gained headings and re-paired their rows; *Labels > Layout* became
+*Position* and *Flyout > Icon* became *Indicator*, so no heading reads as the *Layout* tab or as
+*Button appearance > Icon*. *Combat visibility*'s value texts are *Always* / *Only out of combat* /
+*Only in combat*, General visibility's words; the stored values (`ALWAYS` / `HIDE_IN_COMBAT` /
+`ONLY_IN_COMBAT`) and their declared order did not move, because `/cm set`'s refusal prints them in
+that order. Every stored path, default and range is pinned by `tests/test_schema.lua`'s layout-pass
+guard.
 
 `Lock position` and `Reset position` are **not** on this page any more — they moved to Master controls
 and were deleted here. Two controls over one setting is exactly what `options-ui-§15` removes.
@@ -391,10 +403,11 @@ page already uses two tabs along (*Button appearance*). *Bar appearance*
 and *Button appearance* **keep** their qualifiers, because two surfaces coexist on this page and each
 has a backdrop and a border of its own; there the word is doing real work.
 
-A `subgroup` names the **kind of control** under it and never a word of the tab it sits on. The first
-heading on *Bar appearance* was `Bar`, which named the tab back at the reader; it is **Opacity**, over
-the one row it covers. `tests/test_schema.lua` compares the two word by word now — the whole-string
-comparison it used to make is what let `Bar` through.
+A `subgroup` names the **subject** under it and never a word of the tab it sits on. The first
+heading on *Bar appearance* was once `Bar`, which named the tab back at the reader (it became
+*Opacity*, and the layout pass then moved that one row to General's *Visibility* block).
+`tests/test_schema.lua` compares the two word by word — the whole-string comparison it used to make
+is what let `Bar` through.
 
 ### The Stat Priority page
 
