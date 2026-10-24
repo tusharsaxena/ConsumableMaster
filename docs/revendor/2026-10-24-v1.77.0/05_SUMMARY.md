@@ -76,3 +76,27 @@ no drift.
 Gate after the copy: tests (`ka0s-bounded lua5.1 tests/run.lua`) 1226 passed, 0 failed,
 1 skipped, 1227 total, `test_vendor_sync` green against the moved tag; luacheck 0 warnings /
 0 errors in 131 files; largest authored file `settings/MacroBar.lua` at 1182 lines.
+
+## Re-vendor after the tag moved again (one key button)
+
+LK-96 moved the local annotated tag v1.77.0 in `../LibKa0s` again, for the owner's follow-up to
+item 015: one key button and Clear per row on the in-addon Keybindings tab, with the second key
+left to the client's Options -> Keybindings page. Old target
+`afae2f75cb7ff61c57156d9a3d8a6b2b9f4c5e10` (tag object `b2b8ee2`); new target
+`2f2b2e22b4c9219cd8a4101d7e894681c7aea16e` (tag object `e9b126d`), still unpushed. Both payloads
+were copied whole again from `git archive v1.77.0 LibKa0s testkit` and `media/icons/` pruned to
+the unchanged declaration by the tag's `tools/prune-icons.lua`.
+
+Per-file minors that moved: OptionsKeybinds 3 -> 4 (one key button per row; no new public
+member). In the test kit, `bindings_xml.lua` and `README.md` changed (`Kit.keybindThroughTab`
+writes slot 2 through the model on a one-button row); kit revision stays 42. Every other library
+and kit file is byte-identical to the previous copy. The CLAUDE.md provenance line stays v1.77.0.
+
+No Options degradation stub change: minor 4 adds no public Options member and kit surface parity
+stayed green. ConsumableMaster registers no Keybindings tab rows, so nothing to adopt. No suite
+change: `docs/test-cases.md` and the README `[Tests]` badge already match the suite.
+
+Gate after the copy: tests (`ka0s-bounded lua5.1 tests/run.lua`) 1236 passed, 0 failed,
+1 skipped, 1237 total, `test_vendor_sync` green against the moved tag; luacheck 0 warnings /
+0 errors in 132 files; largest authored file `settings/MacroBar.lua` at 1210 lines;
+`diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s` (icons excluded) empty.
