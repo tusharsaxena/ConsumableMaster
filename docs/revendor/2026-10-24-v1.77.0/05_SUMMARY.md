@@ -53,3 +53,26 @@ Gate after the copy:
 
 No version bump and no CHANGELOG entry (CLAUDE.md hard rule). No smoke check owed by this item:
 the delivered changes are the library's own and are smoked library-side.
+
+## Re-vendor after the tag moved (M3)
+
+LK-95 moved the local annotated tag v1.77.0 in `../LibKa0s` to carry the M3 settings-layout
+surface. Old target `78240f7b2d69df27b74fc9280cbfbf7b95dd4f1f` (tag object `7380d36`); new target
+`afae2f75cb7ff61c57156d9a3d8a6b2b9f4c5e10` (tag object `b2b8ee2`), still unpushed. Both payloads
+were copied whole again from `git archive v1.77.0 LibKa0s testkit` and `media/icons/` pruned to
+the unchanged declaration by the tag's `tools/prune-icons.lua` (6 declared, 7 files kept, 5,833
+removed from the copy).
+
+Per-file minors that moved: OptionsCompose 8 -> 11 (adds `O.ResetAllTooltip` among the layout
+helpers). Every other library file and the whole test kit are byte-identical to the first copy;
+kit revision stays 42. The CLAUDE.md provenance line stays v1.77.0 and records no sha or kit
+revision, so it does not change.
+
+No Options degradation stub change: kit surface parity stayed green (CM's parity case compares a
+named projection the new member is not in). No adoption here (CM-LY adopts). Standards half:
+nothing; the reference is version-free and present in TOC, README and CLAUDE.md, so WS-95 leaves
+no drift.
+
+Gate after the copy: tests (`ka0s-bounded lua5.1 tests/run.lua`) 1226 passed, 0 failed,
+1 skipped, 1227 total, `test_vendor_sync` green against the moved tag; luacheck 0 warnings /
+0 errors in 131 files; largest authored file `settings/MacroBar.lua` at 1182 lines.
