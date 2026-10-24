@@ -79,8 +79,11 @@ local MAJORS = {
         -- own MODULES row and a paired minor and shell.
         -- OptionsDrawer joined at LibKa0s v1.73.0 (O.Drawer), with its own MODULES row and a
         -- paired minor and shell.
+        -- OptionsKeybinds joined at LibKa0s v1.77.0 (the Keybindings tab's model and rows), the
+        -- twelfth Options file, with its own MODULES row and a paired minor and shell.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
-                  "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer" },
+                  "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
+                  "OptionsKeybinds" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -93,6 +96,7 @@ local MAJORS = {
             { file = "OptionsIdList",   minor = "__idListMinor",   shell = "__idListShellMinor" },
             { file = "OptionsCombat",   minor = "__combatMinor",   shell = "__combatShellMinor" },
             { file = "OptionsDrawer",   minor = "__drawerMinor",   shell = "__drawerShellMinor" },
+            { file = "OptionsKeybinds", minor = "__keybindsMinor", shell = "__keybindsShellMinor" },
         },
     },
     {

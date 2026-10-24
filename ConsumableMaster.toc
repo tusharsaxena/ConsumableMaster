@@ -220,7 +220,7 @@ settings\General.lua
 settings\MacroBar.lua
 settings\StatPriority.lua
 settings\Category.lua
-# settings/CategoryAddByID.lua — the Macros page's "Add item or spell by ID"
+# settings/CategoryAddByID.lua — the Macros page's "Add an item or spell"
 # line, peeled off Category.lua at the 1500-line cap (layout-§1): the Type
 # dropdown, the two ID kinds, this addon's resolver over the library's IdInput
 # and O.AddByIDBusy. Immediately AFTER Category.lua and that is load-bearing:

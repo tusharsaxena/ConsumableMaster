@@ -348,10 +348,11 @@ test("bulk: a Macro Bar Defaults that raises mid-walk logs its one line marked s
         KCM.MacroBar.ResetPosition = function() moved = true end
 
         local cfg = KCM.db.profile.macroBar
-        cfg.buttonSize = 50
-        -- alpha comes later in the walk than buttonSize. With its key absent, the
-        -- write reaches __newindex, which raises.
-        cfg.alpha = nil
+        cfg.alpha = 0.5
+        -- buttonSize comes later in the walk than alpha (General declares Bar
+        -- opacity, Layout declares Button size). With its key absent, the write
+        -- reaches __newindex, which raises.
+        cfg.buttonSize = nil
         setmetatable(cfg, { __newindex = function() error("boom", 0) end })
 
         h.loader.mock.output = {}

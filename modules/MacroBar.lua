@@ -44,6 +44,7 @@ local Perf = KCM.Perf
 local Widgets = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
 
 local BAR_NAME       = "KCMMacroBar"
+local LAYERS         = KCM.Constants.LAYERS   -- core/Constants.lua: the one layers table
 local FADE_THROTTLE  = 0.1    -- seconds between mouse-over polls in fade mode
 local BACKDROP_TEX   = [[Interface\Buttons\WHITE8X8]]
 -- The ONE handle number this file still owns: where the strip sits relative to
@@ -219,7 +220,7 @@ end
 
 local function buildBar()
     local frame = CreateFrame("Frame", BAR_NAME, UIParent, "BackdropTemplate")
-    frame:SetFrameStrata("MEDIUM")
+    frame:SetFrameStrata(LAYERS.STRATA.HUD)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
@@ -234,11 +235,20 @@ local function buildBar()
     end)
 
     -- Unlocked hint: a translucent gold wash over the whole bar so it is
-    -- obvious which frame is grabbable.
-    frame.moveHint = frame:CreateTexture(nil, "OVERLAY")
-    frame.moveHint:SetAllPoints(frame)
-    frame.moveHint:SetColorTexture(1, 0.82, 0, 0.15)
-    frame.moveHint:Hide()
+    -- obvious which frame is grabbable. A CHILD FRAME above every slot's band
+    -- (LEVEL.WASH), not a texture on the bar: a region on the bar draws under
+    -- every child button, so the old texture showed only in the padding and
+    -- spacing gaps and not at all on a bar with neither. Mouse-off, so the slots
+    -- under it still take clicks and drag-swaps.
+    local wash = CreateFrame("Frame", BAR_NAME .. "Wash", frame)
+    wash:SetAllPoints(frame)
+    wash:SetFrameLevel(frame:GetFrameLevel() + LAYERS.LEVEL.WASH)
+    wash:EnableMouse(false)
+    wash.tex = wash:CreateTexture(nil, "OVERLAY")
+    wash.tex:SetAllPoints(wash)
+    wash.tex:SetColorTexture(1, 0.82, 0, 0.15)
+    wash:Hide()
+    frame.moveHint = wash
 
     -- Drag handle. A labeled strip centered above the bar, shown only while
     -- unlocked. It exists because a full bar leaves no bare container to grab --
@@ -278,6 +288,11 @@ local function buildBar()
             return not (not c or c.locked)
         end,
         onDragStop = savePosition,
+        -- The bar fades by setting (alpha, fade unless hovered, the master
+        -- alpha); the strip does not, so the one control that moves the bar is
+        -- never a near-invisible click target (frame-layering-§2, DragHandle
+        -- minor 5).
+        ignoreParentAlpha = true,
         -- The close mark, left of the help mark (Widgets 10.3). Its tooltip
         -- carries the chat line's way back.
         onClose      = closeBar,

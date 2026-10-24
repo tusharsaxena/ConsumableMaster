@@ -501,6 +501,8 @@ local SUITES = {
     "test_macrobar_layout",
     "test_macrobar_display",
     "test_macrobar_flyout",
+    -- Where each frame sits: the layers table and the bar's strata and level bands (item 030).
+    "test_macrobar_layers",
     "test_macromanager",
     "test_mediasetup",
     "test_perfsetup",
@@ -516,6 +518,8 @@ local SUITES = {
     "test_settingsui",
     "test_settingsui_category",
     "test_settingsui_optionsui",
+    -- Item 020 (settings layout): what the General, Macros and Stat Priority pages say.
+    "test_settings_layout",
     "test_slash",
     "test_slash_degraded",
     "test_slash_profile",
@@ -528,8 +532,8 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-§9 prescribes; the kit (revision 41, as vendored from
-    -- LibKa0s v1.75.0; since revision 25) resolves the relative `dir` against the
+    -- literal form testing-§9 prescribes; the kit (revision 42, as vendored from
+    -- LibKa0s v1.77.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive

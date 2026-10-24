@@ -103,7 +103,7 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
 
         t.eq(#drawn.general.tabs, 2,
             "General is Master controls plus Maintenance, one tab each")
-        t.eq(#drawn.macrobar.tabs, 8, "the Macro Bar page keeps its eight")
+        t.eq(#drawn.macrobar.tabs, 7, "the Macro Bar page keeps its seven")
         t.eq(#drawn.macros.tabs, #KCM.Categories.LIST,
             "the Macros page carries one tab per category")
         t.eq(#drawn.statpriority.tabs, 1,
@@ -714,7 +714,7 @@ test("Settings: the three maintenance verbs draw on their own tab", function(t)
     end
     t.truthy(seen[KCM.L["Force resync"]], "Force resync is on the Maintenance tab")
     t.truthy(seen[KCM.L["Force rewrite macros"]], "so is Force rewrite macros")
-    t.truthy(seen[KCM.L["Reset all priorities"]], "and so is Reset all priorities")
+    t.truthy(seen[KCM.L["Reset all priorities…"]], "and so is Reset all priorities…")
 end)
 
 -- ── the combat gate on category registration (events-frames-taint) ─────────

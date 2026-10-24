@@ -1,16 +1,19 @@
 -- settings/MacroBar.lua — Macro Bar page.
 --
--- Eight TABS on a pinned strip (options-ui-§13), not eight scrolling sections:
--- General (enable + reset slot order), Layout (grid + geometry), Bar appearance
--- and Button appearance (chrome + colors), Labels, Flyout, Visibility (combat
--- driver + hover fade), and Buttons (which macros occupy a slot). A tab IS a
--- schema row `group`, so the strip cannot drift from the rows it partitions.
+-- Seven TABS on a pinned strip (options-ui-§13), not seven scrolling sections:
+-- General (enable, tooltips, and the Visibility block: combat driver, hover fade
+-- and both opacities), Layout (arrangement, then size and spacing), Bar appearance
+-- and Button appearance (chrome + colors), Labels, Flyout, and Buttons (which
+-- macros occupy a slot, and the slot-order reset). A tab IS a schema row `group`,
+-- so the strip cannot drift from the rows it partitions.
 --
--- FOUR OF THE TABS MIX CONTROL TYPES, so each block inside them carries a
--- `subgroup` heading (options-ui-§7): a tab holding a background block, a border
--- block and an icon block is three subjects under one label, and a player
+-- EVERY SCHEMA-DRAWN TAB COVERS MORE THAN ONE SUBJECT, so each block inside them
+-- carries a `subgroup` heading (options-ui-§7): a tab holding a background block,
+-- a border block and an icon block is three subjects under one label, and a player
 -- scanning it has no way to tell where one ends. The heading is declared by the
--- row exactly as the tab is, so nothing here draws one.
+-- row exactly as the tab is, so nothing here draws one. General's first line is
+-- the one unheaded lead the rule allows (U-05b): the bar's own on/off switch, with
+-- Show tooltips beside it.
 --
 -- THE BORDER, BACKGROUND AND FONT BLOCKS ARE COMPOSED (options-ui-§16), not
 -- typed out: H.BorderGroup, H.ColorPair and H.FontGroup emit the mandated rows in
@@ -31,8 +34,8 @@
 -- both as ONE draggable list -- shown slots first, each with a drag handle, then
 -- the hidden ones, dimmed -- where a drag splices the order and a tick moves a
 -- slot across the rule. Dropping one button onto another on the bar itself still
--- swaps the two (MacroBar.SwapSlots), and the General tab's Reset slot order puts
--- the shipped order back.
+-- swaps the two (MacroBar.SwapSlots), and Reset slot order, under the list on the
+-- same tab, puts the shipped order back.
 
 local _, NS = ...
 local KCM = NS
@@ -115,6 +118,14 @@ local function enum(...)
 end
 
 -- ── General ────────────────────────────────────────────────────────────────
+--
+-- The bar's on/off switch and Show tooltips lead the tab unheaded (options-ui-§7,
+-- U-05b), then the Visibility block: WHEN the bar shows (Combat visibility) and
+-- how opaque it is at each end of the hover fade. Bar opacity and Faded opacity
+-- sit side by side because they are the two ends of one fade (item 020, CON-L06);
+-- Show tooltips sits here because it is a bar-wide hover behavior that also gates
+-- the flyout entries' tooltips, not a property of the icon (CON-L04). All three
+-- moves are declaration edits: no path, default or range moved.
 
 row{
     path = "macroBar.enabled", type = "bool", group = "General",
@@ -131,9 +142,58 @@ row{
         end
     end,
 }
+row{
+    path = "macroBar.tooltips", type = "bool", group = "General",
+    label = L["Show tooltips"],
+    tooltip = L["Show the picked item's or spell's tooltip when you hover a button."],
+}
+-- The value TEXTS match General visibility's words (options-ui-§21, CON-L14); the
+-- declared ORDER and the stored values do not move, because SlashParse's
+-- allowedText prints the allowed values in this order and `/cm set`'s error output
+-- would change with it. "Only out of combat" is what HIDE_IN_COMBAT has always
+-- meant (MacroBarModel.ResolveVisibility).
+row{
+    path = "macroBar.combatMode", type = "string",
+    group = "General", subgroup = L["Visibility"], startsLine = true,
+    values = enum(
+        "ALWAYS",          L["Always"],
+        "HIDE_IN_COMBAT",  L["Only out of combat"],
+        "ONLY_IN_COMBAT",  L["Only in combat"]),
+    label = L["Combat visibility"],
+    tooltip = L["Combat-based hiding is handed to Blizzard's secure visibility driver, so it takes effect the instant combat starts or ends, including mid-fight. Intersected with General visibility on the General page > Master controls: the bar shows only where both say show."],
+}
+row{
+    path = "macroBar.fadeUnlessHover", type = "bool",
+    group = "General", subgroup = L["Visibility"],
+    label = L["Fade unless hovered"],
+    tooltip = L["Keep the bar faded until you move the mouse over it. Faded buttons still work — this only changes opacity."],
+}
+row{
+    path = "macroBar.alpha", type = "number", min = 0.1, max = 1.0, step = 0.05,
+    group = "General", subgroup = L["Visibility"], startsLine = true,
+    label = L["Bar opacity"],
+    tooltip = L["Opacity of the whole bar when it is not faded out. Multiplied by Master opacity on the General page > Master controls."],
+}
+row{
+    path = "macroBar.fadeAlpha", type = "number", min = 0.0, max = 1.0, step = 0.05,
+    group = "General", subgroup = L["Visibility"],
+    label = L["Faded opacity"],
+    tooltip = L["Opacity of the bar while faded out. 0 makes it invisible until hovered. Multiplied by Master opacity on the General page > Master controls."],
+}
 
 -- ── Layout ─────────────────────────────────────────────────────────────────
+--
+-- Two blocks (CON-L08): how the grid is ARRANGED, then how big it is. Orientation
+-- leads Buttons per row because it decides whether "per row" is a row or a column,
+-- and direction pairs with direction. Pixel rows say "(px)" (options-ui-§21).
 
+row{
+    path = "macroBar.orientation", type = "string",
+    group = "Layout", subgroup = L["Arrangement"], startsLine = true,
+    values = enum("HORIZONTAL", L["Horizontal (fill rows)"], "VERTICAL", L["Vertical (fill columns)"]),
+    label = L["Orientation"],
+    tooltip = L["Which axis the buttons fill first. Horizontal runs along a row then wraps to the next row; Vertical runs down a column then wraps to the next column."],
+}
 -- `max` is derived rather than a literal: it's the slot count, and a
 -- hardcoded number is exactly what just went stale (13 -> 15 when this
 -- branch added two categories). settings/ loads after defaults/ in
@@ -141,50 +201,48 @@ row{
 row{
     path = "macroBar.perRow", type = "number", min = 1,
     max = KCM.Categories and KCM.Categories.LIST and #KCM.Categories.LIST or 13,
-    step = 1, group = "Layout",
+    step = 1, group = "Layout", subgroup = L["Arrangement"],
     label = L["Buttons per row"],
     tooltip = L["How many buttons fit along the axis the bar fills first — a row when the orientation is Horizontal, a column when it is Vertical. The maximum puts every macro on one line."],
 }
 row{
-    path = "macroBar.buttonSize", type = "number", min = 16, max = 64, step = 1, group = "Layout",
-    label = L["Button size"],
+    path = "macroBar.growthH", type = "string", group = "Layout", subgroup = L["Arrangement"],
+    values = enum("RIGHT", L["Right"], "LEFT", L["Left"]),
+    label = L["Horizontal growth"],
+    tooltip = L["Whether the first button sits at the left or the right edge of the bar."],
+}
+row{
+    path = "macroBar.growthV", type = "string", group = "Layout", subgroup = L["Arrangement"],
+    values = enum("DOWN", L["Down"], "UP", L["Up"]),
+    label = L["Vertical growth"],
+    tooltip = L["Whether the first row sits at the top or the bottom of the bar."],
+}
+row{
+    path = "macroBar.buttonSize", type = "number", min = 16, max = 64, step = 1,
+    group = "Layout", subgroup = L["Size and spacing"], startsLine = true,
+    label = L["Button size (px)"],
     tooltip = L["Width and height of each button, in pixels."],
 }
 row{
-    path = "macroBar.spacing", type = "number", min = 0, max = 24, step = 1, group = "Layout",
-    label = L["Button spacing"],
+    path = "macroBar.spacing", type = "number", min = 0, max = 24, step = 1,
+    group = "Layout", subgroup = L["Size and spacing"],
+    label = L["Button spacing (px)"],
     tooltip = L["Gap between adjacent buttons, in pixels."],
 }
 row{
-    path = "macroBar.padding", type = "number", min = 0, max = 24, step = 1, group = "Layout",
-    label = L["Bar padding"],
+    path = "macroBar.padding", type = "number", min = 0, max = 24, step = 1,
+    group = "Layout", subgroup = L["Size and spacing"],
+    label = L["Bar padding (px)"],
     tooltip = L["Inset between the outer buttons and the edge of the bar's backdrop, in pixels."],
 }
 -- The BAR's own scale, not the addon's. The General page's Master scale is a
 -- separate, addon-wide setting and the two compose (options-ui-§15); neither is
 -- the other's duplicate and neither may be conflated with it.
 row{
-    path = "macroBar.scale", type = "number", min = 0.5, max = 2.0, step = 0.05, group = "Layout",
+    path = "macroBar.scale", type = "number", min = 0.5, max = 2.0, step = 0.05,
+    group = "Layout", subgroup = L["Size and spacing"],
     label = L["Bar scale"],
-    tooltip = L["Scales this bar, buttons and backdrop together. Multiplied by the addon-wide Master scale on the General page."],
-}
-row{
-    path = "macroBar.orientation", type = "string", group = "Layout",
-    values = enum("HORIZONTAL", L["Horizontal (fill rows)"], "VERTICAL", L["Vertical (fill columns)"]),
-    label = L["Orientation"],
-    tooltip = L["Which axis the buttons fill first. Horizontal runs along a row then wraps to the next row; Vertical runs down a column then wraps to the next column."],
-}
-row{
-    path = "macroBar.growthH", type = "string", group = "Layout",
-    values = enum("RIGHT", L["Right"], "LEFT", L["Left"]),
-    label = L["Horizontal growth"],
-    tooltip = L["Whether the first button sits at the left or the right edge of the bar."],
-}
-row{
-    path = "macroBar.growthV", type = "string", group = "Layout",
-    values = enum("DOWN", L["Down"], "UP", L["Up"]),
-    label = L["Vertical growth"],
-    tooltip = L["Whether the first row sits at the top or the bottom of the bar."],
+    tooltip = L["Scales this bar, buttons and backdrop together. Multiplied by Master scale on the General page > Master controls."],
 }
 
 -- ── Bar appearance ─────────────────────────────────────────────────────────
@@ -195,20 +253,13 @@ row{
 -- wired to nothing. That is why the swatch is composed with H.ColorPair and the
 -- bar composer is not called anywhere in this addon.
 
--- `Opacity`, not `Bar`: a subsection heading names the KIND of control under it and
--- never repeats the tab it sits on (options-ui-§13), and this tab is already called
--- "Bar appearance". Its sibling tab reads the same way -- "Button appearance" opens
--- on `Background`, not on `Button`.
-row{
-    path = "macroBar.alpha", type = "number", min = 0.1, max = 1.0, step = 0.05,
-    group = "Bar appearance", subgroup = L["Opacity"],
-    label = L["Bar opacity"],
-    tooltip = L["Opacity of the whole bar when it is not faded out. Multiplied by the addon-wide Master alpha on the General page."],
-}
+-- The leading toggles read `Show background` / `Show border` (CON-L-new2,
+-- options-ui-§16's own name for the border one): each sits under its own heading,
+-- so the noun is already stated, and no subsection repeats the tab it sits on.
 row{
     path = "macroBar.barBackdrop", type = "bool",
     group = "Bar appearance", subgroup = L["Background"], startsLine = true,
-    label = L["Bar background"],
+    label = L["Show background"],
     tooltip = L["Draw a filled backdrop behind the buttons."],
 }
 block(H.ColorPair{
@@ -239,7 +290,6 @@ block(H.BorderGroup{
         borderColor         = "barBorderColor",
         useClassColorBorder = "useClassColorBarBorder",
     },
-    labels = { borderShow = L["Bar border"] },
     defaults = {
         borderShow          = BAR_DEFAULTS.barBorder,
         borderStyle         = BAR_DEFAULTS.barBorderStyle,
@@ -266,7 +316,7 @@ block(H.BorderGroup{
 row{
     path = "macroBar.buttonBackdrop", type = "bool",
     group = "Button appearance", subgroup = L["Background"], startsLine = true,
-    label = L["Button background"],
+    label = L["Show background"],
     tooltip = L["Fill each button behind its icon. Visible mainly while an icon is still loading."],
 }
 block(H.ColorPair{
@@ -297,7 +347,6 @@ block(H.BorderGroup{
         borderColor         = "buttonBorderColor",
         useClassColorBorder = "useClassColorButtonBorder",
     },
-    labels = { borderShow = L["Button border"] },
     defaults = {
         borderShow          = BAR_DEFAULTS.buttonBorder,
         borderStyle         = BAR_DEFAULTS.buttonBorderStyle,
@@ -340,22 +389,16 @@ row{
     tooltip = L["Show how many of the picked item you're carrying in the bottom-right corner of each button."],
 }
 row{
-    path = "macroBar.tooltips", type = "bool",
-    group = "Button appearance", subgroup = L["Icon"],
-    label = L["Show tooltips"],
-    tooltip = L["Show the picked item's or spell's tooltip when you hover a button."],
-}
-row{
     path = "macroBar.showGCD", type = "bool",
     group = "Button appearance", subgroup = L["Icon"],
     label = L["Show GCD swipe"],
-    tooltip = L["Off by default: hides the roughly 1.5-second global-cooldown swipe and completion sparkle that would otherwise flash across every button whenever you cast anything. A real cooldown's swipe still shows, but it vanishes for its own final second or so instead of visibly counting down to zero, and its completion sparkle is hidden along with the GCD's — the button can't tell a lone GCD from the last moment of a long cooldown."],
+    tooltip = L["Off hides the global-cooldown swipe that flashes over every button whenever you cast. A real cooldown still shows, but its last second or so is hidden too."],
 }
 
 -- ── Labels ─────────────────────────────────────────────────────────────────
 --
--- Three blocks, three headings: what the label SAYS, where it SITS, and how it is
--- DRAWN. The last of those is the canonical font group (options-ui-§16), composed.
+-- Three blocks, three headings: what the label SAYS, where it SITS (Position,
+-- not Layout, which is a tab on this page: CON-L10), and how it is DRAWN. The last of those is the canonical font group (options-ui-§16), composed.
 
 row{
     path = "macroBar.buttonLabel", type = "bool",
@@ -374,7 +417,7 @@ row{
 }
 row{
     path = "macroBar.labelPoint", type = "string",
-    group = "Labels", subgroup = L["Layout"], startsLine = true,
+    group = "Labels", subgroup = L["Position"], startsLine = true,
     values = enum(
         "TOP_LEFT",      L["Top left"],
         "TOP_CENTER",    L["Top center"],
@@ -389,21 +432,21 @@ row{
     tooltip = L["Which part of the button the label anchors to."],
 }
 row{
-    path = "macroBar.labelPlacement", type = "string", group = "Labels", subgroup = L["Layout"],
+    path = "macroBar.labelPlacement", type = "string", group = "Labels", subgroup = L["Position"],
     values = enum("INSIDE", L["Inside the button"], "OUTSIDE", L["Outside the button"]),
     label = L["Label placement"],
     tooltip = L["Inside draws the label over the icon; Outside pushes it just beyond that edge of the button. Outside labels can overlap a neighboring button when spacing is tight."],
 }
 row{
     path = "macroBar.labelOffsetX", type = "number", min = -20, max = 20, step = 1,
-    group = "Labels", subgroup = L["Layout"],
-    label = L["Label offset X (px)"],
+    group = "Labels", subgroup = L["Position"],
+    label = L["Label X offset (px)"],
     tooltip = L["Nudge the label horizontally from its anchor."],
 }
 row{
     path = "macroBar.labelOffsetY", type = "number", min = -20, max = 20, step = 1,
-    group = "Labels", subgroup = L["Layout"],
-    label = L["Label offset Y (px)"],
+    group = "Labels", subgroup = L["Position"],
+    label = L["Label Y offset (px)"],
     tooltip = L["Nudge the label vertically from its anchor. Negative moves it down."],
 }
 block(H.FontGroup{
@@ -455,64 +498,70 @@ block(H.FontGroup{
 })
 
 -- ── Flyout ─────────────────────────────────────────────────────────────────
+--
+-- What the flyout DOES (Behavior), then where it opens and how big it is
+-- (Placement), its panel (Background) and the band and arrow it draws on the bar
+-- button (Indicator, not Icon: Button appearance > Icon is about icons). Item 020,
+-- CON-L11/L12: only declaration order, startsLine and the headings moved.
 
 row{
     path = "macroBar.flyout", type = "bool",
-    group = "Flyout", subgroup = L["Layout"], startsLine = true,
+    group = "Flyout", subgroup = L["Behavior"], startsLine = true,
     label = L["Enable flyout"],
-    tooltip = L["Put a small arrow on each button; hovering it opens a strip holding every item or spell in that category you can actually use right now. Only the macro bar has flyouts — a KCM macro dragged onto a Blizzard action bar stays an ordinary macro."],
+    tooltip = L["Put a small arrow on each button; hovering it opens a strip holding every item or spell in that category you can actually use right now. Only the macro bar has flyouts — a KCM macro dragged onto a Blizzard action bar stays an ordinary macro. Flyout entries look like the bar's buttons: everything on the Button appearance tab applies to them. The flyout panel's border is the Bar appearance tab's border."],
 }
 row{
-    path = "macroBar.flyoutPoint", type = "string", group = "Flyout", subgroup = L["Layout"],
+    path = "macroBar.flyoutAutoClose", type = "number", min = 0, max = 30, step = 0.5,
+    group = "Flyout", subgroup = L["Behavior"],
+    label = L["Auto-close after (seconds)"],
+    tooltip = L["Close an open flyout after this many seconds without interaction. 0 keeps it open until you move the mouse away or click something. Moving the mouse off it, and clicking either the macro or a flyout entry, always close it immediately."],
+}
+row{
+    path = "macroBar.flyoutMax", type = "number", min = 1, max = 16, step = 1,
+    group = "Flyout", subgroup = L["Behavior"], startsLine = true,
+    label = L["Maximum flyout entries"],
+    tooltip = L["Longest flyout to build. Categories with more available items than this show the top-ranked ones. The cap exists because flyout buttons can only be created out of combat."],
+}
+row{
+    path = "macroBar.flyoutInvert", type = "bool", group = "Flyout", subgroup = L["Behavior"],
+    label = L["Reverse flyout order"],
+    tooltip = L["By default the highest-ranked item sits closest to the button. Turn this on to put it furthest away."],
+}
+row{
+    path = "macroBar.flyoutPoint", type = "string",
+    group = "Flyout", subgroup = L["Placement"], startsLine = true,
     values = enum("TOP", L["Top"], "BOTTOM", L["Bottom"], "LEFT", L["Left"], "RIGHT", L["Right"]),
     label = L["Flyout side"],
     tooltip = L["Which edge the arrow sits on, and the direction the flyout grows from there."],
 }
 row{
-    path = "macroBar.flyoutInvert", type = "bool", group = "Flyout", subgroup = L["Layout"],
-    label = L["Reverse flyout order"],
-    tooltip = L["By default the highest-ranked item sits closest to the button. Turn this on to put it furthest away."],
-}
-row{
-    path = "macroBar.flyoutMax", type = "number", min = 1, max = 16, step = 1,
-    group = "Flyout", subgroup = L["Layout"],
-    label = L["Maximum flyout entries"],
-    tooltip = L["Longest flyout to build. Categories with more available items than this show the top-ranked ones. The cap exists because flyout buttons can only be created out of combat."],
+    path = "macroBar.flyoutGap", type = "number", min = 0, max = 20, step = 1,
+    group = "Flyout", subgroup = L["Placement"],
+    label = L["Gap from button (px)"],
+    tooltip = L["Gap between the macro button and the first flyout entry. Raise it if a thick or offset button border overlaps the flyout. Hovering still works across the gap."],
 }
 row{
     path = "macroBar.flyoutScale", type = "number", min = 40, max = 150, step = 5,
-    group = "Flyout", subgroup = L["Layout"],
+    group = "Flyout", subgroup = L["Placement"], startsLine = true,
     label = L["Flyout button size (% of button)"],
     tooltip = L["Flyout entry size as a percentage of the main button size."],
 }
 row{
     path = "macroBar.flyoutSpacing", type = "number", min = 0, max = 16, step = 1,
-    group = "Flyout", subgroup = L["Layout"],
+    group = "Flyout", subgroup = L["Placement"],
     label = L["Flyout spacing (px)"],
     tooltip = L["Gap between flyout entries, in pixels."],
 }
 row{
     path = "macroBar.flyoutPadding", type = "number", min = 0, max = 16, step = 1,
-    group = "Flyout", subgroup = L["Layout"],
+    group = "Flyout", subgroup = L["Placement"], startsLine = true,
     label = L["Flyout padding (px)"],
     tooltip = L["Inset between the flyout's entries and the edge of its panel, in pixels."],
 }
 row{
-    path = "macroBar.flyoutGap", type = "number", min = 0, max = 20, step = 1,
-    group = "Flyout", subgroup = L["Layout"],
-    label = L["Gap from button (px)"],
-    tooltip = L["Gap between the macro button and the first flyout entry. Raise it if a thick or offset button border overlaps the flyout. Hovering still works across the gap."],
-}
-row{
-    path = "macroBar.flyoutAutoClose", type = "number", min = 0, max = 30, step = 0.5,
-    group = "Flyout", subgroup = L["Layout"],
-    label = L["Auto-close after (seconds)"],
-    tooltip = L["Close an open flyout after this many seconds without interaction. 0 keeps it open until you move the mouse away or click something. Moving the mouse off it, and clicking either the macro or a flyout entry, always close it immediately."],
-}
-row{
     path = "macroBar.flyoutBackdrop", type = "bool",
     group = "Flyout", subgroup = L["Background"], startsLine = true,
-    label = L["Flyout background"],
+    label = L["Show background"],
     tooltip = L["Draw a panel behind the flyout. Worth keeping on: without it, a flyout opening over a second row of bar buttons looks just like more bar."],
 }
 block(H.ColorPair{
@@ -527,23 +576,23 @@ block(H.ColorPair{
     classColor = { source = "player" },
 }, {
     ["macroBar.flyoutBackdropColor"] = {
-        tooltip = swatchTip(L["Color and opacity of the flyout's panel. Its border matches the bar's own border style, thickness and color."]),
+        tooltip = swatchTip(L["Color and opacity of the flyout's panel. Its border is the Bar appearance tab's border."]),
     },
 })
 row{
     path = "macroBar.flyoutIndicatorScale", type = "number", min = 5, max = 50, step = 1,
-    group = "Flyout", subgroup = L["Icon"], startsLine = true,
+    group = "Flyout", subgroup = L["Indicator"], startsLine = true,
     label = L["Shaded band thickness (% of icon)"],
     tooltip = L["How deep the shaded strip across the icon is, as a percentage of the button — so it keeps its proportions when you resize the bar. Raise it for an easier hover target; it is capped at half the button, and the button label automatically moves clear when the two share an edge."],
 }
 row{
     path = "macroBar.flyoutArrowScale", type = "number", min = 25, max = 250, step = 5,
-    group = "Flyout", subgroup = L["Icon"],
+    group = "Flyout", subgroup = L["Indicator"],
     label = L["Arrow size (% of band)"],
     tooltip = L["Arrow size as a percentage of the shaded band's thickness. Over 100% the arrow deliberately overflows the band onto the icon, which keeps it readable on small buttons."],
 }
 block(H.ColorPair{
-    page = "macrobar", group = "Flyout", subgroup = L["Icon"],
+    page = "macrobar", group = "Flyout", subgroup = L["Indicator"],
     prefix = "macroBar.",
     key = "flyoutShadeColor", companionKey = "useClassColorFlyoutShade",
     label = L["Shaded band color"],
@@ -557,28 +606,6 @@ block(H.ColorPair{
         tooltip = swatchTip(L["Color and opacity of the strip drawn across the icon. Lower the opacity to let more of the artwork through."]),
     },
 })
-
--- ── Visibility ─────────────────────────────────────────────────────────────
-
-row{
-    path = "macroBar.combatMode", type = "string", group = "Visibility",
-    values = enum(
-        "ALWAYS",          L["Always visible"],
-        "HIDE_IN_COMBAT",  L["Hide in combat"],
-        "ONLY_IN_COMBAT",  L["Only in combat"]),
-    label = L["Combat visibility"],
-    tooltip = L["Combat-based hiding is handed to Blizzard's secure visibility driver, so it takes effect the instant combat starts or ends — including mid-fight. Intersected with the addon-wide General visibility on the General page: the bar shows only where both say show."],
-}
-row{
-    path = "macroBar.fadeUnlessHover", type = "bool", group = "Visibility",
-    label = L["Fade unless hovered"],
-    tooltip = L["Keep the bar faded until you move the mouse over it. Faded buttons still work — this only changes opacity."],
-}
-row{
-    path = "macroBar.fadeAlpha", type = "number", min = 0.0, max = 1.0, step = 0.05, group = "Visibility",
-    label = L["Faded opacity"],
-    tooltip = L["Opacity of the bar while faded out. 0 makes it invisible until hovered."],
-}
 
 -- ── Buttons ────────────────────────────────────────────────────────────────
 --
@@ -1049,7 +1076,7 @@ end
 -- The tab strip (options-ui-§13)
 -- ---------------------------------------------------------------------------
 --
--- Eight sections, one scroll: the page was a wall a player had to read past to
+-- Seven sections, one scroll: the page was a wall a player had to read past to
 -- reach the one setting they came for. Each section is a tab now, and only the
 -- active one draws.
 --
@@ -1059,11 +1086,13 @@ end
 -- a section is renamed and nothing says so. tests/test_schema.lua pins the two
 -- against each other.
 --
--- Order: General first (the master toggle for this bar and the slot-order reset),
--- then the three geometry-and-paint tabs in the order a bar is built (Layout, Bar
+-- Order: General first (the master toggle for this bar, Show tooltips, and the
+-- Visibility block that used to be a tab of its own: item 020, CON-L05), then the
+-- three geometry-and-paint tabs in the order a bar is built (Layout, Bar
 -- appearance, Button appearance), then Labels (which is about the buttons, so it
--- sits with them), Flyout (its own surface), Visibility, and Buttons last: what
--- is ON the bar is set once and left.
+-- sits with them), Flyout (its own surface), and Buttons last: what is ON the bar
+-- is set once and left. Its Reset slot order sits under the list it resets
+-- (CON-L07).
 --
 -- Two renames. "Bar" became "General" because on a page called Macro Bar the
 -- word carried nothing and it collided with "Bar appearance" two tabs along.
@@ -1092,21 +1121,21 @@ local function drawGroup(group)
     end
 end
 
-local function drawGeneral(ctx)
-    drawGroup("General")(ctx)
-    H.Button(ctx, {
-        text    = L["Reset slot order"],
-        tooltip = L["Restore the default left-to-right slot order, undoing any drag-and-drop rearranging."],
-        onClick = doResetOrder,
-    })
-end
-
+-- Reset slot order sits BELOW the list it resets (CON-L07): the list is where the
+-- order is edited, so the act that undoes the edits belongs with it. The handler
+-- is the one the General tab used to carry.
 local function drawButtons(ctx)
     H.Label(ctx, L["Drag a button by its handle to change its place, here or on the bar itself. Click its tick to take it off the bar: hidden buttons wait below the line, and one you put back joins the end of the bar."],
         "medium")
     local scroll = H.EnsureScroll(ctx)
     H.AddSpacer(scroll, 8)
     renderSlotList(ctx, scroll)
+    H.AddSpacer(scroll, 8)
+    H.Button(ctx, {
+        text    = L["Reset slot order"],
+        tooltip = L["Put the buttons back in the shipped order, undoing any drag-and-drop rearranging."],
+        onClick = doResetOrder,
+    })
 end
 
 -- `group` is the schema partition key AND the tab key; `label` is what the strip
@@ -1114,13 +1143,12 @@ end
 -- whole-value rows are one draggable list, a length no schema knows -- and
 -- tests/test_schema.lua exempts it BY NAME rather than by relaxing the rule.
 local TABS = {
-    { group = "General",           label = L["General"],           draw = drawGeneral },
+    { group = "General",           label = L["General"],           draw = drawGroup("General") },
     { group = "Layout",            label = L["Layout"],            draw = drawGroup("Layout") },
     { group = "Bar appearance",    label = L["Bar appearance"],    draw = drawGroup("Bar appearance") },
     { group = "Button appearance", label = L["Button appearance"], draw = drawGroup("Button appearance") },
     { group = "Labels",            label = L["Labels"],            draw = drawGroup("Labels") },
     { group = "Flyout",            label = L["Flyout"],            draw = drawGroup("Flyout") },
-    { group = "Visibility",        label = L["Visibility"],        draw = drawGroup("Visibility") },
     { group = "Buttons",           label = L["Buttons"],           draw = drawButtons },
 }
 KCM.Settings.MACROBAR_TABS = TABS

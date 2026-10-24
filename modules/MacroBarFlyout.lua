@@ -40,6 +40,9 @@ KCM.MacroBarFlyout = KCM.MacroBarFlyout or {}
 local FO = KCM.MacroBarFlyout
 
 local CreateFrame = CreateFrame
+-- The flyout's strata and every level offset are named once in core/Constants.lua.
+local LAYERS = KCM.Constants.LAYERS
+local LEVEL  = LAYERS.LEVEL
 -- A small clean triangle. Blizzard's Arrow-Up-Up carries its own glow/padding
 -- and smeared badly when stretched across the band.
 local ARROW_TEXTURE = [[Interface\ChatFrame\ChatFrameExpandArrow]]
@@ -210,17 +213,22 @@ local function createEntry(flyout, index)
     local hl = btn:GetHighlightTexture()
     if hl then hl:SetBlendMode("ADD") end
 
+    -- The slot's ladder (modules/MacroBarButton.lua), so every bordered icon
+    -- button the addon draws layers one way: swipe < border < count.
+    local level = btn:GetFrameLevel()
     btn.cooldown = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
     btn.cooldown:SetAllPoints(btn.icon)
+    btn.cooldown:SetFrameLevel(level + LEVEL.FILL)
 
     local overlay = CreateFrame("Frame", nil, btn)
     overlay:SetAllPoints(btn)
-    overlay:SetFrameLevel(btn:GetFrameLevel() + 2)
+    overlay:SetFrameLevel(level + LEVEL.OVERLAY)
+    btn.overlay = overlay
     btn.count = overlay:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
     btn.count:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 2)
 
     btn.border = CreateFrame("Frame", nil, btn, "BackdropTemplate")
-    btn.border:SetFrameLevel(btn:GetFrameLevel() + 1)
+    btn.border:SetFrameLevel(level + LEVEL.BORDER)
 
     btn:SetScript("OnEnter", function(self)
         local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
@@ -248,6 +256,13 @@ function FO.Create(button, catKey, index)
     local flyout = CreateFrame("Frame", baseName, button,
         "SecureHandlerEnterLeaveTemplate")
     flyout:Hide()
+    -- The HUD popup tier: one strata over the bar, so a strip opened over a
+    -- neighboring bar draws on top of it (frame-layering-§4). Set ONCE, here,
+    -- never per refresh; the entries built later inherit it. Clamped like the
+    -- bar, so a strip opened from a bar at a screen edge stays on screen. Both
+    -- are protected writes, which is why Create refuses in combat above.
+    flyout:SetFrameStrata(LAYERS.STRATA.HUD_POPUP)
+    flyout:SetClampedToScreen(true)
     -- Mouse-enabled so the container gets its OWN enter/leave events. Without
     -- this the _onleave snippet below never fires and the flyout can't close.
     -- Its entries are children, so they still take clicks first, and moving onto
@@ -257,11 +272,12 @@ function FO.Create(button, catKey, index)
     flyout.entries = {}
     flyout.catKey  = catKey
 
-    -- Panel behind the entries. Pinned to the container's own frame level so the
-    -- entries (children, one level up) always draw over it.
+    -- Panel behind the entries. Pinned to the container's own frame level
+    -- (LEVEL.PANEL) so the entries (children, one level up) always draw over it.
+    -- The container draws nothing itself; give it a texture and the two tie.
     flyout.bg = CreateFrame("Frame", nil, flyout, "BackdropTemplate")
     flyout.bg:SetAllPoints(flyout)
-    flyout.bg:SetFrameLevel(flyout:GetFrameLevel())
+    flyout.bg:SetFrameLevel(flyout:GetFrameLevel() + LEVEL.PANEL)
 
     -- The indicator is a shaded band drawn INSIDE the icon along one edge, with
     -- a small arrow on it. It is motion-enabled but NOT click-enabled, so
@@ -487,9 +503,9 @@ end
 
 -- Indicator: a shaded band hugging the chosen edge INSIDE the icon, with a
 -- square arrow centered on it pointing the way the flyout will open. Frame
--- level sits just above the icon so the border and the count/label overlay
--- still draw on top; neither of those takes mouse input, so they don't block
--- the band's hover.
+-- level (LEVEL.INDICATOR) sits above the cooldown swipe, so the arrow reads over
+-- a running cooldown, and below the border and the count/label overlay; neither
+-- of those takes mouse input, so they don't block the band's hover.
 local function applyIndicator(button, cfg)
     local point, relPoint, dx, dy, rotation, w, h, glyph =
         KCM.MacroBarLayout.IndicatorAnchor(cfg)
@@ -497,7 +513,7 @@ local function applyIndicator(button, cfg)
     ind:ClearAllPoints()
     ind:SetPoint(point, button, relPoint, dx, dy)
     ind:SetSize(w, h)
-    ind:SetFrameLevel(button:GetFrameLevel() + 1)
+    ind:SetFrameLevel(button:GetFrameLevel() + LEVEL.INDICATOR)
     ind.shade:SetColorTexture(swatch(cfg.flyoutShadeColor,
         cfg.useClassColorFlyoutShade, INDICATOR_SHADE_DEFAULT))
     ind.arrow:SetSize(glyph, glyph)
@@ -548,7 +564,6 @@ function FO.Apply(button, cfg, scoreCache)
     flyout:ClearAllPoints()
     flyout:SetPoint(grid.point, button, grid.relPoint, 0, 0)
     flyout:SetSize(grid.width, grid.height)
-    flyout:SetFrameStrata("DIALOG")     -- above the bar, and above other bars
     FO.ApplyBackdrop(flyout, cfg)
 
     layoutEntries(flyout, ids, cfg, grid)

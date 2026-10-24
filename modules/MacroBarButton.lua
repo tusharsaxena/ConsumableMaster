@@ -33,6 +33,8 @@ KCM.MacroBarButton = KCM.MacroBarButton or {}
 local BB = KCM.MacroBarButton
 
 local CreateFrame = CreateFrame
+-- Every level below is an offset over the slot, named once in core/Constants.lua.
+local LEVEL = KCM.Constants.LAYERS.LEVEL
 local PUSHED_TEXTURE    = [[Interface\Buttons\UI-Quickslot-Depress]]
 local HIGHLIGHT_TEXTURE = [[Interface\Buttons\ButtonHilight-Square]]
 local BORDER_FALLBACK   = [[Interface\Tooltips\UI-Tooltip-Border]]
@@ -409,20 +411,24 @@ function BB.Create(parent, catKey, index)
     local hl = btn:GetHighlightTexture()
     if hl then hl:SetBlendMode("ADD") end
 
+    -- The slot's ladder (KCM.Constants.LAYERS.LEVEL): the swipe over the icon,
+    -- the flyout indicator over the swipe (modules/MacroBarFlyout.lua), the
+    -- border over both, and the text overlay over the border so a corner count
+    -- or label is never sliced by an edge texture. Every rung is an explicit
+    -- level, the swipe included: a child left at the default parent + 1 ties
+    -- with any sibling given + 1, and the client breaks that tie by creation
+    -- order (frame-layering-§3).
+    local level = btn:GetFrameLevel()
     btn.cooldown = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
     btn.cooldown:SetAllPoints(btn.icon)
+    btn.cooldown:SetFrameLevel(level + LEVEL.FILL)
 
-    -- Border sits above the icon AND the cooldown swipe; the text overlay sits
-    -- above the border so a corner count / label is never sliced by an edge
-    -- texture. Three explicit levels beat relying on draw-layer ordering,
-    -- because Cooldown is a frame, not a layer on this button.
-    local level = btn:GetFrameLevel()
     btn.border = CreateFrame("Frame", nil, btn, "BackdropTemplate")
-    btn.border:SetFrameLevel(level + 2)
+    btn.border:SetFrameLevel(level + LEVEL.BORDER)
 
     local overlay = CreateFrame("Frame", nil, btn)
     overlay:SetAllPoints(btn)
-    overlay:SetFrameLevel(level + 3)
+    overlay:SetFrameLevel(level + LEVEL.OVERLAY)
     btn.overlay = overlay
 
     btn.count = overlay:CreateFontString(nil, "OVERLAY", "NumberFontNormal")

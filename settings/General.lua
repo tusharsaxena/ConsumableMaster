@@ -169,7 +169,7 @@ StaticPopupDialogs["KCM_RESET_PRIORITIES"] = {
 -- has always been `macroBar.locked` and stays there — the setting moved tabs, not
 -- storage — and every default is read out of KCM.dbDefaults rather than restated.
 --
--- MASTER SCALE, MASTER ALPHA and GENERAL VISIBILITY ARE NEW, and they are the
+-- MASTER SCALE, MASTER OPACITY (the `alpha` leaf) and GENERAL VISIBILITY ARE NEW, and they are the
 -- ADDON-WIDE ones. The macro bar's own `Bar scale`, `Bar opacity` and
 -- `Combat visibility` stay on its page and are a different setting; the two
 -- compose (modules/MacroBar.lua's masterScale / masterAlpha, and
@@ -198,6 +198,20 @@ local masterRows, masterTail = H.MasterControls{
     -- no test-mode row (its preview switch is Lock frame, the options-ui-§15
     -- exemption), so the minimap row opens its own line here.
     minimapPath = MINIMAP_PATH,
+    -- The unlocked bar IS this addon's preview (the options-ui-§15 exemption
+    -- above), so Lock frame takes the library's one sentence for that case
+    -- (compose minor 9) rather than a host rewrite (item 020, CON-L15). No combat
+    -- clause follows it: MacroBar.ApplyLock is honored in combat (EnableMouse and
+    -- a texture toggle on the unprotected container), and combat does not re-lock.
+    lockIsPreview = true,
+    -- The only way a host extends the composed words (options-ui-§15): one
+    -- sentence after the canonical tooltip, naming the Macro Bar rows these
+    -- multiply. Those rows say the reverse ("Multiplied by Master ... on the
+    -- General page > Master controls.").
+    notes     = {
+        scale = L["Multiplies the Macro Bar page's Bar scale."],
+        alpha = L["Multiplies the Macro Bar page's Bar opacity and Faded opacity."],
+    },
     keys      = { locked = "macroBar.locked" },
     defaults  = {
         enabled    = PROFILE_DEFAULTS.enabled,
@@ -400,8 +414,8 @@ local function drawMaintenance(ctx)
             onClick = doForceRewriteMacros,
         })
     H.Button(ctx, {
-        text    = L["Reset all priorities"],
-        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings on the Master controls tab."],
+        text    = L["Reset all priorities…"],
+        tooltip = L["Wipe every category's added, blocked and pinned items and every spec's stat-priority override. Discovered items and every other setting are kept — for the whole-profile reset, use Reset all settings on the General page > Master controls."],
         onClick = function() StaticPopup_Show("KCM_RESET_PRIORITIES") end,
     })
 end

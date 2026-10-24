@@ -43,7 +43,7 @@
 -- not touch, and the two glyph textures MultiMeters already wears, so a player
 -- who runs both reads one vocabulary rather than two.
 --
--- Reset: inline full-width "Reset stat priority" button at the bottom that
+-- Reset: inline full-width "Reset this spec's stat priority" button at the bottom that
 --   drops the user override for the viewed spec; Ranker falls back to the
 --   seed default (Defaults_StatPriority.lua) or the class-primary fallback
 --   if no seed exists.
@@ -152,7 +152,7 @@ O.ResolveViewedSpec = resolveViewedSpec
 
 local specLabelCache = {}
 local function formatSpec(specKey)
-    if not specKey then return L["(no active spec)"] end
+    if not specKey then return L["(no spec)"] end
     local cached = specLabelCache[specKey]
     if cached then return cached end
 
@@ -342,7 +342,7 @@ local function afterMutation(reason)
 end
 
 -- Drop the user override for the currently-viewed spec (resolved at call
--- time). Shared by the inline "Reset stat priority" button and the top-right
+-- time). Shared by the inline "Reset this spec's stat priority" button and the top-right
 -- Defaults button (options-ui-§5) so both reset the same spec the user is
 -- looking at.
 local function doResetStatPriority()
@@ -680,7 +680,7 @@ local function renderPriority(ctx, scroll, specKey)
 
     H.AddSpacer(scroll, 12)
     H.Button(ctx, {
-        text    = L["Reset stat priority"],
+        text    = L["Reset this spec's stat priority"],
         tooltip = L["Drop user override for this spec. The Ranker falls back to the seed default (Defaults_StatPriority.lua) or the class-primary fallback if no seed exists."],
         onClick = doResetStatPriority,
     })
@@ -701,7 +701,7 @@ local function render(ctx)
     local values, sorting = specSelectorValues()
     H.PageBanner(ctx, {
         label   = L["Viewing spec"],
-        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Macros page's Stat Food, Combat Potion, Flask and Weapon Enchant tabs."],
+        tooltip = L["Select which spec's stat priority you want to edit. This also determines which spec's priority list is shown on the Macros page's Flask, Combat Potion, Stat Food and Weapon Enchant tabs."],
         list    = values,
         order   = sorting,
         value   = O._viewedSpec,

@@ -760,18 +760,19 @@ test("Settings: the Maintenance tab draws its three verbs and no schema row", fu
         local w = AceGUI.__created[i]
         if w.__text then seen[w.__text] = true end
     end
-    for _, verb in ipairs({ "Force resync", "Force rewrite macros", "Reset all priorities" }) do
+    -- Reset all priorities raises a StaticPopup, so it ends in an ellipsis (options-ui-§21).
+    for _, verb in ipairs({ "Force resync", "Force rewrite macros", "Reset all priorities…" }) do
         t.truthy(seen[KCM.L[verb]], verb .. " is drawn")
     end
 end)
 
 -- red under: a Macro Bar tab renamed, dropped or reordered.
-test("Settings: the Macro Bar page keeps its eight tabs in order", function(t)
+test("Settings: the Macro Bar page keeps its seven tabs in order", function(t)
     local KCM = loader.loadFullAddon()
     local keys = renderPageTab(KCM, "macrobar", "General")
     t.eqList(keys, {
         "General", "Layout", "Bar appearance", "Button appearance",
-        "Labels", "Flyout", "Visibility", "Buttons",
+        "Labels", "Flyout", "Buttons",
     }, "the Macro Bar strip")
 end)
 
@@ -780,7 +781,7 @@ end)
 test("Settings: every Macro Bar tab draws exactly its group's schema rows", function(t)
     local KCM = loader.loadFullAddon()
     local groups = { "General", "Layout", "Bar appearance", "Button appearance",
-        "Labels", "Flyout", "Visibility" }
+        "Labels", "Flyout" }
     for _, group in ipairs(groups) do
         local _, rendered = renderPageTab(KCM, "macrobar", group)
         local want = schemaPaths(KCM, "macrobar", group)
@@ -790,6 +791,94 @@ test("Settings: every Macro Bar tab draws exactly its group's schema rows", func
     end
     local _, rendered = renderPageTab(KCM, "macrobar", "Buttons")
     t.eq(#rendered, 0, "Buttons is the draggable list, not rows")
+end)
+
+-- Item 020 (settings layout), the Macro Bar page, row by row: which rows each tab
+-- declares, in order, under which heading, and which rows open a line. Written
+-- out longhand, because derived from the schema it would agree with the schema
+-- whatever that said. Labels are the on-screen words (options-ui-§21).
+--
+-- red under: a row moved back to its old tab or heading, a pair split or
+-- re-paired, a relabel reverted, or the slot-order reset leaving the Buttons tab.
+local MACROBAR_LAYOUT = {
+    General = {
+        { "macroBar.enabled",         nil,                "Enable macro bar",     false },
+        { "macroBar.tooltips",        nil,                "Show tooltips",        false },
+        { "macroBar.combatMode",      "Visibility",       "Combat visibility",    true  },
+        { "macroBar.fadeUnlessHover", "Visibility",       "Fade unless hovered",  false },
+        { "macroBar.alpha",           "Visibility",       "Bar opacity",          true  },
+        { "macroBar.fadeAlpha",       "Visibility",       "Faded opacity",        false },
+    },
+    Layout = {
+        { "macroBar.orientation", "Arrangement",      "Orientation",         true  },
+        { "macroBar.perRow",      "Arrangement",      "Buttons per row",     false },
+        { "macroBar.growthH",     "Arrangement",      "Horizontal growth",   false },
+        { "macroBar.growthV",     "Arrangement",      "Vertical growth",     false },
+        { "macroBar.buttonSize",  "Size and spacing", "Button size (px)",    true  },
+        { "macroBar.spacing",     "Size and spacing", "Button spacing (px)", false },
+        { "macroBar.padding",     "Size and spacing", "Bar padding (px)",    false },
+        { "macroBar.scale",       "Size and spacing", "Bar scale",           false },
+    },
+    Flyout = {
+        { "macroBar.flyout",          "Behavior",  "Enable flyout",                    true  },
+        { "macroBar.flyoutAutoClose", "Behavior",  "Auto-close after (seconds)",       false },
+        { "macroBar.flyoutMax",       "Behavior",  "Maximum flyout entries",           true  },
+        { "macroBar.flyoutInvert",    "Behavior",  "Reverse flyout order",             false },
+        { "macroBar.flyoutPoint",     "Placement", "Flyout side",                      true  },
+        { "macroBar.flyoutGap",       "Placement", "Gap from button (px)",             false },
+        { "macroBar.flyoutScale",     "Placement", "Flyout button size (% of button)", true  },
+        { "macroBar.flyoutSpacing",   "Placement", "Flyout spacing (px)",              false },
+        { "macroBar.flyoutPadding",   "Placement", "Flyout padding (px)",              true  },
+    },
+}
+
+test("Settings: the Macro Bar rows sit where the layout pass put them", function(t)
+    local KCM = loader.loadFullAddon()
+    local byGroup = KCM.Settings.MACROBAR_GROUP_ROWS
+    for group, want in pairs(MACROBAR_LAYOUT) do
+        local rows = byGroup[group] or {}
+        for i, w in ipairs(want) do
+            local row = rows[i] or {}
+            t.eq(row.path, w[1], group .. " #" .. i)
+            t.eq(row.subgroup, w[2], w[1] .. " sits under " .. tostring(w[2]))
+            t.eq(row.label, w[3], w[1] .. " is labeled '" .. w[3] .. "'")
+            t.eq(row.startsLine and true or false, w[4], w[1] .. " opens a line: " .. tostring(w[4]))
+        end
+    end
+    -- The leading toggles of the background and border blocks say what they show;
+    -- each sits under its own heading, so the noun is already stated (CON-L-new2).
+    local H = KCM.Settings.Helpers
+    for _, path in ipairs({ "macroBar.barBackdrop", "macroBar.buttonBackdrop", "macroBar.flyoutBackdrop" }) do
+        t.eq(H.FindSchema(path).label, "Show background", path)
+    end
+    for _, path in ipairs({ "macroBar.barBorder", "macroBar.buttonBorder" }) do
+        t.eq(H.FindSchema(path).label, "Show border", path .. " keeps the composer's canonical label")
+    end
+    t.eq(H.FindSchema("macroBar.labelOffsetX").label, "Label X offset (px)", "labelOffsetX")
+    t.eq(H.FindSchema("macroBar.labelOffsetY").label, "Label Y offset (px)", "labelOffsetY")
+    -- The value texts match General visibility's; the declared order and the
+    -- stored values do not move (SlashParse prints them in this order).
+    local texts = {}
+    for i, e in ipairs(H.FindSchema("macroBar.combatMode").values) do texts[i] = e.value .. "=" .. e.text end
+    t.eqList(texts, { "ALWAYS=Always", "HIDE_IN_COMBAT=Only out of combat", "ONLY_IN_COMBAT=Only in combat" },
+        "Combat visibility's values")
+end)
+
+test("Settings: Reset slot order is drawn under the Buttons list, not on General", function(t)
+    local KCM = loader.loadFullAddon()
+    local AceGUI = LibStub("AceGUI-3.0")
+    local function textsOn(tab)
+        local before = #AceGUI.__created
+        renderPageTab(KCM, "macrobar", tab)
+        local seen = {}
+        for i = before + 1, #AceGUI.__created do
+            local w = AceGUI.__created[i]
+            if w.__text then seen[w.__text] = true end
+        end
+        return seen
+    end
+    t.falsy(textsOn("General")[KCM.L["Reset slot order"]], "General draws no slot-order reset")
+    t.truthy(textsOn("Buttons")[KCM.L["Reset slot order"]], "Buttons draws it")
 end)
 
 -- ── the Battle Rez mouseover toggle (settings/Category.lua) ────────────────

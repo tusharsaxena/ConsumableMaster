@@ -1,6 +1,6 @@
 -- settings/CategoryAddByID.lua — the Macros page's Add-by-ID line.
 --
--- What this file owns: the "Add item or spell by ID" section of a single
+-- What this file owns: the "Add an item or spell" section of a single
 -- category tab, whole. The Type dropdown (Item / Spell), the two ID KINDS
 -- behind it -- which library kind looks a name up, the words its messages use,
 -- how to prove an ID exists and how to store it -- this addon's own resolver
@@ -356,7 +356,7 @@ end
 local function renderAddByID(ctx, scroll, cat, specKey)
     local specless = cat.specAware and not specKey
     local box
-    H.Section(ctx, L["Add item or spell by ID"])
+    H.Section(ctx, L["Add an item or spell"])
     local addRow = newRow(scroll)
     makeDropdown(addRow, {
         label         = L["Type"],
