@@ -76,9 +76,14 @@ Each slot draws, from the bottom up:
 |-------|------|-------------|
 | `backdropTex` | flat fill behind the icon (`buttonBackdrop*`) | button |
 | `icon` | the pick's texture, cropped by `iconZoom` via `SetTexCoord` | button |
-| `cooldown` | `CooldownFrameTemplate` swipe | +1 |
-| `border` | `BackdropTemplate` child, `edgeFile` = an LSM border | +2 |
-| `overlay` | holds the stack count + the label fontstrings | +3 |
+| `cooldown` | `CooldownFrameTemplate` swipe | + `FILL` (1) |
+| `indicator` | the flyout's shaded band and arrow ([below](#the-indicator-band)) | + `INDICATOR` (2) |
+| `border` | `BackdropTemplate` child, `edgeFile` = an LSM border | + `BORDER` (3) |
+| `overlay` | holds the stack count + the label fontstrings | + `OVERLAY` (4) |
+
+The offsets are named once, in `KCM.Constants.LAYERS.LEVEL` (`core/Constants.lua`), and every
+level is set relative to the slot. Flyout entries use the same ladder without the indicator, so
+every bordered icon button the addon draws layers one way.
 
 Two details worth not re-deriving:
 
@@ -89,8 +94,9 @@ Two details worth not re-deriving:
   size, which is exactly the bug the offset + LSM border replaced.
 * **Count and label live on the `overlay` child, not on the button.** A corner
   fontstring on the button itself renders *below* the border frame and gets
-  sliced by a thick edge texture. Three explicit frame levels beat relying on
-  draw layers, because `Cooldown` is a frame rather than a layer.
+  sliced by a thick edge texture. Explicit frame levels, the swipe's included,
+  beat relying on draw layers, because `Cooldown` is a frame rather than a layer,
+  and a child left at the default parent + 1 ties with any sibling at + 1.
 * **Clicks are pinned to the release.** Slots and flyout entries register for
   `"AnyUp"` only, so each one also sets `useOnKeyDown = false`. Without it,
   Blizzard's `SecureActionButton_OnClick` falls back to the
@@ -167,6 +173,12 @@ up. **Never combine a secure template with another template** — give the secon
 concern its own frame, the way the button borders do. `flyoutPadding` insets the entries so that
 backdrop reads as a frame rather than sitting flush.
 
+The container is the bar's **HUD popup** tier (`LAYERS.STRATA.HUD_POPUP`, `DIALOG`): one strata
+over the bar, so a strip opened over a neighboring bar draws on top of it. `FO.Create` sets it
+once, with `SetClampedToScreen(true)`, so a strip opened from a bar at a screen edge stays on
+screen; until item 030 the strata was set on every `FO.Apply` and the strip was not clamped.
+`flyout.bg` sits at the container's own level (`LEVEL.PANEL`), the entries one above it.
+
 ### The indicator band
 
 The band is drawn **inside** the icon, hugging `flyoutPoint`'s edge and spanning
@@ -187,9 +199,11 @@ details that were bugs the first time round:
   (`SetMouseClickEnabled(false)` + `SetMouseMotionEnabled(true)`), so hovering it
   opens the flyout while a click passes straight through to the macro underneath.
   The whole icon stays clickable.
-* **Frame level is button + 1** — above the icon, below the border (+2) and the
-  count/label overlay (+3), so those still draw on top. Neither takes mouse
-  input, so neither blocks the band's hover.
+* **Frame level is button + `INDICATOR` (2)** — above the cooldown swipe (+1), so
+  the arrow reads over a running cooldown, and below the border (+3) and the
+  count/label overlay (+4), so those still draw on top. Neither takes mouse
+  input, so neither blocks the band's hover. Until item 030 the band sat at +1,
+  tied with the swipe, and which of the two drew on top was creation order.
 
 `flyoutIndicatorScale` is a **percentage of the button**, not a pixel count, so
 the band keeps its proportions when the bar is resized. `BL.IndicatorThickness`
@@ -360,7 +374,12 @@ button, and a button's `OnDragStart` picks the macro up. So unlocking the bar
 shows a labeled strip above it (`KCMMacroBarHandle`, a child of the container)
 whose drag scripts call `StartMoving` on the bar. It's sized to the wider of its
 own contents and the bar, and hidden again on lock. The gold wash over the bar
-stays as the "this is unlocked" signal. The handle's `OnDragStart` asks the lock
+stays as the "this is unlocked" signal: a mouse-off child frame
+(`KCMMacroBarWash`) at bar + `WASH` (30), above every slot's ladder, so it tints
+the icons, borders and labels as well as the gaps between them. It was a texture
+on the bar until item 030, which drew under every slot and showed only in the
+padding and spacing. The strip ignores the bar's alpha (`ignoreParentAlpha`), so
+a faded bar never fades the control that moves it. The handle's `OnDragStart` asks the lock
 itself, as the bar's own does, so it never moves a locked bar, and both of its
 tooltips say to unlock when the bar is locked.
 

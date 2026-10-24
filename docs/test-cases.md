@@ -679,6 +679,18 @@ Total.
 - macrobar flyout: an out-of-combat bar refresh scores each candidate once
 - macrobar flyout: an in-combat bar refresh builds no flyout and scores nothing
 
+### test_macrobar_layers.lua (9)
+
+- layers: one table names the strata by the standard's tier keys
+- layers: the in-button ladder is ordered fill < indicator < border < overlay < wash
+- layers: the bar root states MEDIUM and is clamped
+- layers: the unlock wash is a mouse-off child frame over every slot band
+- layers: the drag handle ignores the bar's alpha and keeps its default level
+- layers: a slot layers cooldown < indicator < border < overlay, each explicit
+- layers: the flyout is DIALOG and clamped from construction, set once
+- layers: a flyout entry uses the slot's ladder (CON-Z04)
+- layers: no strata literal and no unnamed level offset in core, modules or settings
+
 ### test_macromanager.lua (60)
 
 - MacroManager: BuildBody emits #showtooltip + /use item for an owned item pick
@@ -1459,6 +1471,7 @@ Total.
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 21 |
+| test_macrobar_layers.lua | 9 |
 | test_macromanager.lua | 60 |
 | test_mediasetup.lua | 13 |
 | test_perfsetup.lua | 11 |
@@ -1491,4 +1504,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1217** |
+| **Total** | **1226** |

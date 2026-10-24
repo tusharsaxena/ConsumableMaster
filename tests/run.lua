@@ -501,6 +501,8 @@ local SUITES = {
     "test_macrobar_layout",
     "test_macrobar_display",
     "test_macrobar_flyout",
+    -- Where each frame sits: the layers table and the bar's strata and level bands (item 030).
+    "test_macrobar_layers",
     "test_macromanager",
     "test_mediasetup",
     "test_perfsetup",

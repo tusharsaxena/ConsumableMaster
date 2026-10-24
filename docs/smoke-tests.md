@@ -14,7 +14,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | MACRO-1 – MACRO-23 | Macros | What each category's macro body picks and writes: single-pick, Weapon Enchant, Augment Rune, Bloodlust and Battle Rez, the AIO composites, spec changes, edge cases. Run for the Ranker, Selector, `core/WeaponSlots.lua`, MacroManager body builders, `TooltipCache.IsUsableByPlayer`, seed files. |
 | DISC-1 – DISC-8 | Discovery | Auto-discovery, the stale sweep, numeric item-class classification, tooltip hydration. Run for the Classifier, BagScanner, TooltipCache patterns, `defaults/` seed refreshes. |
 | PRIO-1 – PRIO-30 | Priority editors | The Macros page category tabs (Add by ID or name, suggestions, drag reorder, composite sections) and the Stat Priority page. Run for `settings/Category.lua`, `settings/CategoryAddByID.lua`, `settings/StatPriority.lua`, Selector mutators, `LibKa0s-Widgets-1.0`'s `ReorderList`. |
-| BAR-1 – BAR-30 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
+| BAR-1 – BAR-35 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
 | DIAG-1 – DIAG-42 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the lines the library writes into it, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
@@ -401,6 +401,16 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/Debug
 
 **BAR-30. A color with missing channels still draws.** Log out, back up the SavedVariables file (Before you start), and in the live file delete the third and fourth entries of `barBackdropColor`. Log in, open Macro Bar → the page and the swatch draw with no Lua error, and `/cm get macroBar.barBackdropColor` prints the same four channels the swatch shows. Two answers for one stored value is the finding. Put the backup back (logged out) or re-pick the color before anything else. Result: pass (owner-marked 2026-10-10)
 
+**BAR-31. The flyout arrow reads over a cooldown (item 030).** Use a potion whose slot has a flyout → while the swipe runs, the shaded band and its arrow draw over the swipe, not under it, and the border and stack count still draw over the band. Hover the band mid-cooldown → the flyout opens. Result: pending
+
+**BAR-32. A flyout entry's border clears its swipe (item 030).** With a known spell on cooldown in a flyout (BAR-19), open the strip → the entry's border draws over the swipe all the way round, and its count over the border, the same as a bar slot. Result: pending
+
+**BAR-33. The unlock wash covers the buttons (item 030).** Set Button spacing 0 and Bar padding 0, then `/cm unlock` → the gold wash tints the icons themselves (labels, counts and borders too), not only the gaps. Drag one slot onto another → they still swap; click a slot → it still fires; drag the handle → the bar moves. `/cm lock` → the wash goes. Result: pending
+
+**BAR-34. A flyout at the screen edge stays on screen (item 030).** Drag the bar flush to the right edge of the screen, set **Flyout side** to the right and hover a slot's band → the strip opens fully on screen, shifted back if it must. Repeat at the top edge with the top side. Move from the band into the strip → it stays open; if the strip now overlaps its own slot, clicking an entry uses the entry and the strip closes. Result: pending
+
+**BAR-35. The handle does not fade with the bar (item 030).** Set Bar opacity low (or turn on Fade unless hovered with Faded opacity 0.1), move the mouse away, then `/cm unlock` → the bar is faint and the **Consumable Master** strip with its ? and X marks stays fully visible and clickable. Result: pending
+
 ## Launcher
 
 **LAUNCH-1. The button wears the addon's logo.** Log in → a round button with this addon's logo on the minimap ring, not a cooking icon and not a blank square (a blank square means `media/logos/consumablemaster.logo.128.tga` is missing or malformed). The AddOns list row wears the same art (`## IconTexture`). Result: pass (owner-marked 2026-10-10)
@@ -569,7 +579,9 @@ Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` an
 
 ## Pending sign-off
 
-None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
+On 2026-10-10 the owner marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.
+
+- BAR-31 – BAR-35, added 2026-10-24 by item 030 (frame layering).

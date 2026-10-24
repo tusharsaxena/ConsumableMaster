@@ -218,6 +218,18 @@ The addon's protected surface is small and deliberately fenced.
 - **Restricted (secret) values are tested before they are touched.** Midnight wraps combat-restricted data — cooldown start/duration among it — in opaque values that raise on comparison or arithmetic. Any gate over client data asks `KCM.Compat.IsSecret` first, and `core/MacroDisplay.lua` hands the opaque `C_DurationUtil` object straight back to the client rather than unpacking it ([midnight-quirks.md](./midnight-quirks.md#secret-values)).
 - **Options registration is deferred in combat; opening is refused outright.** Both are `LibKa0s-Options-1.0`'s. `Settings.RegisterAddOnCategory` is protected, and registering under lockdown taints the Settings window for the rest of the session — so `settings/Panel.lua`'s `registerPanel` hands the whole surface to `UI.CreateOptionsPanel`, which under lockdown registers nothing, parks the request and replays it once on a library-private `PLAYER_REGEN_ENABLED` frame. The replay does not go through the addon, so it runs whatever the stand-down state: a registration parked while the addon is disabled still lands (ConsumableMaster-R-03). Nothing is lost by waiting, because the panel cannot be opened mid-fight anyway: `KCM.Options.Open` (`settings/OptionsShim.lua`) calls `UI.OpenOptionsPanel`, which turns a mid-fight `/cm config` into the library's one `COMBAT_REFUSED` chat line instead of a silent failure, and `Open` answers `false`. The panel's Defaults action (`settings/Panel.lua`'s `Helpers.CreatePanel`) refuses separately and in its own words, because it is declining a reset rather than an open.
 
+## Frame layering
+
+`KCM.Constants.LAYERS` in `core/Constants.lua` is the one layers table (frame-layering-§5); its
+header comment states the whole stack, and every strata and level write reads it
+(`tests/test_macrobar_layers.lua` pins that). The addon's own tiers are two: the macro bar at
+`HUD` (`MEDIUM`), with its slots, drag handle and unlock wash inside it, and the per-slot flyout
+at `HUD_POPUP` (`DIALOG`, set once at construction, clamped). Everything above them is Blizzard's
+or the library's: the Settings panel at `HIGH`, StaticPopups and the debug console and perf panel
+at `DIALOG`, the copy window at `FULLSCREEN`, menus and the Add-by-ID suggestions at
+`FULLSCREEN_DIALOG`, tooltips and the reorder ghost at `TOOLTIP`. The in-slot ladder is in
+[macro-bar.md](./macro-bar.md#buttons).
+
 ## Invariants worth not breaking
 
 - **`MacroManager` is the only caller of `CreateMacro` / `EditMacro`.** Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper must all stay pure (no protected APIs) so the pipeline can run in combat without taint.

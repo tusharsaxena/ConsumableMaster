@@ -47,24 +47,18 @@ end
 --- it for the drag handle's three tooltips; a copy is the shape that stops being
 --- correct the first time one side is taught something the other is not.
 function S.buildBar(KCM)
-    local mock = _G.KCM_TEST.loader.mock
     local seen = {}
     local realCreate = _G.CreateFrame
     local frames = {}
     _G.CreateFrame = function(kind, name, parent, template)
         local f = realCreate(kind, name, parent, template)
         if name then frames[name] = f end
-        if name == "KCMMacroBar" then
-            -- wow_mock's CreateTexture answers from the frame's own metatable and
-            -- hands the FRAME back, so `bar.moveHint` would BE `bar` and the gold
-            -- unlocked wash could not be told apart from the bar's own
-            -- visibility. Hand out a distinct object for this one frame.
-            f.CreateTexture = function()
-                local tex = mock.makeStub()
-                tex.Show = function() seen.hintShown = true end
-                tex.Hide = function() seen.hintShown = false end
-                return tex
-            end
+        if name == "KCMMacroBarWash" then
+            -- The gold unlocked wash is its own child frame of the bar (item 030,
+            -- CON-Z06), so its visibility is told apart from the bar's own by
+            -- recording this one frame's Show and Hide.
+            f.Show = function() seen.hintShown = true end
+            f.Hide = function() seen.hintShown = false end
         end
         return f
     end
