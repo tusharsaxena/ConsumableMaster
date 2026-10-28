@@ -47,7 +47,7 @@ libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 # the block depend on that.
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
-# LibKa0s — the Ka0s-owned shared library: fifteen majors, and the file list is
+# LibKa0s — the Ka0s-owned shared library: nineteen majors, and the file list is
 # LibKa0s.xml. Vendored whole-folder from github.com/tusharsaxena/LibKa0s and loaded
 # through its own packaged XML, which is the file list. Depends on LibStub
 # alone, but it sits last in the block so nothing above it can be reordered

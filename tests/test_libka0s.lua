@@ -45,11 +45,14 @@ local MAJORS = {
         -- (debug-logging-§14), a secondary file paired on the shell's minor the
         -- way the Options and Perf attach files are. DebugLogGates joined at
         -- LibKa0s v1.65.0 the same way: the change gates and the at-enable queue.
-        files = { "DebugLog", "DebugLogDiagnostics", "DebugLogGates" },
+        -- DebugLogWindow joined at LibKa0s v1.78.0: the console window peeled out of
+        -- DebugLog.lua when it learned its skin owner, paired on the shell's minor.
+        files = { "DebugLog", "DebugLogDiagnostics", "DebugLogGates", "DebugLogWindow" },
         primary = "DebugLog",
         paired = {
             { file = "DebugLogDiagnostics", minor = "__diagMinor", shell = "__diagShellMinor" },
             { file = "DebugLogGates",       minor = "__gatesMinor", shell = "__gatesShellMinor" },
+            { file = "DebugLogWindow",      minor = "__windowMinor", shell = "__windowShellMinor" },
         },
     },
     {
@@ -81,9 +84,12 @@ local MAJORS = {
         -- paired minor and shell.
         -- OptionsKeybinds joined at LibKa0s v1.77.0 (the Keybindings tab's model and rows), the
         -- twelfth Options file, with its own MODULES row and a paired minor and shell.
+        -- OptionsAppearance joined at LibKa0s v1.78.0 (the Skin tab, O.AppearanceTab and
+        -- O.AppearanceRows) and OptionsSkinPicker at v1.79.0 (the first-run skin picker,
+        -- O.SkinPicker and O.HideSkinPicker), each paired on the shell's minor.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
                   "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
-                  "OptionsKeybinds" },
+                  "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -97,6 +103,25 @@ local MAJORS = {
             { file = "OptionsCombat",   minor = "__combatMinor",   shell = "__combatShellMinor" },
             { file = "OptionsDrawer",   minor = "__drawerMinor",   shell = "__drawerShellMinor" },
             { file = "OptionsKeybinds", minor = "__keybindsMinor", shell = "__keybindsShellMinor" },
+            { file = "OptionsAppearance", minor = "__appearanceMinor", shell = "__appearanceShellMinor" },
+            { file = "OptionsSkinPicker", minor = "__pickerMinor",     shell = "__pickerShellMinor" },
+        },
+    },
+    {
+        major = "LibKa0s-Skin-1.0",
+        -- New at LibKa0s v1.78.0: the skin engine (core/SkinSetup.lua registers this addon as an
+        -- owner) and its seven paired files, in XML order: the nine skins, the paint primitives, the
+        -- EllesmereUI provider and the AceGUI rows.
+        files = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras", "SkinPaintControls", "SkinEUI",
+                  "SkinAce" },
+        primary = "Skin",
+        paired = {
+            { file = "SkinDefs",          minor = "__defsMinor",     shell = "__defsShellMinor" },
+            { file = "SkinPaint",         minor = "__paintMinor",    shell = "__paintShellMinor" },
+            { file = "SkinPaintExtras",   minor = "__extrasMinor",   shell = "__extrasShellMinor" },
+            { file = "SkinPaintControls", minor = "__controlsMinor", shell = "__controlsShellMinor" },
+            { file = "SkinEUI",           minor = "__euiMinor",      shell = "__euiShellMinor" },
+            { file = "SkinAce",           minor = "__aceMinor",      shell = "__aceShellMinor" },
         },
     },
     {
