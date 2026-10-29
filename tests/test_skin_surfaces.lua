@@ -337,3 +337,120 @@ test("Skin surfaces: the score button's disabled art is the skin's disabled gray
     cleanup()
     t.truthy(ok, tostring(err))
 end)
+
+-- ---------------------------------------------------------------------------
+-- The Scope's "Ignore settings panel" (skin.ignorePanel, on by default)
+-- ---------------------------------------------------------------------------
+--
+-- The library's S.Text and ReorderList's `owner` never ask whether the owner ignores its settings
+-- panel (only PaintAce and the Options chrome do), so this addon's own settings rows ask for
+-- themselves, through KCM.SkinPanelText / SkinPanelColor / SkinPanelEscape / SkinPanelOwner
+-- (core/SkinSetup.lua): while the panel is ignored they draw the game's own look, the template
+-- face and the stock color, under every skin.
+
+--- Run `fn` with the panel ignored under `skin`, and put both back after.
+local function withPanelIgnored(skin, fn)
+    local Skin = LibStub("LibKa0s-Skin-1.0", true)
+    Skin:SetChoice(OWNER, "ka0s", skin)
+    Skin:SetIgnore(OWNER, true, false)
+    local ok, err = pcall(fn, Skin)
+    Skin:SetIgnore(OWNER, false, false)
+    Skin:SetChoice(OWNER, "ka0s", "ka0s")
+    return ok, err
+end
+
+-- red under: the panel helpers answering the live skin while the panel is ignored, or the stock
+-- answers drifting from Ka0s Default's (today's) pixels.
+test("Skin surfaces: the panel helpers answer the stock look while the panel is ignored", function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.SkinPanelOwner(), OWNER, "panel skinned: ReorderList takes this owner's skin")
+    local ok, err = withPanelIgnored("obsidian", function()
+        t.falsy(KCM.SkinPanelOn(), "the predicate reads the applied exception")
+        t.eq(KCM.SkinPanelOwner(), nil, "panel ignored: ReorderList gets no owner, minor 1's colors")
+        t.truthy(same({ KCM.SkinPanelColor("text.accent") }, { 1, 0.82, 0 }),
+            "the stock gold, not Obsidian's accent")
+        t.eq(select("#", KCM.SkinPanelColor("text.accent")), 3, "opaque: three components")
+        t.eq(select(4, KCM.SkinPanelColor("cm.iconHover")), 0.25, "a wash keeps its alpha")
+        t.eq(KCM.SkinPanelEscape("cm.warn"), "|cffff8800", "the stock warning orange")
+        t.eq(KCM.SkinPanelEscape("gtip.value"), "|cffffffff", "the stock tooltip white")
+    end)
+    t.truthy(ok, tostring(err))
+    t.truthy(KCM.SkinPanelOn(), "the exception put back: the panel is skinned again")
+end)
+
+-- red under: the item row painting through S.Text while the panel is ignored (the skin's body face
+-- on the name and tag, Obsidian's colors), or a record left behind that a repaint replays.
+test("Skin surfaces: the item row stays stock while the panel is ignored", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMItemRow.lua", "KCMItemRow")
+    local ok, err = pcall(function()
+        t.truthy(w, "the widget builds under the recorder")
+        w.RefreshDisplay = function() end
+        w:OnAcquire()   -- painted in the skin first, so a record exists to forget
+        local inner, ierr = withPanelIgnored("obsidian", function(Skin)
+            w:OnAcquire()   -- the page re-renders on the exception change
+            Skin:Repaint(OWNER)
+            t.truthy(same(paint(w.label).textColor, { 1, 1, 1 }), "the name in the stock white")
+            t.eq(paint(w.label).fontObject, "GameFontHighlight", "on its template face")
+            t.truthy(same(paint(w.handTag).textColor, { 1, 0.82, 0 }), "the hand tag in the stock gold")
+            t.eq(paint(w.handTag).fontObject, "GameFontNormalSmall", "on its template face")
+        end)
+        t.truthy(inner, tostring(ierr))
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: the icon button's label, hover wash or disabled art reading the live skin while the
+-- panel is ignored.
+test("Skin surfaces: the icon and score buttons stay stock while the panel is ignored", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMIconButton.lua", "KCMIconButton")
+    local ok, err = withPanelIgnored("obsidian", function()
+        w:OnAcquire()
+        t.truthy(same(paint(w.label).textColor, { 1, 1, 1 }), "the label in the stock white")
+        t.eq(paint(w.label).fontObject, "GameFontHighlight", "on its template face")
+        w.frame:GetScript("OnEnter")(w.frame)
+        local c = paint(w.hoverBG).color
+        t.truthy(same(c, { 1, 0.82, 0 }), "the stock gold wash")
+        t.eq(c and c[4], 0.25, "at a quarter alpha")
+        w:SetDisabled(true)
+        t.truthy(same(paint(w.label).textColor, { 0.5, 0.5, 0.5 }), "the stock disabled gray")
+        t.truthy(same(paint(w.image).vertex, { 0.5, 0.5, 0.5 }), "and the art's stock gray")
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+
+    local s, spaint, scleanup = buildWidget(KCM, "modules/KCMScoreButton.lua", "KCMScoreButton")
+    ok, err = withPanelIgnored("obsidian", function()
+        s:OnAcquire()
+        s:SetDisabled(true)
+        t.truthy(same(spaint(s.image).vertex, { 0.5, 0.5, 0.5 }), "the score art's stock gray")
+    end)
+    scleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: a settings surface reading the skin around the panel helpers, so it ignores the
+-- Scope's exception again, or a ReorderList handed this addon's name directly.
+test("Skin surfaces: the settings surfaces read the skin only through the panel helpers", function(t)
+    local p = io.popen and io.popen("git -C '" .. ROOT .. "' ls-files 'settings/*.lua' 'modules/KCM*.lua' 2>/dev/null")
+    t.truthy(p, "git listed the settings surfaces")
+    if not p then return end
+    local bad, seen = {}, 0
+    for path in p:lines() do
+        seen = seen + 1
+        local n = 0
+        for ln in (readAll(path) .. "\n"):gmatch("(.-)\n") do
+            n = n + 1
+            local c = code(ln)
+            if c:find("KCM%.SkinColor%(") or c:find("KCM%.SkinEscape%(") or c:find("KCM%.Skin%.Text%(")
+                or c:find("KCM%.Skin%.Color%(") or c:find("owner%s*=%s*addonName") then
+                bad[#bad + 1] = ("%s:%d: %s"):format(path, n, (c:gsub("^%s+", "")))
+            end
+        end
+    end
+    p:close()
+    t.truthy(seen > 0, "something was scanned")
+    t.eq(table.concat(bad, "\n  "), "", "settings-surface skin reads that bypass Ignore settings panel")
+end)

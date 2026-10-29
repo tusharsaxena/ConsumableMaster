@@ -542,10 +542,11 @@ test("Locale: the color escapes on the drag-icon labels stay outside the key", f
             ("%q is keyed without its color escape"):format(key))
     end
     -- Since the skinning rollout (CM-02) the two colors are the skin's, painted on the label
-    -- through S.Text rather than written into the string at all.
-    t.truthy(body:find('KCM.Skin.Text(self.label, "sem.unknown")', 1, true),
+    -- through KCM.SkinPanelText (S.Text while the panel is skinned) rather than written into
+    -- the string at all.
+    t.truthy(body:find('KCM.SkinPanelText(self.label, "sem.unknown"', 1, true),
         "the disabled label takes the skin's not-yet gray")
-    t.truthy(body:find('KCM.Skin.Text(self.label, "accent")', 1, true),
+    t.truthy(body:find('KCM.SkinPanelText(self.label, "accent"', 1, true),
         "the enabled label takes the skin's accent gold")
     t.truthy(body:find('self.label:SetText(L["Macro not created yet"])', 1, true),
         "the disabled label's text is the bare key")

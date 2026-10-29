@@ -11,7 +11,8 @@
 -- paints itself: the hover wash is the owner token `cm.iconHover` (Ka0s Default's
 -- gold at a quarter alpha, the row hover wash in every other skin), read at HOVER
 -- time so a skin switch needs no repaint; the label is `text.highlight` /
--- `text.disabled` through S.Text, which also records it for the skin's replay. Only
+-- `text.disabled` through KCM.SkinPanelText (S.Text, which records it for the
+-- skin's replay; the stock look while the Scope ignores the settings panel). Only
 -- this addon acquires the type, so nothing painted here reaches another addon's pool.
 
 local _, NS = ...
@@ -28,7 +29,7 @@ local DISABLED_ALPHA = 0.5
 
 local function Control_OnEnter(frame)
     if frame.hoverBG then
-        frame.hoverBG:SetColorTexture(KCM.Skin.Color("cm.iconHover"))
+        frame.hoverBG:SetColorTexture(KCM.SkinPanelColor("cm.iconHover"))
         frame.hoverBG:Show()
     end
     frame.obj:Fire("OnEnter")
@@ -103,15 +104,14 @@ local methods = {
     -- library's own disabled checkbox mark); the enabled art is untinted.
     ["SetDisabled"] = function(self, disabled)
         self.disabled = disabled
-        local S = KCM.Skin
         if disabled then
             self.frame:Disable()
-            S.Text(self.label, "disabled")
-            local r, g, b = S.Color("text.disabled")
+            KCM.SkinPanelText(self.label, "disabled", "GameFontHighlight")
+            local r, g, b = KCM.SkinPanelColor("text.disabled")
             self.image:SetVertexColor(r, g, b, DISABLED_ALPHA)
         else
             self.frame:Enable()
-            S.Text(self.label, "text.highlight")
+            KCM.SkinPanelText(self.label, "text.highlight", "GameFontHighlight")
             self.image:SetVertexColor(1, 1, 1, 1)
         end
     end,

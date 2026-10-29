@@ -37,6 +37,12 @@
 --                            opaque), so a literal that became a token keeps its arity.
 --   KCM.SkinEscape(name)     a color token as a "|cffrrggbb" escape, rounded to the byte, so
 --                            markup written as a literal keeps its bytes on Ka0s Default.
+--   KCM.SkinPanelOn()        true while the Scope's "Ignore settings panel" is off (the live
+--                            exception, Skin:GetIgnore); false degraded. The settings surfaces
+--   KCM.SkinPanelColor(name) draw through the four panel helpers, never KCM.SkinColor / S.Text:
+--   KCM.SkinPanelEscape(name) each answers the skin while the panel is skinned and the STOCK look
+--   KCM.SkinPanelText(fs,r,f) (the host copy of Ka0s Default, today's pixels; the template face
+--   KCM.SkinPanelOwner()     `f`; no ReorderList owner) while it is ignored. See below for why.
 --   KCM.SkinPaintAce(w)      an AceGUI widget this addon acquired itself, painted for this
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
 --   KCM.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
@@ -136,26 +142,84 @@ KCM.SKIN_FALLBACK = {
 }
 for name, def in pairs(KCM.SKIN_TOKENS) do KCM.SKIN_FALLBACK[name] = def.default end
 
---- A color token's components AS A CALL SITE WRITES THEM: r, g, b for an opaque color and r, g,
---- b, a otherwise (the library's own text and vertex rule), so a site that passed three components
---- before it read a token still passes three on Ka0s Default. nil for a token the skin leaves
---- alone. Read through KCM.Skin at call time, so it answers the live skin, or the host copy
---- degraded.
-function KCM.SkinColor(name)
-    local r, g, b, a = KCM.Skin.Color(name)
+--- Components as a call site writes them: r, g, b for an opaque color and r, g, b, a otherwise (the
+--- library's own text and vertex rule), so a site that passed three components before it read a
+--- token still passes three on Ka0s Default. nil for no color.
+local function arity(r, g, b, a)
     if r == nil then return nil end
     if a == nil or a == 1 then return r, g, b end
     return r, g, b, a
 end
 
---- A color token as a "|cffrrggbb" escape, each channel rounded to the nearest byte (0x88/255
---- rounds back to 0x88), so markup a call site wrote as a literal keeps its bytes on Ka0s Default. nil for a token
---- the skin leaves alone.
-function KCM.SkinEscape(name)
-    local r, g, b = KCM.Skin.Color(name)
+--- A color as a "|cffrrggbb" escape, each channel rounded to the nearest byte (0x88/255 rounds
+--- back to 0x88), so markup a call site wrote as a literal keeps its bytes on Ka0s Default.
+local function escape(r, g, b)
     if r == nil then return nil end
     local function byte(v) return math.floor(v * 255 + 0.5) end
     return ("|cff%02x%02x%02x"):format(byte(r), byte(g), byte(b))
+end
+
+--- The stock look of a color token: the host copy of Ka0s Default, which is the color each
+--- converted surface drew before skins (the game's own look on this addon's rows).
+local function stock(name)
+    local c = KCM.SKIN_FALLBACK[name]
+    if not c then return nil end
+    return c[1], c[2], c[3], c[4] or 1
+end
+
+--- A color token's components as a call site writes them, read through KCM.Skin at call time, so
+--- it answers the live skin, or the host copy degraded. nil for a token the skin leaves alone.
+function KCM.SkinColor(name) return arity(KCM.Skin.Color(name)) end
+
+--- A color token as a "|cffrrggbb" escape. nil for a token the skin leaves alone.
+function KCM.SkinEscape(name) return escape(KCM.Skin.Color(name)) end
+
+-- ---------------------------------------------------------------------------
+-- The settings surfaces and the Scope's "Ignore settings panel"
+-- ---------------------------------------------------------------------------
+--
+-- library_gap (LibKa0s v1.80.0): only PaintAce and the Options chrome ask __PanelSkinned. S.Text
+-- always applies the skin's color AND body face, and ReorderList's `owner` always takes the
+-- owner's palette, so this addon's own rows on its settings pages (the KCM* widgets, the Stat
+-- Priority and macro bar slot rows, the pages' warning lines and score tooltips) would switch to
+-- the skin's face and colors under "Ignore settings panel", which is on by default, while the
+-- library's rows on the same page stay stock. Composed around here (gap policy rung 1): every
+-- settings surface draws through these helpers, which answer the skin while the panel is skinned
+-- and the stock look while it is ignored. Turning the exception either way repaints live:
+-- SetIgnore notifies OnLooksChanged, and the Options instance re-renders the open pages, so each
+-- row is drawn again through these.
+
+--- A settings surface's color: the skin's while the panel is skinned, the stock one while not.
+function KCM.SkinPanelColor(name)
+    if KCM.SkinPanelOn() then return KCM.SkinColor(name) end
+    return arity(stock(name))
+end
+
+--- A settings surface's escape: the skin's while the panel is skinned, the stock one while not.
+function KCM.SkinPanelEscape(name)
+    if KCM.SkinPanelOn() then return KCM.SkinEscape(name) end
+    return escape(stock(name))
+end
+
+--- The ReorderList `owner` a settings page hands over: this addon while the panel is skinned, nil
+--- (the list's own minor-1 colors, the stock look) while it is ignored.
+function KCM.SkinPanelOwner()
+    if KCM.SkinPanelOn() then return addonName end
+    return nil
+end
+
+--- A settings surface's FontString in a text role ("accent", "disabled") or a color token's name
+--- ("text.highlight", "sem.unknown"). Skinned: S.Text, which records it for the skin's replay.
+--- Ignored: the record forgotten (so a repaint never puts the skin back on it), the template face
+--- `stockFont` (the font object's global name the string was created with) and the stock color.
+function KCM.SkinPanelText(fs, role, stockFont)
+    if KCM.SkinPanelOn() then return KCM.Skin.Text(fs, role) end
+    if type(fs) ~= "table" then return end
+    KCM.SkinUntrack(fs)
+    if stockFont and type(fs.SetFontObject) == "function" then fs:SetFontObject(stockFont) end
+    role = tostring(role)
+    local r, g, b, a = stock(role:find(".", 1, true) and role or ("text." .. role))
+    if r and type(fs.SetTextColor) == "function" then fs:SetTextColor(r, g, b, a) end
 end
 
 KCM.SKIN_SOURCE_OPTIONS = {
@@ -414,6 +478,9 @@ if not Skin then
     function KCM.SkinPaintAce() return false end
     function KCM.SkinPaintAceTree() return 0 end
     KCM.SkinOnRelease = releaseByCallback
+    -- No skin to ignore: the settings surfaces draw the stock look.
+    function KCM.SkinPanelOn() return false end
+    function KCM.SkinUntrack() end
     return
 end
 
@@ -456,6 +523,19 @@ end
 function KCM.SkinOnRelease(widget, fn)
     if type(Skin.OnRelease) ~= "function" then return releaseByCallback(widget, fn) end
     return Skin:OnRelease(widget, fn)
+end
+
+--- The applied exceptions, read live from the library (the Scope rows' apply moves them through
+--- KCM.ApplySkinIgnore): a copy without GetIgnore answers the panel skinned and fonts kept.
+function KCM.SkinPanelOn()
+    if type(Skin.GetIgnore) ~= "function" then return true end
+    local panel = Skin:GetIgnore(addonName)
+    return not panel
+end
+
+--- Forget a target's paint record (`Skin:Untrack`), so a repaint never replays the skin onto it.
+function KCM.SkinUntrack(target)
+    if type(Skin.Untrack) == "function" then Skin:Untrack(target) end
 end
 
 function KCM.ApplySkinIgnore(panel, fonts)

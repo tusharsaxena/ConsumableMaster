@@ -37,7 +37,7 @@
 -- swaps the two (MacroBar.SwapSlots), and Reset slot order, under the list on the
 -- same tab, puts the shipped order back.
 
-local addonName, NS = ...
+local _, NS = ...
 local KCM = NS
 local L = KCM.L
 local H = KCM.Settings.Helpers
@@ -908,7 +908,7 @@ end
 local function showGlyphTip(glyph, slotRow)
     if not GameTooltip then return end
     GameTooltip:SetOwner(glyph, "ANCHOR_RIGHT")
-    local r, g, b = KCM.SkinColor("gtip.value")
+    local r, g, b = KCM.SkinPanelColor("gtip.value")
     GameTooltip:AddLine(slotRow.kcmShown and L["Click to take this button off the bar"]
         or L["Click to put this button back on the bar"], r, g, b)
     GameTooltip:AddLine(L["A hidden button waits below the line, and one you put back joins the end of the bar."],
@@ -962,8 +962,9 @@ local function applySlotRow(slotRow, key, shown)
     slotRow.kcmLabel:SetText(slotLabel(key))
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim at,
     -- and aiming at it is how you put the button back. The skin's accent and disabled
-    -- text, through S.Text, which records the label for the skin's replay.
-    KCM.Skin.Text(slotRow.kcmLabel, shown and "accent" or "disabled")
+    -- text, through KCM.SkinPanelText (S.Text, which records the label for the skin's
+    -- replay; the stock look while the Scope ignores the settings panel).
+    KCM.SkinPanelText(slotRow.kcmLabel, shown and "accent" or "disabled", "GameFontNormal")
     slotRow:SetHeight(SLOT_ROW_H)
     slotRow:Show()
 end
@@ -1020,7 +1021,7 @@ local function renderSlotRow(ctx, scroll, list, key, shown)
         list:AddRow(slotRow, {
             ghostText      = slotLabel(key),
             ghostIcon      = slotRow.kcmGlyphTexture,
-            ghostTextColor = { KCM.SkinColor(shown and "text.accent" or "text.disabled") },
+            ghostTextColor = { KCM.SkinPanelColor(shown and "text.accent" or "text.disabled") },
             height         = SLOT_ROW_H,
             draggable      = shown,
             dimmed         = not shown,
@@ -1054,8 +1055,9 @@ local function newSlotList(shownCount)
         stride        = SLOT_ROW_STRIDE,
         boundary      = shownCount,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2).
-        owner         = addonName,
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner         = KCM.SkinPanelOwner(),
 
         handleIcon    = KCM.Icon and KCM.Icon(SLOT_HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],

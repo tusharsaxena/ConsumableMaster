@@ -31,7 +31,7 @@
 -- via Selector mutators (AddItem / Block / MoveTo / MoveUp / MoveDown). Every mutation
 -- calls afterMutation so the macro pipeline and panels stay in sync.
 
-local addonName, NS = ...
+local _, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
@@ -140,7 +140,7 @@ end
 local function formatScoreTooltipDesc(explain)
     if not explain then return "" end
     local lines = {}
-    local value, noteGray = KCM.SkinEscape("gtip.value") or "", KCM.SkinEscape("cm.tipNote") or ""
+    local value, noteGray = KCM.SkinPanelEscape("gtip.value") or "", KCM.SkinPanelEscape("cm.tipNote") or ""
     for _, s in ipairs(explain.signals or {}) do
         local note = s.note and ("  " .. noteGray .. "(" .. s.note .. ")|r") or ""
         table.insert(lines, ("  %s: %s%s|r%s")
@@ -148,7 +148,7 @@ local function formatScoreTooltipDesc(explain)
     end
     if explain.summary and explain.summary ~= "" then
         table.insert(lines, "")
-        table.insert(lines, (KCM.SkinEscape("cm.tipSummary") or "") .. explain.summary .. "|r")
+        table.insert(lines, (KCM.SkinPanelEscape("cm.tipSummary") or "") .. explain.summary .. "|r")
     end
     return table.concat(lines, "\n")
 end
@@ -156,7 +156,7 @@ end
 --- A settings-page warning's lead-in, in the warning orange (the owner token `cm.warn`). The key
 --- is the words alone, so a translator never carries a color escape through a translation.
 local function warnText(text)
-    return (KCM.SkinEscape("cm.warn") or "") .. text .. "|r"
+    return (KCM.SkinPanelEscape("cm.warn") or "") .. text .. "|r"
 end
 
 local function afterMutation(reason)
@@ -747,8 +747,9 @@ local function makePriorityList(ctx, cat, specKey, priority)
     return trackReorder(ctx, W.ReorderList({
         stride     = ROW_STRIDE,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2).
-        owner      = addonName,
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner      = KCM.SkinPanelOwner(),
 
         -- No boundary. This list is flat -- every row is a priority and they are all one group --
         -- which is the common case the library defaults to. MultiMeters' Columns page is the one
@@ -973,8 +974,9 @@ local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
     local list = trackReorder(ctx, W and W.ReorderList({
         stride        = ROW_STRIDE,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2).
-        owner         = addonName,
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner         = KCM.SkinPanelOwner(),
 
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],

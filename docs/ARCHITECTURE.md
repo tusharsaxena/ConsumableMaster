@@ -326,7 +326,8 @@ the HUD are this addon's.
   exact pixel and follows its library role in every other skin (DECISIONS X1, X2, X12; gaps CM-G1 to
   CM-G3). It publishes `KCM.Skin`, the owner's facade every surface reads, `KCM.SkinColor` /
   `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
-  the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
+  the four settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
+  `SkinPanelText` / `SkinPanelOwner` (below), the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
   `KCM.SkinPaintAceTree`, and the picker's three functions ([module-map.md](./module-map.md)).
   Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from
   `KCM.SKIN_FALLBACK`, and `tests/test_skin.lua` holds each entry to the live facade's answer.
@@ -376,16 +377,28 @@ the HUD are this addon's.
   after every Open (`KCM.SkinPaintAceTree`, `settings/Profiles.lua`). The four `KCM*` widgets and the
   raw Stat Priority and Buttons rows have no library painter, so they paint themselves from
   `KCM.Skin`: the owner tokens above, `text.highlight`, `text.disabled`, `text.accent` and
-  `sem.unknown` through `S.Text`, and the reorder ghosts the same tokens. `S.Text` takes the skin's
-  body face as well as the color and is not scoped by *Ignore settings panel*, so under Ka0s Default
-  these rows keep their colors and read in Oxanium SemiBold (smoke check SKIN-7).
+  `sem.unknown` through `S.Text`, and the reorder ghosts the same tokens. They draw through the
+  panel helpers in `core/SkinSetup.lua`, never `KCM.SkinColor` or `S.Text` directly
+  (`tests/test_skin_surfaces.lua` holds every file under `settings/` and every `KCM*` widget to
+  that): the library's `S.Text` takes the skin's body face as well as the color and never asks
+  whether the owner ignores its settings panel, and neither does `ReorderList`'s `owner` (a
+  library gap in v1.80.0). So while *Ignore settings panel* is on, `KCM.SkinPanelText` forgets the
+  string's paint record and puts it back on its template face in the stock color, `SkinPanelColor`
+  / `SkinPanelEscape` answer the stock colors (the host copy of Ka0s Default, the pixels these rows
+  drew before skins), and `SkinPanelOwner` hands the reorder lists no owner. Under Ka0s Default with
+  the box ticked, the default, these rows therefore look exactly as before skins, faces included.
+  Toggling the box repaints them live: `Skin:SetIgnore` fires `OnLooksChanged`, and the Options
+  instance re-renders the open pages.
 - **GameTooltip lines** this addon writes take skin colors (X8): the macro fallback tooltip's
   `gtip.title` / `gtip.value`, the Stat Priority and Buttons rows' `gtip.value`, and the score
   tooltip's `gtip.value`, `cm.tipNote` and `cm.tipSummary`, rendered to escapes at format time. The
+  lines a settings page writes go through the panel helpers, so they are stock while *Ignore
+  settings panel* is on. The
   tooltip frame is Blizzard's (skinning-§7), and item and spell tooltips are the client's.
 - **The library draws the rest for the owner.** The debug console, its copy window and the perf
-  panel already passed the folder as `addonName`, and the macro bar's drag handle and the four
-  reorder lists are handed `owner = addonName`.
+  panel already passed the folder as `addonName`, the macro bar's drag handle is handed
+  `owner = addonName`, and the four reorder lists `owner = KCM.SkinPanelOwner()` (this addon while
+  the settings panel is skinned, none while it is ignored).
 - **The first-run skin picker** (O3; X6). `KCM.MaybeShowSkinPicker` shows the library's picker
   (`O.SkinPicker`) while the profile's `skin.pickerSeen` is false and the addon stands up: once per
   session, two seconds after the first `PLAYER_ENTERING_WORLD`, and after every profile event,

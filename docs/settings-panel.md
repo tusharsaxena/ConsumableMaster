@@ -212,7 +212,8 @@ drawn by nothing: the page's Defaults leaves it, and the global reset clears it.
 What the skin reaches on the other pages is in [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins):
 the library's chrome and rows (stock while *Ignore settings panel* is on), the AceGUI widgets
 this addon acquires (through `KCM.SkinAcquire`), the four `KCM*` widgets and the raw reorder rows
-(painted from `KCM.Skin`), and the Profiles tree. The first-run skin picker's gear opens this tab.
+(painted from `KCM.Skin` through the panel helpers, so they too stay stock while *Ignore settings
+panel* is on), and the Profiles tree. The first-run skin picker's gear opens this tab.
 
 ### The Minimap button row — shown says one thing, the store says the other
 

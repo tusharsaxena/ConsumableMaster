@@ -177,11 +177,15 @@ test("Skin: every library factory that takes an owner is handed this addon's", f
             if not s then break end
             calls = calls + 1
             local body = src:sub(e, (src:find("\n%s*}%)", e) or #src))
-            if body:find("owner%s*=%s*addonName") then owned = owned + 1 end
+            -- A settings page's list takes the owner through KCM.SkinPanelOwner, which answers
+            -- this addon while the panel is skinned and nil while the Scope ignores it.
+            if body:find("owner%s*=%s*addonName") or body:find("owner%s*=%s*KCM%.SkinPanelOwner%(%)") then
+                owned = owned + 1
+            end
             from = e + 1
         end
         t.eq(calls, site[3], site[1] .. " makes " .. site[3] .. " " .. site[2] .. " call(s)")
-        t.eq(owned, calls, site[1] .. ": every call passes owner = addonName")
+        t.eq(owned, calls, site[1] .. ": every call passes this addon as its owner")
     end
 end)
 

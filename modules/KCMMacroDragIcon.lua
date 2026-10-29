@@ -80,13 +80,14 @@ local methods = {
         self.icon:SetTexture(macroIcon(self.macroName))
         -- The two states' colors are the skin's (skinning-§1): a macro not made yet
         -- in the not-yet gray (`sem.unknown`), a draggable one in the accent gold, each
-        -- through S.Text, which records the label for the skin's replay.
+        -- through KCM.SkinPanelText (S.Text, which records the label for the skin's
+        -- replay; the stock look while the Scope ignores the settings panel).
         if idx == 0 then
-            KCM.Skin.Text(self.label, "sem.unknown")
+            KCM.SkinPanelText(self.label, "sem.unknown", "GameFontHighlight")
             self.label:SetText(L["Macro not created yet"])
             self.frame:Disable()
         else
-            KCM.Skin.Text(self.label, "accent")
+            KCM.SkinPanelText(self.label, "accent", "GameFontHighlight")
             self.label:SetText(L["Drag to action bar"])
             self.frame:Enable()
         end

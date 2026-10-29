@@ -1044,7 +1044,7 @@ Total.
 - Skin: every library factory that takes an owner is handed this addon's
 - Skin: the TOC loads the seam before every frame and lists EllesmereUI as optional
 
-### test_skin_surfaces.lua (8)
+### test_skin_surfaces.lua (12)
 
 - Skin surfaces: no color literal outside the seam and the allow-list
 - Skin surfaces: every allow-list entry carries its reason
@@ -1054,6 +1054,10 @@ Total.
 - Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time
 - Skin surfaces: the item row's name and hand tag take the skin's text
 - Skin surfaces: the score button's disabled art is the skin's disabled gray
+- Skin surfaces: the panel helpers answer the stock look while the panel is ignored
+- Skin surfaces: the item row stays stock while the panel is ignored
+- Skin surfaces: the icon and score buttons stay stock while the panel is ignored
+- Skin surfaces: the settings surfaces read the skin only through the panel helpers
 
 ### test_skin_hud.lua (13)
 
@@ -1564,7 +1568,7 @@ Total.
 | test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
 | test_skin.lua | 10 |
-| test_skin_surfaces.lua | 8 |
+| test_skin_surfaces.lua | 12 |
 | test_skin_hud.lua | 13 |
 | test_skin_picker.lua | 10 |
 | test_skin_settings.lua | 9 |
@@ -1589,4 +1593,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1287** |
+| **Total** | **1291** |

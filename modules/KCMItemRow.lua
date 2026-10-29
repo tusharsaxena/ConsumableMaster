@@ -270,10 +270,11 @@ local methods = {
         -- The two strings take the skin (skinning-§1): the name in the white the
         -- GameFontHighlight template drew (`text.highlight`), the hand tag in the gold
         -- GameFontNormalSmall drew (`text.accent`), each in the skin's body face at the
-        -- template's size. S.Text records them, so a skin switch replays both.
-        local S = KCM.Skin
-        S.Text(self.label, "text.highlight")
-        S.Text(self.handTag, "accent")
+        -- template's size. S.Text records them, so a skin switch replays both. While
+        -- the Scope ignores the settings panel, both stay on their templates in the
+        -- stock colors (KCM.SkinPanelText).
+        KCM.SkinPanelText(self.label, "text.highlight", "GameFontHighlight")
+        KCM.SkinPanelText(self.handTag, "accent", "GameFontNormalSmall")
         self:RefreshDisplay()
     end,
 

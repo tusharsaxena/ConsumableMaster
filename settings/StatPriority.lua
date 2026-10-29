@@ -48,7 +48,7 @@
 --   seed default (Defaults_StatPriority.lua) or the class-primary fallback
 --   if no seed exists.
 
-local addonName, NS = ...
+local _, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
@@ -468,7 +468,7 @@ local function acquireRow(parent)
     glyph:SetScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        local r, g, b = KCM.SkinColor("gtip.value")
+        local r, g, b = KCM.SkinPanelColor("gtip.value")
         GameTooltip:AddLine(row.kcmIncluded and L["Click to stop ranking this stat"]
             or L["Click to rank this stat"], r, g, b)
         GameTooltip:AddLine(L["An excluded stat is not weighed at all; its place in the order is only stored while it is included."],
@@ -498,8 +498,9 @@ local function applyRow(row, stat, included, onToggle)
     row.kcmLabel:SetText(SECONDARY_OPTIONS[stat] or stat)
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim
     -- at, and aiming at it is how you rank the stat again. The skin's accent and
-    -- disabled text, through S.Text, which records the label for the skin's replay.
-    KCM.Skin.Text(row.kcmLabel, included and "accent" or "disabled")
+    -- disabled text, through KCM.SkinPanelText (S.Text, which records the label for the
+    -- skin's replay; the stock look while the Scope ignores the settings panel).
+    KCM.SkinPanelText(row.kcmLabel, included and "accent" or "disabled", "GameFontNormal")
 
     row:SetHeight(ROW_H)
     row:Show()
@@ -586,7 +587,7 @@ local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, dr
         list:AddRow(row, {
             ghostText      = SECONDARY_OPTIONS[stat] or stat,
             ghostIcon      = row.kcmGlyphTexture,
-            ghostTextColor = { KCM.SkinColor(included and "text.accent" or "text.disabled") },
+            ghostTextColor = { KCM.SkinPanelColor(included and "text.accent" or "text.disabled") },
             height         = ROW_H,
             draggable      = draggable,
             -- An excluded stat is present but inert, so its box takes the muted
@@ -616,8 +617,9 @@ local function renderSecondaries(ctx, scroll, specKey, cur)
         stride   = ROW_STRIDE,
         boundary = #included,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2).
-        owner    = addonName,
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner    = KCM.SkinPanelOwner(),
 
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
@@ -738,7 +740,7 @@ local function render(ctx)
         -- CONTENT INSIDE THE PAGE, under the strip, rather than a branch that
         -- skips it.
         -- The lead-in in the warning orange (the owner token `cm.warn`), outside the key.
-        H.Label(ctx, (KCM.SkinEscape("cm.warn") or "") .. L["No spec selected."] .. "|r "
+        H.Label(ctx, (KCM.SkinPanelEscape("cm.warn") or "") .. L["No spec selected."] .. "|r "
             .. L["Pick one in the banner above to edit its stat priority."], "medium")
     else
         renderPriority(ctx, scroll, specKey)

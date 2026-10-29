@@ -81,7 +81,7 @@ local methods = {
         self.disabled = disabled
         if disabled then
             self.frame:Disable()
-            local r, g, b = KCM.Skin.Color("text.disabled")
+            local r, g, b = KCM.SkinPanelColor("text.disabled")
             self.image:SetVertexColor(r, g, b, DISABLED_ALPHA)
         else
             self.frame:Enable()
