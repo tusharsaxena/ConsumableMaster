@@ -637,7 +637,7 @@ Helpers.EnumValues = enumValues
 -- ---------------------------------------------------------------------
 
 local function makeButton(parent, spec, relativeWidth)
-    local btn = AceGUI:Create("Button")
+    local btn = KCM.SkinAcquire(AceGUI, "Button")
     btn:SetText(spec.text or "")
     if relativeWidth then btn:SetRelativeWidth(relativeWidth)
     elseif spec.width then btn:SetWidth(spec.width)
@@ -658,7 +658,7 @@ end
 
 function Helpers.Button(ctx, spec)
     local scroll = ensureScroll(ctx)
-    local row = AceGUI:Create("SimpleGroup")
+    local row = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     row:SetHeight(28)
@@ -669,7 +669,7 @@ end
 
 function Helpers.ButtonPair(ctx, leftSpec, rightSpec)
     local scroll = ensureScroll(ctx)
-    local row = AceGUI:Create("SimpleGroup")
+    local row = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     row:SetHeight(28)
@@ -704,7 +704,7 @@ Helpers.CustomCheckbox = UI and UI.SessionCheckbox
 -- otherwise GameFontNormalSmall). Used for inline descriptions / legends.
 function Helpers.Label(ctx, text, fontSize)
     local scroll = ensureScroll(ctx)
-    local lbl = AceGUI:Create("Label")
+    local lbl = KCM.SkinAcquire(AceGUI, "Label")
     lbl:SetText(text or "")
     lbl:SetFullWidth(true)
     if lbl.label and lbl.label.SetFontObject then

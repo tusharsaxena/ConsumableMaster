@@ -87,6 +87,7 @@ test("Skin: the seam publishes the same KCM members on both paths", function(t)
         "Skin", "SkinChoice", "WriteSkinChoice", "SkinOverride", "ApplySkinChoice", "ApplySkinIgnore",
         "ApplySkinOverride", "SKIN_SOURCE_OPTIONS", "SKIN_OPTIONS", "SKIN_TOKENS", "SKIN_FALLBACK",
         "SkinColor", "SkinEscape", "SkinPaintAce", "SkinPaintAceTree", "SkinOnRelease",
+        "SkinAcquire", "MaybeShowSkinPicker", "HideSkinPicker", "SkinPickerSpec",
     }) do
         if live[name] == nil then missing[#missing + 1] = "live " .. name end
         if degraded[name] == nil then missing[#missing + 1] = "degraded " .. name end

@@ -360,7 +360,7 @@ end
 -- ---------------------------------------------------------------------
 
 local function makeDropdown(parent, opts)
-    local dd = AceGUI:Create("Dropdown")
+    local dd = KCM.SkinAcquire(AceGUI, "Dropdown")
     dd:SetLabel(opts.label or "")
     dd:SetList(opts.values or {}, opts.sorting)
     if opts.relativeWidth then dd:SetRelativeWidth(opts.relativeWidth)
@@ -378,7 +378,7 @@ local function makeDropdown(parent, opts)
 end
 
 local function newRow(scroll, height)
-    local row = AceGUI:Create("SimpleGroup")
+    local row = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     if height then row:SetHeight(height) end
@@ -565,7 +565,7 @@ end
 --- flowing with the rest of the page without asking AceGUI for a widget it does
 --- not have.
 local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, draggable)
-    local slot = AceGUI:Create("SimpleGroup")
+    local slot = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     slot:SetLayout(nil)
     slot:SetFullWidth(true)
     slot:SetHeight(ROW_STRIDE)

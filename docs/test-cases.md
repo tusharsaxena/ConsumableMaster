@@ -1071,6 +1071,31 @@ Total.
 - Skin HUD: the reset runs without the library too
 - Skin HUD: without the library the bar draws the player's stored style
 
+### test_skin_picker.lua (10)
+
+- Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
+- Skin picker: the spec names this owner, its seams, the General page's Skin tab and no eye
+- Skin picker: an unseen profile shows it; a seen one does not
+- Skin picker: it is offered once per session, two seconds after the first entering-world
+- Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once
+- Skin picker: a stood-down addon shows nothing and drops a held start
+- Skin picker: a profile event takes it down first and shows it for a profile that has not seen it
+- Skin picker: the player's close marks it seen; this addon's own take-down does not
+- Skin picker: the stand-down takes a shown picker down, unseen
+- Skin picker: degraded, every member answers and nothing shows
+
+### test_skin_settings.lua (9)
+
+- Skin settings: every AceGUI widget a settings file acquires goes through KCM.SkinAcquire
+- Skin settings: under a non-default skin an acquired widget is painted, past the proxy
+- Skin settings: under Ka0s Default the acquired widgets paint like every skin's
+- Skin settings: with Ignore settings panel on, the default, nothing is painted
+- Skin settings: a rendered page's own widgets are painted for this owner
+- Skin settings: the Profiles page paints the tree AceConfigDialog drew, and redraws on a skin change
+- Skin settings: the debug console and the perf panel are handed the folder as their owner
+- Skin settings: the live debug console is painted for this owner
+- Skin settings: degraded, SkinAcquire paints nothing and a host release still runs
+
 ### test_settingsui.lua (34)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
@@ -1541,6 +1566,8 @@ Total.
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 8 |
 | test_skin_hud.lua | 13 |
+| test_skin_picker.lua | 10 |
+| test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
@@ -1562,4 +1589,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1268** |
+| **Total** | **1287** |

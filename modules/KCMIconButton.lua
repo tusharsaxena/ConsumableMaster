@@ -4,7 +4,7 @@
 -- but with a solid gold BACKGROUND swatch behind the icon on mouseover so the
 -- priority-row action buttons (up / down / delete) have an obvious hover state.
 -- The icon lives on the ARTWORK draw layer so the swatch renders cleanly behind
--- it. Acquired directly via `AceGUI:Create("KCMIconButton")` in
+-- it. Acquired directly via `KCM.SkinAcquire(AceGUI, "KCMIconButton")` in
 -- settings/Category.lua's row-button helper.
 --
 -- SKINNED FROM KCM.Skin (skinning-§1). No library painter knows this type, so it

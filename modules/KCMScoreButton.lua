@@ -7,7 +7,7 @@
 -- Ranker.Explain output by settings/Category.lua so each row shows its
 -- own per-item score breakdown.
 --
--- Acquired directly via `AceGUI:Create("KCMScoreButton")` in
+-- Acquired directly via `KCM.SkinAcquire(AceGUI, "KCMScoreButton")` in
 -- settings/Category.lua.
 --
 -- SKINNED FROM KCM.Skin (skinning-§1): the disabled art is the skin's disabled gray

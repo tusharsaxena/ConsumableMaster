@@ -355,7 +355,7 @@ end
 -- ---------------------------------------------------------------------
 
 local function newRow(scroll, height)
-    local row = AceGUI:Create("SimpleGroup")
+    local row = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     if height then row:SetHeight(height) end
@@ -364,7 +364,7 @@ local function newRow(scroll, height)
 end
 
 local function makeIconBtn(parent, opts)
-    local btn = AceGUI:Create("KCMIconButton")
+    local btn = KCM.SkinAcquire(AceGUI, "KCMIconButton")
     btn:SetImageSize(opts.size or 24, opts.size or 24)
     btn:SetImage(opts.image)
     btn:SetWidth(opts.width or ROW_BTN_W)
@@ -384,7 +384,7 @@ local function makeIconBtn(parent, opts)
 end
 
 local function makeScoreBtn(parent, opts)
-    local btn = AceGUI:Create("KCMScoreButton")
+    local btn = KCM.SkinAcquire(AceGUI, "KCMScoreButton")
     btn:SetImageSize(22, 22)
     btn:SetImage(opts.image)
     btn:SetWidth(ROW_BTN_W)
@@ -396,7 +396,7 @@ local function makeScoreBtn(parent, opts)
 end
 
 local function makeItemRow(parent, data, rw)
-    local row = AceGUI:Create("KCMItemRow")
+    local row = KCM.SkinAcquire(AceGUI, "KCMItemRow")
     row:SetRelativeWidth(rw or ITEM_ROW_RW_SINGLE)
     row:SetCustomData(data)
     parent:AddChild(row)
@@ -404,7 +404,7 @@ local function makeItemRow(parent, data, rw)
 end
 
 local function makeMacroDragIcon(scroll, macroName)
-    local w = AceGUI:Create("KCMMacroDragIcon")
+    local w = KCM.SkinAcquire(AceGUI, "KCMMacroDragIcon")
     w:SetFullWidth(true)
     w:SetCustomData({ macroName = macroName })
     scroll:AddChild(w)
@@ -412,7 +412,7 @@ local function makeMacroDragIcon(scroll, macroName)
 end
 
 local function makeCheckbox(parent, opts)
-    local cb = AceGUI:Create("CheckBox")
+    local cb = KCM.SkinAcquire(AceGUI, "CheckBox")
     cb:SetLabel(opts.label or "")
     if opts.width then cb:SetWidth(opts.width)
     elseif opts.relativeWidth then cb:SetRelativeWidth(opts.relativeWidth)
@@ -602,7 +602,7 @@ local function handleGutter()
 end
 
 local function renderRowHandle(row)
-    local slot = AceGUI:Create("SimpleGroup")
+    local slot = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     slot:SetLayout(nil)
     slot:SetWidth(handleGutter())
     slot:SetHeight(ROW_H)

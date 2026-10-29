@@ -1002,7 +1002,7 @@ end
 --- One slot's row. The SLOT is an AceGUI SimpleGroup a stride tall and the row
 --- frame inside it is ROW_H tall, anchored to its top; the difference is the gap.
 local function renderSlotRow(ctx, scroll, list, key, shown)
-    local slot = AceGUI:Create("SimpleGroup")
+    local slot = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     slot:SetLayout(nil)
     slot:SetFullWidth(true)
     slot:SetHeight(SLOT_ROW_STRIDE)
@@ -1030,7 +1030,7 @@ end
 
 --- The rule under the last shown slot, when there is a divide to mark.
 local function addBoundaryRule(scroll)
-    local rule = AceGUI:Create("Heading")
+    local rule = KCM.SkinAcquire(AceGUI, "Heading")
     rule:SetText("")
     rule:SetFullWidth(true)
     rule:SetHeight(12)

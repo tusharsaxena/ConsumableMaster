@@ -46,12 +46,14 @@
 -- listener at the foot of Build turns that into a redraw: now if the page is on
 -- screen, on its next show if not (H.RefreshPanel).
 --
--- It redraws on THAT and on nothing else. SetRenderer puts the page on the
+-- It redraws on THAT and a skin change, and on nothing else. SetRenderer puts the page on the
 -- library's structural fan-out, and the pipeline publishes a debounced
 -- PANEL_REFRESH after every recompute -- every loot, every bag change. A renderer
 -- that re-Opened on each of those would tear AceConfigDialog's tree down under an
 -- open dropdown (options-ui-§11: re-render only when what invalidates the layout
--- changed). So the renderer draws once per profile event, counted.
+-- changed). So the renderer draws once per profile event, counted, and once per
+-- skin change (KCM.Skin.OnLooksChanged), because the rows it paints are never
+-- repainted in place (the renderer in Build says why).
 
 local _, NS = ...
 local KCM = NS
@@ -90,7 +92,7 @@ end
 --- any AceGUI container as its target, so the AceDBOptions widgets land inside
 --- this canvas instead of a second floating window over the Settings panel.
 local function newContainer(AceGUI, ctx)
-    local container = AceGUI:Create("SimpleGroup")
+    local container = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     container:SetLayout("Fill")
     container.frame:SetParent(ctx.body)
     container.frame:ClearAllPoints()
@@ -140,11 +142,23 @@ local function Build(mainCategory)
     local ctx = H.CreatePanel("KCMProfilesPanel", L["Profiles"], { panelKey = PAGE })
     local container = newContainer(libs.gui, ctx)
 
-    local drawnAt
+    -- AceConfigDialog acquires the manager's widgets from AceGUI itself, past every handle this
+    -- addon paints through, so the tree is painted for this addon's skin right after it is drawn
+    -- (skinning-§3; nothing while the Scope's Ignore settings panel is on). Each widget goes back
+    -- to AceGUI's shared pool stock when the next Open releases it. AceGUI rows are never repainted
+    -- in place, so a skin change (OnLooksChanged: a pick, the Scope, an override) is a reason to
+    -- draw again, as a profile event is; the library's re-render of the open page then finds a new
+    -- generation and paints fresh rows in the new skin.
+    local looks = 0
+    if KCM.Skin and KCM.Skin.OnLooksChanged then
+        KCM.Skin.OnLooksChanged(function() looks = looks + 1 end)
+    end
+    local drawnAt, drawnLooks
     H.SetRenderer(ctx, function()
-        if drawnAt == profileEvents then return end
-        drawnAt = profileEvents
+        if drawnAt == profileEvents and drawnLooks == looks then return end
+        drawnAt, drawnLooks = profileEvents, looks
         libs.dialog:Open(APP, container)
+        KCM.SkinPaintAceTree(container)
     end)
     listen(H, ctx)
 

@@ -41,6 +41,15 @@
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
 --   KCM.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
 --                            (`Skin:OnRelease`), so it and the skin's restore both run.
+--   KCM.SkinAcquire(ace, t)  `ace:Create(t)` then KCM.SkinPaintAce: every AceGUI widget the
+--                            settings files acquire themselves.
+--   KCM.MaybeShowSkinPicker() the first-run skin picker (LibKa0s OptionsSkinPicker, O3):
+--                            `O.SkinPicker` while the profile's `skin.pickerSeen` is false and
+--                            the addon stands up; held to PLAYER_REGEN_ENABLED in combat.
+--                            Answers the frame, or nil, "queued" behind another Ka0s addon's.
+--   KCM.HideSkinPicker()     takes a shown picker down or out of the queue WITHOUT marking it
+--                            seen: the stand-down, and first on every profile event.
+--   KCM.SkinPickerSpec()     the spec KCM.MaybeShowSkinPicker hands O.SkinPicker.
 --
 -- ---------------------------------------------------------------------------
 -- WHERE IT LOADS
@@ -232,6 +241,125 @@ local function releaseByCallback(widget, fn)
     end
     widget:SetCallback("OnRelease", function(w) fn(w) end)
     return fn
+end
+
+--- An AceGUI widget this addon acquires itself (skinning-§3): `ace:Create(wtype)`, then
+--- KCM.SkinPaintAce. The settings files keep their own AceGUI handle, so this paints whichever
+--- handle a file was given (the raw library, or the Options instance's owner proxy, which already
+--- painted it: PaintAce for the same owner repaints in place). A type with no library painter
+--- (SimpleGroup, and this addon's four KCM* types, which paint themselves from KCM.Skin) is
+--- painted nothing, and nothing at all is painted while the Scope's Ignore settings panel is on.
+--- KCM.SkinPaintAce is resolved at call time, so this reaches each arm's.
+---
+--- No `Skin:AliasAceType`: an alias is for a stock type under a second pool name, and none of the
+--- four KCM* types is one. Each builds its own frame and paints itself (CM-02), so a base painter
+--- aliased onto it would paint over its own tokens. No host OnRelease either: no settings file
+--- sets one, so the library's restore is the only release work (KCM.SkinOnRelease is the door for
+--- one added later).
+function KCM.SkinAcquire(ace, wtype)
+    local w = ace:Create(wtype)
+    KCM.SkinPaintAce(w)
+    return w
+end
+
+-- ---------------------------------------------------------------------------
+-- The first-run skin picker (LibKa0s OptionsSkinPicker, LibKa0s#64; the rollout's O3 and X6)
+-- ---------------------------------------------------------------------------
+--
+-- WHEN. Once per session, two seconds after the first PLAYER_ENTERING_WORLD (an event only an
+-- addon that stands up registers), after OnInitialize applied the stored skin; and again after
+-- every profile event (core/ConsumableMaster.lua's handler), because a new, copied or reset
+-- profile carries its own `skin.pickerSeen`. Never while the addon stands down, and never in
+-- combat: a start in combat is held for the PLAYER_REGEN_ENABLED edge, one target at most.
+--
+-- SEEN. The library calls `onClose` once per showing, by any route the player takes (Apply, its
+-- close control, the gear, Escape), and once for a picker still queued behind another Ka0s addon's
+-- when that addon's "Apply to all Ka0s addons" dismisses it unshown: that is the one write of
+-- `skin.pickerSeen`, through KCM.Schema:Set. A close this addon makes itself (KCM.HideSkinPicker:
+-- the stand-down, a profile event) is not the player's and writes nothing.
+--
+-- NO EYE (X6, D3). The eye previews a pick on an addon's primary window or test mode, and this
+-- addon has neither (the unlocked macro bar is its own preview), so the spec carries no
+-- `onPreview` and the picker draws no eye. A pick still previews live on the bar and the panel;
+-- `set` (KCM.WriteSkinChoice) runs only on Apply, the gear or Apply to all.
+--
+-- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
+-- O.SkinPicker queues this one and answers nil, "queued", which KCM.MaybeShowSkinPicker passes
+-- through; it shows when the other closes.
+
+local PICKER_PATH = "skin.pickerSeen"
+local pickerTarget       -- the one-shot PLAYER_REGEN_ENABLED target, while a start is held
+local quietClose = false -- true while KCM.HideSkinPicker takes the picker down
+
+--- The Options instance (KCM.Settings.Helpers carries its members), resolved at call time:
+--- settings/OptionsSetup.lua loads far below, and its degraded stubs answer nil and do nothing.
+local function pickerHost()
+    return KCM.Settings and KCM.Settings.Helpers
+end
+
+--- The player's close: the picker seen, and nothing else. The library's put-back already wears the
+--- stored choice, so the skin is not this callback's to move.
+local function pickerClosed()
+    if quietClose then return end
+    seamSet(PICKER_PATH, true)
+end
+
+function KCM.SkinPickerSpec()
+    return {
+        owner = addonName, get = KCM.SkinChoice, set = KCM.WriteSkinChoice,
+        -- The gear's default: O.OpenOptionsPanel("general"), the General page's own key
+        -- (settings/General.lua's panelKey), then O.SelectTab("general", "Appearance"), the Skin
+        -- tab's key on that page.
+        page = "general", tab = "Appearance",
+        onClose = pickerClosed,
+    }
+end
+
+local function dropPickerDeferral()
+    if pickerTarget then pickerTarget:UnregisterAllEvents(); pickerTarget = nil end
+end
+
+--- True while this profile has not closed the picker and the addon stands up.
+local function pickerDue()
+    local get = seamGet()
+    if not get then return false end
+    if KCM.IsStoodDown and KCM.IsStoodDown() then return false end
+    return get(PICKER_PATH) == false
+end
+
+--- Takes a shown picker down (its pending preview put back) or out of the queue WITHOUT marking it
+--- seen: the stand-down, a profile that has seen it, and first on every profile event. Drops a
+--- held combat deferral.
+function KCM.HideSkinPicker()
+    dropPickerDeferral()
+    local H = pickerHost()
+    if not (H and type(H.HideSkinPicker) == "function") then return end
+    quietClose = true
+    local ok, err = pcall(H.HideSkinPicker)
+    quietClose = false
+    if not ok then error(err, 0) end
+end
+
+--- Show the picker when this profile has not seen it: answers O.SkinPicker's frame, or nil,
+--- "queued" while another Ka0s addon's picker is up (it shows when that one closes), or nil.
+function KCM.MaybeShowSkinPicker()
+    local H = pickerHost()
+    if not (H and type(H.SkinPicker) == "function") then return nil end
+    if not pickerDue() then
+        KCM.HideSkinPicker()
+        return nil
+    end
+    if InCombatLockdown and InCombatLockdown() then
+        if pickerTarget then return nil end
+        pickerTarget = KCM.NewBusTarget and KCM.NewBusTarget()
+        if not pickerTarget then return nil end
+        KCM.SafeRegisterEvent(pickerTarget, "PLAYER_REGEN_ENABLED", function()
+            dropPickerDeferral()
+            KCM.MaybeShowSkinPicker()
+        end, KCM.RejectedEvents)
+        return nil
+    end
+    return H.SkinPicker(KCM.SkinPickerSpec())
 end
 
 -- ---------------------------------------------------------------------------

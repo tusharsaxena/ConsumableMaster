@@ -81,6 +81,11 @@ end
 -- one registration a disabled addon is permitted to keep is the
 -- PLAYER_REGEN_ENABLED that finishes the job (slash-commands-§7).
 local function standDown()
+    -- The first-run skin picker is a frame this addon shows; it goes down unmarked, so it comes
+    -- back on the next login the addon stands up for (core/SkinSetup.lua). First, so a held
+    -- combat deferral is dropped before the bus record takes its target down.
+    if KCM.HideSkinPicker then KCM.HideSkinPicker() end
+
     -- Every message registration this addon owns, actually unregistered.
     if KCM.Bus and KCM.Bus.StandDown then KCM.Bus.StandDown() end
 

@@ -519,6 +519,8 @@ local SUITES = {
     "test_skin",
     "test_skin_surfaces",
     "test_skin_hud",
+    "test_skin_picker",
+    "test_skin_settings",
     "test_settingsui",
     "test_settingsui_category",
     "test_settingsui_optionsui",

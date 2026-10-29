@@ -11,7 +11,7 @@
 -- goes through core/MacroDisplay.lua's guarded MD.Pickup, which refuses with a
 -- chat line under InCombatLockdown() instead of erroring.
 --
--- Acquired via `AceGUI:Create("KCMMacroDragIcon")` in settings/Category.lua,
+-- Acquired via `KCM.SkinAcquire(AceGUI, "KCMMacroDragIcon")` in settings/Category.lua,
 -- then configured with `:SetCustomData({ macroName = "KCM_FOO" })`. Icon and
 -- tooltip are pulled fresh on each refresh so they track the current macro
 -- body (which auto-rewrites as bags change).

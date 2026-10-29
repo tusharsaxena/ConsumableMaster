@@ -8,7 +8,7 @@
 --      Blizzard puts inline in consumable tooltips), when applicable.
 --   3. Surface a "currently picked" glyph without leaning on `<- pick` text.
 --
--- Acquired via `AceGUI:Create("KCMItemRow")` in settings/Category.lua, then
+-- Acquired via `KCM.SkinAcquire(AceGUI, "KCMItemRow")` in settings/Category.lua, then
 -- configured with `:SetCustomData({ itemID, owned, isPick, pickMH, pickOH,
 -- applicable, fallbackName })`.
 -- The SetText / SetFontObject methods are no-op stubs so the widget tolerates
