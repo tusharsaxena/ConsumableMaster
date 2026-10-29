@@ -109,7 +109,17 @@ KCM.SKIN_TOKENS = {
 -- Both arms publish the table, so tests/test_skin.lua can hold each entry to the live facade's
 -- Ka0s Default answer: a copy that drifts goes red there. A surface converted to a token adds the
 -- token here in the same change. The owner tokens' entries are their own defaults.
-KCM.SKIN_FALLBACK = {}
+KCM.SKIN_FALLBACK = {
+    -- The settings pages' own rows and widgets (CM-02): the priority and slot rows' gold and gray
+    -- labels, the icon buttons' and item rows' white labels, the drag icon's two states.
+    ["text.accent"]    = { 1, 0.82, 0, 1 },
+    ["text.disabled"]  = { 0.5, 0.5, 0.5, 1 },
+    ["text.highlight"] = { 1, 1, 1, 1 },
+    ["sem.unknown"]    = { 0.6, 0.6, 0.6, 1 },
+    -- The GameTooltip lines this addon writes (skinning-§7: the lines, never the frame).
+    ["gtip.title"]     = { 1, 0.82, 0, 1 },
+    ["gtip.value"]     = { 1, 1, 1, 1 },
+}
 for name, def in pairs(KCM.SKIN_TOKENS) do KCM.SKIN_FALLBACK[name] = def.default end
 
 --- A color token's components AS A CALL SITE WRITES THEM: r, g, b for an opaque color and r, g,
@@ -252,8 +262,11 @@ if not Skin then
     S.OnLooksChanged = function(fn) return fn end   -- the skin never changes without the library
     S.IsEnabled = function() return false end
     S.GetStyle = function() return "ka0s:" .. DEFAULT end
+    -- A role ("accent") or, as the live primitive takes since SkinPaintExtras minor 5, a color
+    -- token's name ("text.highlight", "cm.warn").
     S.Text = function(fs, role)
-        local r, g, b, a = color("text." .. tostring(role))
+        role = tostring(role)
+        local r, g, b, a = color(role:find(".", 1, true) and role or ("text." .. role))
         if r and fs and fs.SetTextColor then fs:SetTextColor(r, g, b, a) end
     end
     S.GetFont = function() return _G.STANDARD_TEXT_FONT end

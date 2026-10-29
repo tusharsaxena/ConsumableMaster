@@ -9,13 +9,21 @@
 --
 -- Acquired directly via `AceGUI:Create("KCMScoreButton")` in
 -- settings/Category.lua.
+--
+-- SKINNED FROM KCM.Skin (skinning-§1): the disabled art is the skin's disabled gray
+-- at AceGUI's stock half alpha, as on KCMIconButton; the enabled art is untinted.
 
-local Type, Version = "KCMScoreButton", 2
+local _, NS = ...
+local KCM = NS
+
+local Type, Version = "KCMScoreButton", 3
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
 local pairs, select = pairs, select
 local CreateFrame, UIParent = CreateFrame, UIParent
+
+local DISABLED_ALPHA = 0.5
 
 -- NO HOVER FILL. This used to Show a gold BACKGROUND texture at a quarter alpha, and nothing else
 -- in the collection does: the row underneath already highlights, so the glyph appeared to gain a
@@ -73,7 +81,8 @@ local methods = {
         self.disabled = disabled
         if disabled then
             self.frame:Disable()
-            self.image:SetVertexColor(0.5, 0.5, 0.5, 0.5)
+            local r, g, b = KCM.Skin.Color("text.disabled")
+            self.image:SetVertexColor(r, g, b, DISABLED_ALPHA)
         else
             self.frame:Enable()
             self.image:SetVertexColor(1, 1, 1, 1)

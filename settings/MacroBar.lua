@@ -895,10 +895,11 @@ end
 local function showGlyphTip(glyph, slotRow)
     if not GameTooltip then return end
     GameTooltip:SetOwner(glyph, "ANCHOR_RIGHT")
+    local r, g, b = KCM.SkinColor("gtip.value")
     GameTooltip:AddLine(slotRow.kcmShown and L["Click to take this button off the bar"]
-        or L["Click to put this button back on the bar"], 1, 1, 1)
+        or L["Click to put this button back on the bar"], r, g, b)
     GameTooltip:AddLine(L["A hidden button waits below the line, and one you put back joins the end of the bar."],
-        1, 1, 1, true)
+        r, g, b, true)
     GameTooltip:Show()
 end
 
@@ -947,12 +948,9 @@ local function applySlotRow(slotRow, key, shown)
     slotRow.kcmGlyph:SetNormalTexture(slotRow.kcmGlyphTexture)
     slotRow.kcmLabel:SetText(slotLabel(key))
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim at,
-    -- and aiming at it is how you put the button back.
-    if shown then
-        slotRow.kcmLabel:SetTextColor(1, 0.82, 0)
-    else
-        slotRow.kcmLabel:SetTextColor(0.5, 0.5, 0.5)
-    end
+    -- and aiming at it is how you put the button back. The skin's accent and disabled
+    -- text, through S.Text, which records the label for the skin's replay.
+    KCM.Skin.Text(slotRow.kcmLabel, shown and "accent" or "disabled")
     slotRow:SetHeight(SLOT_ROW_H)
     slotRow:Show()
 end
@@ -1009,7 +1007,7 @@ local function renderSlotRow(ctx, scroll, list, key, shown)
         list:AddRow(slotRow, {
             ghostText      = slotLabel(key),
             ghostIcon      = slotRow.kcmGlyphTexture,
-            ghostTextColor = shown and { 1, 0.82, 0 } or { 0.5, 0.5, 0.5 },
+            ghostTextColor = { KCM.SkinColor(shown and "text.accent" or "text.disabled") },
             height         = SLOT_ROW_H,
             draggable      = shown,
             dimmed         = not shown,

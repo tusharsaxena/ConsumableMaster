@@ -1044,6 +1044,17 @@ Total.
 - Skin: every library factory that takes an owner is handed this addon's
 - Skin: the TOC loads the seam before every frame and lists EllesmereUI as optional
 
+### test_skin_surfaces.lua (8)
+
+- Skin surfaces: no color literal outside the seam, the pending HUD and the allow-list
+- Skin surfaces: every allow-list entry carries its reason
+- Skin surfaces: the literal gate is falsifiable
+- Skin surfaces: the escapes built from tokens keep Ka0s Default's bytes
+- Skin surfaces: the degraded facade answers every token the surfaces read
+- Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time
+- Skin surfaces: the item row's name and hand tag take the skin's text
+- Skin surfaces: the score button's disabled art is the skin's disabled gray
+
 ### test_settingsui.lua (34)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
@@ -1512,6 +1523,7 @@ Total.
 | test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
 | test_skin.lua | 10 |
+| test_skin_surfaces.lua | 8 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
@@ -1533,4 +1545,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1247** |
+| **Total** | **1255** |

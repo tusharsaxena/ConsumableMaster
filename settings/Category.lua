@@ -134,19 +134,29 @@ local function formatNumber(n)
     return (n < 0) and ("-" .. sepd) or sepd
 end
 
+-- The tooltip's three inline colors are the skin's, rendered to escapes when the body is built
+-- (skinning-§1; a page re-renders on a skin switch): the value white (`gtip.value`), and the owner
+-- tokens for the note's and the summary's grays, which no library token holds exactly.
 local function formatScoreTooltipDesc(explain)
     if not explain then return "" end
     local lines = {}
+    local value, noteGray = KCM.SkinEscape("gtip.value") or "", KCM.SkinEscape("cm.tipNote") or ""
     for _, s in ipairs(explain.signals or {}) do
-        local note = s.note and ("  |cff888888(" .. s.note .. ")|r") or ""
-        table.insert(lines, ("  %s: |cffffffff%s|r%s")
-            :format(s.label or "?", formatNumber(s.value or 0), note))
+        local note = s.note and ("  " .. noteGray .. "(" .. s.note .. ")|r") or ""
+        table.insert(lines, ("  %s: %s%s|r%s")
+            :format(s.label or "?", value, formatNumber(s.value or 0), note))
     end
     if explain.summary and explain.summary ~= "" then
         table.insert(lines, "")
-        table.insert(lines, "|cffaaaaaa" .. explain.summary .. "|r")
+        table.insert(lines, (KCM.SkinEscape("cm.tipSummary") or "") .. explain.summary .. "|r")
     end
     return table.concat(lines, "\n")
+end
+
+--- A settings-page warning's lead-in, in the warning orange (the owner token `cm.warn`). The key
+--- is the words alone, so a translator never carries a color escape through a translation.
+local function warnText(text)
+    return (KCM.SkinEscape("cm.warn") or "") .. text .. "|r"
 end
 
 local function afterMutation(reason)
@@ -706,10 +716,12 @@ end
 -- guard ladder is not counted against the drawing function's complexity.
 local function priorityEmptyState(cat, specKey, priority)
     if cat.specAware and not specKey then
-        return L["|cffff8800No active spec.|r Pick one in the Stat Priority page's banner to see this list."]
+        return warnText(L["No active spec."]) .. " "
+            .. L["Pick one in the Stat Priority page's banner to see this list."]
     end
     if #priority == 0 then
-        return L["|cffff8800(empty)|r — no candidates yet. Add an item or spell above, or pick up a matching item to trigger auto-discovery."]
+        return warnText(L["(empty)"]) .. " "
+            .. L["— no candidates yet. Add an item or spell above, or pick up a matching item to trigger auto-discovery."]
     end
     return nil
 end
@@ -953,7 +965,7 @@ local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
     H.Section(ctx, section.label)
     local orderArr = cfg[section.orderField] or {}
     if #orderArr == 0 then
-        H.Label(ctx, L["|cffff8800(no sub-categories)|r"], "medium")
+        H.Label(ctx, warnText(L["(no sub-categories)"]), "medium")
         return
     end
 
@@ -1095,7 +1107,8 @@ local function renderNoCategories(ctx)
     cancelReorder(ctx)
     H.ResetScroll(ctx)
     H.EnsureScroll(ctx)
-    H.Label(ctx, L["|cffff8800(no categories)|r — nothing to configure. This is a broken install; /reload, and reinstall the addon if it persists."], "medium")
+    H.Label(ctx, warnText(L["(no categories)"]) .. " "
+        .. L["— nothing to configure. This is a broken install; /reload, and reinstall the addon if it persists."], "medium")
 end
 
 local function renderMacros(ctx)

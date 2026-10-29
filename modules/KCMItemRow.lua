@@ -17,7 +17,7 @@
 local _, NS = ...
 local KCM = NS
 
-local Type, Version = "KCMItemRow", 3
+local Type, Version = "KCMItemRow", 4
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -267,6 +267,13 @@ local methods = {
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
         self:SetWidth(300)
+        -- The two strings take the skin (skinning-§1): the name in the white the
+        -- GameFontHighlight template drew (`text.highlight`), the hand tag in the gold
+        -- GameFontNormalSmall drew (`text.accent`), each in the skin's body face at the
+        -- template's size. S.Text records them, so a skin switch replays both.
+        local S = KCM.Skin
+        S.Text(self.label, "text.highlight")
+        S.Text(self.handTag, "accent")
         self:RefreshDisplay()
     end,
 

@@ -517,6 +517,7 @@ local SUITES = {
     "test_selector_pins",
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",
+    "test_skin_surfaces",
     "test_settingsui",
     "test_settingsui_category",
     "test_settingsui_optionsui",

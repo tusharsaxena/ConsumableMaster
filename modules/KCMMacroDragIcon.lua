@@ -19,7 +19,7 @@
 local _, NS = ...
 local KCM = NS
 
-local Type, Version = "KCMMacroDragIcon", 1
+local Type, Version = "KCMMacroDragIcon", 2
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -78,11 +78,16 @@ local methods = {
     ["RefreshDisplay"] = function(self)
         local idx = macroIndex(self.macroName)
         self.icon:SetTexture(macroIcon(self.macroName))
+        -- The two states' colors are the skin's (skinning-§1): a macro not made yet
+        -- in the not-yet gray (`sem.unknown`), a draggable one in the accent gold, each
+        -- through S.Text, which records the label for the skin's replay.
         if idx == 0 then
-            self.label:SetText("|cff999999" .. L["Macro not created yet"] .. "|r")
+            KCM.Skin.Text(self.label, "sem.unknown")
+            self.label:SetText(L["Macro not created yet"])
             self.frame:Disable()
         else
-            self.label:SetText("|cffffd100" .. L["Drag to action bar"] .. "|r")
+            KCM.Skin.Text(self.label, "accent")
+            self.label:SetText(L["Drag to action bar"])
             self.frame:Enable()
         end
     end,
