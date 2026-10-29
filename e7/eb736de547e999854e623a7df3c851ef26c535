@@ -1,0 +1,13 @@
+ka0s-review: ConsumableMaster skinning-rollout adoption (CM-RV..CM-05), independent review, 2026-10-29
+
+Verdict at review: not ready as-is (2 major, 2 minor). Gate at review: 1287 passed / 0 failed / 1 skipped; luacheck 0/0 in 138 files; libs/LibKa0s and tests/_kit byte-identical to v1.80.0 (icons pruned to the declaration).
+
+FIXED
+- MAJOR (CM-02) The settings surfaces ignored the Scope's "Ignore settings panel", which is on by default: S.Text always applies the skin's body face and color, and ReorderList's owner always takes the palette. Under Ka0s Default the KCM* widgets and the stat/slot rows switched Friz -> Oxanium with no DECISIONS entry. Fixed in 424279b: KCM.SkinPanelOn (Skin:GetIgnore) and SkinPanelColor/Escape/Text/Owner in core/SkinSetup.lua answer the stock look while the panel is ignored (Ka0s Default host copy, the template face after Skin:Untrack, no ReorderList owner). Every settings/ file and KCM* widget reads through them, held by a new source gate. Tests are red without the code. SKIN-6/SKIN-7 rewritten. library_gap reported: S.Text and WidgetsReorder do not honor ignorePanel.
+- MAJOR (CM-03) The HUD ignored "Ignore fonts": the count (bar and flyout) and the followed label stayed on hud.font. Fixed in e7eb736: KCM.SkinFontsIgnored. BB.ApplyCountFont records the count's own face and puts it back, and BB.LabelFace draws the stored Labels font. It is live via OnLooksChanged -> MacroBar.Update. A test in test_skin_hud.lua is red without the code. library_gap reported: Token/BarStyle hud.font does not honor ignoreFonts for host-drawn HUD text.
+
+DECLINED
+- MINOR (CM-G4) The disabled icon tint reads text.disabled with a typed DISABLED_ALPHA. An owner token cm.iconDisabled {0.5,0.5,0.5,0.5} with a follow would take the follow token's opaque value in every other skin, which drops the half alpha that marks the art disabled. That is not clearly right, so the composition stays. It now reads through KCM.SkinPanelColor and is stock under an ignored panel. Ka0s Default pixels are unchanged. Returned to the lead as a DECISIONS entry to record.
+- MINOR (CM-03) The flyout indicator shade's fallback is now the profile default {0,0,0,0.8} (StyleDefault) rather than the old INDICATOR_SHADE_DEFAULT {0,0,0,0.55}. AceDB always supplies the stored key, so nothing visible changes. There is no code change and this note records it.
+
+Gate after the fixes: 1292 passed / 0 failed / 1 skipped; luacheck 0 warnings / 0 errors in 138 files; largest touched file 595 lines.
