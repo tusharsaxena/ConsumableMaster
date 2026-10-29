@@ -1031,7 +1031,20 @@ Total.
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
 
-### test_settingsui.lua (33)
+### test_skin.lua (10)
+
+- Skin: the owner is registered at file load under the addon's folder
+- Skin: the owner tokens draw today's pixels on Ka0s Default and follow their role elsewhere
+- Skin: SkinColor keeps a call site's arity and SkinEscape its bytes
+- Skin: the degraded facade answers every name the live facade carries
+- Skin: the seam publishes the same KCM members on both paths
+- Skin: the degraded facade's Ka0s Default values are the live facade's
+- Skin: the skin rows write through the seam and move the applied skin
+- Skin: the profile's skin is applied at login and on every profile event
+- Skin: every library factory that takes an owner is handed this addon's
+- Skin: the TOC loads the seam before every frame and lists EllesmereUI as optional
+
+### test_settingsui.lua (34)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -1054,7 +1067,8 @@ Total.
 - Settings UI: with the library absent a schema WRITE completes and reports success
 - Settings UI: the degraded stub completes every page-file load, composed rows aside
 - Settings UI: Helpers reads the library's members off the instance, not off a copy
-- Settings: the General page's strip is Master controls, then Maintenance
+- Settings: the General page's strip is Master controls, Maintenance, then the Skin tab
+- Settings: the Skin tab is the library's Appearance rows, and no schema row
 - Settings: the Master controls tab draws the page's canonical rows and their tail
 - Settings: the Maintenance tab draws its three verbs and no schema row
 - Settings: the Macro Bar page keeps its seven tabs in order
@@ -1497,7 +1511,8 @@ Total.
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
-| test_settingsui.lua | 33 |
+| test_skin.lua | 10 |
+| test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_settings_layout.lua | 7 |
@@ -1518,4 +1533,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1236** |
+| **Total** | **1247** |

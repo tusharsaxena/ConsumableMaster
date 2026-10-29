@@ -37,7 +37,7 @@
 -- swaps the two (MacroBar.SwapSlots), and Reset slot order, under the list on the
 -- same tab, puts the shipped order back.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 local L = KCM.L
 local H = KCM.Settings.Helpers
@@ -1042,6 +1042,10 @@ local function newSlotList(shownCount)
         -- of row.
         stride        = SLOT_ROW_STRIDE,
         boundary      = shownCount,
+        -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2).
+        owner         = addonName,
+
         handleIcon    = KCM.Icon and KCM.Icon(SLOT_HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
         onMove        = moveSlot,

@@ -48,7 +48,7 @@
 --   seed default (Defaults_StatPriority.lua) or the class-primary fallback
 --   if no seed exists.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
@@ -617,6 +617,10 @@ local function renderSecondaries(ctx, scroll, specKey, cur)
         -- drop one gap short by the bottom of the list.
         stride   = ROW_STRIDE,
         boundary = #included,
+        -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2).
+        owner    = addonName,
+
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
         onMove   = function(from, to)

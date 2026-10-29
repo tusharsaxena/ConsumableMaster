@@ -108,6 +108,25 @@ KCM.dbDefaults = {
             },
         },
         statPriority = {}, -- [specKey] = { primary = "AGI", secondary = {...} }  -- user overrides only
+        -- The skin this addon wears (skinning-§2: per addon, per profile), applied through
+        -- core/SkinSetup.lua and written only through the schema seam (settings/General.lua's
+        -- skipRender rows; the Skin tab draws them). `source` is "ka0s" (the Ka0s skins) or "eui"
+        -- (EllesmereUI's); "ka0s"/"ka0s" is Ka0s Default. The Scope's two exceptions: a new profile
+        -- leaves the settings panel the client's and skins the fonts (LootHistory's defaults, the
+        -- owner's call of 2026-10-27). `font` and `texture` are the Skin tab's overrides, an LSM key
+        -- each, "" for the skin's own. `pickerSeen`: the first-run skin picker was closed on this
+        -- profile; false on every profile, old and new, so every player sees it once (the
+        -- rollout's O3). New keys with defaults, so AceDB merges them into every existing profile
+        -- and no migration is owed.
+        skin = {
+            source      = "ka0s",
+            skin        = "ka0s",
+            ignorePanel = true,
+            ignoreFonts = false,
+            font        = "",
+            texture     = "",
+            pickerSeen  = false,
+        },
         macroState = {},
         -- The CM-only macro bar (modules/MacroBar.lua). On and UNLOCKED out of
         -- the box so the feature is discoverable — a bar the user never sees is

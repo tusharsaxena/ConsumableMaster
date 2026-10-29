@@ -22,7 +22,7 @@
 -- Slot -> category binding is fixed at creation, so nothing here ever writes a
 -- secure attribute after the fact. Reordering only moves anchors.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 KCM.MacroBar = KCM.MacroBar or {}
 local MB = KCM.MacroBar
@@ -274,6 +274,9 @@ local function buildBar()
     -- cannot reach the position: point, relPoint, x and y have no schema row.
     local handle = Widgets and Widgets.DragHandle and Widgets.DragHandle(frame, {
         name      = BAR_NAME .. "Handle",
+        -- The skin owner (skinning-§1): this addon's folder, so the strip's fill, edge, label and
+        -- mark tints come from the skin it wears (WidgetsDragHandle minor 6).
+        owner     = addonName,
         label     = KCM.L["Consumable Master"],
         moveFrame = frame,
         -- The last rung of the mark's ladder is the widget's own, and it is the

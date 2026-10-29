@@ -940,8 +940,8 @@ test("schema: stat priority, the composite sections, slot order and visibility, 
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 79,
-            "the 68 rows there were, plus these ten, plus the Minimap button row")
+        t.eq(#KCM.Settings.Schema, 86,
+            "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's seven")
     end)
 
 test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)
@@ -1136,6 +1136,14 @@ local STORED_GUARD = {
     "macroBar.useClassColorFlyoutShade | bool | false | nil | nil | nil | ",
     "macroBar.useClassColorLabel | bool | false | nil | nil | nil | ",
     "scale | number | 1 | 0.5 | 2 | 0.05 | ",
+    -- The Skin tab's seven rows (skinning-§2/§3; CM-01 of the 2026-10-29 skinning rollout).
+    "skin.font | string |  | nil | nil | nil | ",
+    "skin.ignoreFonts | bool | false | nil | nil | nil | ",
+    "skin.ignorePanel | bool | true | nil | nil | nil | ",
+    "skin.pickerSeen | bool | false | nil | nil | nil | ",
+    "skin.skin | string | ka0s | nil | nil | nil | ka0s,obsidian,azeroth,glass,contrast,ember,wow,midnight,forever",
+    "skin.source | string | ka0s | nil | nil | nil | ka0s,eui",
+    "skin.texture | string |  | nil | nil | nil | ",
     "statPriority | map | {} | nil | nil | nil | ",
     "state.debugConsole | bool | false | nil | nil | nil | ",
     "visibility | string | always | nil | nil | nil | ",

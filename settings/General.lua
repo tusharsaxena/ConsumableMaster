@@ -349,9 +349,21 @@ H.RegisterRows(masterRows, "general", "general", {
 -- it back at LibDBIcon's default angle. The exemption is the row's `neverReset`
 -- stamp, read through the same predicate settings/OptionsSetup.lua's global-reset
 -- veto reads, so there is one register rather than a second list here.
+--
+-- The Skin tab's rows are this page's too (options-ui-§13: every tab of it), so the same walk
+-- reaches them, declared below and found by the page's `pageRows` at call time. Not
+-- `skin.pickerSeen`: it is the first-run picker's memory, drawn by no tab, and a page reset that
+-- re-armed the picker would answer a question nobody asked. The global reset still clears it.
+local pageRows = {}
+
 local function doResetGeneralPage()
     H.Bulk("reset", "General page", function()
         for _, row in ipairs(masterRows) do
+            if row.default ~= nil and not neverReset(row) then
+                H.SetAndRefresh(row.path, row.default)
+            end
+        end
+        for _, row in ipairs(pageRows) do
             if row.default ~= nil and not neverReset(row) then
                 H.SetAndRefresh(row.path, row.default)
             end
@@ -420,13 +432,104 @@ local function drawMaintenance(ctx)
     })
 end
 
+-- ---------------------------------------------------------------------
+-- The Skin tab (skinning-§3)
+-- ---------------------------------------------------------------------
+--
+-- The skin this addon wears (skinning-§2: per addon, per profile). The tab is the library's
+-- O.AppearanceTab, which draws every row below as its own choice grids, check boxes and
+-- dropdowns, so each row carries `skipRender`; they stay schema rows so the defaults resolve,
+-- the global reset reaches them, and `/cm get|set skin.skin` validates against `values`. They
+-- are the tab's group, "Appearance", the library tab's key.
+--
+-- Each apply moves ONLY its own half (core/SkinSetup.lua says why): the tab and another addon's
+-- "Copy to every Ka0s addon" call Skin:SetChoice before they write, so the write is a no-op, and a
+-- bare `/cm set` still repaints.
+local SKIN_DEFAULTS = PROFILE_DEFAULTS.skin or {}
+
+local function skinRow(spec)
+    spec.panel, spec.section, spec.page, spec.group = "general", "general", "general", "Appearance"
+    spec.skipRender = true
+    spec.default = SKIN_DEFAULTS[spec.path:match("([^.]+)$")]
+    return spec
+end
+
+local SKIN_ROWS = {
+    skinRow{
+        path = "skin.source", type = "string", values = KCM.SKIN_SOURCE_OPTIONS,
+        label = L["Skin source"],
+        tooltip = L["Where this addon's look comes from: the Ka0s skin chosen below, or EllesmereUI."],
+        apply = function(v) KCM.ApplySkinChoice(v, nil) end,
+    },
+    skinRow{
+        path = "skin.skin", type = "string", values = KCM.SKIN_OPTIONS,
+        label = L["Skin"],
+        tooltip = L["The Ka0s skin this addon wears. Changes the macro bar and every panel right away."],
+        apply = function(v) KCM.ApplySkinChoice(nil, v) end,
+    },
+    -- The Scope's two exceptions, drawn by the same tab as check boxes.
+    skinRow{
+        path = "skin.ignorePanel", type = "bool",
+        label = L["Ignore settings panel"],
+        tooltip = L["Keep this addon's settings panel in the game's own look. The macro bar still wears the skin."],
+        apply = function(v) KCM.ApplySkinIgnore(v, nil) end,
+    },
+    skinRow{
+        path = "skin.ignoreFonts", type = "bool",
+        label = L["Ignore fonts"],
+        tooltip = L["Keep every font in this addon as the game draws it. The skin still colors the text."],
+        apply = function(v) KCM.ApplySkinIgnore(nil, v) end,
+    },
+    -- The Font and texture section's two overrides, drawn by the same tab as dropdowns of
+    -- LibSharedMedia keys; "" is the skin's own. Free text rather than a `values` list: a media
+    -- pack may register its keys after this file loads, and `/cm set` takes any key.
+    skinRow{
+        path = "skin.font", type = "string",
+        label = L["Font"],
+        tooltip = L["The font this addon's text uses, over the skin's own. Empty keeps the skin's."],
+        apply = function(v) KCM.ApplySkinOverride(v, nil) end,
+    },
+    skinRow{
+        path = "skin.texture", type = "string",
+        label = L["Texture"],
+        tooltip = L["The texture this addon's bars use, over the skin's own. Empty keeps the skin's."],
+        apply = function(v) KCM.ApplySkinOverride(nil, v) end,
+    },
+    -- The first-run skin picker's memory: set when the picker closes, so it shows once per
+    -- profile. Drawn by nothing; a reset puts it back to false.
+    skinRow{
+        path = "skin.pickerSeen", type = "bool",
+        label = L["Skin picker seen"],
+        tooltip = L["Whether the first-run skin picker was closed on this profile."],
+    },
+}
+H.AddRows(SKIN_ROWS)
+for _, row in ipairs(SKIN_ROWS) do
+    if row.path ~= "skin.pickerSeen" then pageRows[#pageRows + 1] = row end
+end
+
+-- The library's own tab entry: the skin source, the nine skins, the Font and texture overrides,
+-- the Scope, "Copy to every Ka0s addon..." and the note, drawn from LibKa0s-Skin-1.0 for the
+-- owner core/SkinSetup.lua registered. `get` and `set` are that file's read and write seams, so a
+-- pick lands through KCM.Schema:Set like every other setting; the tab calls Skin:SetChoice first,
+-- so the live repaint is the library's and the rows' apply finds nothing left to do. On the
+-- degraded path the stub's entry draws nothing (the panel is never registered there).
+local APPEARANCE_TAB = H.AppearanceTab({
+    owner = KCM.Skin and KCM.Skin.owner, get = KCM.SkinChoice, set = KCM.WriteSkinChoice,
+})
+
 -- Master controls FIRST, and that is options-ui-§15's requirement rather than a habit: every addon's General
--- page must open on it, under exactly that name. It is first because it is the page's first (and
--- only) schema group and the host tab carries no `before`, so the library appends Maintenance.
+-- page must open on it, under exactly that name. It is first because it is the page's first
+-- schema group. The Skin tab is LAST (skinning-§3: before Keybindings, or last on a page that has
+-- none, as this one has none): its entry takes the place of its group, "Appearance", which is
+-- declared after Master controls, so Maintenance names it as `before` to sit between the two.
 local AFTER_GROUP = { ["Master controls"] = masterTail }
 local TAB_OPTS = {
     tabs = {
-        { key = "Maintenance", label = L["Maintenance"], render = drawMaintenance },
+        { key = "Maintenance", label = L["Maintenance"], render = drawMaintenance,
+          before = APPEARANCE_TAB.key },
+        { key = APPEARANCE_TAB.key, label = APPEARANCE_TAB.label, tooltip = APPEARANCE_TAB.tooltip,
+          render = APPEARANCE_TAB.render },
     },
 }
 

@@ -9,7 +9,7 @@
 # directly, so folding it into ConsumableMasterDB would stamp its keys onto
 # AceDB's root and trip AceDB's own discard branch on the next load.
 ## SavedVariables: ConsumableMasterDB, ConsumableMasterPerfDB
-## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0, EllesmereUI
 ## DefaultState: enabled
 ## Category-enUS: Combat
 ## X-License: MIT
@@ -99,6 +99,14 @@ core\Constants.lua
 # core\SlashCommands.lua, which each take the printer as a file-scope upvalue
 # (`local say = KCM.Say`); loaded above CoreSetup, either would capture nil.
 core\CoreSetup.lua
+# SkinSetup is the LibKa0s-Skin-1.0 seam (skinning-§1/§3): it registers this addon
+# as a skin owner and publishes KCM.Skin and the Skin tab's two option lists. THE
+# POSITION IS LOAD-BEARING: it registers at FILE LOAD so the EllesmereUI provider
+# can offer the owner before EllesmereUI dispatches its skins, and every file that
+# builds a frame (the launcher, the debug console, the macro bar, the settings
+# pages) and settings\General.lua, which reads the option lists at load, come
+# after it. Below core\CoreSetup.lua, whose KCM.Say its reload line prints through.
+core\SkinSetup.lua
 core\Compat.lua
 # EnvSetup reads this addon's own TOC manifest through LibKa0s-Env-1.0 (the
 # `/cm version` banner and the About page's notes). Position is conventional --

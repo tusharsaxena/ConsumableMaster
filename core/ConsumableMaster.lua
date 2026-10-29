@@ -41,6 +41,12 @@ function KCM:OnInitialize()
         KCM.Database.RunMigrations()
     end
 
+    -- The skin the active profile names (core/SkinSetup.lua), right after the store exists and
+    -- its migrations ran: the owner registered at file load, before AceDB, and has worn Ka0s
+    -- Default since. Before the launcher, the macro bar or any settings page is built, so the
+    -- first paint is already the profile's skin (skinning-§2).
+    if KCM.ApplySkinChoice then KCM.ApplySkinChoice() end
+
     -- THE `disabled` HOLD, TAKEN FROM THE STORED PATH, and taken HERE because
     -- this is the first moment the path can be read: AceDB built the profile one
     -- line above. It is not a special case -- it is the same call the checkbox
@@ -605,6 +611,12 @@ function KCM.RegisterProfileCallbacks(target)
             if KCM.Database and KCM.Database.RunMigrations then
                 KCM.Database.RunMigrations()
             end
+            -- The new profile's skin (skinning-§2: a switch, copy or reset re-applies the
+            -- choice), after its migrations and before anything rebuilds against it.
+            -- Skin:SetChoice repaints every recorded frame and fires OnLooksChanged whether or
+            -- not the macro bar or a page was ever built, and it is idempotent, so a profile that
+            -- names the skin already worn repaints nothing.
+            if KCM.ApplySkinChoice then KCM.ApplySkinChoice() end
             if FORGETS_FINGERPRINTS[event] and KCM.MacroManager and KCM.MacroManager.InvalidateState then
                 KCM.MacroManager.InvalidateState()
             end
