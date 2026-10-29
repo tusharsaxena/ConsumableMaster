@@ -119,6 +119,11 @@ KCM.SKIN_FALLBACK = {
     -- The GameTooltip lines this addon writes (skinning-§7: the lines, never the frame).
     ["gtip.title"]     = { 1, 0.82, 0, 1 },
     ["gtip.value"]     = { 1, 1, 1, 1 },
+    -- The macro bar (CM-03): the unlocked bar's gold wash and the flyout indicator's arrow tint.
+    -- The HUD's border styles and faces are strings this table does not carry: degraded, the bar
+    -- draws the player's stored picks (modules/MacroBarButton.lua's BB.Follow).
+    ["menu.hover"]     = { 1, 0.82, 0, 0.15 },
+    ["icon.arrow"]     = { 1, 0.82, 0, 1 },
 }
 for name, def in pairs(KCM.SKIN_TOKENS) do KCM.SKIN_FALLBACK[name] = def.default end
 

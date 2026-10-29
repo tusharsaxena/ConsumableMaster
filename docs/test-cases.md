@@ -1046,7 +1046,7 @@ Total.
 
 ### test_skin_surfaces.lua (8)
 
-- Skin surfaces: no color literal outside the seam, the pending HUD and the allow-list
+- Skin surfaces: no color literal outside the seam and the allow-list
 - Skin surfaces: every allow-list entry carries its reason
 - Skin surfaces: the literal gate is falsifiable
 - Skin surfaces: the escapes built from tokens keep Ka0s Default's bytes
@@ -1054,6 +1054,22 @@ Total.
 - Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time
 - Skin surfaces: the item row's name and hand tag take the skin's text
 - Skin surfaces: the score button's disabled art is the skin's disabled gray
+
+### test_skin_hud.lua (13)
+
+- Skin HUD: the buttons' border follows the skin's icon family while its companion is on
+- Skin HUD: a border style of None hides the button edge
+- Skin HUD: the flyout panel's edge follows the skin's bar border style
+- Skin HUD: the label and count faces are the skin's HUD font
+- Skin HUD: another skin's icon border reaches the buttons
+- Skin HUD: the flyout arrow takes icon.arrow
+- Skin HUD: the unlocked wash is menu.hover and a skin switch repaints the bar
+- Skin HUD: the three companions are composed rows, on by default, governing their pickers
+- Skin HUD: the v4 step puts the HUD style back on the skin and keeps the picks
+- Skin HUD: the reset runs once, and a later pick is kept
+- Skin HUD: the reset writes no sentinel into a raw profile
+- Skin HUD: the reset runs without the library too
+- Skin HUD: without the library the bar draws the player's stored style
 
 ### test_settingsui.lua (34)
 
@@ -1524,6 +1540,7 @@ Total.
 | test_selector_pins.lua | 9 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 8 |
+| test_skin_hud.lua | 13 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
@@ -1545,4 +1562,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1255** |
+| **Total** | **1268** |

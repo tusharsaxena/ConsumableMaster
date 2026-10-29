@@ -18,9 +18,9 @@
 --      substring the offending line carries, and why it is not chrome; an entry that matches
 --      nothing fails, so the list cannot outlive what it excuses.
 --
---      THE HUD IS NOT YET IN SCOPE. The macro bar's three files paint the player's HUD style
---      settings and become skin reads in CM-03 (S.Resolve, the fromSkin companions, the one-time
---      reset); HUD_PENDING holds them out until then, and CM-03 empties it.
+--      THE HUD IS IN SCOPE since CM-03: the macro bar's three files read the skin's HUD style
+--      through BB.Follow and their color fallbacks from defaults/Profile.lua, so they are scanned
+--      like every other file. tests/test_skin_hud.lua pins what they draw.
 --
 --   2. THE CUSTOM WIDGETS PAINT THEMSELVES. No library painter knows KCMIconButton, KCMItemRow or
 --      the score button, so each reads its colors from KCM.Skin: built under the kit's paint
@@ -33,12 +33,6 @@ local test = h.test
 local ROOT = _G.KCM_TEST_ROOT or "."
 local OWNER = "ConsumableMaster"
 local SEAM = "core/SkinSetup.lua"
-
-local HUD_PENDING = {
-    ["modules/MacroBar.lua"] = true,
-    ["modules/MacroBarButton.lua"] = true,
-    ["modules/MacroBarFlyout.lua"] = true,
-}
 
 -- call name -> the argument positions that hold color components.
 local COLOR_ARGS = {
@@ -134,7 +128,7 @@ local function trackedSources(t)
     local files = {}
     if p then
         for path in p:lines() do
-            if path ~= SEAM and not HUD_PENDING[path] then files[#files + 1] = path end
+            if path ~= SEAM then files[#files + 1] = path end
         end
         p:close()
     end
@@ -152,7 +146,7 @@ end
 
 -- red under: a color typed at a call site (anti-pattern #107), or an allow-list entry that outlived
 -- the literal it excused.
-test("Skin surfaces: no color literal outside the seam, the pending HUD and the allow-list", function(t)
+test("Skin surfaces: no color literal outside the seam and the allow-list", function(t)
     local bad, used = {}, {}
     for _, path in ipairs(trackedSources(t)) do
         for _, hit in ipairs(scan(readAll(path))) do
@@ -210,7 +204,7 @@ test("Skin surfaces: the degraded facade answers every token the surfaces read",
     local missing = {}
     for _, name in ipairs({ "text.accent", "text.disabled", "text.highlight", "sem.unknown",
                             "gtip.title", "gtip.value", "cm.iconHover", "cm.warn", "cm.tipNote",
-                            "cm.tipSummary" }) do
+                            "cm.tipSummary", "menu.hover", "icon.arrow" }) do
         if degraded.Skin.Color(name) == nil then missing[#missing + 1] = name end
     end
     t.eq(table.concat(missing, ", "), "", "every token a converted surface reads has a host value")

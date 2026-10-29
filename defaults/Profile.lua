@@ -183,6 +183,16 @@ KCM.dbDefaults = {
             barBorderSize       = 4,
             barBorderColor      = { 0.25, 0.25, 0.25, 1 },
             useClassColorBarBorder = false,
+            -- The three HUD style companions (skinning-§6, the composer's
+            -- `fromSkin`; CM-03): while on, the style is the skin's and its
+            -- picker shows the skin's value. TRUE by default (the rollout's
+            -- X3), so a new or reset profile follows the skin exactly as an
+            -- existing one does after core/Database.lua's one-time v4 reset
+            -- (O2). Only border styles and the label face follow (X4); every
+            -- color, size, flag and offset here stays the player's. The
+            -- buttons follow the skin's ICON border family, which governs the
+            -- thickness too (`buttonBorderSize` is not read while it is on).
+            barBorderStyleFromSkin = true,
             buttonBackdrop      = true,
             buttonBackdropColor = { 0, 0, 0, 0.6 },
             useClassColorButtonBackdrop = false,
@@ -192,6 +202,7 @@ KCM.dbDefaults = {
             buttonBorderOffset  = 2,
             buttonBorderColor   = { 1, 1, 1, 1 },
             useClassColorButtonBorder = false,
+            buttonBorderStyleFromSkin = true,
             iconZoom            = 8,     -- % crop per side; trims the icon's own dark edge
             showCount           = true,
             tooltips            = true,
@@ -221,6 +232,7 @@ KCM.dbDefaults = {
             labelShadow    = false,
             labelColor     = { 1, 0.82, 0, 1 },
             useClassColorLabel = false,
+            labelFontFromSkin  = true,
             -- Hover flyout (modules/MacroBarFlyout.lua). On by default.
             -- `flyoutPoint` sets BOTH the indicator's edge and the direction the
             -- flyout grows; entry 1 (the top-ranked candidate) always sits

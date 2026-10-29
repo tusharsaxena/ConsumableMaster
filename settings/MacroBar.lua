@@ -296,7 +296,11 @@ block(H.BorderGroup{
         borderSize          = BAR_DEFAULTS.barBorderSize,
         borderColor         = BAR_DEFAULTS.barBorderColor,
         useClassColorBorder = BAR_DEFAULTS.useClassColorBarBorder,
+        borderStyleFromSkin = BAR_DEFAULTS.barBorderStyleFromSkin,
     },
+    -- `macroBar.barBorderStyleFromSkin` (CM-03): the bar's and the flyout's edge
+    -- follow the skin's `bar.borderStyle`, the thickness stays the player's.
+    fromSkin = true,
     classColor = { source = "player" },
 }, {
     ["macroBar.barBorderStyle"] = {
@@ -353,7 +357,12 @@ block(H.BorderGroup{
         borderSize          = BAR_DEFAULTS.buttonBorderSize,
         borderColor         = BAR_DEFAULTS.buttonBorderColor,
         useClassColorBorder = BAR_DEFAULTS.useClassColorButtonBorder,
+        borderStyleFromSkin = BAR_DEFAULTS.buttonBorderStyleFromSkin,
     },
+    -- `macroBar.buttonBorderStyleFromSkin` (CM-03): the buttons are icons, so
+    -- they follow the skin's ICON border family (`icon.borderStyle` and
+    -- `icon.borderSize`), which governs the thickness slider as well.
+    fromSkin = "icon",
     classColor = { source = "player" },
     extra = {
         {
@@ -472,7 +481,11 @@ block(H.FontGroup{
         useClassColorFont = BAR_DEFAULTS.useClassColorLabel,
         fontFlags         = BAR_DEFAULTS.labelFlags,
         fontShadow        = BAR_DEFAULTS.labelShadow,
+        fontFromSkin      = BAR_DEFAULTS.labelFontFromSkin,
     },
+    -- `macroBar.labelFontFromSkin` (CM-03): the labels' face follows the skin's
+    -- `hud.font`; the size, flags, shadow and color stay the player's.
+    fromSkin = true,
     classColor = { source = "player" },
 }, {
     ["macroBar.labelFont"] = {

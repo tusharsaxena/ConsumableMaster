@@ -5,7 +5,7 @@ local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.Database.CURRENT_SCHEMA, 3, "current schema is v3")
+    t.eq(KCM.Database.CURRENT_SCHEMA, 4, "current schema is v4")
 end)
 
 test("Database.RunMigrations stamps a fresh account at the current schema", function(t)

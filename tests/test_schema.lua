@@ -513,9 +513,12 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
         -- Button appearance 13 -> 12, Visibility gone, still 64 rows in all.
         { "General",           6  },
         { "Layout",            8  },
-        { "Bar appearance",    8  },
-        { "Button appearance", 12 },
-        { "Labels",            12 },
+        -- CM-03 (the skinning rollout) gave each of the three HUD style blocks its
+        -- composed "follow the skin" companion: Bar appearance 8 -> 9, Button
+        -- appearance 12 -> 13, Labels 12 -> 13.
+        { "Bar appearance",    9  },
+        { "Button appearance", 13 },
+        { "Labels",            13 },
         { "Flyout",            16 },
         { "Buttons",           2  },
     }
@@ -743,8 +746,13 @@ test("schema: every color row is followed by its class-color companion", functio
             t.eq(companion and companion.classColorSource, "player",
                 "…and its companion agrees")
         end
-        t.eq(row.disabledIf, nil,
-            "row '" .. tostring(row.path) .. "' carries no disabledIf (anti-patterns #74)")
+        -- A COLOR row only: anti-pattern #74 is the swatch's. A media picker the
+        -- skin governs is disabled by its `<key>FromSkin` companion on purpose
+        -- (OptionsCompose's `fromSkin`, CM-03): while it is on, the picker is not read.
+        if row.type == "color" then
+            t.eq(row.disabledIf, nil,
+                "color row '" .. tostring(row.path) .. "' carries no disabledIf (anti-patterns #74)")
+        end
     end
     t.truthy(colors >= 7, "the addon still declares its seven swatches (" .. colors .. ")")
 end)
@@ -940,8 +948,9 @@ test("schema: stat priority, the composite sections, slot order and visibility, 
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 86,
-            "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's seven")
+        t.eq(#KCM.Settings.Schema, 89,
+            "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's seven, "
+            .. "plus the macro bar's three HUD style companions")
     end)
 
 test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)
@@ -1077,6 +1086,7 @@ local STORED_GUARD = {
     "macroBar.barBorderColor | color | {1=0.25,2=0.25,3=0.25,4=1} | nil | nil | nil | ",
     "macroBar.barBorderSize | number | 4 | 1 | 16 | 1 | ",
     "macroBar.barBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",
+    "macroBar.barBorderStyleFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdrop | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdropColor | color | {1=0,2=0,3=0,4=0.6} | nil | nil | nil | ",
     "macroBar.buttonBorder | bool | true | nil | nil | nil | ",
@@ -1084,6 +1094,7 @@ local STORED_GUARD = {
     "macroBar.buttonBorderOffset | number | 2 | 0 | 16 | 1 | ",
     "macroBar.buttonBorderSize | number | 4 | 1 | 16 | 1 | ",
     "macroBar.buttonBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",
+    "macroBar.buttonBorderStyleFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.buttonLabel | bool | true | nil | nil | nil | ",
     "macroBar.buttonSize | number | 36 | 16 | 64 | 1 | ",
     "macroBar.combatMode | string | ALWAYS | nil | nil | nil | ALWAYS,HIDE_IN_COMBAT,ONLY_IN_COMBAT",
@@ -1110,6 +1121,7 @@ local STORED_GUARD = {
     "macroBar.labelColor | color | {1=1,2=0.82,3=0,4=1} | nil | nil | nil | ",
     "macroBar.labelFlags | string | OUTLINE | nil | nil | nil | ",
     "macroBar.labelFont | string | Friz Quadrata TT | nil | nil | nil | ",
+    "macroBar.labelFontFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.labelOffsetX | number | 0 | -20 | 20 | 1 | ",
     "macroBar.labelOffsetY | number | 3 | -20 | 20 | 1 | ",
     "macroBar.labelPlacement | string | OUTSIDE | nil | nil | nil | INSIDE,OUTSIDE",
