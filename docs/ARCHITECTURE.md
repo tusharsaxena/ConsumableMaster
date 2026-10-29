@@ -326,8 +326,9 @@ the HUD are this addon's.
   exact pixel and follows its library role in every other skin (DECISIONS X1, X2, X12; gaps CM-G1 to
   CM-G3). It publishes `KCM.Skin`, the owner's facade every surface reads, `KCM.SkinColor` /
   `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
-  the four settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
-  `SkinPanelText` / `SkinPanelOwner` (below), the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
+  the settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
+  `SkinPanelText` / `SkinPanelOwner` (below), `KCM.SkinFontsIgnored` (the macro bar's count and
+  label faces ask it), the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
   `KCM.SkinPaintAceTree`, and the picker's three functions ([module-map.md](./module-map.md)).
   Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from
   `KCM.SKIN_FALLBACK`, and `tests/test_skin.lua` holds each entry to the live facade's answer.
