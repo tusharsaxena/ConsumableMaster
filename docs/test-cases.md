@@ -1031,7 +1031,77 @@ Total.
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
 
-### test_settingsui.lua (33)
+### test_skin.lua (10)
+
+- Skin: the owner is registered at file load under the addon's folder
+- Skin: the owner tokens draw today's pixels on Ka0s Default and follow their role elsewhere
+- Skin: SkinColor keeps a call site's arity and SkinEscape its bytes
+- Skin: the degraded facade answers every name the live facade carries
+- Skin: the seam publishes the same KCM members on both paths
+- Skin: the degraded facade's Ka0s Default values are the live facade's
+- Skin: the skin rows write through the seam and move the applied skin
+- Skin: the profile's skin is applied at login and on every profile event
+- Skin: every library factory that takes an owner is handed this addon's
+- Skin: the TOC loads the seam before every frame and lists EllesmereUI as optional
+
+### test_skin_surfaces.lua (12)
+
+- Skin surfaces: no color literal outside the seam and the allow-list
+- Skin surfaces: every allow-list entry carries its reason
+- Skin surfaces: the literal gate is falsifiable
+- Skin surfaces: the escapes built from tokens keep Ka0s Default's bytes
+- Skin surfaces: the degraded facade answers every token the surfaces read
+- Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time
+- Skin surfaces: the item row's name and hand tag take the skin's text
+- Skin surfaces: the score button's disabled art is the skin's disabled gray
+- Skin surfaces: the panel helpers answer the stock look while the panel is ignored
+- Skin surfaces: the item row stays stock while the panel is ignored
+- Skin surfaces: the icon and score buttons stay stock while the panel is ignored
+- Skin surfaces: the settings surfaces read the skin only through the panel helpers
+
+### test_skin_hud.lua (14)
+
+- Skin HUD: the buttons' border follows the skin's icon family while its companion is on
+- Skin HUD: a border style of None hides the button edge
+- Skin HUD: the flyout panel's edge follows the skin's bar border style
+- Skin HUD: the label and count faces are the skin's HUD font
+- Skin HUD: Ignore fonts puts the count and label back on their own faces, live
+- Skin HUD: another skin's icon border reaches the buttons
+- Skin HUD: the flyout arrow takes icon.arrow
+- Skin HUD: the unlocked wash is menu.hover and a skin switch repaints the bar
+- Skin HUD: the three companions are composed rows, on by default, governing their pickers
+- Skin HUD: the v4 step puts the HUD style back on the skin and keeps the picks
+- Skin HUD: the reset runs once, and a later pick is kept
+- Skin HUD: the reset writes no sentinel into a raw profile
+- Skin HUD: the reset runs without the library too
+- Skin HUD: without the library the bar draws the player's stored style
+
+### test_skin_picker.lua (10)
+
+- Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
+- Skin picker: the spec names this owner, its seams, the General page's Skin tab and no eye
+- Skin picker: an unseen profile shows it; a seen one does not
+- Skin picker: it is offered once per session, two seconds after the first entering-world
+- Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once
+- Skin picker: a stood-down addon shows nothing and drops a held start
+- Skin picker: a profile event takes it down first and shows it for a profile that has not seen it
+- Skin picker: the player's close marks it seen; this addon's own take-down does not
+- Skin picker: the stand-down takes a shown picker down, unseen
+- Skin picker: degraded, every member answers and nothing shows
+
+### test_skin_settings.lua (9)
+
+- Skin settings: every AceGUI widget a settings file acquires goes through KCM.SkinAcquire
+- Skin settings: under a non-default skin an acquired widget is painted, past the proxy
+- Skin settings: under Ka0s Default the acquired widgets paint like every skin's
+- Skin settings: with Ignore settings panel on, the default, nothing is painted
+- Skin settings: a rendered page's own widgets are painted for this owner
+- Skin settings: the Profiles page paints the tree AceConfigDialog drew, and redraws on a skin change
+- Skin settings: the debug console and the perf panel are handed the folder as their owner
+- Skin settings: the live debug console is painted for this owner
+- Skin settings: degraded, SkinAcquire paints nothing and a host release still runs
+
+### test_settingsui.lua (34)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
 - Settings UI: the live wiring registers the Border fixup through the library
@@ -1054,7 +1124,8 @@ Total.
 - Settings UI: with the library absent a schema WRITE completes and reports success
 - Settings UI: the degraded stub completes every page-file load, composed rows aside
 - Settings UI: Helpers reads the library's members off the instance, not off a copy
-- Settings: the General page's strip is Master controls, then Maintenance
+- Settings: the General page's strip is Master controls, Maintenance, then the Skin tab
+- Settings: the Skin tab is the library's Appearance rows, and no schema row
 - Settings: the Master controls tab draws the page's canonical rows and their tail
 - Settings: the Maintenance tab draws its three verbs and no schema row
 - Settings: the Macro Bar page keeps its seven tabs in order
@@ -1497,7 +1568,12 @@ Total.
 | test_schema_adoption.lua | 13 |
 | test_selector.lua | 58 |
 | test_selector_pins.lua | 9 |
-| test_settingsui.lua | 33 |
+| test_skin.lua | 10 |
+| test_skin_surfaces.lua | 12 |
+| test_skin_hud.lua | 14 |
+| test_skin_picker.lua | 10 |
+| test_skin_settings.lua | 9 |
+| test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 21 |
 | test_settings_layout.lua | 7 |
@@ -1518,4 +1594,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1236** |
+| **Total** | **1292** |

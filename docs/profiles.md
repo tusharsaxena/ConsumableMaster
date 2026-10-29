@@ -22,6 +22,7 @@ Everything the player can set lives in `db.profile`, so a profile carries all of
 | `categories` | Every category's added / blocked / pinned / discovered sets (per spec for the four spec-aware ones), each composite's enabled flags and two section orders, and Battle Rez's mouseover flag |
 | `statPriority` | Every spec's stat order |
 | `macroBar` | Every Macro Bar setting, the slot order and shown set, and the drag-set position |
+| `skin` | The skin this addon wears (the source, the skin, the Scope, the Font and Texture overrides) and whether this profile has closed the first-run skin picker |
 | `macroState` | The macro fingerprint cache — learned data, not a setting, but per profile all the same |
 
 Three things are deliberately **not** in a profile, and none of them moves when one does:
@@ -45,7 +46,7 @@ profile's picks, which is why a profile act always ends in a full rewrite (below
 which `AceConfigDialog` renders **AceDBOptions'** own options table: create, switch, copy, reset and
 delete, plus the per-character / per-class / per-realm / per-faction / default scope choices.
 
-Five decisions in that file are deliberate:
+Six decisions in that file are deliberate:
 
 - **It is the one place AceConfig is used** (`options-ui-§3`, `library-stack-§2`). Every other page
   is drawn by this addon from `KCM.Settings.Schema`. The options table here is Ace's, not the addon's,
@@ -65,6 +66,11 @@ Five decisions in that file are deliberate:
   the renderer draws once per `PROFILE_CHANGED`, counted: at once if the page is on screen, on its
   next show if not (`Helpers.RefreshPanel`). A change made *on* the page needs nothing, because
   AceConfigDialog re-opens its container after every control it activates.
+- **Painted for the skin.** AceConfigDialog acquires its widgets from AceGUI itself, past every
+  handle this addon paints through, so the tree is painted after every Open
+  (`KCM.SkinPaintAceTree`; nothing while *Ignore settings panel* is on). AceGUI rows are never
+  repainted in place, so a skin change (`KCM.Skin.OnLooksChanged`) is the renderer's one other
+  reason to draw again.
 - **No tab strip, and last in the sidebar.** It carries no schema rows, so there is nothing for a
   strip to partition. It is one of the two pages `options-ui-§13` exempts, the landing page being the
   other. `KCM.Settings.order` names it last, and the TOC loads its file last.
@@ -109,17 +115,23 @@ db.RegisterCallback(target, "OnProfileCopied",  reload("profile_copied"))
 db.RegisterCallback(target, "OnProfileReset",   reload("profile_reset"))
 ```
 
-It runs five steps, in this order:
+It runs seven steps, in this order:
 
 1. **The act's one log line** (below).
-2. **The migrations** (`KCM.Database.RunMigrations`), for an incoming profile an older build wrote.
+2. **The first-run skin picker comes down, quietly** (`KCM.HideSkinPicker`): a showing belongs to
+   the profile it opened on, and taking it down puts back a pending preview. Then the latch is
+   re-evaluated, because the incoming profile can carry a different `enabled`.
+3. **The migrations** (`KCM.Database.RunMigrations`), for an incoming profile an older build wrote.
    Each profile carries its own `schemaVersion`, so a profile arriving for the first time under this
    build is walked forward on arrival ([schema.md](schema.md#migrations)). That is how the
    profile-scoped steps reach every profile rather than only the one live at the upgrade login.
-3. **On a switch or a copy, the macro fingerprints are forgotten** (`MacroManager.InvalidateState`).
-4. **The resync** (`afterReset`): tooltip cache invalidated, the bags re-read, and every category
+4. **The incoming profile's skin** (`KCM.ApplySkinChoice`), then the first-run picker
+   (`KCM.MaybeShowSkinPicker`): a new or reset profile starts with `skin.pickerSeen` false, so it
+   shows; one that has closed it stays down, and so does a profile with the addon switched off.
+5. **On a switch or a copy, the macro fingerprints are forgotten** (`MacroManager.InvalidateState`).
+6. **The resync** (`afterReset`): tooltip cache invalidated, the bags re-read, and every category
    recomputed and its macro rewritten against the incoming profile.
-5. **`PROFILE_CHANGED` on the bus.** It is the message this addon's surfaces rebuild off
+7. **`PROFILE_CHANGED` on the bus.** It is the message this addon's surfaces rebuild off
    (`options-ui-§12`), and it is sent after the resync so the bar re-applies itself against macros
    that already carry the incoming profile's bodies.
 

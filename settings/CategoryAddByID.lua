@@ -70,7 +70,7 @@ local function spellNameByID(id)
 end
 
 local function makeDropdown(parent, opts)
-    local dd = AceGUI:Create("Dropdown")
+    local dd = KCM.SkinAcquire(AceGUI, "Dropdown")
     if opts.label then dd:SetLabel(opts.label) end
     dd:SetList(opts.values or {}, opts.sorting)
     if opts.relativeWidth then dd:SetRelativeWidth(opts.relativeWidth)

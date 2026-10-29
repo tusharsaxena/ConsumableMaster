@@ -417,6 +417,7 @@ local function bindEntry(btn, id, cfg, size)
     KCM.MacroBarButton.ApplyIconZoom(btn.icon, cfg)
 
     applyEntryCount(btn, id, cfg)
+    KCM.MacroBarButton.ApplyCountFont(btn.count)
 
     FO.RefreshCooldown(btn)
 
@@ -440,20 +441,16 @@ end
 -- same icons. The panel of the container is what says "this is a popup". Border
 -- style / thickness / color are shared with the BAR's own frame so the two read
 -- as one design, with only the fill color separate.
-local FLYOUT_FILL_DEFAULT     = { 0, 0, 0, 0.85 }
-local BAR_BORDER_DEFAULT      = { 0.25, 0.25, 0.25, 1 }
-local INDICATOR_SHADE_DEFAULT = { 0, 0, 0, 0.55 }
-local EMPTY_COLOR             = {}
-
--- Unpack a saved {r,g,b,a} over its default, component by component. A stored color may be
--- absent entirely or short a component, and each missing slot falls back on its own.
 -- A stored swatch resolved through its "use class color" companion
--- (options-ui-§17), with this surface's own four-channel fallback. The resolver
--- is the addon's one (core/CoreSetup.lua); the flyout's border deliberately
--- reads the BAR's swatch and the bar's companion, because it is drawn in the
--- bar's border style and always has been.
-local function swatch(stored, useClass, default)
-    default = default or EMPTY_COLOR
+-- (options-ui-§17), over the setting's own shipped default (defaults/Profile.lua,
+-- read through MacroBarButton.StyleDefault, never re-typed here) component by
+-- component: a stored color may be absent entirely or short a component, and
+-- each missing slot falls back on its own. The resolver is the addon's one
+-- (core/CoreSetup.lua); the flyout's border deliberately reads the BAR's swatch
+-- and the bar's companion, because it is drawn in the bar's border style and
+-- always has been. Every one of these colors is the player's (the rollout's X4).
+local function swatch(stored, useClass, key)
+    local default = KCM.MacroBarButton.StyleDefault(key)
     return KCM.SwatchColor(stored, useClass,
         default[1], default[2], default[3], default[4])
 end
@@ -465,19 +462,20 @@ function FO.ApplyBackdrop(flyout, cfg)
         bg:SetBackdrop(nil)
         return
     end
-    local edge
-    if KCM.MacroBarButton and KCM.MacroBarButton.BorderTexture then
-        edge = KCM.MacroBarButton.BorderTexture(cfg.barBorderStyle)
-    end
+    -- The bar's border style, so the skin's `bar.borderStyle` while the bar's
+    -- companion is on (CM-03); "None" draws no edge.
+    local BB = KCM.MacroBarButton
+    local edge = BB.EdgeFile(BB.Follow("bar.borderStyle", cfg.barBorderStyle,
+        cfg.barBorderStyleFromSkin))
     bg:SetBackdrop({
         bgFile   = BACKDROP_TEX,
         edgeFile = edge,
         edgeSize = math.max(1, tonumber(cfg.barBorderSize) or 4),
     })
     bg:SetBackdropColor(swatch(cfg.flyoutBackdropColor,
-        cfg.useClassColorFlyoutBackdrop, FLYOUT_FILL_DEFAULT))
+        cfg.useClassColorFlyoutBackdrop, "flyoutBackdropColor"))
     bg:SetBackdropBorderColor(swatch(cfg.barBorderColor,
-        cfg.useClassColorBarBorder, BAR_BORDER_DEFAULT))
+        cfg.useClassColorBarBorder, "barBorderColor"))
 end
 
 function FO.RefreshCooldown(btn)
@@ -515,7 +513,10 @@ local function applyIndicator(button, cfg)
     ind:SetSize(w, h)
     ind:SetFrameLevel(button:GetFrameLevel() + LEVEL.INDICATOR)
     ind.shade:SetColorTexture(swatch(cfg.flyoutShadeColor,
-        cfg.useClassColorFlyoutShade, INDICATOR_SHADE_DEFAULT))
+        cfg.useClassColorFlyoutShade, "flyoutShadeColor"))
+    -- The arrow is in-client art, tinted by the skin's `icon.arrow` (the
+    -- inventory's D9; a smoke check, since the tint multiplies the art).
+    ind.arrow:SetVertexColor(KCM.SkinColor("icon.arrow"))
     ind.arrow:SetSize(glyph, glyph)
     ind.arrow:SetRotation(rotation)
     ind:Show()

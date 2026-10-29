@@ -515,6 +515,12 @@ local SUITES = {
     "test_schema_adoption",
     "test_selector",
     "test_selector_pins",
+    -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
+    "test_skin",
+    "test_skin_surfaces",
+    "test_skin_hud",
+    "test_skin_picker",
+    "test_skin_settings",
     "test_settingsui",
     "test_settingsui_category",
     "test_settingsui_optionsui",
@@ -532,8 +538,8 @@ local SUITES = {
     "test_weaponslots",
     "test_widgets",
     -- The kit's own gates, each declared by the pair (basename, kit directory) in the
-    -- literal form testing-§9 prescribes; the kit (revision 42, as vendored from
-    -- LibKa0s v1.77.0; since revision 25) resolves the relative `dir` against the
+    -- literal form testing-§9 prescribes; the kit (revision 44, as vendored from
+    -- LibKa0s v1.80.0; since revision 25) resolves the relative `dir` against the
     -- runner's root, so an invocation by path still finds them. A bare
     -- name wires tests/<name>.lua and says nothing about tests/_kit/<name>.lua, and the
     -- inventory fails the run on any kit suite left undeclared, so a gate cannot arrive

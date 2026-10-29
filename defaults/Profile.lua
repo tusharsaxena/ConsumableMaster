@@ -108,6 +108,25 @@ KCM.dbDefaults = {
             },
         },
         statPriority = {}, -- [specKey] = { primary = "AGI", secondary = {...} }  -- user overrides only
+        -- The skin this addon wears (skinning-§2: per addon, per profile), applied through
+        -- core/SkinSetup.lua and written only through the schema seam (settings/General.lua's
+        -- skipRender rows; the Skin tab draws them). `source` is "ka0s" (the Ka0s skins) or "eui"
+        -- (EllesmereUI's); "ka0s"/"ka0s" is Ka0s Default. The Scope's two exceptions: a new profile
+        -- leaves the settings panel the client's and skins the fonts (LootHistory's defaults, the
+        -- owner's call of 2026-10-27). `font` and `texture` are the Skin tab's overrides, an LSM key
+        -- each, "" for the skin's own. `pickerSeen`: the first-run skin picker was closed on this
+        -- profile; false on every profile, old and new, so every player sees it once (the
+        -- rollout's O3). New keys with defaults, so AceDB merges them into every existing profile
+        -- and no migration is owed.
+        skin = {
+            source      = "ka0s",
+            skin        = "ka0s",
+            ignorePanel = true,
+            ignoreFonts = false,
+            font        = "",
+            texture     = "",
+            pickerSeen  = false,
+        },
         macroState = {},
         -- The CM-only macro bar (modules/MacroBar.lua). On and UNLOCKED out of
         -- the box so the feature is discoverable — a bar the user never sees is
@@ -164,6 +183,16 @@ KCM.dbDefaults = {
             barBorderSize       = 4,
             barBorderColor      = { 0.25, 0.25, 0.25, 1 },
             useClassColorBarBorder = false,
+            -- The three HUD style companions (skinning-§6, the composer's
+            -- `fromSkin`; CM-03): while on, the style is the skin's and its
+            -- picker shows the skin's value. TRUE by default (the rollout's
+            -- X3), so a new or reset profile follows the skin exactly as an
+            -- existing one does after core/Database.lua's one-time v4 reset
+            -- (O2). Only border styles and the label face follow (X4); every
+            -- color, size, flag and offset here stays the player's. The
+            -- buttons follow the skin's ICON border family, which governs the
+            -- thickness too (`buttonBorderSize` is not read while it is on).
+            barBorderStyleFromSkin = true,
             buttonBackdrop      = true,
             buttonBackdropColor = { 0, 0, 0, 0.6 },
             useClassColorButtonBackdrop = false,
@@ -173,6 +202,7 @@ KCM.dbDefaults = {
             buttonBorderOffset  = 2,
             buttonBorderColor   = { 1, 1, 1, 1 },
             useClassColorButtonBorder = false,
+            buttonBorderStyleFromSkin = true,
             iconZoom            = 8,     -- % crop per side; trims the icon's own dark edge
             showCount           = true,
             tooltips            = true,
@@ -202,6 +232,7 @@ KCM.dbDefaults = {
             labelShadow    = false,
             labelColor     = { 1, 0.82, 0, 1 },
             useClassColorLabel = false,
+            labelFontFromSkin  = true,
             -- Hover flyout (modules/MacroBarFlyout.lua). On by default.
             -- `flyoutPoint` sets BOTH the indicator's edge and the direction the
             -- flyout grows; entry 1 (the top-ranked candidate) always sits

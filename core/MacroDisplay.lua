@@ -193,13 +193,17 @@ end
 -- Fallback for a macro with no resolvable pick: the name, plus the body text so
 -- the button is never a mystery. MacroIndex returning 0 means "no such macro",
 -- which is a skip and not an index-0 call.
+-- The two lines are the skin's tooltip title and value colors (skinning-§7: the lines this
+-- addon writes take the skin; the GameTooltip frame stays the client's).
 local function setTooltipFromMacro(macroName)
-    GameTooltip:SetText(macroName or "", 1, 0.82, 0)
+    local tr, tg, tb = KCM.SkinColor("gtip.title")
+    GameTooltip:SetText(macroName or "", tr, tg, tb)
     local idx = MD.MacroIndex(macroName)
     if idx ~= 0 and GetMacroInfo then
         local _, _, body = GetMacroInfo(idx)
         if body and body ~= "" then
-            GameTooltip:AddLine(body, 1, 1, 1, true)
+            local r, g, b = KCM.SkinColor("gtip.value")
+            GameTooltip:AddLine(body, r, g, b, true)
         end
     end
 end

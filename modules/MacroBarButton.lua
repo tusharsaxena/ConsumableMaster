@@ -56,6 +56,130 @@ local function borderTexture(name)
 end
 BB.BorderTexture = borderTexture   -- shared with modules/MacroBar.lua's backdrop
 
+-- ---------------------------------------------------------------------------
+-- The skin's HUD style (skinning-§6; CM-03 of the 2026-10-29 skinning rollout)
+--
+-- Three HUD style settings follow the skin while their `<key>FromSkin`
+-- companion is on, which it is by default (the rollout's X3) and after the
+-- one-time v4 reset (core/Database.lua, the owner's O2): the bar's border
+-- style (`bar.borderStyle`, shared by the flyout panel), the buttons' border
+-- style and thickness (the icon family, `icon.borderStyle` / `icon.borderSize`)
+-- and the label face (`hud.font`). Only texture, border and font follow (X4):
+-- every HUD COLOR stays the player's swatch, and the sizes, flags, shadow and
+-- offset stay the player's too (the inventory's D1). The count text has no
+-- setting, so it simply takes the skin's HUD face and outline (D6).
+--
+-- Read per call through KCM.Skin.Resolve, a table read that allocates nothing:
+-- these appliers run per button per layout pass, so S.BarStyle (a fresh table)
+-- is never called here.
+-- ---------------------------------------------------------------------------
+
+local SOLID_EDGE = [[Interface\Buttons\WHITE8X8]]
+
+--- A HUD style setting as drawn: the skin's token `kind` while `fromSkin` is on
+--- or the stored value is the FROM_SKIN sentinel, else the stored value. A token
+--- the facade cannot answer (the degraded facade carries no HUD strings) falls
+--- back on the stored value, so nothing draws blank; a stored sentinel with no
+--- token answers nil, which every reader below takes as its own shipped default.
+function BB.Follow(kind, stored, fromSkin)
+    local S = KCM.Skin
+    if not (S and S.Resolve) then return stored end
+    local v = S.Resolve(kind, stored, fromSkin)
+    if v == nil or v == S.FROM_SKIN then
+        if stored == S.FROM_SKIN then return nil end
+        return stored
+    end
+    return v
+end
+
+--- A border style as a backdrop edgeFile: nil for "None" (no edge at all), the
+--- flat white texture for "Solid" (the name the skin's icon family gives the
+--- flat edge, SkinDefs minor 15; LibSharedMedia registers no border by it), and
+--- any other name through LibSharedMedia.
+function BB.EdgeFile(style)
+    if style == "None" then return nil end
+    if style == "Solid" then return SOLID_EDGE end
+    return borderTexture(style)
+end
+
+--- A macroBar setting's shipped default (defaults/Profile.lua), the fallback a
+--- swatch reads when its stored color is absent or short a component (the
+--- inventory's D2: the default lives in one place, never re-typed here).
+local NO_DEFAULT = {}
+function BB.StyleDefault(key)
+    local d = KCM.dbDefaults and KCM.dbDefaults.profile and KCM.dbDefaults.profile.macroBar
+    return (d and d[key]) or NO_DEFAULT
+end
+
+-- The face each count string's font object gave it (its font object, and its
+-- path, size and flags), recorded on the first pass so a later one never
+-- compounds the size and the Scope's Ignore fonts can put it back. Weak-keyed:
+-- the strings are the frames'.
+local countFace = setmetatable({}, { __mode = "k" })
+
+--- `obj` when it is a font object a string can be handed back: a global name or
+--- a named object other than the string itself (an anonymous one goes back by
+--- path instead).
+local function namedFontObject(fs, obj)
+    if type(obj) == "string" then return obj ~= "" and obj or nil end
+    if type(obj) ~= "table" or obj == fs or type(obj.GetName) ~= "function" then return nil end
+    local ok, name = pcall(obj.GetName, obj)
+    if ok and type(name) == "string" and name ~= "" then return obj end
+    return nil
+end
+
+--- Put a count the skin's face reached back on the face its font object gave it.
+--- A count never skinned is left alone: it is still on its font object.
+local function restoreCountFont(fs)
+    local f = countFace[fs]
+    if not f then return end
+    if f.obj and fs.SetFontObject then
+        fs:SetFontObject(f.obj)
+    elseif f.path then
+        fs:SetFont(f.path, f.size, f.flags or "")
+    end
+end
+
+--- The count text in the skin's HUD face and outline, at the size its font
+--- object gave it. Left as the font object draws it when the skin names no face
+--- (the degraded facade) or the size cannot be read, and put back on that face
+--- while the Scope's Ignore fonts is on (KCM.SkinFontsIgnored: library_gap, the
+--- library's hud.font token never asks the exception, and this SetFont is not a
+--- recorded paint, so the library's own put-back never reaches it).
+function BB.ApplyCountFont(fs)
+    if not (fs and fs.SetFont and fs.GetFont) then return end
+    if KCM.SkinFontsIgnored and KCM.SkinFontsIgnored() then return restoreCountFont(fs) end
+    local S = KCM.Skin
+    local face = S and S.Token and S.Token("hud.font")
+    if type(face) ~= "string" then return end
+    local rec = countFace[fs]
+    if not rec then
+        local path, got, flags = fs:GetFont()
+        if not tonumber(got) then return end
+        rec = { obj = namedFontObject(fs, fs.GetFontObject and fs:GetFontObject()),
+                path = path, size = tonumber(got), flags = flags }
+        countFace[fs] = rec
+    end
+    local size = rec.size
+    local path = BB.FontFile(face, nil)
+    if not path then return end
+    local outline = S.Token("hud.outline")
+    fs:SetFont(path, size, type(outline) == "string" and outline or "OUTLINE")
+end
+
+--- The label's face as drawn: the skin's `hud.font` while its companion is on,
+--- the player's stored pick otherwise AND while the Scope's Ignore fonts is on
+--- (the face the player gave it; a stored FROM_SKIN sentinel then answers nil,
+--- the shipped default face).
+function BB.LabelFace(cfg)
+    if KCM.SkinFontsIgnored and KCM.SkinFontsIgnored() then
+        local S = KCM.Skin
+        if S and cfg.labelFont == S.FROM_SKIN then return nil end
+        return cfg.labelFont
+    end
+    return BB.Follow("hud.font", cfg.labelFont, cfg.labelFontFromSkin)
+end
+
 -- Resolve a LibSharedMedia font name to its file, falling back to whatever face
 -- the FontString already carries. Same ladder and the same reason as
 -- borderTexture above: a profile can name a face a since-uninstalled addon
@@ -243,6 +367,18 @@ local function applyLabelText(btn, cfg, fontSize)
     local _ = fontSize
 end
 
+-- A stored swatch resolved through its "use class color" companion
+-- (options-ui-§17), over its shipped default component by component: a stored
+-- color may be absent entirely or short a component, and each missing slot
+-- falls back on its own. Returns four values and allocates nothing — this runs
+-- on every layout pass. The resolver is the addon's one (core/CoreSetup.lua);
+-- the default is the setting's own, read from defaults/Profile.lua.
+local function swatch(stored, useClass, default)
+    default = default or NO_DEFAULT
+    return KCM.SwatchColor(stored, useClass,
+        default[1], default[2], default[3], default[4])
+end
+
 local function applyLabel(btn, cfg)
     if not cfg.buttonLabel then
         btn.label:Hide()
@@ -253,7 +389,7 @@ local function applyLabel(btn, cfg)
     -- Flags are set explicitly, never carried over from GetFont(): re-using the
     -- current flags would make the outline sticky, since the previous pass had
     -- already written "OUTLINE" into them.
-    local fontPath = fontFile(cfg.labelFont, btn.label:GetFont())
+    local fontPath = fontFile(BB.LabelFace(cfg), btn.label:GetFont())
     if fontPath then
         -- `labelFlags` is the canonical font-flags STRING (options-ui-§16); "" is
         -- a real stored value and means no flags at all, so the `or` ladder stops
@@ -278,8 +414,8 @@ local function applyLabel(btn, cfg)
     btn.label:ClearAllPoints()
     btn.label:SetPoint(point, btn, relPoint, dx, dy)
     btn.label:SetJustifyH(justify)
-    btn.label:SetTextColor(
-        KCM.SwatchColor(cfg.labelColor, cfg.useClassColorLabel, 1, 0.82, 0, 1))
+    btn.label:SetTextColor(swatch(cfg.labelColor, cfg.useClassColorLabel,
+        BB.StyleDefault("labelColor")))
     applyLabelText(btn, cfg, pts)
     btn.label:Show()
 end
@@ -294,30 +430,14 @@ end
 -- bounds are shared rather than repeated.
 -- ---------------------------------------------------------------------------
 
-local EMPTY_COLOR           = {}
-local BORDER_COLOR_DEFAULT  = { 1, 1, 1, 1 }
-local BACKDROP_FILL_DEFAULT = { 0, 0, 0, 0.6 }
-
--- Unpack a saved {r,g,b,a} over its default, component by component. A stored
--- color may be absent entirely or short a component, and each missing slot
--- falls back on its own. Returns four values and allocates nothing — this runs
--- on every layout pass.
--- A stored swatch resolved through its "use class color" companion
--- (options-ui-§17), with this surface's own four-channel fallback. The resolver
--- is the addon's one (core/CoreSetup.lua); what stays here is the per-surface
--- default, which is not the library's to know.
-local function swatch(stored, useClass, default)
-    default = default or EMPTY_COLOR
-    return KCM.SwatchColor(stored, useClass,
-        default[1], default[2], default[3], default[4])
-end
-
 -- Border is its own BackdropTemplate child rather than a texture on the
 -- button, so `buttonBorderOffset` can push the edge slices OUTWARD off the
 -- icon. The old action-button slot art was a fixed 64px frame drawn over a
 -- 36px well, which is exactly why it bled across the icon at every size.
 function BB.ApplyBorder(frame, anchorTo, cfg)
-    if cfg.buttonBorder == false then
+    local fromSkin = cfg.buttonBorderStyleFromSkin
+    local edge = BB.EdgeFile(BB.Follow("icon.borderStyle", cfg.buttonBorderStyle, fromSkin))
+    if cfg.buttonBorder == false or edge == nil then
         frame:Hide()
         return
     end
@@ -325,12 +445,13 @@ function BB.ApplyBorder(frame, anchorTo, cfg)
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT",     anchorTo, "TOPLEFT",     -off,  off)
     frame:SetPoint("BOTTOMRIGHT", anchorTo, "BOTTOMRIGHT",  off, -off)
+    local size = BB.Follow("icon.borderSize", cfg.buttonBorderSize, fromSkin)
     frame:SetBackdrop({
-        edgeFile = borderTexture(cfg.buttonBorderStyle),
-        edgeSize = math.max(1, tonumber(cfg.buttonBorderSize) or 4),
+        edgeFile = edge,
+        edgeSize = math.max(1, tonumber(size) or 4),
     })
     frame:SetBackdropBorderColor(swatch(cfg.buttonBorderColor,
-        cfg.useClassColorButtonBorder, BORDER_COLOR_DEFAULT))
+        cfg.useClassColorButtonBorder, BB.StyleDefault("buttonBorderColor")))
     frame:Show()
 end
 
@@ -347,7 +468,7 @@ end
 
 function BB.ApplyBackdropTex(tex, cfg)
     tex:SetColorTexture(swatch(cfg.buttonBackdropColor,
-        cfg.useClassColorButtonBackdrop, BACKDROP_FILL_DEFAULT))
+        cfg.useClassColorButtonBackdrop, BB.StyleDefault("buttonBackdropColor")))
     if cfg.buttonBackdrop then tex:Show() else tex:Hide() end
 end
 
@@ -367,6 +488,7 @@ function BB.ApplyStyle(btn, cfg)
     BB.ApplyBackdropTex(btn.backdropTex, cfg)
 
     applyLabel(btn, cfg)
+    BB.ApplyCountFont(btn.count)
 
     -- NB: the flyout is deliberately NOT rebuilt here. MacroBar.Refresh owns
     -- that, and Update calls it immediately after this pass — doing it in both

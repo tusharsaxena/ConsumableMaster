@@ -296,7 +296,11 @@ block(H.BorderGroup{
         borderSize          = BAR_DEFAULTS.barBorderSize,
         borderColor         = BAR_DEFAULTS.barBorderColor,
         useClassColorBorder = BAR_DEFAULTS.useClassColorBarBorder,
+        borderStyleFromSkin = BAR_DEFAULTS.barBorderStyleFromSkin,
     },
+    -- `macroBar.barBorderStyleFromSkin` (CM-03): the bar's and the flyout's edge
+    -- follow the skin's `bar.borderStyle`, the thickness stays the player's.
+    fromSkin = true,
     classColor = { source = "player" },
 }, {
     ["macroBar.barBorderStyle"] = {
@@ -353,7 +357,12 @@ block(H.BorderGroup{
         borderSize          = BAR_DEFAULTS.buttonBorderSize,
         borderColor         = BAR_DEFAULTS.buttonBorderColor,
         useClassColorBorder = BAR_DEFAULTS.useClassColorButtonBorder,
+        borderStyleFromSkin = BAR_DEFAULTS.buttonBorderStyleFromSkin,
     },
+    -- `macroBar.buttonBorderStyleFromSkin` (CM-03): the buttons are icons, so
+    -- they follow the skin's ICON border family (`icon.borderStyle` and
+    -- `icon.borderSize`), which governs the thickness slider as well.
+    fromSkin = "icon",
     classColor = { source = "player" },
     extra = {
         {
@@ -472,7 +481,11 @@ block(H.FontGroup{
         useClassColorFont = BAR_DEFAULTS.useClassColorLabel,
         fontFlags         = BAR_DEFAULTS.labelFlags,
         fontShadow        = BAR_DEFAULTS.labelShadow,
+        fontFromSkin      = BAR_DEFAULTS.labelFontFromSkin,
     },
+    -- `macroBar.labelFontFromSkin` (CM-03): the labels' face follows the skin's
+    -- `hud.font`; the size, flags, shadow and color stay the player's.
+    fromSkin = true,
     classColor = { source = "player" },
 }, {
     ["macroBar.labelFont"] = {
@@ -895,10 +908,11 @@ end
 local function showGlyphTip(glyph, slotRow)
     if not GameTooltip then return end
     GameTooltip:SetOwner(glyph, "ANCHOR_RIGHT")
+    local r, g, b = KCM.SkinPanelColor("gtip.value")
     GameTooltip:AddLine(slotRow.kcmShown and L["Click to take this button off the bar"]
-        or L["Click to put this button back on the bar"], 1, 1, 1)
+        or L["Click to put this button back on the bar"], r, g, b)
     GameTooltip:AddLine(L["A hidden button waits below the line, and one you put back joins the end of the bar."],
-        1, 1, 1, true)
+        r, g, b, true)
     GameTooltip:Show()
 end
 
@@ -947,12 +961,10 @@ local function applySlotRow(slotRow, key, shown)
     slotRow.kcmGlyph:SetNormalTexture(slotRow.kcmGlyphTexture)
     slotRow.kcmLabel:SetText(slotLabel(key))
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim at,
-    -- and aiming at it is how you put the button back.
-    if shown then
-        slotRow.kcmLabel:SetTextColor(1, 0.82, 0)
-    else
-        slotRow.kcmLabel:SetTextColor(0.5, 0.5, 0.5)
-    end
+    -- and aiming at it is how you put the button back. The skin's accent and disabled
+    -- text, through KCM.SkinPanelText (S.Text, which records the label for the skin's
+    -- replay; the stock look while the Scope ignores the settings panel).
+    KCM.SkinPanelText(slotRow.kcmLabel, shown and "accent" or "disabled", "GameFontNormal")
     slotRow:SetHeight(SLOT_ROW_H)
     slotRow:Show()
 end
@@ -991,7 +1003,7 @@ end
 --- One slot's row. The SLOT is an AceGUI SimpleGroup a stride tall and the row
 --- frame inside it is ROW_H tall, anchored to its top; the difference is the gap.
 local function renderSlotRow(ctx, scroll, list, key, shown)
-    local slot = AceGUI:Create("SimpleGroup")
+    local slot = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     slot:SetLayout(nil)
     slot:SetFullWidth(true)
     slot:SetHeight(SLOT_ROW_STRIDE)
@@ -1009,7 +1021,7 @@ local function renderSlotRow(ctx, scroll, list, key, shown)
         list:AddRow(slotRow, {
             ghostText      = slotLabel(key),
             ghostIcon      = slotRow.kcmGlyphTexture,
-            ghostTextColor = shown and { 1, 0.82, 0 } or { 0.5, 0.5, 0.5 },
+            ghostTextColor = { KCM.SkinPanelColor(shown and "text.accent" or "text.disabled") },
             height         = SLOT_ROW_H,
             draggable      = shown,
             dimmed         = not shown,
@@ -1019,7 +1031,7 @@ end
 
 --- The rule under the last shown slot, when there is a divide to mark.
 local function addBoundaryRule(scroll)
-    local rule = AceGUI:Create("Heading")
+    local rule = KCM.SkinAcquire(AceGUI, "Heading")
     rule:SetText("")
     rule:SetFullWidth(true)
     rule:SetHeight(12)
@@ -1042,6 +1054,11 @@ local function newSlotList(shownCount)
         -- of row.
         stride        = SLOT_ROW_STRIDE,
         boundary      = shownCount,
+        -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner         = KCM.SkinPanelOwner(),
+
         handleIcon    = KCM.Icon and KCM.Icon(SLOT_HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
         onMove        = moveSlot,

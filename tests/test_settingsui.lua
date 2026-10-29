@@ -723,11 +723,34 @@ local function schemaPaths(KCM, panel, group)
     return out
 end
 
--- red under: a tab added, dropped or moved ahead of Master controls.
-test("Settings: the General page's strip is Master controls, then Maintenance", function(t)
+-- red under: a tab added, dropped or moved ahead of Master controls, or the Skin
+-- tab anywhere but last (skinning-§3: before Keybindings, or last on a page with none).
+test("Settings: the General page's strip is Master controls, Maintenance, then the Skin tab", function(t)
     local KCM = loader.loadFullAddon()
     local keys = renderPageTab(KCM, "general", "Master controls")
-    t.eqList(keys, { "Master controls", "Maintenance" }, "the General page's two tabs, in order")
+    t.eqList(keys, { "Master controls", "Maintenance", "Appearance" }, "the General page's three tabs, in order")
+end)
+
+-- red under: the Skin tab handing its skipRender rows to the row engine, or a
+-- render that is not the library's O.AppearanceRows for this addon's owner.
+test("Settings: the Skin tab is the library's Appearance rows, and no schema row", function(t)
+    local KCM = loader.loadFullAddon()
+    local UI = KCM.Settings.Helpers.instance
+    local seen
+    local real = UI.AppearanceRows
+    UI.AppearanceRows = function(ctx, spec, ...) seen = spec; return real(ctx, spec, ...) end
+    local ok, err = pcall(function()
+        local keys, rendered, ctx = renderPageTab(KCM, "general", "Appearance")
+        t.eq(ctx.activeTab, "Appearance", "the selection held")
+        t.eq(#keys, 3, "under the same strip")
+        t.eq(#rendered, 0, "no row reaches the row engine")
+    end)
+    UI.AppearanceRows = real
+    if not ok then error(err, 0) end
+    t.truthy(seen, "the tab drew the library's Appearance rows")
+    t.eq(seen and seen.owner, "ConsumableMaster", "for this addon's skin owner, its folder")
+    t.eq(seen and seen.get, KCM.SkinChoice, "reading the stored choice")
+    t.eq(seen and seen.set, KCM.WriteSkinChoice, "and writing through the write seam")
 end)
 
 -- red under: a Master controls tab that draws a row the schema does not put on
@@ -737,7 +760,7 @@ test("Settings: the Master controls tab draws the page's canonical rows and thei
         local KCM = loader.loadFullAddon()
         local _, rendered = renderPageTab(KCM, "general", "Master controls")
         t.eq(#rendered, 1, "one pass of the row engine")
-        local want = schemaPaths(KCM, "general")
+        local want = schemaPaths(KCM, "general", "Master controls")
         t.truthy(#want > 0, "the canonical block is on the page (" .. #want .. " rows)")
         t.eqList(rendered[1] and rendered[1].paths or {}, want,
             "every General row, in declaration order")
@@ -753,7 +776,7 @@ test("Settings: the Maintenance tab draws its three verbs and no schema row", fu
     local before = #AceGUI.__created
     local keys, rendered, ctx = renderPageTab(KCM, "general", "Maintenance")
     t.eq(ctx.activeTab, "Maintenance", "the selection held")
-    t.eq(#keys, 2, "under the same strip")
+    t.eq(#keys, 3, "under the same strip")
     t.eq(#rendered, 0, "no row reaches the row engine")
     local seen = {}
     for i = before + 1, #AceGUI.__created do

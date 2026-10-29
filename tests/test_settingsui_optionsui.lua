@@ -101,8 +101,8 @@ test("Settings: every page draws a tab strip, and General opens on Master contro
         t.truthy(KCM.Settings.builders.profiles,
             "the exempt page is really in the order, so the exemption is exercised")
 
-        t.eq(#drawn.general.tabs, 2,
-            "General is Master controls plus Maintenance, one tab each")
+        t.eq(#drawn.general.tabs, 3,
+            "General is Master controls, Maintenance and the Skin tab, one tab each")
         t.eq(#drawn.macrobar.tabs, 7, "the Macro Bar page keeps its seven")
         t.eq(#drawn.macros.tabs, #KCM.Categories.LIST,
             "the Macros page carries one tab per category")

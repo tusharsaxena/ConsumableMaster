@@ -41,6 +41,12 @@ function KCM:OnInitialize()
         KCM.Database.RunMigrations()
     end
 
+    -- The skin the active profile names (core/SkinSetup.lua), right after the store exists and
+    -- its migrations ran: the owner registered at file load, before AceDB, and has worn Ka0s
+    -- Default since. Before the launcher, the macro bar or any settings page is built, so the
+    -- first paint is already the profile's skin (skinning-§2).
+    if KCM.ApplySkinChoice then KCM.ApplySkinChoice() end
+
     -- THE `disabled` HOLD, TAKEN FROM THE STORED PATH, and taken HERE because
     -- this is the first moment the path can be read: AceDB built the profile one
     -- line above. It is not a special case -- it is the same call the checkbox
@@ -594,7 +600,13 @@ function KCM.RegisterProfileCallbacks(target)
     local function reload(reason)
         return function(event, d, key)
             trace(event, d, key)
-            -- THE LATCH FIRST, because the incoming profile can carry a
+            -- FIRST, the first-run skin picker down, quietly (core/SkinSetup.lua): a showing
+            -- belongs to the profile it opened on, and taking it down puts back a pending preview
+            -- (the stored skin, through the library's revert), so it lands before
+            -- KCM.ApplySkinChoice below and the new profile's whole choice is the last skin
+            -- written. A new or reset profile still shows it, fresh, below.
+            if KCM.HideSkinPicker then KCM.HideSkinPicker() end
+            -- THE LATCH NEXT, because the incoming profile can carry a
             -- different `enabled` and everything below it is a feature: the
             -- resync writes macros and the bus message repaints surfaces, and
             -- neither may run for a profile that arrives switched off. A switch
@@ -605,6 +617,17 @@ function KCM.RegisterProfileCallbacks(target)
             if KCM.Database and KCM.Database.RunMigrations then
                 KCM.Database.RunMigrations()
             end
+            -- The new profile's skin (skinning-§2: a switch, copy or reset re-applies the
+            -- choice), after its migrations and before anything rebuilds against it.
+            -- Skin:SetChoice repaints every recorded frame and fires OnLooksChanged whether or
+            -- not the macro bar or a page was ever built, and it is idempotent, so a profile that
+            -- names the skin already worn repaints nothing.
+            if KCM.ApplySkinChoice then KCM.ApplySkinChoice() end
+            -- The first-run skin picker (core/SkinSetup.lua): a new or reset profile starts from
+            -- the defaults, `skin.pickerSeen` false, so it shows, a fresh showing over the new
+            -- profile's skin; one that has seen it stays down. After the latch, so a profile
+            -- with the addon switched off shows nothing.
+            if KCM.MaybeShowSkinPicker then KCM.MaybeShowSkinPicker() end
             if FORGETS_FINGERPRINTS[event] and KCM.MacroManager and KCM.MacroManager.InvalidateState then
                 KCM.MacroManager.InvalidateState()
             end
@@ -737,6 +760,9 @@ local function traceEvent(event, fmt, ...)
         (InCombatLockdown and InCombatLockdown()) and true or false, ...)
 end
 
+-- PLAYER_ENTERING_WORLD fires on every loading screen; the picker is offered on the first only.
+local skinPickerOffered = false
+
 function KCM:OnPlayerEnteringWorld(event, isLogin, isReload)
     traceEvent(event or "PLAYER_ENTERING_WORLD", " login=%s reload=%s",
         isLogin and true or false, isReload and true or false)
@@ -747,6 +773,16 @@ function KCM:OnPlayerEnteringWorld(event, isLogin, isReload)
     -- is the default, so nothing is created for users who never enable it.
     if KCM.MacroBar and KCM.MacroBar.Update then
         KCM.MacroBar.Update()
+    end
+    -- The first-run skin picker (core/SkinSetup.lua), once per session, on a profile that has not
+    -- closed it: two seconds in, off the login spike. The stored skin was applied in
+    -- OnInitialize; a stand-down inside the two seconds finds the addon down and shows nothing,
+    -- and in combat it holds for PLAYER_REGEN_ENABLED.
+    if not skinPickerOffered then
+        skinPickerOffered = true
+        C_Timer.After(2, function()
+            if KCM.MaybeShowSkinPicker then KCM.MaybeShowSkinPicker() end
+        end)
     end
 end
 

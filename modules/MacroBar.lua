@@ -22,7 +22,7 @@
 -- Slot -> category binding is fixed at creation, so nothing here ever writes a
 -- secure attribute after the fact. Reordering only moves anchors.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 KCM.MacroBar = KCM.MacroBar or {}
 local MB = KCM.MacroBar
@@ -246,7 +246,8 @@ local function buildBar()
     wash:EnableMouse(false)
     wash.tex = wash:CreateTexture(nil, "OVERLAY")
     wash.tex:SetAllPoints(wash)
-    wash.tex:SetColorTexture(1, 0.82, 0, 0.15)
+    -- Painted by applyLock from `menu.hover` (Ka0s Default's is this gold at
+    -- 0.15 exactly, the inventory's D4), so a skin switch repaints it.
     wash:Hide()
     frame.moveHint = wash
 
@@ -274,6 +275,9 @@ local function buildBar()
     -- cannot reach the position: point, relPoint, x and y have no schema row.
     local handle = Widgets and Widgets.DragHandle and Widgets.DragHandle(frame, {
         name      = BAR_NAME .. "Handle",
+        -- The skin owner (skinning-§1): this addon's folder, so the strip's fill, edge, label and
+        -- mark tints come from the skin it wears (WidgetsDragHandle minor 6).
+        owner     = addonName,
         label     = KCM.L["Consumable Master"],
         moveFrame = frame,
         -- The last rung of the mark's ladder is the widget's own, and it is the
@@ -365,14 +369,16 @@ end
 -- false takes one away.
 --
 -- Border style comes from LibSharedMedia (same picker the buttons use), so the
--- bar frame and its slots can be given a matching edge; a style the media
--- library cannot answer for falls back to the plain texture rather than to no
--- edge at all.
+-- bar frame and its slots can be given a matching edge, or from the skin's
+-- `bar.borderStyle` while `barBorderStyleFromSkin` is on (CM-03; the flyout
+-- panel reads the same pair). "None" draws no edge; the thickness and the color
+-- stay the player's.
 local function backdropFor(c)
     local edgeFile
-    if c.barBorder ~= false then
-        edgeFile = KCM.MacroBarButton and KCM.MacroBarButton.BorderTexture
-            and KCM.MacroBarButton.BorderTexture(c.barBorderStyle) or BACKDROP_TEX
+    local BB = KCM.MacroBarButton
+    if c.barBorder ~= false and BB and BB.EdgeFile then
+        edgeFile = BB.EdgeFile(BB.Follow("bar.borderStyle", c.barBorderStyle,
+            c.barBorderStyleFromSkin))
     end
     return {
         bgFile   = c.barBackdrop ~= false and BACKDROP_TEX or nil,
@@ -389,13 +395,15 @@ local function applyBackdrop()
         return
     end
     bar:SetBackdrop(backdropFor(c))
+    -- The fallbacks are the settings' own shipped defaults (defaults/Profile.lua),
+    -- never re-typed here: X4 keeps every HUD color the player's.
     if c.barBackdrop ~= false then
         bar:SetBackdropColor(color(c.barBackdropColor, c.useClassColorBarBackdrop,
-            0, 0, 0, 0.5))
+            unpack(KCM.MacroBarButton.StyleDefault("barBackdropColor"))))
     end
     if c.barBorder ~= false then
         bar:SetBackdropBorderColor(color(c.barBorderColor, c.useClassColorBarBorder,
-            0.25, 0.25, 0.25, 1))
+            unpack(KCM.MacroBarButton.StyleDefault("barBorderColor"))))
     end
 end
 
@@ -418,6 +426,9 @@ local function applyLock()
     local c = cfg() or {}
     local unlocked = not c.locked
     bar:EnableMouse(unlocked)
+    -- An unprotected texture on a mouse-off child, so safe in combat too.
+    local tex = bar.moveHint.tex
+    if tex and tex.SetColorTexture then tex:SetColorTexture(KCM.SkinColor("menu.hover")) end
     if unlocked then bar.moveHint:Show() else bar.moveHint:Hide() end
     -- Handle is at least as wide as its own label, and never narrower than the
     -- bar, so a one-button bar still gets a grabbable strip. Both halves of that
@@ -721,6 +732,19 @@ end
 -- back up. The bar is
 -- the one thing this addon draws, so these are feature registrations in the
 -- plainest sense (slash-commands-§7).
+-- A SKIN CHANGE re-applies the bar the same way (CM-03): the border styles, the
+-- label face and the count face read the skin, and the wash its hover token.
+-- OnLooksChanged fires after the new skin is resolved. Only a bar already built
+-- is repainted -- the skin is applied in OnInitialize, before the first build,
+-- which paints from the skin anyway -- and Update holds itself to regen in
+-- combat, so a /cm profile verb or another addon's copy mid-fight never touches
+-- a protected frame.
+if KCM.Skin and KCM.Skin.OnLooksChanged then
+    KCM.Skin.OnLooksChanged(function()
+        if bar then MB.Update() end
+    end)
+end
+
 if KCM.NewBusTarget and KCM.MSG and KCM.MSG.MACROBAR_REFRESH then
     KCM._macroBarBusTarget = KCM.NewBusTarget(function(target)
         target:RegisterMessage(KCM.MSG.MACROBAR_REFRESH, function()

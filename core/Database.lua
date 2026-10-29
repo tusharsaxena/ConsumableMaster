@@ -23,6 +23,8 @@
 --   1 — original shape.
 --   2 — macro bar introduced. Sets it enabled + unlocked once (see below).
 --   3 — the macro bar's label outline became a font-flags STRING.
+--   4 — the macro bar's HUD style follows the skin, once (the skinning
+--       rollout's O2: the border styles and the label face).
 
 local _, NS = ...
 local KCM = NS
@@ -31,7 +33,7 @@ local D = KCM.Database
 
 -- Latest schema version the code understands. Bump when you add a migration
 -- step below.
-D.CURRENT_SCHEMA = 3
+D.CURRENT_SCHEMA = 4
 
 -- v2 — introduce the macro bar to a profile written before it existed.
 --
@@ -89,6 +91,44 @@ function D.MigrateLabelFlagsV3(profile)
     if bar.labelOutline ~= nil then
         bar.labelFlags = bar.labelOutline and "OUTLINE" or ""
         bar.labelOutline = nil
+    end
+    return true
+end
+
+-- v4 — the macro bar's HUD style follows the skin (skinning-§6; the owner's
+-- ruling O2, the one-time reset R3; CM-03 of the 2026-10-29 skinning rollout).
+--
+-- Every player meets it once per profile: the bar's border style, the buttons'
+-- border style (the skin's icon family, thickness included) and the label face
+-- go back on the skin, through LibKa0s-Skin-1.0's `ResetToSkin`, which turns on
+-- each key's `<key>FromSkin` companion and leaves the stored pick where it was,
+-- so turning the companion off later brings the player's own pick straight
+-- back. Only those three (the rollout's X4): no color, size, flag or shadow key
+-- is listed, because ResetToSkin would write a sentinel into a number or enum
+-- key and switch a bool one ON.
+--
+-- The companions default to TRUE (defaults/Profile.lua, X3), so on an AceDB
+-- profile the step moves nothing a player can see; it is the record that the
+-- reset ran, and the stamp is what keeps a later deliberate "off" from being
+-- stomped on the next login. ResetToSkin decides by the companion's PRESENCE: a
+-- key whose companion it cannot see takes the FROM_SKIN sentinel in the LSM
+-- key itself, which no picker can show. AceDB always supplies the companion
+-- through its default; a table that lacks one (a profile handed in raw) is
+-- seeded false first, so the reset always lands on the companion. Without the
+-- library the companions are set directly, which is what ResetToSkin would do.
+D.HUD_SKIN_KEYS = { "barBorderStyle", "buttonBorderStyle", "labelFont" }
+
+function D.MigrateHudSkinV4(profile)
+    local bar = type(profile) == "table" and profile.macroBar
+    if type(bar) ~= "table" then return false end
+    for _, key in ipairs(D.HUD_SKIN_KEYS) do
+        if bar[key .. "FromSkin"] == nil then bar[key .. "FromSkin"] = false end
+    end
+    local Skin = LibStub and LibStub("LibKa0s-Skin-1.0", true)
+    if Skin and type(Skin.ResetToSkin) == "function" then
+        Skin.ResetToSkin(bar, D.HUD_SKIN_KEYS)
+    else
+        for _, key in ipairs(D.HUD_SKIN_KEYS) do bar[key .. "FromSkin"] = true end
     end
     return true
 end
@@ -155,8 +195,13 @@ local function migrateProfile(p)
         p.schemaVersion = 3
     end
 
+    if p.schemaVersion < 4 then
+        D.MigrateHudSkinV4(p)
+        p.schemaVersion = 4
+    end
+
     -- Future PROFILE migrations go here, e.g.:
-    --   if p.schemaVersion < 4 then ... ; p.schemaVersion = 4 end
+    --   if p.schemaVersion < 5 then ... ; p.schemaVersion = 5 end
 
     p.schemaVersion = D.CURRENT_SCHEMA
     return pFrom

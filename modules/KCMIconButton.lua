@@ -4,18 +4,34 @@
 -- but with a solid gold BACKGROUND swatch behind the icon on mouseover so the
 -- priority-row action buttons (up / down / delete) have an obvious hover state.
 -- The icon lives on the ARTWORK draw layer so the swatch renders cleanly behind
--- it. Acquired directly via `AceGUI:Create("KCMIconButton")` in
+-- it. Acquired directly via `KCM.SkinAcquire(AceGUI, "KCMIconButton")` in
 -- settings/Category.lua's row-button helper.
+--
+-- SKINNED FROM KCM.Skin (skinning-§1). No library painter knows this type, so it
+-- paints itself: the hover wash is the owner token `cm.iconHover` (Ka0s Default's
+-- gold at a quarter alpha, the row hover wash in every other skin), read at HOVER
+-- time so a skin switch needs no repaint; the label is `text.highlight` /
+-- `text.disabled` through KCM.SkinPanelText (S.Text, which records it for the
+-- skin's replay; the stock look while the Scope ignores the settings panel). Only
+-- this addon acquires the type, so nothing painted here reaches another addon's pool.
 
-local Type, Version = "KCMIconButton", 1
+local _, NS = ...
+local KCM = NS
+
+local Type, Version = "KCMIconButton", 2
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
 local pairs, select = pairs, select
 local CreateFrame, UIParent = CreateFrame, UIParent
 
+local DISABLED_ALPHA = 0.5
+
 local function Control_OnEnter(frame)
-    if frame.hoverBG then frame.hoverBG:Show() end
+    if frame.hoverBG then
+        frame.hoverBG:SetColorTexture(KCM.SkinPanelColor("cm.iconHover"))
+        frame.hoverBG:Show()
+    end
     frame.obj:Fire("OnEnter")
 end
 local function Control_OnLeave(frame)
@@ -83,15 +99,19 @@ local methods = {
         end
     end,
 
+    -- The disabled art is the skin's disabled gray at AceGUI's stock half alpha
+    -- (DISABLED_ALPHA: the opacity of a disabled mark, the same in every skin, as the
+    -- library's own disabled checkbox mark); the enabled art is untinted.
     ["SetDisabled"] = function(self, disabled)
         self.disabled = disabled
         if disabled then
             self.frame:Disable()
-            self.label:SetTextColor(0.5, 0.5, 0.5)
-            self.image:SetVertexColor(0.5, 0.5, 0.5, 0.5)
+            KCM.SkinPanelText(self.label, "disabled", "GameFontHighlight")
+            local r, g, b = KCM.SkinPanelColor("text.disabled")
+            self.image:SetVertexColor(r, g, b, DISABLED_ALPHA)
         else
             self.frame:Enable()
-            self.label:SetTextColor(1, 1, 1)
+            KCM.SkinPanelText(self.label, "text.highlight", "GameFontHighlight")
             self.image:SetVertexColor(1, 1, 1, 1)
         end
     end,
@@ -112,12 +132,10 @@ local function Constructor()
     label:SetJustifyV("TOP")
     label:SetHeight(18)
 
-    -- Solid gold hover swatch sits on BACKGROUND (below the icon on ARTWORK) and
-    -- pins flush to the image's bounds — no gap, icon unobscured. Shown/hidden
-    -- manually from Control_OnEnter/OnLeave. Color matches GameFontNormal gold
-    -- (1, 0.82, 0) used by section headers, at 25% alpha.
+    -- The hover swatch sits on BACKGROUND (below the icon on ARTWORK) and pins
+    -- flush to the image's bounds — no gap, icon unobscured. Shown/hidden, and
+    -- colored from `cm.iconHover`, in Control_OnEnter/OnLeave.
     local hoverBG = frame:CreateTexture(nil, "BACKGROUND")
-    hoverBG:SetColorTexture(1, 0.82, 0, 0.25)
     hoverBG:Hide()
     frame.hoverBG = hoverBG
 

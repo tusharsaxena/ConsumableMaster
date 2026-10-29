@@ -59,14 +59,15 @@ pins.
 **Who draws each strip.** The **General** page hands its whole strip to the library's
 `RenderTabbedSchema` (LibKa0s-Options-1.0, OptionsTabs minor 4): the page's schema rows declare one
 group, **Master controls**, which becomes the first tab, and **Maintenance** is a *host tab* passed in
-`opts.tabs`, placed after it and filled by `drawMaintenance`. The other three pages build their strip
+`opts.tabs`, placed after it and filled by `drawMaintenance`, and the library's **Skin** tab
+(`O.AppearanceTab`, key `Appearance`) is the second, placed last. The other three pages build their strip
 with `H.TabStrip` themselves, and [#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)
 records why: Macros and Stat Priority have no schema rows for the library to partition, and every
 reorder list (the Macro Bar's Buttons tab among them) must be released *before* the scroll is cleared,
 which `RenderTabbedSchema`'s own tab click gives the host no hook to do.
 
 **The strip's geometry does not depend on which tab is selected** (`options-ui-§13`,
-anti-patterns #70). The strips here wrap — fifteen tabs on Macros, eight on Macro Bar —
+anti-patterns #70). The strips here wrap — fifteen tabs on Macros, seven on Macro Bar —
 and the reserved chrome band and every wrapped row's offset are the same numbers for every value of
 the selection. The pitch is measured once, from the **unselected** tab art, which no click can
 change. Every strip is the library's `O.TabStrip`, so that is the library's to get right, and its own
@@ -142,10 +143,10 @@ own UI and last in every Ka0s addon that ships one.
 
 | Page | Strip | Covers |
 |---|---|---|
-| **General** | 2 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group) and **Maintenance** (Force resync, Force rewrite macros, Reset all priorities…; a host tab with no rows). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
+| **General** | 3 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group), **Maintenance** (Force resync, Force rewrite macros, Reset all priorities…; a host tab with no rows) and **Skin** (the library's tab over the seven `skin.*` rows, last; [below](#the-general-pages-skin-tab)). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 64 of the addon's 79 schema rows live here |
+| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 67 of the addon's 89 schema rows live here |
 | **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -193,6 +194,26 @@ Four of the rows are **new** and three moved:
 | Minimap button | `global.minimap.shown` | **new** at LibKa0s v1.39.0 (`launcher-§3`). See below — it is the one row in the block whose store is neither the profile nor the session; the path says *shown*, the stored key is still LibDBIcon's `hide` |
 | *Reset position* | — | moved from Macro Bar → General |
 | *Reset all settings* | — | `options-ui-§12`'s global reset, verbatim wording. Its tooltip names the equivalence: *Reset the current profile to its defaults — the same thing Profiles → Reset Profile does. Your other profiles are not affected.* |
+
+### The General page's Skin tab
+
+The **last** tab on the page (skinning-§3: before Keybindings, or last on a page that has none,
+as this one has none). It is the library's `O.AppearanceTab`, labeled **Skin** (its key stays
+`Appearance`), drawn for the owner `core/SkinSetup.lua` registers, and it reads and writes through
+that file's seams, so a pick lands through `KCM.Schema:Set` like every other setting. Top to bottom:
+**Skin source** (*Ka0s skins* or *EllesmereUI*), the nine skins with their swatches under a **Look**
+heading, **Font and texture** (the two overrides, each led by *Skin's own*), the **Scope** (*Ignore
+settings panel*, ticked in a new profile, and *Ignore fonts*), **Copy to every Ka0s addon…** and the
+library's note. Its six rows are `skin.*` schema rows with `skipRender` (the tab draws them, the
+row engine does not), so the General page's **Defaults** and the global reset reach them and `/cm
+get|set skin.skin` validates against the registered skins. `skin.pickerSeen` is a seventh row
+drawn by nothing: the page's Defaults leaves it, and the global reset clears it.
+
+What the skin reaches on the other pages is in [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins):
+the library's chrome and rows (stock while *Ignore settings panel* is on), the AceGUI widgets
+this addon acquires (through `KCM.SkinAcquire`), the four `KCM*` widgets and the raw reorder rows
+(painted from `KCM.Skin` through the panel helpers, so they too stay stock while *Ignore settings
+panel* is on), and the Profiles tree. The first-run skin picker's gear opens this tab.
 
 ### The Minimap button row — shown says one thing, the store says the other
 
@@ -367,9 +388,9 @@ the rule allows.
 |---|---|---|---|
 | 1 | **General** | 6 | `[Enable macro bar] [Show tooltips]` unheaded · *Visibility*: `[Combat visibility] [Fade unless hovered]` / `[Bar opacity] [Faded opacity]` |
 | 2 | **Layout** | 8 | *Arrangement*: `[Orientation] [Buttons per row]` / `[Horizontal growth] [Vertical growth]` · *Size and spacing*: `[Button size (px)] [Button spacing (px)]` / `[Bar padding (px)] [Bar scale]` |
-| 3 | **Bar appearance** | 8 | *Background* (Show background + swatch + companion) · *Border* (the composed four, led by its Show border toggle) |
-| 4 | **Button appearance** | 12 | *Background* (Show background + swatch + companion) · *Border* (the Show border toggle, the composed four, and border offset) · *Icon* (zoom, stack count, GCD swipe) |
-| 5 | **Labels** | 12 | *Text* (show, label text) · *Position* (anchor, placement, Label X offset (px), Label Y offset (px)) · *Font* (the composed six) |
+| 3 | **Bar appearance** | 9 | *Background* (Show background + swatch + companion) · *Border* (the composed four, led by its Show border toggle, then *Use the skin's border*) |
+| 4 | **Button appearance** | 13 | *Background* (Show background + swatch + companion) · *Border* (the Show border toggle, the composed four, *Use the skin's border*, and border offset) · *Icon* (zoom, stack count, GCD swipe) |
+| 5 | **Labels** | 13 | *Text* (show, label text) · *Position* (anchor, placement, Label X offset (px), Label Y offset (px)) · *Font* (the composed six, then *Use the skin's font*) |
 | 6 | **Flyout** | 16 | *Behavior*: `[Enable flyout] [Auto-close after (seconds)]` / `[Maximum flyout entries] [Reverse flyout order]` · *Placement*: `[Flyout side] [Gap from button (px)]` / `[Flyout button size (% of button)] [Flyout spacing (px)]` / `[Flyout padding (px)]` · *Background* (Show background + swatch + companion) · *Indicator* (band, arrow, shade swatch + companion) |
 | 7 | **Buttons** | 2 | `macroBar.order` and `macroBar.shown`, drawn as one draggable list (below), a length no schema knows, with **Reset slot order** under it |
 
@@ -511,6 +532,16 @@ font block is what gave the labels a **font face**, a real **font flags** string
 `core/Database.lua`, because a stored value changing shape is a migration and not an edit to a
 defaults table.
 
+**The two border blocks and the font block follow the skin** (skinning-§6, the composers'
+`fromSkin`). Each emits one more row after its canonical ones: `macroBar.barBorderStyleFromSkin`
+and `macroBar.buttonBorderStyleFromSkin` (*Use the skin's border*) and `macroBar.labelFontFromSkin`
+(*Use the skin's font*), default on. While one is ticked its picker is disabled and shows the
+skin's value; the button block's companion (`fromSkin = "icon"`, the skin's icon border family)
+governs the thickness slider too. The stored pick is kept, so unticking it brings the pick back.
+Only border styles and the face follow (the rollout's X4): no swatch has a skin companion, and
+the class-color companions above are unchanged. Schema v4's one-time reset turned the three on
+in every existing profile ([schema.md](./schema.md#migrations)).
+
 ## Reorder lists
 
 Three draggable lists, all through `LibKa0s-Widgets-1.0`'s `ReorderList` (`options-ui-§18`). The
@@ -559,9 +590,11 @@ Two different paths, and the difference is what a row shape can express.
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the
-`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **79**: 64 `macroBar.*` rows on the Macro Bar page, 7 in the
-General page's Master controls block, 7 on the Macros page and 1 on the Stat Priority page. Ten
-of them are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
+`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **89**: 67 `macroBar.*` rows on the Macro Bar page, 14 on the
+General page (7 in its Master controls block and the 7 `skin.*` rows), 7 on the Macros page and 1 on
+the Stat Priority page. The seven `skin.*` rows are `skipRender`: the library's Skin tab draws six
+of them and nothing draws `skin.pickerSeen`. Ten more
+are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
 `map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section
 orders) and the Battle Rez mouseover bool. They are still rows, so those controls write through the
 helper and `/cm get|list|reset` reach them. That count is no longer greppable — a composed block declares

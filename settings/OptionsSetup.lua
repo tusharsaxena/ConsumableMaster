@@ -376,6 +376,21 @@ else
     Helpers.ColorPair      = function() return {} end
     Helpers.FontGroup      = function() return {} end
     Helpers.BorderGroup    = function() return {} end
+
+    -- The Skin tab (LibKa0s v1.78.0, OptionsAppearance minor 1; skinning-§3) and the first-run
+    -- skin picker (LibKa0s v1.79.0, OptionsSkinPicker minor 1). Every Options stub owes all four,
+    -- adopted or not. AppearanceTab is evaluated at FILE LOAD inside settings/General.lua's tab
+    -- list, so it answers an inert entry (the live tab's key, its "Skin" label, a render that draws
+    -- nothing); the panel is never registered on this path, so nothing renders it. AppearanceRows
+    -- answers nil, as the live one does when it cannot draw. Without the library there is no skin
+    -- to pick: SkinPicker draws nothing and answers nil (never the live one's second value,
+    -- "queued": there is no queue), and HideSkinPicker is a no-op.
+    Helpers.AppearanceTab  = function()
+        return { key = "Appearance", label = "Skin", render = function() end }
+    end
+    Helpers.AppearanceRows = function() return nil end
+    Helpers.SkinPicker     = function() return nil end
+    Helpers.HideSkinPicker = function() end
 end
 
 -- nil on a degraded load, which is exactly what settings/Panel.lua derives its

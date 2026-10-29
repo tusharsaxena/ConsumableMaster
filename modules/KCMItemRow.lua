@@ -8,7 +8,7 @@
 --      Blizzard puts inline in consumable tooltips), when applicable.
 --   3. Surface a "currently picked" glyph without leaning on `<- pick` text.
 --
--- Acquired via `AceGUI:Create("KCMItemRow")` in settings/Category.lua, then
+-- Acquired via `KCM.SkinAcquire(AceGUI, "KCMItemRow")` in settings/Category.lua, then
 -- configured with `:SetCustomData({ itemID, owned, isPick, pickMH, pickOH,
 -- applicable, fallbackName })`.
 -- The SetText / SetFontObject methods are no-op stubs so the widget tolerates
@@ -17,7 +17,7 @@
 local _, NS = ...
 local KCM = NS
 
-local Type, Version = "KCMItemRow", 3
+local Type, Version = "KCMItemRow", 4
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -267,6 +267,14 @@ local methods = {
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
         self:SetWidth(300)
+        -- The two strings take the skin (skinning-§1): the name in the white the
+        -- GameFontHighlight template drew (`text.highlight`), the hand tag in the gold
+        -- GameFontNormalSmall drew (`text.accent`), each in the skin's body face at the
+        -- template's size. S.Text records them, so a skin switch replays both. While
+        -- the Scope ignores the settings panel, both stay on their templates in the
+        -- stock colors (KCM.SkinPanelText).
+        KCM.SkinPanelText(self.label, "text.highlight", "GameFontHighlight")
+        KCM.SkinPanelText(self.handTag, "accent", "GameFontNormalSmall")
         self:RefreshDisplay()
     end,
 

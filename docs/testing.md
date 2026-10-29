@@ -11,7 +11,7 @@ with red tests or lint errors is not allowed.
 
 | Gate | Command | What it does |
 |------|---------|--------------|
-| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, the LibKa0s seams (chat printer, debug console, slash dispatcher and schema CLI, settings-panel shell plus the Blizzard canvas callbacks it stamps, perf harness, and the media seam — which folder name crosses it, whether the path that comes back names art actually present in this build's vendored payload, and whether the close-button wrapper still carries that name as its third argument) and their degraded paths, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, the locale seam and the routing gate over the settings surface (`tests/test_locale.lua` lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any that is neither wrapped in `L` nor classed in its residue register), the `/cm` dispatcher, and the **disabled-state conformance suite** `slash-commands-§7` requires (`tests/test_disabled.lua`, which asserts on the mock's REGISTRATION SET rather than on any handler's return value — a suite written against an early return certifies the draw gate it exists to catch) — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
+| Headless tests | `lua5.1 tests/run.lua` | Runs every headless suite — classifier, ranker, selector (including the discovery TTL sweep and pin merge), ID sentinels, the settings schema and its mutation seam, macro writes (result codes, combat deferral, flush retries, oversize fallback), message bus, chat/debug output seams, the LibKa0s seams (chat printer, debug console, slash dispatcher and schema CLI, settings-panel shell plus the Blizzard canvas callbacks it stamps, perf harness, and the media seam — which folder name crosses it, whether the path that comes back names art actually present in this build's vendored payload, and whether the close-button wrapper still carries that name as its third argument) and their degraded paths, DebugLog formatters, tooltip parsing, spec/stat resolution, the spec/spell compat seam, bag scanning, SavedVariables migrations, the recompute pipeline, the client-event layer, shipped-data integrity (categories, seed lists, stat priorities), the AceGUI widget registrations, the locale seam and the routing gate over the settings surface (`tests/test_locale.lua` lexes `settings/` and the `modules/KCM*` widgets for prose literals and fails on any that is neither wrapped in `L` nor classed in its residue register), the `/cm` dispatcher, and the **disabled-state conformance suite** `slash-commands-§7` requires (`tests/test_disabled.lua`, which asserts on the mock's REGISTRATION SET rather than on any handler's return value — a suite written against an early return certifies the draw gate it exists to catch), the skin seam (`tests/test_skin.lua`: the degraded facade and its Ka0s Default copy held to the live library), the color-literal gate and the custom widgets' paint (`tests/test_skin_surfaces.lua`), the macro bar's skin-following and the one-time reset (`tests/test_skin_hud.lua`), the first-run skin picker (`tests/test_skin_picker.lua`) and the settings pages' painting (`tests/test_skin_settings.lua`) — plus a full TOC-order load check against a `wow_mock.lua` stub of the WoW API. No game client needed. Exits non-zero on any failure. |
 | Lint | `luacheck .` | Static analysis across the addon **including the test tree** (`libs/`, `docs/audits/`, `docs/reviews/` and `tests/_kit/` excluded — the kit is a byte copy linted in the LibKa0s repo as source). Must report **0 errors**. |
 
 Syntax-check a single file with `luac -p path/to/file.lua`.
@@ -144,7 +144,7 @@ a declared skip is in neither figure (`testing-§5`). A **declared skip** is a c
 registered with a third argument giving its reason, which the runner never executes,
 never folds into the pass count, and never lets change the exit code. The inventory
 discloses each one inline as `(skipped: <reason>)` and counts it on its own `| Skipped |`
-row just above Total (this repo holds kit revision 42; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
+row just above Total (this repo holds kit revision 44; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
 Total, which left the badge's total one above what runs), so the difference stays visible
 without being counted as a pass.
 A skip is for a case that has been written and watched failing against a defect the fix
@@ -153,7 +153,7 @@ merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 42, vendored from LibKa0s v1.77.0; wired since revision 25), which `layout-§1` makes
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 44, vendored from LibKa0s v1.80.0; wired since revision 25), which `layout-§1` makes
 the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
 census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
 [ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
@@ -290,7 +290,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 42, where a crashed run is fail (since kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 44, where a crashed run is fail (since kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 *Note:* what the runner executes inside that sighted shadow is `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`. Do not run that line in the repo itself: run blind, `lizard` misses or mis-measures functions the shadow sanitizes, so quote the runner, not the raw command.
 

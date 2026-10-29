@@ -8,7 +8,7 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ```
 db.global
-├── schemaVersion        3          -- migration marker; default 0, walked to 3 by
+├── schemaVersion        4          -- migration marker; default 0, walked to 4 by
 │                                   -- RunMigrations (core/Database.lua)
 └── minimap                         -- LibDBIcon-1.0's OWN table, handed straight to
     ├── hide             boolean    -- :Register (launcher-§3). GLOBAL and not profile:
@@ -25,7 +25,7 @@ db.global
                                     -- it (architecture-§5).
 
 db.profile
-├── schemaVersion        3          -- THIS profile's migration marker; gates every
+├── schemaVersion        4          -- THIS profile's migration marker; gates every
 │                                   -- step that writes the profile scope. Not a
 │                                   -- default: RunMigrations writes it on arrival.
 ├── enabled              boolean    -- master enable. It drives the LATCH
@@ -59,6 +59,13 @@ db.profile
 │       └── orderOutOfCombat   { refKey, ... }                 -- schema row (order)
 ├── statPriority                                             -- ONE schema row (map)
 │   └── ["<classID>_<specID>"] = { primary, secondary[] }   -- user overrides only
+├── skin                            -- the skin this addon wears (skinning-§2); seven
+│   │                               -- skipRender rows, drawn by General's Skin tab
+│   ├── source                      "ka0s" │ "eui"
+│   ├── skin                        a registered skin key ("ka0s" = Ka0s Default)
+│   ├── ignorePanel │ ignoreFonts   boolean  -- the Scope (true │ false in a new profile)
+│   ├── font │ texture              LibSharedMedia key; "" = the skin's own
+│   └── pickerSeen                  boolean  -- the first-run picker was closed here
 ├── macroState
 │   └── [macroName] = { lastItemID, lastBody, lastIcon, lastCat }   -- early-out cache;
 │                                   -- no row: learned data, owner MacroManager
@@ -72,6 +79,9 @@ db.profile
     ├── growthH │ growthV           "RIGHT"│"LEFT" │ "DOWN"│"UP"
     ├── barBackdrop │ barBorder │ buttonBackdrop │ buttonBorder   boolean
     ├── barBorderStyle │ buttonBorderStyle       LibSharedMedia border name
+    ├── barBorderStyleFromSkin │ buttonBorderStyleFromSkin   boolean  -- follow the skin
+    │                               -- (default true); the button one takes the skin's
+    │                               -- icon border family, thickness included
     ├── barBorderSize │ buttonBorderSize │ buttonBorderOffset      number (px)
     ├── barBackdropColor │ barBorderColor │ buttonBackdropColor
     │   │ buttonBorderColor         { r, g, b, a }
@@ -102,6 +112,7 @@ db.profile
     ├── labelPoint                  9-way grid, e.g. "TOP_CENTER"
     ├── labelPlacement              "INSIDE" │ "OUTSIDE"
     ├── labelFont                   LibSharedMedia font name
+    ├── labelFontFromSkin           boolean  -- the skin's HUD face (default true)
     ├── labelScale                  number   -- % of button size (6-24pt clamp)
     ├── labelFlags                  "" │ "OUTLINE" │ "THICKOUTLINE"
     │                               │ "MONOCHROME" │ "OUTLINE, MONOCHROME"
@@ -128,6 +139,8 @@ db.profile
 - **`WPN_ENCH` is per-hand, not a single pick.** It still has one `bySpec` bucket like the other spec-aware categories, but the pipeline resolves it as two independent picks: `Selector.PickBestForSlot(catKey, slot, scoreCache)` filters the effective candidate set to entries whose tooltip-derived `tt.weaponAffinity` (`"bladed"` | `"blunt"` | `"any"`, from `TooltipCache`) matches `KCM.WeaponSlots.SlotAffinity(slot)` (`"bladed"` | `"blunt"` | `"other"` | `nil`) for the equipped main-hand (16) / off-hand (17) weapon, then ranks and picks within that filtered set. `AP` and `SP` are scored as spec-role stats — `AP` scores as the spec's primary throughput stat for STR/AGI specs, `SP` for INT specs (`Ranker.lua`'s primary-stat weight), so an Attack Power oil doesn't rank below a secondary-stat oil for a physical-damage spec. `MacroManager.SetWeaponEnchantMacro(cat, mhPick, ohPick)` builds the macro from the two picks, dropping a hand with no weapon or no matching enhancement.
 - **`visibility` / `scale` / `alpha`** — the addon-wide master controls (`options-ui-§15`), and **not** the macro bar's `macroBar.scale` / `macroBar.alpha` / `macroBar.combatMode`. The two are different settings and they **compose**: `modules/MacroBar.lua` multiplies the master scale and alpha into the bar's own, and `MacroBarModel.ResolveVisibility(master, combatMode)` **intersects** the two combat-conditional visibilities so the bar shows only where both say show. `visibility` is a four-value dropdown and never a boolean, because a boolean can only ever answer two of the four.
 - **`useClassColor*`** — one per color swatch, the companion `options-ui-§17` requires beside every picker, default `false`. All seven are player-scoped: the bar is chrome the player owns and tracks no unit. `KCM.SwatchColor` (`core/CoreSetup.lua`) resolves a stored swatch through its companion, and the stored **alpha** always applies — which is why the swatch is never disabled.
+- **`skin`** — the skin this addon wears, per profile (skinning-§2). Seven schema rows, all `skipRender` (`settings/General.lua`): the library's Skin tab draws `source`, `skin`, the Scope's `ignorePanel` / `ignoreFonts` and the `font` / `texture` overrides, and nothing draws `pickerSeen`, which the first-run picker's close writes. New keys with defaults, so AceDB merges them into every existing profile and no migration is owed; `pickerSeen` defaults to false in every profile, old and new, so every player sees the picker once (O3). Every write goes through `KCM.Schema:Set` (`core/SkinSetup.lua`'s `KCM.WriteSkinChoice`). See [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins).
+- **`*FromSkin`** — the macro bar's three follow-the-skin companions (`barBorderStyleFromSkin`, `buttonBorderStyleFromSkin`, `labelFontFromSkin`), the composers' `fromSkin` rows. While one is true its style is the skin's and its picker shows the skin's value; the stored pick is kept, so turning it off brings the pick back. Default true (the rollout's X3), and the v4 step turns them on in every existing profile once (below).
 - **`labelFlags`** — the canonical font-flags string (`options-ui-§16`). It replaced the `labelOutline` boolean in schema **v3**; `""` is a real stored value and means no flags at all.
 - **`macroState`** — fingerprint cache for `MacroManager`'s "unchanged" early-out. `lastIcon` was added in v1.2.0 to support the `DYNAMIC_ICON` migration; `lastCat` lets `MacroManager` reason about which category owns a slot. It is learned data, not a setting, and has no row. `MacroManager` owns it: `commitMacro` writes a macro's fingerprint after each successful edit, and `InvalidateState` clears the whole cache for `/cm rewritemacros` and **Force rewrite macros**. ARCHITECTURE.md names every writer ([Other state written outside the helper](./ARCHITECTURE.md#other-state-written-outside-the-helper)).
 
@@ -145,15 +158,16 @@ Seeds live in `KCM.SEED.<CATKEY>` Lua constants, **not** in SavedVariables — t
 
 ### Migrations
 
-Both stamps are at `3`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` **and again on every profile switch, copy and reset** (the hooks in `core/ConsumableMaster.lua`), and is the one place version-gated migrations land; every step is guarded on the stored version for the scope it writes, so it runs at most once per store. The runner owns both stamps: no step writes `schemaVersion`, and each stamp line sits after its step call, so a step that raises leaves the stamp at the last completed version and the next load retries it. The same reaction then forgets the macro fingerprints on a switch or a copy, resyncs, and publishes `PROFILE_CHANGED` ([profiles.md](./profiles.md)).
+Both stamps are at `4`. `core/Database.lua`'s `RunMigrations()` runs immediately after `AceDB:New` **and again on every profile switch, copy and reset** (the hooks in `core/ConsumableMaster.lua`), and is the one place version-gated migrations land; every step is guarded on the stored version for the scope it writes, so it runs at most once per store. The runner owns both stamps: no step writes `schemaVersion`, and each stamp line sits after its step call, so a step that raises leaves the stamp at the last completed version and the next load retries it. The same reaction then forgets the macro fingerprints on a switch or a copy, resyncs, and publishes `PROFILE_CHANGED` ([profiles.md](./profiles.md)).
 
-Both steps below write `db.profile`, so both are gated on `db.profile.schemaVersion`. Gating them on the account-wide stamp — which is what this addon did until the profile stamp existed — meant that once *any* profile had been walked to the current version, every other profile in the file was skipped from then on, whatever build had written it; the `OnProfileChanged` hook that exists to catch exactly that re-ran a pass gated on a stamp that had already moved. The cost of the repair is paid once: no profile in an existing file carries a stamp, so each one meets the v2 step once on its first arrival under this build, and a deliberate opt-out has to be set again. The information needed to avoid that — which profile the old runner migrated — was never written down.
+Every step below writes `db.profile`, so each is gated on `db.profile.schemaVersion`. Gating them on the account-wide stamp — which is what this addon did until the profile stamp existed — meant that once *any* profile had been walked to the current version, every other profile in the file was skipped from then on, whatever build had written it; the `OnProfileChanged` hook that exists to catch exactly that re-ran a pass gated on a stamp that had already moved. The cost of the repair is paid once: no profile in an existing file carries a stamp, so each one meets the v2 step once on its first arrival under this build, and a deliberate opt-out has to be set again. The information needed to avoid that — which profile the old runner migrated — was never written down.
 
 | Version | Step |
 |---------|------|
 | 1 | Original shape. |
 | 2 | Macro bar introduced. `Database.MigrateMacroBarV2` sets `profile.macroBar.enabled = true` and `locked = false` so an upgrading profile gets the bar on and placeable, like a fresh install. One-shot by design — a later opt-out survives. |
 | 3 | The label outline became a font-flags string (`options-ui-§16`). `Database.MigrateLabelFlagsV3` writes `macroBar.labelFlags` from the old `macroBar.labelOutline` — `true` → `"OUTLINE"`, `false` → `""` — and removes the boolean, so there is never a second copy for a later reader to guess between. **The presence of `labelOutline` is what gates it**, not the absence of `labelFlags`: AceDB has already merged the shipped `labelFlags = "OUTLINE"` into every live profile before `RunMigrations` looks, so a guard on `labelFlags == nil` could never fire and the step would delete the boolean while keeping the default — losing exactly the un-outlined choice it exists to carry across. A profile carrying no boolean has been through the step already and is left alone: it is a conversion, not a reset. |
+| 4 | The macro bar's HUD style follows the skin, once (the skinning rollout's O2, CM-03). `Database.MigrateHudSkinV4` runs `LibKa0s-Skin-1.0`'s `ResetToSkin` on exactly `barBorderStyle`, `buttonBorderStyle` and `labelFont`, which turns each `<key>FromSkin` companion on and leaves the stored pick where it was. No color, size, flag or shadow key is listed, because `ResetToSkin` would write a sentinel into a number or enum key and switch a bool one on (X4). A table that lacks a companion has it seeded false first, so the reset always lands on the companion and never puts the sentinel in an LSM key; without the library the companions are set directly. On an AceDB profile the companions already default true, so the step moves nothing a player can see; it is the record that the reset ran. Under Ka0s Default the bar looks different afterwards (X5; [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins)). |
 
 The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below), so it needs no explicit migration step.
 

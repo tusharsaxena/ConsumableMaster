@@ -134,19 +134,29 @@ local function formatNumber(n)
     return (n < 0) and ("-" .. sepd) or sepd
 end
 
+-- The tooltip's three inline colors are the skin's, rendered to escapes when the body is built
+-- (skinning-§1; a page re-renders on a skin switch): the value white (`gtip.value`), and the owner
+-- tokens for the note's and the summary's grays, which no library token holds exactly.
 local function formatScoreTooltipDesc(explain)
     if not explain then return "" end
     local lines = {}
+    local value, noteGray = KCM.SkinPanelEscape("gtip.value") or "", KCM.SkinPanelEscape("cm.tipNote") or ""
     for _, s in ipairs(explain.signals or {}) do
-        local note = s.note and ("  |cff888888(" .. s.note .. ")|r") or ""
-        table.insert(lines, ("  %s: |cffffffff%s|r%s")
-            :format(s.label or "?", formatNumber(s.value or 0), note))
+        local note = s.note and ("  " .. noteGray .. "(" .. s.note .. ")|r") or ""
+        table.insert(lines, ("  %s: %s%s|r%s")
+            :format(s.label or "?", value, formatNumber(s.value or 0), note))
     end
     if explain.summary and explain.summary ~= "" then
         table.insert(lines, "")
-        table.insert(lines, "|cffaaaaaa" .. explain.summary .. "|r")
+        table.insert(lines, (KCM.SkinPanelEscape("cm.tipSummary") or "") .. explain.summary .. "|r")
     end
     return table.concat(lines, "\n")
+end
+
+--- A settings-page warning's lead-in, in the warning orange (the owner token `cm.warn`). The key
+--- is the words alone, so a translator never carries a color escape through a translation.
+local function warnText(text)
+    return (KCM.SkinPanelEscape("cm.warn") or "") .. text .. "|r"
 end
 
 local function afterMutation(reason)
@@ -345,7 +355,7 @@ end
 -- ---------------------------------------------------------------------
 
 local function newRow(scroll, height)
-    local row = AceGUI:Create("SimpleGroup")
+    local row = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     row:SetLayout("Flow")
     row:SetFullWidth(true)
     if height then row:SetHeight(height) end
@@ -354,7 +364,7 @@ local function newRow(scroll, height)
 end
 
 local function makeIconBtn(parent, opts)
-    local btn = AceGUI:Create("KCMIconButton")
+    local btn = KCM.SkinAcquire(AceGUI, "KCMIconButton")
     btn:SetImageSize(opts.size or 24, opts.size or 24)
     btn:SetImage(opts.image)
     btn:SetWidth(opts.width or ROW_BTN_W)
@@ -374,7 +384,7 @@ local function makeIconBtn(parent, opts)
 end
 
 local function makeScoreBtn(parent, opts)
-    local btn = AceGUI:Create("KCMScoreButton")
+    local btn = KCM.SkinAcquire(AceGUI, "KCMScoreButton")
     btn:SetImageSize(22, 22)
     btn:SetImage(opts.image)
     btn:SetWidth(ROW_BTN_W)
@@ -386,7 +396,7 @@ local function makeScoreBtn(parent, opts)
 end
 
 local function makeItemRow(parent, data, rw)
-    local row = AceGUI:Create("KCMItemRow")
+    local row = KCM.SkinAcquire(AceGUI, "KCMItemRow")
     row:SetRelativeWidth(rw or ITEM_ROW_RW_SINGLE)
     row:SetCustomData(data)
     parent:AddChild(row)
@@ -394,7 +404,7 @@ local function makeItemRow(parent, data, rw)
 end
 
 local function makeMacroDragIcon(scroll, macroName)
-    local w = AceGUI:Create("KCMMacroDragIcon")
+    local w = KCM.SkinAcquire(AceGUI, "KCMMacroDragIcon")
     w:SetFullWidth(true)
     w:SetCustomData({ macroName = macroName })
     scroll:AddChild(w)
@@ -402,7 +412,7 @@ local function makeMacroDragIcon(scroll, macroName)
 end
 
 local function makeCheckbox(parent, opts)
-    local cb = AceGUI:Create("CheckBox")
+    local cb = KCM.SkinAcquire(AceGUI, "CheckBox")
     cb:SetLabel(opts.label or "")
     if opts.width then cb:SetWidth(opts.width)
     elseif opts.relativeWidth then cb:SetRelativeWidth(opts.relativeWidth)
@@ -592,7 +602,7 @@ local function handleGutter()
 end
 
 local function renderRowHandle(row)
-    local slot = AceGUI:Create("SimpleGroup")
+    local slot = KCM.SkinAcquire(AceGUI, "SimpleGroup")
     slot:SetLayout(nil)
     slot:SetWidth(handleGutter())
     slot:SetHeight(ROW_H)
@@ -706,10 +716,12 @@ end
 -- guard ladder is not counted against the drawing function's complexity.
 local function priorityEmptyState(cat, specKey, priority)
     if cat.specAware and not specKey then
-        return L["|cffff8800No active spec.|r Pick one in the Stat Priority page's banner to see this list."]
+        return warnText(L["No active spec."]) .. " "
+            .. L["Pick one in the Stat Priority page's banner to see this list."]
     end
     if #priority == 0 then
-        return L["|cffff8800(empty)|r — no candidates yet. Add an item or spell above, or pick up a matching item to trigger auto-discovery."]
+        return warnText(L["(empty)"]) .. " "
+            .. L["— no candidates yet. Add an item or spell above, or pick up a matching item to trigger auto-discovery."]
     end
     return nil
 end
@@ -734,6 +746,11 @@ local function makePriorityList(ctx, cat, specKey, priority)
 
     return trackReorder(ctx, W.ReorderList({
         stride     = ROW_STRIDE,
+        -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner      = KCM.SkinPanelOwner(),
+
         -- No boundary. This list is flat -- every row is a priority and they are all one group --
         -- which is the common case the library defaults to. MultiMeters' Columns page is the one
         -- that divides, because a shown column may not be dragged among the hidden ones.
@@ -949,13 +966,18 @@ local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
     H.Section(ctx, section.label)
     local orderArr = cfg[section.orderField] or {}
     if #orderArr == 0 then
-        H.Label(ctx, L["|cffff8800(no sub-categories)|r"], "medium")
+        H.Label(ctx, warnText(L["(no sub-categories)"]), "medium")
         return
     end
 
     local W = reorderWidgets()
     local list = trackReorder(ctx, W and W.ReorderList({
         stride        = ROW_STRIDE,
+        -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
+        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
+        owner         = KCM.SkinPanelOwner(),
+
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
         onMove        = function(from, to)
@@ -1087,7 +1109,8 @@ local function renderNoCategories(ctx)
     cancelReorder(ctx)
     H.ResetScroll(ctx)
     H.EnsureScroll(ctx)
-    H.Label(ctx, L["|cffff8800(no categories)|r — nothing to configure. This is a broken install; /reload, and reinstall the addon if it persists."], "medium")
+    H.Label(ctx, warnText(L["(no categories)"]) .. " "
+        .. L["— nothing to configure. This is a broken install; /reload, and reinstall the addon if it persists."], "medium")
 end
 
 local function renderMacros(ctx)
