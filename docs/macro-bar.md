@@ -118,6 +118,14 @@ doesn't fit — measuring beats guessing a character budget, since the answer
 depends on font, size and string. `OUTSIDE` labels skip the measurement: they
 have the whole screen to overflow into.
 
+**The border styles and the face follow the skin.** While its *Use the skin's …* companion is on
+(the default), `BB.Follow` draws the bar's and the flyout panel's edge from the skin's
+`bar.borderStyle`, the buttons' and flyout entries' edge and thickness from its icon family
+(`icon.borderStyle`, `icon.borderSize`) and the label face from `hud.font`; `None` draws no edge
+and `Solid` a flat one. The stack count takes `hud.font` and `hud.outline` at its font object's
+size. Every color, size, flag, shadow and offset stays the player's ([ARCHITECTURE.md →
+Skins](./ARCHITECTURE.md#skins)).
+
 ## The flyout
 
 A shaded band across one edge of each icon carries a small arrow. Hovering
@@ -419,7 +427,7 @@ It is the same rule, line for line, as every Ka0s drag strip (KickCD's
 across the collection over the `ANCHOR_TOP` / `ANCHOR_TOPRIGHT` pair this bar
 used before (TP-CM-02).
 
-## Defaults & the v2 / v3 migrations
+## Defaults & the v2 / v3 / v4 migrations
 
 The bar ships **enabled and unlocked**. The reasoning: a bar nobody sees is a bar
 nobody configures, and unlocked means the drag handle is right there to place it
@@ -450,6 +458,14 @@ natural it reads: AceDB merges the shipped `"OUTLINE"` into the live profile
 before any of this addon's code runs, so it is never absent, and a guard on its
 absence retires the boolean without converting it — handing a player who had
 unticked the outline the default they had turned off.
+
+Schema **v4** (`Database.MigrateHudSkinV4`) is the skinning rollout's one-time reset (O2): it turns
+on `barBorderStyleFromSkin`, `buttonBorderStyleFromSkin` and `labelFontFromSkin` through
+`Skin.ResetToSkin`, leaving the stored picks where they were. The companions already default
+true, so the step is the record that the reset ran, and the stamp keeps a later deliberate "off"
+from being stomped. Under Ka0s Default the bar looks different afterwards: no edge on the bar or
+the flyout panel, a flat 2px edge in the player's color on every button, and Oxanium labels and
+counts ([schema.md](./schema.md#migrations)).
 
 `macroBar.locked` is still stored here, but the control that writes it is the
 General page's **Lock frame** row now, on the Master controls tab
@@ -545,6 +561,7 @@ handle, a rule, then the hidden ones dimmed and handle-less
 | profile switched, copied or reset | the profile handler publishes `MSG.PROFILE_CHANGED` after its resync; the bar's receiver runs `Update()`, the whole re-apply, because every `macroBar` field is different at once. A repaint alone left the outgoing profile's anchor, grid, order and shown set on screen until `/reload` ([profiles.md](./profiles.md)) |
 | a cooldown starts | `SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN` → `KCM:OnCooldownUpdate` → `MacroBar.RefreshCooldowns()`. The swipe animates itself once set, so there is no `OnUpdate` loop. In combat the spell cooldown API goes secret, so the setter is `SetCooldownFromDurationObject` via `MacroBarButton.ApplyCooldown` — see [midnight-quirks.md](./midnight-quirks.md#secret-values) |
 | a setting changes | the schema row's `apply` → `MacroBar.Update()` (idempotent, self-deferring) |
+| the skin changes (a pick, the Scope, an override, a profile event) | `KCM.Skin.OnLooksChanged` → `MacroBar.Update()` on a bar that is already built, held to `PLAYER_REGEN_ENABLED` in combat like any other restyle |
 | login / reload | `KCM:OnPlayerEnteringWorld` → `MacroBar.Update()`, a no-op while disabled |
 
 The only `OnUpdate` in the feature is the hover-fade poll, registered solely

@@ -68,6 +68,8 @@ Getting the picks right for your character takes four steps, in this order.
 
 After that the macros look after themselves. If a pick ever looks stale, `/cm resync` checks them all again. The minimap button opens the settings with a left-click, and a right-click gives you two switches, Enabled and Locked.
 
+The first time you log in on a profile, a small window asks you to choose a skin. Pick one from the list to try it on, press **Apply** to keep it, or close the window to stay on Ka0s Default. You can change it any time on General → **Skin**, which can also copy your pick to your other Ka0s addons. The macro bar's edges and label font follow the skin until you untick **Use the skin's border** or **Use the skin's font** on the Macro Bar page.
+
 Everything else is on the addon's page under Settings → AddOns, and `/cm` opens it. `/cm help` (or `/consumablemaster help`) lists every command.
 
 ## How picking & ranking works
@@ -125,6 +127,7 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 | `/cm resetall` or "Reset all settings" says "reset deferred until regen". | You were in combat, so nothing was reset. Run it again once combat ends. |
 | I want to restore a default list after removing items by hand. | **Reset category…** clears that one category. **Reset all priorities…** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 | I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. `/cm profile` lists them, and `/cm profile <name>` switches to one you already have. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
+| After an update the macro bar lost its edges and the labels changed font. | The bar now follows your skin, and Ka0s Default draws no edge around the bar, a thin one around each button and the Oxanium font. Your own choices were kept: untick **Use the skin's border** on Macro Bar → Bar appearance and Button appearance, and **Use the skin's font** on Labels, to get them back. Or pick another skin on General → **Skin**. |
 | Something looks wrong and I want to report it. | Follow [Reporting a bug](#reporting-a-bug) below. |
 
 ## Reporting a bug

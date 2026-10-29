@@ -77,14 +77,16 @@ settings-panel shell, its row widgets and the schema composers behind the Master
 `KCM.Meta` / `KCM.Version`, the item-link primitive behind the Add-by-ID box, and the perf-capture
 harness, the minimap button and broker plugin behind `core/LauncherSetup.lua`, and the **latch** the
 disabled state and the perf harness's suspended arm are two named holds on, plus the spec and spell
-ladders and the secret guard behind `KCM.Compat`, the stand-down record behind the bus, and the settings
-write seam every schema row is written through. **Fourteen**
+ladders and the secret guard behind `KCM.Compat`, the stand-down record behind the bus, the settings
+write seam every schema row is written through, and the skins every surface wears (the skin owner, the Skin tab
+and the first-run picker behind `core/SkinSetup.lua`). **Fifteen**
 of its majors are consumed — `Widgets` joined them when the priority rows took the library's drag handle
 (`settings/Category.lua`, `settings/StatPriority.lua`), `Launcher` joined at v1.39.0 with the
 launcher adoption, `Lifecycle` at v1.41.0 with the stand-down
 ([ARCHITECTURE.md](./docs/ARCHITECTURE.md#the-disabled-state-is-total)), and `Compat` and `Bus` at
 v1.55.0, and `Schema` at v1.56.0 with the write seam
-([#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)); `Pool`, `Glow` and `Sim` ship in the payload unused. It is vendored whole-folder,
+([#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)), and `Skin` at v1.80.0 with the skinning rollout
+([ARCHITECTURE.md](./docs/ARCHITECTURE.md#skins)); `Pool`, `Glow`, `Sim` and `Toast` ship in the payload unused. It is vendored whole-folder,
 except `media/icons/`, which ships only the declared marks (`tools/prune-icons.lua`; `library-stack-§7`),
 and never patched in place — a fix goes upstream and re-vendors ([docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies)).
 

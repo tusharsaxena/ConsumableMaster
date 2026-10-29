@@ -17,7 +17,7 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 
 | Folder | Holds |
 |--------|-------|
-| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the `/cm dump` targets (SlashDump), the slash **verb bodies** (SlashCommands) and the diagnostics report's sections (Diagnostics) — the dispatcher itself is `settings/Slash.lua` |
+| `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the skin seam (SkinSetup), the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the `/cm dump` targets (SlashDump), the slash **verb bodies** (SlashCommands) and the diagnostics report's sections (Diagnostics) — the dispatcher itself is `settings/Slash.lua` |
 | `modules/` | Ranker, Selector, MacroManager, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + its five pages (General, Macros, Stat Priority, Macro Bar, Profiles) |
@@ -62,6 +62,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Message bus | `core/Bus.lua` | Catalog below |
 | Compat seam (spec, spell and item APIs) | `core/Compat.lua` | [compat-layer.md](./compat-layer.md) |
 | LibKa0s seams (media, TOC manifest, item-link primitive) | `core/MediaSetup.lua`, `core/EnvSetup.lua`, `core/ItemSetup.lua` | [module-map.md](./module-map.md) |
+| Skins (the skin seam, the owner tokens, the Skin tab, the first-run picker, the HUD style that follows the skin) | `core/SkinSetup.lua`, `settings/General.lua` (the Skin tab), `modules/MacroBar*.lua` | [Skins](#skins) |
 | Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua`; the diagnostics report: `core/Diagnostics.lua`, `libs/LibKa0s/DebugLogDiagnostics.lua`; the change gates and at-enable queue: `core/Debug.lua`, `libs/LibKa0s/DebugLogGates.lua` | [debug.md](./debug.md) |
 | Perf A/B capture (`/cm perf`) | `core/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
 | Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
@@ -79,15 +80,15 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 
 Two layers, and it is worth keeping them apart.
 
-**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 3`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
+**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 4`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
 
-**Declared rows** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua` and appended to by the page files — **79** rows, counted by the page they sit on: 64 of them `macroBar.*` rows on the Macro Bar page, 7 the General page's composed Master controls block (`options-ui-§15`, which is where the 65th `macroBar.`-prefixed path, `macroBar.locked`, is counted), 7 on the Macros page and 1 on the Stat Priority page. Most are scalars. Nine whole-value rows of type `order` or `map`, plus one bool, `mouseover`, are described below. `settings/Panel.lua` itself declares none: a row is either written out in a page file or emitted by a LibKa0s composer and spliced in by `Helpers.RegisterRows`, which is also why the count is no longer greppable and is read off `#KCM.Settings.Schema`. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings page (its `group` is also the tab it lands on, so the array's order is the strip's order), the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:619` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the type rule the one write seam applies on write, `LibKa0s-Schema-1.0`'s pipeline ([schema.md](./schema.md#the-write-seam)).
+**Declared rows** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua` and appended to by the page files — **89** rows, counted by the page they sit on: 67 of them `macroBar.*` rows on the Macro Bar page, 14 on the General page (its 7 composed Master controls rows, `options-ui-§15`, which is where the 68th `macroBar.`-prefixed path, `macroBar.locked`, is counted, and the 7 `skin.*` rows behind its Skin tab), 7 on the Macros page and 1 on the Stat Priority page. The seven `skin.*` rows are `skipRender`: the library's Skin tab draws six of them, and nothing draws `skin.pickerSeen` ([Skins](#skins)). Most are scalars. Nine whole-value rows of type `order` or `map`, plus one bool, `mouseover`, are described below. `settings/Panel.lua` itself declares none: a row is either written out in a page file or emitted by a LibKa0s composer and spliced in by `Helpers.RegisterRows`, which is also why the count is no longer greppable and is read off `#KCM.Settings.Schema`. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings page (its `group` is also the tab it lands on, so the array's order is the strip's order), the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:619` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the type rule the one write seam applies on write, `LibKa0s-Schema-1.0`'s pipeline ([schema.md](./schema.md#the-write-seam)).
 
 ```lua
 #KCM.Settings.Schema
 ```
 
-reports **79 rows**: 64 `macroBar.*` rows in `settings/MacroBar.lua`, the 7 composed Master controls rows in `settings/General.lua`, 7 generated by `settings/Category.lua` and 1 in `settings/StatPriority.lua`. It is read off the live array rather than grepped, because a composed block declares its rows from one call and `grep -c '^\s*path\s*='` now under-counts by every row a composer emits.
+reports **89 rows**: 67 `macroBar.*` rows in `settings/MacroBar.lua`, the 7 composed Master controls rows and the 7 `skin.*` rows in `settings/General.lua`, 7 generated by `settings/Category.lua` and 1 in `settings/StatPriority.lua`. It is read off the live array rather than grepped, because a composed block declares its rows from one call and `grep -c '^\s*path\s*='` now under-counts by every row a composer emits.
 
 Two things are deliberately *not* schema rows. `KCM.State.debug` — the session LOGGING flag — is never persisted, so it has no path to declare; the Master controls tab's `Debug console` row is a different thing, the console WINDOW's visibility, and it declares the session path `state.debugConsole`, whose store is the row's own `get` / `set` (`settings/General.lua`). The per-category item lists are a collection no row shape describes: they are the structural registry (below), which is also why `/cm resetall` stays host-owned rather than adopting the library's `Sl:CliResetAll` (closed issue [LIBKA0S-12](https://github.com/tusharsaxena/ConsumableMaster/issues/27)). The per-spec stat priorities used to be the same kind of exception, and `architecture-§5` treats them differently. They are a preference, and a preference with no row is a missing row. Since 2026-09-12 they are one whole-value row, `statPriority` (below).
 
@@ -149,6 +150,8 @@ Cross-module control flow that crosses feature boundaries travels over the close
 | `MACROBAR_REFRESH` | `Ka0s_ConsumableMaster_MacroBarRefresh` | pipeline → macro bar | The pipeline finished a pass; the optional macro bar repaints slot icons + counts. Undebounced (unlike `PANEL_REFRESH`) because a live on-screen bar should track the macro it just rewrote. |
 | `PROFILE_CHANGED` | `Ka0s_ConsumableMaster_ProfileChanged` | profile handler → macro bar, options panel, Profiles page | AceDB switched, copied or reset the profile. Sender: the one reaction `KCM.RegisterProfileCallbacks` installs, after its resync. Payload: `reason` (`profile_changed` / `profile_copied` / `profile_reset`). Consumers: `modules/MacroBar.lua` runs `MacroBar.Update()`, the whole re-apply a repaint does not do; `settings/OptionsShim.lua` runs an immediate `KCM.Options.Refresh()`; `settings/Profiles.lua` redraws its AceConfigDialog tree. Each on its own target. [profiles.md](./profiles.md) |
 
+A skin change rides no message. The surfaces that rebuild on one subscribe to `KCM.Skin.OnLooksChanged` instead: the macro bar (`MacroBar.Update`) and the Profiles page ([Skins](#skins)).
+
 ## Slash Commands
 
 `/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:164-308`, published as `KCM.COMMANDS` at `:396` so there is one source of truth for the verb set (`slash-commands-§4`). Nothing in the addon reads that table directly — the About page renders its rows through `KCM.SlashCommands.GetLandingRows()` (`settings/Slash.lua:745-748`), which delegates to the library instance built from the same table — so `KCM.COMMANDS` is the identity handle the harness asserts against.
@@ -165,7 +168,7 @@ Every client event this addon listens to is declared in one place — the `KCM.E
 
 | Event | Handler | Purpose |
 |---|---|---|
-| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Login and `/reload`: auto-discovery, then the discovered-set sweep (the two are `discoverAndSweep`, which the stand-up shares), then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next |
+| `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Login and `/reload`: auto-discovery, then the discovered-set sweep (the two are `discoverAndSweep`, which the stand-up shares), then the first recompute, then `MacroBar.Update()` — in that order, because each step feeds the next. On the session's first entry only, it also lights the first-run skin picker's two-second fuse ([Skins](#skins)) |
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | Bag contents moved; re-run discovery and request a coalesced recompute |
 | `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | The player's own respec only (a groupmate's `unit` returns early; a nil unit passes): re-run discovery so the new spec's per-spec buckets see what is already in bags, recompute the spec-aware picks and publish `SPEC_CHANGED` for the Stat Priority page |
 | `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | Combat ended: flush MacroManager's pending macro writes and the macro bar's deferred build / relayout / restyle. A settings-category registration parked in combat is `LibKa0s-Options-1.0`'s to replay, on its own frame |
@@ -177,6 +180,8 @@ Every client event this addon listens to is declared in one place — the `KCM.E
 | `ADDON_RESTRICTION_STATE_CHANGED` | `OnRestrictionChanged` | A non-combat addon restriction lifted (an encounter, a key or a match ended; type `0`, combat, is left to `PLAYER_REGEN_ENABLED`): `MacroManager.MarkAllStale` owes every macro one write, then a coalesced recompute writes them, identical bodies included. The write is what makes the client re-resolve a `#showtooltip` icon, which a `/reload` or relog mid-key left blank on the action bar until the next `/reload` |
 
 Internal control flow that crosses a feature boundary does **not** ride a client event — it rides the closed bus above.
+
+One client event is registered outside `KCM.EVENTS`, and only while it is owed: a first-run skin picker started in combat holds for `PLAYER_REGEN_ENABLED` on a one-shot bus target of `core/SkinSetup.lua`'s, released the moment it fires and by the stand-down ([Skins](#skins)).
 
 ## The disabled state is total
 
@@ -194,6 +199,7 @@ Internal control flow that crosses a feature boundary does **not** ride a client
 | Every client event, actually unregistered | `KCM:UnregisterAllEvents()` — `KCM:OnEnable`'s list is **called**, never copied |
 | The coalescing recompute, disarmed | `KCM._recomputePending = false`; `C_Timer.After` hands back no handle, and a one-shot that fires at the end of this frame and finds nothing pending is not a survivor |
 | The bar hidden **at the source**, its fade `OnUpdate` cleared, its secure visibility driver unregistered and every flyout's `kcmCombat` attribute driver unregistered | `MacroBarModel.IsEnabled()` answers false while the latch is down, so `MB.Update` takes its own disable path, which calls `MacroBarFlyout.StandDown()`; the enable path re-arms the same flyout frames through `MacroBarFlyout.StandUp()`. Hiding imperatively would last until the next combat transition or settings change re-showed it |
+| The first-run skin picker taken down unmarked, with a held combat start and its regen target dropped | `KCM.HideSkinPicker`, first in `standDown` (`core/LifecycleSetup.lua`), so the picker comes back on the next login the addon stands up for |
 | Secure work held pending in combat | `standDown` re-registers **`PLAYER_REGEN_ENABLED`** — the one registration a disabled addon keeps — and `KCM:OnRegenEnabled` finishes the bar and drops it the moment it fires |
 
 | What SURVIVES, because it is SETUP | |
@@ -202,6 +208,7 @@ Internal control flow that crosses a feature boundary does **not** ride a client
 | The settings-category registration, including one parked in combat (LibKa0s-Options-1.0 replays it on its own frame, whatever the stand-down state), and the panel body | The *Enable Consumable Master* checkbox is live there in either state |
 | The AceDB handle, the single write seam, and the `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset` callbacks | A profile switch can flip `enabled` with no verb and no checkbox touched, so the addon **re-evaluates** the latch in its one profile reaction before anything else in that handler runs |
 | The launcher's registration | The button stays on the minimap; `minimap.hide` is a display preference and says nothing about whether the addon is running |
+| The skin owner's registration with `LibKa0s-Skin-1.0`, its recorded frames and its `OnLooksChanged` listeners | A skin picked on the Skin tab while the addon is off is stored and worn, and the bar wears it when it stands up |
 
 **Standing up rebuilds from current state**, never from a snapshot taken on the way down: the whole schema CLI answers while disabled, so a setting really can change in between.
 
@@ -225,8 +232,8 @@ header comment states the whole stack, and every strata and level write reads it
 (`tests/test_macrobar_layers.lua` pins that). The addon's own tiers are two: the macro bar at
 `HUD` (`MEDIUM`), with its slots, drag handle and unlock wash inside it, and the per-slot flyout
 at `HUD_POPUP` (`DIALOG`, set once at construction, clamped). Everything above them is Blizzard's
-or the library's: the Settings panel at `HIGH`, StaticPopups and the debug console and perf panel
-at `DIALOG`, the copy window at `FULLSCREEN`, menus and the Add-by-ID suggestions at
+or the library's: the Settings panel at `HIGH`, StaticPopups, the debug console, the perf panel and the
+first-run skin picker at `DIALOG`, the copy window at `FULLSCREEN`, menus and the Add-by-ID suggestions at
 `FULLSCREEN_DIALOG`, tooltips and the reorder ghost at `TOOLTIP`. The in-slot ladder is in
 [macro-bar.md](./macro-bar.md#buttons).
 
@@ -248,14 +255,17 @@ at `DIALOG`, the copy window at `FULLSCREEN`, menus and the Add-by-ID suggestion
 - **Action-bar icon sentinel.** Active body stores `DYNAMIC_ICON = 134400` (`?` fileID); empty body omits `#showtooltip` and stores `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
 - **The macro bar owns the only protected frames, and never pokes them in combat.** Slots and flyout entries are secure buttons, so creating, anchoring, showing or hiding them is combat-forbidden. Everything funnels through `MacroBar.Update()`, which defers to `PLAYER_REGEN_ENABLED`; combat-conditional visibility goes to `RegisterStateDriver`, flyout hover to `_onenter`/`_onleave` snippets, and combat state reaches those snippets via `RegisterAttributeDriver` — all of it running in the secure environment instead. A slot's `macro` attribute is stamped once at creation and never rewritten. Every slot and flyout entry registers for `"AnyUp"` **and** sets `useOnKeyDown = false`; drop the attribute and the `ActionButtonUseKeyDown` cvar (on by default) makes Blizzard's handler wait for a press the button never receives, so clicks silently do nothing ([macro-bar.md](./macro-bar.md#buttons)).
 - **Debug flag is session-only.** `KCM.State.debug` (`core/State.lua`) is never persisted — a session left with debug on doesn't leak into the next login.
+- **No surface types a color.** Every color a frame this addon draws comes from `KCM.Skin` (an owner token where no library token holds the exact pixel), and `tests/test_skin_surfaces.lua` fails on a literal at a paint call or a `|cff` escape outside the seam and its allow-list ([Skins](#skins)).
 
 ## Timers
 
-`C_Timer` is used directly rather than AceTimer, in three places: the pipeline's frame-coalescing (`RequestRecompute`), the options panel's refresh debounce (`O.RequestRefresh`), and the flyout's idle auto-close (`MacroBarFlyout`). This is a **deliberate, documented choice** (CM-09): the addon needs only fire-once short delays, `C_Timer` is a first-party API with no extra embed, and AceTimer is not otherwise required. The standard treats the timer choice as a SHOULD, so this justification satisfies it.
+`C_Timer` is used directly rather than AceTimer, in four places: the pipeline's frame-coalescing (`RequestRecompute`), the options panel's refresh debounce (`O.RequestRefresh`), the flyout's idle auto-close (`MacroBarFlyout`), and the first-run skin picker's two-second fuse after the session's first `PLAYER_ENTERING_WORLD` (`core/ConsumableMaster.lua`). This is a **deliberate, documented choice** (CM-09): the addon needs only fire-once short delays, `C_Timer` is a first-party API with no extra embed, and AceTimer is not otherwise required. The standard treats the timer choice as a SHOULD, so this justification satisfies it.
 
 Note the flyout timer's limit: there is no timer inside the *secure* environment, so it cannot close a flyout mid-combat and deliberately stands down instead ([macro-bar.md](./macro-bar.md#closing)).
 
 **On the way down** (`slash-commands-§7`): the coalescer is disarmed by clearing `KCM._recomputePending`, which is the only lever `C_Timer.After` leaves — it hands back no handle, and a one-shot that fires at the end of *this* frame and finds nothing pending is not a survivor. The bar's fade `OnUpdate` is **cleared** on the disable path rather than left armed to wake up and find a hidden bar, and the flyout's idle poll only exists while a flyout is open, which a hidden bar's cannot be. The panel refresh debounce is the settings layer's and belongs to what SURVIVES; nothing arms it while the addon is down, because every publisher of `PANEL_REFRESH` is a stood-down path.
+
+The picker's fuse needs no disarming either: `KCM.MaybeShowSkinPicker` asks the latch when it fires, so a stand-down inside the two seconds shows nothing.
 
 ## External dependencies
 
@@ -276,7 +286,7 @@ All vendored under `libs/`:
 - LibSharedMedia-3.0 (debug-console monospace font registration; also the media source behind the macro bar's border pickers)
 - LibDataBroker-1.1 and LibDBIcon-1.0 (the launcher — the broker plugin and the minimap button, `launcher-§1`). LibDataBroker is listed **first** and that is load-bearing: LibDBIcon resolves it with a non-silent `LibStub` at file load and calls `error()` when it answers nil. `LibKa0s-Launcher-1.0` resolves both with `LibStub(..., true)` at Register time instead, so it degrades by name rather than raising — no LibDataBroker means no launcher at all, no LibDBIcon means the broker plugin without the button
 - AceGUI-3.0-SharedMediaWidgets (the `LSM30_Border` preview dropdown used by those pickers; its misaligned preview tile is fixed up by `lib.__PatchLSM30Border()`, a `LibKa0s-Options-1.0` member called from `settings/OptionsSetup.lua`. That used to be `core/LSMPatch.lua` here and in four sibling addons — AceGUI's widget registry is process-global, so five private registrations in one client meant whichever addon loaded last owned every addon's Border dropdown)
-- LibKa0s — the Ka0s-owned shared modules, vendored whole-folder (except `media/icons/`, which ships only the marks the `LibKa0s icons:` line in [../CLAUDE.md](../CLAUDE.md) declares, cut by `tools/prune-icons.lua` at re-vendor, `library-stack-§7`) from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. Fourteen majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows, schema CLI and the sub-command vocabulary — `SplitVerb`, `FindCommand`, `CommandRows` — behind `/cm priority`, `stat`, `aio` and `bar`), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture), `Media-1.0` (the six declared icon marks and the font), `Env-1.0` (the TOC-manifest reader behind `KCM.Meta` / `KCM.Version`), `Item-1.0` (one primitive, `ItemIDFromLink`), `Widgets-1.0` (two surfaces: `ReorderList`, behind the priority rows' drag handle, and `DragHandle`, the macro bar's unlocked strip, adopted at v1.48.0), `Launcher-1.0` (the minimap button and the broker plugin as one object, adopted at v1.39.0) and `Lifecycle-1.0` (the one latch the disabled state and the perf harness's suspended arm are two named holds on, adopted at v1.41.0), `Compat-1.0` (the spec and spell ladders and the secret guard behind `KCM.Compat`, adopted at v1.55.0), `Bus-1.0` (the stand-down record behind every bus target, and the strict message catalog, adopted at v1.55.0) and `Schema-1.0` (the settings write seam, adopted at v1.56.0, [#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)). `Pool`, `Glow` and `Sim` are vendored with the payload but not consumed. Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
+- LibKa0s — the Ka0s-owned shared modules, vendored whole-folder (except `media/icons/`, which ships only the marks the `LibKa0s icons:` line in [../CLAUDE.md](../CLAUDE.md) declares, cut by `tools/prune-icons.lua` at re-vendor, `library-stack-§7`) from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. Fifteen majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows, schema CLI and the sub-command vocabulary — `SplitVerb`, `FindCommand`, `CommandRows` — behind `/cm priority`, `stat`, `aio` and `bar`), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture), `Media-1.0` (the seven declared icon marks and the font), `Env-1.0` (the TOC-manifest reader behind `KCM.Meta` / `KCM.Version`), `Item-1.0` (one primitive, `ItemIDFromLink`), `Widgets-1.0` (two surfaces: `ReorderList`, behind the priority rows' drag handle, and `DragHandle`, the macro bar's unlocked strip, adopted at v1.48.0), `Launcher-1.0` (the minimap button and the broker plugin as one object, adopted at v1.39.0) and `Lifecycle-1.0` (the one latch the disabled state and the perf harness's suspended arm are two named holds on, adopted at v1.41.0), `Compat-1.0` (the spec and spell ladders and the secret guard behind `KCM.Compat`, adopted at v1.55.0), `Bus-1.0` (the stand-down record behind every bus target, and the strict message catalog, adopted at v1.55.0) `Schema-1.0` (the settings write seam, adopted at v1.56.0, [#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)) and `Skin-1.0` (the skin this addon wears, its owner tokens, the Skin tab and the first-run picker, adopted at v1.80.0 in the 2026-10-29 skinning rollout, [Skins](#skins)). `Pool`, `Glow`, `Sim` and `Toast` are vendored with the payload but not consumed. Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
 
 ### LibKa0s adoption
 
@@ -293,12 +303,114 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceDBOptions/AceConsole/AceGUI/AceConfig), AceGUI-3.0-SharedMediaWidgets, LibDataBroker-1.1 then LibDBIcon-1.0 (that order is load-bearing — LibDBIcon `error()`s at load without LibDataBroker), then LibKa0s last, listed directly in the TOC. AceConfig sits **after** AceGUI, and that is load-bearing: AceConfigDialog resolves AceGUI with a non-silent `LibStub` at file load
 2. `# Locales` — `locales/enUS.lua`
-3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `LifecycleSetup.lua` (the `LibKa0s-Lifecycle-1.0` latch; **load-bearing position** — `PerfSetup.lua` takes the instance as `descriptor.lifecycle` at load) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `LauncherSetup.lua` (the `LibKa0s-Launcher-1.0` seam; position conventional — it resolves the library at load and nothing else, and `Register()` runs from `KCM:OnInitialize` once AceDB has built `db.global.minimap`) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands` → `Diagnostics` (the diagnostics report's sections, asked for at run time)
+3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `LifecycleSetup.lua` (the `LibKa0s-Lifecycle-1.0` latch; **load-bearing position** — `PerfSetup.lua` takes the instance as `descriptor.lifecycle` at load) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `SkinSetup.lua` (the `LibKa0s-Skin-1.0` seam; **load-bearing position** — it registers the skin owner at file load, so the EllesmereUI provider can offer it before EllesmereUI dispatches its skins, and every file that builds a frame, `settings/General.lua` among them, which reads the Skin tab's option lists at load, comes after it) → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `LauncherSetup.lua` (the `LibKa0s-Launcher-1.0` seam; position conventional — it resolves the library at load and nothing else, and `Register()` runs from `KCM:OnInitialize` once AceDB has built `db.global.minimap`) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands` → `Diagnostics` (the diagnostics report's sections, asked for at run time)
 4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab`, the panel bootstrap and `KCM.Options.Register`) → `OptionsShim.lua` (the run-time `KCM.Options` surface: `Refresh` / `RequestRefresh` / `Open`, the refresh debounce and the bus receivers; after `Panel.lua`, whose `Helpers`, `optionsUI` and panel-unavailable notice it takes as file-scope locals) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua` → `CategoryAddByID.lua` (the Add-by-ID line; after Category.lua, whose `KCM.Settings.MacrosPage` helpers it takes as file-scope locals) → `Slash.lua` → `Profiles.lua` (last, as the Profiles page is last in the sidebar)
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
+
+## Skins
+
+The 2026-10-29 skinning rollout (Ka0sAddonsCommonTasks `docs/2026-10-29-SKINNING_ROLLOUT/`, items
+CM-RV and CM-01 to CM-05) adopted `LibKa0s-Skin-1.0` (skinning-§1 to §7) at LibKa0s v1.80.0. The
+shape is LootHistory's, the collection's first adopter; the paths, the brand, the owner tokens and
+the HUD are this addon's.
+
+- **The seam.** `core/SkinSetup.lua` registers the owner `"ConsumableMaster"` (the folder name) at
+  file load, labeled *Ka0s Consumable Master*, with its read and write seams (`KCM.SkinChoice`,
+  `KCM.WriteSkinChoice`, which writes every half through `KCM.Schema:Set`) and four **owner tokens**:
+  `cm.iconHover` (the priority rows' icon-button hover wash, following `list.hover`), `cm.warn` (the
+  settings pages' warning lines, following `sem.warn`), and `cm.tipNote` / `cm.tipSummary` (the
+  score tooltip's two grays, following `gtip.muted` / `gtip.subtle`). Each answers Ka0s Default's
+  exact pixel and follows its library role in every other skin (DECISIONS X1, X2, X12; gaps CM-G1 to
+  CM-G3). It publishes `KCM.Skin`, the owner's facade every surface reads, `KCM.SkinColor` /
+  `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
+  the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
+  `KCM.SkinPaintAceTree`, and the picker's three functions ([module-map.md](./module-map.md)).
+  Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from
+  `KCM.SKIN_FALLBACK`, and `tests/test_skin.lua` holds each entry to the live facade's answer.
+- **The choice is per profile.** Seven rows under `skin.` ([schema.md](./schema.md)): the source and
+  the skin, the Scope's two exceptions (*Ignore settings panel*, on in a new profile, and *Ignore
+  fonts*, off), the Font and Texture overrides (`""` for the skin's own) and `pickerSeen`. All seven
+  are `skipRender`; the library's Skin tab (`O.AppearanceTab`, key `Appearance`) draws the first six
+  as General's last tab, after Maintenance, since the page has no Keybindings tab
+  ([settings-panel.md](./settings-panel.md#the-general-pages-skin-tab)). Each row's `apply` moves only
+  its own half, so a tab pick or another addon's *Copy to every Ka0s addon* is one effective
+  `Skin:SetChoice` and one repaint, while a bare `/cm set skin.skin obsidian` still repaints.
+- **Repaint flow.** `KCM.ApplySkinChoice` runs in `KCM:OnInitialize` right after the migrations,
+  before the latch, the launcher, the bar or any page is built, and in the profile reaction after
+  the migrations ([profiles.md](./profiles.md#reacting-to-a-profile-change)). `Skin:SetChoice`
+  repaints every frame recorded for the owner and then fires `KCM.Skin.OnLooksChanged`, on which the
+  macro bar re-applies itself (`MacroBar.Update`, which holds itself to `PLAYER_REGEN_ENABLED` in
+  combat) and the Profiles page redraws. No skin change rides the bus.
+- **The HUD follows the skin's border and font, and nothing else** (skinning-§6; DECISIONS X4).
+  Three composed companions, default true (X3), each the composer's *Use the skin's …* row:
+  `macroBar.barBorderStyleFromSkin` (the bar's and the flyout panel's edge, from `bar.borderStyle`),
+  `macroBar.buttonBorderStyleFromSkin` (the buttons' and flyout entries' edge, from the skin's icon
+  family, `icon.borderStyle` and `icon.borderSize`, so it governs the thickness too) and
+  `macroBar.labelFontFromSkin` (the label face, from `hud.font`). `BB.Follow`
+  (`modules/MacroBarButton.lua`) resolves each through `KCM.Skin.Resolve` when the bar is styled,
+  never on a hot path, and falls back to the player's pick where the skin leaves the token alone.
+  The stack count takes `hud.font` and `hud.outline` at its font object's own size (D6), the unlocked
+  wash `menu.hover` (D4, today's pixel) and the flyout arrow `icon.arrow` (D9). Every color, size,
+  flag, shadow and offset stays the player's, and so do the three fills no HUD token holds (the
+  button and flyout backgrounds and the indicator shade, D2), whose fallbacks read
+  `defaults/Profile.lua`. The Font override reaches the labels and counts wherever the label face
+  follows the skin; the Texture override has nothing here to change, because the bar draws no bar
+  texture. The label shadow's color and offset are a legibility constant (D7).
+- **The one-time reset (O2).** The profile v4 step `Database.MigrateHudSkinV4` runs
+  `Skin.ResetToSkin` on exactly the three style keys (`barBorderStyle`, `buttonBorderStyle`,
+  `labelFont`), which turns each companion on and leaves the stored pick where it was, so unticking
+  the companion brings the player's own pick straight back ([schema.md](./schema.md#migrations)).
+  **So under Ka0s Default the bar looks different after this run** (DECISIONS X5, D1): the bar and
+  the flyout panel lose their 4px *Blizzard Tooltip* edge (Ka0s Default's bar border style is
+  *None*), every button and flyout entry takes a flat 2px edge in the player's own border color, and
+  the labels and stack counts read in Oxanium SemiBold instead of Friz Quadrata. That is the rulings'
+  intended change, not a regression.
+- **The settings pages.** The page chrome, the tab strips, the schema rows and the composers are the
+  library's and carry the owner already (the Options descriptor passes `addonName`); nothing of
+  theirs is painted while *Ignore settings panel* is on. Every AceGUI widget a settings file acquires
+  itself goes through `KCM.SkinAcquire` (Create, then `KCM.SkinPaintAce`), so it is painted on the
+  same terms and handed back to AceGUI's pool stock. The Profiles page paints AceConfigDialog's tree
+  after every Open (`KCM.SkinPaintAceTree`, `settings/Profiles.lua`). The four `KCM*` widgets and the
+  raw Stat Priority and Buttons rows have no library painter, so they paint themselves from
+  `KCM.Skin`: the owner tokens above, `text.highlight`, `text.disabled`, `text.accent` and
+  `sem.unknown` through `S.Text`, and the reorder ghosts the same tokens. `S.Text` takes the skin's
+  body face as well as the color and is not scoped by *Ignore settings panel*, so under Ka0s Default
+  these rows keep their colors and read in Oxanium SemiBold (smoke check SKIN-7).
+- **GameTooltip lines** this addon writes take skin colors (X8): the macro fallback tooltip's
+  `gtip.title` / `gtip.value`, the Stat Priority and Buttons rows' `gtip.value`, and the score
+  tooltip's `gtip.value`, `cm.tipNote` and `cm.tipSummary`, rendered to escapes at format time. The
+  tooltip frame is Blizzard's (skinning-§7), and item and spell tooltips are the client's.
+- **The library draws the rest for the owner.** The debug console, its copy window and the perf
+  panel already passed the folder as `addonName`, and the macro bar's drag handle and the four
+  reorder lists are handed `owner = addonName`.
+- **The first-run skin picker** (O3; X6). `KCM.MaybeShowSkinPicker` shows the library's picker
+  (`O.SkinPicker`) while the profile's `skin.pickerSeen` is false and the addon stands up: once per
+  session, two seconds after the first `PLAYER_ENTERING_WORLD`, and after every profile event,
+  because a new, copied or reset profile carries its own flag. A start in combat is held for
+  `PLAYER_REGEN_ENABLED` on a one-shot bus target. Only the player's close writes `pickerSeen`;
+  `KCM.HideSkinPicker` (the stand-down, and first in every profile reaction) takes it down
+  unmarked. Its gear opens General on the Skin tab. It draws **no eye**: the addon has no primary
+  window and no test mode to preview in, so the spec carries no `onPreview` (D3), and the
+  `LibKa0s icons:` declaration adds only `settings`.
+- **The EllesmereUI provider** is the library's (`SkinEUI.lua`). With source `eui` and its gate
+  holding, the owner wears EllesmereUI's look; otherwise the Ka0s skin, and the Skin tab names the
+  failing condition. `ka0s` to `eui` is live; back needs one reload, which the Skin tab asks for and
+  a profile event leaving EllesmereUI announces on one chat line. `## OptionalDeps` names
+  EllesmereUI. This addon never reads EllesmereUI's settings itself.
+- **What stays unskinned, on purpose.** Chat output (`KCM.PREFIX`, the `ON` / `OFF` marks, the
+  `/cm` verbs' highlights, the schema-error line) is not a skinned surface (X7, D11). The three
+  StaticPopups, the launcher's tooltip and menu (LibDBIcon and Blizzard's menu), the LibSharedMedia
+  pull-outs, the macro icons, Blizzard's pushed and highlight art and the cooldown swipe are the
+  client's. A non-applicable item row's 0.4 alpha is state, not chrome (D8).
+- **The color gate.** `tests/test_skin_surfaces.lua` (LootHistory's anti-pattern #107 gate) fails on
+  a numeric color literal in a paint call or a `|cff` escape in `core/`, `modules/` or `settings/`
+  outside `core/SkinSetup.lua` and a reasoned allow-list (the chat lines, the icons' untinted
+  vertex), and an entry that matches nothing fails it too. `tests/test_skin_hud.lua` pins what the
+  bar draws, the companions and the reset running once; `tests/test_skin_picker.lua` the picker;
+  `tests/test_skin_settings.lua` the settings pages' painting.
 
 ## Known Limitations
 
@@ -306,13 +418,14 @@ Things that are true today, understood, and not bugs. Each is either a ratified 
 
 - **English clients only, for tooltip magnitudes.** Category and weapon-affinity detection are locale-independent (numeric `classID` / `subClassID`), but `core/TooltipCache.lua` reads heal / mana / stat magnitudes, the `Augment Rune` marker and the weapon-application effect out of English tooltip text. Ratified below against `localization-§4`; reasoning in [scope.md](./scope.md).
 - **A flyout cannot auto-close mid-combat.** The idle auto-close is a `C_Timer`, and there is no timer inside the secure environment, so a flyout opened as combat starts stays open until the hover state changes or combat ends. It deliberately stands down rather than attempting a hide the client would refuse ([macro-bar.md](./macro-bar.md#closing)).
-- **Macro-bar changes made in combat land late.** Building, relayouting or restyling the bar anchors protected frames, so `MacroBar.Update()` defers the whole batch to `PLAYER_REGEN_ENABLED`. The same is true of macro writes, which queue in MacroManager and flush on regen.
+- **Macro-bar changes made in combat land late.** Building, relayouting or restyling the bar anchors protected frames, so `MacroBar.Update()` defers the whole batch to `PLAYER_REGEN_ENABLED`. A skin picked in combat reaches the bar the same way, at combat's end. The same is true of macro writes, which queue in MacroManager and flush on regen.
 - **A pick can be briefly wrong while item data hydrates.** `C_TooltipInfo` and `GetItemInfo` are asynchronous; an item whose body has not arrived is cached `pending` and re-parsed on the next `Get()`, but until then it scores on what was readable.
 - **A panel opened while disabled cannot hydrate item rows.** The settings panel survives the disabled state, but its two hydration triggers do not: the stand-down's `UnregisterAllEvents` (`core/LifecycleSetup.lua`) drops `GET_ITEM_INFO_RECEIVED`, and the options bus target's `PANEL_REFRESH` subscription (`settings/OptionsShim.lua`) goes down with it. So in a fresh session, an item row whose name is not cached stays `[Loading]` (`modules/KCMItemRow.lua`) until re-enable, when standUp's `RequestRecompute` refreshes the panel. slash-commands-§7 records the panel-refresh-while-disabled question as "Recorded, not ruled". Panel-owned hydration through LibKa0s-Item's `LoadItem`, which `core/ItemSetup.lua` declines today, is the owner-decision follow-up in [#40](https://github.com/tusharsaxena/ConsumableMaster/issues/40).
 - **The perf harness measures in-combat cost only.** Recording opens at combat start and closes at combat end by design, so the addon's genuinely expensive paths — the flyout rebuild, `MacroBar.Update`, macro writes — never appear in a capture, because they are deliberately not in combat (`core/PerfSetup.lua:12-25`).
 - **A build with no `LibKa0s-Widgets-1.0` draws no drag-handle strip.** Since v1.48.0 the unlocked strip above the macro bar is the library's `DragHandle`, and `modules/MacroBar.lua` keeps no hand-built copy to fall back to: a second copy of a widget is the drift the adoption removed. A vendored payload missing that major — or one older than v1.48.0, whose Widgets shell has no `DragHandle` — leaves `bar.handle` nil, and nothing raises, because `applyLock` guards on it. The bar is still positionable: its own frame still drags from any pixel the slots leave bare, and a reset (`/cm bar reset`, or the General page's **Reset position**) still puts back the default anchor. `/cm set` cannot reach the position, because `point`, `relPoint`, `x` and `y` have no schema row.
 - **A build with no `LibKa0s-Compat-1.0` reads no spec and no spell name.** Since v1.55.0 `KCM.Compat.GetSpecialization`, `GetSpecializationInfo` and `GetSpellName` are the library's, and a payload missing that major takes the reader arm its API document prescribes: each answers `nil` rather than a host copy of the ladder. The addon then behaves as for a character with no spec chosen (`SpecHelper.GetCurrent` answers the class alone) and labels spell rows with their placeholder. `IsSecret` keeps asking the client, so no secret reaches a comparison on that install. `core/CoreSetup.lua` already announces the missing payload.
 - **A build with no `LibKa0s-Bus-1.0` leaves its bus subscriptions live when disabled.** The stand-down record is the library's since v1.55.0, and `core/Bus.lua`'s library-absent stub is the untracked-target shape the Bus API document prescribes: receivers still get private targets and still subscribe, but nothing is recorded, so `KCM.Bus.StandDown` takes nothing down on that install. Every publisher of those messages is itself stood down, so what survives is registered but unreached. `core/CoreSetup.lua` already announces the missing payload.
+- **A build with no `LibKa0s-Skin-1.0` has no skin.** No Skin tab and no picker, and every surface draws what it drew before skins, from `core/SkinSetup.lua`'s degraded facade: the bar the player's own border styles and face, the settings rows Ka0s Default's colors. The `skin.*` rows are still stored and read.
 - **The addon never deletes a `KCM_*` macro.** The account macro quota is 120; when it is full, `doEdit` in `modules/MacroManager.lua` refuses the create and returns `"error", "account macro quota full (120)"`. It will not free a slot on the user's behalf.
 
 ## Repository
@@ -412,7 +525,7 @@ git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l |
 ```
 
 and re-measured 2026-09-26 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
-`layoutcap:` cases; the largest authored file is `settings/Panel.lua`, at 1196 lines (measured 2026-10-01).
+`layoutcap:` cases; the largest authored file is `settings/MacroBar.lua`, at 1225 lines (measured 2026-10-29).
 
 | File | Lines | Disposition |
 |---|---|---|
@@ -425,20 +538,19 @@ emptied look identical on the page and are not the same claim. Rows alongside th
 too. The section itself stays whether or not there is a breach — it is where the rule is written
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-10-09):
-`settings/Panel.lua` (1196), `settings/MacroBar.lua` (1182), `settings/Category.lua` (1150),
-`tests/test_schema.lua` (1023), `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile`
-fakes), `tests/test_selector.lua` (1049) and `tests/test_settingsui.lua` (1002, back over 1000 with
-the 2026-10-02 `addonName` descriptor cases). The three test suites that
+**The 1000–1500 band is on notice, not in breach** (measured 2026-10-29):
+`settings/MacroBar.lua` (1225), `settings/Category.lua` (1184), `settings/Panel.lua` (1143),
+`tests/test_schema.lua` (1173), `tests/test_settingsui.lua` (1151), `tests/test_selector.lua`
+(1049) and `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile` fakes). The three test suites that
 led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
 `tests/test_settingsui.lua` (1440) — were peeled below 1000 on 2026-09-26 (see
 [module-map.md → Peel history](./module-map.md#peel-history)). They are named here so a later
 reader can tell the band was looked at rather than missed; none needs a disposition until it
 crosses, with two exceptions. `settings/Panel.lua` and `settings/Category.lua` were carried as
 Accepted on the automated-test watch list at 1.6.0, 1.6.1 and 1.6.2, and `automated-tests-§4`
-refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1196) peels
+refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1143) peels
 its About page renderer into `settings/About.lua`
 ([#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)), and `settings/Category.lua`
-(1150) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
+(1184) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
 ([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)). How the four 2026-09 peels were cut, and where each moved case went, is
 [module-map.md → Peel history](./module-map.md#peel-history), beside issues #32 and #33.
