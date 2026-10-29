@@ -111,29 +111,73 @@ function BB.StyleDefault(key)
     return (d and d[key]) or NO_DEFAULT
 end
 
--- The size each count string's font object gave it, recorded on the first pass
--- so a later one never compounds it. Weak-keyed: the strings are the frames'.
-local countSize = setmetatable({}, { __mode = "k" })
+-- The face each count string's font object gave it (its font object, and its
+-- path, size and flags), recorded on the first pass so a later one never
+-- compounds the size and the Scope's Ignore fonts can put it back. Weak-keyed:
+-- the strings are the frames'.
+local countFace = setmetatable({}, { __mode = "k" })
+
+--- `obj` when it is a font object a string can be handed back: a global name or
+--- a named object other than the string itself (an anonymous one goes back by
+--- path instead).
+local function namedFontObject(fs, obj)
+    if type(obj) == "string" then return obj ~= "" and obj or nil end
+    if type(obj) ~= "table" or obj == fs or type(obj.GetName) ~= "function" then return nil end
+    local ok, name = pcall(obj.GetName, obj)
+    if ok and type(name) == "string" and name ~= "" then return obj end
+    return nil
+end
+
+--- Put a count the skin's face reached back on the face its font object gave it.
+--- A count never skinned is left alone: it is still on its font object.
+local function restoreCountFont(fs)
+    local f = countFace[fs]
+    if not f then return end
+    if f.obj and fs.SetFontObject then
+        fs:SetFontObject(f.obj)
+    elseif f.path then
+        fs:SetFont(f.path, f.size, f.flags or "")
+    end
+end
 
 --- The count text in the skin's HUD face and outline, at the size its font
 --- object gave it. Left as the font object draws it when the skin names no face
---- (the degraded facade) or the size cannot be read.
+--- (the degraded facade) or the size cannot be read, and put back on that face
+--- while the Scope's Ignore fonts is on (KCM.SkinFontsIgnored: library_gap, the
+--- library's hud.font token never asks the exception, and this SetFont is not a
+--- recorded paint, so the library's own put-back never reaches it).
 function BB.ApplyCountFont(fs)
     if not (fs and fs.SetFont and fs.GetFont) then return end
+    if KCM.SkinFontsIgnored and KCM.SkinFontsIgnored() then return restoreCountFont(fs) end
     local S = KCM.Skin
     local face = S and S.Token and S.Token("hud.font")
     if type(face) ~= "string" then return end
-    local size = countSize[fs]
-    if not size then
-        local _, got = fs:GetFont()
-        size = tonumber(got)
-        if not size then return end
-        countSize[fs] = size
+    local rec = countFace[fs]
+    if not rec then
+        local path, got, flags = fs:GetFont()
+        if not tonumber(got) then return end
+        rec = { obj = namedFontObject(fs, fs.GetFontObject and fs:GetFontObject()),
+                path = path, size = tonumber(got), flags = flags }
+        countFace[fs] = rec
     end
+    local size = rec.size
     local path = BB.FontFile(face, nil)
     if not path then return end
     local outline = S.Token("hud.outline")
     fs:SetFont(path, size, type(outline) == "string" and outline or "OUTLINE")
+end
+
+--- The label's face as drawn: the skin's `hud.font` while its companion is on,
+--- the player's stored pick otherwise AND while the Scope's Ignore fonts is on
+--- (the face the player gave it; a stored FROM_SKIN sentinel then answers nil,
+--- the shipped default face).
+function BB.LabelFace(cfg)
+    if KCM.SkinFontsIgnored and KCM.SkinFontsIgnored() then
+        local S = KCM.Skin
+        if S and cfg.labelFont == S.FROM_SKIN then return nil end
+        return cfg.labelFont
+    end
+    return BB.Follow("hud.font", cfg.labelFont, cfg.labelFontFromSkin)
 end
 
 -- Resolve a LibSharedMedia font name to its file, falling back to whatever face
@@ -345,8 +389,7 @@ local function applyLabel(btn, cfg)
     -- Flags are set explicitly, never carried over from GetFont(): re-using the
     -- current flags would make the outline sticky, since the previous pass had
     -- already written "OUTLINE" into them.
-    local fontPath = fontFile(BB.Follow("hud.font", cfg.labelFont, cfg.labelFontFromSkin),
-        btn.label:GetFont())
+    local fontPath = fontFile(BB.LabelFace(cfg), btn.label:GetFont())
     if fontPath then
         -- `labelFlags` is the canonical font-flags STRING (options-ui-§16); "" is
         -- a real stored value and means no flags at all, so the `or` ladder stops

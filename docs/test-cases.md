@@ -1059,12 +1059,13 @@ Total.
 - Skin surfaces: the icon and score buttons stay stock while the panel is ignored
 - Skin surfaces: the settings surfaces read the skin only through the panel helpers
 
-### test_skin_hud.lua (13)
+### test_skin_hud.lua (14)
 
 - Skin HUD: the buttons' border follows the skin's icon family while its companion is on
 - Skin HUD: a border style of None hides the button edge
 - Skin HUD: the flyout panel's edge follows the skin's bar border style
 - Skin HUD: the label and count faces are the skin's HUD font
+- Skin HUD: Ignore fonts puts the count and label back on their own faces, live
 - Skin HUD: another skin's icon border reaches the buttons
 - Skin HUD: the flyout arrow takes icon.arrow
 - Skin HUD: the unlocked wash is menu.hover and a skin switch repaints the bar
@@ -1569,7 +1570,7 @@ Total.
 | test_selector_pins.lua | 9 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 12 |
-| test_skin_hud.lua | 13 |
+| test_skin_hud.lua | 14 |
 | test_skin_picker.lua | 10 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
@@ -1593,4 +1594,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1291** |
+| **Total** | **1292** |

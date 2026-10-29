@@ -43,6 +43,8 @@
 --   KCM.SkinPanelEscape(name) each answers the skin while the panel is skinned and the STOCK look
 --   KCM.SkinPanelText(fs,r,f) (the host copy of Ka0s Default, today's pixels; the template face
 --   KCM.SkinPanelOwner()     `f`; no ReorderList owner) while it is ignored. See below for why.
+--   KCM.SkinFontsIgnored()   true while the Scope's "Ignore fonts" is on; false degraded. The HUD's
+--                            own SetFont calls (modules/MacroBarButton.lua) ask it.
 --   KCM.SkinPaintAce(w)      an AceGUI widget this addon acquired itself, painted for this
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
 --   KCM.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
@@ -478,8 +480,9 @@ if not Skin then
     function KCM.SkinPaintAce() return false end
     function KCM.SkinPaintAceTree() return 0 end
     KCM.SkinOnRelease = releaseByCallback
-    -- No skin to ignore: the settings surfaces draw the stock look.
+    -- No skin to ignore: the settings surfaces draw the stock look, the HUD its own faces.
     function KCM.SkinPanelOn() return false end
+    function KCM.SkinFontsIgnored() return false end
     function KCM.SkinUntrack() end
     return
 end
@@ -531,6 +534,12 @@ function KCM.SkinPanelOn()
     if type(Skin.GetIgnore) ~= "function" then return true end
     local panel = Skin:GetIgnore(addonName)
     return not panel
+end
+
+function KCM.SkinFontsIgnored()
+    if type(Skin.GetIgnore) ~= "function" then return false end
+    local _, fonts = Skin:GetIgnore(addonName)
+    return fonts == true
 end
 
 --- Forget a target's paint record (`Skin:Untrack`), so a repaint never replays the skin onto it.

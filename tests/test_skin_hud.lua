@@ -165,6 +165,42 @@ test("Skin HUD: the label and count faces are the skin's HUD font", function(t)
     t.truthy(ok, tostring(err))
 end)
 
+-- red under: the count or the followed label kept on hud.font while the Scope's Ignore fonts is
+-- on (Token and BarStyle never ask __FontsIgnored, and these SetFont calls are not recorded, so
+-- the library's put-back never reaches them).
+test("Skin HUD: Ignore fonts puts the count and label back on their own faces, live", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local Skin = skinLib()
+    local ok, err = withHudFace(function()
+        local btn = styleButton()
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
+        t.eq(lastCall(btn.count, "SetFont")[2], "font:" .. OXANIUM, "first the skin's HUD face")
+        Skin:SetIgnore(OWNER, nil, true)
+        t.truthy(KCM.SkinFontsIgnored(), "the predicate reads the applied exception")
+        local mark = #btn.count.calls
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
+        local put
+        for i = mark + 1, #btn.count.calls do
+            local c = btn.count.calls[i]
+            if c[1] == "SetFont" or c[1] == "SetFontObject" then put = c end
+        end
+        t.truthy(put, "the count's face is put back")
+        t.truthy(put and put[2] ~= "font:" .. OXANIUM, "off the skin's HUD face")
+        t.eq(put and put[1] == "SetFont" and put[2], "Fonts\\ARIALN.TTF",
+            "onto the face its font object gave it")
+        t.eq(put and put[1] == "SetFont" and put[3], 14, "at its own size")
+        t.eq(lastCall(btn.label, "SetFont")[2], "font:Friz Quadrata TT",
+            "the followed label draws the player's stored face")
+
+        local fresh = styleButton()
+        KCM.MacroBarButton.ApplyStyle(fresh, barCfg(KCM))
+        t.falsy(lastCall(fresh.count, "SetFont"), "a count never skinned is left on its font object")
+    end)
+    if Skin then Skin:SetIgnore(OWNER, false, false) end
+    t.truthy(ok, tostring(err))
+    t.falsy(KCM.SkinFontsIgnored(), "the exception put back")
+end)
+
 -- red under: the appliers reading the skin once and caching it, so another skin draws Ka0s
 -- Default's border.
 test("Skin HUD: another skin's icon border reaches the buttons", function(t)

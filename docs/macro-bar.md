@@ -123,7 +123,9 @@ have the whole screen to overflow into.
 `bar.borderStyle`, the buttons' and flyout entries' edge and thickness from its icon family
 (`icon.borderStyle`, `icon.borderSize`) and the label face from `hud.font`; `None` draws no edge
 and `Solid` a flat one. The stack count takes `hud.font` and `hud.outline` at its font object's
-size. Every color, size, flag, shadow and offset stays the player's ([ARCHITECTURE.md →
+size. With the Skin tab's *Ignore fonts* ticked, the count goes back to the game's number font and
+the label to the player's own *Labels font*, live. Every color, size, flag, shadow and offset stays
+the player's ([ARCHITECTURE.md →
 Skins](./ARCHITECTURE.md#skins)).
 
 ## The flyout

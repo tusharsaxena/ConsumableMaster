@@ -359,7 +359,12 @@ the HUD are this addon's.
   button and flyout backgrounds and the indicator shade, D2), whose fallbacks read
   `defaults/Profile.lua`. The Font override reaches the labels and counts wherever the label face
   follows the skin; the Texture override has nothing here to change, because the bar draws no bar
-  texture. The label shadow's color and offset are a legibility constant (D7).
+  texture. *Ignore fonts* wins over both: the library's `hud.font` token never asks the exception
+  (a library gap in v1.80.0), and these `SetFont` calls are not recorded paints its put-back could
+  reach, so `BB.ApplyCountFont` and `BB.LabelFace` ask `KCM.SkinFontsIgnored` themselves. While it
+  is on, a count the skin's face reached goes back to the face its font object gave it
+  (`NumberFontNormal`) and the label draws the player's stored *Labels font*; `Skin:SetIgnore`
+  fires `OnLooksChanged`, which re-applies the bar, so it is live. The label shadow's color and offset are a legibility constant (D7).
 - **The one-time reset (O2).** The profile v4 step `Database.MigrateHudSkinV4` runs
   `Skin.ResetToSkin` on exactly the three style keys (`barBorderStyle`, `buttonBorderStyle`,
   `labelFont`), which turns each companion on and leaves the stored pick where it was, so unticking
