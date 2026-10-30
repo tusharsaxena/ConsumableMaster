@@ -61,6 +61,8 @@
 --   KCM.HideSkinPicker()     takes a shown picker down or out of the queue WITHOUT marking it
 --                            seen: the stand-down, and first on every profile event.
 --   KCM.SkinPickerSpec()     the spec KCM.MaybeShowSkinPicker hands O.SkinPicker.
+--   KCM.RunSkinVerb()        the reserved `/cm skin` verb's act (LibKa0s v1.82.0, D-16):
+--                            O.SkinVerb with that spec, whatever `skin.pickerSeen` says.
 --
 -- ---------------------------------------------------------------------------
 -- WHERE IT LOADS
@@ -435,6 +437,27 @@ function KCM.MaybeShowSkinPicker()
         return nil
     end
     return H.SkinPicker(KCM.SkinPickerSpec())
+end
+
+--- The reserved `/cm skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker minor 3, ruling D-16):
+--- O.SkinVerb with the spec the first-run start builds, so it shows the picker a new profile shows
+--- whatever skin.pickerSeen says; a close still marks the profile seen. The library prints its own
+--- lines (combat on every call, queued, unavailable); without LibKa0s the Options stub answers
+--- nil, "absent" and this prints the library-absent line. The dispatcher refuses the verb while
+--- the addon is disabled (it is not on settings/Slash.lua's live set). Answers the picker's frame,
+--- or nil and the reason.
+function KCM.RunSkinVerb()
+    local H = pickerHost()
+    local win, why
+    if H and type(H.SkinVerb) == "function" then
+        win, why = H.SkinVerb(KCM.SkinPickerSpec())
+    else
+        why = "absent"
+    end
+    if win == nil and why == "absent" and KCM.SlashCommands and KCM.SlashCommands.SayLibraryAbsent then
+        KCM.SlashCommands.SayLibraryAbsent("skin")
+    end
+    return win, why
 end
 
 -- ---------------------------------------------------------------------------

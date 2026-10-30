@@ -1102,6 +1102,15 @@ Total.
 - Skin picker: the stand-down takes a shown picker down, unseen
 - Skin picker: degraded, every member answers and nothing shows
 
+### test_skin_verb.lua (6)
+
+- Skin verb: the row sits right after config, with the library's help words
+- Skin verb: /cm skin shows the picker on a profile that has closed it
+- Skin verb: KCM.RunSkinVerb hands O.SkinVerb this addon's first-run spec
+- Skin verb: in combat every call prints the library's gray line and shows nothing
+- Skin verb: refused while the addon is disabled, and no picker shows
+- Skin verb: without LibKa0s the verb prints the library-absent line
+
 ### test_skin_settings.lua (9)
 
 - Skin settings: every AceGUI widget a settings file acquires goes through KCM.SkinAcquire
@@ -1586,6 +1595,7 @@ Total.
 | test_skin_hud.lua | 14 |
 | test_skin_outline.lua | 9 |
 | test_skin_picker.lua | 10 |
+| test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
@@ -1608,4 +1618,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1302** |
+| **Total** | **1308** |
