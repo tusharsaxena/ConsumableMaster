@@ -48,7 +48,7 @@
 --   seed default (Defaults_StatPriority.lua) or the class-primary fallback
 --   if no seed exists.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
@@ -500,7 +500,7 @@ local function applyRow(row, stat, included, onToggle)
     -- at, and aiming at it is how you rank the stat again. The skin's accent and
     -- disabled text, through KCM.SkinPanelText (S.Text, which records the label for the
     -- skin's replay; the stock look while the Scope ignores the settings panel).
-    KCM.SkinPanelText(row.kcmLabel, included and "accent" or "disabled", "GameFontNormal")
+    KCM.SkinPanelText(row.kcmLabel, included and "accent" or "disabled")
 
     row:SetHeight(ROW_H)
     row:Show()
@@ -617,9 +617,9 @@ local function renderSecondaries(ctx, scroll, specKey, cur)
         stride   = ROW_STRIDE,
         boundary = #included,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
-        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
-        owner    = KCM.SkinPanelOwner(),
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2), and its
+        -- minor-1 colors while the Scope ignores the settings panel (panel-scoped by default, minor 3).
+        owner    = addonName,
 
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],

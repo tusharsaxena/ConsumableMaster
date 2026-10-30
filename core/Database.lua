@@ -110,23 +110,21 @@ end
 -- The companions default to TRUE (defaults/Profile.lua, X3), so on an AceDB
 -- profile the step moves nothing a player can see; it is the record that the
 -- reset ran, and the stamp is what keeps a later deliberate "off" from being
--- stomped on the next login. ResetToSkin decides by the companion's PRESENCE: a
--- key whose companion it cannot see takes the FROM_SKIN sentinel in the LSM
--- key itself, which no picker can show. AceDB always supplies the companion
--- through its default; a table that lacks one (a profile handed in raw) is
--- seeded false first, so the reset always lands on the companion. Without the
--- library the companions are set directly, which is what ResetToSkin would do.
+-- stomped on the next login. A raw profile holds only what differs from the
+-- AceDB defaults, so a companion can be absent; without `opts.companions`
+-- ResetToSkin would write the FROM_SKIN sentinel into the LSM key itself, which
+-- no picker can show. `{ companions = true }` (Skin minor 8, LibKa0s v1.81.0)
+-- sets every listed key's companion, stored or not, and leaves the pick alone.
+-- Without the library the companions are set directly, which is what
+-- ResetToSkin does.
 D.HUD_SKIN_KEYS = { "barBorderStyle", "buttonBorderStyle", "labelFont" }
 
 function D.MigrateHudSkinV4(profile)
     local bar = type(profile) == "table" and profile.macroBar
     if type(bar) ~= "table" then return false end
-    for _, key in ipairs(D.HUD_SKIN_KEYS) do
-        if bar[key .. "FromSkin"] == nil then bar[key .. "FromSkin"] = false end
-    end
     local Skin = LibStub and LibStub("LibKa0s-Skin-1.0", true)
     if Skin and type(Skin.ResetToSkin) == "function" then
-        Skin.ResetToSkin(bar, D.HUD_SKIN_KEYS)
+        Skin.ResetToSkin(bar, D.HUD_SKIN_KEYS, { companions = true })
     else
         for _, key in ipairs(D.HUD_SKIN_KEYS) do bar[key .. "FromSkin"] = true end
     end

@@ -37,7 +37,7 @@
 -- swaps the two (MacroBar.SwapSlots), and Reset slot order, under the list on the
 -- same tab, puts the shipped order back.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 local L = KCM.L
 local H = KCM.Settings.Helpers
@@ -964,7 +964,7 @@ local function applySlotRow(slotRow, key, shown)
     -- and aiming at it is how you put the button back. The skin's accent and disabled
     -- text, through KCM.SkinPanelText (S.Text, which records the label for the skin's
     -- replay; the stock look while the Scope ignores the settings panel).
-    KCM.SkinPanelText(slotRow.kcmLabel, shown and "accent" or "disabled", "GameFontNormal")
+    KCM.SkinPanelText(slotRow.kcmLabel, shown and "accent" or "disabled")
     slotRow:SetHeight(SLOT_ROW_H)
     slotRow:Show()
 end
@@ -1055,9 +1055,9 @@ local function newSlotList(shownCount)
         stride        = SLOT_ROW_STRIDE,
         boundary      = shownCount,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
-        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
-        owner         = KCM.SkinPanelOwner(),
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2), and its
+        -- minor-1 colors while the Scope ignores the settings panel (panel-scoped by default, minor 3).
+        owner         = addonName,
 
         handleIcon    = KCM.Icon and KCM.Icon(SLOT_HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],

@@ -315,7 +315,10 @@ Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMast
 The 2026-10-29 skinning rollout (Ka0sAddonsCommonTasks `docs/2026-10-29-SKINNING_ROLLOUT/`, items
 CM-RV and CM-01 to CM-05) adopted `LibKa0s-Skin-1.0` (skinning-§1 to §7) at LibKa0s v1.80.0. The
 shape is LootHistory's, the collection's first adopter; the paths, the brand, the owner tokens and
-the HUD are this addon's.
+the HUD are this addon's. The 2026-10-30 skin library follow-ups (`docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/`,
+CM-RV to CM-02) re-vendored LibKa0s v1.81.0 and deleted the workarounds it made unnecessary: the
+HUD's own *Ignore fonts* predicate, the reorder lists' owner switch, the panel text's give-back and
+the v4 step's companion seed.
 
 - **The seam.** `core/SkinSetup.lua` registers the owner `"ConsumableMaster"` (the folder name) at
   file load, labeled *Ka0s Consumable Master*, with its read and write seams (`KCM.SkinChoice`,
@@ -327,8 +330,7 @@ the HUD are this addon's.
   CM-G3). It publishes `KCM.Skin`, the owner's facade every surface reads, `KCM.SkinColor` /
   `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
   the settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
-  `SkinPanelText` / `SkinPanelOwner` (below), `KCM.SkinFontsIgnored` (the macro bar's count and
-  label faces ask it), the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
+  `SkinPanelText` (below), the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
   `KCM.SkinPaintAceTree`, and the picker's three functions ([module-map.md](./module-map.md)).
   Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from
   `KCM.SKIN_FALLBACK`, and `tests/test_skin.lua` holds each entry to the live facade's answer.
@@ -360,15 +362,21 @@ the HUD are this addon's.
   button and flyout backgrounds and the indicator shade, D2), whose fallbacks read
   `defaults/Profile.lua`. The Font override reaches the labels and counts wherever the label face
   follows the skin; the Texture override has nothing here to change, because the bar draws no bar
-  texture. *Ignore fonts* wins over both: the library's `hud.font` token never asks the exception
-  (a library gap in v1.80.0), and these `SetFont` calls are not recorded paints its put-back could
-  reach, so `BB.ApplyCountFont` and `BB.LabelFace` ask `KCM.SkinFontsIgnored` themselves. While it
-  is on, a count the skin's face reached goes back to the face its font object gave it
-  (`NumberFontNormal`) and the label draws the player's stored *Labels font*; `Skin:SetIgnore`
-  fires `OnLooksChanged`, which re-applies the bar, so it is live. The label shadow's color and offset are a legibility constant (D7).
+  texture. *Ignore fonts* wins over both, the library's way (Skin minor 8, LibKa0s v1.81.0): while
+  it is on, `Resolve` answers the stored value for `hud.font` and `hud.outline`, so the label draws
+  the player's stored *Labels font* (a stored `FROM_SKIN` answers nil, the shipped face), and
+  `Token("hud.font")` answers nil. The count has no setting of its own and its `SetFont` is not a
+  recorded paint the library could give back, so `BB.ApplyCountFont` reads that nil as "no face"
+  and puts a count the skin's face reached back on the face its font object gave it
+  (`NumberFontNormal`). `Skin:SetIgnore` fires `OnLooksChanged`, which re-applies the bar, so it is
+  live. Each skin draws HUD text in a face of its own (SkinDefs minor 16): Obsidian Inter SemiBold,
+  Azeroth Vollkorn Bold, Glass Nunito SemiBold, High Contrast Atkinson Bold, Ember Bitter Bold, WoW
+  Default Friz Quadrata, WoW Midnight Philosopher Bold, WoW Forever Fira Sans SemiBold, Ka0s Default
+  Oxanium SemiBold. The label shadow's color and offset are a legibility constant (D7).
 - **The one-time reset (O2).** The profile v4 step `Database.MigrateHudSkinV4` runs
   `Skin.ResetToSkin` on exactly the three style keys (`barBorderStyle`, `buttonBorderStyle`,
-  `labelFont`), which turns each companion on and leaves the stored pick where it was, so unticking
+  `labelFont`) with `{ companions = true }`, which turns each companion on, stored or not, and
+  leaves the stored pick where it was, so unticking
   the companion brings the player's own pick straight back ([schema.md](./schema.md#migrations)).
   **So under Ka0s Default the bar looks different after this run** (DECISIONS X5, D1): the bar and
   the flyout panel lose their 4px *Blizzard Tooltip* edge (Ka0s Default's bar border style is
@@ -386,14 +394,16 @@ the HUD are this addon's.
   `sem.unknown` through `S.Text`, and the reorder ghosts the same tokens. They draw through the
   panel helpers in `core/SkinSetup.lua`, never `KCM.SkinColor` or `S.Text` directly
   (`tests/test_skin_surfaces.lua` holds every file under `settings/` and every `KCM*` widget to
-  that): the library's `S.Text` takes the skin's body face as well as the color and never asks
-  whether the owner ignores its settings panel, and neither does `ReorderList`'s `owner` (a
-  library gap in v1.80.0). So while *Ignore settings panel* is on, `KCM.SkinPanelText` forgets the
-  string's paint record and puts it back on its template face in the stock color, `SkinPanelColor`
-  / `SkinPanelEscape` answer the stock colors (the host copy of Ka0s Default, the pixels these rows
-  drew before skins), and `SkinPanelOwner` hands the reorder lists no owner. Under Ka0s Default with
-  the box ticked, the default, these rows therefore look exactly as before skins, faces included.
-  Toggling the box repaints them live: `Skin:SetIgnore` fires `OnLooksChanged`, and the Options
+  that). `KCM.SkinPanelText` is `S.Text(fs, role, { panel = true })` (SkinPaintExtras minor 6):
+  while *Ignore settings panel* is on the library gives the string its template face and color back
+  and paints nothing, and the helper then puts the role's stock color on, because these rows draw
+  state colors their templates do not carry (the disabled gray and the drag icon's gold on a white
+  template). `SkinPanelColor` / `SkinPanelEscape` answer the stock colors (the host copy of Ka0s
+  Default, the pixels these rows drew before skins) for the raw colors no primitive draws, gated on
+  `Skin:GetIgnore` (D-03). The reorder lists are panel-scoped by default (WidgetsReorder minor 3), so
+  they draw minor 1's colors, ghost included. Under Ka0s Default with the box ticked, the default,
+  these rows therefore look exactly as before skins, faces included. Toggling the box repaints them
+  live: `Skin:SetIgnore` replays the recorded strings and fires `OnLooksChanged`, and the Options
   instance re-renders the open pages.
 - **GameTooltip lines** this addon writes take skin colors (X8): the macro fallback tooltip's
   `gtip.title` / `gtip.value`, the Stat Priority and Buttons rows' `gtip.value`, and the score
@@ -403,8 +413,13 @@ the HUD are this addon's.
   tooltip frame is Blizzard's (skinning-§7), and item and spell tooltips are the client's.
 - **The library draws the rest for the owner.** The debug console, its copy window and the perf
   panel already passed the folder as `addonName`, the macro bar's drag handle is handed
-  `owner = addonName`, and the four reorder lists `owner = KCM.SkinPanelOwner()` (this addon while
-  the settings panel is skinned, none while it is ignored).
+  `owner = addonName`, and so are the four reorder lists, which the library keeps stock while the
+  settings panel is ignored. The windows wear the skin whatever *Ignore settings panel* says (D-01):
+  since v1.81.0 *Ignore fonts* reaches their labels (the console's title-bar words, the perf panel's
+  columns, the drag handle's label), which draw Oxanium under Ka0s Default, the resize grip takes
+  `icon.grip` (the client's art under Ka0s Default and WoW Default), a close mark gets its own tint
+  back when it is unpainted, and the drag handle's tooltip takes `gtip.title`, `gtip.value` and
+  `gtip.footer` (Ka0s Default's gold, white and gray, as before).
 - **The first-run skin picker** (O3; X6). `KCM.MaybeShowSkinPicker` shows the library's picker
   (`O.SkinPicker`) while the profile's `skin.pickerSeen` is false and the addon stands up: once per
   session, two seconds after the first `PLAYER_ENTERING_WORLD`, and after every profile event,

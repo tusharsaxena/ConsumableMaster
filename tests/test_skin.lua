@@ -177,9 +177,10 @@ test("Skin: every library factory that takes an owner is handed this addon's", f
             if not s then break end
             calls = calls + 1
             local body = src:sub(e, (src:find("\n%s*}%)", e) or #src))
-            -- A settings page's list takes the owner through KCM.SkinPanelOwner, which answers
-            -- this addon while the panel is skinned and nil while the Scope ignores it.
-            if body:find("owner%s*=%s*addonName") or body:find("owner%s*=%s*KCM%.SkinPanelOwner%(%)") then
+            -- A settings page's list takes the owner plainly: ReorderList is panel-scoped by
+            -- default (WidgetsReorder minor 3), so it draws minor 1's colors while the Scope
+            -- ignores the settings panel.
+            if body:find("owner%s*=%s*addonName") then
                 owned = owned + 1
             end
             from = e + 1

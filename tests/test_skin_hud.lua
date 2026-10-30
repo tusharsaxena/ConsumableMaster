@@ -166,8 +166,8 @@ test("Skin HUD: the label and count faces are the skin's HUD font", function(t)
 end)
 
 -- red under: the count or the followed label kept on hud.font while the Scope's Ignore fonts is
--- on (Token and BarStyle never ask __FontsIgnored, and these SetFont calls are not recorded, so
--- the library's put-back never reaches them).
+-- on. The library's Token answers nil for hud.font then and Resolve the stored value (Skin minor
+-- 8), but the count's SetFont is not a recorded paint, so its put-back is this addon's.
 test("Skin HUD: Ignore fonts puts the count and label back on their own faces, live", function(t)
     local KCM = h.loader.loadFullAddon()
     local Skin = skinLib()
@@ -176,7 +176,7 @@ test("Skin HUD: Ignore fonts puts the count and label back on their own faces, l
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
         t.eq(lastCall(btn.count, "SetFont")[2], "font:" .. OXANIUM, "first the skin's HUD face")
         Skin:SetIgnore(OWNER, nil, true)
-        t.truthy(KCM.SkinFontsIgnored(), "the predicate reads the applied exception")
+        t.eq(select(2, Skin:GetIgnore(OWNER)), true, "the exception is applied")
         local mark = #btn.count.calls
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
         local put
@@ -198,7 +198,7 @@ test("Skin HUD: Ignore fonts puts the count and label back on their own faces, l
     end)
     if Skin then Skin:SetIgnore(OWNER, false, false) end
     t.truthy(ok, tostring(err))
-    t.falsy(KCM.SkinFontsIgnored(), "the exception put back")
+    t.falsy(Skin and select(2, Skin:GetIgnore(OWNER)), "the exception put back")
 end)
 
 -- red under: the appliers reading the skin once and caching it, so another skin draws Ka0s
