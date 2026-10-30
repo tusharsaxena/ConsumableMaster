@@ -106,12 +106,12 @@ local methods = {
         self.disabled = disabled
         if disabled then
             self.frame:Disable()
-            KCM.SkinPanelText(self.label, "disabled", "GameFontHighlight")
+            KCM.SkinPanelText(self.label, "disabled")
             local r, g, b = KCM.SkinPanelColor("text.disabled")
             self.image:SetVertexColor(r, g, b, DISABLED_ALPHA)
         else
             self.frame:Enable()
-            KCM.SkinPanelText(self.label, "text.highlight", "GameFontHighlight")
+            KCM.SkinPanelText(self.label, "text.highlight")
             self.image:SetVertexColor(1, 1, 1, 1)
         end
     end,

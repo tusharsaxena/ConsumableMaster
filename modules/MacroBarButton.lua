@@ -141,17 +141,17 @@ local function restoreCountFont(fs)
 end
 
 --- The count text in the skin's HUD face and outline, at the size its font
---- object gave it. Left as the font object draws it when the skin names no face
---- (the degraded facade) or the size cannot be read, and put back on that face
---- while the Scope's Ignore fonts is on (KCM.SkinFontsIgnored: library_gap, the
---- library's hud.font token never asks the exception, and this SetFont is not a
---- recorded paint, so the library's own put-back never reaches it).
+--- object gave it. While the skin names no face it is put back on the face its
+--- font object gave it (a count never skinned is left alone): the degraded facade,
+--- and the Scope's Ignore fonts, under which the library's hud.font token answers
+--- nil (Skin minor 8). The count has no setting of its own, so its fallback is its
+--- font object's face, and this SetFont is not a recorded paint, so the put-back
+--- is this addon's to make.
 function BB.ApplyCountFont(fs)
     if not (fs and fs.SetFont and fs.GetFont) then return end
-    if KCM.SkinFontsIgnored and KCM.SkinFontsIgnored() then return restoreCountFont(fs) end
     local S = KCM.Skin
     local face = S and S.Token and S.Token("hud.font")
-    if type(face) ~= "string" then return end
+    if type(face) ~= "string" then return restoreCountFont(fs) end
     local rec = countFace[fs]
     if not rec then
         local path, got, flags = fs:GetFont()
@@ -169,14 +169,9 @@ end
 
 --- The label's face as drawn: the skin's `hud.font` while its companion is on,
 --- the player's stored pick otherwise AND while the Scope's Ignore fonts is on
---- (the face the player gave it; a stored FROM_SKIN sentinel then answers nil,
---- the shipped default face).
+--- (the library's Resolve answers the stored value then, Skin minor 8; a stored
+--- FROM_SKIN sentinel answers nil, the shipped default face).
 function BB.LabelFace(cfg)
-    if KCM.SkinFontsIgnored and KCM.SkinFontsIgnored() then
-        local S = KCM.Skin
-        if S and cfg.labelFont == S.FROM_SKIN then return nil end
-        return cfg.labelFont
-    end
     return BB.Follow("hud.font", cfg.labelFont, cfg.labelFontFromSkin)
 end
 

@@ -273,8 +273,8 @@ local methods = {
         -- template's size. S.Text records them, so a skin switch replays both. While
         -- the Scope ignores the settings panel, both stay on their templates in the
         -- stock colors (KCM.SkinPanelText).
-        KCM.SkinPanelText(self.label, "text.highlight", "GameFontHighlight")
-        KCM.SkinPanelText(self.handTag, "accent", "GameFontNormalSmall")
+        KCM.SkinPanelText(self.label, "text.highlight")
+        KCM.SkinPanelText(self.handTag, "accent")
         self:RefreshDisplay()
     end,
 

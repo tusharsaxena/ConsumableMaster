@@ -83,11 +83,11 @@ local methods = {
         -- through KCM.SkinPanelText (S.Text, which records the label for the skin's
         -- replay; the stock look while the Scope ignores the settings panel).
         if idx == 0 then
-            KCM.SkinPanelText(self.label, "sem.unknown", "GameFontHighlight")
+            KCM.SkinPanelText(self.label, "sem.unknown")
             self.label:SetText(L["Macro not created yet"])
             self.frame:Disable()
         else
-            KCM.SkinPanelText(self.label, "accent", "GameFontHighlight")
+            KCM.SkinPanelText(self.label, "accent")
             self.label:SetText(L["Drag to action bar"])
             self.frame:Enable()
         end

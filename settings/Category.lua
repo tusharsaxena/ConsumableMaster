@@ -31,7 +31,7 @@
 -- via Selector mutators (AddItem / Block / MoveTo / MoveUp / MoveDown). Every mutation
 -- calls afterMutation so the macro pipeline and panels stay in sync.
 
-local _, NS = ...
+local addonName, NS = ...
 local KCM = NS
 local L      = KCM.L
 local H      = KCM.Settings.Helpers
@@ -747,9 +747,9 @@ local function makePriorityList(ctx, cat, specKey, priority)
     return trackReorder(ctx, W.ReorderList({
         stride     = ROW_STRIDE,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
-        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
-        owner      = KCM.SkinPanelOwner(),
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2), and its
+        -- minor-1 colors while the Scope ignores the settings panel (panel-scoped by default, minor 3).
+        owner      = addonName,
 
         -- No boundary. This list is flat -- every row is a priority and they are all one group --
         -- which is the common case the library defaults to. MultiMeters' Columns page is the one
@@ -974,9 +974,9 @@ local function renderCompositeSection(ctx, catKey, scroll, cfg, section)
     local list = trackReorder(ctx, W and W.ReorderList({
         stride        = ROW_STRIDE,
         -- The skin owner (skinning-§1): this addon's folder, so the list's boxes, drop line, ghost
-        -- and handle tints come from the skin it wears (WidgetsReorder minor 2);
-        -- none while the Scope ignores the settings panel (KCM.SkinPanelOwner).
-        owner         = KCM.SkinPanelOwner(),
+        -- and handle tints come from the skin it wears (WidgetsReorder minor 2), and its
+        -- minor-1 colors while the Scope ignores the settings panel (panel-scoped by default, minor 3).
+        owner         = addonName,
 
         handleIcon    = KCM.Icon and KCM.Icon(HANDLE_ICON) or nil,
         handleTooltip = L["Drag to reorder"],
