@@ -1077,6 +1077,18 @@ Total.
 - Skin HUD: the reset runs without the library too
 - Skin HUD: without the library the bar draws the player's stored style
 
+### test_skin_outline.lua (9)
+
+- Skin outline: a fresh profile stores All text, the library's default
+- Skin outline: the schema row offers the library's three modes, on the Skin tab
+- Skin outline: the write seam stores media.outline, and leaves it alone when it is nil
+- Skin outline: another addon's copy reaches the store through WriteChoice
+- Skin outline: the row's write applies the mode live
+- Skin outline: /cm set refuses a mode the library does not know
+- Skin outline: the whole-choice apply (the load's) applies the stored mode
+- Skin outline: a profile switch applies the incoming profile's mode, and back
+- Skin outline: without the skin engine the apply is a quiet no-op
+
 ### test_skin_picker.lua (10)
 
 - Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
@@ -1572,6 +1584,7 @@ Total.
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 13 |
 | test_skin_hud.lua | 14 |
+| test_skin_outline.lua | 9 |
 | test_skin_picker.lua | 10 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
@@ -1595,4 +1608,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1293** |
+| **Total** | **1302** |

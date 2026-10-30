@@ -495,6 +495,15 @@ local SKIN_ROWS = {
         tooltip = L["The texture this addon's bars use, over the skin's own. Empty keeps the skin's."],
         apply = function(v) KCM.ApplySkinOverride(nil, v) end,
     },
+    -- The Font outline (LibKa0s v1.82.0, Skin minor 9, ruling D-06), drawn by the same tab as its
+    -- Font outline dropdown: where the skin outlines this addon's text. The library's three
+    -- modes, in its order; `/cm set skin.outline` validates against them.
+    skinRow{
+        path = "skin.outline", type = "string", values = KCM.SKIN_OUTLINE_OPTIONS,
+        label = L["Font outline"],
+        tooltip = L["Where the skin outlines this addon's text: all of it, the macro bar's text only, or nowhere."],
+        apply = function(v) KCM.ApplySkinOutline(v) end,
+    },
     -- The first-run skin picker's memory: set when the picker closes, so it shows once per
     -- profile. Drawn by nothing; a reset puts it back to false.
     skinRow{

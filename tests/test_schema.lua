@@ -948,8 +948,8 @@ test("schema: stat priority, the composite sections, slot order and visibility, 
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 89,
-            "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's seven, "
+        t.eq(#KCM.Settings.Schema, 90,
+            "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's eight, "
             .. "plus the macro bar's three HUD style companions")
     end)
 
@@ -1148,10 +1148,12 @@ local STORED_GUARD = {
     "macroBar.useClassColorFlyoutShade | bool | false | nil | nil | nil | ",
     "macroBar.useClassColorLabel | bool | false | nil | nil | nil | ",
     "scale | number | 1 | 0.5 | 2 | 0.05 | ",
-    -- The Skin tab's seven rows (skinning-§2/§3; CM-01 of the 2026-10-29 skinning rollout).
+    -- The Skin tab's eight rows (skinning-§2/§3; CM-01 of the 2026-10-29 skinning rollout, and
+    -- skin.outline at the LibKa0s v1.82.0 re-vendor, D-06).
     "skin.font | string |  | nil | nil | nil | ",
     "skin.ignoreFonts | bool | false | nil | nil | nil | ",
     "skin.ignorePanel | bool | true | nil | nil | nil | ",
+    "skin.outline | string | all | nil | nil | nil | all,hud,off",
     "skin.pickerSeen | bool | false | nil | nil | nil | ",
     "skin.skin | string | ka0s | nil | nil | nil | ka0s,obsidian,azeroth,glass,contrast,ember,wow,midnight,forever",
     "skin.source | string | ka0s | nil | nil | nil | ka0s,eui",

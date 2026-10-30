@@ -125,6 +125,10 @@ KCM.dbDefaults = {
             ignoreFonts = false,
             font        = "",
             texture     = "",
+            -- The Font outline (LibKa0s v1.82.0, Skin minor 9, ruling D-06): "all" text, "hud"
+            -- text only, or "off". Drawn by the Skin tab's Font outline dropdown; a new key with a
+            -- default, so AceDB merges it into every existing profile and no migration is owed.
+            outline     = "all",
             pickerSeen  = false,
         },
         macroState = {},
