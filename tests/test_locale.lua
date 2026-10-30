@@ -553,3 +553,10 @@ test("Locale: the color escapes on the drag-icon labels stay outside the key", f
     t.truthy(body:find('self.label:SetText(L["Drag to action bar"])', 1, true),
         "the enabled label's text is the bare key")
 end)
+
+-- LibKa0s v1.82.0, test kit revision 45 (ruling D-19): a display string carrying a character
+-- some shipped skin face cannot draw (U+2248, an arrow, a triangle) draws a box in that skin.
+-- This addon had no such string at the re-vendor, so the guard runs with no skip.
+test("display strings use only characters every shipped skin face draws", function()
+    h.assertDisplayGlyphs{ label = "ConsumableMaster" }
+end)

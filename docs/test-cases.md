@@ -479,7 +479,7 @@ Total.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_locale.lua (10)
+### test_locale.lua (11)
 
 - Locale: KCM.L is published as a table
 - Locale: an unknown key falls back to itself verbatim
@@ -491,6 +491,7 @@ Total.
 - Locale: the join-key exemption only ever covers a string the same file routes
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
+- display strings use only characters every shipped skin face draws
 
 ### test_macrobar.lua (35)
 
@@ -1576,7 +1577,7 @@ Total.
 | test_launcher.lua | 28 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
-| test_locale.lua | 10 |
+| test_locale.lua | 11 |
 | test_macrobar.lua | 35 |
 | test_macrobar_chrome.lua | 29 |
 | test_macrobar_buttons.lua | 14 |
@@ -1624,4 +1625,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1314** |
+| **Total** | **1315** |
