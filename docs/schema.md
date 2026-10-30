@@ -8,7 +8,7 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ```
 db.global
-├── schemaVersion        4          -- migration marker; default 0, walked to 4 by
+├── schemaVersion        5          -- migration marker; default 0, walked to 5 by
 │                                   -- RunMigrations (core/Database.lua)
 └── minimap                         -- LibDBIcon-1.0's OWN table, handed straight to
     ├── hide             boolean    -- :Register (launcher-§3). GLOBAL and not profile:
@@ -25,7 +25,7 @@ db.global
                                     -- it (architecture-§5).
 
 db.profile
-├── schemaVersion        4          -- THIS profile's migration marker; gates every
+├── schemaVersion        5          -- THIS profile's migration marker; gates every
 │                                   -- step that writes the profile scope. Not a
 │                                   -- default: RunMigrations writes it on arrival.
 ├── enabled              boolean    -- master enable. It drives the LATCH
@@ -169,7 +169,7 @@ Every step below writes `db.profile`, so each is gated on `db.profile.schemaVers
 | 2 | Macro bar introduced. `Database.MigrateMacroBarV2` sets `profile.macroBar.enabled = true` and `locked = false` so an upgrading profile gets the bar on and placeable, like a fresh install. One-shot by design — a later opt-out survives. |
 | 3 | The label outline became a font-flags string (`options-ui-§16`). `Database.MigrateLabelFlagsV3` writes `macroBar.labelFlags` from the old `macroBar.labelOutline` — `true` → `"OUTLINE"`, `false` → `""` — and removes the boolean, so there is never a second copy for a later reader to guess between. **The presence of `labelOutline` is what gates it**, not the absence of `labelFlags`: AceDB has already merged the shipped `labelFlags = "OUTLINE"` into every live profile before `RunMigrations` looks, so a guard on `labelFlags == nil` could never fire and the step would delete the boolean while keeping the default — losing exactly the un-outlined choice it exists to carry across. A profile carrying no boolean has been through the step already and is left alone: it is a conversion, not a reset. |
 | 4 | The macro bar's HUD style follows the skin, once (the skinning rollout's O2, CM-03). `Database.MigrateHudSkinV4` runs `LibKa0s-Skin-1.0`'s `ResetToSkin` on exactly `barBorderStyle`, `buttonBorderStyle` and `labelFont`, which turns each `<key>FromSkin` companion on and leaves the stored pick where it was. No color, size, flag or shadow key is listed, because `ResetToSkin` would write a sentinel into a number or enum key and switch a bool one on (X4). The call passes `{ companions = true }` (Skin minor 8, LibKa0s v1.81.0), so a raw table that lacks a companion still gets it set and never takes the sentinel in an LSM key; without the library the companions are set directly. On an AceDB profile the companions already default true, so the step moves nothing a player can see; it is the record that the reset ran. Under Ka0s Default the bar looks different afterwards (X5; [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins)). |
-| 5 | The label's Font flags follow the skin's Font outline, once (LibKa0s v1.82.0, ruling D-07, Addendum 01 of the 2026-10-30 skin fonts run). `Database.MigrateLabelFlagsV5` moves a stored `macroBar.labelFlags` of `"OUTLINE"`, the previous default, to `"@skin"` (From skin); any other flag is a pick the player made and stays. Under the default Font outline (*All text*) the label draws the outline it drew before. A literal rather than `ResetToSkin`, because the step is conditional. The stamp keeps a later deliberate *Outline* from being moved again. |
+| 5 | The label's Font flags follow the skin's Font outline, once (LibKa0s v1.82.0, ruling D-07, Addendum 01 of the 2026-10-30 skin fonts run). `Database.MigrateLabelFlagsV5` moves a stored `macroBar.labelFlags` of `"OUTLINE"`, the previous default, to `"@skin"` (From skin); any other flag is a pick the player made and stays. Under the default Font outline (*All text*) the label draws the outline it drew before. A literal rather than `ResetToSkin`, because the step is conditional. The stamp keeps a later deliberate *Outline* from being moved again. In practice the step rarely fires: AceDB's logout strip dropped a stored `"OUTLINE"` while it was the default, so most profiles reach From skin through the new shipped default rather than through this step. |
 
 The discovered-set format change in v1.1.0 (`true` → unix timestamp) is forward-compatible via lazy coercion (see [Discovered-set GC](#discovered-set-gc) below), so it needs no explicit migration step.
 
