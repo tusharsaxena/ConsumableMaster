@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.81.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.82.0 (MIT).
 LibKa0s icons: clear, close, copy, help, info, segment, settings.
 
 Those two lines are the answer to "which LibKa0s does this build carry, and which of its icons?",
@@ -111,7 +111,7 @@ lua5.1 tests/run.lua    # headless test harness
 Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
 **At release, not at commit.** Produce a full automated-test bundle (its complexity suite is
-`~/.claude/dev-copilot/bin/ka0s-bounded bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 44; a crashed or bounded lizard run is complexity fail, never a pass (`crashedFiles`))
+`~/.claude/dev-copilot/bin/ka0s-bounded bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 45; a crashed or bounded lizard run is complexity fail, never a pass (`crashedFiles`))
 and review its diff before the tag — in the same
 change that bumps the version. Between commits it is a **report, not a gate**: never fail a run or
 block a commit on it, never tune the invocation, never hand-edit the output. **At the tag it gates** —

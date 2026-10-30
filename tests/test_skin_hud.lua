@@ -18,7 +18,9 @@ local h = _G.KCM_TEST
 local test = h.test
 
 local OWNER = "ConsumableMaster"
-local OXANIUM = "Ka0s Oxanium SemiBold"
+-- Ka0s Default's HUD face (LibKa0s v1.82.0, SkinDefs minor 17, ruling D-02: Prototype for body,
+-- titles and HUD, where it was Oxanium SemiBold).
+local HUD_FACE = "Ka0s Prototype"
 
 local support = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/macrobar_support.lua")
 
@@ -78,9 +80,9 @@ end
 local function withHudFace(fn)
     local LSM = LibStub("LibSharedMedia-3.0")
     local fonts = LSM.media.font
-    fonts[#fonts + 1] = OXANIUM
+    fonts[#fonts + 1] = HUD_FACE
     local ok, err = pcall(fn)
-    for i = #fonts, 1, -1 do if fonts[i] == OXANIUM then table.remove(fonts, i) end end
+    for i = #fonts, 1, -1 do if fonts[i] == HUD_FACE then table.remove(fonts, i) end end
     local Skin = skinLib()
     if Skin then Skin:SetChoice(OWNER, "ka0s", "ka0s") end
     return ok, err
@@ -148,10 +150,10 @@ test("Skin HUD: the label and count faces are the skin's HUD font", function(t)
         local btn = styleButton()
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
         local label = lastCall(btn.label, "SetFont")
-        t.eq(label and label[2], "font:" .. OXANIUM, "Ka0s Default: the label in hud.font")
+        t.eq(label and label[2], "font:" .. HUD_FACE, "Ka0s Default: the label in hud.font")
         t.eq(label and label[4], "OUTLINE", "with the player's flags")
         local count = lastCall(btn.count, "SetFont")
-        t.eq(count and count[2], "font:" .. OXANIUM, "the count in hud.font too")
+        t.eq(count and count[2], "font:" .. HUD_FACE, "the count in hud.font too")
         t.eq(count and count[3], 14, "at the size its font object gave it")
         t.eq(count and count[4], "OUTLINE", "with hud.outline")
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
@@ -174,7 +176,7 @@ test("Skin HUD: Ignore fonts puts the count and label back on their own faces, l
     local ok, err = withHudFace(function()
         local btn = styleButton()
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
-        t.eq(lastCall(btn.count, "SetFont")[2], "font:" .. OXANIUM, "first the skin's HUD face")
+        t.eq(lastCall(btn.count, "SetFont")[2], "font:" .. HUD_FACE, "first the skin's HUD face")
         Skin:SetIgnore(OWNER, nil, true)
         t.eq(select(2, Skin:GetIgnore(OWNER)), true, "the exception is applied")
         local mark = #btn.count.calls
@@ -185,7 +187,7 @@ test("Skin HUD: Ignore fonts puts the count and label back on their own faces, l
             if c[1] == "SetFont" or c[1] == "SetFontObject" then put = c end
         end
         t.truthy(put, "the count's face is put back")
-        t.truthy(put and put[2] ~= "font:" .. OXANIUM, "off the skin's HUD face")
+        t.truthy(put and put[2] ~= "font:" .. HUD_FACE, "off the skin's HUD face")
         t.eq(put and put[1] == "SetFont" and put[2], "Fonts\\ARIALN.TTF",
             "onto the face its font object gave it")
         t.eq(put and put[1] == "SetFont" and put[3], 14, "at its own size")

@@ -465,6 +465,18 @@ if not Skin then
     S.GetFont = function() return _G.STANDARD_TEXT_FONT end
     S.ChartStyle = function() return {} end
     S.BarStyle = function() return {} end
+    -- LibKa0s v1.82.0 (SkinPaintExtras minor 7): never nil, since SetFont reads a nil flags as
+    -- none and refuses a nil height. A picked flag as stored, "OUTLINE" for From skin or nothing
+    -- stored (FontGroup's old default, the live one's answer while the fonts are ignored); a
+    -- positive stored size as is, else 12 (no skin to scale it by).
+    S.FontFlags = function(v)
+        if type(v) == "string" and v ~= S.FROM_SKIN then return v end
+        return "OUTLINE"
+    end
+    S.HudFontSize = function(size)
+        local n = tonumber(size)
+        return (n and n > 0) and n or 12
+    end
 
     KCM.Skin = S
     function KCM.ApplySkinChoice() return false, false end
