@@ -320,7 +320,7 @@ test("Skin HUD: the v4 step puts the HUD style back on the skin and keeps the pi
     t.eq(p.macroBar.labelFont, "JetBrains Mono", "the stored face too")
     t.eq(p.macroBar.labelShadow, false, "a bool style key is not switched on")
     t.eq(p.macroBar.barBorderSize, 7, "a size is not reset")
-    t.eq(p.schemaVersion, 4, "the profile is stamped v4")
+    t.eq(p.schemaVersion, KCM.Database.CURRENT_SCHEMA, "the profile is stamped v4, and walked on to current")
 end)
 
 -- red under: the step running again on a profile already at v4, stomping a deliberate "off".
@@ -329,7 +329,7 @@ test("Skin HUD: the reset runs once, and a later pick is kept", function(t)
     local p = KCM.db.profile
     p.schemaVersion = 3
     KCM.Database.RunMigrations()
-    t.eq(p.schemaVersion, 4, "walked to v4")
+    t.eq(p.schemaVersion, KCM.Database.CURRENT_SCHEMA, "walked to v4 and on")
     p.macroBar.labelFontFromSkin = false
     p.macroBar.barBorderStyleFromSkin = false
     KCM.Database.RunMigrations()
@@ -371,4 +371,158 @@ test("Skin HUD: without the library the bar draws the player's stored style", fu
         "so BB.Follow falls back on the stored pick")
     t.eq(full.MacroBarButton.Follow("hud.font", full.Skin.FROM_SKIN, false), nil,
         "and a stored sentinel with no token answers nil, the reader's own default")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The font settings (LibKa0s v1.82.0; CM-01 of Ka0sAddonsCommonTasks
+-- docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK, rulings D-07 and D-09, Addendum 01)
+-- ---------------------------------------------------------------------------
+--
+-- The label's font block is the minimum set D-07 asks of every font setting (face with Use the
+-- skin's font, size, color with Use class color, flags, shadow), its flags led by From skin
+-- ("@skin", the default), drawn through S.FontFlags, so they follow the Skin tab's Font outline;
+-- a picked flag wins. A stored "OUTLINE", the old default, moves to From skin once per profile
+-- (the v5 step); a flag the player changed stays. Every HUD string in the skin's face draws at
+-- S.HudFontSize(stored, fromSkin): scaled by the skin's HUD size while it uses the skin's face,
+-- as stored otherwise and under Ignore fonts, and the stored value is never rewritten.
+
+local FROM_SKIN = "@skin"
+
+-- Like withHudFace, for any set of faces (Obsidian draws Ka0s Expressway).
+local function withFaces(names, fn)
+    local LSM = LibStub("LibSharedMedia-3.0")
+    local fonts = LSM.media.font
+    for _, n in ipairs(names) do fonts[#fonts + 1] = n end
+    local ok, err = pcall(fn)
+    for _, n in ipairs(names) do
+        for i = #fonts, 1, -1 do if fonts[i] == n then table.remove(fonts, i); break end end
+    end
+    local Skin = skinLib()
+    if Skin then
+        Skin:SetChoice(OWNER, "ka0s", "ka0s")
+        Skin:SetOutline(OWNER, "all")
+        Skin:SetIgnore(OWNER, nil, false)
+    end
+    return ok, err
+end
+
+-- red under: a flags row without From skin, or a default other than it.
+test("Skin fonts: the label's flags lead with From skin, the default, beside the whole font set", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local H = KCM.Settings.Helpers
+    t.eq(KCM.dbDefaults.profile.macroBar.labelFlags, FROM_SKIN, "the shipped default is From skin")
+    local row = H.FindSchema("macroBar.labelFlags")
+    t.truthy(row, "the flags row")
+    t.eq(row and row.default, FROM_SKIN, "the row's default too")
+    t.truthy(row and type(row.values) == "table" and row.values[FROM_SKIN], "From skin is a value")
+    t.eq(row and row.sorting and row.sorting[1], FROM_SKIN, "and leads the list")
+    for _, path in ipairs({ "macroBar.labelFont", "macroBar.labelFontFromSkin", "macroBar.labelScale",
+                            "macroBar.labelColor", "macroBar.useClassColorLabel", "macroBar.labelShadow" }) do
+        t.truthy(H.FindSchema(path), path .. " is in the block (D-07's minimum set)")
+    end
+end)
+
+-- red under: the label drawing the stored "@skin" string as its flags, or ignoring the Font outline.
+test("Skin fonts: From skin flags follow the Font outline, and a picked flag wins", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local Skin = skinLib()
+    local ok, err = withFaces({ HUD_FACE }, function()
+        local btn = styleButton()
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelFlags = FROM_SKIN }))
+        t.eq(lastCall(btn.label, "SetFont")[4], "OUTLINE", "All text: outlined")
+        Skin:SetOutline(OWNER, "hud")
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelFlags = FROM_SKIN }))
+        t.eq(lastCall(btn.label, "SetFont")[4], "OUTLINE", "HUD text only: the bar is HUD text")
+        Skin:SetOutline(OWNER, "off")
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelFlags = FROM_SKIN }))
+        t.eq(lastCall(btn.label, "SetFont")[4], "", "Off: no outline")
+        t.eq(lastCall(btn.count, "SetFont")[4], "", "on the count too")
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelFlags = "THICKOUTLINE" }))
+        t.eq(lastCall(btn.label, "SetFont")[4], "THICKOUTLINE", "a picked flag wins over Off")
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelFlags = "" }))
+        t.eq(lastCall(btn.label, "SetFont")[4], "", "and None is a pick, not From skin")
+    end)
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: no v5 step, a step that moves a flag the player changed, or one that runs twice.
+test("Skin fonts: the v5 step moves the old default flag to From skin once, and keeps a pick", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local p = KCM.db.profile
+    p.schemaVersion = 4
+    p.macroBar.labelFlags = "OUTLINE"
+    KCM.Database.RunMigrations()
+    t.eq(p.macroBar.labelFlags, FROM_SKIN, "the old default moved to From skin")
+    t.eq(p.schemaVersion, 5, "the profile is stamped v5")
+    p.macroBar.labelFlags = "OUTLINE"
+    KCM.Database.RunMigrations()
+    t.eq(p.macroBar.labelFlags, "OUTLINE", "a later pick of Outline survives every login")
+
+    for _, pick in ipairs({ "", "THICKOUTLINE", "MONOCHROME", "OUTLINE, MONOCHROME" }) do
+        local raw = { macroBar = { labelFlags = pick } }
+        t.eq(KCM.Database.MigrateLabelFlagsV5(raw), true, "the step reports done")
+        t.eq(raw.macroBar.labelFlags, pick, "a changed flag stays: '" .. pick .. "'")
+    end
+    t.eq(KCM.Database.MigrateLabelFlagsV5({}), false, "a profile with no bar table is left alone")
+end)
+
+-- red under: a profile switched to for the first time keeping the old default (the step gated on
+-- the account stamp).
+test("Skin fonts: the v5 step runs per profile, on a profile switched to later", function(t)
+    local KCM = h.loader.loadFullAddon()
+    KCM.db:SetProfile("Alt")
+    local alt = KCM.db.profile
+    alt.schemaVersion = 4
+    alt.macroBar.labelFlags = "OUTLINE"
+    KCM.db:SetProfile("Default")
+    KCM.db:SetProfile("Alt")
+    t.eq(KCM.db.profile.macroBar.labelFlags, FROM_SKIN, "migrated on arrival")
+end)
+
+-- red under: the label or count drawn at the stored size in a skin whose HUD face is wider or
+-- narrower, the scale applied with Use the skin's font off or under Ignore fonts, or the stored
+-- size rewritten.
+test("Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local Skin = skinLib()
+    local BL = KCM.MacroBarLayout
+    local ok, err = withFaces({ HUD_FACE, "Ka0s Expressway" }, function()
+        Skin:SetChoice(OWNER, "ka0s", "obsidian")
+        local cfg = barCfg(KCM)
+        local pts = BL.LabelFontSize(cfg.buttonSize, cfg.labelScale)
+        local want = KCM.Skin.HudFontSize(pts, true)
+        t.truthy(want ~= pts, "Obsidian's HUD size differs from Ka0s Default's (" .. tostring(want) .. ")")
+        local btn = styleButton()
+        KCM.MacroBarButton.ApplyStyle(btn, cfg)
+        t.eq(lastCall(btn.label, "SetFont")[3], want, "the followed label is scaled")
+        t.eq(lastCall(btn.count, "SetFont")[3], KCM.Skin.HudFontSize(14, true), "the count too")
+        KCM.MacroBarButton.ApplyStyle(btn, cfg)
+        t.eq(lastCall(btn.count, "SetFont")[3], KCM.Skin.HudFontSize(14, true), "and never compounded")
+        t.eq(cfg.labelScale, 25, "the stored size is never rewritten")
+        t.eq(KCM.db.profile.macroBar.labelScale, 25, "nor the profile's")
+
+        local own = styleButton()
+        KCM.MacroBarButton.ApplyStyle(own, barCfg(KCM, { labelFontFromSkin = false }))
+        t.eq(lastCall(own.label, "SetFont")[3], pts, "its own face: as stored")
+
+        Skin:SetIgnore(OWNER, nil, true)
+        local ign = styleButton()
+        KCM.MacroBarButton.ApplyStyle(ign, barCfg(KCM))
+        t.eq(lastCall(ign.label, "SetFont")[3], pts, "Ignore fonts: as stored")
+    end)
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: a degraded facade whose FontFlags or HudFontSize answers nil (SetFont would draw no
+-- flags, or refuse the height).
+test("Skin fonts: without the library the label draws its stored size and an outline", function(t)
+    local KCM = h.loader.loadFullAddon(true)
+    t.eq(KCM.Skin.FontFlags(FROM_SKIN), "OUTLINE", "From skin reads as Outline")
+    t.eq(KCM.Skin.FontFlags(""), "", "a pick as stored")
+    t.eq(KCM.Skin.HudFontSize(9, true), 9, "a size as stored")
+    t.eq(KCM.Skin.HudFontSize(nil), 12, "and never nil")
+    local btn = styleButton()
+    KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelFlags = FROM_SKIN }))
+    local label = lastCall(btn.label, "SetFont")
+    t.eq(label and label[4], "OUTLINE", "the label is outlined")
 end)

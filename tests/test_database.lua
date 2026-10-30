@@ -5,7 +5,7 @@ local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.Database.CURRENT_SCHEMA, 4, "current schema is v4")
+    t.eq(KCM.Database.CURRENT_SCHEMA, 5, "current schema is v5")
 end)
 
 test("Database.RunMigrations stamps a fresh account at the current schema", function(t)
@@ -257,18 +257,21 @@ end)
 -- retired `labelOutline` boolean still sitting next to it. Nothing below clears
 -- `labelFlags`; the fixture is left exactly as AceDB would hand it over.
 
-test("Database v3: an outlined label from an older profile reads back as OUTLINE", function(t)
+-- Since v5 (LibKa0s v1.82.0, D-07) the shipped default is From skin ("@skin"), and the runner
+-- walks a v2 profile through v5 too, which moves v3's "OUTLINE" (the old default) to From skin.
+test("Database v3: an outlined label from an older profile reads back as outlined (From skin)", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE",
+    t.eq(KCM.db.profile.macroBar.labelFlags, "@skin",
         "AceDB has already merged the shipped default in -- this is the real starting state")
     KCM.db.profile.macroBar.labelOutline = true
     KCM.db.global = { schemaVersion = 2 }
     KCM.db.profile.schemaVersion = 2
     KCM.Database.RunMigrations()
-    t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE", "true becomes the OUTLINE flag")
+    t.eq(KCM.db.profile.macroBar.labelFlags, "@skin",
+        "true becomes the OUTLINE flag (v3), the old default, which v5 moves to From skin")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
         "and the boolean is removed rather than left as a second copy")
-    -- "OUTLINE" is also the shipped default, so the assertion above is satisfied
+    -- "@skin" is also the shipped default, so the assertion above is satisfied
     -- by a step that does nothing. The mapping itself is stated once, directly,
     -- against a starting value the default cannot supply.
     local bar = { labelFlags = "", labelOutline = true }
@@ -285,7 +288,7 @@ end)
 -- "expected , got OUTLINE".
 test("Database v3: an un-outlined label from an older profile reads back as no flags", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.db.profile.macroBar.labelFlags, "OUTLINE",
+    t.eq(KCM.db.profile.macroBar.labelFlags, "@skin",
         "the shipped default is in place, as it is on any real profile")
     KCM.db.profile.macroBar.labelOutline = false
     KCM.db.global = { schemaVersion = 2 }

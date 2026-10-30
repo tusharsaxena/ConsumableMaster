@@ -189,7 +189,7 @@ Total.
 - Database v2: the step is one-shot — a later opt-out survives the next login
 - Database v2: the migration leaves every other bar setting alone
 - Database v2: MigrateMacroBarV2 tolerates a nil profile
-- Database v3: an outlined label from an older profile reads back as OUTLINE
+- Database v3: an outlined label from an older profile reads back as outlined (From skin)
 - Database v3: an un-outlined label from an older profile reads back as no flags
 - Database v3: a profile with no retired boolean keeps the flags it chose
 - Database v3: a second pass over a converted profile changes nothing
@@ -1060,7 +1060,7 @@ Total.
 - Skin surfaces: the icon and score buttons stay stock while the panel is ignored
 - Skin surfaces: the settings surfaces read the skin only through the panel helpers
 
-### test_skin_hud.lua (14)
+### test_skin_hud.lua (20)
 
 - Skin HUD: the buttons' border follows the skin's icon family while its companion is on
 - Skin HUD: a border style of None hides the button edge
@@ -1076,6 +1076,12 @@ Total.
 - Skin HUD: the reset writes no sentinel into a raw profile
 - Skin HUD: the reset runs without the library too
 - Skin HUD: without the library the bar draws the player's stored style
+- Skin fonts: the label's flags lead with From skin, the default, beside the whole font set
+- Skin fonts: From skin flags follow the Font outline, and a picked flag wins
+- Skin fonts: the v5 step moves the old default flag to From skin once, and keeps a pick
+- Skin fonts: the v5 step runs per profile, on a profile switched to later
+- Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
+- Skin fonts: without the library the label draws its stored size and an outline
 
 ### test_skin_outline.lua (9)
 
@@ -1592,7 +1598,7 @@ Total.
 | test_selector_pins.lua | 9 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 13 |
-| test_skin_hud.lua | 14 |
+| test_skin_hud.lua | 20 |
 | test_skin_outline.lua | 9 |
 | test_skin_picker.lua | 10 |
 | test_skin_verb.lua | 6 |
@@ -1618,4 +1624,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1308** |
+| **Total** | **1314** |

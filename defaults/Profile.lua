@@ -231,8 +231,12 @@ KCM.dbDefaults = {
             -- carries; core/Database.lua's v3 step is what converts one to the other.
             -- `labelScale` is this addon's font SIZE, expressed as a percentage of the
             -- button so the labels stay proportional when the bar is resized.
+            -- `labelFlags` defaults to "@skin", the Font flags' From skin (LibKa0s v1.82.0,
+            -- ruling D-07): drawn through S.FontFlags, so it follows the Skin tab's Font
+            -- outline; a profile that stored the old default "OUTLINE" moves to it once
+            -- (core/Database.lua's v5 step).
             labelFont      = "Friz Quadrata TT",
-            labelFlags     = "OUTLINE",
+            labelFlags     = "@skin",
             labelShadow    = false,
             labelColor     = { 1, 0.82, 0, 1 },
             useClassColorLabel = false,

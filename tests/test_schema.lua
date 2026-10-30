@@ -1119,7 +1119,8 @@ local STORED_GUARD = {
     "macroBar.growthV | string | DOWN | nil | nil | nil | DOWN,UP",
     "macroBar.iconZoom | number | 8 | 0 | 40 | 1 | ",
     "macroBar.labelColor | color | {1=1,2=0.82,3=0,4=1} | nil | nil | nil | ",
-    "macroBar.labelFlags | string | OUTLINE | nil | nil | nil | ",
+    -- From skin since LibKa0s v1.82.0 (compose minor 14, D-07).
+    "macroBar.labelFlags | string | @skin | nil | nil | nil | ",
     "macroBar.labelFont | string | Friz Quadrata TT | nil | nil | nil | ",
     "macroBar.labelFontFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.labelOffsetX | number | 0 | -20 | 20 | 1 | ",

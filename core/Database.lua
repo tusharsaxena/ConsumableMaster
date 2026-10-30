@@ -25,6 +25,8 @@
 --   3 — the macro bar's label outline became a font-flags STRING.
 --   4 — the macro bar's HUD style follows the skin, once (the skinning
 --       rollout's O2: the border styles and the label face).
+--   5 — the label's stored old default flag "OUTLINE" moves to From skin
+--       ("@skin"), once (LibKa0s v1.82.0, ruling D-07, Addendum 01).
 
 local _, NS = ...
 local KCM = NS
@@ -33,7 +35,7 @@ local D = KCM.Database
 
 -- Latest schema version the code understands. Bump when you add a migration
 -- step below.
-D.CURRENT_SCHEMA = 4
+D.CURRENT_SCHEMA = 5
 
 -- v2 — introduce the macro bar to a profile written before it existed.
 --
@@ -131,6 +133,30 @@ function D.MigrateHudSkinV4(profile)
     return true
 end
 
+-- v5 — the label's Font flags follow the skin's Font outline (LibKa0s v1.82.0,
+-- ruling D-07; Addendum 01 of Ka0sAddonsCommonTasks
+-- docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK).
+--
+-- `labelFlags` gained a From skin value ("@skin", the Skin major's FROM_SKIN),
+-- the new shipped default, which S.FontFlags resolves through the Skin tab's
+-- Font outline. A profile still storing the PREVIOUS default, "OUTLINE", never
+-- chose it in a way this file can tell from never touching it, so it moves to
+-- From skin once; under the default Font outline ("All text") that draws the
+-- same outline it drew before. Any other stored flag ("", THICKOUTLINE,
+-- MONOCHROME, "OUTLINE, MONOCHROME") is a pick the player made and stays. A
+-- literal rather than ResetToSkin: the step is conditional, and ResetToSkin
+-- would write the sentinel over a pick. The stamp keeps a later deliberate
+-- "Outline" from being moved again.
+D.FLAGS_FROM_SKIN = "@skin"
+D.LABEL_FLAGS_OLD_DEFAULT = "OUTLINE"
+
+function D.MigrateLabelFlagsV5(profile)
+    local bar = type(profile) == "table" and profile.macroBar
+    if type(bar) ~= "table" then return false end
+    if bar.labelFlags == D.LABEL_FLAGS_OLD_DEFAULT then bar.labelFlags = D.FLAGS_FROM_SKIN end
+    return true
+end
+
 -- Run any pending migrations in order. Safe to call every login AND on every
 -- profile switch; each step is guarded on the stored version for the scope it
 -- writes, so it runs at most once per store.
@@ -198,8 +224,13 @@ local function migrateProfile(p)
         p.schemaVersion = 4
     end
 
+    if p.schemaVersion < 5 then
+        D.MigrateLabelFlagsV5(p)
+        p.schemaVersion = 5
+    end
+
     -- Future PROFILE migrations go here, e.g.:
-    --   if p.schemaVersion < 5 then ... ; p.schemaVersion = 5 end
+    --   if p.schemaVersion < 6 then ... ; p.schemaVersion = 6 end
 
     p.schemaVersion = D.CURRENT_SCHEMA
     return pFrom

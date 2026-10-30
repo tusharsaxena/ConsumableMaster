@@ -160,7 +160,9 @@ function BB.ApplyCountFont(fs)
                 path = path, size = tonumber(got), flags = flags }
         countFace[fs] = rec
     end
-    local size = rec.size
+    -- The skin's face, so the skin's HUD size scales it (S.HudFontSize, LibKa0s
+    -- v1.82.0, ruling D-09) from the recorded size, which is never written back.
+    local size = S.HudFontSize and S.HudFontSize(rec.size, true) or rec.size
     local path = BB.FontFile(face, nil)
     if not path then return end
     local outline = S.Token("hud.outline")
@@ -173,6 +175,25 @@ end
 --- FROM_SKIN sentinel answers nil, the shipped default face).
 function BB.LabelFace(cfg)
     return BB.Follow("hud.font", cfg.labelFont, cfg.labelFontFromSkin)
+end
+
+--- The label as drawn, size and flags (LibKa0s v1.82.0, rulings D-07 and D-09): the
+--- stored size `pts` scaled by the skin's HUD size while the label uses the skin's
+--- face (S.HudFontSize; as stored with its own face or under Ignore fonts), and the
+--- stored flags through S.FontFlags, so From skin follows the Font outline and a
+--- picked flag wins. Neither stored value is ever rewritten.
+function BB.LabelFont(cfg, pts)
+    local S = KCM.Skin
+    local fromSkin = cfg.labelFontFromSkin == true
+        or (S ~= nil and S.FROM_SKIN ~= nil and cfg.labelFont == S.FROM_SKIN)
+    local size = (S and S.HudFontSize) and S.HudFontSize(pts, fromSkin) or pts
+    local flags = cfg.labelFlags
+    if S and S.FontFlags then
+        flags = S.FontFlags(flags)
+    elseif flags == nil then
+        flags = "OUTLINE"
+    end
+    return size, flags
 end
 
 -- Resolve a LibSharedMedia font name to its file, falling back to whatever face
@@ -387,11 +408,10 @@ local function applyLabel(btn, cfg)
     local fontPath = fontFile(BB.LabelFace(cfg), btn.label:GetFont())
     if fontPath then
         -- `labelFlags` is the canonical font-flags STRING (options-ui-§16); "" is
-        -- a real stored value and means no flags at all, so the `or` ladder stops
-        -- at nil rather than treating the empty string as absent.
-        local flags = cfg.labelFlags
-        if flags == nil then flags = "OUTLINE" end
-        btn.label:SetFont(fontPath, pts, flags)
+        -- a real stored value and means no flags at all, and "@skin" (From skin)
+        -- resolves through the Font outline (BB.LabelFont).
+        local size, flags = BB.LabelFont(cfg, pts)
+        btn.label:SetFont(fontPath, size, flags)
     end
     -- Font shadow. Cleared explicitly when off, never left to whatever the last
     -- pass wrote: a shadow set once and not cleared is as sticky as the outline
