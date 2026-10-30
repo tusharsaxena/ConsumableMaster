@@ -429,7 +429,7 @@ the v4 step's companion seed.
   `owner = addonName`, and so are the four reorder lists, which the library keeps stock while the
   settings panel is ignored. The windows wear the skin whatever *Ignore settings panel* says (D-01):
   since v1.81.0 *Ignore fonts* reaches their labels (the console's title-bar words, the perf panel's
-  columns, the drag handle's label), which draw Oxanium under Ka0s Default, the resize grip takes
+  columns, the drag handle's label), which draw Prototype under Ka0s Default (Oxanium before LibKa0s v1.82.0), the resize grip takes
   `icon.grip` (the client's art under Ka0s Default and WoW Default), a close mark gets its own tint
   back when it is unpainted, and the drag handle's tooltip takes `gtip.title`, `gtip.value` and
   `gtip.footer` (Ka0s Default's gold, white and gray, as before).
