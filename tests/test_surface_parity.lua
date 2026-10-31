@@ -299,10 +299,11 @@ local OPTIONS_SEAM = {
 -- message), so they must be real no-ops on both arms — which is the finding this
 -- seam actually had.
 --
--- The FOUR COMPOSERS are deliberately NOT on this list. They are called inside
--- schema-row literals at FILE LOAD, which is the one position options-ui-§1 says
--- a stub must cover, so settings/OptionsSetup.lua's degraded arm publishes them
--- answering an empty row list. What that costs is measured, not assumed —
+-- The FIVE COMPOSERS are deliberately NOT on this list. Four of them are called
+-- inside schema-row literals at FILE LOAD, which is the one position options-ui-§1
+-- says a stub must cover, and no page calls PositionBlock yet, but the stub owes
+-- every public member. So settings/OptionsSetup.lua's degraded arm publishes all
+-- five answering an empty row list. What that costs is measured, not assumed —
 -- tests/test_settingsui.lua compares the schema row count on both arms.
 local OPTIONS_LIVE_ONLY = {
     "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BuildLandingPage", "CLASS_COLOR_NOTE",

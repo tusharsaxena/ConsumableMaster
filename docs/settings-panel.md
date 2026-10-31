@@ -117,9 +117,10 @@ straight through `__index` to the library's, so it hands back the **deferred clo
 the library documents; anything wanting an array puts it through `Helpers.EnumValues`.
 
 With the library **absent** the panel is not registered at all, and the degradation stub publishes
-exactly the members a page file touches *at file load*: the four composers (`MasterControls`,
-`ColorPair`, `FontGroup`, `BorderGroup`), answering an empty row list. `LSMValues` was named here as
-a fifth, and the stub never published it even then — `settings/Panel.lua` defined it
+the members a page file touches *at file load*: the four composers (`MasterControls`,
+`ColorPair`, `FontGroup`, `BorderGroup`), answering an empty row list. It publishes a fifth composer,
+`PositionBlock`, the same way: no page calls it yet, but the stub owes every public member. `LSMValues`
+was named here too, and the stub never published it even then — `settings/Panel.lua` defined it
 unconditionally, on both arms. `M4-C1` removed it outright, and no page file evaluates it at file
 load any more, so the list above is complete as it stands. The composed
 rows are therefore missing on that arm, deliberately — a host copy of a composer is precisely the
