@@ -1141,7 +1141,7 @@ Total.
 ### test_settingsui.lua (34)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
-- Settings UI: the live wiring registers the Border fixup through the library
+- Settings UI: an LSM30_Border another addon registered changes no media row
 - Settings UI: the published instance carries all three of the major's files
 - Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L
 - Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh

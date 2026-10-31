@@ -268,8 +268,8 @@ end
 -- client would already be carrying can be put there. Everything a case can reach
 -- from outside is either too early (the mock has not been installed) or too late
 -- (the addon has already read it). It exists for exactly one thing today:
--- seeding an AceGUI widget slot so the Border fixup's registration can be seen
--- happening, rather than asserted about a function nobody called.
+-- seeding an AceGUI widget slot, so a case can show that a media row ignores the
+-- LSM30_* type another addon registered.
 function L.loadFiles(files, omitLibs, mutate)
     local NS = {}
     mock.install(NS)
