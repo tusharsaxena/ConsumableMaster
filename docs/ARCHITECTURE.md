@@ -82,7 +82,7 @@ Two layers, and it is worth keeping them apart.
 
 **Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 5`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
 
-**Declared rows** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua` and appended to by the page files — **90** rows, counted by the page they sit on: 67 of them `macroBar.*` rows on the Macro Bar page, 15 on the General page (its 7 composed Master controls rows, `options-ui-§15`, which is where the 68th `macroBar.`-prefixed path, `macroBar.locked`, is counted, and the 8 `skin.*` rows behind its Skin tab), 7 on the Macros page and 1 on the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven of them (the Font outline's `skin.outline` since LibKa0s v1.82.0), and nothing draws `skin.pickerSeen` ([Skins](#skins)). Most are scalars. Nine whole-value rows of type `order` or `map`, plus one bool, `mouseover`, are described below. `settings/Panel.lua` itself declares none: a row is either written out in a page file or emitted by a LibKa0s composer and spliced in by `Helpers.RegisterRows`, which is also why the count is no longer greppable and is read off `#KCM.Settings.Schema`. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings page (its `group` is also the tab it lands on, so the array's order is the strip's order), the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:619` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the type rule the one write seam applies on write, `LibKa0s-Schema-1.0`'s pipeline ([schema.md](./schema.md#the-write-seam)).
+**Declared rows** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua` and appended to by the page files — **90** rows, counted by the page they sit on: 67 of them `macroBar.*` rows on the Macro Bar page, 15 on the General page (its 7 composed Master controls rows, `options-ui-§15`, which is where the 68th `macroBar.`-prefixed path, `macroBar.locked`, is counted, and the 8 `skin.*` rows behind its Skin tab), 7 on the Macros page and 1 on the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven of them (the Font outline's `skin.outline` since LibKa0s v1.82.0), and nothing draws `skin.pickerSeen` ([Skins](#skins)). Most are scalars. Nine whole-value rows of type `order` or `map`, plus one bool, `mouseover`, are described below. `settings/Panel.lua` itself declares none: a row is either written out in a page file or emitted by a LibKa0s composer and spliced in by `Helpers.RegisterRows`, which is also why the count is no longer greppable and is read off `#KCM.Settings.Schema`. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings page (its `group` is also the tab it lands on, so the array's order is the strip's order), the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:626` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the type rule the one write seam applies on write, `LibKa0s-Schema-1.0`'s pipeline ([schema.md](./schema.md#the-write-seam)).
 
 ```lua
 #KCM.Settings.Schema
@@ -100,9 +100,9 @@ The sets pass all three of the rule's tests, and "id sets" is one of the rule's 
 
 - **Storage keys.** `profile.categories[catKey].added` and `.blocked` (sets of opaque ids), plus their order bookkeeping `.pins` (`{ itemID, position }`). These sit on the bucket itself for a single category, and under `profile.categories[catKey].bySpec[specKey]` for the four spec-aware ones (`STAT_FOOD`, `CMBT_POT`, `FLASK`, `WPN_ENCH`). `.discovered` (`[id] = unixTimestamp`) is in the same bucket. It is membership the addon adds from the bag scan, not membership the player chooses, and only the two `Selector` functions named below write it.
 - **Writer.** `modules/Selector.lua`: `AddItem` (`:494`), `Block` (`:516`), and `MoveTo` / `MoveUp` / `MoveDown` over `moveBy` (`:705`) for membership and pins; the two registry reset verbs `ResetBucket` (`:551`, one category, or one spec's bucket) and `ResetAllBuckets` (`:577`, every bucket, spec buckets included), which clear `added` / `blocked` / `pins` and keep `.discovered`; plus `MarkDiscovered` (`:597`) and `SweepStaleDiscovered` (`:682`) for `.discovered`. The Macros pages (`settings/Category.lua`), the `/cm priority` verbs (`core/SlashCommands.lua`) and **Reset all priorities…** (`settings/General.lua`) call these. `GetBucket` (`:69`) lazily creates an empty spec bucket on first read; that is a traversal accessor, not a writer.
-- **Load pass.** `KCM.Database.RunMigrations` (`core/Database.lua:182`), called from `KCM:OnInitialize` (`core/ConsumableMaster.lua`) and from the three AceDB profile callbacks that `KCM.RegisterProfileCallbacks` installs (`core/ConsumableMaster.lua`). It has no `categories` step today: AceDB's merge of `dbDefaults` is what seeds the empty buckets.
+- **Load pass.** `KCM.Database.RunMigrations` (`core/Database.lua:256`), called from `KCM:OnInitialize` (`core/ConsumableMaster.lua`) and from the three AceDB profile callbacks that `KCM.RegisterProfileCallbacks` installs (`core/ConsumableMaster.lua`). It has no `categories` step today: AceDB's merge of `dbDefaults` is what seeds the empty buckets.
 
-**Selector is the only runtime writer.** `architecture-§5` makes a registry reset a writer operation, and all three reset doors call the writer: `/cm priority <cat> reset` calls `Selector.ResetBucket` (`core/SlashCommands.lua:440-441`), the Macros page's per-category reset popup calls it for the viewed spec (`settings/Category.lua:288-289`), and **Reset all priorities…** calls `Selector.ResetAllBuckets` (`settings/General.lua:130-131`). Until 2026-09-12 each of the three cleared the buckets itself, which spread registry writes across three runtime modules. anti-patterns #78 names that as a code finding. It was tracked in [#34](https://github.com/tusharsaxena/ConsumableMaster/issues/34) and is closed. `tests/test_selector.lua` now fails if any file other than `modules/Selector.lua` assigns a bucket's `added`, `blocked` or `pins`. Reset all priorities also clears `statPriority`. That write is a setting, not registry membership, and it goes through the schema helper like the other `statPriority` writers (below).
+**Selector is the only runtime writer.** `architecture-§5` makes a registry reset a writer operation, and all three reset doors call the writer: `/cm priority <cat> reset` calls `Selector.ResetBucket` (`core/SlashCommands.lua:440-441`), the Macros page's per-category reset popup calls it for the viewed spec (`settings/Category.lua:301-302`), and **Reset all priorities…** calls `Selector.ResetAllBuckets` (`settings/General.lua:130-131`). Until 2026-09-12 each of the three cleared the buckets itself, which spread registry writes across three runtime modules. anti-patterns #78 names that as a code finding. It was tracked in [#34](https://github.com/tusharsaxena/ConsumableMaster/issues/34) and is closed. `tests/test_selector.lua` now fails if any file other than `modules/Selector.lua` assigns a bucket's `added`, `blocked` or `pins`. Reset all priorities also clears `statPriority`. That write is a setting, not registry membership, and it goes through the schema helper like the other `statPriority` writers (below).
 
 ### Whole-value rows: stat priority, the composite sections, the slot order and visibility
 
@@ -121,13 +121,13 @@ Three pieces of persistent state are written outside the helper, and none of the
 
 - **The macro fingerprint cache.** Storage key: `profile.macroState[macroName]` = `{ lastItemID, lastBody, lastIcon, lastCat }`, the fingerprint of the last edit `MacroManager` made to each macro, which its "unchanged" early-out compares against. It is learned data: every entry records an edit the addon made, and the player authors none of them. **Owner:** `MacroManager` (`modules/MacroManager.lua`). **Writers:**
   - `commitMacro` stores a macro's fingerprint, at the end of that function, after a successful `EditMacro`. It is the one write seam behind `SetMacro`, `SetWeaponEnchantMacro` and `SetCompositeMacro`. A pipeline recompute reaches it, and so does `FlushPending` when the combat queue drains on `PLAYER_REGEN_ENABLED`, which replays each queued single-category body through it rather than rebuilding one. Its `macroState = macroState or {}` only creates the empty table on first use, which the rule does not count as a writer.
-  - `M.InvalidateState` clears the whole cache so the next pass rewrites every macro. It is a forced rebuild, one of the owner's own operations. Three acts reach it: `/cm rewritemacros` (`settings/Slash.lua:243`), the General page's **Force rewrite macros** button (`doForceRewriteMacros`, `settings/General.lua:102`), and a profile switch or copy, through the profile handler (`KCM.RegisterProfileCallbacks`, `core/ConsumableMaster.lua`). The incoming profile's fingerprints describe bodies the account's macros may no longer hold, so the handler clears them before its resync ([profiles.md](./profiles.md#why-the-fingerprints-are-forgotten)).
+  - `M.InvalidateState` clears the whole cache so the next pass rewrites every macro. It is a forced rebuild, one of the owner's own operations. Three acts reach it: `/cm rewritemacros` (`settings/Slash.lua:250`), the General page's **Force rewrite macros** button (`doForceRewriteMacros`, `settings/General.lua:102`), and a profile switch or copy, through the profile handler (`KCM.RegisterProfileCallbacks`, `core/ConsumableMaster.lua`). The incoming profile's fingerprints describe bodies the account's macros may no longer hold, so the handler clears them before its resync ([profiles.md](./profiles.md#why-the-fingerprints-are-forgotten)).
   - `M.MarkAllStale` writes no fingerprint: it flags every stored macro for one write that bypasses the "unchanged" early-out, and `commitMacro` clears the flag when that write lands. The fingerprints stay, so the macro bar keeps drawing its picks while a combat-deferred write waits. One act reaches it: a non-combat restriction lifting (`KCM:OnRestrictionChanged`, `core/ConsumableMaster.lua`).
 
   Nothing else writes the cache; `core/MacroDisplay.lua` only reads it. The early-out does not trust it alone: `alreadyApplied` reads the live macro through `liveBody` (`GetMacroIndexByName` / `GetMacroInfo`, unprotected reads) and honors the fingerprint only when the live body still equals it, because the macros are account-wide and another profile or the player may have overwritten or deleted one since (review finding `F-001`, `docs/reviews/2026-10-07/`). That is a read; it writes nothing. The global reset empties it with the rest of the profile, and the resync that follows re-issues every macro and rebuilds it. The combat queue `pendingUpdates` lives only in memory, so it is out of scope. `tests/test_macromanager.lua` fails if any file but `modules/MacroManager.lua` writes `macroState`. This was the open remainder of [#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35) once that issue's settings became rows. Since 2026-09-12 it is named here.
 - **The macro bar's position.** Storage key: `profile.macroBar.point` / `.relPoint` / `.x` / `.y`, the bar's anchor against `UIParent`. It is geometry only a drag determines. **Owner:** `MacroBar` (`modules/MacroBar.lua`). **Writers:**
-  - `savePosition` (`:115`, write at `:121`) reads the anchor back off the frame when a drag stops, on the bar itself (`OnDragStop`, `:231-234`) or on its drag handle, which since LibKa0s v1.48.0 hands the same function to the widget as its `onDragStop` (`:280`).
-  - `MB.ResetPosition` (`:655`, write at `:659`) puts back the shipped default from `KCM.dbDefaults`. Three acts reach it: the General page's **Reset position** button (`onResetPosition`, `settings/General.lua:217`), `/cm bar reset` (`core/SlashCommands.lua:932`) and the Macro Bar page's **Defaults** (`doResetPage`, `settings/MacroBar.lua:635`).
+  - `savePosition` (`:116`, write at `:122`) reads the anchor back off the frame when a drag stops, on the bar itself (`OnDragStop`, `:232-235`) or on its drag handle, which since LibKa0s v1.48.0 hands the same function to the widget as its `onDragStop` (`:294`).
+  - `MB.ResetPosition` (`:681`, write at `:685`) puts back the shipped default from `KCM.dbDefaults`. Three acts reach it: the General page's **Reset position** button (`onResetPosition`, `settings/General.lua:231`), `/cm bar reset` (`core/SlashCommands.lua:932`) and the Macro Bar page's **Defaults** (`doResetPage`, `settings/MacroBar.lua:679`).
 
   Nothing else writes these fields. No control chooses a position: a drag captures what is on screen and a reset puts back the default, and neither chooses a value. `/cm set` cannot reach them because they have no row. Until 2026-09-12 the page's Defaults also wrote them as part of its whole-table write over `macroBar` ([#36](https://github.com/tusharsaxena/ConsumableMaster/issues/36)). Now it routes the position through `ResetPosition` and writes no geometry itself. `tests/test_macrobar.lua` fails if any file but `modules/MacroBar.lua` writes these fields, or replaces the whole `macroBar` table outside the load pass. Named here for [#37](https://github.com/tusharsaxena/ConsumableMaster/issues/37).
 - **The perf capture ring.** Storage key: the `ConsumableMasterPerfDB` SavedVariable (`schema`, `runs`), a global of its own declared beside `ConsumableMasterDB` (`ConsumableMaster.toc:11`) and kept out of AceDB, so a profile copy, reset or switch never touches it. It is recorded data written by a vendored library: the addon hands LibKa0s-Perf the variable's name and never writes it. **Owner:** `core/PerfSetup.lua`, which passes `sv = "ConsumableMasterPerfDB"` to `lib:New`. **Writer:** the library's `P.Save` (`libs/LibKa0s/Perf.lua`), reached when the player ends a run with `/cm perf finish`. It appends the run's record, trims the ring to its maximum length, and discards a ring stored under an older schema.
@@ -154,7 +154,7 @@ A skin change rides no message. The surfaces that rebuild on one subscribe to `K
 
 ## Slash Commands
 
-`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:164-308`, published as `KCM.COMMANDS` at `:396` so there is one source of truth for the verb set (`slash-commands-§4`). Nothing in the addon reads that table directly — the About page renders its rows through `KCM.SlashCommands.GetLandingRows()` (`settings/Slash.lua:745-748`), which delegates to the library instance built from the same table — so `KCM.COMMANDS` is the identity handle the harness asserts against.
+`/cm` and `/consumablemaster` both reach one dispatcher: the LibKa0s-Slash-1.0 instance built in `settings/Slash.lua`. Its input is the `COMMANDS` table at `settings/Slash.lua:165-315`, published as `KCM.COMMANDS` at `:403` so there is one source of truth for the verb set (`slash-commands-§4`). Nothing in the addon reads that table directly — the About page renders its rows through `KCM.SlashCommands.GetLandingRows()` (`settings/Slash.lua:752-755`), which delegates to the library instance built from the same table — so `KCM.COMMANDS` is the identity handle the harness asserts against.
 
 Twenty-four verbs are declared, in this order: `help`, `config`, `skin`, `version`, `enable`, `disable`, `perf`, `debug`, `diagnostics`, `resync`, `rewritemacros`, `reset`, `resetall`, `list`, `get`, `set`, `profile`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio`, `dump`. Four of them carry a subcommand tree of their own. The verb *bodies* live in `core/SlashCommands.lua`, and the `/cm dump` targets in `core/SlashDump.lua`; `settings/Slash.lua` holds only the table and the dispatcher wiring. The user-facing description of each verb is the help index `/cm help` prints, built from that same table. A bare `/cm` runs `config` instead and opens the settings panel on its About landing page (`slash-commands-§4`, LibKa0s-Slash-1.0 minor 11); the README deliberately no longer restates it (`documentation-§1` item 7).
 
@@ -318,7 +318,9 @@ shape is LootHistory's, the collection's first adopter; the paths, the brand, th
 the HUD are this addon's. The 2026-10-30 skin library follow-ups (`docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/`,
 CM-RV to CM-02) re-vendored LibKa0s v1.81.0 and deleted the workarounds it made unnecessary: the
 HUD's own *Ignore fonts* predicate, the reorder lists' owner switch, the panel text's give-back and
-the v4 step's companion seed.
+the v4 step's companion seed. The 2026-10-30 skin fonts run and the 2026-10-31 font pickers run
+(CM-01, CM-F01; LibKa0s v1.82.0 and v1.83.0) added the Font outline, the From skin font flags, the
+HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
 
 - **The seam.** `core/SkinSetup.lua` registers the owner `"ConsumableMaster"` (the folder name) at
   file load, labeled *Ka0s Consumable Master*, with its read and write seams (`KCM.SkinChoice`,
@@ -330,14 +332,14 @@ the v4 step's companion seed.
   CM-G3). It publishes `KCM.Skin`, the owner's facade every surface reads, `KCM.SkinColor` /
   `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
   the settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
-  `SkinPanelText` (below), the three `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
-  `KCM.SkinPaintAceTree`, and the picker's three functions ([module-map.md](./module-map.md)).
+  `SkinPanelText` (below), the four `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
+  `KCM.SkinPaintAceTree`, the picker's three functions and `KCM.RunSkinVerb` ([module-map.md](./module-map.md)).
   Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from
   `KCM.SKIN_FALLBACK`, and `tests/test_skin.lua` holds each entry to the live facade's answer.
-- **The choice is per profile.** Seven rows under `skin.` ([schema.md](./schema.md)): the source and
+- **The choice is per profile.** Eight rows under `skin.` ([schema.md](./schema.md)): the source and
   the skin, the Scope's two exceptions (*Ignore settings panel*, on in a new profile, and *Ignore
-  fonts*, off), the Font and Texture overrides (`""` for the skin's own) and `pickerSeen`. All seven
-  are `skipRender`; the library's Skin tab (`O.AppearanceTab`, key `Appearance`) draws the first six
+  fonts*, off), the Font and Texture overrides (`""` for the skin's own), the Font outline and `pickerSeen`. All eight
+  are `skipRender`; the library's Skin tab (`O.AppearanceTab`, key `Appearance`) draws the first seven
   as General's last tab, after Maintenance, since the page has no Keybindings tab
   ([settings-panel.md](./settings-panel.md#the-general-pages-skin-tab)). Each row's `apply` moves only
   its own half, so a tab pick or another addon's *Copy to every Ka0s addon* is one effective
@@ -441,7 +443,8 @@ the v4 step's companion seed.
   `KCM.HideSkinPicker` (the stand-down, and first in every profile reaction) takes it down
   unmarked. Its gear opens General on the Skin tab. It draws **no eye**: the addon has no primary
   window and no test mode to preview in, so the spec carries no `onPreview` (D3), and the
-  `LibKa0s icons:` declaration adds only `settings`.
+  `LibKa0s icons:` declaration adds only `settings`. `/cm skin` (`KCM.RunSkinVerb`, `O.SkinVerb`)
+  opens the same picker on demand, whatever `pickerSeen` says, and a close still marks the profile seen.
 - **The EllesmereUI provider** is the library's (`SkinEUI.lua`). With source `eui` and its gate
   holding, the owner wears EllesmereUI's look; otherwise the Ka0s skin, and the Skin tab names the
   failing condition. `ka0s` to `eui` is live; back needs one reload, which the Skin tab asks for and
@@ -508,7 +511,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | Twenty-three verbs, over the eight-or-more threshold, and four of them carry a subcommand tree (`priority`, `stat`, `aio`, `bar`, plus the `dump` targets) |
+| `slash-dispatch.md` | Present | Twenty-four verbs, over the eight-or-more threshold, and four of them carry a subcommand tree (`priority`, `stat`, `aio`, `bar`, plus the `dump` targets) |
 | `midnight-quirks.md` | Present | Client-version workarounds of the addon’s own |
 | `debug.md` | Present | The diagnostics report (`core/Diagnostics.lua`, debug-logging-§14) and the `/cm dump` targets in `core/SlashDump.lua` are the addon’s own beyond the library console |
 | `message-bus.md` | Not applicable | Five messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message Bus` |
@@ -572,7 +575,7 @@ git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l |
 ```
 
 and re-measured 2026-09-26 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
-`layoutcap:` cases; the largest authored file is `settings/MacroBar.lua`, at 1225 lines (measured 2026-10-29).
+`layoutcap:` cases; the largest authored file is `settings/MacroBar.lua`, at 1231 lines (measured 2026-10-31).
 
 | File | Lines | Disposition |
 |---|---|---|
@@ -585,9 +588,9 @@ emptied look identical on the page and are not the same claim. Rows alongside th
 too. The section itself stays whether or not there is a breach — it is where the rule is written
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
-**The 1000–1500 band is on notice, not in breach** (measured 2026-10-29):
-`settings/MacroBar.lua` (1225), `settings/Category.lua` (1184), `settings/Panel.lua` (1143),
-`tests/test_schema.lua` (1173), `tests/test_settingsui.lua` (1151), `tests/test_selector.lua`
+**The 1000–1500 band is on notice, not in breach** (measured 2026-10-31):
+`settings/MacroBar.lua` (1231), `settings/Category.lua` (1186), `settings/Panel.lua` (1143),
+`tests/test_schema.lua` (1176), `tests/test_settingsui.lua` (1151), `tests/test_selector.lua`
 (1049) and `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile` fakes). The three test suites that
 led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
 `tests/test_settingsui.lua` (1440) — were peeled below 1000 on 2026-09-26 (see
@@ -598,6 +601,6 @@ Accepted on the automated-test watch list at 1.6.0, 1.6.1 and 1.6.2, and `automa
 refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1143) peels
 its About page renderer into `settings/About.lua`
 ([#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)), and `settings/Category.lua`
-(1184) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
+(1186) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
 ([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)). How the four 2026-09 peels were cut, and where each moved case went, is
 [module-map.md → Peel history](./module-map.md#peel-history), beside issues #32 and #33.

@@ -205,7 +205,8 @@ that file's seams, so a pick lands through `KCM.Schema:Set` like every other set
 heading, **Font and texture** (the two overrides, each led by *Skin's default*, their *Reset font* and *Reset
 texture* buttons and the *Font outline*: *All text*, *HUD text only* or *Off*, LibKa0s v1.82.0), the **Scope** (*Ignore
 settings panel*, ticked in a new profile, and *Ignore fonts*), **Copy to every Ka0s addon…** and the
-library's note. Its seven rows are `skin.*` schema rows with `skipRender` (the tab draws them, the
+library's note. The *Font* and *Texture* pull-outs, like every media picker in the panel (LibKa0s
+v1.83.0), draw each entry as a preview of itself. The tab's seven rows are `skin.*` schema rows with `skipRender` (the tab draws them, the
 row engine does not), so the General page's **Defaults** and the global reset reach them and `/cm
 get|set skin.skin` validates against the registered skins. `skin.pickerSeen` is an eighth row
 drawn by nothing: the page's Defaults leaves it, and the global reset clears it.
@@ -214,7 +215,7 @@ What the skin reaches on the other pages is in [ARCHITECTURE.md → Skins](./ARC
 the library's chrome and rows (stock while *Ignore settings panel* is on), the AceGUI widgets
 this addon acquires (through `KCM.SkinAcquire`), the four `KCM*` widgets and the raw reorder rows
 (painted from `KCM.Skin` through the panel helpers, so they too stay stock while *Ignore settings
-panel* is on), and the Profiles tree. The first-run skin picker's gear opens this tab.
+panel* is on), and the Profiles tree. The first-run skin picker's gear opens this tab, and `/cm skin` opens that picker on demand.
 
 ### The Minimap button row — shown says one thing, the store says the other
 
