@@ -238,15 +238,15 @@ local RESIDUE = {
     {"settings/Panel.lua", "defaults action failed: ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "onChange for ", "DIAGNOSTIC"},
     {"settings/Panel.lua", "button onClick failed: ", "DIAGNOSTIC"},
-    {"settings/Panel.lua", "expected boolean", "VALIDATOR"},
-    {"settings/Panel.lua", "expected number", "VALIDATOR"},
-    {"settings/Panel.lua", "expected string", "VALIDATOR"},
-    {"settings/Panel.lua", "allowed values: ", "VALIDATOR"},
-    {"settings/Panel.lua", "expected color table", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected boolean", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected number", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected string", "VALIDATOR"},
+    {"settings/PanelRows.lua", "allowed values: ", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected color table", "VALIDATOR"},
     {"settings/Panel.lua", "invalid value for ", "DIAGNOSTIC"},
-    {"settings/Panel.lua", "expected true or false for ", "VALIDATOR"},
-    {"settings/Panel.lua", "expected a list", "VALIDATOR"},
-    {"settings/Panel.lua", "expected a table", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected true or false for ", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected a list", "VALIDATOR"},
+    {"settings/PanelRows.lua", "expected a table", "VALIDATOR"},
 
     -- settings/SchemaStub.lua — the degraded write seam's refusals, handed back
     -- to the caller as the library's would be (LibKa0s-Schema-1.0's stub

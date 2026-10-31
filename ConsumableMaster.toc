@@ -213,6 +213,12 @@ settings\OptionsSetup.lua
 # It also publishes the KCM.Options shim (Register/Refresh/RequestRefresh/Open)
 # so the core / pipeline callers keep working unchanged.
 settings\Panel.lua
+# settings/PanelRows.lua -- the schema's type rules and Helpers.AddRows, peeled off
+# Panel.lua (#42). Immediately after it and before every page file: it reads
+# Panel.lua's write seam at load, and each page declares its rows at load.
+settings\PanelRows.lua
+# settings/About.lua -- the parent canvas, peeled off Panel.lua (#42).
+settings\About.lua
 # settings/OptionsShim.lua — the RUN-time half of the same shim: O.Refresh,
 # O.RequestRefresh, O.Open, the refresh debounce behind them and the three bus
 # subscriptions that drive them. Peeled off Panel.lua at the 1500-line cap
@@ -226,6 +232,9 @@ settings\OptionsShim.lua
 # The four page files: position within this group is conventional, not load-bearing.
 settings\General.lua
 settings\MacroBar.lua
+# settings/MacroBarSlots.lua -- the Buttons tab's draggable list, peeled off
+# MacroBar.lua. Beside it by convention: the page reaches it at render time.
+settings\MacroBarSlots.lua
 settings\StatPriority.lua
 settings\Category.lua
 # settings/CategoryAddByID.lua — the Macros page's "Add an item or spell"
@@ -236,6 +245,10 @@ settings\Category.lua
 # Category.lua publishes at load. The other direction is call-time only --
 # Category.lua reaches KCM.Settings.AddByID.Render while it renders a tab.
 settings\CategoryAddByID.lua
+# settings/CategoryComposite.lua -- the composite tabs (HP_AIO, MP_AIO), peeled off
+# Category.lua (#43). AFTER Category.lua for the same reason as the line above:
+# it takes KCM.Settings.MacrosPage's helpers as file-scope locals.
+settings\CategoryComposite.lua
 # The /cm dispatcher (CM-47). Last in this block because it is the one settings
 # file nothing else here reads: it consumes core\SlashCommands.lua's published
 # verb table and publishes KCM:OnSlashCommand, which AceConsole resolves by name

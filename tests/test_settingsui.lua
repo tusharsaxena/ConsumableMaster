@@ -288,7 +288,7 @@ test("Settings UI: the About logo path follows the folder name", function(t)
     -- its own rule working. So the rename is applied to the one file this case
     -- is about, re-run on the same namespace the way the client runs it.
     KCM.name = "ConsumableMasterRenamed"
-    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/Panel.lua"))
+    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/About.lua"))
     chunk(KCM.name, KCM)
     local path
     local AceGUI = LibStub("AceGUI-3.0")

@@ -216,12 +216,16 @@ local PURE_LAYER_OMITS = {
     ["core/SlashCommands.lua"]   = true,
     ["settings/OptionsSetup.lua"] = true,
     ["settings/Panel.lua"]       = true,
+    ["settings/PanelRows.lua"]   = true,
+    ["settings/About.lua"]       = true,
     ["settings/OptionsShim.lua"] = true,
     ["settings/General.lua"]     = true,
     ["settings/MacroBar.lua"]    = true,
+    ["settings/MacroBarSlots.lua"] = true,
     ["settings/StatPriority.lua"] = true,
     ["settings/Category.lua"]    = true,
     ["settings/CategoryAddByID.lua"] = true,
+    ["settings/CategoryComposite.lua"] = true,
     ["settings/Slash.lua"]       = true,
     -- The frame layer: every one of these builds real widgets at load, which is
     -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
@@ -368,8 +372,9 @@ end
 --- panel. Leaving it out would answer those with nil on exactly the arms that
 --- pin the degraded install.
 L.SETTINGS_SEAM = {
-    "settings/OptionsSetup.lua", "settings/Panel.lua", "settings/OptionsShim.lua",
-    "settings/General.lua", "settings/MacroBar.lua",
+    "settings/OptionsSetup.lua", "settings/Panel.lua", "settings/PanelRows.lua",
+    "settings/About.lua", "settings/OptionsShim.lua",
+    "settings/General.lua", "settings/MacroBar.lua", "settings/MacroBarSlots.lua",
 }
 
 function L.loadWithSchema(omitLibs, mutate)

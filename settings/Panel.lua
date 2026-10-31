@@ -25,7 +25,6 @@
 
 local _, NS = ...
 local KCM = NS
-local L = KCM.L
 -- Silent-mode (library-stack-§4): AceGUI is an OptionalDep, and the hard form
 -- raises during load on an install that lacks it. See settings/OptionsSetup.lua,
 -- which treats a nil AceGUI as a degraded load.
@@ -150,17 +149,6 @@ KCM.Options = KCM.Options or {}
 -- site is reachable on a build without the library — nothing registers a panel
 -- there — so there is no nil arm to guard.
 
--- Built from the folder name rather than typed, the same derivation
--- core/LauncherSetup.lua uses for the launcher icon (its ICON, built from
--- `addonName`): a texture path is absolute from `Interface\AddOns\`, so the
--- folder half has to be the name the client loaded, and layout-§4 lowercases
--- the file half. This is consistency with that file, not a layout-§4
--- deviation being corrected -- the literal spelled the same path. This file
--- opens `local _, NS = ...`, so the name is read off NS.name, which
--- core/Namespace.lua sets from the vararg.
-local LOGO_TEXTURE = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.tga")
-    :format(KCM.name, KCM.name:lower())
-local LOGO_PIXELS  = 300
 
 -- ---------------------------------------------------------------------
 -- The write seam -- LibKa0s-Schema-1.0 (ConsumableMaster#39)
@@ -258,6 +246,7 @@ end
 -- `neverReset` register. The library reads it at call time and honors it only
 -- inside a bracket, so `/cm reset global.minimap.shown` still works by name.
 local resetExempt = {}
+KCM.Settings.ResetExempt = resetExempt   -- settings/PanelRows.lua fills it
 
 local S = SchemaLib:New({
     rows          = KCM.Settings.Schema,
@@ -310,7 +299,7 @@ local _validPanels = {
 -- pages declare the whole-value rows behind their own controls (architecture-§5).
 local _validSections = { general = true, macrobar = true, macros = true, statpriority = true }
 -- `order` and `map` are the WHOLE-VALUE rows (architecture-§5): a list over a
--- fixed member set, and a keyed map. See TYPE_RULES below.
+-- fixed member set, and a keyed map. See TYPE_RULES in settings/PanelRows.lua.
 local _validTypes    = { bool = true, number = true, string = true, color = true,
                          order = true, map = true }
 
@@ -748,169 +737,6 @@ end
 -- SetAndRefresh's RefreshScalars and O.Refresh's RefreshAllPanels — are
 -- callable on BOTH paths.
 
--- A whole-value row's member set: a list, or a function answering one (the bar's
--- slot keys are only known once the categories have loaded).
-local function membersOf(def)
-    local m = def.members
-    if type(m) == "function" then m = m() end
-    return type(m) == "table" and m or {}
-end
-
--- A FLAG MAP (a composite's `enabled`, the bar's `shown`): keys outside the
--- member set are dropped, and every kept value must be a real boolean -- the
--- readers test `~= false`, so a string or a number would silently read as on.
-local function normalizeFlagMap(def, value)
-    local known, out = {}, {}
-    for _, m in ipairs(membersOf(def)) do known[m] = true end
-    for k, v in pairs(value) do
-        if known[k] then
-            if type(v) ~= "boolean" then
-                return nil, "expected true or false for " .. tostring(k)
-            end
-            out[k] = v
-        end
-    end
-    return out
-end
-
-local function copyShallow(value)
-    local out = {}
-    for k, v in pairs(value) do out[k] = v end
-    return out
-end
-
-local function isType(want, why)
-    return function(_, value)
-        if type(value) ~= want then return false, why end
-        return true
-    end
-end
-
--- Enum rows (a `values` list) reject anything outside the list, so the
--- dropdown and `/cm set` can't write a value the renderer can't display.
-local function validateString(def, value)
-    if type(value) ~= "string" then return false, "expected string" end
-    local allowed = enumValues(def)
-    if #allowed > 0 then
-        local names = {}
-        for i, item in ipairs(allowed) do
-            if item.value == value then return true end
-            names[i] = tostring(item.value)
-        end
-        return false, "allowed values: " .. table.concat(names, ", ")
-    end
-    return true
-end
-
--- One rule per declared schema type, split the way LibKa0s-Schema-1.0's
--- pipeline splits it: `validate(def, value) -> ok, why` refuses, and
--- `normalize(def, value) -> value | nil, why` answers what is stored. bool,
--- string and enum are validate-only. A type with no entry here passes its value
--- through untouched, as the elseif chain this replaced always did.
-local TYPE_RULES = {
-    bool = { validate = isType("boolean", "expected boolean") },
-
-    -- min and max are independently optional, so the clamp is two separate
-    -- one-sided tests rather than a range check.
-    number = {
-        validate  = isType("number", "expected number"),
-        normalize = function(def, value)
-            if def.min then value = math.max(def.min, value) end
-            if def.max then value = math.min(def.max, value) end
-            return value
-        end,
-    },
-
-    string = { validate = validateString },
-
-    -- Always a fresh table: a color row's `default` IS the dbDefaults table, and
-    -- a reset sends it through the seam. Stored as-is it would alias the shipped
-    -- default, and AceDB's removeDefaults on a later SetProfile nils its channels
-    -- in place -- every profile after that reads an empty color. The seam copies
-    -- a table into the store as well; this copy is what `apply` and the log see.
-    color = { validate = isType("table", "expected color table"),
-              normalize = function(_, value) return copyShallow(value) end },
-
-    -- A WHOLE-VALUE list over a fixed member set (architecture-§5): the bar's
-    -- slot order, a composite's section. NORMALIZED, not merely checked: unknown
-    -- and repeated members are dropped and every missing one is appended in the
-    -- member set's own order, so a stored order names each member exactly once.
-    order = {
-        validate  = isType("table", "expected a list"),
-        normalize = function(def, value)
-            local members = membersOf(def)
-            local known, seen, out = {}, {}, {}
-            for _, m in ipairs(members) do known[m] = true end
-            for _, m in ipairs(value) do
-                if known[m] and not seen[m] then seen[m] = true; out[#out + 1] = m end
-            end
-            for _, m in ipairs(members) do
-                if not seen[m] then seen[m] = true; out[#out + 1] = m end
-            end
-            return out
-        end,
-    },
-
-    -- A WHOLE-VALUE keyed map. A row naming `members` is a flag map; anything
-    -- else is copied. A row with its OWN `normalize` (stat priority's) keeps it,
-    -- which is LibKa0s-Schema-1.0's row.normalize: see stampRow.
-    map = {
-        validate  = isType("table", "expected a table"),
-        normalize = function(def, value)
-            if def.members then return normalizeFlagMap(def, value) end
-            return copyShallow(value)
-        end,
-    },
-}
-
--- Put the row's type rule on the row, closed over it, where the library's
--- pipeline reads it: `validate` and `normalize`. A row that already carries
--- its own keeps it. Stamped once; `__typed` is the marker.
-local function stampRow(row)
-    if type(row) ~= "table" or row.__typed then return end
-    row.__typed = true
-    local rule = TYPE_RULES[row.type]
-    if not rule then return end
-    if row.validate == nil and rule.validate then
-        row.validate = function(value) return rule.validate(row, value) end
-    end
-    if row.normalize == nil and rule.normalize then
-        row.normalize = function(value) return rule.normalize(row, value) end
-    end
-end
-
-local function registerRow(row)
-    stampRow(row)
-    if row.neverReset and type(row.path) == "string" then resetExempt[row.path] = true end
-end
-
---- Append hand-written rows to the schema: stamped with their type rules and
---- indexed by the seam, which is what makes a row writable at all.
-function Helpers.AddRows(list)
-    for _, row in ipairs(list) do registerRow(row) end
-    return S.AddRows(list)
-end
-
-function Helpers.AddRow(row)
-    Helpers.AddRows({ row })
-    return row
-end
-
--- Validate and coerce a value against a row's declared type, the way the seam
--- would, without writing it. Returns the value that would be stored, or nil and
--- the reason. A thin read of TYPE_RULES kept for the suites that pin each rule;
--- the seam itself reads the stamped row fields.
-local function validateSchemaValue(def, value)
-    local rule = TYPE_RULES[def.type]
-    if not rule then return value end
-    local ok, why = rule.validate(def, value)
-    if not ok then return nil, why end
-    if type(def.normalize) == "function" then return def.normalize(value) end
-    if rule.normalize then return rule.normalize(def, value) end
-    return value
-end
-Helpers.ValidateSchemaValue = validateSchemaValue
-
 -- The door a player's write takes -- a widget, `/cm enable`, a page button:
 -- the seam, and on a refusal one line saying why. Returns true on success.
 function Helpers.SetAndRefresh(path, value)
@@ -1021,46 +847,6 @@ function Helpers.RegisterRows(rows, panel, section, decorate)
     end
     Helpers.AddRows(rows)
     return rows
-end
-
--- ---------------------------------------------------------------------
--- About content (parent canvas). Logo + addon notes + slash command list.
--- ---------------------------------------------------------------------
-
--- Through core/EnvSetup.lua rather than C_AddOns directly, which also retires
--- the hardcoded "ConsumableMaster" this used to pass: the seam hands the library
--- the first vararg, so a folder rename cannot leave this reading somebody else's
--- manifest -- or none -- and saying nothing about it.
-local function readAddOnNotes()
-    return KCM.Meta("Notes") or ""
-end
-
--- The parent canvas, through the library's builder (options-ui-§5): logo, the
--- TOC notes line, then the Slash Commands heading and one row per command. It
--- replaced a private copy that drew the logo as a texture straight on a pooled
--- AceGUI SimpleGroup frame and never took it off: after a re-render the frame
--- came back as another SimpleGroup (the spacer under the heading) still
--- carrying the logo, so the page showed it twice. The builder keeps one
--- texture per frame and hides it in the group's OnRelease.
---
--- Convergence #2 (LIBKA0S-13): one row formatter for the whole addon. The
--- rows come back already rendered by lib.FormatRow, the same function /cm
--- help's rows go through -- so the panel and the chat cannot drift apart again
--- by an edit to one of them. `rows` is a function so a re-render picks up a
--- command registered since.
-function Helpers.BuildAboutContent(ctx)
-    Helpers.BuildLandingPage(ctx, {
-        logo     = LOGO_TEXTURE,
-        logoSize = LOGO_PIXELS,
-        notes    = readAddOnNotes,
-        sections = { {
-            heading = L["Slash Commands"],
-            rows    = function()
-                return (KCM.SlashCommands and KCM.SlashCommands.GetLandingRows)
-                    and KCM.SlashCommands.GetLandingRows() or {}
-            end,
-        } },
-    })
 end
 
 -- ---------------------------------------------------------------------

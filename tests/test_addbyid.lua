@@ -30,6 +30,8 @@ local function loadCategorySettings()
     -- 1500-line peel. It loads after Category.lua, in the TOC's order, because
     -- it takes that file's two published page helpers as file-scope locals.
     files[#files + 1] = "settings/CategoryAddByID.lua"
+    -- And the composite tabs, settings/CategoryComposite.lua's since issue #43.
+    files[#files + 1] = "settings/CategoryComposite.lua"
     return loader.loadFiles(files)
 end
 
