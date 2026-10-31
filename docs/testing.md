@@ -144,7 +144,7 @@ a declared skip is in neither figure (`testing-§5`). A **declared skip** is a c
 registered with a third argument giving its reason, which the runner never executes,
 never folds into the pass count, and never lets change the exit code. The inventory
 discloses each one inline as `(skipped: <reason>)` and counts it on its own `| Skipped |`
-row just above Total (this repo holds kit revision 45; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
+row just above Total (this repo holds kit revision 46; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
 Total, which left the badge's total one above what runs), so the difference stays visible
 without being counted as a pass.
 A skip is for a case that has been written and watched failing against a defect the fix
@@ -290,7 +290,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `luacheck .` | **yes** | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 45, where a crashed run is fail (since kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 46, where a crashed run is fail (since kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 *Note:* what the runner executes inside that sighted shadow is `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`. Do not run that line in the repo itself: run blind, `lizard` misses or mis-measures functions the shadow sanitizes, so quote the runner, not the raw command.
 
