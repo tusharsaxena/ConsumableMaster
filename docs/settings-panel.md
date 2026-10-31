@@ -15,7 +15,9 @@ page registry, the widget makers, the two-column flow engine, the tab strip and 
 `settings/Panel.lua` owns registration and the shared header (title + atlas divider) built by
 `Helpers.CreatePanel`. The run-time `KCM.Options` surface — `Refresh`, `RequestRefresh`, `Open`, the
 refresh debounce and the options layer's three bus receivers — is `settings/OptionsShim.lua`'s, peeled
-off `Panel.lua` on 2026-09-16 at `layout-§1`'s 1500-line cap and loaded immediately after it.
+off `Panel.lua` on 2026-09-16 at `layout-§1`'s 1500-line cap and loaded immediately after it. The
+schema's type rules and `Helpers.AddRows` are `settings/PanelRows.lua`'s and the landing page's body is
+`settings/About.lua`'s, both peeled off it on 2026-10-31.
 
 Each page module hands a **builder** to `RegisterTab`. Once `Blizzard_Settings` is ready, driven by
 its own `PLAYER_LOGIN` / `ADDON_LOADED` bootstrap, `settings/Panel.lua`'s `registerPanel` queues
@@ -53,7 +55,7 @@ stale the first time a category is renamed and nothing says so.
 The **Macro Bar** page's seven tabs are its schema rows' `group` values, partitioned in **declaration
 order**. That is the same rule, one level down: the tab is the row's own field, so the strip cannot
 name a section the rows do not have. It also means a group's rows must be **contiguous** — a row filed
-under a group the page has already left draws that tab a second time — which `tests/test_schema.lua`
+under a group the page has already left draws that tab a second time — which `tests/test_schema_tabs.lua`
 pins.
 
 **Who draws each strip.** The **General** page hands its whole strip to the library's
@@ -439,7 +441,7 @@ has a backdrop and a border of its own; there the word is doing real work.
 A `subgroup` names the **subject** under it and never a word of the tab it sits on. The first
 heading on *Bar appearance* was once `Bar`, which named the tab back at the reader (it became
 *Opacity*, and the layout pass then moved that one row to General's *Visibility* block).
-`tests/test_schema.lua` compares the two word by word — the whole-string comparison it used to make
+`tests/test_schema_tabs.lua` compares the two word by word — the whole-string comparison it used to make
 is what let `Bar` through.
 
 ### The Stat Priority page
@@ -575,7 +577,7 @@ because there is no array for it to cross into. The secondary-stat list is the o
 with a divide, so one controller with a `boundary`.
 
 **Every controller is canceled at the TOP of the render, before the first widget is created** —
-`settings/Category.lua`'s `cancelReorder` and `settings/StatPriority.lua`'s. Handles and boxes are
+`settings/Category.lua`'s `cancelReorder`, `settings/MacroBarSlots.lua`'s and `settings/StatPriority.lua`'s. Handles and boxes are
 pooled, and a controller released late leaves them attached to recycled widgets belonging to something
 else. The Category seam holds a **list** of controllers for exactly this reason: a composite page
 builds two, and a seam that held one would have leaked the first section's chrome.

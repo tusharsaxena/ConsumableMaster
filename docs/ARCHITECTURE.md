@@ -65,7 +65,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | Skins (the skin seam, the owner tokens, the Skin tab, the first-run picker, the HUD style that follows the skin) | `core/SkinSetup.lua`, `settings/General.lua` (the Skin tab), `modules/MacroBar*.lua` | [Skins](#skins) |
 | Debug console | `core/DebugLogSetup.lua`, `libs/LibKa0s/DebugLog.lua`, `core/State.lua`; the diagnostics report: `core/Diagnostics.lua`, `libs/LibKa0s/DebugLogDiagnostics.lua`; the change gates and at-enable queue: `core/Debug.lua`, `libs/LibKa0s/DebugLogGates.lua` | [debug.md](./debug.md) |
 | Perf A/B capture (`/cm perf`) | `core/PerfSetup.lua`, `libs/LibKa0s/Perf.lua`, `libs/LibKa0s/PerfPanel.lua` | [debug.md](./debug.md) |
-| Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua` | [macro-bar.md](./macro-bar.md) |
+| Optional CM-only macro bar (secure slots, layout, visibility) | `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `modules/MacroBar*.lua`, `settings/MacroBar.lua`, `settings/MacroBarSlots.lua` | [macro-bar.md](./macro-bar.md) |
 | Per-file responsibility map | — | [module-map.md](./module-map.md) |
 | Routine recipes (add category, refresh seeds, fix misclassification) | — | [common-tasks.md](./common-tasks.md) |
 | Headless gate (tests + luacheck, the vendored-LibKa0s copy diff, TDD policy, badge sync) | `tests/` | [testing.md](./testing.md) |
@@ -102,7 +102,7 @@ The sets pass all three of the rule's tests, and "id sets" is one of the rule's 
 - **Writer.** `modules/Selector.lua`: `AddItem` (`:494`), `Block` (`:516`), and `MoveTo` / `MoveUp` / `MoveDown` over `moveBy` (`:705`) for membership and pins; the two registry reset verbs `ResetBucket` (`:551`, one category, or one spec's bucket) and `ResetAllBuckets` (`:577`, every bucket, spec buckets included), which clear `added` / `blocked` / `pins` and keep `.discovered`; plus `MarkDiscovered` (`:597`) and `SweepStaleDiscovered` (`:682`) for `.discovered`. The Macros pages (`settings/Category.lua`), the `/cm priority` verbs (`core/SlashCommands.lua`) and **Reset all priorities…** (`settings/General.lua`) call these. `GetBucket` (`:69`) lazily creates an empty spec bucket on first read; that is a traversal accessor, not a writer.
 - **Load pass.** `KCM.Database.RunMigrations` (`core/Database.lua:256`), called from `KCM:OnInitialize` (`core/ConsumableMaster.lua`) and from the three AceDB profile callbacks that `KCM.RegisterProfileCallbacks` installs (`core/ConsumableMaster.lua`). It has no `categories` step today: AceDB's merge of `dbDefaults` is what seeds the empty buckets.
 
-**Selector is the only runtime writer.** `architecture-§5` makes a registry reset a writer operation, and all three reset doors call the writer: `/cm priority <cat> reset` calls `Selector.ResetBucket` (`core/SlashCommands.lua:440-441`), the Macros page's per-category reset popup calls it for the viewed spec (`settings/Category.lua:301-302`), and **Reset all priorities…** calls `Selector.ResetAllBuckets` (`settings/General.lua:130-131`). Until 2026-09-12 each of the three cleared the buckets itself, which spread registry writes across three runtime modules. anti-patterns #78 names that as a code finding. It was tracked in [#34](https://github.com/tusharsaxena/ConsumableMaster/issues/34) and is closed. `tests/test_selector.lua` now fails if any file other than `modules/Selector.lua` assigns a bucket's `added`, `blocked` or `pins`. Reset all priorities also clears `statPriority`. That write is a setting, not registry membership, and it goes through the schema helper like the other `statPriority` writers (below).
+**Selector is the only runtime writer.** `architecture-§5` makes a registry reset a writer operation, and all three reset doors call the writer: `/cm priority <cat> reset` calls `Selector.ResetBucket` (`core/SlashCommands.lua:440-441`), the Macros page's per-category reset popup calls it for the viewed spec (`settings/Category.lua:299-300`), and **Reset all priorities…** calls `Selector.ResetAllBuckets` (`settings/General.lua:130-131`). Until 2026-09-12 each of the three cleared the buckets itself, which spread registry writes across three runtime modules. anti-patterns #78 names that as a code finding. It was tracked in [#34](https://github.com/tusharsaxena/ConsumableMaster/issues/34) and is closed. `tests/test_selector.lua` now fails if any file other than `modules/Selector.lua` assigns a bucket's `added`, `blocked` or `pins`. Reset all priorities also clears `statPriority`. That write is a setting, not registry membership, and it goes through the schema helper like the other `statPriority` writers (below).
 
 ### Whole-value rows: stat priority, the composite sections, the slot order and visibility
 
@@ -306,7 +306,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `LifecycleSetup.lua` (the `LibKa0s-Lifecycle-1.0` latch; **load-bearing position** — `PerfSetup.lua` takes the instance as `descriptor.lifecycle` at load) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `SkinSetup.lua` (the `LibKa0s-Skin-1.0` seam; **load-bearing position** — it registers the skin owner at file load, so the EllesmereUI provider can offer it before EllesmereUI dispatches its skins, and every file that builds a frame, `settings/General.lua` among them, which reads the Skin tab's option lists at load, comes after it) → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `LauncherSetup.lua` (the `LibKa0s-Launcher-1.0` seam; position conventional — it resolves the library at load and nothing else, and `Register()` runs from `KCM:OnInitialize` once AceDB has built `db.global.minimap`) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands` → `Diagnostics` (the diagnostics report's sections, asked for at run time)
 4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
-6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab`, the panel bootstrap and `KCM.Options.Register`) → `OptionsShim.lua` (the run-time `KCM.Options` surface: `Refresh` / `RequestRefresh` / `Open`, the refresh debounce and the bus receivers; after `Panel.lua`, whose `Helpers`, `optionsUI` and panel-unavailable notice it takes as file-scope locals) → `General.lua` → `MacroBar.lua` → `StatPriority.lua` → `Category.lua` → `CategoryAddByID.lua` (the Add-by-ID line; after Category.lua, whose `KCM.Settings.MacrosPage` helpers it takes as file-scope locals) → `Slash.lua` → `Profiles.lua` (last, as the Profiles page is last in the sidebar)
+6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab`, the panel bootstrap and `KCM.Options.Register`) → `PanelRows.lua` (the type rules and `Helpers.AddRows`; after `Panel.lua`, whose write seam it reads at load, and before every page, which declares its rows at load) → `About.lua` → `OptionsShim.lua` (the run-time `KCM.Options` surface: `Refresh` / `RequestRefresh` / `Open`, the refresh debounce and the bus receivers; after `Panel.lua`, whose `Helpers`, `optionsUI` and panel-unavailable notice it takes as file-scope locals) → `General.lua` → `MacroBar.lua` → `MacroBarSlots.lua` → `StatPriority.lua` → `Category.lua` → `CategoryAddByID.lua` (the Add-by-ID line) → `CategoryComposite.lua` (the composite tabs; both after Category.lua, whose `KCM.Settings.MacrosPage` helpers they take as file-scope locals) → `Slash.lua` → `Profiles.lua` (last, as the Profiles page is last in the sidebar)
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
 
@@ -575,7 +575,7 @@ git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l |
 ```
 
 and re-measured 2026-09-26 by the kit's gate, `tests/_kit/test_layout_cap.lua`, green on its five
-`layoutcap:` cases; the largest authored file is `settings/MacroBar.lua`, at 1231 lines (measured 2026-10-31).
+`layoutcap:` cases; the largest authored file is `tests/test_settingsui.lua`, at 1151 lines (measured 2026-10-31).
 
 | File | Lines | Disposition |
 |---|---|---|
@@ -589,18 +589,16 @@ too. The section itself stays whether or not there is a breach — it is where t
 down, and it is what an audit reads before re-filing `layout-§1` against anything here.
 
 **The 1000–1500 band is on notice, not in breach** (measured 2026-10-31):
-`settings/MacroBar.lua` (1231), `settings/Category.lua` (1186), `settings/Panel.lua` (1143),
-`tests/test_schema.lua` (1176), `tests/test_settingsui.lua` (1151), `tests/test_selector.lua`
-(1049) and `tests/wow_mock.lua` (1012, crossed 1000 with the `/cm profile` fakes). The three test suites that
+`settings/Category.lua` (1034), `tests/test_settingsui.lua` (1151) and `tests/wow_mock.lua` (1012,
+crossed 1000 with the `/cm profile` fakes). The three test suites that
 led it — `tests/test_slash.lua` (1426), `tests/test_macrobar.lua` (1425) and
 `tests/test_settingsui.lua` (1440) — were peeled below 1000 on 2026-09-26 (see
 [module-map.md → Peel history](./module-map.md#peel-history)). They are named here so a later
 reader can tell the band was looked at rather than missed; none needs a disposition until it
-crosses, with two exceptions. `settings/Panel.lua` and `settings/Category.lua` were carried as
-Accepted on the automated-test watch list at 1.6.0, 1.6.1 and 1.6.2, and `automated-tests-§4`
-refuses a fourth, so each has a filed peel as its terminal state: `settings/Panel.lua` (1143) peels
-its About page renderer into `settings/About.lua`
-([#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)), and `settings/Category.lua`
-(1186) peels its composite (AIO) section editor into `settings/CategoryComposite.lua`
-([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)). How the four 2026-09 peels were cut, and where each moved case went, is
-[module-map.md → Peel history](./module-map.md#peel-history), beside issues #32 and #33.
+crosses. The 2026-10-31 pass took `settings/Panel.lua`, `settings/MacroBar.lua`,
+`tests/test_schema.lua` and `tests/test_selector.lua` out of the band and took
+`settings/Category.lua` from 1186 to 1034 with its filed peel
+([#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42),
+[#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)). How the peels were cut, and
+where each moved case went, is [module-map.md → Peel history](./module-map.md#peel-history), beside
+issues #32 and #33.

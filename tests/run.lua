@@ -518,7 +518,9 @@ local SUITES = {
     "test_runner_list",
     "test_schema",
     "test_schema_adoption",
+    "test_schema_tabs",
     "test_selector",
+    "test_selector_discovery",
     "test_selector_pins",
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",

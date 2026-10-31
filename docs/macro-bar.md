@@ -16,6 +16,7 @@ control-by-control page reference is [settings-panel.md](./settings-panel.md).
 | [`modules/MacroBarFlyout.lua`](../modules/MacroBarFlyout.lua) | yes | per-slot hover flyout: indicator, secure hover snippets, entry pool |
 | [`modules/MacroBar.lua`](../modules/MacroBar.lua) | yes | container, apply passes, combat deferral, bus receiver |
 | [`settings/MacroBar.lua`](../settings/MacroBar.lua) | yes | the Macro Bar page + every `macroBar.*` schema row |
+| [`settings/MacroBarSlots.lua`](../settings/MacroBarSlots.lua) | yes | the Buttons tab's draggable list over `macroBar.order` and `macroBar.shown` |
 
 The split is deliberate: all the logic worth testing is in the three `core/`
 files, which `tests/test_macrobar.lua` and its peeled siblings

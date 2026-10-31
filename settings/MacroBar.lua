@@ -714,7 +714,7 @@ end
 -- One entry per tab, and the `group` string IS the partition key its rows carry
 -- — there is no second field naming the tab, for the reason options-ui-§13 gives
 -- against one: a tab list declared apart from the rows goes stale the first time
--- a section is renamed and nothing says so. tests/test_schema.lua pins the two
+-- a section is renamed and nothing says so. tests/test_schema_tabs.lua pins the two
 -- against each other.
 --
 -- Order: General first (the master toggle for this bar, Show tooltips, and the
@@ -775,7 +775,7 @@ end
 -- `group` is the schema partition key AND the tab key; `label` is what the strip
 -- shows. Buttons is the one tab whose rows the row engine does not draw -- its two
 -- whole-value rows are one draggable list, a length no schema knows -- and
--- tests/test_schema.lua exempts it BY NAME rather than by relaxing the rule.
+-- tests/test_schema_tabs.lua exempts it BY NAME rather than by relaxing the rule.
 local TABS = {
     { group = "General",           label = L["General"],           draw = drawGroup("General") },
     { group = "Layout",            label = L["Layout"],            draw = drawGroup("Layout") },

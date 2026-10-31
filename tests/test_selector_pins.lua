@@ -1,14 +1,11 @@
 -- tests/test_selector_pins.lua -- the pin merge's whole output, pinned slot by slot.
 --
--- tests/test_selector.lua's "Pin merge" cases assert one property each (the pin is
--- first, nothing is lost). These pin the EXACT list Selector's mergePins answers for
+-- The "Pin merge" cases at the foot assert one property each (the pin is first,
+-- nothing is lost). These pin the EXACT list Selector's mergePins answers for
 -- every shape a bucket's `pins` can take, including the hand-edited ones the UI
 -- never writes (MoveUp / MoveDown always store one contiguous 1..N run). They were
 -- written before mergePins was split under CCN 15 (GI-CM-02, WowAddonStandards#6)
 -- and are the oracle that the split changed nothing.
---
--- Its own suite because tests/test_selector.lua is in layout-section-1's 1000-1500
--- band already.
 
 local h = _G.KCM_TEST
 local test = h.test
@@ -143,4 +140,69 @@ test("Pins: an item pinned at two slots appears at both", function(t)
         { itemID = a, position = 1 },
         { itemID = a, position = 3 },
     }), want, "slots 1 and 3, length " .. (#base + 1))
+end)
+
+-- ---------------------------------------------------------------------------
+-- Pin merge
+-- ---------------------------------------------------------------------------
+
+test("Selector: a pin at position 1 moves its item to the front", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    t.truthy(#base >= 2, "FOOD ranks more than one candidate")
+
+    local last = base[#base]
+    S.GetBucket("FOOD").pins = { { itemID = last, position = 1 } }
+    local pinned = S.GetEffectivePriority("FOOD")
+    t.eq(pinned[1], last, "the pinned item outranks the auto-ranked order")
+    t.eq(#pinned, #base, "and no candidate is lost in the merge")
+end)
+
+test("Selector: a pin for an item outside the candidate set is ignored", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    S.GetBucket("FOOD").pins = { { itemID = 939999, position = 1 } }
+    t.eqList(S.GetEffectivePriority("FOOD"), base,
+        "a pin left behind by a removed item does not distort the list")
+end)
+
+test("Selector: a pin past the end of the list clamps to last place", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    local first = base[1]
+    S.GetBucket("FOOD").pins = { { itemID = first, position = #base + 50 } }
+    local pinned = S.GetEffectivePriority("FOOD")
+    t.eq(pinned[#pinned], first, "an overshooting position lands at the end, not out of bounds")
+    t.eq(#pinned, #base, "the list length is unchanged")
+end)
+
+-- Colliding pins can't arise from the UI — MoveUp/MoveDown rewrite the whole
+-- pins array as one contiguous 1..N run — so this pins the behavior of a
+-- hand-edited or corrupted SavedVariables: first pin listed wins the slot, the
+-- loser is displaced rather than silently dropped.
+test("Selector: two pins on the same position keep both items in the list", function(t)
+    local KCM = h.loader.loadPure()
+    local S = KCM.Selector
+    local base = S.GetEffectivePriority("FOOD")
+    t.truthy(#base >= 3, "enough candidates to collide two pins")
+    local a, b = base[#base], base[#base - 1]
+    S.GetBucket("FOOD").pins = {
+        { itemID = a, position = 1 },
+        { itemID = b, position = 1 },
+    }
+    local pinned = S.GetEffectivePriority("FOOD")
+    t.eq(pinned[1], a, "the pin listed first wins the contested slot")
+    t.eq(#pinned, #base, "no candidate is lost to the collision")
+    local hasB = false
+    for _, id in ipairs(pinned) do if id == b then hasB = true end end
+    t.truthy(hasB, "the displaced pin is still ranked, just not at its requested slot")
+end)
+
+test("Selector.GetEffectivePriority returns an empty list for an unknown category", function(t)
+    local KCM = h.loader.loadPure()
+    t.eqList(KCM.Selector.GetEffectivePriority("NOT_A_CATEGORY"), {},
+        "callers can always ipairs() the result")
 end)
