@@ -517,7 +517,7 @@ end
 -- Schema-row widgets — all four makers are LibKa0s-Options-1.0's
 -- ---------------------------------------------------------------------
 --
--- bool -> CheckBox, number -> Slider, string -> Dropdown (or an LSM30_* widget
+-- bool -> CheckBox, number -> Slider, string -> Dropdown (or a Ka0sMedia_* picker
 -- via `dialogControl`), color -> ColorPicker. Three upstream fixes are what
 -- made these adoptable, all recorded in closed issue #22 (LIBKA0S-04):
 --

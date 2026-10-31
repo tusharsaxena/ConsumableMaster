@@ -410,6 +410,14 @@ test("macrobar schema: border rows are populated from LibSharedMedia", function(
     t.falsy(H.ValidateSchemaValue(def, "Not A Border"), "unregistered border rejected")
 end)
 
+test("macrobar schema: the label font row names the Ka0sMedia picker", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local def = KCM.Settings.Helpers.FindSchema("macroBar.labelFont")
+    t.truthy(def, "label font row exists")
+    t.eq(def.dialogControl, "Ka0sMedia_Font", "the font row is the library's skinnable picker")
+    t.eq(type(def.values), "function", "values is lazily evaluated")
+end)
+
 test("macrobar schema: LSMValues never hands back an empty list", function(t)
     local KCM = h.loader.loadFullAddon()
     -- Same guarantee, different owner. `Helpers.LSMValues` was the addon's own

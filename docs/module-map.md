@@ -712,7 +712,7 @@ Three rules here are load-bearing rather than stylistic:
    third-party fixups living in `core/` rather than in `libs/`; it was the wrong precedent and it is
    gone. A fixup that writes to a **process-global** registry — AceGUI's widget types — is a LibKa0s
    concern, because a per-addon copy of it is one registration per addon and only the last one
-   counts. It is `lib.__PatchLSM30Border()` now. A fixup with no reach beyond this addon would still
+   counts. That one ended with the widget it fixed: `Ka0sMedia_*` is the only media picker now. A fixup with no reach beyond this addon would still
    belong in `core/`.
 
 ## Peel history
@@ -795,7 +795,7 @@ seam, if it has to leave, is the reset popup block.
 
 `ConsumableMaster.toc` is the source of truth. It is sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`, and order within a section is dependency order, not alphabetical:
 
-1. **Libraries** — LibStub + every Ace3 sub-library (AceDBOptions beside AceDB; AceConfig after AceGUI, because AceConfigDialog resolves AceGUI non-silently at load) + LibSharedMedia + `AceGUI-3.0-SharedMediaWidgets` (last, since its widgets need both AceGUI and LibSharedMedia), listed directly in the TOC (no `embeds.xml` wrapper).
+1. **Libraries** — LibStub + every Ace3 sub-library (AceDBOptions beside AceDB; AceConfig after AceGUI, because AceConfigDialog resolves AceGUI non-silently at load) + LibSharedMedia, listed directly in the TOC (no `embeds.xml` wrapper).
 2. **Locales** — `locales/enUS.lua` (publishes `KCM.L`).
 3. **Core** — `core/Namespace.lua` (names `NS`, `KCM.VERSION`) → `LifecycleSetup` (load-bearing: `PerfSetup` takes the latch as `descriptor.lifecycle` at load) → `PerfSetup` (`performance-§1`: ahead of every load-time `local Perf = NS.Perf`) → `MediaSetup` (load-bearing: `DebugLogSetup` resolves the console font at load) → `core/ConsumableMaster.lua` (AceAddon promotion via `AceAddon:NewAddon(NS, addonName, ...)`, DB, pipeline) → `Bus` → `Constants` → `CoreSetup` → `SkinSetup` (load-bearing: it registers the skin owner at file load, and every frame builder and `settings/General.lua` come after it) → `Compat` → `EnvSetup` → `ItemSetup` → `LauncherSetup` → `State` → `DebugLogSetup` → `Database` → `Debug` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands`. **Every other file assumes the private `NS` (aliased `KCM`) already exists** — `core/Namespace.lua` guarantees that.
 4. **Defaults** — `defaults/Profile.lua` (`KCM.dbDefaults`) → `defaults/Categories.lua` → each `defaults/Defaults_*.lua`.
@@ -905,7 +905,7 @@ Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)
 
 ### Shared infrastructure
 
-- `libs/` — vendored Ace3 (including AceConfig-3.0 and AceDBOptions-3.0, for the Profiles page alone, and AceGUI-3.0-SharedMediaWidgets) + LibStub + CallbackHandler-1.0 + LibSharedMedia + LibKa0s, tracked in git (standard WoW addon practice). Loaded before any addon source by the `# Libraries` block of `ConsumableMaster.toc`, which lists each library file directly (no `embeds.xml` wrapper — toc-file-§4).
+- `libs/` — vendored Ace3 (including AceConfig-3.0 and AceDBOptions-3.0, for the Profiles page alone) + LibStub + CallbackHandler-1.0 + LibSharedMedia + LibKa0s, tracked in git (standard WoW addon practice). Loaded before any addon source by the `# Libraries` block of `ConsumableMaster.toc`, which lists each library file directly (no `embeds.xml` wrapper — toc-file-§4).
 - `ConsumableMaster.toc` — Interface line (`120105`), version, SavedVariables, file load order. Sectioned `# Libraries / Locales / Core / Defaults / Modules / Settings`; order within a section is dependency order, not alphabetical.
 - `tests/` — headless harness (`lua5.1 tests/run.lua`; suite inventory in [test-cases.md](./test-cases.md)) over the addon's logic layer; `wow_mock.lua` stubs the WoW API + bus; `mock_menu.lua` is LibKa0s v1.58.0's own context-menu fake (`MenuUtil`), copied for the launcher-menu cases because the kit does not ship one.
 

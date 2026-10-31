@@ -34,9 +34,6 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 # ahead of it the file raises unless some other addon happened to load AceGUI
 # first. Ace3's own TOC orders the two the same way.
 libs\AceConfig-3.0\AceConfig-3.0.xml
-# LSM30_Border / LSM30_Font dropdowns (border-style picker on the Macro Bar
-# page). Depends on AceGUI + LibSharedMedia, so it loads after both.
-libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 # The launcher's two libraries (launcher-§1). LibDataBroker-1.1 first and that
 # is load-bearing rather than tidy: LibDBIcon-1.0 resolves it with a NON-silent
 # LibStub at file load and calls error() when it answers nil, so the reverse

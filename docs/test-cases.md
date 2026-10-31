@@ -493,7 +493,7 @@ Total.
 - Locale: the color escapes on the drag-icon labels stay outside the key
 - display strings use only characters every shipped skin face draws
 
-### test_macrobar.lua (35)
+### test_macrobar.lua (36)
 
 - macrobar model: AllKeys covers every managed category
 - macrobar model: NormalizeOrder leaves a complete order untouched
@@ -520,6 +520,7 @@ Total.
 - macrobar schema: number rows clamp to their declared range
 - macrobar schema: the default slot order matches the Macros tab order
 - macrobar schema: border rows are populated from LibSharedMedia
+- macrobar schema: the label font row names the Ka0sMedia picker
 - macrobar schema: LSMValues never hands back an empty list
 - macrobar schema: the bar publishes its own bus message
 - macrobar master: Master scale and Master alpha MULTIPLY the bar's own
@@ -1586,7 +1587,7 @@ Total.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
-| test_macrobar.lua | 35 |
+| test_macrobar.lua | 36 |
 | test_macrobar_chrome.lua | 30 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
@@ -1635,4 +1636,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1317** |
+| **Total** | **1318** |
