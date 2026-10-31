@@ -70,7 +70,7 @@ test("/cm profile: the row sits after set, closing the settings verbs", function
     t.truthy(at.profile, "profile is in COMMANDS")
     t.eq(at.profile, at.set + 1, "it follows set")
     t.eq(KCM.COMMANDS[at.profile + 1][1], "bar", "and the feature verbs start after it")
-    t.eq(#KCM.COMMANDS, 23, "twenty-three verbs")
+    t.eq(#KCM.COMMANDS, 24, "twenty-four verbs")
     t.eq(KCM.COMMANDS[at.profile][2], DESCRIPTION, "the collection's description, word for word")
 end)
 

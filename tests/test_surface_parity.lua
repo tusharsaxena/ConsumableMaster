@@ -273,6 +273,7 @@ end)
 -- AppearanceTab, AppearanceRows, SkinPicker and HideSkinPicker joined at the LibKa0s v1.80.0
 -- re-vendor: v1.78.0 and v1.79.0 owe them on every Options stub, adopted or not (skinning-§3), and
 -- the Skin tab is evaluated at file load (settings/General.lua), so the degraded arm answers all four.
+-- SkinVerb joined at the LibKa0s v1.82.0 re-vendor (O.SkinVerb, the act behind `/cm skin`).
 local OPTIONS_SEAM = {
     "AddRow", "AddRows", "AddSpacer", "AppearanceRows", "AppearanceTab", "AttachTooltip",
     "BUTTON_PAIR_REL", "BorderGroup",
@@ -282,7 +283,7 @@ local OPTIONS_SEAM = {
     "FontGroup", "Get", "Grid", "HideSkinPicker", "Label", "MasterControls", "MuteSetLog",
     "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
     "RenderField", "RenderRows", "ResetScroll", "SECTION_HEADING_H",
-    "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "SkinPicker", "TabStrip",
+    "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "SkinPicker", "SkinVerb", "TabStrip",
     "ValidateSchema", "ValidateSchemaValue", "instance", "schema",
 }
 

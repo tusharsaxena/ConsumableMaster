@@ -146,7 +146,7 @@ own UI and last in every Ka0s addon that ships one.
 | **General** | 3 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group), **Maintenance** (Force resync, Force rewrite macros, Reset all priorities…; a host tab with no rows) and **Skin** (the library's tab over the seven `skin.*` rows, last; [below](#the-general-pages-skin-tab)). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 67 of the addon's 89 schema rows live here |
+| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 67 of the addon's 90 schema rows live here |
 | **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -202,18 +202,20 @@ as this one has none). It is the library's `O.AppearanceTab`, labeled **Skin** (
 `Appearance`), drawn for the owner `core/SkinSetup.lua` registers, and it reads and writes through
 that file's seams, so a pick lands through `KCM.Schema:Set` like every other setting. Top to bottom:
 **Skin source** (*Ka0s skins* or *EllesmereUI*), the nine skins with their swatches under a **Look**
-heading, **Font and texture** (the two overrides, each led by *Skin's own*), the **Scope** (*Ignore
+heading, **Font and texture** (the two overrides, each led by *Skin's default*, their *Reset font* and *Reset
+texture* buttons and the *Font outline*: *All text*, *HUD text only* or *Off*, LibKa0s v1.82.0), the **Scope** (*Ignore
 settings panel*, ticked in a new profile, and *Ignore fonts*), **Copy to every Ka0s addon…** and the
-library's note. Its six rows are `skin.*` schema rows with `skipRender` (the tab draws them, the
+library's note. The *Font* and *Texture* pull-outs, like every media picker in the panel (LibKa0s
+v1.83.0), draw each entry as a preview of itself. The tab's seven rows are `skin.*` schema rows with `skipRender` (the tab draws them, the
 row engine does not), so the General page's **Defaults** and the global reset reach them and `/cm
-get|set skin.skin` validates against the registered skins. `skin.pickerSeen` is a seventh row
+get|set skin.skin` validates against the registered skins. `skin.pickerSeen` is an eighth row
 drawn by nothing: the page's Defaults leaves it, and the global reset clears it.
 
 What the skin reaches on the other pages is in [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins):
 the library's chrome and rows (stock while *Ignore settings panel* is on), the AceGUI widgets
 this addon acquires (through `KCM.SkinAcquire`), the four `KCM*` widgets and the raw reorder rows
 (painted from `KCM.Skin` through the panel helpers, so they too stay stock while *Ignore settings
-panel* is on), and the Profiles tree. The first-run skin picker's gear opens this tab.
+panel* is on), and the Profiles tree. The first-run skin picker's gear opens this tab, and `/cm skin` opens that picker on demand.
 
 ### The Minimap button row — shown says one thing, the store says the other
 
@@ -590,9 +592,9 @@ Two different paths, and the difference is what a row shape can express.
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the
-`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **89**: 67 `macroBar.*` rows on the Macro Bar page, 14 on the
-General page (7 in its Master controls block and the 7 `skin.*` rows), 7 on the Macros page and 1 on
-the Stat Priority page. The seven `skin.*` rows are `skipRender`: the library's Skin tab draws six
+`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **90**: 67 `macroBar.*` rows on the Macro Bar page, 15 on the
+General page (7 in its Master controls block and the 8 `skin.*` rows), 7 on the Macros page and 1 on
+the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven
 of them and nothing draws `skin.pickerSeen`. Ten more
 are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
 `map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section

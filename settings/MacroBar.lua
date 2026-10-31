@@ -484,8 +484,12 @@ block(H.FontGroup{
         fontFromSkin      = BAR_DEFAULTS.labelFontFromSkin,
     },
     -- `macroBar.labelFontFromSkin` (CM-03): the labels' face follows the skin's
-    -- `hud.font`; the size, flags, shadow and color stay the player's.
+    -- `hud.font`; the size, shadow and color stay the player's. `flagsFromSkin`
+    -- (LibKa0s v1.82.0, compose minor 14, ruling D-07) leads the flags with From
+    -- skin, the default, which follows the Skin tab's Font outline; a picked flag
+    -- wins. Together they are D-07's minimum font setting.
     fromSkin = true,
+    flagsFromSkin = true,
     classColor = { source = "player" },
 }, {
     ["macroBar.labelFont"] = {
@@ -503,7 +507,7 @@ block(H.FontGroup{
         tooltip = swatchTip(L["Color and opacity of the button labels."]),
     },
     ["macroBar.labelFlags"] = {
-        tooltip = L["Outline and monochrome rendering. An outline keeps the label readable over a bright icon."],
+        tooltip = L["Outline and monochrome rendering. From skin follows the Font outline setting on the Skin tab; any other choice is drawn as picked. An outline keeps the label readable over a bright icon."],
     },
     ["macroBar.labelShadow"] = {
         tooltip = L["Draw a soft shadow behind the label, for legibility over busy artwork."],

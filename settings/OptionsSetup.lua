@@ -391,6 +391,10 @@ else
     Helpers.AppearanceRows = function() return nil end
     Helpers.SkinPicker     = function() return nil end
     Helpers.HideSkinPicker = function() end
+    -- The reserved `/cm skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker minor 3, ruling D-16):
+    -- no picker to show, so the stub answers nil, "absent" and the verb prints the library-absent
+    -- line (core/SkinSetup.lua's KCM.RunSkinVerb).
+    Helpers.SkinVerb       = function() return nil, "absent" end
 end
 
 -- nil on a degraded load, which is exactly what settings/Panel.lua derives its

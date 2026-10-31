@@ -2,10 +2,10 @@
 
 `/cm` and `/consumablemaster` reach one dispatcher: the **LibKa0s-Slash-1.0** instance built in
 `settings/Slash.lua`. The library owns the parse, the help renderer, the row and value formatters and
-the schema CLI. This addon owns twenty-three verbs, five sub-command tables with three different handler
+the schema CLI. This addon owns twenty-four verbs, five sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — twenty-three verbs is over eight, and four verbs
+Both halves of `documentation-§3`'s trigger fire here — twenty-four verbs is over eight, and four verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -25,20 +25,21 @@ tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:164`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:396` so the verb set has one source
+`COMMANDS` (`settings/Slash.lua:165`) is an ordered list of positional triples
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:403` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
 renderer's input.
 
-The twenty-three verbs, in declaration order, which is also the order `/cm help` and the About page
+The twenty-four verbs, in declaration order, which is also the order `/cm help` and the About page
 print them:
 
 | Verb | Backed by | Behavior |
 |---|---|---|
 | `help` | library | Header plus one row per `COMMANDS` entry. |
 | `config` | host | `KCM.Options.Open()`, and says so plainly when the panel is not registered. |
+| `skin` | library | The reserved verb (LibKa0s v1.82.0, ruling D-16): `KCM.RunSkinVerb` hands `O.SkinVerb` the first-run picker's spec, so it opens the skin picker a new profile shows whatever `skin.pickerSeen` says. In combat the library prints a gray line on every call and shows nothing. A feature verb, so it refuses while disabled; with the library absent it prints the one library-absent line. |
 | `version` | host | `v<version>` from the TOC metadata through `core/EnvSetup.lua`. |
 | `enable` | host | Writes `enabled = true` through `Helpers.SetAndRefresh` — the Master controls checkbox's own path and seam — then echoes the stored value through the library's shared `path = value` formatter. |
 | `disable` | host | The same write with `false`. Neither verb holds state of its own (`slash-commands-§2`); with `libs/LibKa0s/` absent there is no `enabled` row to write and both say so rather than going inert. |
@@ -173,7 +174,7 @@ Ka0s Consumable Master v1.8.0 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause, the two usage lines and the three parse refusals this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:424`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua:431`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -234,7 +235,7 @@ one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
-| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `skin`, `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
 
 `diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
 `debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the
@@ -285,8 +286,8 @@ verbs, the bare `/cm`, `profile`, and the shape of the refusal line itself.
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:159`) names the eight verbs that actually route through the
-library — `help`, `list`, `get`, `set`, `reset`, `perf`, `diagnostics` and `profile`. Everything else is the host's own and
+`LIB_BACKED_VERBS` (`settings/Slash.lua:160`) names the nine verbs that actually route through the
+library — `help`, `list`, `get`, `set`, `reset`, `perf`, `diagnostics`, `profile` and `skin`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
 `/cm is unavailable`, which was untrue of thirteen of the nineteen verbs and told the player to stop
@@ -295,7 +296,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:773`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua:780`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS`, through the same split and exact lookup the degraded
 arm publishes for the sub levels (`stubSplitVerb`, `stubFindCommand`) — the same five steps the library's own `OnSlash`

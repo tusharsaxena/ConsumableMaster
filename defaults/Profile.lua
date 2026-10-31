@@ -125,6 +125,11 @@ KCM.dbDefaults = {
             ignoreFonts = false,
             font        = "",
             texture     = "",
+            -- The Font outline (LibKa0s v1.82.0, Skin minor 9, ruling D-06): "all" text, "hud"
+            -- text only, or "off". Drawn by the Skin tab's Font outline dropdown; a new key with a
+            -- default, so AceDB merges it into every existing profile and no migration is owed. "hud"
+            -- since LibKa0s v1.83.0 (D-10): a profile that never chose takes it, a stored mode stays.
+            outline     = "hud",
             pickerSeen  = false,
         },
         macroState = {},
@@ -227,8 +232,12 @@ KCM.dbDefaults = {
             -- carries; core/Database.lua's v3 step is what converts one to the other.
             -- `labelScale` is this addon's font SIZE, expressed as a percentage of the
             -- button so the labels stay proportional when the bar is resized.
+            -- `labelFlags` defaults to "@skin", the Font flags' From skin (LibKa0s v1.82.0,
+            -- ruling D-07): drawn through S.FontFlags, so it follows the Skin tab's Font
+            -- outline; a profile that stored the old default "OUTLINE" moves to it once
+            -- (core/Database.lua's v5 step).
             labelFont      = "Friz Quadrata TT",
-            labelFlags     = "OUTLINE",
+            labelFlags     = "@skin",
             labelShadow    = false,
             labelColor     = { 1, 0.82, 0, 1 },
             useClassColorLabel = false,

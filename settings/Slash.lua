@@ -152,13 +152,14 @@ local ALIASES = { rewrite = "rewritemacros" }
 -- Every OTHER verb in COMMANDS is the host's own and keeps working, which is
 -- the whole point: this table exists so the degraded notice can name what is
 -- gone by reading COMMANDS rather than by repeating a hand-written list that a
--- new verb would silently fall out of. `perf`, `diagnostics` and `profile` still
--- DISPATCH on the degraded path — `perf` answers "perf capture unavailable."
--- itself, `diagnostics` reaches core/DebugLogSetup.lua's stub, and `profile` prints
--- the library-absent line — they are only kept off the "these still work" half.
+-- new verb would silently fall out of. `perf`, `diagnostics`, `profile` and `skin`
+-- still DISPATCH on the degraded path — `perf` answers "perf capture unavailable."
+-- itself, `diagnostics` reaches core/DebugLogSetup.lua's stub, and `profile` and
+-- `skin` print the library-absent line — they are only kept off the "these still
+-- work" half.
 local LIB_BACKED_VERBS = {
     help = true, list = true, get = true, set = true, reset = true, perf = true,
-    diagnostics = true, profile = true,
+    diagnostics = true, profile = true, skin = true,
 }
 
 local COMMANDS = {
@@ -170,6 +171,12 @@ local COMMANDS = {
                 say("Settings panel unavailable.")
             end
         end},
+    -- The reserved `skin` verb (LibKa0s v1.82.0's O.SkinVerb, ruling D-16): the skin picker a new
+    -- profile shows, on demand. Its help is the library's SKIN_PICKER_STRINGS.VERB_HELP, one
+    -- wording for every host. A feature verb, so the dispatcher refuses it while disabled; on the
+    -- degraded arm it prints the library-absent line (core/SkinSetup.lua's KCM.RunSkinVerb).
+    {"skin",          L["Choose a skin: open the skin picker"],
+        function() KCM.RunSkinVerb() end},
     {"version",       "Print addon version",
         function() say("v" .. addonVersion()) end},
     {"enable",        "Turn the addon on — the same switch as the Enable checkbox",

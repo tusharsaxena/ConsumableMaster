@@ -189,7 +189,7 @@ Total.
 - Database v2: the step is one-shot — a later opt-out survives the next login
 - Database v2: the migration leaves every other bar setting alone
 - Database v2: MigrateMacroBarV2 tolerates a nil profile
-- Database v3: an outlined label from an older profile reads back as OUTLINE
+- Database v3: an outlined label from an older profile reads back as outlined (From skin)
 - Database v3: an un-outlined label from an older profile reads back as no flags
 - Database v3: a profile with no retired boolean keeps the flags it chose
 - Database v3: a second pass over a converted profile changes nothing
@@ -479,7 +479,7 @@ Total.
 
 - full addon loads in TOC order and publishes core handles
 
-### test_locale.lua (10)
+### test_locale.lua (11)
 
 - Locale: KCM.L is published as a table
 - Locale: an unknown key falls back to itself verbatim
@@ -491,6 +491,7 @@ Total.
 - Locale: the join-key exemption only ever covers a string the same file routes
 - Locale: the two custom widgets route their labels through L
 - Locale: the color escapes on the drag-icon labels stay outside the key
+- display strings use only characters every shipped skin face draws
 
 ### test_macrobar.lua (35)
 
@@ -1060,7 +1061,7 @@ Total.
 - Skin surfaces: the icon and score buttons stay stock while the panel is ignored
 - Skin surfaces: the settings surfaces read the skin only through the panel helpers
 
-### test_skin_hud.lua (14)
+### test_skin_hud.lua (20)
 
 - Skin HUD: the buttons' border follows the skin's icon family while its companion is on
 - Skin HUD: a border style of None hides the button edge
@@ -1076,6 +1077,25 @@ Total.
 - Skin HUD: the reset writes no sentinel into a raw profile
 - Skin HUD: the reset runs without the library too
 - Skin HUD: without the library the bar draws the player's stored style
+- Skin fonts: the label's flags lead with From skin, the default, beside the whole font set
+- Skin fonts: From skin flags follow the Font outline, and a picked flag wins
+- Skin fonts: the v5 step moves the old default flag to From skin once, and keeps a pick
+- Skin fonts: the v5 step runs per profile, on a profile switched to later
+- Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
+- Skin fonts: without the library the label draws its stored size and an outline
+
+### test_skin_outline.lua (10)
+
+- Skin outline: a fresh profile stores HUD text only, the library's default
+- Skin outline: the schema row offers the library's three modes, on the Skin tab
+- Skin outline: the write seam stores media.outline, and leaves it alone when it is nil
+- Skin outline: another addon's copy reaches the store through WriteChoice
+- Skin outline: the row's write applies the mode live
+- Skin outline: /cm set refuses a mode the library does not know
+- Skin outline: the whole-choice apply (the load's) applies the stored mode
+- Skin outline: a stored All text stays under the new default
+- Skin outline: a profile switch applies the incoming profile's mode, and back
+- Skin outline: without the skin engine the apply is a quiet no-op
 
 ### test_skin_picker.lua (10)
 
@@ -1089,6 +1109,15 @@ Total.
 - Skin picker: the player's close marks it seen; this addon's own take-down does not
 - Skin picker: the stand-down takes a shown picker down, unseen
 - Skin picker: degraded, every member answers and nothing shows
+
+### test_skin_verb.lua (6)
+
+- Skin verb: the row sits right after config, with the library's help words
+- Skin verb: /cm skin shows the picker on a profile that has closed it
+- Skin verb: KCM.RunSkinVerb hands O.SkinVerb this addon's first-run spec
+- Skin verb: in combat every call prints the library's gray line and shows nothing
+- Skin verb: refused while the addon is disabled, and no picker shows
+- Skin verb: without LibKa0s the verb prints the library-absent line
 
 ### test_skin_settings.lua (9)
 
@@ -1549,7 +1578,7 @@ Total.
 | test_launcher.lua | 28 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
-| test_locale.lua | 10 |
+| test_locale.lua | 11 |
 | test_macrobar.lua | 35 |
 | test_macrobar_chrome.lua | 29 |
 | test_macrobar_buttons.lua | 14 |
@@ -1571,8 +1600,10 @@ Total.
 | test_selector_pins.lua | 9 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 13 |
-| test_skin_hud.lua | 14 |
+| test_skin_hud.lua | 20 |
+| test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 10 |
+| test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
@@ -1595,4 +1626,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1293** |
+| **Total** | **1316** |

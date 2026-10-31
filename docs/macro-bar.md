@@ -466,8 +466,8 @@ on `barBorderStyleFromSkin`, `buttonBorderStyleFromSkin` and `labelFontFromSkin`
 `Skin.ResetToSkin`, leaving the stored picks where they were. The companions already default
 true, so the step is the record that the reset ran, and the stamp keeps a later deliberate "off"
 from being stomped. Under Ka0s Default the bar looks different afterwards: no edge on the bar or
-the flyout panel, a flat 2px edge in the player's color on every button, and Oxanium labels and
-counts ([schema.md](./schema.md#migrations)).
+the flyout panel, a flat 2px edge in the player's color on every button, and labels and counts in
+Ka0s Default's HUD face (Oxanium then, Prototype since LibKa0s v1.82.0) ([schema.md](./schema.md#migrations)).
 
 `macroBar.locked` is still stored here, but the control that writes it is the
 General page's **Lock frame** row now, on the Master controls tab

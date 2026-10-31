@@ -13,16 +13,20 @@
 --                            `/cm set` and the panel already write through (architecture-§5);
 --                            `i`, the Scope's `{ panel, fonts }`, writes the two exceptions, and
 --                            `m`, the Font and texture section's `{ font, texture }`, writes the
---                            two overrides, "" for false (the skin's own).
+--                            two overrides, "" for false (the skin's own); its `outline`, when
+--                            not nil, writes skin.outline (LibKa0s v1.82.0, D-06).
 --   KCM.SkinOverride()       the stored overrides: font, texture, each an LSM key or false for
 --                            the skin's own; false, false before AceDB.
 --   KCM.ApplySkinIgnore(p,f) moves the applied exceptions (`Skin:SetIgnore`), live; no argument
 --                            applies the stored pair, a nil half keeps that half.
 --   KCM.ApplySkinOverride(f,t) moves the applied overrides (`Skin:SetOverride`), live; no
 --                            argument applies the stored pair, a nil half keeps that half.
+--   KCM.ApplySkinOutline(m)  moves the applied Font outline (`Skin:SetOutline`), live; no
+--                            argument applies the stored skin.outline.
+--   KCM.SKIN_OUTLINE_OPTIONS the outline row's values: "all", "hud", "off", the library's order.
 --   KCM.ApplySkinChoice(s,k) moves the applied skin (`Skin:SetChoice`, which repaints every frame
 --                            recorded for this owner and THEN fires OnLooksChanged). No argument
---                            applies the stored pair with its exceptions and overrides
+--                            applies the stored pair with its exceptions, overrides and outline
 --                            (KCM:OnInitialize, the profile events); a nil half keeps that half
 --                            (each Skin tab row's apply).
 --   KCM.SKIN_SOURCE_OPTIONS  the source row's values, and KCM.SKIN_OPTIONS the skin row's (every
@@ -57,6 +61,8 @@
 --   KCM.HideSkinPicker()     takes a shown picker down or out of the queue WITHOUT marking it
 --                            seen: the stand-down, and first on every profile event.
 --   KCM.SkinPickerSpec()     the spec KCM.MaybeShowSkinPicker hands O.SkinPicker.
+--   KCM.RunSkinVerb()        the reserved `/cm skin` verb's act (LibKa0s v1.82.0, D-16):
+--                            O.SkinVerb with that spec, whatever `skin.pickerSeen` says.
 --
 -- ---------------------------------------------------------------------------
 -- WHERE IT LOADS
@@ -93,6 +99,7 @@ local Skin = LibStub and LibStub("LibKa0s-Skin-1.0", true)
 local SOURCE_PATH, SKIN_PATH = "skin.source", "skin.skin"
 local PANEL_PATH, FONTS_PATH = "skin.ignorePanel", "skin.ignoreFonts"
 local FONT_PATH, TEXTURE_PATH = "skin.font", "skin.texture"
+local OUTLINE_PATH = "skin.outline"
 local DEFAULT = "ka0s"
 
 -- The brand the Skin tab and the copy confirmation print (skinning-§1's `opts.label`).
@@ -223,6 +230,14 @@ KCM.SKIN_SOURCE_OPTIONS = {
     { value = "eui",  text = "EllesmereUI" },
 }
 
+-- The Font outline modes (LibKa0s-Skin-1.0 minor 9's OUTLINE_MODES, in its order), with the Skin
+-- tab's words. A copy rather than a read of the library's list, so the degraded arm has the row too.
+KCM.SKIN_OUTLINE_OPTIONS = {
+    { value = "all", text = "All text" },
+    { value = "hud", text = "HUD text only" },
+    { value = "off", text = "Off" },
+}
+
 -- The skin row's values: every registered skin, Ka0s Default first. Without the library the one
 -- skin the degraded facade can draw.
 KCM.SKIN_OPTIONS = {}
@@ -261,9 +276,10 @@ local function storedKey(v)
 end
 
 --- The write seam: every half through KCM.Schema:Set (validate, store, the [Set] line, apply).
---- `media` is `{ font = key|false, texture = key|false }`: the Skin tab's Font and texture pick and
---- another addon's copy both hand it here, after Skin:SetOverride moved the applied pair, so each
---- row's apply re-applies its own half as a no-op.
+--- `media` is `{ font = key|false, texture = key|false, outline = mode|nil }`: the Skin tab's Font
+--- and texture pick, its Font outline and another addon's copy all hand it here, after
+--- Skin:SetOverride / Skin:SetOutline moved the applied look, so each row's apply re-applies its
+--- own half as a no-op. A nil outline leaves skin.outline alone.
 function KCM.WriteSkinChoice(source, skin, ignore, media)
     if source ~= nil then seamSet(SOURCE_PATH, source) end
     if skin ~= nil then seamSet(SKIN_PATH, skin) end
@@ -274,6 +290,7 @@ function KCM.WriteSkinChoice(source, skin, ignore, media)
     if type(media) == "table" then
         seamSet(FONT_PATH, storedKey(media.font))
         seamSet(TEXTURE_PATH, storedKey(media.texture))
+        if media.outline ~= nil then seamSet(OUTLINE_PATH, media.outline) end
     end
 end
 
@@ -422,6 +439,27 @@ function KCM.MaybeShowSkinPicker()
     return H.SkinPicker(KCM.SkinPickerSpec())
 end
 
+--- The reserved `/cm skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker minor 3, ruling D-16):
+--- O.SkinVerb with the spec the first-run start builds, so it shows the picker a new profile shows
+--- whatever skin.pickerSeen says; a close still marks the profile seen. The library prints its own
+--- lines (combat on every call, queued, unavailable); without LibKa0s the Options stub answers
+--- nil, "absent" and this prints the library-absent line. The dispatcher refuses the verb while
+--- the addon is disabled (it is not on settings/Slash.lua's live set). Answers the picker's frame,
+--- or nil and the reason.
+function KCM.RunSkinVerb()
+    local H = pickerHost()
+    local win, why
+    if H and type(H.SkinVerb) == "function" then
+        win, why = H.SkinVerb(KCM.SkinPickerSpec())
+    else
+        why = "absent"
+    end
+    if win == nil and why == "absent" and KCM.SlashCommands and KCM.SlashCommands.SayLibraryAbsent then
+        KCM.SlashCommands.SayLibraryAbsent("skin")
+    end
+    return win, why
+end
+
 -- ---------------------------------------------------------------------------
 -- The degraded arm
 -- ---------------------------------------------------------------------------
@@ -465,11 +503,24 @@ if not Skin then
     S.GetFont = function() return _G.STANDARD_TEXT_FONT end
     S.ChartStyle = function() return {} end
     S.BarStyle = function() return {} end
+    -- LibKa0s v1.82.0 (SkinPaintExtras minor 7): never nil, since SetFont reads a nil flags as
+    -- none and refuses a nil height. A picked flag as stored, "OUTLINE" for From skin or nothing
+    -- stored (FontGroup's old default, the live one's answer while the fonts are ignored); a
+    -- positive stored size as is, else 12 (no skin to scale it by).
+    S.FontFlags = function(v)
+        if type(v) == "string" and v ~= S.FROM_SKIN then return v end
+        return "OUTLINE"
+    end
+    S.HudFontSize = function(size)
+        local n = tonumber(size)
+        return (n and n > 0) and n or 12
+    end
 
     KCM.Skin = S
     function KCM.ApplySkinChoice() return false, false end
     function KCM.ApplySkinIgnore() return false, false end
     function KCM.ApplySkinOverride() return false end
+    function KCM.ApplySkinOutline() return false end
     -- Nothing to paint an AceGUI row with: stock AceGUI, as the client draws it.
     function KCM.SkinPaintAce() return false end
     function KCM.SkinPaintAceTree() return 0 end
@@ -544,7 +595,19 @@ function KCM.ApplySkinOverride(font, texture)
     return Skin:SetOverride(addonName, font, texture)
 end
 
---- No argument applies the stored pair AND the stored exceptions and overrides (KCM:OnInitialize,
+--- The applied Font outline: Skin:SetOutline, live (a repaint and OnLooksChanged). No argument
+--- applies the stored mode; the library reads an unknown one as "hud". A copy without SetOutline
+--- moves nothing.
+function KCM.ApplySkinOutline(mode)
+    if type(Skin.SetOutline) ~= "function" then return false end
+    if mode == nil then
+        local get = seamGet()
+        mode = get and get(OUTLINE_PATH) or nil
+    end
+    return Skin:SetOutline(addonName, mode)
+end
+
+--- No argument applies the stored pair AND the stored exceptions, overrides and outline (KCM:OnInitialize,
 --- the profile events); a nil half keeps that half and leaves the rest alone (each Skin tab row).
 function KCM.ApplySkinChoice(source, skin)
     local whole = source == nil and skin == nil
@@ -554,6 +617,7 @@ function KCM.ApplySkinChoice(source, skin)
     if whole then
         KCM.ApplySkinIgnore()
         KCM.ApplySkinOverride()
+        KCM.ApplySkinOutline()
     end
     return changed, reload
 end
