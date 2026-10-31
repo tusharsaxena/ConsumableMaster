@@ -1,0 +1,6 @@
+CM-F02 independent review, 3 findings, all verified and fixed; 0 rejected.
+1. medium, docs/smoke-tests.md SKIN-30: no Ignore settings panel precondition. Confirmed against defaults/Profile.lua (ignorePanel true) and PaintAce's __PanelSkinned gate. Check now names both states.
+2. low, docs/smoke-tests.md SKIN-24: "already picked All text keeps it" is unreachable on upgrade, since "all" was the v1.82.0 default and AceDB does not store defaults. Replaced with an Upgrade clause. The AceDB claim is by its known behavior, not a run in the client.
+3. low, stale kit revision 45: CLAUDE.md, docs/testing.md (two lines), tests/run.lua now say 46 and v1.83.0. Kit.VERSION is 46. Historical mentions kept.
+Docs and comment only, so no new tests. Gate: 1316 passed, 0 failed, 1 skipped; luacheck 0/0; complexity max CCN 15.
+Smoke checks are text-only here; none marked passed.
