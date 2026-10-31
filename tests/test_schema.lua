@@ -1150,11 +1150,11 @@ local STORED_GUARD = {
     "macroBar.useClassColorLabel | bool | false | nil | nil | nil | ",
     "scale | number | 1 | 0.5 | 2 | 0.05 | ",
     -- The Skin tab's eight rows (skinning-§2/§3; CM-01 of the 2026-10-29 skinning rollout, and
-    -- skin.outline at the LibKa0s v1.82.0 re-vendor, D-06).
+    -- skin.outline at the LibKa0s v1.82.0 re-vendor, D-06, its default "hud" at v1.83.0).
     "skin.font | string |  | nil | nil | nil | ",
     "skin.ignoreFonts | bool | false | nil | nil | nil | ",
     "skin.ignorePanel | bool | true | nil | nil | nil | ",
-    "skin.outline | string | all | nil | nil | nil | all,hud,off",
+    "skin.outline | string | hud | nil | nil | nil | all,hud,off",
     "skin.pickerSeen | bool | false | nil | nil | nil | ",
     "skin.skin | string | ka0s | nil | nil | nil | ka0s,obsidian,azeroth,glass,contrast,ember,wow,midnight,forever",
     "skin.source | string | ka0s | nil | nil | nil | ka0s,eui",

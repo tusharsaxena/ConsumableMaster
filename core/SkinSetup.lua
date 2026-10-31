@@ -596,7 +596,7 @@ function KCM.ApplySkinOverride(font, texture)
 end
 
 --- The applied Font outline: Skin:SetOutline, live (a repaint and OnLooksChanged). No argument
---- applies the stored mode; the library reads an unknown one as "all". A copy without SetOutline
+--- applies the stored mode; the library reads an unknown one as "hud". A copy without SetOutline
 --- moves nothing.
 function KCM.ApplySkinOutline(mode)
     if type(Skin.SetOutline) ~= "function" then return false end

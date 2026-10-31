@@ -370,16 +370,16 @@ the v4 step's companion seed.
   recorded paint the library could give back, so `BB.ApplyCountFont` reads that nil as "no face"
   and puts a count the skin's face reached back on the face its font object gave it
   (`NumberFontNormal`). `Skin:SetIgnore` fires `OnLooksChanged`, which re-applies the bar, so it is
-  live. Each skin draws HUD text in a face of its own (SkinDefs minor 17, LibKa0s v1.82.0): Obsidian
-  Expressway, Azeroth Vollkorn Bold, Glass Nunito SemiBold, High Contrast Atkinson Bold, Ember Bitter
-  Bold, WoW Default Friz Quadrata, WoW Midnight Philosopher Bold, WoW Forever Fira Sans SemiBold, Ka0s
-  Default Prototype. The label shadow's color and offset are a legibility constant (D7).
+  live. Each skin draws HUD text in a face of its own (SkinDefs minor 18, LibKa0s v1.83.0): Obsidian
+  Expressway, Azeroth Open Sans Semibold, Glass Avant Garde, High Contrast Doris PP, Ember Emblem,
+  WoW Default the shipped Ka0s Friz Quadrata TT, WoW Midnight Segoe UI Semibold, WoW Forever Fira Sans
+  SemiBold, Ka0s Default Prototype. The label shadow's color and offset are a legibility constant (D7).
 - **Font size, flags and outline (LibKa0s v1.82.0; D-06, D-07, D-09).** The label's font block is
   the minimum set every font setting carries (face with *Use the skin's font*, size, color with *Use
   class color*, flags, shadow). Its *Font flags* lead with **From skin** (`"@skin"`, the default),
   which `BB.LabelFont` draws through `S.FontFlags`, so it follows the Skin tab's **Font outline**
-  (`skin.outline`: *All text*, the default, and *HUD text only* outline the bar's text, *Off* does
-  not); a picked flag wins. Every HUD string in the skin's face draws at `S.HudFontSize(stored,
+  (`skin.outline`: *All text* and *HUD text only*, the default since LibKa0s v1.83.0, outline the
+  bar's text, *Off* does not); a picked flag wins. Every HUD string in the skin's face draws at `S.HudFontSize(stored,
   fromSkin)`: the label while *Use the skin's font* is on, and the stack count always, scaled by the
   skin's HUD size so its text is as wide as Ka0s Default's (Obsidian 13 over 12, Glass 11 over 12);
   as stored with the label's own face and under *Ignore fonts*. The stored size is never rewritten.

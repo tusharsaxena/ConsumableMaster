@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1315%2F1315_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1316%2F1316_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
@@ -162,27 +162,6 @@ Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsa
 
 ## Credits
 
-The debug console uses [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the
-SIL Open Font License 1.1.
-
-The skins' faces ship in the same payload with each face's terms beside it. They are SIL Open Font
-License 1.1 except Prototype and Expressway:
-
-- [Prototype](https://www.dafont.com/prototype.font) v2.0 (2001), Ka0s Default's face, the skin every
-  profile starts on. It is not under the OFL: it is "free for personal use, freely distributed with
-  Prototype.txt", and the author's `Prototype.txt` ships beside it unchanged.
-- [Expressway](https://www.dafont.com/expressway.font) Rg Bold 2.100 (2005) by Ray Larabie,
-  Typodermic, Obsidian's face. It is not under the OFL. It ships on the owner's ruling of
-  2026-10-30, against its name table's "Do not distribute" and the Typodermic Desktop EULA 2026,
-  which ship beside it (`Expressway-EULA.pdf`, `Expressway-EULA-Guide.html`) as the record of the
-  terms that ruling overrode. Expressway is a trademark of Typodermic.
-- [Fira Sans](https://github.com/mozilla/Fira) Medium and SemiBold, WoW Forever's faces, by The
-  Mozilla Foundation and Telefonica S.A.
-- [Nunito](https://github.com/googlefonts/nunito), [Vollkorn](https://github.com/FAlthausen/Vollkorn-Typeface),
-  [Bitter](https://github.com/solmatas/BitterPro), [Philosopher](https://github.com/alexeiva/philosopher)
-  and [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), each by its project's
-  authors. Nunito, Vollkorn and Bitter are static weights cut from upstream's variable fonts.
-
 Icons: [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, MIT license. Only the icons
-the addon draws are shipped. The fonts and the icons are bundled inside the LibKa0s payload, with
-their license text beside them.
+the addon draws are shipped. The icons are bundled inside the LibKa0s payload, with their license
+text beside them.

@@ -202,7 +202,7 @@ as this one has none). It is the library's `O.AppearanceTab`, labeled **Skin** (
 `Appearance`), drawn for the owner `core/SkinSetup.lua` registers, and it reads and writes through
 that file's seams, so a pick lands through `KCM.Schema:Set` like every other setting. Top to bottom:
 **Skin source** (*Ka0s skins* or *EllesmereUI*), the nine skins with their swatches under a **Look**
-heading, **Font and texture** (the two overrides, each led by *Skin's own*, their *Reset font* and *Reset
+heading, **Font and texture** (the two overrides, each led by *Skin's default*, their *Reset font* and *Reset
 texture* buttons and the *Font outline*: *All text*, *HUD text only* or *Off*, LibKa0s v1.82.0), the **Scope** (*Ignore
 settings panel*, ticked in a new profile, and *Ignore fonts*), **Copy to every Ka0s addon…** and the
 library's note. Its seven rows are `skin.*` schema rows with `skipRender` (the tab draws them, the

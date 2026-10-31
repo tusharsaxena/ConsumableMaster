@@ -1084,15 +1084,16 @@ Total.
 - Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
 - Skin fonts: without the library the label draws its stored size and an outline
 
-### test_skin_outline.lua (9)
+### test_skin_outline.lua (10)
 
-- Skin outline: a fresh profile stores All text, the library's default
+- Skin outline: a fresh profile stores HUD text only, the library's default
 - Skin outline: the schema row offers the library's three modes, on the Skin tab
 - Skin outline: the write seam stores media.outline, and leaves it alone when it is nil
 - Skin outline: another addon's copy reaches the store through WriteChoice
 - Skin outline: the row's write applies the mode live
 - Skin outline: /cm set refuses a mode the library does not know
 - Skin outline: the whole-choice apply (the load's) applies the stored mode
+- Skin outline: a stored All text stays under the new default
 - Skin outline: a profile switch applies the incoming profile's mode, and back
 - Skin outline: without the skin engine the apply is a quiet no-op
 
@@ -1600,7 +1601,7 @@ Total.
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 13 |
 | test_skin_hud.lua | 20 |
-| test_skin_outline.lua | 9 |
+| test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 10 |
 | test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
@@ -1625,4 +1626,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1315** |
+| **Total** | **1316** |

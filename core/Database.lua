@@ -141,8 +141,8 @@ end
 -- the new shipped default, which S.FontFlags resolves through the Skin tab's
 -- Font outline. A profile still storing the PREVIOUS default, "OUTLINE", never
 -- chose it in a way this file can tell from never touching it, so it moves to
--- From skin once; under the default Font outline ("All text") that draws the
--- same outline it drew before. Any other stored flag ("", THICKOUTLINE,
+-- From skin once; under the default Font outline ("All text" then, "HUD text
+-- only" since LibKa0s v1.83.0) that draws the same outline it drew before. Any other stored flag ("", THICKOUTLINE,
 -- MONOCHROME, "OUTLINE, MONOCHROME") is a pick the player made and stays. A
 -- literal rather than ResetToSkin: the step is conditional, and ResetToSkin
 -- would write the sentinel over a pick. The stamp keeps a later deliberate

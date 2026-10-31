@@ -1,6 +1,6 @@
 -- test_skin_outline.lua — the Font outline (LibKa0s v1.82.0, Skin minor 9; CM-01 of
 -- Ka0sAddonsCommonTasks docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK, ruling D-06): stored as
--- skin.outline ("all", the default, "hud", "off"), written only through the skin write seam
+-- skin.outline ("all", "hud", the default, "off"), written only through the skin write seam
 -- (KCM.WriteSkinChoice's `media.outline`), and applied with Skin:SetOutline at load, on every
 -- profile event and on the row's own write. LibKa0sSkinTester 7d736c2 is the reference.
 
@@ -18,12 +18,12 @@ local function load()
 end
 
 -- red under: no skin.outline key, or a default other than the library's.
-test("Skin outline: a fresh profile stores All text, the library's default", function(t)
+test("Skin outline: a fresh profile stores HUD text only, the library's default", function(t)
     local KCM = load()
     local Skin = skinLib()
-    t.eq(KCM.db.profile.skin.outline, "all", "the profile's default")
+    t.eq(KCM.db.profile.skin.outline, "hud", "the profile's default")
     t.eq(KCM.db.profile.skin.outline, Skin.OUTLINE_DEFAULT, "is the library's OUTLINE_DEFAULT")
-    t.eq(Skin:GetOutline(OWNER), "all", "and it is applied")
+    t.eq(Skin:GetOutline(OWNER), "hud", "and it is applied")
 end)
 
 -- red under: a row the row engine draws (the Skin tab draws it), or values out of the library's order.
@@ -76,7 +76,7 @@ end)
 test("Skin outline: /cm set refuses a mode the library does not know", function(t)
     local KCM = load()
     t.falsy(KCM.Schema:Set("skin.outline", "thick"), "refused")
-    t.eq(KCM.db.profile.skin.outline, "all", "and nothing stored")
+    t.eq(KCM.db.profile.skin.outline, "hud", "and nothing stored")
 end)
 
 -- red under: KCM.ApplySkinChoice's whole-pair path (OnInitialize's call) not applying the stored mode.
@@ -84,20 +84,31 @@ test("Skin outline: the whole-choice apply (the load's) applies the stored mode"
     local KCM = load()
     local Skin = skinLib()
     KCM.db.profile.skin.outline = "off"
-    t.eq(Skin:GetOutline(OWNER), "all", "a raw store write moves nothing yet")
+    t.eq(Skin:GetOutline(OWNER), "hud", "a raw store write moves nothing yet")
     KCM.ApplySkinChoice()
     t.eq(Skin:GetOutline(OWNER), "off", "the load's apply reads the stored mode")
+end)
+
+-- red under: a re-default that rewrites a stored mode (D-10: a stored choice stays).
+test("Skin outline: a stored All text stays under the new default", function(t)
+    local KCM = load()
+    local Skin = skinLib()
+    KCM.db.profile.skin.outline = "all"
+    KCM.ApplySkinChoice()
+    t.eq(KCM.db.profile.skin.outline, "all", "the stored mode is not migrated")
+    t.eq(Skin:GetOutline(OWNER), "all", "and it is what is applied")
+    t.eq(KCM.Skin.Token("font.outline"), "OUTLINE", "window text keeps its outline")
 end)
 
 -- red under: a profile event that leaves the previous profile's outline applied.
 test("Skin outline: a profile switch applies the incoming profile's mode, and back", function(t)
     local KCM = load()
     local Skin = skinLib()
-    KCM.Schema:Set("skin.outline", "hud")
+    KCM.Schema:Set("skin.outline", "off")
     KCM.db:SetProfile("Alt")
-    t.eq(Skin:GetOutline(OWNER), "all", "Alt keeps the default")
+    t.eq(Skin:GetOutline(OWNER), "hud", "Alt keeps the default")
     KCM.db:SetProfile("Default")
-    t.eq(Skin:GetOutline(OWNER), "hud", "Default's is back")
+    t.eq(Skin:GetOutline(OWNER), "off", "Default's is back")
 end)
 
 -- red under: a degraded arm missing the seam member, or one that raises.

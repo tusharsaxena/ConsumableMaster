@@ -65,7 +65,7 @@ db.profile
 │   ├── skin                        a registered skin key ("ka0s" = Ka0s Default)
 │   ├── ignorePanel │ ignoreFonts   boolean  -- the Scope (true │ false in a new profile)
 │   ├── font │ texture              LibSharedMedia key; "" = the skin's own
-│   ├── outline                     "all" │ "hud" │ "off"  -- the Font outline ("all" in a new profile)
+│   ├── outline                     "all" │ "hud" │ "off"  -- the Font outline ("hud" in a new profile)
 │   └── pickerSeen                  boolean  -- the first-run picker was closed here
 ├── macroState
 │   └── [macroName] = { lastItemID, lastBody, lastIcon, lastCat }   -- early-out cache;

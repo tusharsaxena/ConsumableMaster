@@ -88,10 +88,12 @@ local MAJORS = {
         -- O.AppearanceRows) and OptionsSkinPicker at v1.79.0 (the first-run skin picker,
         -- O.SkinPicker and O.HideSkinPicker), each paired on the shell's minor. OptionsSwitch
         -- joined at v1.82.0 (the switched sections, peeled out of OptionsWidgets with
-        -- `shownWhen.any`), paired the same way.
+        -- `shownWhen.any`), paired the same way, and OptionsMedia at v1.83.0 (the Ka0sMedia_* preview
+        -- pickers), paired the same way.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
                   "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
-                  "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker", "OptionsSwitch" },
+                  "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker", "OptionsSwitch",
+                  "OptionsMedia" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -108,6 +110,7 @@ local MAJORS = {
             { file = "OptionsAppearance", minor = "__appearanceMinor", shell = "__appearanceShellMinor" },
             { file = "OptionsSkinPicker", minor = "__pickerMinor",     shell = "__pickerShellMinor" },
             { file = "OptionsSwitch",     minor = "__switchMinor",     shell = "__switchShellMinor" },
+            { file = "OptionsMedia",      minor = "__mediaMinor",      shell = "__mediaShellMinor" },
         },
     },
     {
