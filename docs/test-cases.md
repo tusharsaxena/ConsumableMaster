@@ -531,7 +531,7 @@ Total.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (29)
+### test_macrobar_chrome.lua (30)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -558,6 +558,7 @@ Total.
 - macrobar handle: an unreadable strip falls back to the cursor with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark holds its resting gray, because no click is wired here
+- macrobar handle: a layout pass while unlocked refits the strip at the new scale and width
 - macrobar handle: the X hides the bar through macroBar.enabled and says the way back
 - macrobar handle: the X's tooltip says what the click does and the way back
 - macrobar handle: the X widens the label's reserve by the close mark's frame
@@ -1586,7 +1587,7 @@ Total.
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
 | test_macrobar.lua | 35 |
-| test_macrobar_chrome.lua | 29 |
+| test_macrobar_chrome.lua | 30 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
@@ -1634,4 +1635,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1316** |
+| **Total** | **1317** |

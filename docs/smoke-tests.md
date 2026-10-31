@@ -14,7 +14,7 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | MACRO-1 – MACRO-23 | Macros | What each category's macro body picks and writes: single-pick, Weapon Enchant, Augment Rune, Bloodlust and Battle Rez, the AIO composites, spec changes, edge cases. Run for the Ranker, Selector, `core/WeaponSlots.lua`, MacroManager body builders, `TooltipCache.IsUsableByPlayer`, seed files. |
 | DISC-1 – DISC-8 | Discovery | Auto-discovery, the stale sweep, numeric item-class classification, tooltip hydration. Run for the Classifier, BagScanner, TooltipCache patterns, `defaults/` seed refreshes. |
 | PRIO-1 – PRIO-33 | Priority editors | The Macros page category tabs (Add by ID or name, suggestions, drag reorder, composite sections) and the Stat Priority page. Run for `settings/Category.lua`, `settings/CategoryAddByID.lua`, `settings/CategoryComposite.lua`, `settings/StatPriority.lua`, Selector mutators, `LibKa0s-Widgets-1.0`'s `ReorderList`. |
-| BAR-1 – BAR-37 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, `settings/MacroBarSlots.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
+| BAR-1 – BAR-38 | Macro bar | The bar and its settings page: layout, appearance, labels, the Buttons tab, flyout, fade, slash parity, page Defaults, media dropdowns, the stored color codec. Run for `modules/MacroBar*.lua`, `core/MacroBar*.lua`, `core/MacroDisplay.lua`, `settings/MacroBar.lua`, `settings/MacroBarSlots.lua`, a new `macroBar.*` row or `shortName`, `lib.__PatchLSM30Border()`, `KCM.ColorDecode`. |
 | LAUNCH-1 – LAUNCH-9 | Launcher | The minimap button and broker plugin: clicks, menu, position, visibility, tooltip. Run for `core/LauncherSetup.lua`. |
 | COMBAT-1 – COMBAT-17 | Combat | Macro-write deferral, the settings category's combat park, secure bar and flyout under lockdown, restricted cooldowns, the mid-key restriction lift. Run for MacroManager's queue, `registerPanel`, anything protected-frame or secure-template shaped, `KCM:OnRestrictionChanged`. |
 | DIAG-1 – DIAG-42 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the lines the library writes into it, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
@@ -426,6 +426,8 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/SkinS
 
 **BAR-37. The Buttons tab's list after its move (FX-CM-SIZE).** Open **Macro Bar** → **Buttons** → the list draws shown slots, the rule, then hidden slots. Drag a slot, untick one, tick it back, press **Reset slot order**, then switch tabs and back → the bar follows each act and no handle is left on another tab. In combat a move is refused with its one line. *Failure:* an empty tab, a stray handle after a tab switch, or a Lua error. Result:
 
+**BAR-38. The handle's title fits after a layout change (XX-ADOPT, LibKa0s#68).** `/cm unlock`. Under each skin, set **Bar scale** to its lowest and highest values and **Buttons per row** to 1, each with the bar unlocked → the **Consumable Master** strip reads in full every time, with its ? and X marks clear of the text, and it is never narrower than the bar. Lock and unlock → it still does. *Failure:* the title is cut off or runs under a mark. Result:
+
 ## Launcher
 
 **LAUNCH-1. The button wears the addon's logo.** Log in → a round button with this addon's logo on the minimap ring, not a cooking icon and not a blank square (a blank square means `media/logos/consumablemaster.logo.128.tga` is missing or malformed). The AddOns list row wears the same art (`## IconTexture`). Result: pass (owner-marked 2026-10-10)
@@ -695,4 +697,5 @@ its `Result:` line.
 
 Owed from the 2026-10-31 findings remediation (Ka0sAddonsCommonTasks
 `docs/2026-10-31-FINDINGS_REMEDIATION/`, FX-CM-SIZE): PANEL-34, PRIO-33 and BAR-37, the moved code
-behind the About page and the row rules, the composite tabs and the Buttons tab's list.
+behind the About page and the row rules, the composite tabs and the Buttons tab's list. Also owed
+from its LibKa0s v1.84.0 adoption (XX-ADOPT): BAR-38, the handle's fit after a layout change.
