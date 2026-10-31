@@ -16,7 +16,7 @@
 --
 -- Load order (layout-§1) puts settings/ after core/, so the verbs table exists
 -- by the time COMMANDS is built. Nothing here is read at load time by anything
--- else: settings/Panel.lua calls GetLandingRows when it builds the About page,
+-- else: settings/About.lua calls GetLandingRows when it builds the About page,
 -- and AceConsole resolves "OnSlashCommand" by name when a command is typed.
 
 local _, NS = ...
