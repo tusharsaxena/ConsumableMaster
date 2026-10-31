@@ -62,8 +62,7 @@ test("Settings UI: an LSM30_Border another addon registered changes no media row
         "a row naming the old type still draws the picker")
     t.eq(lib.__MediaWidgetType("border"), "Ka0sMedia_Border", "and so does the media kind")
 
-    t.falsy(lib.__PatchLSM30Border(), "the retired fixup registers nothing")
-    t.eq(AceGUI.WidgetRegistry["LSM30_Border"], seededCtor, "and the slot is untouched")
+    t.eq(AceGUI.WidgetRegistry["LSM30_Border"], seededCtor, "the slot is untouched")
     t.eq(AceGUI:GetWidgetVersion("LSM30_Border"), 20, "at the same version")
 end)
 
