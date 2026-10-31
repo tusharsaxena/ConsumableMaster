@@ -31,7 +31,7 @@ Nothing is fetched at package time: `.pkgmeta` has **no `externals:` block** and
 
 ## 2. Development — the contributor toolchain
 
-Four things, and `git`. Install all of them with:
+Four things, and `git`, plus the dev-copilot plugin's bounded runner. Install the first set with:
 
 ```sh
 sudo apt update
@@ -47,6 +47,7 @@ Then open a new shell (`pipx ensurepath` edits your profile) and run the verific
 | **Lua 5.1** — and the binary **must be named `lua5.1` on `PATH`** | **5.1 exactly. Not a preference.** | Three independent reasons. (a) The suite **shells out to the literal string `lua5.1`**: `tests/test_runner_list.lua:19` (`io.popen("lua5.1 " .. root .. "/tests/run.lua --list 2>&1")`) and `:60` (`os.execute("lua5.1 " .. root .. "/tests/run.lua --list > /dev/null 2>&1")`). With no `lua5.1` on `PATH` those cases fail, no matter what `lua` points at. (b) The client runs 5.1, so the harness targets 5.1 and lint enforces it: `.luacheckrc:10` sets `std = "lua51"`, which rejects anything outside the 5.1 standard library. (c) The vendored test kit — which **is** the harness, loaded by `tests/run.lua` — sandboxes every chunk with `setfenv` (`tests/_kit/loader.lua:72`, `:91`), and `setfenv` does not exist after 5.1. | `sudo apt install -y lua5.1` | `lua5.1 -v` → `Lua 5.1.5` |
 | **luacheck** | **Any recent.** Pinning would be false precision — the config uses no version-specific feature. | The lint half of the green gate. `docs/testing.md:15`, `CLAUDE.md` "Gate" block; configured by `.luacheckrc`. | `sudo apt install -y luarocks && sudo luarocks install luacheck` | `luacheck --version` |
 | **lizard** | **Any recent.** Same reasoning — the invocation uses only stock flags. Record whatever version you used in the report header. | Feeds the `complexity` suite of `tests/_kit/run-automated-tests.sh`, recorded in every run bundle (`automated-tests`). Also run by the headless suite: `tests/_kit/test_lizard_sighted.lua:185-194` runs `lizard -l lua` over a fixture and records a `skip` (not a pass) when `lizard` is not on `PATH`. | `sudo apt install -y pipx && pipx ensurepath && pipx install lizard` | `lizard --version` |
+| **`~/.claude/dev-copilot/bin/ka0s-bounded`** (the dev-copilot plugin) | Whatever the plugin ships. | Runs `luacheck .` under a time limit: `luacheck` loads no test kit, so nothing else bounds it and the plugin's bounded-runs hook refuses it bare. Exit 124 is the time limit, 137 is killed; neither is a pass. | Install the dev-copilot Claude Code plugin | `ls ~/.claude/dev-copilot/bin/ka0s-bounded` |
 | **git** | Any recent. | Beyond version control, five suites **execute `git`**: `tests/test_vendor_sync.lua` delegates to the vendored kit, whose `tests/_kit/vendor_sync.lua:422` runs `git -C "<sibling>" …` to compare `libs/LibKa0s/` and `tests/_kit/` against the LibKa0s tag this repo's `CLAUDE.md` claims; `tests/test_lintconfig.lua:204` (`git ls-files`), `tests/_kit/test_eol.lua:130` (`git ls-files | git check-attr text eol`), `tests/_kit/test_layout_cap.lua:171` and `tests/_kit/test_prose.lua:379` (`git ls-files -z`) read the tracked set. Those four fail without `git`; the vendor-sync pair cannot read the sibling either and reports a `skip` (`tests/_kit/vendor_sync.lua:523`), not a pass. | `sudo apt install -y git` | `git --version` |
 | **A sibling `LibKa0s` checkout** (not software) | matching the tag the `Bundles [LibKa0s](…)` line in `CLAUDE.md` names | `tests/_kit/vendor_sync.lua:374` resolves `opts.sibling or (root .. DEFAULT_SIBLING)` (the `/../LibKa0s` default at `:89`). Absent, the two vendor-sync cases **report a `skip` carrying their reason rather than failing** — `siblingTag()` calls `T.skip("<sibling> checkout absent — the vendored payload was NOT compared")` when the sibling has no `HEAD:LibKa0s/Core.lua` (`:523`), which is the one sanctioned quiet case. The suite is still green without the checkout, but the vendored-payload check is then not actually running, and a `skip` is not a pass. | `git clone https://github.com/tusharsaxena/LibKa0s ../LibKa0s` | `ls ../LibKa0s/LibKa0s` |
 | **POSIX `ls`** | any | Directory listing shells out rather than depending on LuaFileSystem: `tests/_kit/inventory.lua:190` (`collect(('ls -A "%s" 2>/dev/null'):format(dir))`, with a `dir /b` cmd.exe fallback on the next line). Present on any Ubuntu; listed because it is a real, non-obvious runtime requirement of the harness. | preinstalled (coreutils) | `ls --version` |
@@ -131,7 +132,7 @@ Run these from the repo root. Both must be green; the third is a report, not a g
 
 ```sh
 lua5.1 tests/run.lua                                    # headless suite — exits non-zero on failure
-luacheck .                                              # lint — must be 0 warnings, 0 errors
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck .    # lint — must be 0 warnings, 0 errors
 bash tests/_kit/run-automated-tests.sh --suite complexity   # sighted complexity report (automated-tests-§3)
 ```
 
