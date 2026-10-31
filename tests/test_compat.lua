@@ -210,7 +210,8 @@ end)
 -- ---------------------------------------------------------------------------
 
 -- red under: the host's own ladder, which compared every rung's answer with ""
--- (the defect compat.md section 2.2 row 5 names). The fixture's secret is the
+-- (the defect LibKa0s docs/api/Compat/version-1-docs.md names under GetSpellName).
+-- The fixture's secret is the
 -- plain string "" so the comparison the host made is observable: the host read
 -- it as "no answer yet" and fell through to the next rung, where a real 12.x
 -- client raises instead, in combat.

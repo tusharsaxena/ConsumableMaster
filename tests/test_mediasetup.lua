@@ -104,7 +104,7 @@ end)
 
 -- The `LibKa0s icons:` declaration under the CLAUDE.md provenance line
 -- (library-stack-§7, kit revision 40). Since LibKa0s v1.74.0 the copy ships ONLY
--- the declared marks: tools/prune-icons.lua cuts media/icons/ to the line at
+-- the declared marks: LibKa0s tools/prune-icons.lua cuts media/icons/ to the line at
 -- re-vendor. A pruned name still answers a path from Media.Icon, so a mark this
 -- addon draws and forgot to declare draws blank — and the vendor gate cannot see
 -- that, because the declaration is the only list it knows.
