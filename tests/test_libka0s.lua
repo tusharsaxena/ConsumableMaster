@@ -89,11 +89,14 @@ local MAJORS = {
         -- O.SkinPicker and O.HideSkinPicker), each paired on the shell's minor. OptionsSwitch
         -- joined at v1.82.0 (the switched sections, peeled out of OptionsWidgets with
         -- `shownWhen.any`), paired the same way, and OptionsMedia at v1.83.0 (the Ka0sMedia_* preview
-        -- pickers), paired the same way.
+        -- pickers), paired the same way. LibKa0s v1.84.0 peeled four more: OptionsFlow (out of
+        -- OptionsWidgets), OptionsTabbed (out of OptionsTabs), OptionsIdSuggest (out of OptionsIds)
+        -- and OptionsSkinPickerRows (out of OptionsSkinPicker), each paired the same way.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
                   "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
                   "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker", "OptionsSwitch",
-                  "OptionsMedia" },
+                  "OptionsMedia", "OptionsFlow", "OptionsTabbed", "OptionsIdSuggest",
+                  "OptionsSkinPickerRows" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -111,15 +114,20 @@ local MAJORS = {
             { file = "OptionsSkinPicker", minor = "__pickerMinor",     shell = "__pickerShellMinor" },
             { file = "OptionsSwitch",     minor = "__switchMinor",     shell = "__switchShellMinor" },
             { file = "OptionsMedia",      minor = "__mediaMinor",      shell = "__mediaShellMinor" },
+            { file = "OptionsFlow",       minor = "__flowMinor",       shell = "__flowShellMinor" },
+            { file = "OptionsTabbed",     minor = "__tabbedMinor",     shell = "__tabbedShellMinor" },
+            { file = "OptionsIdSuggest",  minor = "__suggestMinor",    shell = "__suggestShellMinor" },
+            { file = "OptionsSkinPickerRows", minor = "__pickerRowsMinor", shell = "__pickerRowsShellMinor" },
         },
     },
     {
         major = "LibKa0s-Skin-1.0",
         -- New at LibKa0s v1.78.0: the skin engine (core/SkinSetup.lua registers this addon as an
         -- owner) and its seven paired files, in XML order: the nine skins, the paint primitives, the
-        -- EllesmereUI provider and the AceGUI rows.
+        -- EllesmereUI provider and the AceGUI rows. SkinOwnerTokens (out of Skin) and SkinDefsOthers
+        -- (out of SkinDefs) joined at LibKa0s v1.84.0, paired the same way.
         files = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras", "SkinPaintControls", "SkinEUI",
-                  "SkinAce" },
+                  "SkinAce", "SkinOwnerTokens", "SkinDefsOthers" },
         primary = "Skin",
         paired = {
             { file = "SkinDefs",          minor = "__defsMinor",     shell = "__defsShellMinor" },
@@ -128,6 +136,8 @@ local MAJORS = {
             { file = "SkinPaintControls", minor = "__controlsMinor", shell = "__controlsShellMinor" },
             { file = "SkinEUI",           minor = "__euiMinor",      shell = "__euiShellMinor" },
             { file = "SkinAce",           minor = "__aceMinor",      shell = "__aceShellMinor" },
+            { file = "SkinOwnerTokens",   minor = "__tokensMinor",   shell = "__tokensShellMinor" },
+            { file = "SkinDefsOthers",    minor = "__othersMinor",   shell = "__othersShellMinor" },
         },
     },
     {

@@ -376,6 +376,9 @@ else
     Helpers.ColorPair      = function() return {} end
     Helpers.FontGroup      = function() return {} end
     Helpers.BorderGroup    = function() return {} end
+    -- The Position-block composer (LibKa0s v1.84.0, OptionsCompose minor 15). No page here calls it
+    -- yet, but the stub owes every public member, and it answers the live shape: rows, then a hook.
+    Helpers.PositionBlock  = function() return {}, function() end end
 
     -- The Skin tab (LibKa0s v1.78.0, OptionsAppearance minor 1; skinning-§3) and the first-run
     -- skin picker (LibKa0s v1.79.0, OptionsSkinPicker minor 1). Every Options stub owes all four,
