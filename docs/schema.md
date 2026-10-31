@@ -297,7 +297,7 @@ LibKa0s):
 5. The `[Set] <path> = <value>` line, when debug is on, **before** any reaction.
 6. `announce`: the row's **`apply`**, then the in-place `RefreshScalars`.
 
-The type rules are `TYPE_RULES` in `settings/Panel.lua`, split `validate` / `normalize` by type.
+The type rules are `TYPE_RULES` in `settings/PanelRows.lua`, split `validate` / `normalize` by type.
 `bool`, `string` and enum rows are validate-only. `Helpers.AddRows` / `AddRow` /
 `RegisterRows` stamp them onto each row, closed over it, and index the row. A row added any
 other way is not writable.

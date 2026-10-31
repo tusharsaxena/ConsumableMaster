@@ -32,6 +32,9 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20261101-025920`](20261101-025920/) | `6321084` | clean | 1.8.0 | 0/0 | 146 | 1318/1/1319 | pass | 30199 | 3547 | 7.8 | 2.5 | 15 | 0 | **green** |
+| [`20261101-001317`](20261101-001317/) | `7b56d4c` | clean | 1.8.0 | 0/0 | 146 | 1317/1/1318 | pass | 30213 | 3548 | 7.8 | 2.5 | 15 | 0 | **green** |
+| [`20261031-212150`](20261031-212150/) | `0448f15` | clean | 1.8.0 | 0/0 | 146 | 1316/1/1317 | pass | 30188 | 3541 | 7.9 | 2.5 | 15 | 0 | **green** |
 | [`20261031-202052`](20261031-202052/) | `c7658c6` | clean | 1.8.0 | 0/0 | 140 | 1316/1/1317 | pass | 30106 | 3541 | 7.9 | 2.5 | 15 | 0 | **green** |
 | [`20261009-191755`](20261009-191755/) | `944e16b` | clean | 1.7.0 → 1.8.0 | 0/0 | 130 | 1215/1/1216 | pass | 27450 | 3222 | 7.9 | 2.5 | 14 | 0 | **green** |
 | [`20260927-030419`](20260927-030419/) | `86660df` | clean | 1.6.2 → 1.7.0 | 0/0 | 126 | 1112/0/1112 | pass | 25689 | 2838 | 7.8 | 2.5 | 14 | 0 | **green** |
@@ -54,18 +57,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**1317 cases** — 1316 passed, 0 failed, 1 skipped. The generated inventory
-[`20261031-202052/test-cases.md`](20261031-202052/test-cases.md) is the authority on which cases existed at this run;
+**1319 cases** — 1318 passed, 0 failed, 1 skipped. The generated inventory
+[`20261101-025920/test-cases.md`](20261101-025920/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **1216 → 1317** since the previous run.
+Moved **1318 → 1319** since the previous run.
 
 **1 case(s) reported a `skip`.** A skip is counted in the total and never in `passed`, and at
 the release gate it is NOT EVALUATED rather than passed (`automated-tests-§3`).
 
 ## Lint
 
-**0 warnings / 0 errors over 140 files** (`luacheck .`).
+**0 warnings / 0 errors over 146 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 4 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -75,23 +78,23 @@ to whoever thinks to open `.luacheckrc`.
 ## Perf
 
 **5 scenarios** from `tests/perf.lua`; the measurements are in
-[`20261031-202052/perf.json`](20261031-202052/perf.json).
+[`20261101-025920/perf.json`](20261101-025920/perf.json).
 
 | `scenario` | `iters` | `ms/iter` | `total` | `ms` |
 |---|---|---|---|---|
-| `recompute` | 200 | 1.38616 | 277.232 | 29832.8 |
-| `cooldownRefresh` | 200 | 0.02249 | 4.498 | 6000.0 |
-| `probeOverheadOff` | 200 | 0.02935 | 5.869 | 6000.0 |
-| `probeOverheadOn` | 200 | 0.02125 | 4.249 | 6001.3 |
-| `refreshBurst` | 200 | 0.01912 | 3.823 | 0.0 |
+| `recompute` | 200 | 1.42393 | 284.786 | 247384.1 |
+| `cooldownRefresh` | 200 | 0.02816 | 5.632 | 6000.0 |
+| `probeOverheadOff` | 200 | 0.02371 | 4.742 | 6000.0 |
+| `probeOverheadOn` | 200 | 0.02615 | 5.230 | 6001.3 |
+| `refreshBurst` | 200 | 0.01953 | 3.906 | 0.0 |
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20261031-202052`](20261031-202052/) — **this run's measurement, not its diff.** Max CCN **15** across 3541
-functions, **0** of them warned on; 7 file(s) in the 1000–1500 band and 0 over the 1500 cap
+Current as of [`20261101-025920`](20261101-025920/) — **this run's measurement, not its diff.** Max CCN **15** across 3547
+functions, **0** of them warned on; 3 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
 Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
@@ -110,12 +113,8 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `settings/Category.lua` | 1186 | **Peel tracked as [#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)** — the composite (AIO) section editor (`renderComposite`, `renderCompositeSection`, `renderCompositeRow`, `renderCompositeLegend`) out to `settings/CategoryComposite.lua`, mirroring the `settings/CategoryAddByID.lua` peel. 1142 → 1150 at [`20261009-191755`](20261009-191755/); 676 NLOC across 67 functions at avg CCN 5.0, no warned function; `renderCompositeSection` (CCN 14) is one of the thirteen functions at this run's max of 14 and leaves with the peel. Three release runs of acceptance (1.6.0, 1.6.1, 1.6.2) were the `automated-tests-§4` limit, so this cell is the tracked issue, not a renewal. |
-| 1000–1500 (on notice) | `settings/MacroBar.lua` | 1231 | **Accepted — page breadth, not tangle; re-check at 1300.** 1169 → 1182 at [`20261009-191755`](20261009-191755/). 806 NLOC across 47 functions at avg CCN 3.3, no warned function. First carried at [`20260916-094429`](20260916-094429/); the 1.7.0 release run ([`20260927-030419`](20260927-030419/)) was acceptance 1 of 3 and the 1.8.0 release run ([`20261009-191755`](20261009-191755/)) is acceptance 2 of 3. The next release run owes a fix or a tracked issue. |
-| 1000–1500 (on notice) | `settings/Panel.lua` | 1143 | **Peel tracked as [#42](https://github.com/tusharsaxena/ConsumableMaster/issues/42)** — the About page renderer (`readAddOnNotes`, `aboutLogo`, `aboutNotes`, `aboutSlashCommands`, `Helpers.BuildAboutContent`) out to `settings/About.lua`; the issue names the row-rule block as the follow-on seam. 1166 → 1196 at [`20261009-191755`](20261009-191755/), the largest band move this run; 514 NLOC across 59 functions at avg CCN 3.6, no warned function. Three release runs of acceptance (1.6.0, 1.6.1, 1.6.2) were the `automated-tests-§4` limit, so this cell is the tracked issue, not a renewal. |
-| 1000–1500 (on notice) | `tests/test_schema.lua` | 1176 | **Accepted — case count, not tangle; re-check at 1300.** 1023, unchanged since [`20260926-160431`](20260926-160431/). 743 NLOC across 77 functions at avg CCN 2.2. The 1.7.0 release run ([`20260927-030419`](20260927-030419/)) was acceptance 1 of 3 and the 1.8.0 release run ([`20261009-191755`](20261009-191755/)) is acceptance 2 of 3. The next release run owes a fix or a tracked issue. |
-| 1000–1500 (on notice) | `tests/test_selector.lua` | 1049 | **Accepted — case count, not tangle; re-check at 1300.** 1009 → 1049 at [`20261009-191755`](20261009-191755/). 745 NLOC across 73 functions at avg CCN 1.6. The 1.7.0 release run ([`20260927-030419`](20260927-030419/)) was acceptance 1 of 3 and the 1.8.0 release run ([`20261009-191755`](20261009-191755/)) is acceptance 2 of 3. The next release run owes a fix or a tracked issue. |
-| 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1151 | **Newly crossed at [`20261009-191755`](20261009-191755/): accepted — case count, not tangle; re-check at 1300.** 972 at the 1.7.0 tag → 1002. 570 NLOC across 68 functions at avg CCN 1.9. A suite file just past the line; the 1.8.0 release run is acceptance 1 of 3. |
+| 1000–1500 (on notice) | `settings/Category.lua` | 1034 | **Peeled 2026-10-31 ([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)): 1186 → 1034.** The composite section editor moved whole to `settings/CategoryComposite.lua`, the seam the issue named. Its under-1000 estimate predated the file's growth, so it stays on notice by 34 lines; the shelf life this row spent is answered by that peel. Accepted — page breadth, not tangle; re-check at 1300. Next seam, if it has to leave: the reset popup block. |
+| 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1115 | **Newly crossed at [`20261009-191755`](20261009-191755/): accepted — case count, not tangle; re-check at 1300.** 972 at the 1.7.0 tag → 1002, then 1151 at [`20261031-202052`](20261031-202052/). 570 NLOC across 68 functions at avg CCN 1.9. A suite file just past the line; the 1.8.0 release run is acceptance 1 of 3. |
 | 1000–1500 (on notice) | `tests/wow_mock.lua` | 1012 | **Newly crossed at [`20261009-191755`](20261009-191755/): accepted — fake breadth, not tangle; re-check at 1300.** 990 at the 1.7.0 tag → 1012, all 22 added lines being the AceDB `GetProfiles` fake that `/cm profile` needs. 605 NLOC across 134 functions at avg CCN 2.2; one small stub per API. The 1.8.0 release run is acceptance 1 of 3. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of

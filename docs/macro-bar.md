@@ -16,6 +16,7 @@ control-by-control page reference is [settings-panel.md](./settings-panel.md).
 | [`modules/MacroBarFlyout.lua`](../modules/MacroBarFlyout.lua) | yes | per-slot hover flyout: indicator, secure hover snippets, entry pool |
 | [`modules/MacroBar.lua`](../modules/MacroBar.lua) | yes | container, apply passes, combat deferral, bus receiver |
 | [`settings/MacroBar.lua`](../settings/MacroBar.lua) | yes | the Macro Bar page + every `macroBar.*` schema row |
+| [`settings/MacroBarSlots.lua`](../settings/MacroBarSlots.lua) | yes | the Buttons tab's draggable list over `macroBar.order` and `macroBar.shown` |
 
 The split is deliberate: all the logic worth testing is in the three `core/`
 files, which `tests/test_macrobar.lua` and its peeled siblings
@@ -35,26 +36,14 @@ drift between the two surfaces.
 
 ### Vendored library
 
-The border-style pickers use `LSM30_Border` from
-`libs/AceGUI-3.0-SharedMediaWidgets` (vendored, committed, loaded from the TOC
-after AceGUI + LibSharedMedia — same as KickCD). Two things to know about those
-widgets:
-
-* their preview tile is pinned to the widget's TOPLEFT, which leaves a 42px hole
-  next to the closed dropdown in a canvas panel. The fixup that collapses it is
-  `lib.__PatchLSM30Border()`, a `LibKa0s-Options-1.0` member (minor 15) called
-  once from `settings/OptionsSetup.lua`'s live arm. It used to be
-  `core/LSMPatch.lua` here, and a near-verbatim copy of the same file in four
-  sibling addons; AceGUI's widget registry is process-global, so five private
-  registrations in one client meant the last addon loaded owned everyone's
-  Border dropdown. One idempotent library member is one registration however
-  many copies of the library are vendored, and there is nothing left to "keep in
-  step" with KickCD;
-* they fire `OnValueChanged` **without** calling `SetValue` first, because they
-  assume AceConfigDialog will re-render the widget afterwards. Our panel does
-  not, so `makeDropdown` in `settings/Panel.lua` pushes the value back
-  explicitly or the dropdown keeps showing the old name even though the DB write
-  landed.
+The border-style and label-font pickers are `Ka0sMedia_Border` and `Ka0sMedia_Font`,
+the media pickers `LibKa0s-Options-1.0` owns (`libs/LibKa0s/OptionsMedia.lua`). The
+library's composers write those names on the rows, the lists come from
+LibSharedMedia, and the Skin tab paints them as Dropdowns. Since the owner's ruling
+of 2026-11-01 they are the only media pickers in the collection, so this repo no
+longer vendors AceGUI-3.0-SharedMediaWidgets and needs no alignment fixup. Another
+addon's `LSM30_*` type in the client changes nothing here. The library's dropdown
+maker reads the value back after a write, so the closed control names the new value.
 
 ## Why the bar is CM-only
 

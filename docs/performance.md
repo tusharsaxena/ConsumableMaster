@@ -135,6 +135,8 @@ it gate the **tag**, never the run and never the commit.
 
 What it *does* assert is the deterministic half, which is machine-independent:
 
+* a recompute pass allocates no more than **252000 bytes/iter** (measured 247385.5, pinned
+  2026-10-31 over three runs). The margin is under a quarter of the last real step, CM-06's;
 * the dormant arm allocates no more than an **absolute ceiling** (6144 bytes/iter today, against a
   measured 6000.0 that repeats to the tenth of a byte because the walk is deterministic under the
   mock). The ceiling exists because the relation alone cannot go red the way it matters: an
@@ -146,25 +148,33 @@ What it *does* assert is the deterministic half, which is machine-independent:
   which reads as a perfect zero-overhead result;
 * a 150-call refresh burst arms **at most two timers** and allocates no more than **1024
   bytes** (measured 0.0, baselined 2026-09-08 over three runs). The count leads and the byte
-  ceiling follows it: the count is an integer property of the debounce and is the same on every
-  machine, while a byte figure taken this way reports what the collector has not reclaimed by the
-  end of the loop and therefore moves with the live heap. Two timers rather than one because a
-  burst that straddles the cap legitimately re-arms once.
+  ceiling follows it: the count states the defect directly, where a byte figure only implies it.
+  Two timers rather than one because a burst that straddles the cap legitimately re-arms once.
 
 Timings are printed for orientation only. Read them as ratios between scenarios in one run, never
 as absolute numbers to compare across machines.
 
-### The `recompute` byte figure is a residue, not an allocation
+### Byte figures read with the collector stopped
 
-`recompute` has no ceiling and no assertion, and its byte column should not be read as what a pass
-allocates. A pass allocates about **226.6 KB** under the mock, so the 200-iteration loop allocates
-about 45 MB and the collector runs many cycles inside it. `measure` reports the heap growth between
-the two `collectgarbage("count")` reads, which is the garbage the collector has *not* reclaimed when
-the loop ends. That depends on where the loop stops in the collector's cycle, and the cycle's pacing
-depends on the live heap the rest of the addon holds. Loading more code anywhere therefore moves the
-figure, whatever the recompute itself does.
+`measure` stops the collector across the loop, so a byte column is what the loop allocated. A
+`recompute` pass allocates **247385.5 bytes** under the mock, identical to the tenth from run to run.
 
-**The 2026-09-26 sweep (ATS-01) found this case.** Run `20260926-160431` recorded `recompute` at
+Before 2026-10-31 the collector ran through the loop, and the 200-iteration `recompute` loop provoked
+many cycles. The column then read the garbage not yet reclaimed when the loop ended, which followed
+the collector's pacing and the live heap. **Runs up to and including `20261031-202052` carry that
+residue in their `recompute` column (for example 29832.8), so compare them with each other at most,
+never with a later run.** The other four scenarios read the same either way.
+
+**The residue misled twice, and the step in true allocation is one commit.**
+
+* The 2026-10-31 pre-merge run read 13741.2 → 29832.8 over `944e16b..c7658c6`. The residue moved at
+  `1373242`, the LibKa0s v1.77.0 re-vendor, which touched no addon source. With the collector stopped
+  a pass read 246905.8 at `944e16b` and 247385.5 at `c7658c6`.
+* The true figure's one step since 2026-09-26 is `1824054` (CM-06, 226657.8 → 246905.8): a shared
+  `scoreCache` keeps one memo row per candidate so each is scored once per refresh. It is an
+  out-of-combat cost, spent on purpose.
+
+**The 2026-09-26 sweep (ATS-01) found the first case.** Run `20260926-160431` recorded `recompute` at
 **6505.88 → 14740.12** bytes/iter (+126.6%) over `f8729fa..bc284a4`. A per-commit bisect with
 `tests/perf.lua` put the step at `b19e9bb` (DR-CM-03, the diagnostics report): 3031.9 → 16751.3.
 That commit adds `core/Diagnostics.lua` and does not touch the recompute path. Two checks show the
@@ -176,8 +186,7 @@ step is a measurement effect:
 * **The step goes away without the file.** At `b19e9bb` with `core/Diagnostics.lua` removed from the
   TOC, `recompute` read 2619.9, on two runs out of two. The recompute never calls that file.
 
-There was no avoidable allocation to remove. For a real change in what a recompute allocates, measure
-with the collector stopped as above rather than reading this column.
+There was no avoidable allocation to remove.
 
 ## The exemption does not apply here
 

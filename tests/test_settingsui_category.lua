@@ -36,6 +36,8 @@ local function loadCategorySettings()
     -- 1500-line peel. It loads after Category.lua, in the TOC's order, because
     -- it takes that file's two published page helpers as file-scope locals.
     files[#files + 1] = "settings/CategoryAddByID.lua"
+    -- And the composite tabs, settings/CategoryComposite.lua's since issue #43.
+    files[#files + 1] = "settings/CategoryComposite.lua"
     return loader.loadFiles(files)
 end
 
@@ -418,8 +420,10 @@ local function categoryWithCheckboxSpy()
         if name == "AceGUI-3.0" then return spy end
         return realLibStub(name, ...)
     end
-    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/Category.lua"))
-    chunk("ConsumableMaster", KCM)
+    local root = _G.KCM_TEST_ROOT or "."
+    assert(loadfile(root .. "/settings/Category.lua"))("ConsumableMaster", KCM)
+    -- And the composite tabs, which took the page's helpers as locals at load.
+    assert(loadfile(root .. "/settings/CategoryComposite.lua"))("ConsumableMaster", KCM)
     _G.LibStub = realLibStub
     return KCM, boxes
 end

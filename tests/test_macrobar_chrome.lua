@@ -691,6 +691,32 @@ test("macrobar handle: the mark holds its resting gray, because no click is wire
         t.eqList(tints[2], { 0.7, 0.7, 0.72 }, "and leaving it leaves the same tint behind")
     end)
 
+-- The strip's fit (LibKa0s#68). `applyLayout` moves the bar's scale and width, and the strip measures
+-- its title at that scale (WidgetsDragHandle minor 10), so a fit taken before the layout pass is stale
+-- until the next show. `MB.Update` is applyLayout's one caller, and it runs applyLock straight after.
+--
+-- red under: dropping applyLock from MB.Update, or running it ahead of applyLayout.
+test("macrobar handle: a layout pass while unlocked refits the strip at the new scale and width",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, bar, handle = support.buildBar(KCM)
+        local c = KCM.db.profile.macroBar
+        c.locked = false
+
+        local log, width = {}, nil
+        bar.SetScale = function(_, v) log[#log + 1] = "scale " .. v end
+        bar.SetSize  = function(_, w) width = w; log[#log + 1] = "size" end
+        bar.GetWidth = function() return width end
+        handle.ApplyWidth = function(_, w) log[#log + 1] = "fit " .. tostring(w) end
+
+        c.scale = 1.5
+        KCM.MacroBar.Update()
+
+        t.truthy(width and width > 0, "the pass sized the bar")
+        t.eqList(log, { "scale 1.5", "size", "fit " .. width },
+            "the strip is fitted once, after the scale and the width, floored at the new width")
+    end)
+
 -- ---------------------------------------------------------------------------
 -- The drag handle's close mark (X-01, X-02, X-05)
 --

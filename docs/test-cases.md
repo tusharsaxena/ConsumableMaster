@@ -493,7 +493,7 @@ Total.
 - Locale: the color escapes on the drag-icon labels stay outside the key
 - display strings use only characters every shipped skin face draws
 
-### test_macrobar.lua (35)
+### test_macrobar.lua (36)
 
 - macrobar model: AllKeys covers every managed category
 - macrobar model: NormalizeOrder leaves a complete order untouched
@@ -520,6 +520,7 @@ Total.
 - macrobar schema: number rows clamp to their declared range
 - macrobar schema: the default slot order matches the Macros tab order
 - macrobar schema: border rows are populated from LibSharedMedia
+- macrobar schema: the label font row names the Ka0sMedia picker
 - macrobar schema: LSMValues never hands back an empty list
 - macrobar schema: the bar publishes its own bus message
 - macrobar master: Master scale and Master alpha MULTIPLY the bar's own
@@ -531,7 +532,7 @@ Total.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (29)
+### test_macrobar_chrome.lua (30)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -558,6 +559,7 @@ Total.
 - macrobar handle: an unreadable strip falls back to the cursor with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark holds its resting gray, because no click is wired here
+- macrobar handle: a layout pass while unlocked refits the strip at the new scale and width
 - macrobar handle: the X hides the bar through macroBar.enabled and says the way back
 - macrobar handle: the X's tooltip says what the click does and the way back
 - macrobar handle: the X widens the label's reserve by the close mark's frame
@@ -885,7 +887,7 @@ Total.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
-### test_schema.lua (55)
+### test_schema.lua (42)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
 - schema: ValidateSchema reports zero errors and at least one row
@@ -920,19 +922,6 @@ Total.
 - schema: a render failure is reported instead of breaking the refresh loop
 - schema: RefreshScalars re-syncs widgets in place without a rebuild
 - schema: RefreshScalars flags a hidden page dirty rather than syncing it
-- schema: the page order lists five pages, each once, Profiles last
-- schema: the Macros page carries one tab per category, in macroOrder
-- schema: the Macros strip is the designed run of tabs, in order
-- schema: a Macros tab is labeled with the category's display name
-- schema: the Macro Bar page partitions into its designed tabs
-- schema: no page's rows leave a group and come back to it
-- schema: the tab strips name only groups their rows declare
-- schema: the General page opens on Master controls, carrying the canonical rows
-- schema: every session-only row declares a default, so a reset can reach it
-- schema: every moved Master controls setting is declared exactly once
-- schema: every row on every page carries a group
-- schema: every color row is followed by its class-color companion
-- schema: every mixed tab breaks its blocks up with subsection headings
 - schema: SetManyAndRefresh writes every row, each distinct apply once, one refresh
 - schema: SetManyAndRefresh refuses the whole batch when one value is invalid
 - schema: SetManyAndRefresh takes one caller reactor and a structural refresh for a page reset
@@ -959,7 +948,23 @@ Total.
 - adoption: the [Set] line is written before the row's apply runs
 - adoption: a normalize refusal reaches /cm set as one INVALID line
 
-### test_selector.lua (58)
+### test_schema_tabs.lua (13)
+
+- schema: the page order lists five pages, each once, Profiles last
+- schema: the Macros page carries one tab per category, in macroOrder
+- schema: the Macros strip is the designed run of tabs, in order
+- schema: a Macros tab is labeled with the category's display name
+- schema: the Macro Bar page partitions into its designed tabs
+- schema: no page's rows leave a group and come back to it
+- schema: the tab strips name only groups their rows declare
+- schema: the General page opens on Master controls, carrying the canonical rows
+- schema: every session-only row declares a default, so a reset can reach it
+- schema: every moved Master controls setting is declared exactly once
+- schema: every row on every page carries a group
+- schema: every color row is followed by its class-color companion
+- schema: every mixed tab breaks its blocks up with subsection headings
+
+### test_selector.lua (39)
 
 - Selector: BuildCandidateSet is seed-first; unknown category is empty
 - Selector: AddItem adds to the set and is idempotent
@@ -979,25 +984,6 @@ Total.
 - Selector: PickBestForSlot excludes an affinity-eligible item that isn't owned
 - Selector: PickBestForSlot on a blunt weapon excludes the bladed whetstone
 - Selector: PickBestForSlot skips a level-blocked enhancement
-- Selector.MarkDiscovered reports 'new' only on the first sighting
-- Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
-- Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
-- Selector.MarkDiscovered upgrades a legacy boolean entry to a timestamp
-- Selector.MarkDiscovered refuses spell sentinels and unknown categories
-- Selector.SweepStaleDiscovered drops an entry past the 30-day TTL
-- Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL
-- Selector.SweepStaleDiscovered refreshes an item that is still in bags
-- Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient
-- Selector.SweepStaleDiscovered evicts a discovered non-consumable still in bags
-- Selector.SweepStaleDiscovered keeps a discovered item whose class is unresolvable
-- Selector.SweepStaleDiscovered never touches user-intentional entries
-- Selector.SweepStaleDiscovered reaches inside per-spec buckets
-- Selector.SweepStaleDiscovered is a no-op before the DB exists
-- Selector: a pin at position 1 moves its item to the front
-- Selector: a pin for an item outside the candidate set is ignored
-- Selector: a pin past the end of the list clamps to last place
-- Selector: two pins on the same position keep both items in the list
-- Selector.GetEffectivePriority returns an empty list for an unknown category
 - Selector: ListAvailable returns every owned candidate, not just the best
 - Selector: ListAvailable preserves effective-priority order
 - Selector: ListAvailable skips unknown spells and includes known ones
@@ -1020,7 +1006,24 @@ Total.
 - Selector.ResetAllBuckets clears every bucket, spec buckets included, and keeps discovered
 - Registry: modules/Selector.lua is the only runtime writer of the bucket fields
 
-### test_selector_pins.lua (9)
+### test_selector_discovery.lua (14)
+
+- Selector.MarkDiscovered reports 'new' only on the first sighting
+- Selector.MarkDiscovered bumps the stored timestamp on a re-sighting
+- Selector.MarkDiscovered does not rewind a timestamp for an out-of-order scan
+- Selector.MarkDiscovered upgrades a legacy boolean entry to a timestamp
+- Selector.MarkDiscovered refuses spell sentinels and unknown categories
+- Selector.SweepStaleDiscovered drops an entry past the 30-day TTL
+- Selector.SweepStaleDiscovered keeps an entry that is still inside the TTL
+- Selector.SweepStaleDiscovered refreshes an item that is still in bags
+- Selector.SweepStaleDiscovered treats a legacy boolean entry as ancient
+- Selector.SweepStaleDiscovered evicts a discovered non-consumable still in bags
+- Selector.SweepStaleDiscovered keeps a discovered item whose class is unresolvable
+- Selector.SweepStaleDiscovered never touches user-intentional entries
+- Selector.SweepStaleDiscovered reaches inside per-spec buckets
+- Selector.SweepStaleDiscovered is a no-op before the DB exists
+
+### test_selector_pins.lua (14)
 
 - Pins: no pins, or an empty array, answer the auto-ranked list
 - Pins: a pin missing its item, its position or its candidate is dropped
@@ -1031,6 +1034,11 @@ Total.
 - Pins: two pins on one slot -- the first wins it, the second goes to the end
 - Pins: a position no slot equals holds every later pin back to the end
 - Pins: an item pinned at two slots appears at both
+- Selector: a pin at position 1 moves its item to the front
+- Selector: a pin for an item outside the candidate set is ignored
+- Selector: a pin past the end of the list clamps to last place
+- Selector: two pins on the same position keep both items in the list
+- Selector.GetEffectivePriority returns an empty list for an unknown category
 
 ### test_skin.lua (10)
 
@@ -1134,7 +1142,7 @@ Total.
 ### test_settingsui.lua (34)
 
 - Settings UI: the scrollbar patch IS the library's, not a lookalike
-- Settings UI: the live wiring registers the Border fixup through the library
+- Settings UI: an LSM30_Border another addon registered changes no media row
 - Settings UI: the published instance carries all three of the major's files
 - Settings UI: LibKa0s-Options tripwire — Options reads no descriptor L
 - Settings UI: the canvas frame carries OnCommit, OnDefault and OnRefresh
@@ -1579,8 +1587,8 @@ Total.
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
-| test_macrobar.lua | 35 |
-| test_macrobar_chrome.lua | 29 |
+| test_macrobar.lua | 36 |
+| test_macrobar_chrome.lua | 30 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
@@ -1594,10 +1602,12 @@ Total.
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
-| test_schema.lua | 55 |
+| test_schema.lua | 42 |
 | test_schema_adoption.lua | 13 |
-| test_selector.lua | 58 |
-| test_selector_pins.lua | 9 |
+| test_schema_tabs.lua | 13 |
+| test_selector.lua | 39 |
+| test_selector_discovery.lua | 14 |
+| test_selector_pins.lua | 14 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 13 |
 | test_skin_hud.lua | 20 |
@@ -1626,4 +1636,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1316** |
+| **Total** | **1318** |

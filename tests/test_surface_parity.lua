@@ -274,6 +274,7 @@ end)
 -- re-vendor: v1.78.0 and v1.79.0 owe them on every Options stub, adopted or not (skinning-§3), and
 -- the Skin tab is evaluated at file load (settings/General.lua), so the degraded arm answers all four.
 -- SkinVerb joined at the LibKa0s v1.82.0 re-vendor (O.SkinVerb, the act behind `/cm skin`).
+-- PositionBlock joined at the LibKa0s v1.84.0 re-vendor (O.PositionBlock, a schema composer).
 local OPTIONS_SEAM = {
     "AddRow", "AddRows", "AddSpacer", "AppearanceRows", "AppearanceTab", "AttachTooltip",
     "BUTTON_PAIR_REL", "BorderGroup",
@@ -281,7 +282,7 @@ local OPTIONS_SEAM = {
     "ColorDecode", "ColorPair",
     "CreatePanel", "CustomCheckbox", "EnsureScroll", "EnumValues", "FindSchema",
     "FontGroup", "Get", "Grid", "HideSkinPicker", "Label", "MasterControls", "MuteSetLog",
-    "PageBanner", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
+    "PageBanner", "PositionBlock", "RefreshAllPanels", "RefreshScalars", "RegisterRows",
     "RenderField", "RenderRows", "ResetScroll", "SECTION_HEADING_H",
     "Section", "Set", "SetAndRefresh", "SetManyAndRefresh", "SetRenderer", "SkinPicker", "SkinVerb", "TabStrip",
     "ValidateSchema", "ValidateSchemaValue", "instance", "schema",
@@ -298,10 +299,11 @@ local OPTIONS_SEAM = {
 -- message), so they must be real no-ops on both arms — which is the finding this
 -- seam actually had.
 --
--- The FOUR COMPOSERS are deliberately NOT on this list. They are called inside
--- schema-row literals at FILE LOAD, which is the one position options-ui-§1 says
--- a stub must cover, so settings/OptionsSetup.lua's degraded arm publishes them
--- answering an empty row list. What that costs is measured, not assumed —
+-- The FIVE COMPOSERS are deliberately NOT on this list. Four of them are called
+-- inside schema-row literals at FILE LOAD, which is the one position options-ui-§1
+-- says a stub must cover, and no page calls PositionBlock yet, but the stub owes
+-- every public member. So settings/OptionsSetup.lua's degraded arm publishes all
+-- five answering an empty row list. What that costs is measured, not assumed —
 -- tests/test_settingsui.lua compares the schema row count on both arms.
 local OPTIONS_LIVE_ONLY = {
     "AddSpacer", "AttachTooltip", "BUTTON_PAIR_REL", "BuildLandingPage", "CLASS_COLOR_NOTE",

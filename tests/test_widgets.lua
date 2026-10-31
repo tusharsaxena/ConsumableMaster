@@ -99,7 +99,8 @@ test("Widgets: every widget name used by the settings pages is registered", func
     local root = _G.KCM_TEST_ROOT or "."
     -- Scan the settings sources for AceGUI:Create("KCM...") call sites; each
     -- must correspond to a widget one of the modules registers.
-    for _, page in ipairs({ "settings/Category.lua", "settings/StatPriority.lua",
+    for _, page in ipairs({ "settings/Category.lua", "settings/CategoryComposite.lua",
+                            "settings/StatPriority.lua",
                             "settings/General.lua", "settings/Panel.lua" }) do
         local f = io.open(root .. "/" .. page, "r")
         if f then

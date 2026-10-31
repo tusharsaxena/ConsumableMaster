@@ -164,8 +164,9 @@ end)
 test("Skin: every library factory that takes an owner is handed this addon's", function(t)
     local sites = {
         { "modules/MacroBar.lua", "Widgets.DragHandle(frame, {", 1 },
-        { "settings/Category.lua", "W.ReorderList({", 2 },
-        { "settings/MacroBar.lua", "W.ReorderList({", 1 },
+        { "settings/Category.lua", "W.ReorderList({", 1 },
+        { "settings/CategoryComposite.lua", "W.ReorderList({", 1 },
+        { "settings/MacroBarSlots.lua", "W.ReorderList({", 1 },
         { "settings/StatPriority.lua", "W.ReorderList({", 1 },
     }
     for _, site in ipairs(sites) do

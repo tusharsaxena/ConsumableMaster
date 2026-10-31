@@ -93,17 +93,21 @@ end
 
 --- Run `fn` `iterations` times, reporting wall time and bytes allocated PER ITERATION.
 ---
---- The allocation figure is the load-bearing one. A full collect before and after isolates the
---- garbage this path actually produces, and garbage per repaint is what turns a cheap-looking
---- function into a frame-rate problem once it runs at near-frame frequency in combat.
+--- The allocation figure is the load-bearing one, and garbage per repaint is what turns a
+--- cheap-looking function into a frame-rate problem once it runs at near-frame frequency in combat.
+--- The collector is stopped across the loop, so the figure is what the loop allocated. With it
+--- running the figure was a residue: a cycle landing inside the loop subtracted from it, so it
+--- followed the live heap and the collector's pacing and moved with unrelated code.
 local function measure(name, iterations, fn)
     collectgarbage("collect")
     collectgarbage("collect")
+    collectgarbage("stop")
     local kbBefore = collectgarbage("count")
     local t0 = os.clock()
     for i = 1, iterations do fn(i) end
     local elapsed = os.clock() - t0
     local kbAfter = collectgarbage("count")
+    collectgarbage("restart")
 
     local r = {
         name         = name,
@@ -122,10 +126,25 @@ local BURST = 200
 
 -- 1. The recompute pass — the 15-category walk, the composite re-picks and every macro write.
 --    Coalesced to at most one per frame by RequestRecompute, and skipped outright in combat, so
---    this is an out-of-combat cost. Measured for orientation and for the record's trend line.
-measure("recompute", BURST, function()
+--    this is an out-of-combat cost.
+local recompute = measure("recompute", BURST, function()
     KCM.Pipeline.Recompute("perf")
 end)
+
+-- PINNED 2026-10-31, three consecutive runs, once `measure` stopped the collector.
+--
+--   measured   247385.5 bytes/iter, identical to the tenth in all three runs.
+--   ceiling    252000 = the measured figure plus 1.9%.
+--   margin     DERIVED from the last real step. CM-06 (1824054), sharing one scoreCache across a
+--              bar refresh's flyouts, moved this figure 226657.8 -> 246905.8: one memo row per
+--              candidate, spent on purpose so each candidate is scored once per refresh. This
+--              line trips at under a quarter of a step that size.
+--
+-- Raise it only by filling in those three lines again; a rise IS the finding.
+local RECOMPUTE_BYTES_CEILING = 252000
+assert_(recompute.bytesPerIter <= RECOMPUTE_BYTES_CEILING,
+    ("a recompute pass allocated %.1f bytes/iter, over the %d-byte ceiling")
+        :format(recompute.bytesPerIter, RECOMPUTE_BYTES_CEILING))
 
 -- 2. The cooldown repaint — SPELL_UPDATE_COOLDOWN and BAG_UPDATE_COOLDOWN both land here, and each
 --    one walks every bar button plus every shown flyout row. THE near-frame-frequency path in
@@ -158,7 +177,8 @@ KCM.Perf.on = false
 -- The dormant arm therefore also carries an ABSOLUTE ceiling. Raise it only with a recorded
 -- reason — a rise IS the finding, and the headroom below is deliberately thin.
 --
--- RE-VERIFIED 2026-09-08, three consecutive runs, and left where it stands.
+-- RE-VERIFIED 2026-10-31, three consecutive runs with the collector stopped in `measure`, and left
+-- where it stands.
 --
 --   measured   6000.0 bytes/iter with the brackets dormant, identical to the tenth in all three
 --              runs and EXACTLY cooldownRefresh's figure — which is the point: the probe
@@ -168,15 +188,8 @@ KCM.Perf.on = false
 --   margin     Measured rather than asserted: one empty table added to this scenario's body moves
 --              the figure 6000.0 -> 6064.0, so a table costs 64 bytes/pass under this interpreter
 --              and the 144-byte margin ADMITS TWO of them before it trips. Stated plainly because
---              it is the limit of what this line catches. It is not tightened to 6032 — the
---              sibling re-baselining in AbsorbTracker's tests/perf.lua could afford that because
---              its baseline is 48.0 and its loop never provokes the collector; this loop allocates
---              1.2 MB, `measure` reports what the collector has NOT reclaimed by the end of it,
---              and this file's own `recompute` line demonstrably moves with unrelated edits to
---              this file for exactly that reason. Half a percent of headroom on a figure taken
---              that way buys a gate that goes red on a good day, which is the failure the header
---              of this file is about. A regression that adds a table PER SLOT — the realistic
---              shape — costs fifteen of them and trips this immediately.
+--              it is the limit of what this line catches. A regression that adds a table PER SLOT
+--              — the realistic shape — costs fifteen of them and trips this immediately.
 --
 -- Raise it only by filling in those three lines again — a rise IS the finding.
 local PROBE_OFF_BYTES_CEILING = 6144
@@ -268,11 +281,7 @@ assert_(timersScheduled <= BURST * TIMERS_PER_BURST_CEILING,
 --              burst legitimately performs, and that rebuild growing is not what this line is
 --              about.
 --
--- A byte figure taken this way is also worth reading with its limits in mind. `measure` reports
--- what the heap has NOT reclaimed by the end of the loop, so a scenario's byte column moves with
--- the live-heap size at the moment it runs and therefore with the rest of this file: adding this
--- scenario alone, changing nothing else, moved `recompute` from 4102.0 to 4179.0. That is why the
--- count above leads and this follows, and why the margin here is wide rather than tight.
+-- The count above still leads: it states the defect directly, where a byte figure only implies it.
 local REFRESH_BURST_BYTES_CEILING = 1024
 assert_(refreshBurst.bytesPerIter <= REFRESH_BURST_BYTES_CEILING,
     ("a %d-call burst allocated %.1f bytes, over the %d-byte ceiling — something in the debounce is "

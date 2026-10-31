@@ -216,12 +216,16 @@ local PURE_LAYER_OMITS = {
     ["core/SlashCommands.lua"]   = true,
     ["settings/OptionsSetup.lua"] = true,
     ["settings/Panel.lua"]       = true,
+    ["settings/PanelRows.lua"]   = true,
+    ["settings/About.lua"]       = true,
     ["settings/OptionsShim.lua"] = true,
     ["settings/General.lua"]     = true,
     ["settings/MacroBar.lua"]    = true,
+    ["settings/MacroBarSlots.lua"] = true,
     ["settings/StatPriority.lua"] = true,
     ["settings/Category.lua"]    = true,
     ["settings/CategoryAddByID.lua"] = true,
+    ["settings/CategoryComposite.lua"] = true,
     ["settings/Slash.lua"]       = true,
     -- The frame layer: every one of these builds real widgets at load, which is
     -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
@@ -264,8 +268,8 @@ end
 -- client would already be carrying can be put there. Everything a case can reach
 -- from outside is either too early (the mock has not been installed) or too late
 -- (the addon has already read it). It exists for exactly one thing today:
--- seeding an AceGUI widget slot so the Border fixup's registration can be seen
--- happening, rather than asserted about a function nobody called.
+-- seeding an AceGUI widget slot, so a case can show that a media row ignores the
+-- LSM30_* type another addon registered.
 function L.loadFiles(files, omitLibs, mutate)
     local NS = {}
     mock.install(NS)
@@ -368,8 +372,9 @@ end
 --- panel. Leaving it out would answer those with nil on exactly the arms that
 --- pin the degraded install.
 L.SETTINGS_SEAM = {
-    "settings/OptionsSetup.lua", "settings/Panel.lua", "settings/OptionsShim.lua",
-    "settings/General.lua", "settings/MacroBar.lua",
+    "settings/OptionsSetup.lua", "settings/Panel.lua", "settings/PanelRows.lua",
+    "settings/About.lua", "settings/OptionsShim.lua",
+    "settings/General.lua", "settings/MacroBar.lua", "settings/MacroBarSlots.lua",
 }
 
 function L.loadWithSchema(omitLibs, mutate)
@@ -513,7 +518,9 @@ local SUITES = {
     "test_runner_list",
     "test_schema",
     "test_schema_adoption",
+    "test_schema_tabs",
     "test_selector",
+    "test_selector_discovery",
     "test_selector_pins",
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",

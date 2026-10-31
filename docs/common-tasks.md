@@ -29,7 +29,7 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
    ```
 8. Options panel picks the category up automatically from `Categories.LIST` — its tab on the **Macros** page is generated, not written.
 9. Add the lower-cased key to `KCM.Settings.macroOrder` (`settings/Panel.lua`) at the position you want its tab, then append the UPPER-cased key to `dbDefaults.profile.macroBar.order` in the same position — the macro bar's default slot order mirrors the tab order, and `tests/test_macrobar.lua` fails if the two drift. (An existing profile self-heals: `MacroBarModel.NormalizeOrder` appends any category its saved order has never seen.) `KCM.Settings.order` (the five pages) and `_validPanels` (the four that carry schema rows) do not change: a category is a tab now, not a page.
-10. Add the tab to the expected run in `tests/test_schema.lua` → "the Macros strip is the designed run of tabs, in order". It is written out longhand on purpose — derived from `Categories.LIST` it would agree with `Categories.LIST` whatever that said.
+10. Add the tab to the expected run in `tests/test_schema_tabs.lua` → "the Macros strip is the designed run of tabs, in order". It is written out longhand on purpose — derived from `Categories.LIST` it would agree with `Categories.LIST` whatever that said.
 
 ## Add a new composite category
 
@@ -74,6 +74,6 @@ For the Midnight-specific gotcha catalog see [midnight-quirks.md](./midnight-qui
 
 ## Verify a behavior change in-game
 
-The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `luacheck .` before committing. In-game behavior still needs manual validation: run the quick pass MACRO-1 in [smoke-tests.md](./smoke-tests.md) as the post-change minimum, and use that file's [Index](./smoke-tests.md#index), which names the themes to run for the code you touched.
+The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` before committing. In-game behavior still needs manual validation: run the quick pass MACRO-1 in [smoke-tests.md](./smoke-tests.md) as the post-change minimum, and use that file's [Index](./smoke-tests.md#index), which names the themes to run for the code you touched.
 
 If you can only reason about the change from code and cannot test it in WoW, say so explicitly — don't claim it works.

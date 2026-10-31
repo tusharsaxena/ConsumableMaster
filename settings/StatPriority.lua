@@ -515,7 +515,8 @@ end
 -- SimpleGroup gets one with a live handle still sitting on it.
 --
 -- ONE controller, not a list: this page draws a single reorder list, where
--- settings/Category.lua's composite page draws two and its seam holds both.
+-- settings/CategoryComposite.lua's page draws two and settings/Category.lua's
+-- shared seam holds both.
 --
 -- The ROW FRAMES go back on the same seam and for the same reason -- they are raw
 -- frames parented to AceGUI containers ResetScroll is about to pool, so a row not

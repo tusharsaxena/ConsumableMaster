@@ -36,71 +36,34 @@ test("Settings UI: the scrollbar patch IS the library's, not a lookalike", funct
         "PatchAlwaysShowScrollbar is the library function object")
 end)
 
--- The Border fixup, which this addon no longer owns.
+-- A media row is the library's picker, whatever another addon put in the registry.
 --
--- core/LSMPatch.lua used to do this — a PLAYER_LOGIN frame that wrapped whatever
--- AceGUI held for "LSM30_Border" and re-registered it one version higher. Four
--- sibling addons shipped their own copy of the same file, and AceGUI's widget
--- registry is process-global, so in a client running all five the wrapper a
--- Border dropdown actually got belonged to whichever addon loaded last. The file
--- is gone; settings/OptionsSetup.lua's live arm calls the library member instead.
---
--- WHY THIS CASE COULD NOT HAVE BEEN WRITTEN BEFORE. The private copy armed a
--- PLAYER_LOGIN frame that never fires headlessly, so nothing in this suite ever
--- observed it — running this case against the old file gives exactly the same
--- red as running it against no fixup at all, which is how five copies of one
--- wrapper stayed invisible for as long as they did. What makes it observable is
--- the `mutate` hook in tests/run.lua: the registry is seeded between the library
--- files and the addon's own, which is the only window a real client's
--- already-registered widget can be modeled in.
-test("Settings UI: the live wiring registers the Border fixup through the library", function(t)
-    local seededCtor = function()
-        local rec = { hidden = false, labelPoints = 0, capPoints = 0 }
-        local function region(counter)
-            return {
-                ClearAllPoints = function() end,
-                SetPoint       = function() rec[counter] = rec[counter] + 1 end,
-            }
-        end
-        return {
-            __rec  = rec,
-            frame = {
-                displayButton = { Hide = function() rec.hidden = true end },
-                label = region("labelPoints"),
-                DLeft = region("capPoints"),
-            },
-        }
-    end
-
+-- AceGUI's widget registry is process-global, so a client can hold an LSM30_Border
+-- from any other addon that vendors AceGUI-3.0-SharedMediaWidgets. Since the owner's
+-- ruling of 2026-11-01 that slot means nothing here: the row draws Ka0sMedia_Border,
+-- and the library's old fixup is a no-op that must leave the slot alone. The
+-- `mutate` hook in tests/run.lua seeds the slot between the library files and the
+-- addon's own, which is the only window a real client's registration can be
+-- modeled in.
+test("Settings UI: an LSM30_Border another addon registered changes no media row", function(t)
+    local seededCtor = function() end
     local KCM = loader.loadWithSchema(false, function()
-        LibStub("AceGUI-3.0"):RegisterWidgetType("LSM30_Border", seededCtor, 20)
+        local Ace = LibStub("AceGUI-3.0")
+        Ace:RegisterWidgetType("LSM30_Border", seededCtor, 20)
+        -- The two stock types the pickers build on, which the mock does not register.
+        Ace:RegisterWidgetType("Dropdown", function() end, 1)
+        Ace:RegisterWidgetType("Dropdown-Item-Toggle", function() end, 1)
     end)
     t.truthy(KCM.Settings.optionsUI, "the live arm built an instance")
 
     local AceGUI = LibStub("AceGUI-3.0")
-    local installed = AceGUI.WidgetRegistry["LSM30_Border"]
-    t.truthy(installed, "the slot still holds a constructor")
-    t.ne(installed, seededCtor, "and it is no longer the one seeded before the addon loaded")
-    t.eq(AceGUI:GetWidgetVersion("LSM30_Border"), 21,
-        "registered exactly one version above what it found, which is what wins the slot")
-
-    -- Identity is not enough on its own: any re-registration would pass it. This
-    -- is the wrapper DOING the fixup — hiding upstream's 42x42 preview tile and
-    -- re-anchoring the label and the dropdown bar's left cap — against the
-    -- constructor that was in the slot when it ran.
-    local widget = installed()
-    t.truthy(widget and widget.__rec, "the wrapper returns the wrapped constructor's widget")
-    t.truthy(widget.__rec.hidden, "the preview tile is hidden")
-    t.eq(widget.__rec.labelPoints, 2, "the label is re-anchored to both top corners")
-    t.eq(widget.__rec.capPoints, 1, "the dropdown bar's left cap is put back on the frame's edge")
-
-    -- Idempotent, and this is the half that matters in a client: five vendored
-    -- copies of the library are one table to LibStub, so the second caller must
-    -- register nothing rather than wrap the first caller's wrapper.
     local lib = LibStub("LibKa0s-Options-1.0")
-    t.falsy(lib.__PatchLSM30Border(), "a second call reports that it registered nothing")
-    t.eq(AceGUI.WidgetRegistry["LSM30_Border"], installed, "and the slot is untouched")
-    t.eq(AceGUI:GetWidgetVersion("LSM30_Border"), 21, "at the same version")
+    t.eq(lib.__MediaWidgetType("LSM30_Border"), "Ka0sMedia_Border",
+        "a row naming the old type still draws the picker")
+    t.eq(lib.__MediaWidgetType("border"), "Ka0sMedia_Border", "and so does the media kind")
+
+    t.eq(AceGUI.WidgetRegistry["LSM30_Border"], seededCtor, "the slot is untouched")
+    t.eq(AceGUI:GetWidgetVersion("LSM30_Border"), 20, "at the same version")
 end)
 
 test("Settings UI: the published instance carries all three of the major's files", function(t)
@@ -288,7 +251,7 @@ test("Settings UI: the About logo path follows the folder name", function(t)
     -- its own rule working. So the rename is applied to the one file this case
     -- is about, re-run on the same namespace the way the client runs it.
     KCM.name = "ConsumableMasterRenamed"
-    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/Panel.lua"))
+    local chunk = assert(loadfile((_G.KCM_TEST_ROOT or ".") .. "/settings/About.lua"))
     chunk(KCM.name, KCM)
     local path
     local AceGUI = LibStub("AceGUI-3.0")
