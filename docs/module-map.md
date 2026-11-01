@@ -639,6 +639,7 @@ KCM.SkinPanelText(fs, role)                   -- the settings surfaces' reads: t
                                               --   while the Scope's Ignore settings panel is on
 KCM.SkinPanelMark(tex, art, icon, token) / SkinPanelMarkOpts(art, icon, token)
 KCM.SkinPanelGlyph(button, art, icon, token) / SkinPanelMarkText(markup, icon, size, token)
+KCM.SkinPanelGhost(art, icon, token)          -- a reorder row's carried mark: ghostIcon, ghostIconColor
 KCM.SkinPanelHoverArt(tex)                    -- the settings marks (cause L6): S.Mark, S.MarkText, or stock
 KCM.SkinAcquire(ace, type) / SkinPaintAce(w) / SkinPaintAceTree(c) / SkinOnRelease(w, fn)
 KCM.MaybeShowSkinPicker() / HideSkinPicker() / SkinPickerSpec()   -- the first-run picker (O3)

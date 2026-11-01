@@ -66,7 +66,7 @@ BB.BorderTexture = borderTexture   -- shared with modules/MacroBar.lua's backdro
 -- `bar.borderSize`, shared by the flyout panel), the buttons' (the icon family,
 -- `icon.borderStyle` / `icon.borderSize`), the label face (`hud.font`), and since
 -- the owner's ruling of 2026-11-01 (FS-CM-FLIP) every color and the label's shadow
--- (BB.Swatch, BB.HudFontOpts below). A class color comes first and has no companion.
+-- (BB.Swatch; the labelFontOpts applyLabel hands S.HudFont, below). A class color comes first and has no companion.
 -- The sizes and the offset stay the player's. The count text has no setting, so it
 -- simply takes the skin's HUD face, outline and text color (D6).
 --

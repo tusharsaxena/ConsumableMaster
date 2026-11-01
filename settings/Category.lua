@@ -398,6 +398,7 @@ local function makeScoreBtn(parent, opts)
     local btn = KCM.SkinAcquire(AceGUI, "KCMScoreButton")
     btn:SetImageSize(22, 22)
     btn:SetImage(opts.image)
+    if opts.mark then btn:SetMark(opts.mark) end
     btn:SetWidth(ROW_BTN_W)
     if opts.tooltip or opts.label then
         H.AttachTooltip(btn, opts.label, opts.tooltip)

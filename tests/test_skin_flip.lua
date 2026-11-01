@@ -208,6 +208,33 @@ test("Skin flip: a skin switch changes what each flipped surface draws", functio
     end
 end)
 
+-- red under: an owner token following the wrong role, which still differs from Ka0s Default, so the
+-- case above stays green; or a surface drawing another surface's token. A probe skin gives every
+-- role a value of its own: `icon.border` and `bar.border` are one color in all nine shipped skins,
+-- and `bar.bg` and `cover.dim` never move, so no shipped skin can tell these apart.
+test("Skin flip: under another skin each surface draws the token its owner token follows", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local Skin = skinLib()
+    local want = {
+        buttonBorder = { "icon.border", 0.1 }, buttonBackdrop = { "bar.bg", 0.2 },
+        flyoutBackdrop = { "popup.bg", 0.3 }, flyoutBorder = { "bar.border", 0.4 },
+        shade = { "cover.dim", 0.5 }, barEdge = { "bar.border", 0.4 }, barFill = { "bar.bg", 0.2 },
+        label = { "hud.label", 0.6 }, count = { "hud.text", 0.7 },
+    }
+    local tokens = {}
+    for _, w in pairs(want) do tokens[w[1]] = { w[2], w[2], w[2], 1 } end
+    Skin:RegisterSkin({ key = "probe", tokens = tokens })
+    Skin:SetChoice(OWNER, "ka0s", "probe")
+    local _, seen = barDraws(KCM)
+    KCM.MacroBar.Update()
+    local got = drawn(KCM, barCfg(KCM))
+    got.barEdge, got.barFill = seen.edge, seen.fill
+    Skin:SetChoice(OWNER, "ka0s", "ka0s")
+    for name, w in pairs(want) do
+        t.eq(rgba(got[name]), rgba(tokens[w[1]]), name .. " is " .. w[1])
+    end
+end)
+
 test("Skin flip: the bar's fill and edge draw the skin's tokens, and a skin switch repaints them", function(t)
     local KCM = h.loader.loadFullAddon()
     local Skin = skinLib()
@@ -241,11 +268,18 @@ test("Skin flip: a companion off draws the stored color, under any skin", functi
         barBorderColorFromSkin = false, barBorderColor = stored,
         flyoutShadeColorFromSkin = false, flyoutShadeColor = stored,
     }))
+    local _, seen = barDraws(KCM)
+    local p = KCM.db.profile.macroBar
+    p.barBackdropColorFromSkin, p.barBackdropColor = false, stored
+    p.barBorderColorFromSkin, p.barBorderColor = false, stored
+    KCM.MacroBar.Update()
     Skin:SetChoice(OWNER, "ka0s", "ka0s")
     for _, name in ipairs({ "buttonBorder", "buttonBackdrop", "label", "flyoutBackdrop",
         "flyoutBorder", "shade" }) do
         t.eq(rgba(got[name]), "0.11,0.22,0.33,0.44", name)
     end
+    t.eq(rgba(seen.fill), "0.11,0.22,0.33,0.44", "the bar's own fill")
+    t.eq(rgba(seen.edge), "0.11,0.22,0.33,0.44", "the bar's own edge")
 end)
 
 -- red under: the companion checked before the class color (MC: a class color is never the skin's).

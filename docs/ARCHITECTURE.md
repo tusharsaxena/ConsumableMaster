@@ -332,7 +332,7 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
   the settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
   `SkinPanelText` (below), the settings marks `KCM.SkinPanelMark` / `SkinPanelMarkOpts` /
-  `SkinPanelGlyph` / `SkinPanelMarkText` / `SkinPanelHoverArt` (cause L6: the Ka0s icon in a token's
+  `SkinPanelGlyph` / `SkinPanelGhost` / `SkinPanelMarkText` / `SkinPanelHoverArt` (cause L6: the Ka0s icon in a token's
   tint through `S.Mark`, the client's art while the panel is ignored or degraded), the four `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
   `KCM.SkinPaintAceTree`, the picker's three functions and `KCM.RunSkinVerb` ([module-map.md](./module-map.md)).
   Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from

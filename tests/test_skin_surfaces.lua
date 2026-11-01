@@ -461,6 +461,23 @@ test("Skin marks: the score button's info mark keeps the skin's tint through ena
     t.truthy(ok, tostring(err))
 end)
 
+-- red under: SetDisabled(false) leaving the remove mark white.
+test("Skin marks: the remove button's mark keeps the skin's tint through enable", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMIconButton.lua", "KCMIconButton")
+    local ok, err = pcall(function()
+        scopeCleared("obsidian")
+        w:OnAcquire()
+        w:SetImage("atlas:transmog-icon-remove")
+        w:SetMark(KCM.SkinPanelMarkOpts("atlas:transmog-icon-remove", "close", "btn.icon"))
+        w:SetDisabled(true)
+        w:SetDisabled(false)
+        t.truthy(same(paint(w.image).vertex, rgba(KCM.Skin.Color("btn.icon"))), "still btn.icon")
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
 -- red under: the pooled row's glyph or star left on the client's art.
 test("Skin marks: an item row's tick, cross and star are Ka0s marks", function(t)
     local KCM = h.loader.loadPure()
@@ -507,6 +524,198 @@ test("Skin marks: the drag icon's hover flash takes list.hoverArt with the Scope
         Skin:SetIgnore(OWNER, false, false)
     end)
     cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- What the pages hand those marks. The widget cases above feed them a mark by hand, so a page that
+-- passes the wrong icon, the wrong token or none at all goes unseen there.
+
+--- Every glyph a render marks, on a painted texture of its own: button -> { tex, paint }.
+local function spyGlyphs(KCM)
+    local M = { CreateFrame = _G.CreateFrame }
+    local restore = installPaint(M)
+    local real, glyphs = KCM.SkinPanelGlyph, {}
+    KCM.SkinPanelGlyph = function(button, art, iconName, token)
+        local tex = M.CreateFrame("Frame"):CreateTexture()
+        real({ SetNormalTexture = function() end, GetNormalTexture = function() return tex end },
+            art, iconName, token)
+        glyphs[button] = tex
+    end
+    return glyphs, M.__paint, function()
+        KCM.SkinPanelGlyph = real
+        restore()
+    end
+end
+
+--- Every row spec the reorder lists are handed, by the frame registered.
+local function spyAddRow()
+    local W = LibStub("LibKa0s-Widgets-1.0")
+    local real, specs = W.ReorderList, {}
+    W.ReorderList = function(opts)
+        local list = real(opts)
+        local add = list.AddRow
+        list.AddRow = function(self, frame, spec)
+            specs[frame] = spec
+            return add(self, frame, spec)
+        end
+        return list
+    end
+    return specs, function() W.ReorderList = real end
+end
+
+local function openPage(KCM, id, tab)
+    local UI = KCM.Settings.Helpers.instance
+    KCM.Settings.builders[id]({})
+    local ctx = UI.__panelFor(id)
+    ctx.panel.IsShown = function() return true end
+    ctx.activeTab = tab
+    KCM.Settings.Helpers.RefreshAllPanels()
+    return ctx
+end
+
+local function statPage(KCM)
+    KCM.Options._viewedSpec, KCM.Options._viewedSpecAuto = "8_262", false
+    KCM.db.profile.statPriority = { ["8_262"] = { primary = "AGI", secondary = { "HASTE", "CRIT" } } }
+    return openPage(KCM, "statpriority").kcmStatRows
+end
+
+local function slotsPage(KCM)
+    local p = KCM.db.profile.macroBar
+    p.shown[p.order[1]] = false
+    return openPage(KCM, "macrobar", "Buttons").kcmSlotRows
+end
+
+local PAGES = {
+    { "Stat Priority", statPage, "kcmIncluded", "Interface\\RaidFrame\\ReadyCheck-Ready",
+      "Interface\\RaidFrame\\ReadyCheck-NotReady" },
+    { "Macro Bar Buttons", slotsPage, "kcmShown", "Interface\\RaidFrame\\ReadyCheck-Ready",
+      "Interface\\RaidFrame\\ReadyCheck-NotReady" },
+}
+
+local function bothStates(t, rows, flag, name)
+    local on, off = 0, 0
+    for _, row in ipairs(rows or {}) do
+        if row[flag] then on = on + 1 else off = off + 1 end
+    end
+    t.truthy(on > 0 and off > 0, name .. " draws both states")
+end
+
+-- red under: a page handing every glyph the same token, or the wrong icon, so an excluded or hidden
+-- row reads good.
+test("Skin marks: each page's glyph is the Ka0s mark of its state, both ways", function(t)
+    for _, page in ipairs(PAGES) do
+        local KCM = h.loader.loadFullAddon()
+        local Skin = scopeCleared("obsidian")
+        local glyphs, paint, restore = spyGlyphs(KCM)
+        local ok, err = pcall(function()
+            local rows = page[2](KCM)
+            bothStates(t, rows, page[3], page[1])
+            for _, row in ipairs(rows) do
+                local on = row[page[3]]
+                local tex = glyphs[row.kcmGlyph]
+                t.eq(paint(tex).texture, KCM.Icon(on and "confirm" or "close"), page[1] .. " art")
+                t.truthy(same(paint(tex).vertex, rgba(KCM.Skin.Color(on and "sem.good" or "sem.bad"))),
+                    page[1] .. " token")
+            end
+        end)
+        restore()
+        Skin:SetIgnore(OWNER, false, false)
+        Skin:SetChoice(OWNER, "ka0s", "ka0s")
+        t.truthy(ok, tostring(err))
+    end
+end)
+
+-- red under: the carried copy drawing the client's tick or cross under a row wearing the Ka0s mark,
+-- or the Ka0s mark on a panel the Scope ignores.
+test("Skin marks: a reorder row's carried mark matches the row, both ways", function(t)
+    for _, page in ipairs(PAGES) do
+        local KCM = h.loader.loadFullAddon()
+        local Skin = scopeCleared("obsidian")
+        local specs, restore = spyAddRow()
+        local ok, err = pcall(function()
+            local rows = page[2](KCM)
+            bothStates(t, rows, page[3], page[1])
+            for _, row in ipairs(rows) do
+                local on, spec = row[page[3]], specs[row]
+                t.eq(spec.ghostIcon, KCM.Icon(on and "confirm" or "close"), page[1] .. " Ka0s mark")
+                t.truthy(same(spec.ghostIconColor, rgba(KCM.Skin.Color(on and "sem.good" or "sem.bad"))),
+                    page[1] .. " in its token")
+            end
+
+            Skin:SetIgnore(OWNER, true, false)
+            rows = page[2](KCM)
+            for _, row in ipairs(rows) do
+                local on, spec = row[page[3]], specs[row]
+                t.eq(spec.ghostIcon, on and page[4] or page[5], page[1] .. " ignored: the client's art")
+                t.eq(spec.ghostIconColor, nil, page[1] .. " ignored: no tint")
+            end
+        end)
+        restore()
+        Skin:SetIgnore(OWNER, false, false)
+        Skin:SetChoice(OWNER, "ka0s", "ka0s")
+        t.truthy(ok, tostring(err))
+    end
+end)
+
+-- red under: the Ka0s mark on the carried copy of an install with no library.
+test("Skin marks: without the library the carried mark is the row's art, with no tint", function(t)
+    local KCM = h.loader.loadPureDegraded()
+    local art, color = KCM.SkinPanelGhost("stock", "confirm", "sem.good")
+    t.eq(art, "stock", "the client's art")
+    t.eq(color, nil, "and the list's own tint")
+end)
+
+-- red under: the row handing a button the wrong icon, or no mark, and the legend a stock mark.
+test("Skin marks: a Macros row's buttons and the legend take their marks from the page", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local mock = h.loader.mock
+    mock.setItem(960010, { name = "Test Potion", subType = "Potions" })
+    KCM.Pipeline.RequestRecompute = function() end
+    KCM.Selector.AddItem("HP_POT", 960010)
+    local Skin = scopeCleared("obsidian")
+    local AceGUI = LibStub("AceGUI-3.0")
+    local realCreate, made = AceGUI.Create, {}
+    AceGUI.Create = function(self, kind)
+        local w = realCreate(self, kind)
+        if kind == "KCMIconButton" or kind == "KCMScoreButton" then
+            w.SetImage = function(me, v) me._image = v; return me end
+            w.SetMark = function(me, v) me._mark = v; return me end
+            made[kind] = made[kind] or w
+        end
+        return w
+    end
+    local before = #AceGUI.__created
+    local ok, err = pcall(function()
+        local UI = KCM.Settings.Helpers.instance
+        KCM.Settings.builders.macros({})
+        local ctx = UI.__panelFor("macros")
+        ctx.panel.IsShown = function() return true end
+        KCM.Options.SetMacroTab("HP_POT")
+        KCM.Settings.Helpers.RefreshAllPanels()
+
+        local remove, score = made.KCMIconButton, made.KCMScoreButton
+        t.truthy(remove and score, "the row drew its buttons")
+        t.eq(remove._image, "atlas:transmog-icon-remove", "the remove button's stock art")
+        t.eq(remove._mark and remove._mark.art, KCM.Icon("close"), "its Ka0s mark")
+        t.eq(remove._mark and remove._mark.token, "btn.icon", "in btn.icon")
+        t.eq(score._image, KCM.Icon("info"), "the score button's catalog mark")
+        t.eq(score._mark and score._mark.token, "btn.icon", "tinted btn.icon, not left white")
+        t.truthy(score._mark and score._mark.panel, "under the panel scope")
+
+        local body = {}
+        for i = before + 1, #AceGUI.__created do
+            local text = AceGUI.__created[i].__text
+            if type(text) == "string" then body[#body + 1] = text end
+        end
+        body = table.concat(body, "\n")
+        for _, m in ipairs({ { "confirm", "sem.good" }, { "close", "sem.bad" }, { "star", "text.accent" } }) do
+            t.truthy(body:find(KCM.Skin.MarkText(KCM.Icon(m[1]), 20, m[2]), 1, true),
+                "the legend's " .. m[1] .. " is the Ka0s mark in " .. m[2])
+        end
+    end)
+    AceGUI.Create = realCreate
+    Skin:SetIgnore(OWNER, false, false)
+    Skin:SetChoice(OWNER, "ka0s", "ka0s")
     t.truthy(ok, tostring(err))
 end)
 

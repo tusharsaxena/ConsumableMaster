@@ -340,13 +340,16 @@ local function renderSlotRow(ctx, scroll, list, key, shown)
     ctx.kcmSlotRows[#ctx.kcmSlotRows + 1] = slotRow
 
     if list then
+        local ghostIcon, ghostIconColor = KCM.SkinPanelGhost(slotRow.kcmGlyphTexture,
+            shown and "confirm" or "close", shown and "sem.good" or "sem.bad")
         -- NO `parent`: the box and the handle default to the whole row, as on every
         -- other draggable list in the collection. A hidden slot is registered all
         -- the same -- it still counts for indices and still anchors the line -- but
         -- with no handle and in the library's muted box.
         list:AddRow(slotRow, {
             ghostText      = slotLabel(key),
-            ghostIcon      = slotRow.kcmGlyphTexture,
+            ghostIcon      = ghostIcon,
+            ghostIconColor = ghostIconColor,
             ghostTextColor = { KCM.SkinPanelColor(shown and "text.accent" or "text.disabled") },
             height         = SLOT_ROW_H,
             draggable      = shown,

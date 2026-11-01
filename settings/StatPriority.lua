@@ -581,6 +581,8 @@ local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, dr
     ctx.kcmStatRows[#ctx.kcmStatRows + 1] = row
 
     if list then
+        local ghostIcon, ghostIconColor = KCM.SkinPanelGhost(row.kcmGlyphTexture,
+            included and "confirm" or "close", included and "sem.good" or "sem.bad")
         -- NO `parent`: the box and the handle both default to the frame registered
         -- here, which is the whole row. Naming the handle's slot -- which this used
         -- to do -- drew the library's fill and 1px edge around the 30px gutter and
@@ -588,7 +590,8 @@ local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, dr
         -- draggable list in the collection.
         list:AddRow(row, {
             ghostText      = SECONDARY_OPTIONS[stat] or stat,
-            ghostIcon      = row.kcmGlyphTexture,
+            ghostIcon      = ghostIcon,
+            ghostIconColor = ghostIconColor,
             ghostTextColor = { KCM.SkinPanelColor(included and "text.accent" or "text.disabled") },
             height         = ROW_H,
             draggable      = draggable,

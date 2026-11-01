@@ -51,7 +51,8 @@
 --   KCM.SkinPanelMark(t,a,n,c) a settings mark (cause L6): the Ka0s icon `n` in token `c` while the
 --                            panel is skinned, the client's art `a` otherwise. SkinPanelMarkOpts
 --                            builds its S.Mark options, SkinPanelGlyph takes a button's normal
---                            texture, SkinPanelMarkText writes the same mark as inline markup and
+--                            texture, SkinPanelGhost answers a reorder row's carried copy,
+--                            SkinPanelMarkText writes the same mark as inline markup and
 --                            SkinPanelHoverArt tints a hover flash with `list.hoverArt`.
 --   KCM.SkinPaintAce(w)      an AceGUI widget this addon acquired itself, painted for this
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
@@ -275,6 +276,14 @@ function KCM.SkinPanelGlyph(button, art, iconName, token)
     if button.GetNormalTexture then
         KCM.SkinPanelMark(button:GetNormalTexture(), art, iconName, token)
     end
+end
+
+--- A reorder row's carried copy of the mark: `ghostIcon, ghostIconColor`. The row's art and no color
+--- while the panel is ignored or degraded, which leaves the library's own tint.
+function KCM.SkinPanelGhost(art, iconName, token)
+    local path = KCM.SkinPanelOn() and KCM.Icon and KCM.Icon(iconName)
+    if not path then return art, nil end
+    return path, { KCM.SkinPanelColor(token) }
 end
 
 --- The same mark as inline markup, written when the string is: `markup` while the panel is ignored
