@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20261101-144811`](20261101-144811/) | `d887ef4` | clean | 1.8.0 | 0/0 | 147 | 1345/1/1346 | pass | 30929 | 3630 | 7.9 | 2.5 | 15 | 0 | **green** |
 | [`20261101-025920`](20261101-025920/) | `6321084` | clean | 1.8.0 | 0/0 | 146 | 1318/1/1319 | pass | 30199 | 3547 | 7.8 | 2.5 | 15 | 0 | **green** |
 | [`20261101-001317`](20261101-001317/) | `7b56d4c` | clean | 1.8.0 | 0/0 | 146 | 1317/1/1318 | pass | 30213 | 3548 | 7.8 | 2.5 | 15 | 0 | **green** |
 | [`20261031-212150`](20261031-212150/) | `0448f15` | clean | 1.8.0 | 0/0 | 146 | 1316/1/1317 | pass | 30188 | 3541 | 7.9 | 2.5 | 15 | 0 | **green** |
@@ -57,18 +58,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**1319 cases** — 1318 passed, 0 failed, 1 skipped. The generated inventory
-[`20261101-025920/test-cases.md`](20261101-025920/test-cases.md) is the authority on which cases existed at this run;
+**1346 cases** — 1345 passed, 0 failed, 1 skipped. The generated inventory
+[`20261101-144811/test-cases.md`](20261101-144811/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **1318 → 1319** since the previous run.
+Moved **1319 → 1346** since the previous run.
 
 **1 case(s) reported a `skip`.** A skip is counted in the total and never in `passed`, and at
 the release gate it is NOT EVALUATED rather than passed (`automated-tests-§3`).
 
 ## Lint
 
-**0 warnings / 0 errors over 146 files** (`luacheck .`).
+**0 warnings / 0 errors over 147 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 4 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -78,22 +79,22 @@ to whoever thinks to open `.luacheckrc`.
 ## Perf
 
 **5 scenarios** from `tests/perf.lua`; the measurements are in
-[`20261101-025920/perf.json`](20261101-025920/perf.json).
+[`20261101-144811/perf.json`](20261101-144811/perf.json).
 
 | `scenario` | `iters` | `ms/iter` | `total` | `ms` |
 |---|---|---|---|---|
-| `recompute` | 200 | 1.42393 | 284.786 | 247384.1 |
-| `cooldownRefresh` | 200 | 0.02816 | 5.632 | 6000.0 |
-| `probeOverheadOff` | 200 | 0.02371 | 4.742 | 6000.0 |
-| `probeOverheadOn` | 200 | 0.02615 | 5.230 | 6001.3 |
-| `refreshBurst` | 200 | 0.01953 | 3.906 | 0.0 |
+| `recompute` | 200 | 1.51397 | 302.795 | 247384.1 |
+| `cooldownRefresh` | 200 | 0.03620 | 7.241 | 6000.0 |
+| `probeOverheadOff` | 200 | 0.02705 | 5.410 | 6000.0 |
+| `probeOverheadOn` | 200 | 0.01979 | 3.959 | 6001.3 |
+| `refreshBurst` | 200 | 0.01756 | 3.512 | 0.0 |
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20261101-025920`](20261101-025920/) — **this run's measurement, not its diff.** Max CCN **15** across 3547
+Current as of [`20261101-144811`](20261101-144811/) — **this run's measurement, not its diff.** Max CCN **15** across 3630
 functions, **0** of them warned on; 3 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
@@ -113,8 +114,8 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `settings/Category.lua` | 1034 | **Peeled 2026-10-31 ([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)): 1186 → 1034.** The composite section editor moved whole to `settings/CategoryComposite.lua`, the seam the issue named. Its under-1000 estimate predated the file's growth, so it stays on notice by 34 lines; the shelf life this row spent is answered by that peel. Accepted — page breadth, not tangle; re-check at 1300. Next seam, if it has to leave: the reset popup block. |
-| 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1115 | **Newly crossed at [`20261009-191755`](20261009-191755/): accepted — case count, not tangle; re-check at 1300.** 972 at the 1.7.0 tag → 1002, then 1151 at [`20261031-202052`](20261031-202052/). 570 NLOC across 68 functions at avg CCN 1.9. A suite file just past the line; the 1.8.0 release run is acceptance 1 of 3. |
+| 1000–1500 (on notice) | `settings/Category.lua` | 1049 | **Peeled 2026-10-31 ([#43](https://github.com/tusharsaxena/ConsumableMaster/issues/43)): 1186 → 1034.** The composite section editor moved whole to `settings/CategoryComposite.lua`, the seam the issue named. Its under-1000 estimate predated the file's growth, so it stays on notice by 34 lines; the shelf life this row spent is answered by that peel. Accepted — page breadth, not tangle; re-check at 1300. Next seam, if it has to leave: the reset popup block. |
+| 1000–1500 (on notice) | `tests/test_settingsui.lua` | 1114 | **Newly crossed at [`20261009-191755`](20261009-191755/): accepted — case count, not tangle; re-check at 1300.** 972 at the 1.7.0 tag → 1002, then 1151 at [`20261031-202052`](20261031-202052/). 570 NLOC across 68 functions at avg CCN 1.9. A suite file just past the line; the 1.8.0 release run is acceptance 1 of 3. |
 | 1000–1500 (on notice) | `tests/wow_mock.lua` | 1012 | **Newly crossed at [`20261009-191755`](20261009-191755/): accepted — fake breadth, not tangle; re-check at 1300.** 990 at the 1.7.0 tag → 1012, all 22 added lines being the AceDB `GetProfiles` fake that `/cm profile` needs. 605 NLOC across 134 functions at avg CCN 2.2; one small stub per API. The 1.8.0 release run is acceptance 1 of 3. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
