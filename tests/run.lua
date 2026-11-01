@@ -497,6 +497,7 @@ local SUITES = {
     -- descriptor is handed, once and never beside a host copy (DG-CM-01).
     "test_librarylines",
     "test_launcher",
+    "test_launcher_skin_entry",
     "test_lintconfig",
     "test_load",
     "test_locale",
