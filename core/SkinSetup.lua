@@ -48,6 +48,11 @@
 --   KCM.SkinPanelText(fs, r) (the host copy of Ka0s Default, today's pixels) while it is ignored.
 --                            The reorder lists take this owner plainly: ReorderList is
 --                            panel-scoped by default (WidgetsReorder minor 3). See below.
+--   KCM.SkinPanelMark(t,a,n,c) a settings mark (cause L6): the Ka0s icon `n` in token `c` while the
+--                            panel is skinned, the client's art `a` otherwise. SkinPanelMarkOpts
+--                            builds its S.Mark options, SkinPanelGlyph takes a button's normal
+--                            texture, SkinPanelMarkText writes the same mark as inline markup and
+--                            SkinPanelHoverArt tints a hover flash with `list.hoverArt`.
 --   KCM.SkinPaintAce(w)      an AceGUI widget this addon acquired itself, painted for this
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
 --   KCM.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
@@ -236,6 +241,59 @@ function KCM.SkinPanelText(fs, role)
     role = tostring(role)
     local r, g, b, a = stock(role:find(".", 1, true) and role or ("text." .. role))
     if r then fs:SetTextColor(r, g, b, a) end
+end
+
+--- The client's art back on `tex`: a path, or "atlas:<name>" as this addon's icon buttons take it.
+local function stockArt(tex, art)
+    if art:sub(1, 6) == "atlas:" then
+        tex:SetTexture(nil)
+        tex:SetAtlas(art:sub(7), false)
+        tex:SetTexCoord(0, 1, 0, 1)
+    else
+        tex:SetTexture(art)
+    end
+end
+
+--- The S.Mark options of a settings mark. `art` is the client's art, which the library gives
+--- back while the Scope ignores the panel. A fresh table: the library keeps it for its replay.
+function KCM.SkinPanelMarkOpts(art, iconName, token)
+    return { panel = true, token = token, art = KCM.Icon and KCM.Icon(iconName),
+             stock = function(tex) stockArt(tex, art) end }
+end
+
+--- A settings mark on a texture. The client's art goes on first, because the degraded S.Mark is a
+--- no-op and the mark still has to draw.
+function KCM.SkinPanelMark(tex, art, iconName, token)
+    if not tex then return end
+    stockArt(tex, art)
+    KCM.Skin.Mark(tex, KCM.SkinPanelMarkOpts(art, iconName, token))
+end
+
+--- A settings mark on a button's normal texture.
+function KCM.SkinPanelGlyph(button, art, iconName, token)
+    button:SetNormalTexture(art)
+    if button.GetNormalTexture then
+        KCM.SkinPanelMark(button:GetNormalTexture(), art, iconName, token)
+    end
+end
+
+--- The same mark as inline markup, written when the string is: `markup` while the panel is ignored
+--- or degraded, S.MarkText otherwise.
+function KCM.SkinPanelMarkText(markup, iconName, size, token)
+    local path = KCM.SkinPanelOn() and KCM.Icon and KCM.Icon(iconName)
+    if not path then return markup end
+    return KCM.Skin.MarkText(path, size, token)
+end
+
+local HOVER_MARK = { panel = true, token = "list.hoverArt" }
+
+--- A hover flash on the settings panel (an ADD highlight in the client's own color). `list.hoverArt`
+--- false, Ka0s Default's, keeps the flash as the client draws it; a color tints it desaturated, so
+--- the token's hue is what shows. A pooled widget calls this on every acquire.
+function KCM.SkinPanelHoverArt(tex)
+    KCM.Skin.Mark(tex, HOVER_MARK)
+    if not tex.SetDesaturated then return end
+    tex:SetDesaturated(KCM.SkinPanelOn() and type(KCM.Skin.Token("list.hoverArt")) == "table")
 end
 
 KCM.SKIN_SOURCE_OPTIONS = {

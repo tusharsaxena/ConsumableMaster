@@ -84,6 +84,18 @@ end
 local OWNED_ICON     = "|TInterface\\RaidFrame\\ReadyCheck-Ready:20|t"
 local NOT_OWNED_ICON = "|TInterface\\RaidFrame\\ReadyCheck-NotReady:20|t"
 local PICK_ICON      = "|TInterface\\COMMON\\FavoritesIcon:20|t"
+local LEGEND_SIZE    = 20
+local REMOVE_ART     = "atlas:transmog-icon-remove"
+-- No `art`: the score button's image is the catalog mark already, so S.Mark only tints it.
+local SCORE_MARK     = { panel = true, token = "btn.icon" }
+
+--- The legend's three marks as this render draws them (cause L6): a string cannot be repainted,
+--- so they are written when the line is.
+local function legendMarks()
+    return KCM.SkinPanelMarkText(OWNED_ICON, "confirm", LEGEND_SIZE, "sem.good"),
+        KCM.SkinPanelMarkText(NOT_OWNED_ICON, "close", LEGEND_SIZE, "sem.bad"),
+        KCM.SkinPanelMarkText(PICK_ICON, "star", LEGEND_SIZE, "text.accent")
+end
 
 -- ---------------------------------------------------------------------
 -- Ownership + number formatting, for the priority rows
@@ -365,6 +377,7 @@ local function makeIconBtn(parent, opts)
     local btn = KCM.SkinAcquire(AceGUI, "KCMIconButton")
     btn:SetImageSize(opts.size or 24, opts.size or 24)
     btn:SetImage(opts.image)
+    if opts.mark then btn:SetMark(opts.mark) end
     btn:SetWidth(opts.width or ROW_BTN_W)
     if opts.disabled then btn:SetDisabled(true) end
     if opts.onClick then
@@ -508,11 +521,11 @@ local function renderPriorityLegend(ctx, cat, mhAff, ohAff)
             (L["Main hand: %s | Off hand: %s"]):format(affinityLabel(mhAff), affinityLabel(ohAff)),
             "medium")
         H.Label(ctx,
-            (L["%s in bags    %s not in bags    %s picked (MH/OH) in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
+            (L["%s in bags    %s not in bags    %s picked (MH/OH) in macro"]):format(legendMarks()),
             "medium")
     else
         H.Label(ctx,
-            (L["%s in bags    %s not in bags    %s picked in macro"]):format(OWNED_ICON, NOT_OWNED_ICON, PICK_ICON),
+            (L["%s in bags    %s not in bags    %s picked in macro"]):format(legendMarks()),
             "medium")
     end
 end
@@ -600,7 +613,8 @@ local function renderRowButtons(row, cat, specKey, rowID)
     end
 
     makeIconBtn(row, {
-        image    = "atlas:transmog-icon-remove",
+        image    = REMOVE_ART,
+        mark     = KCM.SkinPanelMarkOpts(REMOVE_ART, "close", "btn.icon"),
         size     = 22,
         label    = L["Remove"],
         tooltip  = L["Remove from this category. Blocks the item so auto-discovery won't re-add it."],
@@ -652,6 +666,7 @@ local function renderPriorityRow(scroll, cat, specKey, rowID, list, p)
         -- inconsistency it is. The fallback rung stays, because a catalog lookup that silently
         -- draws nothing when the library is absent is worse than the hardcoded path it replaced.
         image   = KCM.Icon("info") or "Interface\\FriendsFrame\\InformationIcon",
+        mark    = SCORE_MARK,
         label   = scoreTitle,
         tooltip = scoreDesc,
     })

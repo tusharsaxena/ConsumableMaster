@@ -11,7 +11,7 @@
 -- settings/Category.lua.
 --
 -- SKINNED FROM KCM.Skin (skinning-§1): the disabled art is the skin's disabled gray
--- at AceGUI's stock half alpha, as on KCMIconButton; the enabled art is untinted.
+-- at AceGUI's stock half alpha, as on KCMIconButton; the enabled art is untinted, or the mark's tint.
 
 local _, NS = ...
 local KCM = NS
@@ -42,6 +42,7 @@ end
 
 local methods = {
     ["OnAcquire"] = function(self)
+        self.markOpts = nil
         self:SetImage(nil)
         self:SetImageSize(24, 24)
         self:SetDisabled(false)
@@ -86,7 +87,15 @@ local methods = {
         else
             self.frame:Enable()
             self.image:SetVertexColor(1, 1, 1, 1)
+            if self.markOpts then KCM.Skin.Mark(self.image, self.markOpts) end
         end
+    end,
+
+    -- The art as a mark (cause L6): `opts` are S.Mark's, so the skin's tint and, where they name
+    -- one, the Ka0s icon stand in for the white while the settings panel is skinned.
+    ["SetMark"] = function(self, opts)
+        self.markOpts = opts
+        if not self.disabled then KCM.Skin.Mark(self.image, opts) end
     end,
 }
 

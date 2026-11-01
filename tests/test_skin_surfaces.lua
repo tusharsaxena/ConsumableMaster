@@ -354,6 +354,163 @@ test("Skin surfaces: the score button's disabled art is the skin's disabled gray
 end)
 
 -- ---------------------------------------------------------------------------
+-- The addon's own marks (FS-CM-FIX, cause L6): Ka0s icons, tinted, with the Scope cleared
+-- ---------------------------------------------------------------------------
+--
+-- With the panel skinned a tick, cross, star, remove and info mark are the Ka0s icons in the
+-- skin's tint, through S.Mark and S.MarkText; with it ignored, the default, the client's art and
+-- no tint; degraded, the client's art.
+
+local OWNED_ART = "Interface\\RaidFrame\\ReadyCheck-Ready"
+
+local function scopeCleared(skin)
+    local Skin = LibStub("LibKa0s-Skin-1.0", true)
+    Skin:SetIgnore(OWNER, false, false)
+    Skin:SetChoice(OWNER, "ka0s", skin)
+    return Skin
+end
+
+local function paintedTexture()
+    local M = { CreateFrame = _G.CreateFrame }
+    local restore = installPaint(M)
+    local tex = M.CreateFrame("Frame"):CreateTexture()
+    return tex, M.__paint, restore
+end
+
+-- red under: the mark left on the client's art, tinted once, or not given back under the Scope.
+test("Skin marks: a settings mark is the Ka0s icon in its token, and stock under the Scope", function(t)
+    local KCM = h.loader.loadPure()
+    local tex, paint, restore = paintedTexture()
+    local ok, err = pcall(function()
+        local Skin = scopeCleared("obsidian")
+        KCM.SkinPanelMark(tex, OWNED_ART, "confirm", "sem.good")
+        t.eq(paint(tex).texture, KCM.Icon("confirm"), "the Ka0s tick")
+        t.truthy(same(paint(tex).vertex, rgba(KCM.Skin.Color("sem.good"))), "in the skin's sem.good")
+        Skin:SetChoice(OWNER, "ka0s", "azeroth")
+        t.truthy(same(paint(tex).vertex, rgba(KCM.Skin.Color("sem.good"))), "a skin switch replays it")
+        Skin:SetIgnore(OWNER, true, false)
+        t.eq(paint(tex).texture, OWNED_ART, "the Scope gives the client's art back, live")
+        t.truthy(same(paint(tex).vertex, { 1, 1, 1 }), "and the tint")
+    end)
+    restore()
+    local Skin = LibStub("LibKa0s-Skin-1.0", true)
+    Skin:SetIgnore(OWNER, false, false)
+    Skin:SetChoice(OWNER, "ka0s", "ka0s")
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: a mark that needs the library to draw at all.
+test("Skin marks: without the library the client's art draws", function(t)
+    local KCM = h.loader.loadPureDegraded()
+    local tex, paint, restore = paintedTexture()
+    KCM.SkinPanelMark(tex, OWNED_ART, "confirm", "sem.good")
+    t.eq(paint(tex).texture, OWNED_ART, "the stock art")
+    t.eq(KCM.SkinPanelMarkText("stock", "confirm", 20, "sem.good"), "stock", "and the legend's markup")
+    restore()
+end)
+
+-- red under: the legend's markup typed once at file load.
+test("Skin marks: the legend's markup follows the Scope", function(t)
+    local KCM = h.loader.loadPure()
+    local Skin = scopeCleared("obsidian")
+    local want = KCM.Skin.MarkText(KCM.Icon("confirm"), 20, "sem.good")
+    t.eq(KCM.SkinPanelMarkText("stock", "confirm", 20, "sem.good"), want, "skinned: S.MarkText")
+    t.truthy(want:find("confirm", 1, true), "of the Ka0s tick")
+    Skin:SetIgnore(OWNER, true, false)
+    t.eq(KCM.SkinPanelMarkText("stock", "confirm", 20, "sem.good"), "stock", "ignored: the stock markup")
+    Skin:SetIgnore(OWNER, false, false)
+    Skin:SetChoice(OWNER, "ka0s", "ka0s")
+end)
+
+-- red under: the remove button keeping Blizzard's atlas, or its white, with the Scope cleared.
+test("Skin marks: the remove button's atlas takes the Ka0s mark and comes back under the Scope", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMIconButton.lua", "KCMIconButton")
+    local ok, err = pcall(function()
+        local Skin = scopeCleared("obsidian")
+        w:OnAcquire()
+        w:SetImage("atlas:transmog-icon-remove")
+        w:SetMark(KCM.SkinPanelMarkOpts("atlas:transmog-icon-remove", "close", "btn.icon"))
+        t.eq(paint(w.image).texture, KCM.Icon("close"), "the Ka0s mark")
+        t.truthy(same(paint(w.image).vertex, rgba(KCM.Skin.Color("btn.icon"))), "in btn.icon")
+        Skin:SetIgnore(OWNER, true, false)
+        t.eq(paint(w.image).atlas, "transmog-icon-remove", "the client's atlas again")
+        t.truthy(same(paint(w.image).vertex, { 1, 1, 1 }), "untinted")
+        Skin:SetIgnore(OWNER, false, false)
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: SetDisabled(false) painting white over the mark's tint.
+test("Skin marks: the score button's info mark keeps the skin's tint through enable", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMScoreButton.lua", "KCMScoreButton")
+    local ok, err = pcall(function()
+        scopeCleared("obsidian")
+        w:OnAcquire()
+        w:SetImage(KCM.Icon("info"))
+        w:SetMark({ panel = true, token = "btn.icon" })
+        local want = rgba(KCM.Skin.Color("btn.icon"))
+        t.truthy(same(paint(w.image).vertex, want), "btn.icon")
+        w:SetDisabled(true)
+        w:SetDisabled(false)
+        t.truthy(same(paint(w.image).vertex, want), "still btn.icon after a disable")
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: the pooled row's glyph or star left on the client's art.
+test("Skin marks: an item row's tick, cross and star are Ka0s marks", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMItemRow.lua", "KCMItemRow")
+    local ok, err = pcall(function()
+        scopeCleared("obsidian")
+        w:OnAcquire()
+        w.owned, w.isPick = true, true
+        w:RefreshDisplay()
+        t.eq(paint(w.ownedTex).texture, KCM.Icon("confirm"), "owned: the tick")
+        t.truthy(same(paint(w.ownedTex).vertex, rgba(KCM.Skin.Color("sem.good"))), "in sem.good")
+        t.eq(paint(w.pickTex).texture, KCM.Icon("star"), "the Ka0s star")
+        t.truthy(same(paint(w.pickTex).vertex, rgba(KCM.Skin.Color("text.accent"))), "in the accent")
+        w.owned = false
+        w:RefreshDisplay()
+        t.eq(paint(w.ownedTex).texture, KCM.Icon("close"), "not owned: the cross")
+        t.truthy(same(paint(w.ownedTex).vertex, rgba(KCM.Skin.Color("sem.bad"))), "in sem.bad")
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- red under: the hover flash keeping the client's blue with the Scope cleared.
+test("Skin marks: the drag icon's hover flash takes list.hoverArt with the Scope cleared", function(t)
+    local KCM = h.loader.loadPure()
+    local w, paint, cleanup = buildWidget(KCM, "modules/KCMMacroDragIcon.lua", "KCMMacroDragIcon")
+    local ok, err = pcall(function()
+        t.eq(paint(w.highlight).texture, "Interface\\Buttons\\ButtonHilight-Square", "the client's art")
+        local Skin = scopeCleared("ka0s")
+        w:OnAcquire()
+        t.falsy(paint(w.highlight).desaturated, "Ka0s Default keeps the client's flash")
+        local tinted
+        for _, def in ipairs(Skin:Skins()) do
+            if type(Skin:ResolveSkin(def.key)["list.hoverArt"]) == "table" then tinted = def.key; break end
+        end
+        t.truthy(tinted, "a shipped skin tints the flash")
+        Skin:SetChoice(OWNER, "ka0s", tinted)
+        w:OnAcquire()
+        t.truthy(paint(w.highlight).desaturated, "desaturated, so the token's hue is what shows")
+        t.truthy(same(paint(w.highlight).vertex, rgba(KCM.Skin.Color("list.hoverArt"))), "in list.hoverArt")
+        Skin:SetIgnore(OWNER, true, false)
+        w:OnAcquire()
+        t.falsy(paint(w.highlight).desaturated, "ignored: the client's flash again")
+        Skin:SetIgnore(OWNER, false, false)
+    end)
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)
+
+-- ---------------------------------------------------------------------------
 -- The Scope's "Ignore settings panel" (skin.ignorePanel, on by default)
 -- ---------------------------------------------------------------------------
 --

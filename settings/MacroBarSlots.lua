@@ -283,7 +283,8 @@ local function applySlotRow(slotRow, key, shown)
     slotRow.kcmSlot  = key
     slotRow.kcmShown = shown and true or false
     slotRow.kcmGlyphTexture = shown and SHOWN_TEX or HIDDEN_TEX
-    slotRow.kcmGlyph:SetNormalTexture(slotRow.kcmGlyphTexture)
+    KCM.SkinPanelGlyph(slotRow.kcmGlyph, slotRow.kcmGlyphTexture,
+        shown and "confirm" or "close", shown and "sem.good" or "sem.bad")
     slotRow.kcmLabel:SetText(slotLabel(key))
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim at,
     -- and aiming at it is how you put the button back. The skin's accent and disabled

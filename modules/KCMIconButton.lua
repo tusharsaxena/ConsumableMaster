@@ -45,6 +45,7 @@ end
 
 local methods = {
     ["OnAcquire"] = function(self)
+        self.markOpts = nil
         self:SetHeight(110)
         self:SetWidth(110)
         self:SetLabel()
@@ -101,7 +102,8 @@ local methods = {
 
     -- The disabled art is the skin's disabled gray at AceGUI's stock half alpha
     -- (DISABLED_ALPHA: the opacity of a disabled mark, the same in every skin, as the
-    -- library's own disabled checkbox mark); the enabled art is untinted.
+    -- library's own disabled checkbox mark); the enabled art is untinted, or the
+    -- mark's tint where SetMark gave it one.
     ["SetDisabled"] = function(self, disabled)
         self.disabled = disabled
         if disabled then
@@ -113,7 +115,15 @@ local methods = {
             self.frame:Enable()
             KCM.SkinPanelText(self.label, "text.highlight")
             self.image:SetVertexColor(1, 1, 1, 1)
+            if self.markOpts then KCM.Skin.Mark(self.image, self.markOpts) end
         end
+    end,
+
+    -- The art as a mark (cause L6): `opts` are S.Mark's, so the skin's tint and, where they name
+    -- one, the Ka0s icon stand in for the white while the settings panel is skinned.
+    ["SetMark"] = function(self, opts)
+        self.markOpts = opts
+        if not self.disabled then KCM.Skin.Mark(self.image, opts) end
     end,
 }
 

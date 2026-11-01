@@ -132,8 +132,10 @@ end
 -- the copy window, the perf panel), and info for an Options id list.
 -- The rest of the line is what LibKa0s v1.85.0's library-drawn marks owe every consumer (kit
 -- revision 49): the settings marks, the number steppers and the sound row.
+-- `confirm`, `close` and `star` are this addon's own marks too (cause L6, core/SkinSetup.lua's
+-- KCM.SkinPanelMark, whose names this file's scan cannot read).
 local DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "help", "info",
-    "move", "reset", "segment", "settings", "volume-high" }
+    "move", "reset", "segment", "settings", "star", "volume-high" }
 
 test("MediaSetup: every mark this addon draws is one the library ships", function(t)
     -- The names are plain strings in this addon's source and the catalog is in

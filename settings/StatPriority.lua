@@ -493,7 +493,8 @@ local function applyRow(row, stat, included, onToggle)
     row.kcmIncluded = included and true or false
     row.kcmToggle   = onToggle
     row.kcmGlyphTexture = included and INCLUDED_TEX or EXCLUDED_TEX
-    row.kcmGlyph:SetNormalTexture(row.kcmGlyphTexture)
+    KCM.SkinPanelGlyph(row.kcmGlyph, row.kcmGlyphTexture,
+        included and "confirm" or "close", included and "sem.good" or "sem.bad")
 
     row.kcmLabel:SetText(SECONDARY_OPTIONS[stat] or stat)
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim

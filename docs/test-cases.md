@@ -1053,7 +1053,7 @@ Total.
 - Skin: every library factory that takes an owner is handed this addon's
 - Skin: the TOC loads the seam before every frame and lists EllesmereUI as optional
 
-### test_skin_surfaces.lua (13)
+### test_skin_surfaces.lua (20)
 
 - Skin surfaces: no color literal outside the seam and the allow-list
 - Skin surfaces: every allow-list entry carries its reason
@@ -1063,6 +1063,13 @@ Total.
 - Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time
 - Skin surfaces: the item row's name and hand tag take the skin's text
 - Skin surfaces: the score button's disabled art is the skin's disabled gray
+- Skin marks: a settings mark is the Ka0s icon in its token, and stock under the Scope
+- Skin marks: without the library the client's art draws
+- Skin marks: the legend's markup follows the Scope
+- Skin marks: the remove button's atlas takes the Ka0s mark and comes back under the Scope
+- Skin marks: the score button's info mark keeps the skin's tint through enable
+- Skin marks: an item row's tick, cross and star are Ka0s marks
+- Skin marks: the drag icon's hover flash takes list.hoverArt with the Scope cleared
 - Skin surfaces: the panel helpers answer the stock look while the panel is ignored
 - Skin surfaces: the item row stays stock while the panel is ignored
 - Skin surfaces: the item row takes the skin back live when the panel is skinned again
@@ -1632,7 +1639,7 @@ Total.
 | test_selector_discovery.lua | 14 |
 | test_selector_pins.lua | 14 |
 | test_skin.lua | 10 |
-| test_skin_surfaces.lua | 13 |
+| test_skin_surfaces.lua | 20 |
 | test_skin_hud.lua | 20 |
 | test_skin_flip.lua | 20 |
 | test_skin_outline.lua | 10 |
@@ -1660,4 +1667,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1338** |
+| **Total** | **1345** |

@@ -57,6 +57,7 @@ end
 local methods = {
     ["OnAcquire"] = function(self)
         self.macroName = nil
+        KCM.SkinPanelHoverArt(self.highlight)
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
         self:SetWidth(220)
@@ -120,6 +121,7 @@ local function Constructor()
         frame = frame,
         icon  = icon,
         label = label,
+        highlight = highlight,
         type  = Type,
     }
 

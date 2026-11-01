@@ -160,8 +160,13 @@ end
 -- Owned swatch plus the "picked in macro" star. The star shows for any pick flavor, so a
 -- per-hand row that is picked for either hand still gets it.
 local function refreshPickIndicators(self)
-    self.ownedTex:SetTexture(self.owned and OWNED_TEX or NOT_OWNED_TEX)
+    if self.owned then
+        KCM.SkinPanelMark(self.ownedTex, OWNED_TEX, "confirm", "sem.good")
+    else
+        KCM.SkinPanelMark(self.ownedTex, NOT_OWNED_TEX, "close", "sem.bad")
+    end
     if self.isPick or self.pickMH or self.pickOH then
+        KCM.SkinPanelMark(self.pickTex, PICK_TEX, "star", "text.accent")
         self.pickTex:Show()
     else
         self.pickTex:Hide()

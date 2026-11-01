@@ -59,14 +59,14 @@ are **frozen history** — never treat them as a live requirement, and never "re
 ## Vendored payload — the LibKa0s provenance line
 
 Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.85.0 (MIT).
-LibKa0s icons: chevron-down, chevron-up, clear, close, confirm, copy, help, info, move, reset, segment, settings, volume-high.
+LibKa0s icons: chevron-down, chevron-up, clear, close, confirm, copy, help, info, move, reset, segment, settings, star, volume-high.
 
 Those two lines are the answer to "which LibKa0s does this build carry, and which of its icons?",
 and they are a **gate input, not a comment**: `tests/test_vendor_sync.lua` greps them out of this file
 and compares both vendored payloads — `libs/LibKa0s/` and `tests/_kit/` — against that tag in the
 sibling `../LibKa0s` checkout, with `media/icons/` held to exactly the declared marks. So they move in
 the **same commit** as the bytes they describe; a line and a payload that disagree is exactly the drift
-the gate exists to catch. The declaration names every mark this addon draws (`KCM.Icon`) and every
+the gate exists to catch. The declaration names every mark this addon draws (`KCM.Icon`, and the settings marks' `confirm`, `close` and `star`, `KCM.SkinPanelMark`) and every
 mark the library draws on its behalf (the debug console's `close`, `copy`, `clear`; the perf panel's
 and copy window's `close`; the id list's `info`; and everything v1.85.0's library-drawn marks owe every consumer, `chevron-down`, `chevron-up`, `confirm`, `move`, `reset`, `volume-high`). They live here rather than in `README.md`
 because it answers a maintainer's question on a page written for players — the kit stopped reading
