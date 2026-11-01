@@ -80,7 +80,7 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 
 Two layers, and it is worth keeping them apart.
 
-**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 5`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
+**Persisted state** is an AceDB profile under the `ConsumableMasterDB` SavedVariable (declared with `ConsumableMasterPerfDB` at `ConsumableMaster.toc:11`), seeded from the `dbDefaults` tree in `defaults/Profile.lua`, which is the single declaration site for every shipped default (`savedvariables-§2`). `core/Database.lua` owns the version (`D.CURRENT_SCHEMA = 6`) and the migration steps. Field semantics, the composite bucket shape, the opaque-numeric ID convention and the discovered-set GC are documented in full in [schema.md](./schema.md) — this section does not duplicate them.
 
 **Declared rows** are `KCM.Settings.Schema`, an ordered array published by `settings/Panel.lua` and appended to by the page files — **90** rows, counted by the page they sit on: 67 of them `macroBar.*` rows on the Macro Bar page, 15 on the General page (its 7 composed Master controls rows, `options-ui-§15`, which is where the 68th `macroBar.`-prefixed path, `macroBar.locked`, is counted, and the 8 `skin.*` rows behind its Skin tab), 7 on the Macros page and 1 on the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven of them (the Font outline's `skin.outline` since LibKa0s v1.82.0), and nothing draws `skin.pickerSeen` ([Skins](#skins)). Most are scalars. Nine whole-value rows of type `order` or `map`, plus one bool, `mouseover`, are described below. `settings/Panel.lua` itself declares none: a row is either written out in a page file or emitted by a LibKa0s composer and spliced in by `Helpers.RegisterRows`, which is also why the count is no longer greppable and is read off `#KCM.Settings.Schema`. Each row is `{ path = …, type = …, … }`, and one row is simultaneously three things: the widget on its settings page (its `group` is also the tab it lands on, so the array's order is the strip's order), the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua:626` hands the whole array to LibKa0s-Slash-1.0 as `allRows`), and the type rule the one write seam applies on write, `LibKa0s-Schema-1.0`'s pipeline ([schema.md](./schema.md#the-write-seam)).
 
@@ -331,7 +331,9 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   CM-G3). It publishes `KCM.Skin`, the owner's facade every surface reads, `KCM.SkinColor` /
   `KCM.SkinEscape` (LootHistory's helpers: a token at the call site's arity, or as a `|cff` escape),
   the settings-surface helpers `KCM.SkinPanelOn` / `SkinPanelColor` / `SkinPanelEscape` /
-  `SkinPanelText` (below), the four `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
+  `SkinPanelText` (below), the settings marks `KCM.SkinPanelMark` / `SkinPanelMarkOpts` /
+  `SkinPanelGlyph` / `SkinPanelMarkText` / `SkinPanelHoverArt` (cause L6: the Ka0s icon in a token's
+  tint through `S.Mark`, the client's art while the panel is ignored or degraded), the four `KCM.ApplySkin*` functions, `KCM.SkinAcquire` / `KCM.SkinPaintAce` /
   `KCM.SkinPaintAceTree`, the picker's three functions and `KCM.RunSkinVerb` ([module-map.md](./module-map.md)).
   Without the library a degraded facade answers every vocabulary name and Ka0s Default's values from
   `KCM.SKIN_FALLBACK`, and `tests/test_skin.lua` holds each entry to the live facade's answer.
@@ -349,9 +351,11 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   repaints every frame recorded for the owner and then fires `KCM.Skin.OnLooksChanged`, on which the
   macro bar re-applies itself (`MacroBar.Update`, which holds itself to `PLAYER_REGEN_ENABLED` in
   combat) and the Profiles page redraws. No skin change rides the bus.
-- **The HUD follows the skin's border and font, and nothing else** (skinning-§6; DECISIONS X4).
+- **The HUD follows the skin** (skinning-§6). The rollout's X4 kept the colors the player's; the
+  owner reversed that on 2026-11-01 (FS-CM-FLIP, causes D2, D4 and D6).
   Three composed companions, default true (X3), each the composer's *Use the skin's …* row:
-  `macroBar.barBorderStyleFromSkin` (the bar's and the flyout panel's edge, from `bar.borderStyle`),
+  `macroBar.barBorderStyleFromSkin` (the bar's and the flyout panel's edge and thickness, from
+  `bar.borderStyle` and `bar.borderSize`, `fromSkin = "bar"`),
   `macroBar.buttonBorderStyleFromSkin` (the buttons' and flyout entries' edge, from the skin's icon
   family, `icon.borderStyle` and `icon.borderSize`, so it governs the thickness too) and
   `macroBar.labelFontFromSkin` (the label face, from `hud.font`). `BB.Follow`
@@ -359,10 +363,18 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   never on a hot path, and falls back to the player's pick where the skin leaves the token alone.
   The stack count takes `hud.font` and `hud.outline` at its font object's own size (D6) scaled by
   the skin's HUD size (`S.HudFontSize`, LibKa0s v1.82.0, D-09), the unlocked
-  wash `menu.hover` (D4, today's pixel) and the flyout arrow `icon.arrow` (D9). Every color, size,
-  flag, shadow and offset stays the player's, and so do the three fills no HUD token holds (the
-  button and flyout backgrounds and the indicator shade, D2), whose fallbacks read
-  `defaults/Profile.lua`. The Font override reaches the labels and counts wherever the label face
+  wash `menu.hover` (D4, today's pixel), the flyout arrow `icon.arrow` (D9) and the count's color
+  `hud.text`. Eight host rows, each in its block's `extra`, put each swatch and the shadow on the skin:
+  `barBackdropColorFromSkin` (`bar.bg`), `barBorderColorFromSkin` (`cm.barBorder`),
+  `buttonBackdropColorFromSkin` (`cm.buttonBg`), `buttonBorderColorFromSkin` (`cm.buttonBorder`),
+  `flyoutBackdropColorFromSkin` (`cm.flyoutBg`), `flyoutShadeColorFromSkin` (`cm.flyoutShade`),
+  `labelColorFromSkin` (`hud.label`) and `labelShadowFromSkin` (`hud.shadow`). The `cm.*` five keep
+  today's pixels under Ka0s Default and follow their library role elsewhere (`HUD_TOKENS` in
+  `core/SkinSetup.lua`), and they stay out of `KCM.SKIN_FALLBACK`, so a degraded bar draws its stored
+  swatches. `BB.Swatch` is the one resolver: a class color first, then the skin, then the stored
+  swatch over its shipped default in `defaults/Profile.lua`. `icon.border`, `bar.bg`, `bar.border` and
+  `cover.dim` are one value in every shipped skin, so those surfaces change only against Ka0s Default's owner
+  tokens. Sizes and the offset stay the player's. The Font override reaches the labels and counts wherever the label face
   follows the skin; the Texture override has nothing here to change, because the bar draws no bar
   texture. *Ignore fonts* wins over both, the library's way (Skin minor 8, LibKa0s v1.81.0): while
   it is on, `Resolve` answers the stored value for `hud.font` and `hud.outline`, so the label draws
@@ -374,7 +386,9 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   live. Each skin draws HUD text in a face of its own (SkinDefs minor 18, LibKa0s v1.83.0): Obsidian
   Expressway, Azeroth Open Sans Semibold, Glass Avant Garde, High Contrast Doris PP, Ember Emblem,
   WoW Default the shipped Ka0s Friz Quadrata TT, WoW Midnight Segoe UI Semibold, WoW Forever Fira Sans
-  SemiBold, Ka0s Default Prototype. The label shadow's color and offset are a legibility constant (D7).
+  SemiBold, Ka0s Default Prototype. The label draws through `S.HudFont`, whose font object is the only
+  place a 12.0.7 client draws a shadow: the stored `labelShadow`, a legibility constant at black 1, -1
+  (D7), stands with its companion off or under *Ignore fonts*.
 - **Font size, flags and outline (LibKa0s v1.82.0; D-06, D-07, D-09).** The label's font block is
   the minimum set every font setting carries (face with *Use the skin's font*, size, color with *Use
   class color*, flags, shadow). Its *Font flags* lead with **From skin** (`"@skin"`, the default),
@@ -397,6 +411,12 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   the labels and stack counts read in Ka0s Default's HUD face (Oxanium SemiBold then, Prototype since
   LibKa0s v1.82.0) instead of Friz Quadrata. That is the rulings'
   intended change, not a regression.
+- **The one step onto the skin (schema v6).** `Database.FollowSkinV6` calls `Skin.FollowOnce` with
+  `D.SKIN_FOLLOW_KEYS`, the eleven companions and `macroBar.labelFlags`, on every `RunMigrations`.
+  Its only gate is the profile's own record, `skin.fullSkinReset`, which has a default and no schema
+  row, so no Defaults button can walk it back. Stored colors and picks are never written, so unticking
+  a companion brings the player's own back; a companion turned off afterwards stays off. Without the
+  library the same write runs by hand ([schema.md](./schema.md#migrations)).
 - **The settings pages.** The page chrome, the tab strips, the schema rows and the composers are the
   library's and carry the owner already (the Options descriptor passes `addonName`); nothing of
   theirs is painted while *Ignore settings panel* is on. Every AceGUI widget a settings file acquires

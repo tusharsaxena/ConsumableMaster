@@ -107,15 +107,15 @@ doesn't fit — measuring beats guessing a character budget, since the answer
 depends on font, size and string. `OUTSIDE` labels skip the measurement: they
 have the whole screen to overflow into.
 
-**The border styles and the face follow the skin.** While its *Use the skin's …* companion is on
+**The borders, the face, the colors and the shadow follow the skin.** While its *Use the skin's …* companion is on
 (the default), `BB.Follow` draws the bar's and the flyout panel's edge from the skin's
 `bar.borderStyle`, the buttons' and flyout entries' edge and thickness from its icon family
 (`icon.borderStyle`, `icon.borderSize`) and the label face from `hud.font`; `None` draws no edge
-and `Solid` a flat one. The stack count takes `hud.font` and `hud.outline` at its font object's
+and `Solid` a flat one. The bar family governs the bar's thickness the same way. The stack count takes `hud.font` and `hud.outline` at its font object's
 size. With the Skin tab's *Ignore fonts* ticked, the count goes back to the game's number font and
-the label to the player's own *Labels font*, live. Every color, size, flag, shadow and offset stays
-the player's ([ARCHITECTURE.md →
-Skins](./ARCHITECTURE.md#skins)).
+the label to the player's own *Labels font*, live. Each swatch and the label shadow has its own *Use
+the skin's …* companion too, and a class color comes first; the stack count takes `hud.text`. Sizes
+and the offset stay the player's ([ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins)).
 
 ## The flyout
 

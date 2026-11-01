@@ -542,10 +542,17 @@ defaults table.
 and `macroBar.buttonBorderStyleFromSkin` (*Use the skin's border*) and `macroBar.labelFontFromSkin`
 (*Use the skin's font*), default on. While one is ticked its picker is disabled and shows the
 skin's value; the button block's companion (`fromSkin = "icon"`, the skin's icon border family)
-governs the thickness slider too. The stored pick is kept, so unticking it brings the pick back.
-Only border styles and the face follow (the rollout's X4): no swatch has a skin companion, and
-the class-color companions above are unchanged. Schema v4's one-time reset turned the three on
-in every existing profile ([schema.md](./schema.md#migrations)).
+governs the thickness slider too, and so does the bar block's since FS-CM-FLIP (`fromSkin = "bar"`).
+The stored pick is kept, so unticking it brings the pick back.
+
+**So do the swatches and the shadow** (FS-CM-FLIP). No composer draws these, so each block carries a
+host row in its `extra`, *Use the skin's color* or *Use the skin's shadow*, default on:
+`macroBar.barBackdropColorFromSkin`, `barBorderColorFromSkin`, `buttonBackdropColorFromSkin`,
+`buttonBorderColorFromSkin`, `labelColorFromSkin`, `labelShadowFromSkin`,
+`flyoutBackdropColorFromSkin` and `flyoutShadeColorFromSkin`. A swatch keeps no `disabledIf`
+(options-ui-§17): it stays live and keeps its value, and the row's tooltip says it is not read. The
+class-color companions above come first and are unchanged. Schema v6 turned all eleven on in every
+existing profile, once ([schema.md](./schema.md#migrations)).
 
 ## Reorder lists
 
