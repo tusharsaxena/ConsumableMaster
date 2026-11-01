@@ -129,8 +129,8 @@ test("Skin HUD: the flyout panel's edge follows the skin's bar border style", fu
     local flyout = { bg = recFrame("bg") }
     KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM))
     local bd = lastCall(flyout.bg, "SetBackdrop")
-    t.eq(bd and bd[2].edgeFile, nil, "Ka0s Default: its None defers to the shipped None, no edge")
-    t.eq(bd and bd[2].edgeSize, 4, "and to the stored thickness")
+    t.eq(bd and bd[2].edgeFile, [[Interface\Buttons\WHITE8X8]], "Ka0s Default: its None gives the one thin solid edge")
+    t.eq(bd and bd[2].edgeSize, 1, "one pixel")
     local fill = lastCall(flyout.bg, "SetBackdropColor")
     t.eq(fill and fill[5], 0.85, "the fill is today's pixel, through its owner token")
 

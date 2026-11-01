@@ -112,6 +112,12 @@ function BB.BarEdge(cfg)
     local style, show, size = S.BarBorder(cfg.barBorderStyle, cfg.barBorder, cfg.barBorderSize,
         cfg.barBorderStyleFromSkin)
     if show == false then return nil, size end
+    -- A None style with Show border on is the one thin solid edge, so the bar wears a border
+    -- under every skin (SF-CM-1); Show border off is the way to take it away.
+    if style == "None" then
+        -- the shipped thickness is for a textured edge; a size the player moved stands
+        return SOLID_EDGE, tonumber(size) == BB.StyleDefault("barBorderSize") and 1 or size
+    end
     return BB.EdgeFile(style), size
 end
 

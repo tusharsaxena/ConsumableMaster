@@ -354,7 +354,8 @@ test("Skin flip: a skin's None defers to Show border and the stored style, a rea
         return lastCall(flyout.bg, "SetBackdrop")[2].edgeFile
     end
     KCM.MacroBar.Update()
-    t.eq(seen.backdrop.edgeFile, nil, "shipped: no edge under Ka0s Default")
+    t.eq(seen.backdrop.edgeFile, [[Interface\Buttons\WHITE8X8]], "shipped: one thin solid edge under Ka0s Default")
+    t.eq(seen.backdrop.edgeSize, 1, "one pixel")
 
     bar.barBorderStyle = "Blizzard Dialog"
     KCM.MacroBar.Update()
