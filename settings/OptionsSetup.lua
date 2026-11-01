@@ -340,6 +340,9 @@ else
     -- The Position-block composer (LibKa0s v1.84.0, OptionsCompose minor 15). No page here calls it
     -- yet, but the stub owes every public member, and it answers the live shape: rows, then a hook.
     Helpers.PositionBlock  = function() return {}, function() end end
+    -- A label's font (LibKa0s v1.85.0, OptionsWidgets minor 43), owed by every Options stub. No
+    -- library, no widget to set it on.
+    Helpers.LabelFont      = function() end
 
     -- The Skin tab (LibKa0s v1.78.0, OptionsAppearance minor 1; skinning-§3) and the first-run
     -- skin picker (LibKa0s v1.79.0, OptionsSkinPicker minor 1). Every Options stub owes all four,

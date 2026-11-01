@@ -130,7 +130,10 @@ end
 -- info (settings/Category.lua's score button); the library draws close, copy
 -- and clear on this addon's behalf once told its folder name (the debug console,
 -- the copy window, the perf panel), and info for an Options id list.
-local DRAWN = { "clear", "close", "copy", "help", "info", "segment" }
+-- The rest of the line is what LibKa0s v1.85.0's library-drawn marks owe every consumer (kit
+-- revision 49): the settings marks, the number steppers and the sound row.
+local DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "help", "info",
+    "move", "reset", "segment", "settings", "volume-high" }
 
 test("MediaSetup: every mark this addon draws is one the library ships", function(t)
     -- The names are plain strings in this addon's source and the catalog is in

@@ -144,7 +144,7 @@ a declared skip is in neither figure (`testing-§5`). A **declared skip** is a c
 registered with a third argument giving its reason, which the runner never executes,
 never folds into the pass count, and never lets change the exit code. The inventory
 discloses each one inline as `(skipped: <reason>)` and counts it on its own `| Skipped |`
-row just above Total (this repo holds kit revision 47; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
+row just above Total (this repo holds kit revision 49; the row arrived at revision 38, LibKa0s v1.71.0, and revision 37 folded skips into
 Total, which left the badge's total one above what runs), so the difference stays visible
 without being counted as a pass.
 A skip is for a case that has been written and watched failing against a defect the fix
@@ -153,7 +153,7 @@ merely inconvenient, and softening the assertion instead is worse than either.
 
 ## The 1500-line cap gate
 
-`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 47, vendored from LibKa0s v1.84.0; wired since revision 25), which `layout-§1` makes
+`tests/_kit/test_layout_cap.lua` — the kit's gate (test-kit revision 49, vendored from LibKa0s v1.85.0; wired since revision 25), which `layout-§1` makes
 the only one a repo may wire — compares two things: every authored `.lua` git tracks, and the
 census under *Files over the 1500-line cap*, which sits under *Documented deviations* in
 [ARCHITECTURE.md](./ARCHITECTURE.md), the parent the gate locates it by. It reads them in both
