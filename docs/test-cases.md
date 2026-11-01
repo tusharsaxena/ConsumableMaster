@@ -1092,6 +1092,29 @@ Total.
 - Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
 - Skin fonts: without the library the label draws its stored size and an outline
 
+### test_skin_flip.lua (20)
+
+- Skin flip: every color and shadow companion is a bool row defaulting on, in both places
+- Skin flip: the pick's default moved, and the bar family holds the thickness
+- Skin flip: the record is in the AceDB defaults, with no schema row a Defaults could walk
+- Skin flip: Ka0s Default keeps this addon's pixels
+- Skin flip: a skin switch changes what each flipped surface draws
+- Skin flip: the bar's fill and edge draw the skin's tokens, and a skin switch repaints them
+- Skin flip: a companion off draws the stored color, under any skin
+- Skin flip: a class color comes first, whatever the companion says
+- Skin flip: the bar's thickness is the skin's while the border's companion is on
+- Skin flip: the label's shadow lands on a font object, the skin's while the companion is on
+- Skin flip: without the library the stored colors draw and the label keeps its face
+- Skin flip: the step moves every listed key, byte-identical picks and colors
+- Skin flip: the step lists no size, class toggle, Scope key or bare color
+- Skin flip: a second run writes nothing, and a companion turned off afterwards stays off
+- Skin flip: a missing sub-table is skipped and the record's table created
+- Skin flip: the step is the same write with the library absent
+- Skin flip: past the stamp the runner still moves an active profile with no record
+- Skin flip: the page Defaults leaves the record alone, so a later run keeps a turned-off companion
+- Skin flip: a profile reset re-runs the step against defaults, moving nothing a player sees
+- Skin flip: a profile switched to later moves on arrival
+
 ### test_skin_outline.lua (10)
 
 - Skin outline: a fresh profile stores HUD text only, the library's default
@@ -1611,6 +1634,7 @@ Total.
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 13 |
 | test_skin_hud.lua | 20 |
+| test_skin_flip.lua | 20 |
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 10 |
 | test_skin_verb.lua | 6 |
@@ -1636,4 +1660,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1318** |
+| **Total** | **1338** |

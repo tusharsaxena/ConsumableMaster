@@ -11,8 +11,9 @@
 -- Icon / count / cooldown come from core/MacroDisplay.lua, which reads the pick
 -- MacroManager recorded in db.profile.macroState. Cooldown/count styling is
 -- deliberately stock Blizzard (CooldownFrameTemplate swipe honoring the
--- countdown-numbers CVar, NumberFontNormal count) — see the tracking issue for
--- configurable styling.
+-- countdown-numbers CVar) — see the tracking issue for configurable styling. The
+-- count text is NumberFontNormal's size in the skin's HUD face, outline and text
+-- color (BB.ApplyCountFont).
 --
 -- The slot also owns a hover flyout (modules/MacroBarFlyout.lua) listing every
 -- currently-usable candidate in its category. Created here, out of combat,
@@ -59,15 +60,15 @@ BB.BorderTexture = borderTexture   -- shared with modules/MacroBar.lua's backdro
 -- ---------------------------------------------------------------------------
 -- The skin's HUD style (skinning-§6; CM-03 of the 2026-10-29 skinning rollout)
 --
--- Three HUD style settings follow the skin while their `<key>FromSkin`
--- companion is on, which it is by default (the rollout's X3) and after the
--- one-time v4 reset (core/Database.lua, the owner's O2): the bar's border
--- style (`bar.borderStyle`, shared by the flyout panel), the buttons' border
--- style and thickness (the icon family, `icon.borderStyle` / `icon.borderSize`)
--- and the label face (`hud.font`). Only texture, border and font follow (X4):
--- every HUD COLOR stays the player's swatch, and the sizes, flags, shadow and
--- offset stay the player's too (the inventory's D1). The count text has no
--- setting, so it simply takes the skin's HUD face and outline (D6).
+-- Each HUD style setting follows the skin while its `<key>FromSkin` companion
+-- is on, which it is by default (the rollout's X3) and after the one-time steps
+-- (core/Database.lua): the bar's border style and thickness (`bar.borderStyle` /
+-- `bar.borderSize`, shared by the flyout panel), the buttons' (the icon family,
+-- `icon.borderStyle` / `icon.borderSize`), the label face (`hud.font`), and since
+-- the owner's ruling of 2026-11-01 (FS-CM-FLIP) every color and the label's shadow
+-- (BB.Swatch, BB.HudFontOpts below). A class color comes first and has no companion.
+-- The sizes and the offset stay the player's. The count text has no setting, so it
+-- simply takes the skin's HUD face, outline and text color (D6).
 --
 -- Read per call through KCM.Skin.Resolve, a table read that allocates nothing:
 -- these appliers run per button per layout pass, so S.BarStyle (a fresh table)
@@ -147,7 +148,7 @@ end
 --- nil (Skin minor 8). The count has no setting of its own, so its fallback is its
 --- font object's face, and this SetFont is not a recorded paint, so the put-back
 --- is this addon's to make.
-function BB.ApplyCountFont(fs)
+local function applyCountFace(fs)
     if not (fs and fs.SetFont and fs.GetFont) then return end
     local S = KCM.Skin
     local face = S and S.Token and S.Token("hud.font")
@@ -167,6 +168,17 @@ function BB.ApplyCountFont(fs)
     if not path then return end
     local outline = S.Token("hud.outline")
     fs:SetFont(path, size, type(outline) == "string" and outline or "OUTLINE")
+end
+
+--- The count's face, then its color: `hud.text` (cause D2), which a font object handed back
+--- would otherwise reset. Ka0s Default's is NumberFontNormal's own white; degraded it answers
+--- nothing and the font object's color stands. The size stays the font object's (cause L11).
+function BB.ApplyCountFont(fs)
+    applyCountFace(fs)
+    local S = KCM.Skin
+    if not (fs and fs.SetTextColor and S and S.HudTextColor) then return end
+    local r, g, b, a = S.HudTextColor()
+    if r then fs:SetTextColor(r, g, b, a) end
 end
 
 --- The label's face as drawn: the skin's `hud.font` while its companion is on,
@@ -395,6 +407,31 @@ local function swatch(stored, useClass, default)
         default[1], default[2], default[3], default[4])
 end
 
+--- A HUD swatch as drawn (causes D2 and D4): the class color first, whatever the companion says;
+--- then, with `fromSkin` on, the skin's `token`; else the stored swatch over its shipped default,
+--- `key`. A degraded facade answers nothing for these tokens, so the stored swatch is the fallback.
+--- Read per call, so a skin switch's re-apply takes the new color.
+function BB.Swatch(stored, useClass, fromSkin, token, key)
+    if fromSkin == true and not useClass then
+        local r, g, b, a = KCM.Skin.Color(token)
+        if r then return r, g, b, a end
+    end
+    return swatch(stored, useClass, BB.StyleDefault(key))
+end
+
+--- The label's color: as BB.Swatch, through `hud.label` (S.HudLabelColor).
+local function labelColor(cfg)
+    if cfg.labelColorFromSkin == true and not cfg.useClassColorLabel then
+        local r, g, b, a = KCM.Skin.HudLabelColor()
+        if r then return r, g, b, a end
+    end
+    return swatch(cfg.labelColor, cfg.useClassColorLabel, BB.StyleDefault("labelColor"))
+end
+
+-- S.HudFont keeps nothing of its opts, and this runs per button per pass, so one table is
+-- refilled, every field, before each call (LibKa0s Options doc, Moving to this version).
+local labelFontOpts = {}
+
 local function applyLabel(btn, cfg)
     if not cfg.buttonLabel then
         btn.label:Hide()
@@ -409,28 +446,21 @@ local function applyLabel(btn, cfg)
     if fontPath then
         -- `labelFlags` is the canonical font-flags STRING (options-ui-§16); "" is
         -- a real stored value and means no flags at all, and "@skin" (From skin)
-        -- resolves through the Font outline (BB.LabelFont).
+        -- resolves through the Font outline (BB.LabelFont). Face, size, flags and
+        -- shadow go on the string's font object through S.HudFont, the only place
+        -- a 12.0.7 client draws a shadow; it writes both shadow arms, so an off
+        -- clears what the last pass set.
         local size, flags = BB.LabelFont(cfg, pts)
-        btn.label:SetFont(fontPath, size, flags)
-    end
-    -- Font shadow. Cleared explicitly when off, never left to whatever the last
-    -- pass wrote: a shadow set once and not cleared is as sticky as the outline
-    -- flags above were.
-    if btn.label.SetShadowOffset and btn.label.SetShadowColor then
-        if cfg.labelShadow then
-            btn.label:SetShadowColor(0, 0, 0, 1)
-            btn.label:SetShadowOffset(1, -1)
-        else
-            btn.label:SetShadowColor(0, 0, 0, 0)
-            btn.label:SetShadowOffset(0, 0)
-        end
+        labelFontOpts.face, labelFontOpts.size, labelFontOpts.flags = fontPath, size, flags
+        labelFontOpts.shadow = cfg.labelShadow and true or false
+        labelFontOpts.shadowFromSkin = cfg.labelShadowFromSkin == true
+        KCM.Skin.HudFont(btn.label, labelFontOpts)
     end
     local point, relPoint, dx, dy, justify = BL.LabelAnchor(cfg)
     btn.label:ClearAllPoints()
     btn.label:SetPoint(point, btn, relPoint, dx, dy)
     btn.label:SetJustifyH(justify)
-    btn.label:SetTextColor(swatch(cfg.labelColor, cfg.useClassColorLabel,
-        BB.StyleDefault("labelColor")))
+    btn.label:SetTextColor(labelColor(cfg))
     applyLabelText(btn, cfg, pts)
     btn.label:Show()
 end
@@ -465,8 +495,8 @@ function BB.ApplyBorder(frame, anchorTo, cfg)
         edgeFile = edge,
         edgeSize = math.max(1, tonumber(size) or 4),
     })
-    frame:SetBackdropBorderColor(swatch(cfg.buttonBorderColor,
-        cfg.useClassColorButtonBorder, BB.StyleDefault("buttonBorderColor")))
+    frame:SetBackdropBorderColor(BB.Swatch(cfg.buttonBorderColor, cfg.useClassColorButtonBorder,
+        cfg.buttonBorderColorFromSkin, "cm.buttonBorder", "buttonBorderColor"))
     frame:Show()
 end
 
@@ -482,8 +512,8 @@ function BB.ApplyIconZoom(icon, cfg)
 end
 
 function BB.ApplyBackdropTex(tex, cfg)
-    tex:SetColorTexture(swatch(cfg.buttonBackdropColor,
-        cfg.useClassColorButtonBackdrop, BB.StyleDefault("buttonBackdropColor")))
+    tex:SetColorTexture(BB.Swatch(cfg.buttonBackdropColor, cfg.useClassColorButtonBackdrop,
+        cfg.buttonBackdropColorFromSkin, "cm.buttonBg", "buttonBackdropColor"))
     if cfg.buttonBackdrop then tex:Show() else tex:Hide() end
 end
 

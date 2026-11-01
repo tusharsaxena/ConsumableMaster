@@ -27,6 +27,8 @@
 --       rollout's O2: the border styles and the label face).
 --   5 — the label's stored old default flag "OUTLINE" moves to From skin
 --       ("@skin"), once (LibKa0s v1.82.0, ruling D-07, Addendum 01).
+--   6 — the macro bar's colors, shadow and flags follow the skin, once
+--       (FS-CM-FLIP, the owner's ruling of 2026-11-01).
 
 local _, NS = ...
 local KCM = NS
@@ -35,7 +37,7 @@ local D = KCM.Database
 
 -- Latest schema version the code understands. Bump when you add a migration
 -- step below.
-D.CURRENT_SCHEMA = 5
+D.CURRENT_SCHEMA = 6
 
 -- v2 — introduce the macro bar to a profile written before it existed.
 --
@@ -157,6 +159,57 @@ function D.MigrateLabelFlagsV5(profile)
     return true
 end
 
+-- v6 — the one step onto the skin (FS-CM-FLIP; the owner's rulings of 2026-11-01:
+-- existing profiles follow the skin, not new profiles only; LibKa0s Options doc,
+-- "Moving to this version").
+--
+-- Recorded per profile in `skin.fullSkinReset` through Skin.FollowOnce, which is
+-- its only gate: it runs from every RunMigrations, so a restored profile that
+-- arrives past the stamp with no record still moves, and a companion a player
+-- turns off afterwards stays off. A reset profile runs it again against defaults,
+-- which moves nothing a player sees. The record has no schema row, so no Defaults
+-- can put it back.
+--
+-- It names companions and the From skin flags (the reader is on S.FontFlags),
+-- never a stored color or pick, so turning a companion off brings the player's own
+-- straight back; no size, class color, class toggle or `skin.ignore*` key is here.
+-- Paths from the profile root, as FollowOnce takes them.
+D.SKIN_FOLLOW_KEYS = {
+    "macroBar.barBorderStyleFromSkin", "macroBar.buttonBorderStyleFromSkin",
+    "macroBar.labelFontFromSkin",
+    "macroBar.barBackdropColorFromSkin", "macroBar.barBorderColorFromSkin",
+    "macroBar.buttonBackdropColorFromSkin", "macroBar.buttonBorderColorFromSkin",
+    "macroBar.labelColorFromSkin", "macroBar.labelShadowFromSkin",
+    "macroBar.flyoutBackdropColorFromSkin", "macroBar.flyoutShadeColorFromSkin",
+    "macroBar.labelFlags",
+}
+
+--- The same write with the library absent: the record is the gate, a path through a missing
+--- table is skipped, and the `skin` table is the one table this may create.
+local function followByHand(profile)
+    if type(profile.skin) == "table" and profile.skin.fullSkinReset == true then return false end
+    local bar = profile.macroBar
+    if type(bar) == "table" then
+        for _, path in ipairs(D.SKIN_FOLLOW_KEYS) do
+            local leaf = path:match("([^.]+)$")
+            bar[leaf] = leaf:find("FromSkin$") and true or D.FLAGS_FROM_SKIN
+        end
+    end
+    if type(profile.skin) ~= "table" then profile.skin = {} end
+    profile.skin.fullSkinReset = true
+    return true
+end
+
+--- Answers true when it moved the profile.
+function D.FollowSkinV6(profile)
+    if type(profile) ~= "table" then return false end
+    local Skin = LibStub and LibStub("LibKa0s-Skin-1.0", true)
+    if Skin and type(Skin.FollowOnce) == "function" then
+        return Skin.FollowOnce(profile, D.SKIN_FOLLOW_KEYS)
+    end
+    return followByHand(profile)
+end
+
 -- Run any pending migrations in order. Safe to call every login AND on every
 -- profile switch; each step is guarded on the stored version for the scope it
 -- writes, so it runs at most once per store.
@@ -229,8 +282,11 @@ local function migrateProfile(p)
         p.schemaVersion = 5
     end
 
+    -- v6's gate is its own per-profile record, not the stamp (D.FollowSkinV6).
+    D.FollowSkinV6(p)
+
     -- Future PROFILE migrations go here, e.g.:
-    --   if p.schemaVersion < 6 then ... ; p.schemaVersion = 6 end
+    --   if p.schemaVersion < 7 then ... ; p.schemaVersion = 7 end
 
     p.schemaVersion = D.CURRENT_SCHEMA
     return pFrom

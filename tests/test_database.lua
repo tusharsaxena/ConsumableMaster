@@ -5,7 +5,7 @@ local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.Database.CURRENT_SCHEMA, 5, "current schema is v5")
+    t.eq(KCM.Database.CURRENT_SCHEMA, 6, "current schema is v6")
 end)
 
 test("Database.RunMigrations stamps a fresh account at the current schema", function(t)
@@ -376,7 +376,8 @@ test("Database: a second profile written before v3 is migrated when it is switch
     KCM.Database.RunMigrations()          -- first login stamps the account at v3
     -- Sitting in SavedVariables, never opened this session, so AceDB has not
     -- merged the defaults into it. This is the raw shape the file holds.
-    KCM.db.profiles.Alt = { macroBar = { labelOutline = false } }
+    -- The record seeded true: this case is about v3, and v6 follows the skin past it.
+    KCM.db.profiles.Alt = { macroBar = { labelOutline = false }, skin = { fullSkinReset = true } }
     KCM.db:SetProfile("Alt")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
         "the v3 step ran against the incoming profile and retired the boolean")

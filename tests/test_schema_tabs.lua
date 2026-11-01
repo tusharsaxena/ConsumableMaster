@@ -118,10 +118,12 @@ test("schema: the Macro Bar page partitions into its designed tabs", function(t)
         -- CM-03 (the skinning rollout) gave each of the three HUD style blocks its
         -- composed "follow the skin" companion: Bar appearance 8 -> 9, Button
         -- appearance 12 -> 13, Labels 12 -> 13.
-        { "Bar appearance",    9  },
-        { "Button appearance", 13 },
-        { "Labels",            13 },
-        { "Flyout",            16 },
+        -- FS-CM-FLIP added the "Use the skin's ..." companions: Bar appearance +2, Button
+        -- appearance +2, Labels +2, Flyout +2.
+        { "Bar appearance",    11 },
+        { "Button appearance", 15 },
+        { "Labels",            15 },
+        { "Flyout",            18 },
         { "Buttons",           2  },
     }
 

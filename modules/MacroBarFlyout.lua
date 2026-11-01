@@ -441,19 +441,10 @@ end
 -- same icons. The panel of the container is what says "this is a popup". Border
 -- style / thickness / color are shared with the BAR's own frame so the two read
 -- as one design, with only the fill color separate.
--- A stored swatch resolved through its "use class color" companion
--- (options-ui-§17), over the setting's own shipped default (defaults/Profile.lua,
--- read through MacroBarButton.StyleDefault, never re-typed here) component by
--- component: a stored color may be absent entirely or short a component, and
--- each missing slot falls back on its own. The resolver is the addon's one
--- (core/CoreSetup.lua); the flyout's border deliberately reads the BAR's swatch
--- and the bar's companion, because it is drawn in the bar's border style and
--- always has been. Every one of these colors is the player's (the rollout's X4).
-local function swatch(stored, useClass, key)
-    local default = KCM.MacroBarButton.StyleDefault(key)
-    return KCM.SwatchColor(stored, useClass,
-        default[1], default[2], default[3], default[4])
-end
+-- Each color is the skin's while its companion is on and the stored swatch
+-- otherwise (MacroBarButton.Swatch, the addon's one resolver); the flyout's border
+-- deliberately reads the BAR's swatch and the bar's companions, because it is drawn
+-- in the bar's border style and always has been.
 
 function FO.ApplyBackdrop(flyout, cfg)
     local bg = flyout and flyout.bg
@@ -470,12 +461,13 @@ function FO.ApplyBackdrop(flyout, cfg)
     bg:SetBackdrop({
         bgFile   = BACKDROP_TEX,
         edgeFile = edge,
-        edgeSize = math.max(1, tonumber(cfg.barBorderSize) or 4),
+        edgeSize = math.max(1, tonumber(BB.Follow("bar.borderSize", cfg.barBorderSize,
+            cfg.barBorderStyleFromSkin)) or 4),
     })
-    bg:SetBackdropColor(swatch(cfg.flyoutBackdropColor,
-        cfg.useClassColorFlyoutBackdrop, "flyoutBackdropColor"))
-    bg:SetBackdropBorderColor(swatch(cfg.barBorderColor,
-        cfg.useClassColorBarBorder, "barBorderColor"))
+    bg:SetBackdropColor(BB.Swatch(cfg.flyoutBackdropColor, cfg.useClassColorFlyoutBackdrop,
+        cfg.flyoutBackdropColorFromSkin, "cm.flyoutBg", "flyoutBackdropColor"))
+    bg:SetBackdropBorderColor(BB.Swatch(cfg.barBorderColor, cfg.useClassColorBarBorder,
+        cfg.barBorderColorFromSkin, "cm.barBorder", "barBorderColor"))
 end
 
 function FO.RefreshCooldown(btn)
@@ -512,8 +504,9 @@ local function applyIndicator(button, cfg)
     ind:SetPoint(point, button, relPoint, dx, dy)
     ind:SetSize(w, h)
     ind:SetFrameLevel(button:GetFrameLevel() + LEVEL.INDICATOR)
-    ind.shade:SetColorTexture(swatch(cfg.flyoutShadeColor,
-        cfg.useClassColorFlyoutShade, "flyoutShadeColor"))
+    ind.shade:SetColorTexture(KCM.MacroBarButton.Swatch(cfg.flyoutShadeColor,
+        cfg.useClassColorFlyoutShade, cfg.flyoutShadeColorFromSkin, "cm.flyoutShade",
+        "flyoutShadeColor"))
     -- The arrow is in-client art, tinted by the skin's `icon.arrow` (the
     -- inventory's D9; a smoke check, since the tint multiplies the art).
     ind.arrow:SetVertexColor(KCM.SkinColor("icon.arrow"))

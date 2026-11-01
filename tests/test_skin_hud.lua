@@ -76,13 +76,10 @@ local function barCfg(KCM, over)
 end
 
 -- The LibSharedMedia fake knows the client's own media only; the library's registration of its
--- shipped faces is a no-op there. Teach it the HUD face for one case, and take it back after.
+-- shipped faces is a no-op there, so tests/wow_mock.lua lists the HUD face, the shipped default
+-- since FS-CM-FLIP. This puts the skin back after a case.
 local function withHudFace(fn)
-    local LSM = LibStub("LibSharedMedia-3.0")
-    local fonts = LSM.media.font
-    fonts[#fonts + 1] = HUD_FACE
     local ok, err = pcall(fn)
-    for i = #fonts, 1, -1 do if fonts[i] == HUD_FACE then table.remove(fonts, i) end end
     local Skin = skinLib()
     if Skin then Skin:SetChoice(OWNER, "ka0s", "ka0s") end
     return ok, err
@@ -133,9 +130,9 @@ test("Skin HUD: the flyout panel's edge follows the skin's bar border style", fu
     KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM))
     local bd = lastCall(flyout.bg, "SetBackdrop")
     t.eq(bd and bd[2].edgeFile, nil, "Ka0s Default: bar.borderStyle 'None', no edge")
-    t.eq(bd and bd[2].edgeSize, 4, "the thickness stays the player's")
+    t.eq(bd and bd[2].edgeSize, 1, "the thickness is the bar family's (FS-CM-FLIP)")
     local fill = lastCall(flyout.bg, "SetBackdropColor")
-    t.eq(fill and fill[5], 0.85, "the fill is the player's swatch (X4)")
+    t.eq(fill and fill[5], 0.85, "the fill is today's pixel, through its owner token")
 
     KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyleFromSkin = false }))
     bd = lastCall(flyout.bg, "SetBackdrop")
@@ -160,7 +157,8 @@ test("Skin HUD: the label and count faces are the skin's HUD font", function(t)
         t.eq(lastCall(btn.count, "SetFont")[3], 14, "a second pass keeps the size")
 
         local own = styleButton()
-        KCM.MacroBarButton.ApplyStyle(own, barCfg(KCM, { labelFontFromSkin = false }))
+        KCM.MacroBarButton.ApplyStyle(own, barCfg(KCM, { labelFontFromSkin = false,
+            labelFont = "Friz Quadrata TT" }))
         t.eq(lastCall(own.label, "SetFont")[2], "font:Friz Quadrata TT",
             "companion off: the stored face")
     end)
@@ -175,12 +173,13 @@ test("Skin HUD: Ignore fonts puts the count and label back on their own faces, l
     local Skin = skinLib()
     local ok, err = withHudFace(function()
         local btn = styleButton()
-        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
+        local stored = { labelFont = "Friz Quadrata TT" }
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, stored))
         t.eq(lastCall(btn.count, "SetFont")[2], "font:" .. HUD_FACE, "first the skin's HUD face")
         Skin:SetIgnore(OWNER, nil, true)
         t.eq(select(2, Skin:GetIgnore(OWNER)), true, "the exception is applied")
         local mark = #btn.count.calls
-        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, stored))
         local put
         for i = mark + 1, #btn.count.calls do
             local c = btn.count.calls[i]
@@ -293,8 +292,8 @@ test("Skin HUD: the three companions are composed rows, on by default, governing
         t.eq(companion and companion.default, true, pair[1] .. " defaults on (X3)")
         t.eq(picker and picker.disabledIf, pair[1], pair[2] .. " is governed by it")
     end
-    t.eq(H.FindSchema("macroBar.barBorderSize").disabledIf, nil,
-        "the bar family governs no thickness: the bar's stays the player's")
+    t.eq(H.FindSchema("macroBar.barBorderSize").disabledIf, "macroBar.barBorderStyleFromSkin",
+        "the bar family governs its thickness too (FS-CM-FLIP)")
     t.truthy(KCM.Schema:Set("macroBar.labelFontFromSkin", false), "a bare /cm set is accepted")
     t.eq(KCM.db.profile.macroBar.labelFontFromSkin, false, "and stored")
 end)
@@ -450,10 +449,11 @@ test("Skin fonts: the v5 step moves the old default flag to From skin once, and 
     local KCM = h.loader.loadFullAddon()
     local p = KCM.db.profile
     p.schemaVersion = 4
+    p.skin.fullSkinReset = true    -- this case is about v5, and v6 moves any flag once
     p.macroBar.labelFlags = "OUTLINE"
     KCM.Database.RunMigrations()
     t.eq(p.macroBar.labelFlags, FROM_SKIN, "the old default moved to From skin")
-    t.eq(p.schemaVersion, 5, "the profile is stamped v5")
+    t.eq(p.schemaVersion, KCM.Database.CURRENT_SCHEMA, "the profile is stamped and walked on")
     p.macroBar.labelFlags = "OUTLINE"
     KCM.Database.RunMigrations()
     t.eq(p.macroBar.labelFlags, "OUTLINE", "a later pick of Outline survives every login")

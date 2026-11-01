@@ -128,6 +128,18 @@ KCM.SKIN_TOKENS = {
     ["cm.tipSummary"] = { default = { 0xaa / 255, 0xaa / 255, 0xaa / 255, 1 }, follow = "gtip.subtle" },
 }
 
+-- The macro bar's HUD colors that are not that skin's token under Ka0s Default (FS-CM-FLIP, causes
+-- D2 and D4): today's pixels there, the library role everywhere else. Apart from SKIN_TOKENS only
+-- for the degraded facade: these answer nothing there, so a bar with no library draws its stored
+-- swatch (the LibKa0s Options doc's rule), where a settings surface draws the host copy.
+local HUD_TOKENS = {
+    ["cm.barBorder"]    = { default = { 0.25, 0.25, 0.25, 1 }, follow = "bar.border" },
+    ["cm.buttonBg"]     = { default = { 0, 0, 0, 0.6 }, follow = "bar.bg" },
+    ["cm.buttonBorder"] = { default = { 1, 1, 1, 1 }, follow = "icon.border" },
+    ["cm.flyoutBg"]     = { default = { 0, 0, 0, 0.85 }, follow = "popup.bg" },
+    ["cm.flyoutShade"]  = { default = { 0, 0, 0, 0.8 }, follow = "cover.dim" },
+}
+
 -- The Ka0s Default values the DEGRADED facade answers, limited to the tokens this addon reads.
 -- Both arms publish the table, so tests/test_skin.lua can hold each entry to the live facade's
 -- Ka0s Default answer: a copy that drifts goes red there. A surface converted to a token adds the
@@ -149,6 +161,7 @@ KCM.SKIN_FALLBACK = {
     ["icon.arrow"]     = { 1, 0.82, 0, 1 },
 }
 for name, def in pairs(KCM.SKIN_TOKENS) do KCM.SKIN_FALLBACK[name] = def.default end
+for name, def in pairs(HUD_TOKENS) do KCM.SKIN_TOKENS[name] = def end
 
 --- Components as a call site writes them: r, g, b for an opaque color and r, g, b, a otherwise (the
 --- library's own text and vertex rule), so a site that passed three components before it read a
