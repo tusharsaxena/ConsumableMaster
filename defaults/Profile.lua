@@ -188,7 +188,12 @@ KCM.dbDefaults = {
             barBackdropColor    = { 0, 0, 0, 0.5 },
             useClassColorBarBackdrop = false,
             barBorder           = true,
-            barBorderStyle      = "Blizzard Tooltip",
+            -- "None" since LibKa0s v1.85.0: a skin's None defers to this, so Ka0s Default
+            -- would draw a real default here. No migration: AceDB never stores a value
+            -- that equals its default, so a profile that kept "Blizzard Tooltip" holds no
+            -- key to move, a stored pick is the player's and draws, and every existing
+            -- profile reaches this build through the v6 step with the companion on.
+            barBorderStyle      = "None",
             barBorderSize       = 4,
             barBorderColor      = { 0.25, 0.25, 0.25, 1 },
             useClassColorBarBorder = false,
@@ -197,9 +202,10 @@ KCM.dbDefaults = {
             -- picker shows the skin's value. TRUE by default (the rollout's
             -- X3), so a new or reset profile follows the skin exactly as an
             -- existing one does after core/Database.lua's one-time v4 reset
-            -- (O2). The bar's and the buttons' border families both
-            -- govern their thickness (`barBorderSize` and `buttonBorderSize`
-            -- are not read while the companion is on).
+            -- (O2). The bar's and the buttons' border families both govern
+            -- their thickness, with one difference: the bar's stored style,
+            -- Show border and thickness draw under a skin whose style is None
+            -- (S.BarBorder); only a real style in a skin replaces them.
             --
             -- Every color and the label's shadow follow too (FS-CM-FLIP, the
             -- owner's ruling of 2026-11-01, causes D2, D4 and D6), each with a

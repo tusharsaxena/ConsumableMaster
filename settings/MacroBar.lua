@@ -305,9 +305,9 @@ block(H.BorderGroup{
         useClassColorBorder = BAR_DEFAULTS.useClassColorBarBorder,
         borderStyleFromSkin = BAR_DEFAULTS.barBorderStyleFromSkin,
     },
-    -- `macroBar.barBorderStyleFromSkin` (CM-03): the bar's and the flyout's edge
-    -- follow the skin's bar family, `bar.borderStyle` and `bar.borderSize`, which
-    -- governs the thickness slider as well (FS-CM-FLIP).
+    -- `macroBar.barBorderStyleFromSkin` (CM-03): a real `bar.borderStyle` in a skin
+    -- takes the bar's and the flyout's edge, thickness included (FS-CM-FLIP), and the
+    -- composer grays the rows. A skin's None defers, so they stay live and drawn.
     fromSkin = "bar",
     classColor = { source = "player" },
     extra = { skinRow("barBorderColorFromSkin", L["Use the skin's color"],

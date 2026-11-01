@@ -27,6 +27,8 @@ local function recFrame(name, font)
         GetStringWidth = function() return 0 end,
         GetFont        = function() return "Fonts\\ARIALN.TTF", font end,
         GetObjectType  = function() return "FontString" end,
+        GetShadowOffset = function() return 1, -1 end,
+        GetShadowColor  = function() return 0, 0, 0, 0.75 end,
         IsShown        = function() return f._shown end,
     }
     setmetatable(f, { __index = function(_, key)
@@ -159,8 +161,21 @@ test("Skin flip: the pick's default moved, and the bar family holds the thicknes
     t.eq(KCM.dbDefaults.profile.macroBar.labelFont, "Ka0s Prototype", "AceDB's default face")
     t.eq(H.FindSchema("macroBar.labelFont").default, "Ka0s Prototype", "the row's")
     t.eq(H.FindSchema("macroBar.labelFlags").default, "@skin", "the flags row's")
-    t.eq(H.FindSchema("macroBar.barBorderSize").disabledIf, "macroBar.barBorderStyleFromSkin",
-        "the border's companion governs the thickness")
+end)
+
+-- red under: a shipped real style, which a skin's None would draw under Ka0s Default.
+test("Skin flip: the bar ships no border of its own, and the composed rows follow the deferral", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local H, bar = KCM.Settings.Helpers, KCM.db.profile.macroBar
+    t.eq(KCM.dbDefaults.profile.macroBar.barBorderStyle, "None", "the AceDB default")
+    t.eq(H.FindSchema("macroBar.barBorderStyle").default, "None", "the row's")
+    local style, size = H.FindSchema("macroBar.barBorderStyle"), H.FindSchema("macroBar.barBorderSize")
+    t.eq(type(style.disabledIf), "function", "the style row follows Skin:Resolve's deferral")
+    t.eq(type(size.disabledIf), "function", "and the thickness")
+    t.falsy(style.disabledIf(style), "live under Ka0s Default's None: the stored value is what draws")
+    t.falsy(size.disabledIf(size), "the thickness too")
+    bar.barBorderStyleFromSkin = false
+    t.falsy(style.disabledIf(style), "companion off: the player's")
 end)
 
 test("Skin flip: the record is in the AceDB defaults, with no schema row a Defaults could walk", function(t)
@@ -312,13 +327,62 @@ test("Skin flip: the bar's thickness is the skin's while the border's companion 
     local _, seen = barDraws(KCM)
     KCM.db.profile.macroBar.barBorderSize = 9
     KCM.MacroBar.Update()
-    t.eq(seen.backdrop and seen.backdrop.edgeSize, 1, "bar.borderSize under Ka0s Default")
+    t.eq(seen.backdrop and seen.backdrop.edgeSize, 9, "a skin's None defers: the stored size")
+    KCM.ApplySkinChoice("ka0s", "wow")
+    KCM.MacroBar.Update()
+    local Skin = LibStub("LibKa0s-Skin-1.0")
+    local wow = Skin:Token(OWNER, "bar.borderSize")
+    t.eq(seen.backdrop and seen.backdrop.edgeSize, wow, "bar.borderSize under a real style")
+    local flyout = { bg = recFrame("bg") }
+    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderSize = 9 }))
+    t.eq(lastCall(flyout.bg, "SetBackdrop")[2].edgeSize, wow, "the flyout's edge shares it")
     KCM.db.profile.macroBar.barBorderStyleFromSkin = false
     KCM.MacroBar.Update()
     t.eq(seen.backdrop and seen.backdrop.edgeSize, 9, "companion off: the stored size")
+    KCM.ApplySkinChoice("ka0s", "ka0s")
+end)
+
+-- red under: Show border read ahead of S.BarBorder, or a skin's real style losing to it, or the
+-- stored style left unread under a skin's None.
+test("Skin flip: a skin's None defers to Show border and the stored style, a real style wins", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, seen = barDraws(KCM)
+    local bar = KCM.db.profile.macroBar
     local flyout = { bg = recFrame("bg") }
-    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderSize = 9 }))
-    t.eq(lastCall(flyout.bg, "SetBackdrop")[2].edgeSize, 1, "the flyout's edge shares it")
+    local function flyoutEdge()
+        KCM.MacroBarFlyout.ApplyBackdrop(flyout, bar)
+        return lastCall(flyout.bg, "SetBackdrop")[2].edgeFile
+    end
+    KCM.MacroBar.Update()
+    t.eq(seen.backdrop.edgeFile, nil, "shipped: no edge under Ka0s Default")
+
+    bar.barBorderStyle = "Blizzard Dialog"
+    KCM.MacroBar.Update()
+    t.eq(seen.backdrop.edgeFile, "border:Blizzard Dialog", "None: the stored style draws")
+    t.eq(flyoutEdge(), "border:Blizzard Dialog", "on the flyout too")
+
+    bar.barBorder = false
+    KCM.MacroBar.Update()
+    t.eq(seen.backdrop.edgeFile, nil, "None: Show border off holds")
+    t.eq(flyoutEdge(), nil, "on the flyout too")
+
+    KCM.ApplySkinChoice("ka0s", "wow")
+    KCM.MacroBar.Update()
+    local Skin = LibStub("LibKa0s-Skin-1.0")
+    local real = Skin:Token(OWNER, "bar.borderStyle")
+    t.ne(real, "None", "WoW Default states a real style")
+    t.truthy(seen.backdrop.edgeFile, "a real style wins over Show border off")
+    t.ne(seen.backdrop.edgeFile, "border:Blizzard Dialog", "and over the stored style")
+    t.truthy(flyoutEdge(), "on the flyout too")
+
+    bar.barBackdrop = false
+    KCM.MacroBar.Update()
+    t.truthy(seen.backdrop and seen.backdrop.edgeFile, "the bar keeps the real edge with its fill off")
+
+    bar.barBorderStyleFromSkin = false
+    KCM.MacroBar.Update()
+    t.eq(flyoutEdge(), nil, "companion off: the player's Show border again")
+    KCM.ApplySkinChoice("ka0s", "ka0s")
 end)
 
 -- A 12.0.7 client draws only a font object's shadow, so the label wears one. Each case fakes
@@ -341,7 +405,7 @@ end
 test("Skin flip: the label's shadow lands on a font object, the skin's while the companion is on", function(t)
     local KCM = h.loader.loadFullAddon()
     local Skin = skinLib()
-    local made, restore = fontObjects()
+    local _, restore = fontObjects()
     local cleanup = function()
         restore()
         Skin:SetChoice(OWNER, "ka0s", "ka0s")
@@ -353,25 +417,63 @@ test("Skin flip: the label's shadow lands on a font object, the skin's while the
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
         t.truthy(lastCall(btn.label, "SetFontObject"), "the string wears the object")
         t.eq(lastCall(btn.label, "SetShadowOffset"), nil, "no shadow set on the string itself")
-        local o = made[#made]
+        local function worn() return lastCall(btn.label, "SetFontObject")[2] end
+        local o = worn()
         local x, y, r, g, b, a = KCM.Skin.HudShadow()
         t.truthy(x, "Obsidian states a shadow")
         t.eq(table.concat(o.calls.SetShadowOffset, ","), x .. "," .. y, "the skin's offset")
         t.eq(table.concat(o.calls.SetShadowColor, ","), table.concat({ r, g, b, a }, ","), "and color")
 
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelShadowFromSkin = false, labelShadow = true }))
-        t.eq(table.concat(made[#made].calls.SetShadowOffset, ","), "1,-1", "companion off: the stored row")
+        t.eq(table.concat(worn().calls.SetShadowOffset, ","), "1,-1", "companion off: the stored row")
 
         Skin:SetChoice(OWNER, "ka0s", "ka0s")
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelShadow = true }))
-        t.eq(table.concat(made[#made].calls.SetShadowOffset, ","), "0,0",
+        t.eq(table.concat(worn().calls.SetShadowOffset, ","), "0,0",
             "Ka0s Default draws no shadow, whatever the stored row says")
 
         Skin:SetIgnore(OWNER, nil, true)
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { labelShadow = true }))
         Skin:SetIgnore(OWNER, nil, false)
-        t.eq(table.concat(made[#made].calls.SetShadowOffset, ","), "1,-1",
+        t.eq(table.concat(worn().calls.SetShadowOffset, ","), "1,-1",
             "Ignore fonts: the stored row stands")
+    end)
+    cleanup()
+    if not ok then error(err, 0) end
+end)
+
+-- red under: the count left on SetFont, where a 12.0.7 client draws no shadow; its font object's
+-- shadow lost under Ka0s Default; or the color written before the font object replaces it.
+test("Skin flip: the stack count wears a font object: its own shadow, or the skin's", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local Skin = skinLib()
+    local _, restore = fontObjects()
+    local cleanup = function()
+        restore()
+        Skin:SetChoice(OWNER, "ka0s", "ka0s")
+    end
+    local ok, err = pcall(function()
+        local btn = styleButton()
+        local BB = KCM.MacroBarButton
+        local function worn() return lastCall(btn.count, "SetFontObject")[2] end
+
+        BB.ApplyStyle(btn, barCfg(KCM))
+        t.eq(lastCall(btn.count, "SetFont"), nil, "nothing set on the string itself")
+        t.eq(table.concat(worn().calls.SetShadowOffset, ","), "1,-1", "Ka0s Default: the object's offset")
+        t.eq(table.concat(worn().calls.SetShadowColor, ","), "0,0,0,0.75", "and color, read off the string")
+        local font, color
+        for i, c in ipairs(btn.count.calls) do
+            if c[1] == "SetFontObject" then font = i elseif c[1] == "SetTextColor" then color = i end
+        end
+        t.truthy(font and color and color > font, "the color goes on after the font object")
+
+        -- The LibSharedMedia fake knows Ka0s Default's face and no other.
+        BB.FontFile = function() return "Fonts\\FRIZQT__.TTF" end
+        Skin:SetChoice(OWNER, "ka0s", "obsidian")
+        BB.ApplyStyle(btn, barCfg(KCM))
+        local x, y, r, g, b, a = KCM.Skin.HudShadow()
+        t.eq(table.concat(worn().calls.SetShadowOffset, ","), x .. "," .. y, "a skin's shadow offset")
+        t.eq(table.concat(worn().calls.SetShadowColor, ","), table.concat({ r, g, b, a }, ","), "and color")
     end)
     cleanup()
     if not ok then error(err, 0) end
@@ -389,6 +491,18 @@ test("Skin flip: without the library the stored colors draw and the label keeps 
     t.eq(rgba({ unpack(lastCall(btn.backdropTex, "SetColorTexture"), 2) }), "0.11,0.22,0.33,0.44", "backdrop")
     t.eq(rgba({ unpack(lastCall(btn.label, "SetTextColor"), 2) }), "0.11,0.22,0.33,0.44", "label")
     t.truthy(lastCall(btn.label, "SetFont"), "S.HudFont's stub gives the label its face")
+end)
+
+-- red under: a no-op S.BarBorder stub, which loses the player's stored border.
+test("Skin flip: without the library the stored bar border draws, and Show border holds", function(t)
+    local KCM = h.loader.loadFullAddon(true)
+    local flyout = { bg = recFrame("bg") }
+    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyle = "Blizzard Dialog", barBorderSize = 7 }))
+    local bd = lastCall(flyout.bg, "SetBackdrop")[2]
+    t.eq(bd.edgeFile, "border:Blizzard Dialog", "the stored style")
+    t.eq(bd.edgeSize, 7, "the stored thickness")
+    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyle = "Blizzard Dialog", barBorder = false }))
+    t.eq(lastCall(flyout.bg, "SetBackdrop")[2].edgeFile, nil, "Show border off")
 end)
 
 -- ---------------------------------------------------------------------------

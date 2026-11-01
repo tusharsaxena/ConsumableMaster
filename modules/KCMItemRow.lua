@@ -269,6 +269,7 @@ local methods = {
         self.pickOH = false
         self.applicable = true
         self.fallbackName = nil
+        KCM.SkinUntrackOnRelease(self, self.label, self.handTag)
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
         self:SetWidth(300)

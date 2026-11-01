@@ -129,14 +129,14 @@ test("Skin HUD: the flyout panel's edge follows the skin's bar border style", fu
     local flyout = { bg = recFrame("bg") }
     KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM))
     local bd = lastCall(flyout.bg, "SetBackdrop")
-    t.eq(bd and bd[2].edgeFile, nil, "Ka0s Default: bar.borderStyle 'None', no edge")
-    t.eq(bd and bd[2].edgeSize, 1, "the thickness is the bar family's (FS-CM-FLIP)")
+    t.eq(bd and bd[2].edgeFile, nil, "Ka0s Default: its None defers to the shipped None, no edge")
+    t.eq(bd and bd[2].edgeSize, 4, "and to the stored thickness")
     local fill = lastCall(flyout.bg, "SetBackdropColor")
     t.eq(fill and fill[5], 0.85, "the fill is today's pixel, through its owner token")
 
-    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyleFromSkin = false }))
+    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyle = "Blizzard Tooltip" }))
     bd = lastCall(flyout.bg, "SetBackdrop")
-    t.eq(bd and bd[2].edgeFile, "border:Blizzard Tooltip", "companion off: the stored style")
+    t.eq(bd and bd[2].edgeFile, "border:Blizzard Tooltip", "a stored style draws under a skin's None")
 end)
 
 -- red under: the label face read from the stored pick while its companion is on, or the count
@@ -281,7 +281,6 @@ test("Skin HUD: the three companions are composed rows, on by default, governing
     local KCM = h.loader.loadFullAddon()
     local H = KCM.Settings.Helpers
     for _, pair in ipairs({
-        { "macroBar.barBorderStyleFromSkin", "macroBar.barBorderStyle" },
         { "macroBar.buttonBorderStyleFromSkin", "macroBar.buttonBorderStyle" },
         { "macroBar.buttonBorderStyleFromSkin", "macroBar.buttonBorderSize" },
         { "macroBar.labelFontFromSkin", "macroBar.labelFont" },
@@ -292,8 +291,6 @@ test("Skin HUD: the three companions are composed rows, on by default, governing
         t.eq(companion and companion.default, true, pair[1] .. " defaults on (X3)")
         t.eq(picker and picker.disabledIf, pair[1], pair[2] .. " is governed by it")
     end
-    t.eq(H.FindSchema("macroBar.barBorderSize").disabledIf, "macroBar.barBorderStyleFromSkin",
-        "the bar family governs its thickness too (FS-CM-FLIP)")
     t.truthy(KCM.Schema:Set("macroBar.labelFontFromSkin", false), "a bare /cm set is accepted")
     t.eq(KCM.db.profile.macroBar.labelFontFromSkin, false, "and stored")
 end)

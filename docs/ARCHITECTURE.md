@@ -255,7 +255,7 @@ first-run skin picker at `DIALOG`, the copy window at `FULLSCREEN`, menus and th
 - **Action-bar icon sentinel.** Active body stores `DYNAMIC_ICON = 134400` (`?` fileID); empty body omits `#showtooltip` and stores `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
 - **The macro bar owns the only protected frames, and never pokes them in combat.** Slots and flyout entries are secure buttons, so creating, anchoring, showing or hiding them is combat-forbidden. Everything funnels through `MacroBar.Update()`, which defers to `PLAYER_REGEN_ENABLED`; combat-conditional visibility goes to `RegisterStateDriver`, flyout hover to `_onenter`/`_onleave` snippets, and combat state reaches those snippets via `RegisterAttributeDriver` — all of it running in the secure environment instead. A slot's `macro` attribute is stamped once at creation and never rewritten. Every slot and flyout entry registers for `"AnyUp"` **and** sets `useOnKeyDown = false`; drop the attribute and the `ActionButtonUseKeyDown` cvar (on by default) makes Blizzard's handler wait for a press the button never receives, so clicks silently do nothing ([macro-bar.md](./macro-bar.md#buttons)).
 - **Debug flag is session-only.** `KCM.State.debug` (`core/State.lua`) is never persisted — a session left with debug on doesn't leak into the next login.
-- **No surface types a color.** Every color a frame this addon draws comes from `KCM.Skin` (an owner token where no library token holds the exact pixel), and `tests/test_skin_surfaces.lua` fails on a literal at a paint call or a `|cff` escape outside the seam and its allow-list ([Skins](#skins)).
+- **No surface types a color.** Every color a frame this addon draws comes from `KCM.Skin` (an owner token where no library token holds the exact pixel), and the kit's typed-value gate fails on a literal color or client texture no category takes, and the switch test on a declared surface that does not change ([Skins](#skins)).
 
 ## Timers
 
@@ -354,15 +354,20 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
 - **The HUD follows the skin** (skinning-§6). The rollout's X4 kept the colors the player's; the
   owner reversed that on 2026-11-01 (FS-CM-FLIP, causes D2, D4 and D6).
   Three composed companions, default true (X3), each the composer's *Use the skin's …* row:
-  `macroBar.barBorderStyleFromSkin` (the bar's and the flyout panel's edge and thickness, from
-  `bar.borderStyle` and `bar.borderSize`, `fromSkin = "bar"`),
+  `macroBar.barBorderStyleFromSkin` (the bar's and the flyout panel's edge and thickness, read
+  through `S.BarBorder` in `BB.BarEdge`, `fromSkin = "bar"`: a skin's None defers to the player's
+  Show border, stored style and thickness, and a real style wins over all three, Azeroth, High
+  Contrast, WoW Default and WoW Midnight stating one; the shipped default is `None`, so Ka0s Default
+  still draws no edge, and no migration is owed because AceDB stores no value equal to its default),
   `macroBar.buttonBorderStyleFromSkin` (the buttons' and flyout entries' edge, from the skin's icon
   family, `icon.borderStyle` and `icon.borderSize`, so it governs the thickness too) and
   `macroBar.labelFontFromSkin` (the label face, from `hud.font`). `BB.Follow`
   (`modules/MacroBarButton.lua`) resolves each through `KCM.Skin.Resolve` when the bar is styled,
   never on a hot path, and falls back to the player's pick where the skin leaves the token alone.
   The stack count takes `hud.font` and `hud.outline` at its font object's own size (D6) scaled by
-  the skin's HUD size (`S.HudFontSize`, LibKa0s v1.82.0, D-09), the unlocked
+  the skin's HUD size (`S.HudFontSize`, LibKa0s v1.82.0, D-09), all on a font object through
+  `S.HudFont`, with the skin's `hud.shadow` where it states one and otherwise the shadow its own
+  font object gave it, read off the string so Ka0s Default's pixels hold; the unlocked
   wash `menu.hover` (D4, today's pixel), the flyout arrow `icon.arrow` (D9) and the count's color
   `hud.text`. Eight host rows, each in its block's `extra`, put each swatch and the shadow on the skin:
   `barBackdropColorFromSkin` (`bar.bg`), `barBorderColorFromSkin` (`cm.barBorder`),
@@ -372,9 +377,8 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   today's pixels under Ka0s Default and follow their library role elsewhere (`HUD_TOKENS` in
   `core/SkinSetup.lua`), and they stay out of `KCM.SKIN_FALLBACK`, so a degraded bar draws its stored
   swatches. `BB.Swatch` is the one resolver: a class color first, then the skin, then the stored
-  swatch over its shipped default in `defaults/Profile.lua`. `icon.border`, `bar.bg`, `bar.border` and
-  `cover.dim` are one value in every shipped skin, so those surfaces change only against Ka0s Default's owner
-  tokens. Sizes and the offset stay the player's. The Font override reaches the labels and counts wherever the label face
+  swatch over its shipped default in `defaults/Profile.lua`. Every skin states its own `icon.border`,
+  `bar.bg`, `bar.border`, `glow.color` and `cover.dim` (LibKa0s v1.85.0). Sizes and the offset stay the player's. The Font override reaches the labels and counts wherever the label face
   follows the skin; the Texture override has nothing here to change, because the bar draws no bar
   texture. *Ignore fonts* wins over both, the library's way (Skin minor 8, LibKa0s v1.81.0): while
   it is on, `Resolve` answers the stored value for `hud.font` and `hud.outline`, so the label draws
@@ -474,10 +478,12 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   StaticPopups, the launcher's tooltip and menu (LibDBIcon and Blizzard's menu), the LibSharedMedia
   pull-outs, the macro icons, Blizzard's pushed and highlight art and the cooldown swipe are the
   client's. A non-applicable item row's 0.4 alpha is state, not chrome (D8).
-- **The color gate.** `tests/test_skin_surfaces.lua` (LootHistory's anti-pattern #107 gate) fails on
-  a numeric color literal in a paint call or a `|cff` escape in `core/`, `modules/` or `settings/`
-  outside `core/SkinSetup.lua` and a reasoned allow-list (the chat lines, the icons' untinted
-  vertex), and an entry that matches nothing fails it too. `tests/test_skin_hud.lua` pins what the
+- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 50,
+  `Kit.skinValues` in `tests/run.lua`) fails on a color or texture typed where a skin cannot reach
+  it. Every value this addon types sits in a kit category, so it carries no allow row. The kit's
+  switch test (`tests/_kit/test_skin_switch.lua`) flips a probe skin and fails a surface that does
+  not change; `tests/skin_switch_facts.lua` is the declaration, one setter per surface, and a
+  surface left out is not tested. `tests/test_skin_hud.lua` pins what the
   bar draws, the companions and the reset running once; `tests/test_skin_picker.lua` the picker;
   `tests/test_skin_settings.lua` the settings pages' painting.
 

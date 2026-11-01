@@ -677,7 +677,7 @@ local STORED_GUARD = {
     "macroBar.barBorder | bool | true | nil | nil | nil | ",
     "macroBar.barBorderColor | color | {1=0.25,2=0.25,3=0.25,4=1} | nil | nil | nil | ",
     "macroBar.barBorderSize | number | 4 | 1 | 16 | 1 | ",
-    "macroBar.barBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",
+    "macroBar.barBorderStyle | string | None | nil | nil | nil | ",
     "macroBar.barBorderStyleFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdrop | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdropColor | color | {1=0,2=0,3=0,4=0.6} | nil | nil | nil | ",

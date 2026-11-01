@@ -58,6 +58,9 @@
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
 --   KCM.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
 --                            (`Skin:OnRelease`), so it and the skin's restore both run.
+--   KCM.SkinUntrackOnRelease(w, ...) the regions of a pooled AceGUI widget that S.Text recorded
+--                            leave the skin's record at its release (options-ui-§19). S.Mark
+--                            gives itself back; call this once per acquire for the rest.
 --   KCM.SkinAcquire(ace, t)  `ace:Create(t)` then KCM.SkinPaintAce: every AceGUI widget the
 --                            settings files acquire themselves.
 --   KCM.MaybeShowSkinPicker() the first-run skin picker (LibKa0s OptionsSkinPicker, O3):
@@ -564,7 +567,7 @@ if not Skin then
         "BarTexture", "Mark", "BarGloss",
         -- LibKa0s v1.85.0: nil is each getter's degraded answer. The three colors answer nothing,
         -- so the stored color draws; HudShadow's nil is "the stored shadow stands".
-        "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow",
+        "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "HoverArt",
     }) do S[name] = noop end
 
     S.Token = function(name) return KCM.SKIN_FALLBACK[name] end
@@ -618,6 +621,10 @@ if not Skin then
         fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
     end
 
+    -- LibKa0s v1.85.0 (SkinPaintExtras minor 16): no skin to defer to, so the stored three stand.
+    -- A no-op would lose the player's border.
+    S.BarBorder = function(style, show, size) return style, show, size end
+
     KCM.Skin = S
     function KCM.ApplySkinChoice() return false, false end
     function KCM.ApplySkinIgnore() return false, false end
@@ -627,6 +634,7 @@ if not Skin then
     function KCM.SkinPaintAce() return false end
     function KCM.SkinPaintAceTree() return 0 end
     KCM.SkinOnRelease = releaseByCallback
+    function KCM.SkinUntrackOnRelease() return nil end
     -- No skin to ignore: the settings surfaces draw the stock look.
     function KCM.SkinPanelOn() return false end
     return
@@ -671,6 +679,13 @@ end
 function KCM.SkinOnRelease(widget, fn)
     if type(Skin.OnRelease) ~= "function" then return releaseByCallback(widget, fn) end
     return Skin:OnRelease(widget, fn)
+end
+
+function KCM.SkinUntrackOnRelease(widget, ...)
+    local regions = { ... }
+    return KCM.SkinOnRelease(widget, function()
+        for _, region in ipairs(regions) do Skin:Untrack(region) end
+    end)
 end
 
 --- The applied exceptions, read live from the library (the Scope rows' apply moves them through

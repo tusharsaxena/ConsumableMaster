@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1345%2F1345_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1387%2F1387_passing-green)
 
 Ka0s Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
@@ -127,7 +127,7 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 | `/cm resetall` or "Reset all settings" says "reset deferred until regen". | You were in combat, so nothing was reset. Run it again once combat ends. |
 | I want to restore a default list after removing items by hand. | **Reset category…** clears that one category. **Reset all priorities…** clears every category and every stat choice. **Reset all settings** puts the whole profile back the way it shipped. |
 | I want different settings on different characters. | **Options → Profiles** creates, switches, copies, resets and deletes profiles. `/cm profile` lists them, and `/cm profile <name>` switches to one you already have. Everything moves with the profile: the priority lists, the stat order, the macro bar and where it sits. The macros rewrite themselves on the spot. They are shared by the whole account, so two characters on different profiles take turns rewriting the same set. |
-| After an update the macro bar lost its edges and the labels changed font. | The bar now follows your skin, and Ka0s Default draws no edge around the bar, a thin one around each button and the Prototype font. Your own choices were kept: untick **Use the skin's border** on Macro Bar → Bar appearance and Button appearance, and **Use the skin's font** on Labels, to get them back. Or pick another skin on General → **Skin**, or type `/cm skin` to open the skin picker again. |
+| After an update the macro bar lost its edges and the labels changed font. | The bar now follows your skin, and Ka0s Default draws no edge around the bar unless you picked a border style, a thin one around each button and the Prototype font. Your own choices were kept: untick **Use the skin's border** on Macro Bar → Bar appearance and Button appearance, and **Use the skin's font** on Labels, to get them back. Or pick another skin on General → **Skin**, or type `/cm skin` to open the skin picker again. |
 | After an update the bar's colors changed. | The bar now follows your skin, colors and label shadow included, and every profile moved over once. Your own colors are still stored: untick **Use the skin's color** beside a swatch, or **Use the skin's shadow** on Labels, and they come back. |
 | The labels lost their outline, or I want it off. | The labels' **Font flags** (Macro Bar → Labels) are **From skin** unless you picked one, so they follow **Font outline** on General → **Skin**: *All text* and *HUD text only* outline them, *Off* does not. Pick a flag on Labels to keep it whatever the Skin tab says. |
 | Something looks wrong and I want to report it. | Follow [Reporting a bug](#reporting-a-bug) below. |

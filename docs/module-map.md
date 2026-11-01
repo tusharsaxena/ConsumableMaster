@@ -733,6 +733,8 @@ cases it did before — the total did not move by one. (It has moved since, for 
 | `tests/test_macrobar.lua` (2229) | `tests/test_macrobar.lua` (1425) — model, display, cooldowns, schema rows, click gating, the flyout's candidate list, master controls, the Defaults button |
 | | `tests/test_macrobar_layout.lua` (432) — the four pure-geometry sections: grid, label geometry, flyout placement, indicator clearance |
 | | `tests/test_macrobar_chrome.lua` (536) — the chrome appliers (`MacroBarButton.ApplyStyle`), the flyout's bind/apply pass, the `options-ui-§15/options-ui-§16/options-ui-§17` rows they honor, and the drag handle's three tooltips, their beside-the-strip placement (`MB.PlaceTooltipBeside`) and the mark tint |
+| | `tests/skin_switch_facts.lua` — not a suite: `Kit.skinSwitch`, the painted surfaces the kit's switch test flips, one setter per surface |
+| | `tests/skin_widget_support.lua` — not a suite: one custom widget built under the kit's paint recorder, read by `tests/test_skin_surfaces.lua` and the switch facts |
 | | `tests/macrobar_support.lua` — not a suite: the fixtures (`fcfg`, `buildBar`) read on both sides of a seam, SHARED through a `rawget` guard rather than copied |
 | `tests/test_settingsui.lua` (2028) | `tests/test_settingsui.lua` (1255) — this addon's own settings wiring |
 | | `tests/test_settingsui_optionsui.lua` (800) — the three `options-ui` conformance blocks (options-ui-§13 strips, options-ui-§18 reorder lists, options-ui-§13 wrapped-strip geometry) |

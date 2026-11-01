@@ -361,41 +361,35 @@ end
 -- false takes one away.
 --
 -- Border style comes from LibSharedMedia (same picker the buttons use), so the
--- bar frame and its slots can be given a matching edge, or from the skin's
--- `bar.borderStyle` while `barBorderStyleFromSkin` is on (CM-03; the flyout
--- panel reads the same pair). "None" draws no edge; the same companion puts the
--- thickness on the skin's `bar.borderSize`.
-local function backdropFor(c)
-    local edgeFile
-    local BB = KCM.MacroBarButton
-    if c.barBorder ~= false and BB and BB.EdgeFile then
-        edgeFile = BB.EdgeFile(BB.Follow("bar.borderStyle", c.barBorderStyle,
-            c.barBorderStyleFromSkin))
-    end
+-- bar frame and its slots can be given a matching edge, or from a skin that states
+-- a real `bar.borderStyle` (BB.BarEdge; the flyout panel reads the same).
+local function backdropFor(c, edgeFile, size)
     return {
         bgFile   = c.barBackdrop ~= false and BACKDROP_TEX or nil,
         edgeFile = edgeFile,
-        edgeSize = math.max(1, tonumber(BB and BB.Follow("bar.borderSize", c.barBorderSize,
-            c.barBorderStyleFromSkin) or c.barBorderSize) or 4),
+        edgeSize = math.max(1, tonumber(size) or 4),
     }
 end
 
 local function applyBackdrop()
     if not (bar and bar.SetBackdrop) then return end
     local c = cfg() or {}
-    if c.barBackdrop == false and c.barBorder == false then
+    local BB = KCM.MacroBarButton
+    -- Show border is read through BB.BarEdge, never ahead of it: a real style in a
+    -- skin draws with the stored toggle off.
+    local edgeFile, size = BB.BarEdge(c)
+    if c.barBackdrop == false and not edgeFile then
         bar:SetBackdrop(nil)
         return
     end
-    bar:SetBackdrop(backdropFor(c))
+    bar:SetBackdrop(backdropFor(c, edgeFile, size))
     -- The skin's color while its companion is on, else the stored swatch over the
     -- setting's own shipped default (defaults/Profile.lua), never re-typed here.
-    local BB = KCM.MacroBarButton
     if c.barBackdrop ~= false then
         bar:SetBackdropColor(BB.Swatch(c.barBackdropColor, c.useClassColorBarBackdrop,
             c.barBackdropColorFromSkin, "bar.bg", "barBackdropColor"))
     end
-    if c.barBorder ~= false then
+    if edgeFile or c.barBorder ~= false then
         bar:SetBackdropBorderColor(BB.Swatch(c.barBorderColor, c.useClassColorBarBorder,
             c.barBorderColorFromSkin, "cm.barBorder", "barBorderColor"))
     end

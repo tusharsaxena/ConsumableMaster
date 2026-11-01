@@ -57,6 +57,7 @@ end
 local methods = {
     ["OnAcquire"] = function(self)
         self.macroName = nil
+        KCM.SkinUntrackOnRelease(self, self.label)
         KCM.SkinPanelHoverArt(self.highlight)
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)

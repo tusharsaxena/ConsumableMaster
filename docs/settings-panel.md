@@ -543,7 +543,9 @@ and `macroBar.buttonBorderStyleFromSkin` (*Use the skin's border*) and `macroBar
 (*Use the skin's font*), default on. While one is ticked its picker is disabled and shows the
 skin's value; the button block's companion (`fromSkin = "icon"`, the skin's icon border family)
 governs the thickness slider too, and so does the bar block's since FS-CM-FLIP (`fromSkin = "bar"`).
-The stored pick is kept, so unticking it brings the pick back.
+The bar block is the exception to the graying, from LibKa0s v1.85.0: under a skin whose bar border
+style is None its rows stay live, because the stored style is what draws, and a real style grays
+them and **Show border** too. The stored pick is kept, so unticking it brings the pick back.
 
 **So do the swatches and the shadow** (FS-CM-FLIP). No composer draws these, so each block carries a
 host row in its `extra`, *Use the skin's color* or *Use the skin's shadow*, default on:

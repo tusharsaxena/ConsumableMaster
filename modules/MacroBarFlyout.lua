@@ -453,16 +453,13 @@ function FO.ApplyBackdrop(flyout, cfg)
         bg:SetBackdrop(nil)
         return
     end
-    -- The bar's border style, so the skin's `bar.borderStyle` while the bar's
-    -- companion is on (CM-03); "None" draws no edge.
+    -- The bar's edge, the one reading of the skin, Show border and the stored style.
     local BB = KCM.MacroBarButton
-    local edge = BB.EdgeFile(BB.Follow("bar.borderStyle", cfg.barBorderStyle,
-        cfg.barBorderStyleFromSkin))
+    local edge, size = BB.BarEdge(cfg)
     bg:SetBackdrop({
         bgFile   = BACKDROP_TEX,
         edgeFile = edge,
-        edgeSize = math.max(1, tonumber(BB.Follow("bar.borderSize", cfg.barBorderSize,
-            cfg.barBorderStyleFromSkin)) or 4),
+        edgeSize = math.max(1, tonumber(size) or 4),
     })
     bg:SetBackdropColor(BB.Swatch(cfg.flyoutBackdropColor, cfg.useClassColorFlyoutBackdrop,
         cfg.flyoutBackdropColorFromSkin, "cm.flyoutBg", "flyoutBackdropColor"))

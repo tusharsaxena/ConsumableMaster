@@ -46,6 +46,7 @@ end
 local methods = {
     ["OnAcquire"] = function(self)
         self.markOpts = nil
+        KCM.SkinUntrackOnRelease(self, self.label)
         self:SetHeight(110)
         self:SetWidth(110)
         self:SetLabel()
