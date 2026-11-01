@@ -655,3 +655,19 @@ test("Skin flip: a profile switched to later moves on arrival", function(t)
     t.eq(p.macroBar.labelFlags, "OUTLINE", "the one left behind did not")
     KCM.db.profile = p
 end)
+
+-- red under: the thin solid edge standing in for a skin's None also standing in for the player's own
+-- None, so a stored None with the companion off drew a border (SF-FIX).
+test("Skin flip: the player's own None draws no edge once the companion is off", function(t)
+    local KCM = h.loader.loadFullAddon()
+    local _, seen = barDraws(KCM)
+    local bar = KCM.db.profile.macroBar
+    bar.barBorderStyleFromSkin = false
+    bar.barBorderStyle = "None"
+    bar.barBorder = true
+    KCM.MacroBar.Update()
+    t.eq(seen.backdrop.edgeFile, nil, "companion off, stored None: no edge")
+    bar.barBorderStyleFromSkin = true
+    KCM.MacroBar.Update()
+    t.eq(seen.backdrop.edgeFile, [[Interface\Buttons\WHITE8X8]], "following a skin's None: the thin solid edge")
+end)
