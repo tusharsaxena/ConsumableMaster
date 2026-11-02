@@ -37,7 +37,7 @@ local D = KCM.Database
 
 -- Latest schema version the code understands. Bump when you add a migration
 -- step below.
-D.CURRENT_SCHEMA = 6
+D.CURRENT_SCHEMA = 7
 
 -- v2 — introduce the macro bar to a profile written before it existed.
 --
@@ -210,6 +210,26 @@ function D.FollowSkinV6(profile)
     return followByHand(profile)
 end
 
+-- v7 (R3-FRIZ) — LibKa0s v1.85.0 deleted Ka0s Friz Quadrata TT (R3-L7) and WoW
+-- Default draws Ka0s Ubuntu in its place (R3-L6). Every stored string naming the
+-- deleted face, at any depth of the profile (the label font, the skin's Font
+-- override), moves to its successor. Blizzard's own "Friz Quadrata TT" is another
+-- key and stays. Answers how many values moved.
+D.RETIRED_FONTS = { ["Ka0s Friz Quadrata TT"] = "Ka0s Ubuntu" }
+
+function D.RetireFontsV7(t)
+    if type(t) ~= "table" then return 0 end
+    local n = 0
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            n = n + D.RetireFontsV7(v)
+        elseif D.RETIRED_FONTS[v] then
+            t[k], n = D.RETIRED_FONTS[v], n + 1
+        end
+    end
+    return n
+end
+
 -- Run any pending migrations in order. Safe to call every login AND on every
 -- profile switch; each step is guarded on the stored version for the scope it
 -- writes, so it runs at most once per store.
@@ -285,8 +305,13 @@ local function migrateProfile(p)
     -- v6's gate is its own per-profile record, not the stamp (D.FollowSkinV6).
     D.FollowSkinV6(p)
 
+    if p.schemaVersion < 7 then
+        D.RetireFontsV7(p)
+        p.schemaVersion = 7
+    end
+
     -- Future PROFILE migrations go here, e.g.:
-    --   if p.schemaVersion < 7 then ... ; p.schemaVersion = 7 end
+    --   if p.schemaVersion < 8 then ... ; p.schemaVersion = 8 end
 
     p.schemaVersion = D.CURRENT_SCHEMA
     return pFrom

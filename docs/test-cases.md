@@ -169,7 +169,7 @@ Total.
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 - CoreSetup: the shared color decoder answers nil for a channel that is not stored
 
-### test_database.lua (26)
+### test_database.lua (27)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -197,6 +197,7 @@ Total.
 - Database: switching profile re-runs the migration pass
 - Database: a second profile written before v3 is migrated when it is switched to
 - Database v2: a second profile pays the one-shot cost once, not on every switch
+- Database.RunMigrations v7 moves a stored Ka0s Friz Quadrata TT to Ka0s Ubuntu, Blizzard's Friz kept
 
 ### test_debug.lua (14)
 
@@ -467,6 +468,10 @@ Total.
 - Launcher: the tooltip, enabled and unlocked, in the collection's one shape
 - Launcher: the tooltip reads the lock on every show, never a cached copy
 - Launcher: the tooltip still draws while disabled, with the same two hints
+
+### test_launcher_skin_entry.lua (1)
+
+- launcher descriptor passes openSkinPicker, which runs the skin verb
 
 ### test_lintconfig.lua (4)
 
@@ -1102,7 +1107,7 @@ Total.
 - Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
 - Skin fonts: without the library the label draws its stored size and an outline
 
-### test_skin_flip.lua (25)
+### test_skin_flip.lua (26)
 
 - Skin flip: every color and shadow companion is a bool row defaulting on, in both places
 - Skin flip: the pick's default moved, and the bar family holds the thickness
@@ -1129,6 +1134,7 @@ Total.
 - Skin flip: the page Defaults leaves the record alone, so a later run keeps a turned-off companion
 - Skin flip: a profile reset re-runs the step against defaults, moving nothing a player sees
 - Skin flip: a profile switched to later moves on arrival
+- Skin flip: the player's own None draws no edge once the companion is off
 
 ### test_skin_outline.lua (10)
 
@@ -1143,13 +1149,14 @@ Total.
 - Skin outline: a profile switch applies the incoming profile's mode, and back
 - Skin outline: without the skin engine the apply is a quiet no-op
 
-### test_skin_picker.lua (10)
+### test_skin_picker.lua (11)
 
 - Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
 - Skin picker: the spec names this owner, its seams, the General page's Skin tab and no eye
 - Skin picker: an unseen profile shows it; a seen one does not
 - Skin picker: it is offered once per session, two seconds after the first entering-world
 - Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once
+- Skin picker: the notice's combat retry repeats until combat ends
 - Skin picker: a stood-down addon shows nothing and drops a held start
 - Skin picker: a profile event takes it down first and shows it for a profile that has not seen it
 - Skin picker: the player's close marks it seen; this addon's own take-down does not
@@ -1646,7 +1653,7 @@ Total.
 | test_compat.lua | 26 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
-| test_database.lua | 26 |
+| test_database.lua | 27 |
 | test_debug.lua | 14 |
 | test_debuglog.lua | 21 |
 | test_debugcoverage.lua | 19 |
@@ -1662,6 +1669,7 @@ Total.
 | test_libka0s.lua | 8 |
 | test_librarylines.lua | 10 |
 | test_launcher.lua | 28 |
+| test_launcher_skin_entry.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
@@ -1689,9 +1697,9 @@ Total.
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 23 |
 | test_skin_hud.lua | 20 |
-| test_skin_flip.lua | 25 |
+| test_skin_flip.lua | 26 |
 | test_skin_outline.lua | 10 |
-| test_skin_picker.lua | 10 |
+| test_skin_picker.lua | 11 |
 | test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
@@ -1717,4 +1725,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
 | Skipped | 1 |
-| **Total** | **1387** |
+| **Total** | **1391** |

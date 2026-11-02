@@ -389,7 +389,8 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   (`NumberFontNormal`). `Skin:SetIgnore` fires `OnLooksChanged`, which re-applies the bar, so it is
   live. Each skin draws HUD text in a face of its own (SkinDefs minor 18, LibKa0s v1.83.0): Obsidian
   Expressway, Azeroth Open Sans Semibold, Glass Avant Garde, High Contrast Doris PP, Ember Emblem,
-  WoW Default the shipped Ka0s Friz Quadrata TT, WoW Midnight Segoe UI Semibold, WoW Forever Fira Sans
+  WoW Default the shipped Ka0s Ubuntu (LibKa0s R3-L6; Ka0s Friz Quadrata TT before, which schema v7
+  moves a stored pick of), WoW Midnight Segoe UI Semibold, WoW Forever Fira Sans
   SemiBold, Ka0s Default Prototype. The label draws through `S.HudFont`, whose font object is the only
   place a 12.0.7 client draws a shadow: the stored `labelShadow`, a legibility constant at black 1, -1
   (D7), stands with its companion off or under *Ignore fonts*.
