@@ -543,14 +543,18 @@ local noticeStore = {
 function KCM.MaybeShowSkinNotice()
     local H = pickerHost()
     if not (H and type(H.SkinNotice) == "function" and noticeGlobal()) then return nil, "unavailable" end
-    if KCM.IsStoodDown and KCM.IsStoodDown() then return nil, "standdown" end
+    if KCM.IsStoodDown and KCM.IsStoodDown() then
+        -- A stood-down addon shows nothing, but a seen record still silences the rest (SG-L3).
+        H.SkinNotice(nil, noticeStore, true)
+        return nil, "standdown"
+    end
     local spec = KCM.SkinPickerSpec()
     local frame, why = H.SkinNotice(spec, noticeStore)
     if why == "combat" and not noticeWaiting and type(_G.C_Timer) == "table" and _G.C_Timer.After then
         noticeWaiting = true
         _G.C_Timer.After(NOTICE_RETRY, function()
-            KCM.MaybeShowSkinNotice()
             noticeWaiting = false
+            KCM.MaybeShowSkinNotice()
         end)
     end
     return frame, why

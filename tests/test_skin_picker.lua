@@ -24,7 +24,13 @@ local function spying(KCM, fn)
         calls[#calls + 1] = spec
         return { spy = true }
     end
+    -- The client's C_Timer.After is asynchronous; the mock's runs at once, which would loop the
+    -- notice's combat retry (SG-L3) for as long as combat lasts. A queue stands in for it.
+    local realAfter = _G.C_Timer.After
+    calls.timers = {}
+    _G.C_Timer.After = function(delay, f) calls.timers[#calls.timers + 1] = { delay = delay, fn = f } end
     local ok, err = pcall(fn, calls)
+    _G.C_Timer.After = realAfter
     UI.SkinPicker = real
     if not ok then error(err, 0) end
 end
@@ -113,6 +119,27 @@ test("Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once", func
             t.eq(#calls, 1, "combat's end shows it, once for two held starts")
             mock.base.__fireEvent("PLAYER_REGEN_ENABLED")
             t.eq(#calls, 1, "and the one-shot target is gone")
+        end)
+    end)
+    mock.setCombat(false)
+    if not ok then error(err, 0) end
+end)
+
+-- red under: noticeWaiting still set while the retry runs, so a combat that outlasts one retry loses the notice (SG-L3).
+test("Skin picker: the notice's combat retry repeats until combat ends", function(t)
+    local KCM = load()
+    local mock = h.loader.mock
+    mock.setCombat(true)
+    local ok, err = pcall(function()
+        spying(KCM, function(calls)
+            local _, why = KCM.MaybeShowSkinNotice()
+            t.eq(why, "combat")
+            t.eq(#calls.timers, 1, "one retry armed")
+            calls.timers[1].fn()
+            t.eq(#calls.timers, 2, "still in combat: it asks again")
+            mock.setCombat(false)
+            calls.timers[2].fn()
+            t.eq(#calls, 1, "combat over: the notice shows")
         end)
     end)
     mock.setCombat(false)
