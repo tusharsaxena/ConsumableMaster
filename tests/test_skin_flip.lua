@@ -396,6 +396,8 @@ local function fontObjects()
         for _, m in ipairs({ "SetFont", "SetShadowColor", "SetShadowOffset" }) do
             o[m] = function(_, ...) o.calls[m] = { ... } end
         end
+        -- A real font object answers its face (LibKa0s R3-DR-1L reads it back to hold the face).
+        o.GetFont = function() return unpack(o.calls.SetFont or {}) end
         made[#made + 1] = o
         return o
     end
@@ -459,7 +461,10 @@ test("Skin flip: the stack count wears a font object: its own shadow, or the ski
         local function worn() return lastCall(btn.count, "SetFontObject")[2] end
 
         BB.ApplyStyle(btn, barCfg(KCM))
-        t.eq(lastCall(btn.count, "SetFont"), nil, "nothing set on the string itself")
+        -- LibKa0s R3-DR-1L holds the object's face on a string whose GetFont disagrees (this fake
+        -- string never answers the object's face), so a SetFont on the string is that face, no other.
+        local own = lastCall(btn.count, "SetFont")
+        t.truthy(own == nil or own[2] == worn().calls.SetFont[1], "the string holds the object's face only")
         t.eq(table.concat(worn().calls.SetShadowOffset, ","), "1,-1", "Ka0s Default: the object's offset")
         t.eq(table.concat(worn().calls.SetShadowColor, ","), "0,0,0,0.75", "and color, read off the string")
         local font, color
