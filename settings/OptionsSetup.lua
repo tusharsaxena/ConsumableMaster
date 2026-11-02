@@ -362,6 +362,7 @@ else
     -- no picker to show, so the stub answers nil, "absent" and the verb prints the library-absent
     -- line (core/SkinSetup.lua's KCM.RunSkinVerb).
     Helpers.SkinVerb       = function() return nil, "absent" end
+    Helpers.SkinNotice = function() return nil, "unavailable" end
 end
 
 -- nil on a degraded load, which is exactly what settings/Panel.lua derives its

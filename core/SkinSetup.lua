@@ -522,6 +522,47 @@ function KCM.MaybeShowSkinPicker()
     return H.SkinPicker(KCM.SkinPickerSpec())
 end
 
+-- ── the one-time skin notice (LibKa0s OptionsSkinPicker minor 9, SG-L3) ────────────────────────
+-- A release that wants every account to learn skins exist raises lib.SKIN_NOTICE_VERSION. The first
+-- addon to ask in a session claims the notice and shows the picker; every other addon records the
+-- version and stays quiet. The record is `db.global.skinNotice`, a number: account-wide, so a profile
+-- switch never shows it twice. In combat nothing is claimed; it asks again every NOTICE_RETRY seconds until combat ends.
+local NOTICE_RETRY = 5   -- seconds between asks while the player is in combat
+local noticeWaiting = false
+
+local function noticeGlobal()
+    local d = KCM.db
+    return d and d.global or nil
+end
+
+local noticeStore = {
+    get = function() local g = noticeGlobal(); return g and g.skinNotice or nil end,
+    set = function(v) local g = noticeGlobal(); if g then g.skinNotice = v end end,
+}
+
+function KCM.MaybeShowSkinNotice()
+    local H = pickerHost()
+    if not (H and type(H.SkinNotice) == "function" and noticeGlobal()) then return nil, "unavailable" end
+    if KCM.IsStoodDown and KCM.IsStoodDown() then return nil, "standdown" end
+    local spec = KCM.SkinPickerSpec()
+    local frame, why = H.SkinNotice(spec, noticeStore)
+    if why == "combat" and not noticeWaiting and type(_G.C_Timer) == "table" and _G.C_Timer.After then
+        noticeWaiting = true
+        _G.C_Timer.After(NOTICE_RETRY, function()
+            KCM.MaybeShowSkinNotice()
+            noticeWaiting = false
+        end)
+    end
+    return frame, why
+end
+
+local pickerFirstRun = KCM.MaybeShowSkinPicker
+function KCM.MaybeShowSkinPicker()
+    local frame, why = KCM.MaybeShowSkinNotice()
+    if frame or why == "queued" then return frame, why end
+    return pickerFirstRun()
+end
+
 --- The reserved `/cm skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker minor 3, ruling D-16):
 --- O.SkinVerb with the spec the first-run start builds, so it shows the picker a new profile shows
 --- whatever skin.pickerSeen says; a close still marks the profile seen. The library prints its own
