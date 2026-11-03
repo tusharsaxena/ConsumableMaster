@@ -613,6 +613,9 @@ if not Skin then
         -- LibKa0s v1.85.0: nil is each getter's degraded answer. The three colors answer nothing,
         -- so the stored color draws; HudShadow's nil is "the stored shadow stands".
         "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "HoverArt",
+        -- LibKa0s v1.85.0 (Skin minor 16, round 5): no band to anchor to, so Band answers nil and
+        -- Header places nothing. This addon has no window header of its own to lay out.
+        "Band", "Header",
     }) do S[name] = noop end
 
     S.Token = function(name) return KCM.SKIN_FALLBACK[name] end
