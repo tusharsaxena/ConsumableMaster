@@ -488,7 +488,11 @@ end
 -- The profile the preview last moved the lock in. A profile event takes the picker down AFTER AceDB
 -- has switched, so the library's restore would land in the profile switched to; a restore whose
 -- profile is not this one is refused (false: nothing moved), and the incoming profile keeps its own
--- lock. The profile left keeps the unlock, like a /reload.
+-- lock. The profile left keeps the unlock, like a /reload. The record lives from one showing's
+-- start to the next's, NOT to the close: a restore the library asks under InCombatLockdown() and
+-- that is refused here is parked and asked again when combat ends, after the close, and it must
+-- still meet this guard. A fresh show's first question is isShown (the library's previewState, its
+-- only caller), so that is where the record of the showing before is dropped.
 local previewProfile
 
 local function currentProfile()
@@ -516,15 +520,18 @@ local PREVIEW = {
     enter    = function(why) return previewLock(false, why) end,
     exit     = function(why) return previewLock(true, why) end,
     isActive = barUnlocked,
-    -- An unlock host's surface is "shown" when its frames are unlocked (00_PLAN call 2).
-    isShown  = barUnlocked,
+    -- An unlock host's surface is "shown" when its frames are unlocked (00_PLAN call 2). Asked once
+    -- per fresh show, before its enter: a new showing, so the last one's profile record goes.
+    isShown  = function()
+        previewProfile = nil
+        return barUnlocked()
+    end,
 }
 
 --- The player's close: the picker seen, and nothing else. The library's put-back already wears the
---- stored choice, so the skin is not this callback's to move. Runs after the library's preview
---- restore, so the preview's profile record ends here, on every close.
+--- stored choice, so the skin is not this callback's to move. The preview's profile record outlives
+--- it (see previewProfile): a restore parked through combat is asked after this close.
 local function pickerClosed()
-    previewProfile = nil
     if quietClose then return end
     seamSet(PICKER_PATH, true)
 end

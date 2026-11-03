@@ -1158,7 +1158,7 @@ Total.
 - Skin outline: a profile switch applies the incoming profile's mode, and back
 - Skin outline: without the skin engine the apply is a quiet no-op
 
-### test_skin_picker.lua (16)
+### test_skin_picker.lua (17)
 
 - Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
 - Skin picker: the spec names this owner, its seams, the General page's Skin tab and the unlock eye
@@ -1175,6 +1175,7 @@ Total.
 - Skin picker preview: Apply, Escape, the gear and the take-down each restore the lock
 - Skin picker preview: an unlocked bar is left alone, and the eye's lock is undone on close
 - Skin picker preview: a profile switch while the picker is up leaves the new profile's lock alone
+- Skin picker preview: a profile switch in combat stays refused when combat ends
 - Skin picker: degraded, every member answers and nothing shows
 
 ### test_skin_verb.lua (6)
@@ -1714,7 +1715,7 @@ Total.
 | test_skin_hud.lua | 20 |
 | test_skin_flip.lua | 26 |
 | test_skin_outline.lua | 10 |
-| test_skin_picker.lua | 16 |
+| test_skin_picker.lua | 17 |
 | test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
@@ -1740,4 +1741,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
 | Skipped | 1 |
-| **Total** | **1402** |
+| **Total** | **1403** |

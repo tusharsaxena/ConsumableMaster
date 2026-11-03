@@ -482,7 +482,9 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   mark, Escape, `KCM.HideSkinPicker`) puts back the lock it opened with; a bar already unlocked is
   left alone. Enter and exit are `KCM.MacroBar.SetLocked`, the write `/cm lock` / `/cm unlock`, the
   launcher's *Locked* and the *Lock frame* row land in, so all four stay in step. A restore after a
-  profile switch is refused, so the incoming profile keeps its own lock. The lock is stored, so a
+  profile switch is refused, so the incoming profile keeps its own lock; the guard's profile record
+  lasts until the next showing starts, so a restore the library parks through combat and asks after
+  the close is refused too. The lock is stored, so a
   `/reload` while the picker is up leaves the bar unlocked until `/cm lock`. The `LibKa0s icons:`
   declaration carries `settings` and `eye` for it. `/cm skin` (`KCM.RunSkinVerb`, `O.SkinVerb`)
   opens the same picker on demand, whatever `pickerSeen` says, and a close still marks the profile seen.

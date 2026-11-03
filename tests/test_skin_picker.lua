@@ -345,6 +345,37 @@ test("Skin picker preview: a profile switch while the picker is up leaves the ne
     KCM.MacroBar.SetLocked(true)
 end)
 
+-- red under: a profile guard cleared by the close, so the library's end-of-combat retry of a
+-- refused restore (OptionsSkinPicker minor 11 parks one asked under InCombatLockdown) lands in the
+-- profile switched to and locks its bar.
+test("Skin picker preview: a profile switch in combat stays refused when combat ends", function(t)
+    local KCM = load()
+    local mock = h.loader.mock
+    KCM.Schema:Set(PATH, true)
+    KCM.db:SetProfile("Other")
+    KCM.MacroBar.SetLocked(false)
+    KCM.Schema:Set(PATH, true)
+    KCM.db:SetProfile("Default")
+    KCM.MacroBar.SetLocked(true)
+    local ok, err = pcall(function()
+        t.truthy(KCM.RunSkinVerb(), "the picker is up")
+        t.eq(locked(KCM), false, "entered on Default")
+        mock.setCombat(true)
+        KCM.db:SetProfile("Other")
+        t.eq(locked(KCM), false, "Other keeps its own unlocked bar in combat")
+        local O = LibStub("LibKa0s-Options-1.0")
+        t.truthy(#O.__parkedPanels > 0, "the refused restore was parked for combat's end")
+        mock.setCombat(false)
+        O.__OnParkEvent("PLAYER_REGEN_ENABLED")
+        t.eq(locked(KCM), false, "and after combat: the parked retry is refused too")
+    end)
+    mock.setCombat(false)
+    KCM.HideSkinPicker()
+    KCM.db:SetProfile("Default")
+    KCM.MacroBar.SetLocked(true)
+    if not ok then error(err, 0) end
+end)
+
 test("Skin picker: degraded, every member answers and nothing shows", function(t)
     local KCM = h.loader.loadWithSchemaDegraded()
     t.eq(type(KCM.MaybeShowSkinPicker), "function", "MaybeShowSkinPicker on the degraded arm")
