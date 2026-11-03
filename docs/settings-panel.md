@@ -149,7 +149,7 @@ own UI and last in every Ka0s addon that ships one.
 | **General** | 3 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group), **Maintenance** (Force resync, Force rewrite macros, Reset all priorities…; a host tab with no rows) and **Skin** (the library's tab over the seven `skin.*` rows, last; [below](#the-general-pages-skin-tab)). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
 | **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 67 of the addon's 90 schema rows live here |
+| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 75 of the addon's 98 schema rows live here |
 | **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -393,10 +393,10 @@ the rule allows.
 |---|---|---|---|
 | 1 | **General** | 6 | `[Enable macro bar] [Show tooltips]` unheaded · *Visibility*: `[Combat visibility] [Fade unless hovered]` / `[Bar opacity] [Faded opacity]` |
 | 2 | **Layout** | 8 | *Arrangement*: `[Orientation] [Buttons per row]` / `[Horizontal growth] [Vertical growth]` · *Size and spacing*: `[Button size (px)] [Button spacing (px)]` / `[Bar padding (px)] [Bar scale]` |
-| 3 | **Bar appearance** | 9 | *Background* (Show background + swatch + companion) · *Border* (the composed four, led by its Show border toggle, then *Use the skin's border*) |
-| 4 | **Button appearance** | 13 | *Background* (Show background + swatch + companion) · *Border* (the Show border toggle, the composed four, *Use the skin's border*, and border offset) · *Icon* (zoom, stack count, GCD swipe) |
-| 5 | **Labels** | 13 | *Text* (show, label text) · *Position* (anchor, placement, Label X offset (px), Label Y offset (px)) · *Font* (the composed six, then *Use the skin's font*) |
-| 6 | **Flyout** | 16 | *Behavior*: `[Enable flyout] [Auto-close after (seconds)]` / `[Maximum flyout entries] [Reverse flyout order]` · *Placement*: `[Flyout side] [Gap from button (px)]` / `[Flyout button size (% of button)] [Flyout spacing (px)]` / `[Flyout padding (px)]` · *Background* (Show background + swatch + companion) · *Indicator* (band, arrow, shade swatch + companion) |
+| 3 | **Bar appearance** | 11 | *Background* (Show background + swatch + companion, then *Use the skin's color*) · *Border* (the composed four, led by its Show border toggle, then *Use the skin's border* and *Use the skin's color*) |
+| 4 | **Button appearance** | 15 | *Background* (Show background + swatch + companion, then *Use the skin's color*) · *Border* (the Show border toggle, the composed four, *Use the skin's border*, border offset, and *Use the skin's color*) · *Icon* (zoom, stack count, GCD swipe) |
+| 5 | **Labels** | 15 | *Text* (show, label text) · *Position* (anchor, placement, Label X offset (px), Label Y offset (px)) · *Font* (the composed six, then *Use the skin's font*, *Use the skin's color* and *Use the skin's shadow*) |
+| 6 | **Flyout** | 18 | *Behavior*: `[Enable flyout] [Auto-close after (seconds)]` / `[Maximum flyout entries] [Reverse flyout order]` · *Placement*: `[Flyout side] [Gap from button (px)]` / `[Flyout button size (% of button)] [Flyout spacing (px)]` / `[Flyout padding (px)]` · *Background* (Show background + swatch + companion, then *Use the skin's color*) · *Indicator* (band, arrow, shade swatch + companion, then *Use the skin's color*) |
 | 7 | **Buttons** | 2 | `macroBar.order` and `macroBar.shown`, drawn as one draggable list (below), a length no schema knows, with **Reset slot order** under it |
 
 **The 2026-10-24 layout pass (item 020) moved rows, never storage.** Visibility was a three-row tab;
@@ -604,7 +604,7 @@ Two different paths, and the difference is what a row shape can express.
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the
-`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **90**: 67 `macroBar.*` rows on the Macro Bar page, 15 on the
+`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **98**: 75 `macroBar.*` rows on the Macro Bar page, 15 on the
 General page (7 in its Master controls block and the 8 `skin.*` rows), 7 on the Macros page and 1 on
 the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven
 of them and nothing draws `skin.pickerSeen`. Ten more

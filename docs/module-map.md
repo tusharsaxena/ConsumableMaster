@@ -241,7 +241,7 @@ settings/         Settings UI framework + one module per page.
 │                        rewrite, reset-all-priorities) and Skin (the
 │                        library's O.AppearanceTab over the seven
 │                        skip-render skin.* rows, last).
-├── MacroBar.lua         The Macro Bar page: a 7-tab strip over the 67
+├── MacroBar.lua         The Macro Bar page: a 7-tab strip over the 75
 │                        macroBar.* schema rows. Its border, background and
 │                        font blocks are composed, the border and font blocks
 │                        with their follow-the-skin companions.
