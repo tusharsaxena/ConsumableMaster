@@ -672,6 +672,8 @@ Loot History, or the Ka0s Skin Tester). Every check also fails on a Lua error or
 
 **SKIN-41. A stored pick of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, schema v7).** Before updating, set Macro Bar → **Labels** → Font (or the Skin tab's Font) to *Ka0s Friz Quadrata TT* and log out. Install the re-vendored build and fully restart the client (a new font file) → the labels draw in Ubuntu and the Font row reads *Ka0s Ubuntu*; switch to another profile that held the pick → the same on arrival. A label set to Blizzard's own *Friz Quadrata TT* keeps it. *Failure:* the labels on the game's default face, or a row still naming Ka0s Friz Quadrata TT. Result: not run.
 
+**SKIN-42. The macro bar's button border is 1 pixel in every skin (R3-FIX).** With *Use the skin's border* ticked on the buttons, show the macro bar and pick Ka0s Default, Azeroth, Ember, WoW Midnight and WoW Default → each button's border is a flat 1-pixel edge, never 2 pixels and never the tooltip-style edge WoW Default drew before. Untick the box → your own style and thickness come back. Fail: a 2-pixel or tooltip edge under any skin. Result: not run
+
 ## Degraded install
 
 Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` and `/reload` for these checks; rename it back and `/reload` afterward.

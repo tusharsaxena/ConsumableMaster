@@ -412,7 +412,8 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   the companion brings the player's own pick straight back ([schema.md](./schema.md#migrations)).
   **So under Ka0s Default the bar looks different after this run** (DECISIONS X5, D1): the bar and
   the flyout panel lose their 4px *Blizzard Tooltip* edge (Ka0s Default's bar border style is
-  *None*), every button and flyout entry takes a flat 2px edge in the player's own border color, and
+  *None*), every button and flyout entry takes a flat 2px edge (1px since LibKa0s v1.85.0's R3-FIX, in
+  every skin) in the player's own border color, and
   the labels and stack counts read in Ka0s Default's HUD face (Oxanium SemiBold then, Prototype since
   LibKa0s v1.82.0) instead of Friz Quadrata. That is the rulings'
   intended change, not a regression.
