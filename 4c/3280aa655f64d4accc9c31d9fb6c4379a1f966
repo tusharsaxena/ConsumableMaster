@@ -1,0 +1,2 @@
+ka0s-review (R6 follow-up, independent adversarial reviewer, 2026-11-04): R6-NAME 4c3280a PASS.
+README.md only, CRLF kept (eol=crlf). Title and line 9 drop Ka0s; remaining Ka0s sites are the standard badge, Ka0s Default skin, the collection, LibKa0s - correct. README names no in-game settings path or breadcrumb carrying the addon title (it says Settings -> AddOns), so nothing now misstates the in-game Ka0s Consumable Master name. No test pins the README name. Gate fresh: 1403/0/1, luacheck 0/0. No defects found.
