@@ -1,0 +1,1 @@
+R6 review fix by the independent reviewer; gate 1403 passed / 0 failed / 1 skipped, luacheck 0/0; the new combat profile-switch case was red before the change.
