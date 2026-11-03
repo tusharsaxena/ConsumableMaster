@@ -100,7 +100,7 @@ test("Skin HUD: the buttons' border follows the skin's icon family while its com
     t.truthy(bd, "the border is drawn")
     t.eq(bd and bd[2].edgeFile, [[Interface\Buttons\WHITE8X8]],
         "Ka0s Default: icon.borderStyle 'Solid', the flat edge")
-    t.eq(bd and bd[2].edgeSize, 2, "at icon.borderSize, not the stored 4")
+    t.eq(bd and bd[2].edgeSize, 1, "at icon.borderSize (1 px in every skin since LibKa0s R3-FIX), not the stored 4")
     local col = lastCall(followed.border, "SetBackdropBorderColor")
     t.eq(col and col[2], 1, "the color stays the player's white (X4)")
 
@@ -207,13 +207,16 @@ end)
 test("Skin HUD: another skin's icon border reaches the buttons", function(t)
     local KCM = h.loader.loadFullAddon()
     local Skin = skinLib()
+    -- Every shipped skin's icon border is Solid 1px since LibKa0s v1.85.0's R3-FIX (WoW Default's
+    -- was the Blizzard Tooltip art), so a skin whose icon border is art is the test's own.
+    Skin:RegisterSkin({ key = "tooltipedge", tokens = { ["icon.borderStyle"] = "Blizzard Tooltip", ["icon.borderSize"] = 2 } })
     local ok, err = withHudFace(function()
-        Skin:SetChoice(OWNER, "ka0s", "wow")
+        Skin:SetChoice(OWNER, "ka0s", "tooltipedge")
         local btn = styleButton()
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
         local bd = lastCall(btn.border, "SetBackdrop")
         local style, size = KCM.Skin.Token("icon.borderStyle"), KCM.Skin.Token("icon.borderSize")
-        t.eq(style, "Blizzard Tooltip", "WoW Default's icon border is the tooltip edge")
+        t.eq(style, "Blizzard Tooltip", "that skin's icon border is the tooltip edge")
         t.eq(bd and bd[2].edgeFile, "border:" .. style, "and the button draws it")
         t.eq(bd and bd[2].edgeSize, size, "at that skin's thickness")
     end)
