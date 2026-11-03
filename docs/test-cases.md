@@ -1158,10 +1158,10 @@ Total.
 - Skin outline: a profile switch applies the incoming profile's mode, and back
 - Skin outline: without the skin engine the apply is a quiet no-op
 
-### test_skin_picker.lua (11)
+### test_skin_picker.lua (16)
 
 - Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
-- Skin picker: the spec names this owner, its seams, the General page's Skin tab and no eye
+- Skin picker: the spec names this owner, its seams, the General page's Skin tab and the unlock eye
 - Skin picker: an unseen profile shows it; a seen one does not
 - Skin picker: it is offered once per session, two seconds after the first entering-world
 - Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once
@@ -1170,6 +1170,11 @@ Total.
 - Skin picker: a profile event takes it down first and shows it for a profile that has not seen it
 - Skin picker: the player's close marks it seen; this addon's own take-down does not
 - Skin picker: the stand-down takes a shown picker down, unseen
+- Skin picker preview: a locked bar unlocks when the picker shows, through the lock seam
+- Skin picker preview: the eye toggles the lock and the close control puts it back
+- Skin picker preview: Apply, Escape, the gear and the take-down each restore the lock
+- Skin picker preview: an unlocked bar is left alone, and the eye's lock is undone on close
+- Skin picker preview: a profile switch while the picker is up leaves the new profile's lock alone
 - Skin picker: degraded, every member answers and nothing shows
 
 ### test_skin_verb.lua (6)
@@ -1709,7 +1714,7 @@ Total.
 | test_skin_hud.lua | 20 |
 | test_skin_flip.lua | 26 |
 | test_skin_outline.lua | 10 |
-| test_skin_picker.lua | 11 |
+| test_skin_picker.lua | 16 |
 | test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
@@ -1735,4 +1740,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
 | Skipped | 1 |
-| **Total** | **1397** |
+| **Total** | **1402** |

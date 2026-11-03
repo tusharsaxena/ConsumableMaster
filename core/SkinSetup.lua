@@ -460,10 +460,16 @@ end
 -- `skin.pickerSeen`, through KCM.Schema:Set. A close this addon makes itself (KCM.HideSkinPicker:
 -- the stand-down, a profile event) is not the player's and writes nothing.
 --
--- NO EYE (X6, D3). The eye previews a pick on an addon's primary window or test mode, and this
--- addon has neither (the unlocked macro bar is its own preview), so the spec carries no
--- `onPreview` and the picker draws no eye. A pick still previews live on the bar and the panel;
--- `set` (KCM.WriteSkinChoice) runs only on Apply, the gear or Apply to all.
+-- THE EYE IS THE UNLOCK (R6-PV, LibKa0s OptionsSkinPicker minor 11's spec.preview; Ka0sAddonsCommonTasks
+-- docs/2026-11-03-SMOKE_ROUND6, the lead's call 2). This addon has no window and no test mode: the
+-- unlocked macro bar is its preview (options-ui-§15), so the mode is "unlock". The library enters it
+-- when the picker shows on a locked bar, the eye toggles it, and every close puts back the lock the
+-- picker opened with. enter and exit are KCM.MacroBar.SetLocked, the write `/cm unlock`, `/cm lock`,
+-- the launcher's Locked entry and the panel's Lock frame row all land in (KCM.Schema:Set
+-- "macroBar.locked"), quietly: no chat line each time the picker opens. "Shown" for an unlock host is
+-- "unlocked", so a bar already unlocked is left alone. The lock is a stored setting, so a /reload
+-- while the picker is up leaves the bar unlocked until `/cm lock`. A pick previews live on the bar
+-- and the panel; `set` (KCM.WriteSkinChoice) runs only on Apply, the gear or Apply to all.
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- O.SkinPicker queues this one and answers nil, "queued", which KCM.MaybeShowSkinPicker passes
@@ -479,9 +485,46 @@ local function pickerHost()
     return KCM.Settings and KCM.Settings.Helpers
 end
 
+-- The profile the preview last moved the lock in. A profile event takes the picker down AFTER AceDB
+-- has switched, so the library's restore would land in the profile switched to; a restore whose
+-- profile is not this one is refused (false: nothing moved), and the incoming profile keeps its own
+-- lock. The profile left keeps the unlock, like a /reload.
+local previewProfile
+
+local function currentProfile()
+    local d = KCM.db
+    return d and d.GetCurrentProfile and d:GetCurrentProfile() or nil
+end
+
+local function barUnlocked()
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+    return (cfg and cfg.locked == false) and true or false
+end
+
+--- The lock write for the preview: KCM.MacroBar.SetLocked, false when refused (no bar, no seam,
+--- or a restore aimed at a profile the preview never touched).
+local function previewLock(isLocked, why)
+    if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then return false end
+    local profile = currentProfile()
+    if why == "picker" and previewProfile and previewProfile ~= profile then return false end
+    previewProfile = profile
+    return KCM.MacroBar.SetLocked(isLocked) and true or false
+end
+
+local PREVIEW = {
+    mode     = "unlock",
+    enter    = function(why) return previewLock(false, why) end,
+    exit     = function(why) return previewLock(true, why) end,
+    isActive = barUnlocked,
+    -- An unlock host's surface is "shown" when its frames are unlocked (00_PLAN call 2).
+    isShown  = barUnlocked,
+}
+
 --- The player's close: the picker seen, and nothing else. The library's put-back already wears the
---- stored choice, so the skin is not this callback's to move.
+--- stored choice, so the skin is not this callback's to move. Runs after the library's preview
+--- restore, so the preview's profile record ends here, on every close.
 local function pickerClosed()
+    previewProfile = nil
     if quietClose then return end
     seamSet(PICKER_PATH, true)
 end
@@ -493,6 +536,7 @@ function KCM.SkinPickerSpec()
         -- (settings/General.lua's panelKey), then O.SelectTab("general", "Appearance"), the Skin
         -- tab's key on that page.
         page = "general", tab = "Appearance",
+        preview = PREVIEW,
         onClose = pickerClosed,
     }
 end

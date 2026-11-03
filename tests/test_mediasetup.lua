@@ -133,8 +133,9 @@ end
 -- The rest of the line is what LibKa0s v1.85.0's library-drawn marks owe every consumer (kit
 -- revision 49): the settings marks, the number steppers and the sound row.
 -- `confirm`, `close` and `star` are this addon's own marks too (cause L6, core/SkinSetup.lua's
--- KCM.SkinPanelMark, whose names this file's scan cannot read).
-local DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "help", "info",
+-- KCM.SkinPanelMark, whose names this file's scan cannot read). `eye` is the skin picker's, drawn
+-- since core/SkinSetup.lua passes spec.preview (R6-PV).
+local DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "eye", "help", "info",
     "move", "reset", "segment", "settings", "star", "volume-high" }
 
 test("MediaSetup: every mark this addon draws is one the library ships", function(t)
@@ -182,7 +183,8 @@ test("MediaSetup: every icon name the source draws is declared in CLAUDE.md", fu
     -- The library draws these for this addon: the DebugLog console is wired
     -- with addonName (core/DebugLogSetup.lua), and so is the perf panel's close.
     local drawn = { close = "the library (debug console, perf panel, copy window)",
-                    copy = "the library (debug console)", clear = "the library (debug console)" }
+                    copy = "the library (debug console)", clear = "the library (debug console)",
+                    eye = "the library (the skin picker's eye: core/SkinSetup.lua's spec.preview)" }
     local scanned = 0
     for _, rel in ipairs(loader.tocFiles()) do
         if rel:match("^core/") or rel:match("^modules/") or rel:match("^settings/") then

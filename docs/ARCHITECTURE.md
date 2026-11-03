@@ -475,9 +475,16 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   because a new, copied or reset profile carries its own flag. A start in combat is held for
   `PLAYER_REGEN_ENABLED` on a one-shot bus target. Only the player's close writes `pickerSeen`;
   `KCM.HideSkinPicker` (the stand-down, and first in every profile reaction) takes it down
-  unmarked. Its gear opens General on the Skin tab. It draws **no eye**: the addon has no primary
-  window and no test mode to preview in, so the spec carries no `onPreview` (D3), and the
-  `LibKa0s icons:` declaration adds only `settings`. `/cm skin` (`KCM.RunSkinVerb`, `O.SkinVerb`)
+  unmarked. Its gear opens General on the Skin tab. **Its eye is the unlock** (R6-PV, the library's
+  `spec.preview`, OptionsSkinPicker minor 11): the addon has no window and no test mode, so its
+  preview mode is `"unlock"`, the unlocked macro bar. On a locked bar the picker unlocks it when it
+  shows, the eye locks and unlocks it, and every close (Apply, *Apply to all*, the gear, the close
+  mark, Escape, `KCM.HideSkinPicker`) puts back the lock it opened with; a bar already unlocked is
+  left alone. Enter and exit are `KCM.MacroBar.SetLocked`, the write `/cm lock` / `/cm unlock`, the
+  launcher's *Locked* and the *Lock frame* row land in, so all four stay in step. A restore after a
+  profile switch is refused, so the incoming profile keeps its own lock. The lock is stored, so a
+  `/reload` while the picker is up leaves the bar unlocked until `/cm lock`. The `LibKa0s icons:`
+  declaration carries `settings` and `eye` for it. `/cm skin` (`KCM.RunSkinVerb`, `O.SkinVerb`)
   opens the same picker on demand, whatever `pickerSeen` says, and a close still marks the profile seen.
 - **The EllesmereUI provider** is the library's (`SkinEUI.lua`). With source `eui` and its gate
   holding, the owner wears EllesmereUI's look; otherwise the Ka0s skin, and the Skin tab names the
