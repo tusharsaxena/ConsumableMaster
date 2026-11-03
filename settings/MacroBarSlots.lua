@@ -283,7 +283,8 @@ local function applySlotRow(slotRow, key, shown)
     slotRow.kcmSlot  = key
     slotRow.kcmShown = shown and true or false
     slotRow.kcmGlyphTexture = shown and SHOWN_TEX or HIDDEN_TEX
-    slotRow.kcmGlyph:SetNormalTexture(slotRow.kcmGlyphTexture)
+    KCM.SkinPanelGlyph(slotRow.kcmGlyph, slotRow.kcmGlyphTexture,
+        shown and "confirm" or "close", shown and "sem.good" or "sem.bad")
     slotRow.kcmLabel:SetText(slotLabel(key))
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim at,
     -- and aiming at it is how you put the button back. The skin's accent and disabled
@@ -339,13 +340,16 @@ local function renderSlotRow(ctx, scroll, list, key, shown)
     ctx.kcmSlotRows[#ctx.kcmSlotRows + 1] = slotRow
 
     if list then
+        local ghostIcon, ghostIconColor = KCM.SkinPanelGhost(slotRow.kcmGlyphTexture,
+            shown and "confirm" or "close", shown and "sem.good" or "sem.bad")
         -- NO `parent`: the box and the handle default to the whole row, as on every
         -- other draggable list in the collection. A hidden slot is registered all
         -- the same -- it still counts for indices and still anchors the line -- but
         -- with no handle and in the library's muted box.
         list:AddRow(slotRow, {
             ghostText      = slotLabel(key),
-            ghostIcon      = slotRow.kcmGlyphTexture,
+            ghostIcon      = ghostIcon,
+            ghostIconColor = ghostIconColor,
             ghostTextColor = { KCM.SkinPanelColor(shown and "text.accent" or "text.disabled") },
             height         = SLOT_ROW_H,
             draggable      = shown,

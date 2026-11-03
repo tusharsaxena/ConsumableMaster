@@ -19,7 +19,7 @@
 local _, NS = ...
 local KCM = NS
 
-local Type, Version = "KCMMacroDragIcon", 2
+local Type, Version = "KCMMacroDragIcon", 3
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -57,6 +57,8 @@ end
 local methods = {
     ["OnAcquire"] = function(self)
         self.macroName = nil
+        KCM.SkinUntrackOnRelease(self, self.label, self.iconEdge)
+        KCM.SkinPanelHoverArt(self.highlight)
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
         self:SetWidth(220)
@@ -78,6 +80,8 @@ local methods = {
     ["RefreshDisplay"] = function(self)
         local idx = macroIndex(self.macroName)
         self.icon:SetTexture(macroIcon(self.macroName))
+        -- The icon rule (R5-ICON): cropped 0.07, and edged in the window outline while the panel is skinned.
+        KCM.SkinPanelIcon(self.icon, self.iconEdge)
         -- The two states' colors are the skin's (skinning-§1): a macro not made yet
         -- in the not-yet gray (`sem.unknown`), a draggable one in the accent gold, each
         -- through KCM.SkinPanelText (S.Text, which records the label for the skin's
@@ -111,6 +115,12 @@ local function Constructor()
     highlight:SetBlendMode("ADD")
     highlight:SetAllPoints(icon)
 
+    -- The icon's edge (R5-ICON): a plain frame of the widget's own over the art, so the edge is never
+    -- a record on the art (KCM.SkinPanelIcon). It takes no mouse, so the drag and the click stand.
+    local iconEdge = CreateFrame("Frame", nil, frame)
+    iconEdge:SetAllPoints(icon)
+    iconEdge:Hide()
+
     local label = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     label:SetPoint("LEFT", icon, "RIGHT", LABEL_GAP, 0)
     label:SetJustifyH("LEFT")
@@ -119,7 +129,9 @@ local function Constructor()
     local widget = {
         frame = frame,
         icon  = icon,
+        iconEdge = iconEdge,
         label = label,
+        highlight = highlight,
         type  = Type,
     }
 

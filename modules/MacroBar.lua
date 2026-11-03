@@ -81,14 +81,6 @@ local function holdUpdate(why)
     pendingUpdate = true
 end
 
--- A stored swatch resolved through its "use class color" companion
--- (options-ui-§17). One resolver for the whole addon, in core/CoreSetup.lua, so
--- the bar's backdrop and its border cannot disagree about whether the stored
--- alpha survives the mode. It always does.
-local function color(t, useClass, dr, dg, db, da)
-    return KCM.SwatchColor(t, useClass, dr, dg, db, da)
-end
-
 -- The addon-wide master controls (options-ui-§15), read off db.profile rather
 -- than off the bar's own config: they are a different setting from
 -- `macroBar.scale` / `macroBar.alpha`, and the two COMPOSE. A player who has
@@ -369,41 +361,37 @@ end
 -- false takes one away.
 --
 -- Border style comes from LibSharedMedia (same picker the buttons use), so the
--- bar frame and its slots can be given a matching edge, or from the skin's
--- `bar.borderStyle` while `barBorderStyleFromSkin` is on (CM-03; the flyout
--- panel reads the same pair). "None" draws no edge; the thickness and the color
--- stay the player's.
-local function backdropFor(c)
-    local edgeFile
-    local BB = KCM.MacroBarButton
-    if c.barBorder ~= false and BB and BB.EdgeFile then
-        edgeFile = BB.EdgeFile(BB.Follow("bar.borderStyle", c.barBorderStyle,
-            c.barBorderStyleFromSkin))
-    end
+-- bar frame and its slots can be given a matching edge, or from a skin that states
+-- a real `bar.borderStyle` (BB.BarEdge; the flyout panel reads the same).
+local function backdropFor(c, edgeFile, size)
     return {
         bgFile   = c.barBackdrop ~= false and BACKDROP_TEX or nil,
         edgeFile = edgeFile,
-        edgeSize = math.max(1, tonumber(c.barBorderSize) or 4),
+        edgeSize = math.max(1, tonumber(size) or 4),
     }
 end
 
 local function applyBackdrop()
     if not (bar and bar.SetBackdrop) then return end
     local c = cfg() or {}
-    if c.barBackdrop == false and c.barBorder == false then
+    local BB = KCM.MacroBarButton
+    -- Show border is read through BB.BarEdge, never ahead of it: a real style in a
+    -- skin draws with the stored toggle off.
+    local edgeFile, size = BB.BarEdge(c)
+    if c.barBackdrop == false and not edgeFile then
         bar:SetBackdrop(nil)
         return
     end
-    bar:SetBackdrop(backdropFor(c))
-    -- The fallbacks are the settings' own shipped defaults (defaults/Profile.lua),
-    -- never re-typed here: X4 keeps every HUD color the player's.
+    bar:SetBackdrop(backdropFor(c, edgeFile, size))
+    -- The skin's color while its companion is on, else the stored swatch over the
+    -- setting's own shipped default (defaults/Profile.lua), never re-typed here.
     if c.barBackdrop ~= false then
-        bar:SetBackdropColor(color(c.barBackdropColor, c.useClassColorBarBackdrop,
-            unpack(KCM.MacroBarButton.StyleDefault("barBackdropColor"))))
+        bar:SetBackdropColor(BB.Swatch(c.barBackdropColor, c.useClassColorBarBackdrop,
+            c.barBackdropColorFromSkin, "bar.bg", "barBackdropColor"))
     end
-    if c.barBorder ~= false then
-        bar:SetBackdropBorderColor(color(c.barBorderColor, c.useClassColorBarBorder,
-            unpack(KCM.MacroBarButton.StyleDefault("barBorderColor"))))
+    if edgeFile or c.barBorder ~= false then
+        bar:SetBackdropBorderColor(BB.Swatch(c.barBorderColor, c.useClassColorBarBorder,
+            c.barBorderColorFromSkin, "cm.barBorder", "barBorderColor"))
     end
 end
 
@@ -732,8 +720,8 @@ end
 -- back up. The bar is
 -- the one thing this addon draws, so these are feature registrations in the
 -- plainest sense (slash-commands-§7).
--- A SKIN CHANGE re-applies the bar the same way (CM-03): the border styles, the
--- label face and the count face read the skin, and the wash its hover token.
+-- A SKIN CHANGE re-applies the bar the same way (CM-03): the border families, the
+-- faces, the colors and the shadow read the skin, and the wash its hover token.
 -- OnLooksChanged fires after the new skin is resolved. Only a bar already built
 -- is repainted -- the skin is applied in OnInitialize, before the first build,
 -- which paints from the skin anyway -- and Update holds itself to regen in

@@ -175,7 +175,8 @@ local function formatSpec(specKey)
     end
 
     local label = ("%s — %s"):format(className, specName or tostring(specID))
-    if specIcon then label = ("|T%s:16|t %s"):format(specIcon, label) end
+    -- Inline markup takes no edge, so the icon rule (R5-ICON) is the crop alone: 5..59 of 64 a side.
+    if specIcon then label = ("|T%s:16:16:0:0:64:64:5:59:5:59|t %s"):format(specIcon, label) end
     specLabelCache[specKey] = label
     return label
 end
@@ -493,7 +494,8 @@ local function applyRow(row, stat, included, onToggle)
     row.kcmIncluded = included and true or false
     row.kcmToggle   = onToggle
     row.kcmGlyphTexture = included and INCLUDED_TEX or EXCLUDED_TEX
-    row.kcmGlyph:SetNormalTexture(row.kcmGlyphTexture)
+    KCM.SkinPanelGlyph(row.kcmGlyph, row.kcmGlyphTexture,
+        included and "confirm" or "close", included and "sem.good" or "sem.bad")
 
     row.kcmLabel:SetText(SECONDARY_OPTIONS[stat] or stat)
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim
@@ -580,6 +582,8 @@ local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, dr
     ctx.kcmStatRows[#ctx.kcmStatRows + 1] = row
 
     if list then
+        local ghostIcon, ghostIconColor = KCM.SkinPanelGhost(row.kcmGlyphTexture,
+            included and "confirm" or "close", included and "sem.good" or "sem.bad")
         -- NO `parent`: the box and the handle both default to the frame registered
         -- here, which is the whole row. Naming the handle's slot -- which this used
         -- to do -- drew the library's fill and 1px edge around the 30px gutter and
@@ -587,7 +591,8 @@ local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, dr
         -- draggable list in the collection.
         list:AddRow(row, {
             ghostText      = SECONDARY_OPTIONS[stat] or stat,
-            ghostIcon      = row.kcmGlyphTexture,
+            ghostIcon      = ghostIcon,
+            ghostIconColor = ghostIconColor,
             ghostTextColor = { KCM.SkinPanelColor(included and "text.accent" or "text.disabled") },
             height         = ROW_H,
             draggable      = draggable,

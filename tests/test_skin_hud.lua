@@ -76,13 +76,10 @@ local function barCfg(KCM, over)
 end
 
 -- The LibSharedMedia fake knows the client's own media only; the library's registration of its
--- shipped faces is a no-op there. Teach it the HUD face for one case, and take it back after.
+-- shipped faces is a no-op there, so tests/wow_mock.lua lists the HUD face, the shipped default
+-- since FS-CM-FLIP. This puts the skin back after a case.
 local function withHudFace(fn)
-    local LSM = LibStub("LibSharedMedia-3.0")
-    local fonts = LSM.media.font
-    fonts[#fonts + 1] = HUD_FACE
     local ok, err = pcall(fn)
-    for i = #fonts, 1, -1 do if fonts[i] == HUD_FACE then table.remove(fonts, i) end end
     local Skin = skinLib()
     if Skin then Skin:SetChoice(OWNER, "ka0s", "ka0s") end
     return ok, err
@@ -103,7 +100,7 @@ test("Skin HUD: the buttons' border follows the skin's icon family while its com
     t.truthy(bd, "the border is drawn")
     t.eq(bd and bd[2].edgeFile, [[Interface\Buttons\WHITE8X8]],
         "Ka0s Default: icon.borderStyle 'Solid', the flat edge")
-    t.eq(bd and bd[2].edgeSize, 2, "at icon.borderSize, not the stored 4")
+    t.eq(bd and bd[2].edgeSize, 1, "at icon.borderSize (1 px in every skin since LibKa0s R3-FIX), not the stored 4")
     local col = lastCall(followed.border, "SetBackdropBorderColor")
     t.eq(col and col[2], 1, "the color stays the player's white (X4)")
 
@@ -132,14 +129,14 @@ test("Skin HUD: the flyout panel's edge follows the skin's bar border style", fu
     local flyout = { bg = recFrame("bg") }
     KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM))
     local bd = lastCall(flyout.bg, "SetBackdrop")
-    t.eq(bd and bd[2].edgeFile, nil, "Ka0s Default: bar.borderStyle 'None', no edge")
-    t.eq(bd and bd[2].edgeSize, 4, "the thickness stays the player's")
+    t.eq(bd and bd[2].edgeFile, [[Interface\Buttons\WHITE8X8]], "Ka0s Default: its None gives the one thin solid edge")
+    t.eq(bd and bd[2].edgeSize, 1, "one pixel")
     local fill = lastCall(flyout.bg, "SetBackdropColor")
-    t.eq(fill and fill[5], 0.85, "the fill is the player's swatch (X4)")
+    t.eq(fill and fill[5], 0.85, "the fill is today's pixel, through its owner token")
 
-    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyleFromSkin = false }))
+    KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM, { barBorderStyle = "Blizzard Tooltip" }))
     bd = lastCall(flyout.bg, "SetBackdrop")
-    t.eq(bd and bd[2].edgeFile, "border:Blizzard Tooltip", "companion off: the stored style")
+    t.eq(bd and bd[2].edgeFile, "border:Blizzard Tooltip", "a stored style draws under a skin's None")
 end)
 
 -- red under: the label face read from the stored pick while its companion is on, or the count
@@ -160,7 +157,8 @@ test("Skin HUD: the label and count faces are the skin's HUD font", function(t)
         t.eq(lastCall(btn.count, "SetFont")[3], 14, "a second pass keeps the size")
 
         local own = styleButton()
-        KCM.MacroBarButton.ApplyStyle(own, barCfg(KCM, { labelFontFromSkin = false }))
+        KCM.MacroBarButton.ApplyStyle(own, barCfg(KCM, { labelFontFromSkin = false,
+            labelFont = "Friz Quadrata TT" }))
         t.eq(lastCall(own.label, "SetFont")[2], "font:Friz Quadrata TT",
             "companion off: the stored face")
     end)
@@ -175,12 +173,13 @@ test("Skin HUD: Ignore fonts puts the count and label back on their own faces, l
     local Skin = skinLib()
     local ok, err = withHudFace(function()
         local btn = styleButton()
-        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
+        local stored = { labelFont = "Friz Quadrata TT" }
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, stored))
         t.eq(lastCall(btn.count, "SetFont")[2], "font:" .. HUD_FACE, "first the skin's HUD face")
         Skin:SetIgnore(OWNER, nil, true)
         t.eq(select(2, Skin:GetIgnore(OWNER)), true, "the exception is applied")
         local mark = #btn.count.calls
-        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, stored))
         local put
         for i = mark + 1, #btn.count.calls do
             local c = btn.count.calls[i]
@@ -208,13 +207,16 @@ end)
 test("Skin HUD: another skin's icon border reaches the buttons", function(t)
     local KCM = h.loader.loadFullAddon()
     local Skin = skinLib()
+    -- Every shipped skin's icon border is Solid 1px since LibKa0s v1.85.0's R3-FIX (WoW Default's
+    -- was the Blizzard Tooltip art), so a skin whose icon border is art is the test's own.
+    Skin:RegisterSkin({ key = "tooltipedge", tokens = { ["icon.borderStyle"] = "Blizzard Tooltip", ["icon.borderSize"] = 2 } })
     local ok, err = withHudFace(function()
-        Skin:SetChoice(OWNER, "ka0s", "wow")
+        Skin:SetChoice(OWNER, "ka0s", "tooltipedge")
         local btn = styleButton()
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
         local bd = lastCall(btn.border, "SetBackdrop")
         local style, size = KCM.Skin.Token("icon.borderStyle"), KCM.Skin.Token("icon.borderSize")
-        t.eq(style, "Blizzard Tooltip", "WoW Default's icon border is the tooltip edge")
+        t.eq(style, "Blizzard Tooltip", "that skin's icon border is the tooltip edge")
         t.eq(bd and bd[2].edgeFile, "border:" .. style, "and the button draws it")
         t.eq(bd and bd[2].edgeSize, size, "at that skin's thickness")
     end)
@@ -282,7 +284,6 @@ test("Skin HUD: the three companions are composed rows, on by default, governing
     local KCM = h.loader.loadFullAddon()
     local H = KCM.Settings.Helpers
     for _, pair in ipairs({
-        { "macroBar.barBorderStyleFromSkin", "macroBar.barBorderStyle" },
         { "macroBar.buttonBorderStyleFromSkin", "macroBar.buttonBorderStyle" },
         { "macroBar.buttonBorderStyleFromSkin", "macroBar.buttonBorderSize" },
         { "macroBar.labelFontFromSkin", "macroBar.labelFont" },
@@ -293,8 +294,6 @@ test("Skin HUD: the three companions are composed rows, on by default, governing
         t.eq(companion and companion.default, true, pair[1] .. " defaults on (X3)")
         t.eq(picker and picker.disabledIf, pair[1], pair[2] .. " is governed by it")
     end
-    t.eq(H.FindSchema("macroBar.barBorderSize").disabledIf, nil,
-        "the bar family governs no thickness: the bar's stays the player's")
     t.truthy(KCM.Schema:Set("macroBar.labelFontFromSkin", false), "a bare /cm set is accepted")
     t.eq(KCM.db.profile.macroBar.labelFontFromSkin, false, "and stored")
 end)
@@ -450,10 +449,11 @@ test("Skin fonts: the v5 step moves the old default flag to From skin once, and 
     local KCM = h.loader.loadFullAddon()
     local p = KCM.db.profile
     p.schemaVersion = 4
+    p.skin.fullSkinReset = true    -- this case is about v5, and v6 moves any flag once
     p.macroBar.labelFlags = "OUTLINE"
     KCM.Database.RunMigrations()
     t.eq(p.macroBar.labelFlags, FROM_SKIN, "the old default moved to From skin")
-    t.eq(p.schemaVersion, 5, "the profile is stamped v5")
+    t.eq(p.schemaVersion, KCM.Database.CURRENT_SCHEMA, "the profile is stamped and walked on")
     p.macroBar.labelFlags = "OUTLINE"
     KCM.Database.RunMigrations()
     t.eq(p.macroBar.labelFlags, "OUTLINE", "a later pick of Outline survives every login")

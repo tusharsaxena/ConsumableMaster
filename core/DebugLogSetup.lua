@@ -269,7 +269,9 @@ local D = lib:New({
     -- that every Ka0s window wears (standalone-windows), so taking the
     -- library's is the whole point — a table of our own would draw a console that
     -- matched this addon and no other, and a plain backdrop table would also drop
-    -- the bg / border / innerBorder / divider / title arrays ApplySkin guards for.
+    -- the bg / border / innerBorder / title arrays ApplySkin guards for. (The
+    -- divider under the title is gone: ApplySkin hides any `frame.divider` since
+    -- LibKa0s R4-SEP, Ka0sAddonsCommonTasks docs/2026-11-03-SMOKE_ROUND4.)
     -- Nor `L` (the library's English already matches ours) nor `safeToString` (it
     -- defaults to Core's, which is the same function object KCM.SafeToString is
     -- bound to).

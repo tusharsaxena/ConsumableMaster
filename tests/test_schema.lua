@@ -540,9 +540,9 @@ test("schema: stat priority, the composite sections, slot order and visibility, 
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 90,
+        t.eq(#KCM.Settings.Schema, 98,
             "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's eight, "
-            .. "plus the macro bar's three HUD style companions")
+            .. "plus the macro bar's three HUD style companions, plus its eight color and shadow ones")
     end)
 
 test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)
@@ -677,7 +677,7 @@ local STORED_GUARD = {
     "macroBar.barBorder | bool | true | nil | nil | nil | ",
     "macroBar.barBorderColor | color | {1=0.25,2=0.25,3=0.25,4=1} | nil | nil | nil | ",
     "macroBar.barBorderSize | number | 4 | 1 | 16 | 1 | ",
-    "macroBar.barBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",
+    "macroBar.barBorderStyle | string | None | nil | nil | nil | ",
     "macroBar.barBorderStyleFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdrop | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdropColor | color | {1=0,2=0,3=0,4=0.6} | nil | nil | nil | ",
@@ -713,7 +713,7 @@ local STORED_GUARD = {
     "macroBar.labelColor | color | {1=1,2=0.82,3=0,4=1} | nil | nil | nil | ",
     -- From skin since LibKa0s v1.82.0 (compose minor 14, D-07).
     "macroBar.labelFlags | string | @skin | nil | nil | nil | ",
-    "macroBar.labelFont | string | Friz Quadrata TT | nil | nil | nil | ",
+    "macroBar.labelFont | string | Ka0s Prototype | nil | nil | nil | ",
     "macroBar.labelFontFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.labelOffsetX | number | 0 | -20 | 20 | 1 | ",
     "macroBar.labelOffsetY | number | 3 | -20 | 20 | 1 | ",
@@ -733,6 +733,15 @@ local STORED_GUARD = {
     "macroBar.shown | map | {} | nil | nil | nil | ",
     "macroBar.spacing | number | 4 | 0 | 24 | 1 | ",
     "macroBar.tooltips | bool | true | nil | nil | nil | ",
+    -- The color and shadow companions (FS-CM-FLIP, causes D2, D4 and D6), each on by default.
+    "macroBar.barBackdropColorFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.barBorderColorFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.buttonBackdropColorFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.buttonBorderColorFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.labelColorFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.labelShadowFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.flyoutBackdropColorFromSkin | bool | true | nil | nil | nil | ",
+    "macroBar.flyoutShadeColorFromSkin | bool | true | nil | nil | nil | ",
     "macroBar.useClassColorBarBackdrop | bool | false | nil | nil | nil | ",
     "macroBar.useClassColorBarBorder | bool | false | nil | nil | nil | ",
     "macroBar.useClassColorButtonBackdrop | bool | false | nil | nil | nil | ",

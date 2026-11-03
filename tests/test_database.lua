@@ -5,7 +5,7 @@ local test = h.test
 
 test("Database.CURRENT_SCHEMA is the version the code understands", function(t)
     local KCM = h.loader.loadPure()
-    t.eq(KCM.Database.CURRENT_SCHEMA, 5, "current schema is v5")
+    t.eq(KCM.Database.CURRENT_SCHEMA, 7, "current schema is v7")
 end)
 
 test("Database.RunMigrations stamps a fresh account at the current schema", function(t)
@@ -376,7 +376,8 @@ test("Database: a second profile written before v3 is migrated when it is switch
     KCM.Database.RunMigrations()          -- first login stamps the account at v3
     -- Sitting in SavedVariables, never opened this session, so AceDB has not
     -- merged the defaults into it. This is the raw shape the file holds.
-    KCM.db.profiles.Alt = { macroBar = { labelOutline = false } }
+    -- The record seeded true: this case is about v3, and v6 follows the skin past it.
+    KCM.db.profiles.Alt = { macroBar = { labelOutline = false }, skin = { fullSkinReset = true } }
     KCM.db:SetProfile("Alt")
     t.eq(KCM.db.profile.macroBar.labelOutline, nil,
         "the v3 step ran against the incoming profile and retired the boolean")
@@ -413,4 +414,21 @@ test("Database v2: a second profile pays the one-shot cost once, not on every sw
     KCM.db:SetProfile("Alt")
     t.eq(KCM.db.profile.macroBar.enabled, false, "the opt-out survives the next switch")
     t.eq(KCM.db.profile.macroBar.locked, true, "and so does the lock")
+end)
+
+-- R3-FRIZ: LibKa0s v1.85.0 deleted Ka0s Friz Quadrata TT (R3-L7); v7 moves a stored pick of it to
+-- Ka0s Ubuntu on each profile as it arrives. red under: no v7 step, one that reads only the top
+-- level, or one that rewrites Blizzard's own "Friz Quadrata TT".
+test("Database.RunMigrations v7 moves a stored Ka0s Friz Quadrata TT to Ka0s Ubuntu, Blizzard's Friz kept", function(t)
+    local KCM = h.loader.loadPure()
+    KCM.db.global = { schemaVersion = 6 }
+    KCM.db.profile = { schemaVersion = 6, skin = { fullSkinReset = true, font = "Ka0s Friz Quadrata TT" },
+        macroBar = { labelFont = "Ka0s Friz Quadrata TT", other = "Friz Quadrata TT" } }
+    KCM.Database.RunMigrations()
+    local p = KCM.db.profile
+    t.eq(p.macroBar.labelFont, "Ka0s Ubuntu", "the label font moves")
+    t.eq(p.skin.font, "Ka0s Ubuntu", "the skin override moves")
+    t.eq(p.macroBar.other, "Friz Quadrata TT", "Blizzard's own Friz stays")
+    t.eq(p.schemaVersion, 7, "the profile is stamped v7")
+    t.eq(KCM.Database.RetireFontsV7(p), 0, "a second pass moves nothing")
 end)

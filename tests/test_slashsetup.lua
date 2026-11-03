@@ -266,7 +266,7 @@ end)
 test("Slash: /cm set keeps a multi-word font name whole", function(t)
     local KCM, mock = load()
     local H = KCM.Settings.Helpers
-    t.eq(H.Get("macroBar.labelFont"), "Friz Quadrata TT", "the shipped face, going in")
+    t.eq(H.Get("macroBar.labelFont"), "Ka0s Prototype", "the shipped face, going in")
 
     mock.output = {}
     KCM:OnSlashCommand("set macroBar.labelFont JetBrains Mono")

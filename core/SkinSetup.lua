@@ -48,10 +48,19 @@
 --   KCM.SkinPanelText(fs, r) (the host copy of Ka0s Default, today's pixels) while it is ignored.
 --                            The reorder lists take this owner plainly: ReorderList is
 --                            panel-scoped by default (WidgetsReorder minor 3). See below.
+--   KCM.SkinPanelMark(t,a,n,c) a settings mark (cause L6): the Ka0s icon `n` in token `c` while the
+--                            panel is skinned, the client's art `a` otherwise. SkinPanelMarkOpts
+--                            builds its S.Mark options, SkinPanelGlyph takes a button's normal
+--                            texture, SkinPanelGhost answers a reorder row's carried copy,
+--                            SkinPanelMarkText writes the same mark as inline markup and
+--                            SkinPanelHoverArt tints a hover flash with `list.hoverArt`.
 --   KCM.SkinPaintAce(w)      an AceGUI widget this addon acquired itself, painted for this
 --   KCM.SkinPaintAceTree(c)  owner (`Skin:PaintAce` / `Skin:PaintAceTree`, the owner bound).
 --   KCM.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
 --                            (`Skin:OnRelease`), so it and the skin's restore both run.
+--   KCM.SkinUntrackOnRelease(w, ...) the regions of a pooled AceGUI widget that S.Text recorded
+--                            leave the skin's record at its release (options-ui-§19). S.Mark
+--                            gives itself back; call this once per acquire for the rest.
 --   KCM.SkinAcquire(ace, t)  `ace:Create(t)` then KCM.SkinPaintAce: every AceGUI widget the
 --                            settings files acquire themselves.
 --   KCM.MaybeShowSkinPicker() the first-run skin picker (LibKa0s OptionsSkinPicker, O3):
@@ -128,6 +137,18 @@ KCM.SKIN_TOKENS = {
     ["cm.tipSummary"] = { default = { 0xaa / 255, 0xaa / 255, 0xaa / 255, 1 }, follow = "gtip.subtle" },
 }
 
+-- The macro bar's HUD colors that are not that skin's token under Ka0s Default (FS-CM-FLIP, causes
+-- D2 and D4): today's pixels there, the library role everywhere else. Apart from SKIN_TOKENS only
+-- for the degraded facade: these answer nothing there, so a bar with no library draws its stored
+-- swatch (the LibKa0s Options doc's rule), where a settings surface draws the host copy.
+local HUD_TOKENS = {
+    ["cm.barBorder"]    = { default = { 0.25, 0.25, 0.25, 1 }, follow = "bar.border" },
+    ["cm.buttonBg"]     = { default = { 0, 0, 0, 0.6 }, follow = "bar.bg" },
+    ["cm.buttonBorder"] = { default = { 1, 1, 1, 1 }, follow = "icon.border" },
+    ["cm.flyoutBg"]     = { default = { 0, 0, 0, 0.85 }, follow = "popup.bg" },
+    ["cm.flyoutShade"]  = { default = { 0, 0, 0, 0.8 }, follow = "cover.dim" },
+}
+
 -- The Ka0s Default values the DEGRADED facade answers, limited to the tokens this addon reads.
 -- Both arms publish the table, so tests/test_skin.lua can hold each entry to the live facade's
 -- Ka0s Default answer: a copy that drifts goes red there. A surface converted to a token adds the
@@ -149,6 +170,7 @@ KCM.SKIN_FALLBACK = {
     ["icon.arrow"]     = { 1, 0.82, 0, 1 },
 }
 for name, def in pairs(KCM.SKIN_TOKENS) do KCM.SKIN_FALLBACK[name] = def.default end
+for name, def in pairs(HUD_TOKENS) do KCM.SKIN_TOKENS[name] = def end
 
 --- Components as a call site writes them: r, g, b for an opaque color and r, g, b, a otherwise (the
 --- library's own text and vertex rule), so a site that passed three components before it read a
@@ -223,6 +245,89 @@ function KCM.SkinPanelText(fs, role)
     role = tostring(role)
     local r, g, b, a = stock(role:find(".", 1, true) and role or ("text." .. role))
     if r then fs:SetTextColor(r, g, b, a) end
+end
+
+--- The client's art back on `tex`: a path, or "atlas:<name>" as this addon's icon buttons take it.
+local function stockArt(tex, art)
+    if art:sub(1, 6) == "atlas:" then
+        tex:SetTexture(nil)
+        tex:SetAtlas(art:sub(7), false)
+        tex:SetTexCoord(0, 1, 0, 1)
+    else
+        tex:SetTexture(art)
+    end
+end
+
+--- The S.Mark options of a settings mark. `art` is the client's art, which the library gives
+--- back while the Scope ignores the panel. A fresh table: the library keeps it for its replay.
+function KCM.SkinPanelMarkOpts(art, iconName, token)
+    return { panel = true, token = token, art = KCM.Icon and KCM.Icon(iconName),
+             stock = function(tex) stockArt(tex, art) end }
+end
+
+--- A settings mark on a texture. The client's art goes on first, because the degraded S.Mark is a
+--- no-op and the mark still has to draw.
+function KCM.SkinPanelMark(tex, art, iconName, token)
+    if not tex then return end
+    stockArt(tex, art)
+    KCM.Skin.Mark(tex, KCM.SkinPanelMarkOpts(art, iconName, token))
+end
+
+--- A settings mark on a button's normal texture.
+function KCM.SkinPanelGlyph(button, art, iconName, token)
+    button:SetNormalTexture(art)
+    if button.GetNormalTexture then
+        KCM.SkinPanelMark(button:GetNormalTexture(), art, iconName, token)
+    end
+end
+
+--- A reorder row's carried copy of the mark: `ghostIcon, ghostIconColor`. The row's art and no color
+--- while the panel is ignored or degraded, which leaves the library's own tint.
+function KCM.SkinPanelGhost(art, iconName, token)
+    local path = KCM.SkinPanelOn() and KCM.Icon and KCM.Icon(iconName)
+    if not path then return art, nil end
+    return path, { KCM.SkinPanelColor(token) }
+end
+
+--- The same mark as inline markup, written when the string is: `markup` while the panel is ignored
+--- or degraded, S.MarkText otherwise.
+function KCM.SkinPanelMarkText(markup, iconName, size, token)
+    local path = KCM.SkinPanelOn() and KCM.Icon and KCM.Icon(iconName)
+    if not path then return markup end
+    return KCM.Skin.MarkText(path, size, token)
+end
+
+local HOVER_MARK = { panel = true, token = "list.hoverArt" }
+
+--- A hover flash on the settings panel (an ADD highlight in the client's own color). `list.hoverArt`
+--- false, Ka0s Default's, keeps the flash as the client draws it; a color tints it desaturated, so
+--- the token's hue is what shows. A pooled widget calls this on every acquire.
+function KCM.SkinPanelHoverArt(tex)
+    KCM.Skin.Mark(tex, HOVER_MARK)
+    if not tex.SetDesaturated then return end
+    tex:SetDesaturated(KCM.SkinPanelOn() and type(KCM.Skin.Token("list.hoverArt")) == "table")
+end
+
+-- The icon rule (LibKa0s docs/api/README.md, "Icon art: the rule"; R5-ICON of Ka0sAddonsCommonTasks
+-- docs/2026-11-03-SMOKE_ROUND5, the lead's call 9): a settings page is a window, so its Blizzard icon
+-- art is cropped 0.07 a side and edged 1 px in `icon.outline`, the window outline, never the HUD's
+-- `icon.border`. `zoom = false`: the crop is the host's, set with the art, so the edge never replays
+-- one over it.
+local ICON_CROP = 0.07
+local ICON_EDGE = { fromSkin = true, zoom = false }
+
+--- A settings icon framed by the rule. `tex` is the art, cropped on every call, skinned or not (a
+--- client SetTexture keeps the coords, so a call after each SetTexture holds them). `edge` is a plain
+--- frame the widget owns, laid over the art, and the edge's target: never the art itself, so a pooled
+--- widget hands the record back at release (KCM.SkinUntrackOnRelease). While the Scope ignores the
+--- settings panel, or degraded, the edge is hidden, as the stock page draws none; the pages re-render
+--- on a Scope change, so this runs again then.
+function KCM.SkinPanelIcon(tex, edge)
+    if tex and tex.SetTexCoord then tex:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP) end
+    if not edge then return end
+    local on = KCM.SkinPanelOn()
+    edge:SetShown(on)
+    if on then KCM.Skin.IconBorder(edge, ICON_EDGE) end
 end
 
 KCM.SKIN_SOURCE_OPTIONS = {
@@ -355,10 +460,16 @@ end
 -- `skin.pickerSeen`, through KCM.Schema:Set. A close this addon makes itself (KCM.HideSkinPicker:
 -- the stand-down, a profile event) is not the player's and writes nothing.
 --
--- NO EYE (X6, D3). The eye previews a pick on an addon's primary window or test mode, and this
--- addon has neither (the unlocked macro bar is its own preview), so the spec carries no
--- `onPreview` and the picker draws no eye. A pick still previews live on the bar and the panel;
--- `set` (KCM.WriteSkinChoice) runs only on Apply, the gear or Apply to all.
+-- THE EYE IS THE UNLOCK (R6-PV, LibKa0s OptionsSkinPicker minor 11's spec.preview; Ka0sAddonsCommonTasks
+-- docs/2026-11-03-SMOKE_ROUND6, the lead's call 2). This addon has no window and no test mode: the
+-- unlocked macro bar is its preview (options-ui-§15), so the mode is "unlock". The library enters it
+-- when the picker shows on a locked bar, the eye toggles it, and every close puts back the lock the
+-- picker opened with. enter and exit are KCM.MacroBar.SetLocked, the write `/cm unlock`, `/cm lock`,
+-- the launcher's Locked entry and the panel's Lock frame row all land in (KCM.Schema:Set
+-- "macroBar.locked"), quietly: no chat line each time the picker opens. "Shown" for an unlock host is
+-- "unlocked", so a bar already unlocked is left alone. The lock is a stored setting, so a /reload
+-- while the picker is up leaves the bar unlocked until `/cm lock`. A pick previews live on the bar
+-- and the panel; `set` (KCM.WriteSkinChoice) runs only on Apply, the gear or Apply to all.
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- O.SkinPicker queues this one and answers nil, "queued", which KCM.MaybeShowSkinPicker passes
@@ -374,8 +485,52 @@ local function pickerHost()
     return KCM.Settings and KCM.Settings.Helpers
 end
 
+-- The profile the preview last moved the lock in. A profile event takes the picker down AFTER AceDB
+-- has switched, so the library's restore would land in the profile switched to; a restore whose
+-- profile is not this one is refused (false: nothing moved), and the incoming profile keeps its own
+-- lock. The profile left keeps the unlock, like a /reload. The record lives from one showing's
+-- start to the next's, NOT to the close: a restore the library asks under InCombatLockdown() and
+-- that is refused here is parked and asked again when combat ends, after the close, and it must
+-- still meet this guard. A fresh show's first question is isShown (the library's previewState, its
+-- only caller), so that is where the record of the showing before is dropped.
+local previewProfile
+
+local function currentProfile()
+    local d = KCM.db
+    return d and d.GetCurrentProfile and d:GetCurrentProfile() or nil
+end
+
+local function barUnlocked()
+    local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
+    return (cfg and cfg.locked == false) and true or false
+end
+
+--- The lock write for the preview: KCM.MacroBar.SetLocked, false when refused (no bar, no seam,
+--- or a restore aimed at a profile the preview never touched).
+local function previewLock(isLocked, why)
+    if not (KCM.MacroBar and KCM.MacroBarModel and KCM.MacroBarModel.Config()) then return false end
+    local profile = currentProfile()
+    if why == "picker" and previewProfile and previewProfile ~= profile then return false end
+    previewProfile = profile
+    return KCM.MacroBar.SetLocked(isLocked) and true or false
+end
+
+local PREVIEW = {
+    mode     = "unlock",
+    enter    = function(why) return previewLock(false, why) end,
+    exit     = function(why) return previewLock(true, why) end,
+    isActive = barUnlocked,
+    -- An unlock host's surface is "shown" when its frames are unlocked (00_PLAN call 2). Asked once
+    -- per fresh show, before its enter: a new showing, so the last one's profile record goes.
+    isShown  = function()
+        previewProfile = nil
+        return barUnlocked()
+    end,
+}
+
 --- The player's close: the picker seen, and nothing else. The library's put-back already wears the
---- stored choice, so the skin is not this callback's to move.
+--- stored choice, so the skin is not this callback's to move. The preview's profile record outlives
+--- it (see previewProfile): a restore parked through combat is asked after this close.
 local function pickerClosed()
     if quietClose then return end
     seamSet(PICKER_PATH, true)
@@ -388,6 +543,7 @@ function KCM.SkinPickerSpec()
         -- (settings/General.lua's panelKey), then O.SelectTab("general", "Appearance"), the Skin
         -- tab's key on that page.
         page = "general", tab = "Appearance",
+        preview = PREVIEW,
         onClose = pickerClosed,
     }
 end
@@ -439,6 +595,51 @@ function KCM.MaybeShowSkinPicker()
     return H.SkinPicker(KCM.SkinPickerSpec())
 end
 
+-- ── the one-time skin notice (LibKa0s OptionsSkinPicker minor 9, SG-L3) ────────────────────────
+-- A release that wants every account to learn skins exist raises lib.SKIN_NOTICE_VERSION. The first
+-- addon to ask in a session claims the notice and shows the picker; every other addon records the
+-- version and stays quiet. The record is `db.global.skinNotice`, a number: account-wide, so a profile
+-- switch never shows it twice. In combat nothing is claimed; it asks again every NOTICE_RETRY seconds until combat ends.
+local NOTICE_RETRY = 5   -- seconds between asks while the player is in combat
+local noticeWaiting = false
+
+local function noticeGlobal()
+    local d = KCM.db
+    return d and d.global or nil
+end
+
+local noticeStore = {
+    get = function() local g = noticeGlobal(); return g and g.skinNotice or nil end,
+    set = function(v) local g = noticeGlobal(); if g then g.skinNotice = v end end,
+}
+
+function KCM.MaybeShowSkinNotice()
+    local H = pickerHost()
+    if not (H and type(H.SkinNotice) == "function" and noticeGlobal()) then return nil, "unavailable" end
+    if KCM.IsStoodDown and KCM.IsStoodDown() then
+        -- A stood-down addon shows nothing, but a seen record still silences the rest (SG-L3).
+        H.SkinNotice(nil, noticeStore, true)
+        return nil, "standdown"
+    end
+    local spec = KCM.SkinPickerSpec()
+    local frame, why = H.SkinNotice(spec, noticeStore)
+    if why == "combat" and not noticeWaiting and type(_G.C_Timer) == "table" and _G.C_Timer.After then
+        noticeWaiting = true
+        _G.C_Timer.After(NOTICE_RETRY, function()
+            noticeWaiting = false
+            KCM.MaybeShowSkinNotice()
+        end)
+    end
+    return frame, why
+end
+
+local pickerFirstRun = KCM.MaybeShowSkinPicker
+function KCM.MaybeShowSkinPicker()
+    local frame, why = KCM.MaybeShowSkinNotice()
+    if frame or why == "queued" then return frame, why end
+    return pickerFirstRun()
+end
+
 --- The reserved `/cm skin` verb's act (LibKa0s v1.82.0, OptionsSkinPicker minor 3, ruling D-16):
 --- O.SkinVerb with the spec the first-run start builds, so it shows the picker a new profile shows
 --- whatever skin.pickerSeen says; a close still marks the profile seen. The library prints its own
@@ -481,7 +682,13 @@ if not Skin then
         "GetAccentColor", "GetPanelColor", "GetFont",
         "TitleBar", "Divider", "Footer", "Card", "Slider", "NavItem", "Drawer", "ListRow", "MenuFrame",
         "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
-        "BarTexture",
+        "BarTexture", "Mark", "BarGloss",
+        -- LibKa0s v1.85.0: nil is each getter's degraded answer. The three colors answer nothing,
+        -- so the stored color draws; HudShadow's nil is "the stored shadow stands".
+        "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "HoverArt",
+        -- LibKa0s v1.85.0 (Skin minor 16, round 5): no band to anchor to, so Band answers nil and
+        -- Header places nothing. This addon has no window header of its own to lay out.
+        "Band", "Header",
     }) do S[name] = noop end
 
     S.Token = function(name) return KCM.SKIN_FALLBACK[name] end
@@ -515,6 +722,29 @@ if not Skin then
         local n = tonumber(size)
         return (n and n > 0) and n or 12
     end
+    -- LibKa0s v1.85.0 (SkinPaintExtras minor 9): a string a caller concatenates, so never nil. The
+    -- same markup in the art's own color, there being no tint to read.
+    S.MarkText = function(path, size)
+        size = size or 14
+        return ("|T%s:%d:%d|t"):format(path, size, size)
+    end
+    -- LibKa0s v1.85.0 (SkinPaintExtras minor 14): the one member that must draw, or the HUD has
+    -- no face. No font object: a degraded build holds none, so a stored shadow is not drawn on a
+    -- 12.0.7 client, which is accepted (LibKa0s Options doc, Moving to this version, step 7).
+    S.HudFont = function(fs, opts)
+        opts = type(opts) == "table" and opts or {}
+        local face = opts.face
+        if type(face) ~= "string" or face == "" then face = _G.STANDARD_TEXT_FONT end
+        if type(face) ~= "string" then return nil end
+        fs:SetFont(face, S.HudFontSize(opts.size), S.FontFlags(opts.flags))
+        local on = opts.shadow and true or false
+        fs:SetShadowColor(0, 0, 0, on and 1 or 0)
+        fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
+    end
+
+    -- LibKa0s v1.85.0 (SkinPaintExtras minor 16): no skin to defer to, so the stored three stand.
+    -- A no-op would lose the player's border.
+    S.BarBorder = function(style, show, size) return style, show, size end
 
     KCM.Skin = S
     function KCM.ApplySkinChoice() return false, false end
@@ -525,6 +755,7 @@ if not Skin then
     function KCM.SkinPaintAce() return false end
     function KCM.SkinPaintAceTree() return 0 end
     KCM.SkinOnRelease = releaseByCallback
+    function KCM.SkinUntrackOnRelease() return nil end
     -- No skin to ignore: the settings surfaces draw the stock look.
     function KCM.SkinPanelOn() return false end
     return
@@ -569,6 +800,13 @@ end
 function KCM.SkinOnRelease(widget, fn)
     if type(Skin.OnRelease) ~= "function" then return releaseByCallback(widget, fn) end
     return Skin:OnRelease(widget, fn)
+end
+
+function KCM.SkinUntrackOnRelease(widget, ...)
+    local regions = { ... }
+    return KCM.SkinOnRelease(widget, function()
+        for _, region in ipairs(regions) do Skin:Untrack(region) end
+    end)
 end
 
 --- The applied exceptions, read live from the library (the Scope rows' apply moves them through

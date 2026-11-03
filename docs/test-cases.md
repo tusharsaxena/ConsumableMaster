@@ -169,7 +169,7 @@ Total.
 - CoreSetup: with the library absent there is no wrapper to call, and no error
 - CoreSetup: the shared color decoder answers nil for a channel that is not stored
 
-### test_database.lua (26)
+### test_database.lua (27)
 
 - Database.CURRENT_SCHEMA is the version the code understands
 - Database.RunMigrations stamps a fresh account at the current schema
@@ -197,6 +197,7 @@ Total.
 - Database: switching profile re-runs the migration pass
 - Database: a second profile written before v3 is migrated when it is switched to
 - Database v2: a second profile pays the one-shot cost once, not on every switch
+- Database.RunMigrations v7 moves a stored Ka0s Friz Quadrata TT to Ka0s Ubuntu, Blizzard's Friz kept
 
 ### test_debug.lua (14)
 
@@ -215,7 +216,7 @@ Total.
 - Debug: the sink publishes no Toggle of its own
 - Debug: no call site formats through a numeric placeholder
 
-### test_debuglog.lua (21)
+### test_debuglog.lua (22)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -228,6 +229,7 @@ Total.
 - DebugLog: [Init] names rejected events only when there are any
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
+- DebugLog: neither console window draws a line under its title (R4-SEP)
 - DebugLog: the console IS the library's instance, not a host lookalike
 - DebugLog: the descriptor reproduces the addon's window identity
 - DebugLog: the console's own strings resolve to prose, not to their own keys
@@ -467,6 +469,10 @@ Total.
 - Launcher: the tooltip, enabled and unlocked, in the collection's one shape
 - Launcher: the tooltip reads the lock on every show, never a cached copy
 - Launcher: the tooltip still draws while disabled, with the same two hints
+
+### test_launcher_skin_entry.lua (1)
+
+- launcher descriptor passes openSkinPicker, which runs the skin verb
 
 ### test_lintconfig.lua (4)
 
@@ -1053,21 +1059,39 @@ Total.
 - Skin: every library factory that takes an owner is handed this addon's
 - Skin: the TOC loads the seam before every frame and lists EllesmereUI as optional
 
-### test_skin_surfaces.lua (13)
+### test_skin_surfaces.lua (23)
 
-- Skin surfaces: no color literal outside the seam and the allow-list
-- Skin surfaces: every allow-list entry carries its reason
-- Skin surfaces: the literal gate is falsifiable
 - Skin surfaces: the escapes built from tokens keep Ka0s Default's bytes
 - Skin surfaces: the degraded facade answers every token the surfaces read
 - Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time
 - Skin surfaces: the item row's name and hand tag take the skin's text
 - Skin surfaces: the score button's disabled art is the skin's disabled gray
+- Skin marks: a settings mark is the Ka0s icon in its token, and stock under the Scope
+- Skin marks: without the library the client's art draws
+- Skin marks: the legend's markup follows the Scope
+- Skin marks: the remove button's atlas takes the Ka0s mark and comes back under the Scope
+- Skin marks: the score button's info mark keeps the skin's tint through enable
+- Skin marks: the remove button's mark keeps the skin's tint through enable
+- Skin marks: an item row's tick, cross and star are Ka0s marks
+- Skin marks: the drag icon's hover flash takes list.hoverArt with the Scope cleared
+- Skin marks: a pooled widget's marks and strings leave the skin's record at release
+- Skin marks: each page's glyph is the Ka0s mark of its state, both ways
+- Skin marks: a reorder row's carried mark matches the row, both ways
+- Skin marks: without the library the carried mark is the row's art, with no tint
+- Skin marks: a Macros row's buttons and the legend take their marks from the page
 - Skin surfaces: the panel helpers answer the stock look while the panel is ignored
 - Skin surfaces: the item row stays stock while the panel is ignored
 - Skin surfaces: the item row takes the skin back live when the panel is skinned again
 - Skin surfaces: the icon and score buttons stay stock while the panel is ignored
 - Skin surfaces: the settings surfaces read the skin only through the panel helpers
+
+### test_icon_rule.lua (5)
+
+- Icon rule: a settings page's item and macro icons are cropped by 0.07, skinned or not
+- Icon rule: with the panel skinned the icon wears the window outline, on a frame of its own
+- Icon rule: with the panel ignored the edge is hidden and the crop stays
+- Icon rule: a pooled widget's edge leaves the skin's record at release
+- Icon rule: the Stat Priority spec label's icon markup is cropped to 5..59 of 64
 
 ### test_skin_hud.lua (20)
 
@@ -1092,6 +1116,35 @@ Total.
 - Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
 - Skin fonts: without the library the label draws its stored size and an outline
 
+### test_skin_flip.lua (26)
+
+- Skin flip: every color and shadow companion is a bool row defaulting on, in both places
+- Skin flip: the pick's default moved, and the bar family holds the thickness
+- Skin flip: the bar ships no border of its own, and the composed rows follow the deferral
+- Skin flip: the record is in the AceDB defaults, with no schema row a Defaults could walk
+- Skin flip: Ka0s Default keeps this addon's pixels
+- Skin flip: a skin switch changes what each flipped surface draws
+- Skin flip: under another skin each surface draws the token its owner token follows
+- Skin flip: the bar's fill and edge draw the skin's tokens, and a skin switch repaints them
+- Skin flip: a companion off draws the stored color, under any skin
+- Skin flip: a class color comes first, whatever the companion says
+- Skin flip: the bar's thickness is the skin's while the border's companion is on
+- Skin flip: a skin's None defers to Show border and the stored style, a real style wins
+- Skin flip: the label's shadow lands on a font object, the skin's while the companion is on
+- Skin flip: the stack count wears a font object: its own shadow, or the skin's
+- Skin flip: without the library the stored colors draw and the label keeps its face
+- Skin flip: without the library the stored bar border draws, and Show border holds
+- Skin flip: the step moves every listed key, byte-identical picks and colors
+- Skin flip: the step lists no size, class toggle, Scope key or bare color
+- Skin flip: a second run writes nothing, and a companion turned off afterwards stays off
+- Skin flip: a missing sub-table is skipped and the record's table created
+- Skin flip: the step is the same write with the library absent
+- Skin flip: past the stamp the runner still moves an active profile with no record
+- Skin flip: the page Defaults leaves the record alone, so a later run keeps a turned-off companion
+- Skin flip: a profile reset re-runs the step against defaults, moving nothing a player sees
+- Skin flip: a profile switched to later moves on arrival
+- Skin flip: the player's own None draws no edge once the companion is off
+
 ### test_skin_outline.lua (10)
 
 - Skin outline: a fresh profile stores HUD text only, the library's default
@@ -1105,17 +1158,24 @@ Total.
 - Skin outline: a profile switch applies the incoming profile's mode, and back
 - Skin outline: without the skin engine the apply is a quiet no-op
 
-### test_skin_picker.lua (10)
+### test_skin_picker.lua (17)
 
 - Skin picker: skin.pickerSeen defaults to false, a skip-render row no page reset reaches
-- Skin picker: the spec names this owner, its seams, the General page's Skin tab and no eye
+- Skin picker: the spec names this owner, its seams, the General page's Skin tab and the unlock eye
 - Skin picker: an unseen profile shows it; a seen one does not
 - Skin picker: it is offered once per session, two seconds after the first entering-world
 - Skin picker: in combat a start waits for PLAYER_REGEN_ENABLED, once
+- Skin picker: the notice's combat retry repeats until combat ends
 - Skin picker: a stood-down addon shows nothing and drops a held start
 - Skin picker: a profile event takes it down first and shows it for a profile that has not seen it
 - Skin picker: the player's close marks it seen; this addon's own take-down does not
 - Skin picker: the stand-down takes a shown picker down, unseen
+- Skin picker preview: a locked bar unlocks when the picker shows, through the lock seam
+- Skin picker preview: the eye toggles the lock and the close control puts it back
+- Skin picker preview: Apply, Escape, the gear and the take-down each restore the lock
+- Skin picker preview: an unlocked bar is left alone, and the eye's lock is undone on close
+- Skin picker preview: a profile switch while the picker is up leaves the new profile's lock alone
+- Skin picker preview: a profile switch in combat stays refused when combat ends
 - Skin picker: degraded, every member answers and nothing shows
 
 ### test_skin_verb.lua (6)
@@ -1555,6 +1615,46 @@ Total.
 - lizard sighted: parity names every file whose counts differ, and only those
 - lizard sighted: lizard lists every function of a hazard fixture once it is sanitized
 
+### test_skin_values.lua (3)
+
+- skin values: every host row carries its file, substring, why and cause id
+- skin values: no typed value outside the kit's categories and the host's rows
+- skin values: the check is falsifiable, a planted value of each shape is reported
+
+### test_skin_switch.lua (31)
+
+- skin switch: the check is falsifiable, a surface that redraws a literal is reported
+- skin switch: the bar's fill changes
+- skin switch: the bar's edge color changes
+- skin switch: the bar's edge style changes
+- skin switch: the unlocked wash changes
+- skin switch: the unlocked wash changes with the Scope ignored
+- skin switch: a button's backdrop changes
+- skin switch: a button's edge color changes
+- skin switch: a button's edge style changes
+- skin switch: a button's label color changes
+- skin switch: a button's label face changes
+- skin switch: a button's label shadow changes
+- skin switch: the stack count's color changes
+- skin switch: the stack count's color changes with the Scope ignored
+- skin switch: the stack count's face changes
+- skin switch: the stack count's shadow changes
+- skin switch: the flyout's fill changes
+- skin switch: the flyout's edge color changes
+- skin switch: the flyout's edge style changes
+- skin switch: the flyout indicator's shade changes
+- skin switch: the flyout indicator's arrow changes
+- skin switch: the flyout indicator's arrow changes with the Scope ignored
+- skin switch: the icon button's mark changes
+- skin switch: the icon button's label changes
+- skin switch: the score button's mark changes
+- skin switch: an item row's owned mark changes
+- skin switch: an item row's pick mark changes
+- skin switch: an item row's name changes
+- skin switch: an item row's hand tag changes
+- skin switch: the drag icon's label changes
+- skin switch: a reorder row's glyph changes
+
 ## Totals
 
 | Suite | Cases |
@@ -1568,9 +1668,9 @@ Total.
 | test_compat.lua | 26 |
 | test_constants.lua | 12 |
 | test_coresetup.lua | 12 |
-| test_database.lua | 26 |
+| test_database.lua | 27 |
 | test_debug.lua | 14 |
-| test_debuglog.lua | 21 |
+| test_debuglog.lua | 22 |
 | test_debugcoverage.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
@@ -1584,6 +1684,7 @@ Total.
 | test_libka0s.lua | 8 |
 | test_librarylines.lua | 10 |
 | test_launcher.lua | 28 |
+| test_launcher_skin_entry.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
@@ -1609,10 +1710,12 @@ Total.
 | test_selector_discovery.lua | 14 |
 | test_selector_pins.lua | 14 |
 | test_skin.lua | 10 |
-| test_skin_surfaces.lua | 13 |
+| test_skin_surfaces.lua | 23 |
+| test_icon_rule.lua | 5 |
 | test_skin_hud.lua | 20 |
+| test_skin_flip.lua | 26 |
 | test_skin_outline.lua | 10 |
-| test_skin_picker.lua | 10 |
+| test_skin_picker.lua | 17 |
 | test_skin_verb.lua | 6 |
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
@@ -1635,5 +1738,7 @@ Total.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
+| test_skin_values.lua | 3 |
+| test_skin_switch.lua | 31 |
 | Skipped | 1 |
-| **Total** | **1318** |
+| **Total** | **1403** |

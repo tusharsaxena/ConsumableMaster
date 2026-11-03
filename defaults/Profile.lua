@@ -131,6 +131,10 @@ KCM.dbDefaults = {
             -- since LibKa0s v1.83.0 (D-10): a profile that never chose takes it, a stored mode stays.
             outline     = "hud",
             pickerSeen  = false,
+            -- This profile has been through the one step onto the skin (core/Database.lua's
+            -- D.FollowSkinV6, Skin.FollowOnce). False until it has. No schema row, so nothing
+            -- draws it and no Defaults path can walk it back to false.
+            fullSkinReset = false,
         },
         macroState = {},
         -- The CM-only macro bar (modules/MacroBar.lua). On and UNLOCKED out of
@@ -184,7 +188,12 @@ KCM.dbDefaults = {
             barBackdropColor    = { 0, 0, 0, 0.5 },
             useClassColorBarBackdrop = false,
             barBorder           = true,
-            barBorderStyle      = "Blizzard Tooltip",
+            -- "None" since LibKa0s v1.85.0: a skin's None defers to this, so Ka0s Default
+            -- would draw a real default here. No migration: AceDB never stores a value
+            -- that equals its default, so a profile that kept "Blizzard Tooltip" holds no
+            -- key to move, a stored pick is the player's and draws, and every existing
+            -- profile reaches this build through the v6 step with the companion on.
+            barBorderStyle      = "None",
             barBorderSize       = 4,
             barBorderColor      = { 0.25, 0.25, 0.25, 1 },
             useClassColorBarBorder = false,
@@ -193,11 +202,25 @@ KCM.dbDefaults = {
             -- picker shows the skin's value. TRUE by default (the rollout's
             -- X3), so a new or reset profile follows the skin exactly as an
             -- existing one does after core/Database.lua's one-time v4 reset
-            -- (O2). Only border styles and the label face follow (X4); every
-            -- color, size, flag and offset here stays the player's. The
-            -- buttons follow the skin's ICON border family, which governs the
-            -- thickness too (`buttonBorderSize` is not read while it is on).
+            -- (O2). The bar's and the buttons' border families both govern
+            -- their thickness, with one difference: the bar's stored style,
+            -- Show border and thickness draw under a skin whose style is None
+            -- (S.BarBorder); only a real style in a skin replaces them.
+            --
+            -- Every color and the label's shadow follow too (FS-CM-FLIP, the
+            -- owner's ruling of 2026-11-01, causes D2, D4 and D6), each with a
+            -- companion of its own, TRUE by default. The swatches stay stored,
+            -- for a player who turns one off, and a class color comes first and
+            -- has no companion. Sizes and the offset stay the player's.
             barBorderStyleFromSkin = true,
+            barBackdropColorFromSkin    = true,
+            barBorderColorFromSkin      = true,
+            buttonBackdropColorFromSkin = true,
+            buttonBorderColorFromSkin   = true,
+            labelColorFromSkin          = true,
+            labelShadowFromSkin         = true,
+            flyoutBackdropColorFromSkin = true,
+            flyoutShadeColorFromSkin    = true,
             buttonBackdrop      = true,
             buttonBackdropColor = { 0, 0, 0, 0.6 },
             useClassColorButtonBackdrop = false,
@@ -236,7 +259,9 @@ KCM.dbDefaults = {
             -- ruling D-07): drawn through S.FontFlags, so it follows the Skin tab's Font
             -- outline; a profile that stored the old default "OUTLINE" moves to it once
             -- (core/Database.lua's v5 step).
-            labelFont      = "Friz Quadrata TT",
+            -- The Ka0s pick (LibKa0s v1.85.0, FS-D1): a player who turns the
+            -- companion off lands on Ka0s Default's face, not on a client one.
+            labelFont      = "Ka0s Prototype",
             labelFlags     = "@skin",
             labelShadow    = false,
             labelColor     = { 1, 0.82, 0, 1 },

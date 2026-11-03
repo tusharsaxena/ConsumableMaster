@@ -497,6 +497,7 @@ local SUITES = {
     -- descriptor is handed, once and never beside a host copy (DG-CM-01).
     "test_librarylines",
     "test_launcher",
+    "test_launcher_skin_entry",
     "test_lintconfig",
     "test_load",
     "test_locale",
@@ -525,7 +526,10 @@ local SUITES = {
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",
     "test_skin_surfaces",
+    -- The icon rule on the settings pages (R5-ICON).
+    "test_icon_rule",
     "test_skin_hud",
+    "test_skin_flip",
     "test_skin_outline",
     "test_skin_picker",
     "test_skin_verb",
@@ -563,11 +567,18 @@ local SUITES = {
     --                      revision 27), wired below through Kit.diagnostics
     --   test_lizard_sighted -- the sighted complexity shadow and its parity reader
     --                      (kit revision 35, automated-tests-§3)
+    --   test_skin_values -- the typed-value gate: every color and texture a host types
+    --                      goes through a token or an allow row naming a cause (kit
+    --                      revision 50, skinning-§1), wired below through Kit.skinValues
+    --   test_skin_switch -- each declared painted surface changes on a skin switch (kit
+    --                      revision 50), wired below through Kit.skinSwitch
     { name = "test_eol",                  dir = "tests/_kit/" },
     { name = "test_prose",                dir = "tests/_kit/" },
     { name = "test_layout_cap",           dir = "tests/_kit/" },
     { name = "test_diagnostics_contract", dir = "tests/_kit/" },
     { name = "test_lizard_sighted",       dir = "tests/_kit/" },
+    { name = "test_skin_values",          dir = "tests/_kit/" },
+    { name = "test_skin_switch",          dir = "tests/_kit/" },
 }
 
 -- The kit's diagnostics contract (debug-logging-§14), wired to THIS addon's dispatcher: the five
@@ -581,6 +592,11 @@ local SUITES = {
 -- suite registers through Kit.test directly, not through KCM_TEST.test above, so nothing handed
 -- the real print back and the rest of the run, summary included, went into the capture. The
 -- wrapper below is KCM_TEST.test's restore for the kit's own suites.
+-- The typed-value gate (kit revision 50): no row, because every value this addon types sits in a
+-- kit category. The switch test's painted surfaces are their own file, the one list an audit reads.
+Kit.skinValues = {}
+Kit.skinSwitch = dofile(ROOT .. "/tests/skin_switch_facts.lua")(L, ADDON_NAME, realprint)
+
 local diagKCM
 local kitTest = Kit.test
 Kit.test = function(name, fn, skipReason)

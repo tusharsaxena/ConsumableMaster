@@ -61,6 +61,14 @@ local function swatchTip(text)
     return note and (text .. " " .. note) or text
 end
 
+-- A "Use the skin's ..." companion (FS-CM-FLIP; LibKa0s Options doc, Moving to this version): a
+-- host row in the block's `extra`, because no composer draws one for a swatch or a shadow. Its
+-- swatch stays live and keeps its value (options-ui-§17), so nothing here sets `disabledIf`.
+local function skinRow(key, label, tooltip)
+    return { path = "macroBar." .. key, type = "bool", label = label, tooltip = tooltip,
+             default = BAR_DEFAULTS[key] }
+end
+
 -- ---------------------------------------------------------------------------
 -- Schema rows
 -- ---------------------------------------------------------------------------
@@ -272,6 +280,8 @@ block(H.ColorPair{
     -- macros, and modules/MacroBar.lua's applyBackdrop resolves it with a nil unit
     -- through KCM.SwatchColor.
     classColor = { source = "player" },
+    extra = { skinRow("barBackdropColorFromSkin", L["Use the skin's color"],
+        L["Fill the bar's backdrop with the skin's color. Bar background color is not read while this is on."]) },
 }, {
     ["macroBar.barBackdropColor"] = {
         tooltip = swatchTip(L["Color and opacity of the bar's backdrop."]),
@@ -295,10 +305,13 @@ block(H.BorderGroup{
         useClassColorBorder = BAR_DEFAULTS.useClassColorBarBorder,
         borderStyleFromSkin = BAR_DEFAULTS.barBorderStyleFromSkin,
     },
-    -- `macroBar.barBorderStyleFromSkin` (CM-03): the bar's and the flyout's edge
-    -- follow the skin's `bar.borderStyle`, the thickness stays the player's.
-    fromSkin = true,
+    -- `macroBar.barBorderStyleFromSkin` (CM-03): a real `bar.borderStyle` in a skin
+    -- takes the bar's and the flyout's edge, thickness included (FS-CM-FLIP), and the
+    -- composer grays the rows. A skin's None defers, so they stay live and drawn.
+    fromSkin = "bar",
     classColor = { source = "player" },
+    extra = { skinRow("barBorderColorFromSkin", L["Use the skin's color"],
+        L["Draw the bar's and the flyout's border in the skin's color. Border color is not read while this is on."]) },
 }, {
     ["macroBar.barBorderStyle"] = {
         tooltip = L["LibSharedMedia border texture used for the bar's edge. Any border another addon registers shows up here too."],
@@ -330,6 +343,8 @@ block(H.ColorPair{
         useClassColorButtonBackdrop = BAR_DEFAULTS.useClassColorButtonBackdrop,
     },
     classColor = { source = "player" },
+    extra = { skinRow("buttonBackdropColorFromSkin", L["Use the skin's color"],
+        L["Fill each button with the skin's color. Button background color is not read while this is on."]) },
 }, {
     ["macroBar.buttonBackdropColor"] = {
         tooltip = swatchTip(L["Color and opacity of each button's fill."]),
@@ -369,6 +384,8 @@ block(H.BorderGroup{
             tooltip = L["Pushes the border outward, away from the icon. Raise this if a thick border is bleeding over the artwork; 0 draws it centered on the button's edge."],
             default = BAR_DEFAULTS.buttonBorderOffset,
         },
+        skinRow("buttonBorderColorFromSkin", L["Use the skin's color"],
+            L["Draw each button's border in the skin's color. Border color is not read while this is on."]),
     },
 }, {
     ["macroBar.buttonBorderStyle"] = {
@@ -472,22 +489,27 @@ block(H.FontGroup{
     -- Keyed by the composer's LEAF name, not by this addon's stored key: `keys`
     -- renames the path, `defaults` fills the row the leaf names.
     defaults = {
-        font              = BAR_DEFAULTS.labelFont,
         fontSize          = BAR_DEFAULTS.labelScale,
         fontColor         = BAR_DEFAULTS.labelColor,
         useClassColorFont = BAR_DEFAULTS.useClassColorLabel,
-        fontFlags         = BAR_DEFAULTS.labelFlags,
         fontShadow        = BAR_DEFAULTS.labelShadow,
         fontFromSkin      = BAR_DEFAULTS.labelFontFromSkin,
     },
     -- `macroBar.labelFontFromSkin` (CM-03): the labels' face follows the skin's
-    -- `hud.font`; the size, shadow and color stay the player's. `flagsFromSkin`
-    -- (LibKa0s v1.82.0, compose minor 14, ruling D-07) leads the flags with From
-    -- skin, the default, which follows the Skin tab's Font outline; a picked flag
-    -- wins. Together they are D-07's minimum font setting.
+    -- `hud.font`; the size stays the player's. `flagsFromSkin` (LibKa0s v1.82.0,
+    -- compose minor 14, ruling D-07) leads the flags with From skin, the default,
+    -- which follows the Skin tab's Font outline; a picked flag wins. Together they
+    -- are D-07's minimum font setting. The color and the shadow take their own
+    -- companions (FS-CM-FLIP); the face and the flags' defaults are the composer's.
     fromSkin = true,
     flagsFromSkin = true,
     classColor = { source = "player" },
+    extra = {
+        skinRow("labelColorFromSkin", L["Use the skin's color"],
+            L["Draw the button labels in the skin's color. Label color is not read while this is on."]),
+        skinRow("labelShadowFromSkin", L["Use the skin's shadow"],
+            L["Draw the skin's shadow behind the labels. Font shadow is not read while this is on."]),
+    },
 }, {
     ["macroBar.labelFont"] = {
         tooltip = L["LibSharedMedia font face the button labels are drawn in. Any face another addon registers shows up here too."],
@@ -588,6 +610,8 @@ block(H.ColorPair{
         useClassColorFlyoutBackdrop = BAR_DEFAULTS.useClassColorFlyoutBackdrop,
     },
     classColor = { source = "player" },
+    extra = { skinRow("flyoutBackdropColorFromSkin", L["Use the skin's color"],
+        L["Fill the flyout's panel with the skin's color. Flyout background color is not read while this is on."]) },
 }, {
     ["macroBar.flyoutBackdropColor"] = {
         tooltip = swatchTip(L["Color and opacity of the flyout's panel. Its border is the Bar appearance tab's border."]),
@@ -615,6 +639,8 @@ block(H.ColorPair{
         useClassColorFlyoutShade = BAR_DEFAULTS.useClassColorFlyoutShade,
     },
     classColor = { source = "player" },
+    extra = { skinRow("flyoutShadeColorFromSkin", L["Use the skin's color"],
+        L["Draw the shaded band in the skin's color. Shaded band color is not read while this is on."]) },
 }, {
     ["macroBar.flyoutShadeColor"] = {
         tooltip = swatchTip(L["Color and opacity of the strip drawn across the icon. Lower the opacity to let more of the artwork through."]),

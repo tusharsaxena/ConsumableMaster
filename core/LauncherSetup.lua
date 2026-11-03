@@ -163,6 +163,7 @@ KCM.Launcher = lib:New({
     --
     -- The DISABLED hold, not the latch as a whole: a perf capture's suspended
     -- arm is a diagnostic the player started, not a switch they threw.
+    openSkinPicker = function() if KCM.RunSkinVerb then KCM.RunSkinVerb() end end,
     isEnabled = function()
         return not (KCM.IsAddonDisabled and KCM.IsAddonDisabled())
     end,

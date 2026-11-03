@@ -340,6 +340,9 @@ else
     -- The Position-block composer (LibKa0s v1.84.0, OptionsCompose minor 15). No page here calls it
     -- yet, but the stub owes every public member, and it answers the live shape: rows, then a hook.
     Helpers.PositionBlock  = function() return {}, function() end end
+    -- A label's font (LibKa0s v1.85.0, OptionsWidgets minor 43), owed by every Options stub. No
+    -- library, no widget to set it on.
+    Helpers.LabelFont      = function() end
 
     -- The Skin tab (LibKa0s v1.78.0, OptionsAppearance minor 1; skinning-§3) and the first-run
     -- skin picker (LibKa0s v1.79.0, OptionsSkinPicker minor 1). Every Options stub owes all four,
@@ -359,6 +362,7 @@ else
     -- no picker to show, so the stub answers nil, "absent" and the verb prints the library-absent
     -- line (core/SkinSetup.lua's KCM.RunSkinVerb).
     Helpers.SkinVerb       = function() return nil, "absent" end
+    Helpers.SkinNotice = function() return nil, "unavailable" end
 end
 
 -- nil on a degraded load, which is exactly what settings/Panel.lua derives its

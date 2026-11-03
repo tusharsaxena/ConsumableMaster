@@ -621,7 +621,7 @@ function M.install(NS)
                 MediaType = { FONT = "font", BORDER = "border" },
                 media     = {
                     border = { "None", "Blizzard Dialog", "Blizzard Tooltip" },
-                    font   = { "Friz Quadrata TT", "JetBrains Mono" },
+                    font   = { "Friz Quadrata TT", "JetBrains Mono", "Ka0s Prototype" },
                 },
                 List = function(self, mediaType) return self.media[mediaType] end,
                 -- The real LibSharedMedia-3.0 serves BOTH: List is the ordered

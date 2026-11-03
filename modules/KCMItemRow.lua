@@ -17,7 +17,7 @@
 local _, NS = ...
 local KCM = NS
 
-local Type, Version = "KCMItemRow", 4
+local Type, Version = "KCMItemRow", 5
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -160,8 +160,13 @@ end
 -- Owned swatch plus the "picked in macro" star. The star shows for any pick flavor, so a
 -- per-hand row that is picked for either hand still gets it.
 local function refreshPickIndicators(self)
-    self.ownedTex:SetTexture(self.owned and OWNED_TEX or NOT_OWNED_TEX)
+    if self.owned then
+        KCM.SkinPanelMark(self.ownedTex, OWNED_TEX, "confirm", "sem.good")
+    else
+        KCM.SkinPanelMark(self.ownedTex, NOT_OWNED_TEX, "close", "sem.bad")
+    end
     if self.isPick or self.pickMH or self.pickOH then
+        KCM.SkinPanelMark(self.pickTex, PICK_TEX, "star", "text.accent")
         self.pickTex:Show()
     else
         self.pickTex:Hide()
@@ -200,6 +205,8 @@ local function refreshIcon(self, spellID)
     else
         self.itemTex:SetTexture(iconForItem(self.itemID))
     end
+    -- The icon rule (R5-ICON): cropped 0.07, and edged in the window outline while the panel is skinned.
+    KCM.SkinPanelIcon(self.itemTex, self.itemEdge)
 end
 
 -- Crafting-quality glyph, and the label anchor that depends on whether it is showing. Only
@@ -264,6 +271,7 @@ local methods = {
         self.pickOH = false
         self.applicable = true
         self.fallbackName = nil
+        KCM.SkinUntrackOnRelease(self, self.label, self.handTag, self.itemEdge)
         self.frame.height = ROW_HEIGHT
         self:SetHeight(ROW_HEIGHT)
         self:SetWidth(300)
@@ -329,6 +337,12 @@ local function Constructor()
     itemTex:SetSize(ICON_SIZE, ICON_SIZE)
     itemTex:SetPoint("LEFT", ownedTex, "RIGHT", ICON_GAP, 0)
 
+    -- The item icon's edge (R5-ICON): a plain frame of the row's own over the art, so the edge is
+    -- never a record on the art (KCM.SkinPanelIcon). It takes no mouse, so the row's tooltip stands.
+    local itemEdge = CreateFrame("Frame", nil, frame)
+    itemEdge:SetAllPoints(itemTex)
+    itemEdge:Hide()
+
     -- Crafting-quality tier glyph. Pinned to the item icon; the label anchors
     -- past this texture only when it's visible (see RefreshDisplay).
     local qualityTex = frame:CreateTexture(nil, "ARTWORK")
@@ -367,6 +381,7 @@ local function Constructor()
         frame      = frame,
         ownedTex   = ownedTex,
         itemTex    = itemTex,
+        itemEdge   = itemEdge,
         qualityTex = qualityTex,
         pickTex    = pickTex,
         handTag    = handTag,

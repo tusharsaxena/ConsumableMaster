@@ -236,6 +236,25 @@ test("DebugLog: scrollbar + counter sync run headlessly without error", function
     KCM.State.debug = false
 end)
 
+-- R4-SEP (Ka0sAddonsCommonTasks docs/2026-11-03-SMOKE_ROUND4, R4_SIGNOFF.md): no window
+-- draws a line under its title, the Skin Tester showroom the reference. Both windows
+-- are the library's and this addon adds no line of its own, so a divider that exists
+-- must at least be hidden. Red on the R4-RV payload, which still built one.
+test("DebugLog: neither console window draws a line under its title (R4-SEP)", function(t)
+    local KCM, DL = load()
+    DL.Show()
+    DL.ShowCopy()
+    local I = DL.instance
+    for _, w in ipairs({ { "the console", I._frameForTest }, { "the copy window", I._copyFrameForTest } }) do
+        local name, f = w[1], w[2]
+        t.truthy(f, name .. " is built")
+        local divider = f and f.divider
+        t.truthy(divider == nil or not divider:IsShown(), name .. " shows no divider under its title")
+    end
+
+    KCM.State.debug = false
+end)
+
 -- ---------------------------------------------------------------------------
 -- The swap itself (LibKa0s-DebugLog-1.0)
 -- ---------------------------------------------------------------------------
