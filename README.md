@@ -1,4 +1,4 @@
-# Ka0s Consumable Master
+# Consumable Master
 
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
@@ -6,7 +6,7 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-1403%2F1403_passing-green)
 
-Ka0s Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
+Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
 Loot something better, change spec, reload or drop out of combat, and each macro re-points at your current best pick. Usually that's an item. Where a class ability does the job (Recuperate, for one), it's the spell. The macros are account-wide, so one set covers every character you have. The addon finds them by name rather than by slot, so you can shuffle them around your macro list and they'll keep working next to macros of your own.
 
