@@ -1,0 +1,1 @@
+R6 independent review (2026-11-04): R6-RV PASS. libs/LibKa0s and tests/_kit byte-identical to LibKa0s tag v1.85.0 (79d043d) apart from the declared icon prune; every shipped icon matches the tag. Provenance line v1.85.0 unchanged (correct). SKIN-45 added, Result blank. Gate fresh: 1402 passed / 0 failed / 1 skipped at b2a0c53 head; luacheck 0/0.
