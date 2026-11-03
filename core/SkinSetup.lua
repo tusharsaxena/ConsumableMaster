@@ -308,6 +308,28 @@ function KCM.SkinPanelHoverArt(tex)
     tex:SetDesaturated(KCM.SkinPanelOn() and type(KCM.Skin.Token("list.hoverArt")) == "table")
 end
 
+-- The icon rule (LibKa0s docs/api/README.md, "Icon art: the rule"; R5-ICON of Ka0sAddonsCommonTasks
+-- docs/2026-11-03-SMOKE_ROUND5, the lead's call 9): a settings page is a window, so its Blizzard icon
+-- art is cropped 0.07 a side and edged 1 px in `icon.outline`, the window outline, never the HUD's
+-- `icon.border`. `zoom = false`: the crop is the host's, set with the art, so the edge never replays
+-- one over it.
+local ICON_CROP = 0.07
+local ICON_EDGE = { fromSkin = true, zoom = false }
+
+--- A settings icon framed by the rule. `tex` is the art, cropped on every call, skinned or not (a
+--- client SetTexture keeps the coords, so a call after each SetTexture holds them). `edge` is a plain
+--- frame the widget owns, laid over the art, and the edge's target: never the art itself, so a pooled
+--- widget hands the record back at release (KCM.SkinUntrackOnRelease). While the Scope ignores the
+--- settings panel, or degraded, the edge is hidden, as the stock page draws none; the pages re-render
+--- on a Scope change, so this runs again then.
+function KCM.SkinPanelIcon(tex, edge)
+    if tex and tex.SetTexCoord then tex:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP) end
+    if not edge then return end
+    local on = KCM.SkinPanelOn()
+    edge:SetShown(on)
+    if on then KCM.Skin.IconBorder(edge, ICON_EDGE) end
+end
+
 KCM.SKIN_SOURCE_OPTIONS = {
     { value = "ka0s", text = "Ka0s skins" },
     { value = "eui",  text = "EllesmereUI" },

@@ -216,7 +216,7 @@ Total.
 - Debug: the sink publishes no Toggle of its own
 - Debug: no call site formats through a numeric placeholder
 
-### test_debuglog.lua (21)
+### test_debuglog.lua (22)
 
 - DebugLog: FormatPlain renders the plain line shape with no color codes
 - DebugLog: FormatColored colors timestamp/tag and handles nil tag/msg
@@ -229,6 +229,7 @@ Total.
 - DebugLog: [Init] names rejected events only when there are any
 - DebugLog: Show/Hide toggle the window without touching the enabled flag
 - DebugLog: scrollbar + counter sync run headlessly without error
+- DebugLog: neither console window draws a line under its title (R4-SEP)
 - DebugLog: the console IS the library's instance, not a host lookalike
 - DebugLog: the descriptor reproduces the addon's window identity
 - DebugLog: the console's own strings resolve to prose, not to their own keys
@@ -1084,6 +1085,14 @@ Total.
 - Skin surfaces: the icon and score buttons stay stock while the panel is ignored
 - Skin surfaces: the settings surfaces read the skin only through the panel helpers
 
+### test_icon_rule.lua (5)
+
+- Icon rule: a settings page's item and macro icons are cropped by 0.07, skinned or not
+- Icon rule: with the panel skinned the icon wears the window outline, on a frame of its own
+- Icon rule: with the panel ignored the edge is hidden and the crop stays
+- Icon rule: a pooled widget's edge leaves the skin's record at release
+- Icon rule: the Stat Priority spec label's icon markup is cropped to 5..59 of 64
+
 ### test_skin_hud.lua (20)
 
 - Skin HUD: the buttons' border follows the skin's icon family while its companion is on
@@ -1655,7 +1664,7 @@ Total.
 | test_coresetup.lua | 12 |
 | test_database.lua | 27 |
 | test_debug.lua | 14 |
-| test_debuglog.lua | 21 |
+| test_debuglog.lua | 22 |
 | test_debugcoverage.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
@@ -1696,6 +1705,7 @@ Total.
 | test_selector_pins.lua | 14 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 23 |
+| test_icon_rule.lua | 5 |
 | test_skin_hud.lua | 20 |
 | test_skin_flip.lua | 26 |
 | test_skin_outline.lua | 10 |
@@ -1725,4 +1735,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
 | Skipped | 1 |
-| **Total** | **1391** |
+| **Total** | **1397** |

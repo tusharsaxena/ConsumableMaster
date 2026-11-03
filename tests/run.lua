@@ -526,6 +526,8 @@ local SUITES = {
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",
     "test_skin_surfaces",
+    -- The icon rule on the settings pages (R5-ICON).
+    "test_icon_rule",
     "test_skin_hud",
     "test_skin_flip",
     "test_skin_outline",

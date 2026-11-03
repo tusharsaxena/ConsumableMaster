@@ -445,6 +445,15 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   these rows therefore look exactly as before skins, faces included. Toggling the box repaints them
   live: `Skin:SetIgnore` replays the recorded strings and fires `OnLooksChanged`, and the Options
   instance re-renders the open pages.
+- **The icon rule on the settings pages** (R5-ICON, LibKa0s `docs/api/README.md` *Icon art: the rule*).
+  A settings page is a window, so a Blizzard icon on it is cropped 0.07 a side and edged 1 px in
+  `icon.outline`, never the HUD's `icon.border`. `KCM.SkinPanelIcon(tex, edge)` does both for the item
+  row's item or spell icon and the Macros page's drag icon. The crop is always applied. The edge is
+  `S.IconBorder` on a plain frame the widget owns over the art, never on the art itself, and it is
+  untracked at release and hidden while *Ignore settings panel* is on. The Stat Priority spec label's
+  inline icon is markup, so it is cropped to 5..59 of 64 and has no edge. The icon and score buttons
+  draw an atlas and a catalog mark, which the rule exempts. The macro bar and its flyout are HUD: the
+  player's icon zoom crops them (8% by default) and the bar's own border edges them.
 - **GameTooltip lines** this addon writes take skin colors (X8): the macro fallback tooltip's
   `gtip.title` / `gtip.value`, the Stat Priority and Buttons rows' `gtip.value`, and the score
   tooltip's `gtip.value`, `cm.tipNote` and `cm.tipSummary`, rendered to escapes at format time. The
