@@ -68,7 +68,7 @@ Getting the picks right for your character takes four steps, in this order.
 
 After that the macros look after themselves. If a pick ever looks stale, `/cm resync` checks them all again. The minimap button opens the settings with a left-click, and a right-click gives you two switches, Enabled and Locked.
 
-The first time you log in on a profile, a small window asks you to choose a skin. Pick one from the list to try it on, press **Apply** to keep it, or close the window to stay on Ka0s Default. You can change it any time on General → **Skin**, or bring the window back with `/cm skin`. The Skin tab can also copy your pick to your other Ka0s addons. The macro bar's edges and label font follow the skin until you untick **Use the skin's border** or **Use the skin's font** on the Macro Bar page.
+The first time you log in on a profile, a small window asks you to choose a skin, and `/cm skin` opens that skin picker again whenever you want it. Click a skin in the list and the macro bar and the settings panel try it on straight away. Press **Apply** to keep it, or close the window to keep the skin you had (Ka0s Default, the first time). The bar is what the skin dresses, so the picker unlocks it while it's open, and the eye button turns that unlock off and on again. Closing the picker puts the lock back the way it was. You can also change the skin on General → **Skin**. That tab can also copy your pick to your other Ka0s addons. The macro bar's edges and label font follow the skin until you untick **Use the skin's border** or **Use the skin's font** on the Macro Bar page.
 
 Everything else is on the addon's page under Settings → AddOns, and `/cm` opens it. `/cm help` (or `/consumablemaster help`) lists every command.
 
