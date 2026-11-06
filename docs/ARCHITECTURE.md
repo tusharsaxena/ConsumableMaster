@@ -557,7 +557,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | Doc | Status | Trigger |
 |---|---|---|
 | `slash-dispatch.md` | Present | Twenty-four verbs, over the eight-or-more threshold, and four of them carry a subcommand tree (`priority`, `stat`, `aio`, `bar`, plus the `dump` targets) |
-| `midnight-quirks.md` | Present | Client-version workarounds of the addon’s own |
+| `midnight-quirks.md` | Present | Always (documentation-§3): the vendored catalog block (client-quirks-§1), then the addon’s own client-version workarounds |
 | `debug.md` | Present | The diagnostics report (`core/Diagnostics.lua`, debug-logging-§14) and the `/cm dump` targets in `core/SlashDump.lua` are the addon’s own beyond the library console |
 | `message-bus.md` | Not applicable | Five messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message Bus` |
 | `compat-layer.md` | Present | `core/Compat.lua` publishes three addon-specific shims (`grep -cE '^\s*function\s+[A-Za-z_][A-Za-z0-9_]*\.' core/Compat.lua` answers 3), at the three-or-more threshold since `GetItemInfo` joined the two class-ID spec readers. The other four are `LibKa0s-Compat-1.0`'s, which the library documents ([module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption)) |
