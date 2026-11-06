@@ -33,7 +33,7 @@ Three things are deliberately **not** in a profile, and none of them moves when 
   make a pre-runner account read as migrated (`savedvariables-§1`). `RunMigrations` walks it to the
   current version.
 - `ConsumableMasterPerfDB`, the perf capture ring. It is a SavedVariable of its own, outside AceDB
-  entirely (`ConsumableMaster.toc:11`).
+  entirely (the TOC's `## SavedVariables` line).
 - The debug console's visibility and the session logging flag. Both are session state.
 
 **The macros themselves are account-wide.** WoW has one `KCM_FOOD` per account, not one per profile.

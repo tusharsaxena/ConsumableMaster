@@ -19,14 +19,14 @@ Three files, and the split is deliberate:
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
-`COMMANDS` is built. That is why `settings/Slash.lua:39` resolves it once at load rather than per
+`COMMANDS` is built. That is why `settings/Slash.lua` resolves it once at load (`local V = KCM.SlashCommands.Verbs`) rather than per
 call: a missing key there would be a load-order bug worth failing loudly on, not a condition to
 tiptoe around.
 
 ## The `COMMANDS` table
 
-`COMMANDS` (`settings/Slash.lua:165`) is an ordered list of positional triples
-`{name, description, fn(rest)}`, published as `KCM.COMMANDS` at `:403` so the verb set has one source
+`COMMANDS` (`settings/Slash.lua`) is an ordered list of positional triples
+`{name, description, fn(rest)}`, published as `KCM.COMMANDS` so the verb set has one source
 of truth (`slash-commands-§4`). Nothing reads that table directly to render anything — the About page
 asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instance built from the
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
@@ -100,11 +100,11 @@ rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table an
 
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
-| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua:449`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (`:598`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
-| `aio` | `AIO_COMMANDS` (`:801`) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
-| `bar` | `BAR_COMMANDS` (`:922`) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
-| `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua:24`, `:405`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
+| `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
+| `stat` | `STAT_COMMANDS` (same file) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `aio` | `AIO_COMMANDS` (same file) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
+| `bar` | `BAR_COMMANDS` (same file) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
+| `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
 category before dispatching, so their handlers take `(cat, rest)` — the resolve happens once, in the
@@ -174,7 +174,7 @@ Ka0s Consumable Master v1.8.0 — slash commands (alias: /consumablemaster)
 ```
 
 The header, the alias clause, the two usage lines and the three parse refusals this addon overrides are `SLASH_STRINGS`
-(`settings/Slash.lua:431`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
+(`settings/Slash.lua`) — a **plain** table, deliberately not `KCM.L`. `Sl:Text` resolves an
 override with `rawget` precisely so a key-echoing locale table falls through to the library's own
 wording, which also means `KCM.L` could never supply these. Two of the overrides are there for a
 reason worth keeping in view:
@@ -286,7 +286,7 @@ verbs, the bare `/cm`, `profile`, and the shape of the refusal line itself.
 LibKa0s is vendored, so a missing `LibKa0s-Slash-1.0` is a tampered install rather than a supported
 state. It still has to behave.
 
-`LIB_BACKED_VERBS` (`settings/Slash.lua:160`) names the nine verbs that actually route through the
+`LIB_BACKED_VERBS` (`settings/Slash.lua`) names the nine verbs that actually route through the
 library — `help`, `list`, `get`, `set`, `reset`, `perf`, `diagnostics`, `profile` and `skin`. Everything else is the host's own and
 keeps working. The degraded notice is **computed from `COMMANDS`** rather than hand-written, so a new
 verb cannot silently fall out of the "these still work" list. The line the addon used to print said
@@ -296,7 +296,7 @@ typing commands that worked.
 The notice is not latched. A degraded install that explains itself once and then goes silent is worse
 than one that answers every time — this line only ever fires because the user typed.
 
-`degradedDispatch` (`settings/Slash.lua:780`) is deliberately **not** a second dispatcher: no help
+`degradedDispatch` (`settings/Slash.lua`) is deliberately **not** a second dispatcher: no help
 renderer, no sub-command tables, no landing rows. It trims, splits, lowercases the verb, applies the
 one alias and looks the verb up in `COMMANDS`, through the same split and exact lookup the degraded
 arm publishes for the sub levels (`stubSplitVerb`, `stubFindCommand`) — the same five steps the library's own `OnSlash`

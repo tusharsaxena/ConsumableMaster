@@ -86,7 +86,7 @@ down.
 ## Storage
 
 Captures ride `ConsumableMasterPerfDB`, its **own** SavedVariable, declared alongside
-`ConsumableMasterDB` at `ConsumableMaster.toc:11` and named in `.luacheckrc`. It is deliberately not
+`ConsumableMasterDB` on the TOC's `## SavedVariables` line and named in `.luacheckrc`. It is deliberately not
 the AceDB tree: `LibKa0s-Perf` writes `_G[sv]` directly, so folding it into `ConsumableMasterDB`
 would stamp `schema` and `runs` onto AceDB's root and trip AceDB's own discard branch on the next
 load.

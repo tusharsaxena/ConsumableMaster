@@ -22,7 +22,7 @@ the library carries no item resolver (LibKa0s's Compat document, *What is not he
 
 ## What still reads a client global directly
 
-`GetItemCount`, at `modules/KCMItemRow.lua:230` and as the fallback rung at `core/MacroDisplay.lua:76`.
+`GetItemCount`, in `modules/KCMItemRow.lua` (`refreshLabelText`) and as the fallback rung in `core/MacroDisplay.lua` (`MD.CountForID`).
 That is a ratified deviation, and the `compat` row in
 [ARCHITECTURE.md → Documented deviations](./ARCHITECTURE.md#documented-deviations) is its one home.
 
