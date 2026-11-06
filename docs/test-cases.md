@@ -1116,7 +1116,7 @@ Total.
 - Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
 - Skin fonts: without the library the label draws its stored size and an outline
 
-### test_skin_flip.lua (26)
+### test_skin_flip.lua (27)
 
 - Skin flip: every color and shadow companion is a bool row defaulting on, in both places
 - Skin flip: the pick's default moved, and the bar family holds the thickness
@@ -1124,6 +1124,7 @@ Total.
 - Skin flip: the record is in the AceDB defaults, with no schema row a Defaults could walk
 - Skin flip: Ka0s Default keeps this addon's pixels
 - Skin flip: a skin switch changes what each flipped surface draws
+- Skin flip: the button edge is the skin's icon.border under Ka0s Default and Obsidian (SF1-CM)
 - Skin flip: under another skin each surface draws the token its owner token follows
 - Skin flip: the bar's fill and edge draw the skin's tokens, and a skin switch repaints them
 - Skin flip: a companion off draws the stored color, under any skin
@@ -1713,7 +1714,7 @@ Total.
 | test_skin_surfaces.lua | 23 |
 | test_icon_rule.lua | 5 |
 | test_skin_hud.lua | 20 |
-| test_skin_flip.lua | 26 |
+| test_skin_flip.lua | 27 |
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 17 |
 | test_skin_verb.lua | 6 |
@@ -1741,4 +1742,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
 | Skipped | 1 |
-| **Total** | **1403** |
+| **Total** | **1404** |

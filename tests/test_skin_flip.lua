@@ -193,7 +193,7 @@ end)
 test("Skin flip: Ka0s Default keeps this addon's pixels", function(t)
     local KCM = h.loader.loadFullAddon()
     local got = drawn(KCM, barCfg(KCM))
-    t.eq(rgba(got.buttonBorder), "1,1,1,1", "the white button edge")
+    t.eq(rgba(got.buttonBorder), "0,0,0,1", "the button edge: icon.border's black (SF1-CM)")
     t.eq(rgba(got.buttonBackdrop), "0,0,0,0.6", "the button fill")
     t.eq(rgba(got.label), "1,0.82,0,1", "the gold label")
     t.eq(rgba(got.count), "1,1,1,1", "the count: NumberFontNormal's white")
@@ -216,12 +216,43 @@ test("Skin flip: a skin switch changes what each flipped surface draws", functio
     Skin:SetChoice(OWNER, "ka0s", "obsidian")
     local after = drawn(KCM, barCfg(KCM))
     Skin:SetChoice(OWNER, "ka0s", "ka0s")
-    for _, name in ipairs({ "buttonBorder", "buttonBackdrop", "label", "flyoutBackdrop",
+    -- Not the button edge: it reads `icon.border` under Ka0s Default too (SF1-CM), and that token is
+    -- black in Obsidian as well; the probe-skin case below and the SF1-CM case pin its follow.
+    for _, name in ipairs({ "buttonBackdrop", "label", "flyoutBackdrop",
         "flyoutBorder", "shade", "count" }) do
         t.truthy(rgba(before[name]) ~= rgba(after[name]),
             name .. " draws something else under Obsidian (" .. rgba(after[name]) .. ")")
     end
 end)
+
+-- red under: Ka0s Default's button edge kept apart from the skin's icon edge (the white edge of the
+-- owner's SF1 smoke, item 1); or a stored default that still draws white with the companion off.
+-- The owner's ruling: under Ka0s Default the edge is the skin's `icon.border`, a thin dark edge, as
+-- under every other skin, and Show border off still hides it.
+test("Skin flip: the button edge is the skin's icon.border under Ka0s Default and Obsidian (SF1-CM)",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local Skin = skinLib()
+        local cfg = barCfg(KCM)
+        t.eq(rgba(KCM.dbDefaults.profile.macroBar.buttonBorderColor), "0,0,0,1",
+            "the stored default is the dark edge too")
+        local ka0s = Skin:ResolveSkin("ka0s")["icon.border"]
+        t.eq(rgba(ka0s), "0,0,0,1", "the library's Ka0s Default icon.border is black")
+        t.eq(rgba(drawn(KCM, cfg).buttonBorder), rgba(ka0s), "Ka0s Default draws icon.border")
+        t.eq(KCM.Skin.Resolve("icon.borderStyle", cfg.buttonBorderStyle, cfg.buttonBorderStyleFromSkin),
+            "Solid", "a flat edge")
+        t.eq(KCM.Skin.Resolve("icon.borderSize", cfg.buttonBorderSize, cfg.buttonBorderStyleFromSkin), 1,
+            "one pixel thick")
+        Skin:SetChoice(OWNER, "ka0s", "obsidian")
+        local obsidian = Skin:ResolveSkin("obsidian")["icon.border"]
+        local got = drawn(KCM, cfg)
+        local btn = styleButton()
+        KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM, { buttonBorder = false }))
+        Skin:SetChoice(OWNER, "ka0s", "ka0s")
+        t.eq(rgba(got.buttonBorder), rgba(obsidian), "Obsidian draws its icon.border")
+        t.truthy(lastCall(btn.border, "Hide"), "Show border off still hides the edge")
+        t.falsy(lastCall(btn.border, "SetBackdrop"), "and lays no backdrop")
+    end)
 
 -- red under: an owner token following the wrong role, which still differs from Ka0s Default, so the
 -- case above stays green; or a surface drawing another surface's token. A probe skin gives every

@@ -144,7 +144,10 @@ KCM.SKIN_TOKENS = {
 local HUD_TOKENS = {
     ["cm.barBorder"]    = { default = { 0.25, 0.25, 0.25, 1 }, follow = "bar.border" },
     ["cm.buttonBg"]     = { default = { 0, 0, 0, 0.6 }, follow = "bar.bg" },
-    ["cm.buttonBorder"] = { default = { 1, 1, 1, 1 }, follow = "icon.border" },
+    -- SF1-CM (the owner's ruling, Ka0sAddonsCommonTasks docs/2026-11-06-REVENDOR_LIBKA0S_V1_89/
+    -- SF1_SMOKE_FEEDBACK.md item 1): Ka0s Default's button edge is the skin's thin dark icon edge,
+    -- library Ka0s Default's `icon.border`, as under every other skin; it was white.
+    ["cm.buttonBorder"] = { default = { 0, 0, 0, 1 }, follow = "icon.border" },
     ["cm.flyoutBg"]     = { default = { 0, 0, 0, 0.85 }, follow = "popup.bg" },
     ["cm.flyoutShade"]  = { default = { 0, 0, 0, 0.8 }, follow = "cover.dim" },
 }
