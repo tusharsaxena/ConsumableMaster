@@ -211,7 +211,7 @@ one `.lua` file and whose entry does not narrow to a variable in luacheck's `<co
 A fourth case walks every tracked `.lua` file for a bare `-- luacheck: ignore` with no code after
 it, which is the same blanket wearing a different hat.
 
-The gate exists because `.luacheckrc:25` carried `ignore = { "212", "542" }` for the whole of the
+The gate exists because `.luacheckrc` carried a top-level `ignore = { "212", "542" }` for the whole of the
 2026-09-07 cycle. Both codes were honest — unused `self` on AceGUI widget methods, one deliberately
 empty CSV branch in `/cm stat secondary` — but the suppression reached all 99 files, so a genuinely
 dead argument written into `core/BagScanner.lua` would have landed green under a 0/0 badge. That is
@@ -290,7 +290,7 @@ tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the
 | `lint` | `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` | **yes** | **yes** |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 47, where a crashed run is fail (since kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (sighted, over the kit's sanitized shadow with function-count parity; kit revision 50, where a crashed run is fail (since kit 41)) | no — recorded only | **yes**, plus zero functions above CCN 15 |
 
 *Note:* what the runner executes inside that sighted shadow is `lizard -l lua -L 1500 -x "./libs/*" -x "./tests/_kit/*" .`. Do not run that line in the repo itself: run blind, `lizard` misses or mis-measures functions the shadow sanitizes, so quote the runner, not the raw command.
 
