@@ -102,7 +102,7 @@ test("Skin HUD: the buttons' border follows the skin's icon family while its com
         "Ka0s Default: icon.borderStyle 'Solid', the flat edge")
     t.eq(bd and bd[2].edgeSize, 1, "at icon.borderSize (1 px in every skin since LibKa0s R3-FIX), not the stored 4")
     local col = lastCall(followed.border, "SetBackdropBorderColor")
-    t.eq(col and col[2], 1, "the color stays the player's white (X4)")
+    t.eq(col and col[2], 0, "the color is icon.border's black, no longer a white of its own (SF1-CM)")
 
     local own = styleButton()
     BB.ApplyStyle(own, barCfg(KCM, { buttonBorderStyleFromSkin = false }))

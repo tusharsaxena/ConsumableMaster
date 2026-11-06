@@ -106,7 +106,7 @@ test("macrobar button: ApplyStyle sizes the slot and paints the border child", f
 
     local col = firstCall(btn.border, "SetBackdropBorderColor")
     t.eq(col[2], 0.2, "the stored red component is used")
-    t.eq(col[3], 1, "a missing green falls back on its own")
+    t.eq(col[3], 0, "a missing green falls back on its own, to the shipped dark edge (SF1-CM)")
     t.eq(col[5], 1, "a missing alpha falls back on its own")
     t.truthy(btn.border._shown, "the border is shown")
 end)
@@ -231,7 +231,7 @@ test("macrobar flyout: Apply binds an owned item entry with its chrome", functio
     t.truthy(e.backdropTex._shown, "backdrop shown with the setting on")
     t.eq(allCalls(e.border, "SetPoint")[1][5], -2, "border offset pushes outward")
     t.eq(firstCall(e.border, "SetBackdrop")[2].edgeSize, 5, "border thickness")
-    t.eq(firstCall(e.border, "SetBackdropBorderColor")[2], 1, "border color defaults to white")
+    t.eq(firstCall(e.border, "SetBackdropBorderColor")[2], 0, "border color defaults to the dark edge (SF1-CM)")
     t.truthy(e._shown, "entry shown")
 
     t.falsy(flyout.entries[2]._shown, "surplus entries stay hidden")

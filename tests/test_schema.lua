@@ -682,7 +682,8 @@ local STORED_GUARD = {
     "macroBar.buttonBackdrop | bool | true | nil | nil | nil | ",
     "macroBar.buttonBackdropColor | color | {1=0,2=0,3=0,4=0.6} | nil | nil | nil | ",
     "macroBar.buttonBorder | bool | true | nil | nil | nil | ",
-    "macroBar.buttonBorderColor | color | {1=1,2=1,3=1,4=1} | nil | nil | nil | ",
+    -- SF1-CM moved this default on purpose, white to the skin's dark icon edge (owner ruling).
+    "macroBar.buttonBorderColor | color | {1=0,2=0,3=0,4=1} | nil | nil | nil | ",
     "macroBar.buttonBorderOffset | number | 2 | 0 | 16 | 1 | ",
     "macroBar.buttonBorderSize | number | 4 | 1 | 16 | 1 | ",
     "macroBar.buttonBorderStyle | string | Blizzard Tooltip | nil | nil | nil | ",

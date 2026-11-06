@@ -374,7 +374,8 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   `buttonBackdropColorFromSkin` (`cm.buttonBg`), `buttonBorderColorFromSkin` (`cm.buttonBorder`),
   `flyoutBackdropColorFromSkin` (`cm.flyoutBg`), `flyoutShadeColorFromSkin` (`cm.flyoutShade`),
   `labelColorFromSkin` (`hud.label`) and `labelShadowFromSkin` (`hud.shadow`). The `cm.*` five keep
-  today's pixels under Ka0s Default and follow their library role elsewhere (`HUD_TOKENS` in
+  today's pixels under Ka0s Default (`cm.buttonBorder`'s is `icon.border`'s black since SF1-CM, the owner's
+  ruling: a thin dark edge as under every other skin, where it was white) and follow their library role elsewhere (`HUD_TOKENS` in
   `core/SkinSetup.lua`), and they stay out of `KCM.SKIN_FALLBACK`, so a degraded bar draws its stored
   swatches. `BB.Swatch` is the one resolver: a class color first, then the skin, then the stored
   swatch over its shipped default in `defaults/Profile.lua`. Every skin states its own `icon.border`,
