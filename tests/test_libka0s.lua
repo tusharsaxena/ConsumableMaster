@@ -38,7 +38,16 @@ end
 -- rather than spelled out inline so a module added to LibKa0s.xml and
 -- forgotten here surfaces as a failure rather than as silence.
 local MAJORS = {
-    { major = "LibKa0s-Core-1.0",     files = { "Core" } },
+    {
+        major = "LibKa0s-Core-1.0",
+        -- CorePixel joined at LibKa0s v1.91.0: the pixel edges section peeled out of Core.lua,
+        -- paired on the shell's minor. The first time Core spans two files.
+        files = { "Core", "CorePixel" },
+        primary = "Core",
+        paired = {
+            { file = "CorePixel", minor = "__pixelMinor", shell = "__pixelShellMinor" },
+        },
+    },
     {
         major = "LibKa0s-DebugLog-1.0",
         -- DebugLogDiagnostics joined at LibKa0s v1.60.0: the diagnostics report
@@ -125,14 +134,17 @@ local MAJORS = {
         -- New at LibKa0s v1.78.0: the skin engine (core/SkinSetup.lua registers this addon as an
         -- owner) and its seven paired files, in XML order: the nine skins, the paint primitives, the
         -- EllesmereUI provider and the AceGUI rows. SkinOwnerTokens (out of Skin) and SkinDefsOthers
-        -- (out of SkinDefs) joined at LibKa0s v1.84.0, paired the same way.
-        files = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras", "SkinPaintControls", "SkinEUI",
-                  "SkinAce", "SkinOwnerTokens", "SkinDefsOthers" },
+        -- (out of SkinDefs) joined at LibKa0s v1.84.0, paired the same way. SkinPaintHud and
+        -- SkinAceConfirm (both out of SkinPaintExtras) joined at LibKa0s v1.91.0, paired the same way.
+        files = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras", "SkinPaintHud", "SkinAceConfirm",
+                  "SkinPaintControls", "SkinEUI", "SkinAce", "SkinOwnerTokens", "SkinDefsOthers" },
         primary = "Skin",
         paired = {
             { file = "SkinDefs",          minor = "__defsMinor",     shell = "__defsShellMinor" },
             { file = "SkinPaint",         minor = "__paintMinor",    shell = "__paintShellMinor" },
             { file = "SkinPaintExtras",   minor = "__extrasMinor",   shell = "__extrasShellMinor" },
+            { file = "SkinPaintHud",      minor = "__hudMinor",      shell = "__hudShellMinor" },
+            { file = "SkinAceConfirm",    minor = "__confirmMinor",  shell = "__confirmShellMinor" },
             { file = "SkinPaintControls", minor = "__controlsMinor", shell = "__controlsShellMinor" },
             { file = "SkinEUI",           minor = "__euiMinor",      shell = "__euiShellMinor" },
             { file = "SkinAce",           minor = "__aceMinor",      shell = "__aceShellMinor" },
