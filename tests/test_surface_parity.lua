@@ -341,6 +341,8 @@ end)
 -- for (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires it").
 local COMPAT_NOT_WIRED = {
     "CanAccess", "IsSafeKey", "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown",
+    -- LibKa0s v1.92.0 (Compat minor 2) added these four client helpers. No caller here until the Forever port.
+    "IsForever", "IsRetail", "ClientKey", "ForClient",
 }
 
 test("Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires", function(t)
