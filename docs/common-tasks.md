@@ -10,7 +10,9 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
      specAware=false, rankerKey="new", classifier="new",
      emptyText="/run print('|cff00ffff[CM]|r no new thing in bags')" },
    ```
-   Set `specAware=true` if the category needs per-spec buckets.
+   Set `specAware=true` if the category needs per-spec buckets. A category one client cannot have
+   declares it: `clients = { "retail" }` or `{ "forever" }` (clients-§4); the row is then dropped from
+   `LIST` and `BY_KEY` on the other client at load, and every step below follows from that.
 2. Add a matcher in `core/Classifier.lua`'s `matchers` table — predicate against the consumable `sub` (subClassID) + parsed tooltip.
 3. Add a scorer in `modules/Ranker.lua`'s `scorers` table — return a numeric score; higher wins.
 4. Add a branch in `Ranker.Explain` for the score-button tooltip — produces `{ {label, value, note?}, ... }` rows that mirror the scorer's additive terms.
@@ -19,16 +21,20 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
    local _, NS = ...
    local KCM = NS
    KCM.SEED = KCM.SEED or {}
-   KCM.SEED.NEW = { itemID1, itemID2, ... }
+   KCM.SEED.NEW = KCM.PerClient({
+       retail  = { itemID1, itemID2, ... },
+       -- Empty by decision: <why>, or this client's own list (clients-§5).
+       forever = {},
+   })
    ```
 6. Add the file to `ConsumableMaster.toc` in the `# Defaults` section (after `Categories.lua`, before the `# Modules` section).
-7. Update `dbDefaults.profile.categories` in `defaults/Profile.lua` so AceDB creates the bucket:
+7. Add the bucket to `CATEGORY_BUCKETS` in `defaults/Profile.lua`; the profile gets it on every client whose `BY_KEY` holds the key:
    ```lua
    NEW = { added = {}, blocked = {}, pins = {}, discovered = {} },   -- non-spec
    NEW = { bySpec = {} },                                              -- spec-aware
    ```
 8. Options panel picks the category up automatically from `Categories.LIST` — its tab on the **Macros** page is generated, not written.
-9. Add the lower-cased key to `KCM.Settings.macroOrder` (`settings/Panel.lua`) at the position you want its tab, then append the UPPER-cased key to `dbDefaults.profile.macroBar.order` in the same position — the macro bar's default slot order mirrors the tab order, and `tests/test_macrobar.lua` fails if the two drift. (An existing profile self-heals: `MacroBarModel.NormalizeOrder` appends any category its saved order has never seen.) `KCM.Settings.order` (the five pages) and `_validPanels` (the four that carry schema rows) do not change: a category is a tab now, not a page.
+9. Add the lower-cased key to `KCM.Settings.macroOrder` (`settings/Panel.lua`) at the position you want its tab, then add the UPPER-cased key to `SLOT_ORDER` in `defaults/Profile.lua` in the same position (both lists name every client's categories and are filtered by `BY_KEY`) — the macro bar's default slot order mirrors the tab order, and `tests/test_macrobar.lua` fails if the two drift. (An existing profile self-heals: `MacroBarModel.NormalizeOrder` appends any category its saved order has never seen.) `KCM.Settings.order` (the five pages) and `_validPanels` (the four that carry schema rows) do not change: a category is a tab now, not a page.
 10. Add the tab to the expected run in `tests/test_schema_tabs.lua` → "the Macros strip is the designed run of tabs, in order". It is written out longhand on purpose — derived from `Categories.LIST` it would agree with `Categories.LIST` whatever that said.
 
 ## Add a new composite category
@@ -43,7 +49,7 @@ Composites compose other categories' picks via `[combat]` / `[nocombat]` macro c
      emptyText="/run print('|cff00ffff[CM]|r no AIO new option available')" },
    ```
    `inCombat` / `outOfCombat` ref keys must be existing single-category keys (e.g. `"HS"`, `"HP_POT"`, `"FOOD"`).
-2. Add a bucket to `dbDefaults.profile.categories` in `defaults/Profile.lua`:
+2. Add a bucket to `CATEGORY_BUCKETS` in `defaults/Profile.lua`:
    ```lua
    NEW_AIO = {
        enabled          = { REF1=true, REF2=true, REF3=true },

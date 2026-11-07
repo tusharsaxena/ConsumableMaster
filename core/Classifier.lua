@@ -1,7 +1,7 @@
 -- Classifier.lua — Per-category match predicates.
 --
--- Given an itemID, decide which of the 11 managed categories (if any) it
--- belongs to. Used by:
+-- Given an itemID, decide which of this client's single-pick categories (if
+-- any) it belongs to. Used by:
 --   * Selector (M5) — auto-discover bag items and slot them into categories.
 --   * SlashCommands (/cm dump / /cm rank) — debug introspection.
 --
@@ -34,9 +34,34 @@ local C = KCM.Classifier
 -- Standard localization-§4 / anti-pattern #37). We key on the numbers instead.
 -- classID 0 = Consumable; subclass 1 = Potion, 3 = Flask/Phial, 5 = Food & Drink.
 local CLASS_CONSUMABLE = 0
-local SC_POTION    = 1
+local SC_ELIXIR    = 2
 local SC_FLASK     = 3
+local SC_SCROLL    = 4
 local SC_FOODDRINK = 5
+local SC_BANDAGE   = 7
+
+-- The subclasses that read as a POTION, and the ones that are a weapon enchant
+-- by subclass alone: two lists, picked once by client (clients-§5,
+-- KCM.PerClient). WoW Forever keeps Retail's numbers and adds Draught 13,
+-- matched like a Potion, and ItemenhancementTemporary 15; there an Item
+-- Enhancement (6 or 15) is a weapon enchant even though vanilla's wording
+-- ("Increase sharp weapon damage by 2") has no "your ... weapon" for the
+-- tooltip flag to read (Ketho/BlizzardInterfaceResources `forever` 1.60.1,
+-- Resources/LuaEnum.lua; owner ruling 2026-11-08). Retail's lists are exactly
+-- what it matched before the port: Potion alone, and no subclass shortcut.
+local POTION_SUBCLASSES = KCM.PerClient({
+    retail  = { [1] = true },
+    forever = { [1] = true, [13] = true },
+})
+local WEAPON_ENHANCE_SUBCLASSES = KCM.PerClient({
+    retail  = {},
+    forever = { [6] = true, [15] = true },
+})
+
+-- The matchers that classify on the subclass alone and skip the tooltip gate
+-- (see C.Match): FLASK on both clients, and WoW Forever's ELIXIR, SCROLL and
+-- BANDAGE, each one subclass with nothing else to tell apart.
+local SUBCLASS_ONLY = { FLASK = true, ELIXIR = true, SCROLL = true, BANDAGE = true }
 
 -- Healthstones look like potions subtype-wise but are always warlock-only.
 -- Kept as a whitelist rather than a rule so classification stays O(1).
@@ -101,10 +126,10 @@ local matchers = {
         return sub == SC_FOODDRINK and tt.hasStatBuff and not tt.isFeast
     end,
     HP_POT = function(_, tt, sub)
-        return sub == SC_POTION and hasHeal(tt) and not tt.hasStatBuff
+        return POTION_SUBCLASSES[sub] == true and hasHeal(tt) and not tt.hasStatBuff
     end,
     MP_POT = function(_, tt, sub)
-        return sub == SC_POTION and hasMana(tt) and not tt.hasStatBuff
+        return POTION_SUBCLASSES[sub] == true and hasMana(tt) and not tt.hasStatBuff
     end,
     HS = function(itemID)
         return HEALTHSTONE_IDS[itemID] == true
@@ -114,13 +139,32 @@ local matchers = {
     -- "Potion of Recklessness" describe their effect as "increases damage
     -- dealt" rather than a stat rating, so the tooltip stat parser finds
     -- nothing. Any short-duration Potion that doesn't restore HP/mana is a
-    -- combat potion by elimination.
+    -- combat potion by elimination. A protection potion (an absorb against one
+    -- school, PROT_POT) is never one, whatever its duration.
     CMBT_POT = function(_, tt, sub)
-        return sub == SC_POTION
+        return POTION_SUBCLASSES[sub] == true
            and not hasHeal(tt)
            and not hasMana(tt)
+           and not tt.absorbSchool
            and (tt.buffDurationSec or 0) > 0
            and tt.buffDurationSec <= CMBT_POT_MAX_DURATION
+    end,
+    -- WoW Forever only (defaults/Categories.lua): a potion or draught that
+    -- absorbs one magic school's damage ("Absorbs 1950 to 3250 fire damage.").
+    PROT_POT = function(_, tt, sub)
+        return POTION_SUBCLASSES[sub] == true
+           and tt.absorbSchool ~= nil
+           and (tt.absorbValue or 0) > 0
+    end,
+    -- WoW Forever only: one subclass each, no tooltip needed (SUBCLASS_ONLY).
+    ELIXIR = function(_, _, sub)
+        return sub == SC_ELIXIR
+    end,
+    SCROLL = function(_, _, sub)
+        return sub == SC_SCROLL
+    end,
+    BANDAGE = function(_, _, sub)
+        return sub == SC_BANDAGE
     end,
     FLASK = function(_, _, sub)
         return sub == SC_FLASK
@@ -130,8 +174,12 @@ local matchers = {
     -- are identified by the tooltip's weapon-application effect — "Coat your
     -- weapon", "Sharpens your bladed weapon", "Weights your … weapon" — captured
     -- as tt.isWeaponEnhance by TooltipCache. Covers stat and proc effects.
-    WPN_ENCH = function(_, tt)
-        return tt and tt.isWeaponEnhance == true
+    --
+    -- On WoW Forever an Item Enhancement subclass is a weapon enchant on its own
+    -- (WEAPON_ENHANCE_SUBCLASSES); Retail's list is empty, so there only the
+    -- tooltip flag decides, as before.
+    WPN_ENCH = function(_, tt, sub)
+        return (tt and tt.isWeaponEnhance == true) or WEAPON_ENHANCE_SUBCLASSES[sub] == true
     end,
     AUG_RUNE = function(_, tt)
         return tt and tt.isAugmentRune == true
@@ -231,7 +279,9 @@ function C.Match(catKey, itemID)
     -- FLASK discovery deterministic on the first bag scan. WPN_ENCH can't use
     -- this shortcut — its subclass 8 ("Other") is uninformative — so it flows
     -- to the tooltip-gated path below and hydrates through the same retry seam.
-    if catKey == "FLASK" then
+    -- WoW Forever's ELIXIR, SCROLL and BANDAGE take the same shortcut, for the
+    -- same reason (SUBCLASS_ONLY).
+    if SUBCLASS_ONLY[catKey] then
         return fn(itemID, nil, sub) == true
     end
 

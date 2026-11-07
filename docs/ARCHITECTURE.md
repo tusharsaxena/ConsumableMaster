@@ -4,7 +4,7 @@ Orient-yourself map for **Ka0s Consumable Master**. This file is the high-level 
 
 ## Overview
 
-Fifteen account-wide global macros (`KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`, `KCM_HP_AIO`, `KCM_MP_AIO`) whose bodies auto-rewrite to point at the best consumable currently in your bags. Thirteen macros run a per-category scorer; two are composites that compose other categories' picks via combat conditionals. Identified by name, never by slot — coexists with every other macro in the user's account-wide pool.
+Fifteen account-wide global macros per client (on Retail `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`, `KCM_HP_AIO`, `KCM_MP_AIO`; on WoW Forever the four Retail-only ones give way to `KCM_ELIXIR`, `KCM_SCROLL`, `KCM_BANDAGE` and `KCM_PROT_POT`, [Per-client features](#per-client-features)) whose bodies auto-rewrite to point at the best consumable currently in your bags. Thirteen macros run a per-category scorer; two are composites that compose other categories' picks via combat conditionals. Identified by name, never by slot — coexists with every other macro in the user's account-wide pool.
 
 Those macros are also hosted on a **CM-only macro bar** (on by default) — one secure slot per category, each with a hover flyout listing every currently-usable candidate in that category. It is the addon's only protected-frame surface; see [macro-bar.md](./macro-bar.md).
 
@@ -75,6 +75,48 @@ WoW events ─▶ KCM.bus (RECOMPUTE) ─▶ Core.Pipeline ─▶ Selector ─�
 | In/out scope + resolved design decisions | — | [scope.md](./scope.md) |
 | Test-case inventory (generated — the authoritative pass count) | `tests/` | [test-cases.md](./test-cases.md) |
 | Seed reference + patch-day refresh procedure | `defaults/` | [../defaults/README.md](../defaults/README.md) |
+
+### Per-client features
+
+The addon serves Retail and WoW Forever from one codebase (Interface 120105, 16001; clients-§1, the
+roster's Clients value flips to `Retail · Forever` with this port). The client is asked in one place,
+`core/Compat.lua`, through `LibKa0s-Compat-1.0`'s `ClientKey` and `ForClient` (clients-§3); without
+the library both answer as Retail, the build a degraded install was already running.
+
+**The categories are the per-client features** (owner ruling 2026-11-08). Each row in
+`defaults/Categories.lua` declares `clients`, and `KCM.Categories.LIST` / `BY_KEY` are filtered once,
+at load, to the rows the running client admits (clients-§4). Every reader works off those two, so an
+absent category has no macro, no Macros tab, no macro-bar slot, no slash name, no profile bucket
+(`defaults/Profile.lua` builds the buckets, `perRow` and the slot order from `BY_KEY`) and no schema
+row: it is never registered and then hidden.
+
+| Category | Client | Gated in |
+|---|---|---|
+| FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, HP_AIO, MP_AIO | both | — (no declaration) |
+| VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ (and BATTLE_REZ's `mouseover` row) | Retail | `defaults/Categories.lua` (`clients = { "retail" }`) |
+| ELIXIR, SCROLL, BANDAGE, PROT_POT | WoW Forever | `defaults/Categories.lua` (`clients = { "forever" }`) |
+| The Macros strip's tab order | per client | `settings/Panel.lua` (`KCM.Settings.macroOrder`, filtered by `BY_KEY`) |
+| The macro bar's default slot order | per client | `defaults/Profile.lua` (`SLOT_ORDER`, filtered by `BY_KEY`) |
+
+Every other module, page, verb, launcher entry and event registration serves both clients.
+
+**Seed data is two lists per file** (clients-§5). Each `defaults/Defaults_*.lua` hands a
+`{ retail = …, forever = … }` pair to `KCM.PerClient` (`core/Compat.lua`), which answers the running
+client's list once at load; nothing that reads `KCM.SEED` asks which client it is on. Forever's lists,
+`STAT_PRIORITY` and `CLASS_GATE` included, are **empty by decision** (step 2, owner ruling 2026-11-08),
+so on Forever every candidate comes from the bag scan and a spec ranks by its class's primary stat
+(`core/SpecHelper.lua`'s fallback). The Healthstone whitelist in `core/Classifier.lua` and the
+Ranker's preference table still name 5512, vanilla's Minor Healthstone.
+
+**Per-client tables in the Classifier.** `core/Classifier.lua` picks two subclass lists the same way:
+the subclasses that read as a Potion (Retail: 1; Forever: 1 and Draught 13) and the ones that are a
+weapon enchant on their own (Retail: none; Forever: Item Enhancement 6 and ItemenhancementTemporary
+15). Retail's lists are exactly what it matched before the port. Vanilla's tooltip wording is read
+into fields only the Forever paths use ([midnight-quirks.md](./midnight-quirks.md#wow-forevers-consumable-subclasses)).
+
+The headless suite runs under both kit profiles (clients-§6). A case that pins Retail's content runs
+as Retail under both (`h.retailTest`), `tests/test_forever.lua` pins each client's set on both, and the
+kit's `test_client_globals` suite checks the tracked source against both clients' API sets.
 
 ## Settings Schema
 
@@ -303,7 +345,7 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 1. `# Libraries` — LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, the Ace3 sub-libraries (AceAddon/AceEvent/AceDB/AceDBOptions/AceConsole/AceGUI/AceConfig), LibDataBroker-1.1 then LibDBIcon-1.0 (that order is load-bearing — LibDBIcon `error()`s at load without LibDataBroker), then LibKa0s last, listed directly in the TOC. AceConfig sits **after** AceGUI, and that is load-bearing: AceConfigDialog resolves AceGUI with a non-silent `LibStub` at file load
 2. `# Locales` — `locales/enUS.lua`
 3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `LifecycleSetup.lua` (the `LibKa0s-Lifecycle-1.0` latch; **load-bearing position** — `PerfSetup.lua` takes the instance as `descriptor.lifecycle` at load) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `SkinSetup.lua` (the `LibKa0s-Skin-1.0` seam; **load-bearing position** — it registers the skin owner at file load, so the EllesmereUI provider can offer it before EllesmereUI dispatches its skins, and every file that builds a frame, `settings/General.lua` among them, which reads the Skin tab's option lists at load, comes after it) → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `LauncherSetup.lua` (the `LibKa0s-Launcher-1.0` seam; position conventional — it resolves the library at load and nothing else, and `Register()` runs from `KCM:OnInitialize` once AceDB has built `db.global.minimap`) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands` → `Diagnostics` (the diagnostics report's sections, asked for at run time)
-4. `# Defaults` — `Profile.lua` (`KCM.dbDefaults`), then `Categories.lua`, then `Defaults_*.lua`
+4. `# Defaults` — `Categories.lua` (filtered to this client's rows), then `Profile.lua` (`KCM.dbDefaults`; **load-bearing position**, it builds the buckets, `perRow` and the slot order from `KCM.Categories.BY_KEY`), then `Defaults_*.lua`
 5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
 6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab`, the panel bootstrap and `KCM.Options.Register`) → `PanelRows.lua` (the type rules and `Helpers.AddRows`; after `Panel.lua`, whose write seam it reads at load, and before every page, which declares its rows at load) → `About.lua` → `OptionsShim.lua` (the run-time `KCM.Options` surface: `Refresh` / `RequestRefresh` / `Open`, the refresh debounce and the bus receivers; after `Panel.lua`, whose `Helpers`, `optionsUI` and panel-unavailable notice it takes as file-scope locals) → `General.lua` → `MacroBar.lua` → `MacroBarSlots.lua` → `StatPriority.lua` → `Category.lua` → `CategoryAddByID.lua` (the Add-by-ID line) → `CategoryComposite.lua` (the composite tabs; both after Category.lua, whose `KCM.Settings.MacrosPage` helpers they take as file-scope locals) → `Slash.lua` → `Profiles.lua` (last, as the Profiles page is last in the sidebar)
 
@@ -512,6 +554,8 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
 
 Things that are true today, understood, and not bugs. Each is either a ratified deviation with its own register row below, or a consequence of a client rule this addon cannot argue with.
 
+- **Retail and WoW Forever** (Interface 120105, 16001), one codebase. The categories differ per client ([Per-client features](#per-client-features)); no Classic flavor. Forever ships no seed lists yet (step 2), and its stat-priority ranking is the class's primary stat until it does.
+- **A slot order saved on one client loses the other client's categories when it is next written.** `macroBar.order` is normalized on write (`core/MacroBarModel.lua`), so a profile carried from Retail to WoW Forever and reordered there drops VANTUS and the other Retail-only slots; back on Retail they are appended at the end. The buckets themselves are untouched. Saved variables live per client folder, so this needs a hand-copied profile.
 - **English clients only, for tooltip magnitudes.** Category and weapon-affinity detection are locale-independent (numeric `classID` / `subClassID`), but `core/TooltipCache.lua` reads heal / mana / stat magnitudes, the `Augment Rune` marker and the weapon-application effect out of English tooltip text. Ratified below against `localization-§4`; reasoning in [scope.md](./scope.md).
 - **A flyout cannot auto-close mid-combat.** The idle auto-close is a `C_Timer`, and there is no timer inside the secure environment, so a flyout opened as combat starts stays open until the hover state changes or combat ends. It deliberately stands down rather than attempting a hide the client would refuse ([macro-bar.md](./macro-bar.md#closing)).
 - **Macro-bar changes made in combat land late.** Building, relayouting or restyling the bar anchors protected frames, so `MacroBar.Update()` defers the whole batch to `PLAYER_REGEN_ENABLED`. A skin picked in combat reaches the bar the same way, at combat's end. The same is true of macro writes, which queue in MacroManager and flush on regen.

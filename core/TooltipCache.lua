@@ -23,6 +23,16 @@
 --   isConjured, isFeast, isWeaponEnhance  -- classifier flags
 --   isAugmentRune                  -- true if tooltip carries the "Augment Rune" marker
 --   weaponAffinity                 -- "bladed" | "blunt" | "any" (weapon enhance only)
+--   -- Vanilla wording (WoW Forever's items; each new field is read by a
+--   -- Forever-only category or path, and Retail's fields above are unchanged)
+--   absorbValue, absorbSchool      -- "Absorbs 1950 to 3250 fire damage." -> 2600, "fire"
+--   effectValue                    -- largest "Increases <x> by N" amount on any line
+--                                     (a no-stat scroll's or elixir's value)
+--   weaponWordAffinity             -- "bladed" | "blunt" from a line that names a
+--                                     weapon without Retail's "your ... weapon"
+--                                     ("Increase sharp weapon damage by 2")
+--   A bandage's "Heals N damage over X sec." is a flat heal: healValue and
+--   healOverSec, like a heal-over-time potion's.
 --   minLevel                       -- required player level (0 if none)
 --   maxLevel                       -- maximum player level the item/effect works at,
 --                                     parsed from tooltip text; nil when uncapped
@@ -57,6 +67,21 @@ local PATTERNS = {
     -- match; this pattern recovers the mana side so the item classifies as
     -- both Food and Drink.
     manaCombinedFlat = "health and ([%d,]+) mana",
+    -- A vanilla bandage: "Heals 1104 damage over 8 sec." The heal is flat.
+    healDamage = "Heals ([%d,]+) damage",
+
+    -- A vanilla protection potion: "Absorbs 1950 to 3250 fire damage. Lasts
+    -- 1 hr." One magic school, named between the amount and "damage"; the
+    -- school is checked against ABSORB_SCHOOLS so "Absorbs 500 damage" (no
+    -- school) is not one.
+    absorbRange = "Absorbs ([%d,]+) to ([%d,]+) (%a+) damage",
+    absorbFlat  = "Absorbs ([%d,]+) (%a+) damage",
+
+    -- An effect's size in vanilla wording, for an item whose stat (armor,
+    -- maximum health, spell damage) is not one of STAT_TOKENS: "Increases
+    -- armor by 60 for 30 min.", "Increases spell damage by up to 20".
+    increaseUpTo = "[Ii]ncreases?%s.-by up to ([%d,]+)",
+    increaseBy   = "[Ii]ncreases?%s.-by ([%d,]+)",
 
     -- Midnight %-based food/drink. Test combined first because
     -- "...of your maximum health and mana" contains "...of your maximum health"
@@ -106,6 +131,12 @@ local STAT_TOKENS = {
     { token = "Mastery",         tag = "MASTERY"     },
     { token = "Agility",         tag = "AGI"         },
     { token = "Haste",           tag = "HASTE"       },
+}
+
+-- The schools a protection potion absorbs. Physical is not one: vanilla's
+-- physical "protection" is Greater Stoneshield's armor, which absorbs nothing.
+local ABSORB_SCHOOLS = {
+    fire = true, frost = true, nature = true, shadow = true, arcane = true, holy = true,
 }
 
 local function toNumberCommas(s)
@@ -298,8 +329,34 @@ local function parseFlatHeal(line, result)
         if a and b then result.healValueAvg = (a + b) / 2 end
         return
     end
-    local v = line:match(PATTERNS.healFlat)
+    local v = line:match(PATTERNS.healFlat) or line:match(PATTERNS.healDamage)
     if v then result.healValue = toNumberCommas(v) end
+end
+
+-- A protection potion's absorb: the range's average, or the flat amount, and
+-- the one school it covers, lowercased. A line whose word before "damage" is
+-- not a school records nothing.
+local function parseAbsorb(line, result)
+    local lo, hi, school = line:match(PATTERNS.absorbRange)
+    local amount
+    if lo then
+        local a, b = toNumberCommas(lo), toNumberCommas(hi)
+        if a and b then amount = (a + b) / 2 end
+    else
+        local v
+        v, school = line:match(PATTERNS.absorbFlat)
+        amount = toNumberCommas(v)
+    end
+    school = school and school:lower()
+    if amount and amount > 0 and ABSORB_SCHOOLS[school] then
+        result.absorbValue, result.absorbSchool = amount, school
+    end
+end
+
+-- The largest "Increases <x> by N" amount across the tooltip.
+local function parseEffectValue(line, result)
+    local v = toNumberCommas(line:match(PATTERNS.increaseUpTo) or line:match(PATTERNS.increaseBy))
+    if v and v > 0 and v > (result.effectValue or 0) then result.effectValue = v end
 end
 
 local function parseFlatMana(line, result)
@@ -357,6 +414,24 @@ local function parseWeaponEnhance(txt, result)
     elseif not result.weaponAffinity then result.weaponAffinity = "any" end
 end
 
+-- Vanilla's weapon wording names the weapon without Retail's "your ... weapon"
+-- ("Increase sharp weapon damage by 2 for 30 minutes", "Increase the damage of
+-- a blunt weapon by 8"). Read only the affinity, into its own field, so a
+-- Retail tooltip's weaponAffinity and isWeaponEnhance never move: "sharp" or
+-- "bladed" reads bladed and "blunt" blunt; anything else records nothing,
+-- which every reader takes as "any". Whether the item IS a weapon enchant is
+-- the Classifier's call, from the consumable subclass (WoW Forever's 6 and 15).
+local function parseWeaponWords(txt, result)
+    if result.weaponWordAffinity then return end
+    local low = txt:lower()
+    if not low:find("weapon", 1, true) or low:match("your ([%a%s%-]-)weapon") then return end
+    if low:find("sharp", 1, true) or low:find("bladed", 1, true) then
+        result.weaponWordAffinity = "bladed"
+    elseif low:find("blunt", 1, true) then
+        result.weaponWordAffinity = "blunt"
+    end
+end
+
 local function parseLines(lines)
     local result = { statBuffs = {} }
     for _, line in ipairs(lines) do
@@ -375,6 +450,9 @@ local function parseLines(lines)
             parseFlags(txt, result)
             parseMaxLevel(txt, result)
             parseWeaponEnhance(txt, result)
+            parseWeaponWords(txt, result)
+            parseAbsorb(txt, result)
+            parseEffectValue(txt, result)
             parseDuration(txt, result)
             parseStatBuffs(txt, result)
         end
@@ -390,6 +468,7 @@ local function hasParsedEffect(p)
         or p.manaValue ~= nil or p.manaValueAvg ~= nil or p.manaPct ~= nil
         or (p.buffDurationSec or 0) > 0
         or p.isWeaponEnhance == true
+        or p.absorbValue ~= nil
         or p.isAugmentRune == true
         or p.isConjured == true
         or p.isFeast == true

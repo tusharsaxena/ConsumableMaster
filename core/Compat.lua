@@ -9,8 +9,9 @@
 --
 -- Loaded right after Constants so all downstream modules can rely on it.
 --
--- FOUR MEMBERS ARE LibKa0s-Compat-1.0's (LibKa0s v1.55.0): GetSpecialization,
--- GetSpecializationInfo, GetSpellName and IsSecret. The call surface did not
+-- SIX MEMBERS ARE LibKa0s-Compat-1.0's: GetSpecialization, GetSpecializationInfo,
+-- GetSpellName and IsSecret (LibKa0s v1.55.0), and the client helpers ClientKey and
+-- ForClient (minor 2, wired by the WoW Forever port). The call surface did not
 -- move -- every caller and every test still reaches KCM.Compat.X -- only the
 -- definitions did. The two class-ID spec readers below have one consumer in the
 -- collection, this addon, so they stay host code (the major takes a member only
@@ -72,6 +73,39 @@ end
 -- docs/api/Compat/version-1-docs.md, "Degradation" (the guard arm).
 Compat.IsSecret = CompatLib and CompatLib.IsSecret or function(value)
     if issecretvalue then return issecretvalue(value) and true or false end
+    return false
+end
+
+-- Which client this is (clients-§3; LibKa0s-Compat-1.0 minor 2): "retail", "forever" or nil for an
+-- unknown client. The ONE place the addon asks, read once at load by the seed selection
+-- (defaults/Defaults_*.lua, through KCM.PerClient) and never in feature code. Without the library it
+-- answers the documented absent value, nil, which the seed selection reads as Retail's lists: the
+-- addon shipped Retail-only, so that is the build a degraded install was already running.
+Compat.ClientKey = CompatLib and CompatLib.ClientKey or absent
+
+-- The client whose seed lists this build reads (clients-§5): chosen ONCE, here, at load. Every
+-- defaults/Defaults_*.lua file declares two lists, `retail` and `forever`, and hands them to
+-- KCM.PerClient, which answers this client's; the code that reads KCM.SEED never asks which client
+-- it is on. An unknown client (nil) reads Retail's lists, as a degraded install does.
+KCM.SEED_CLIENT = (Compat.ClientKey() == "forever") and "forever" or "retail"
+
+--- The running client's list out of a `{ retail = {...}, forever = {...} }` pair. A pair that
+--- forgot a client answers an empty list, never the other client's.
+function KCM.PerClient(lists)
+    return (lists and lists[KCM.SEED_CLIENT]) or {}
+end
+
+-- Whether a `clients` declaration admits the running client (clients-§4): true for nil or "both",
+-- and true when the client's token is in the list. defaults/Categories.lua gates every category row
+-- through it, once, at load. Without the library the stub answers as Retail, for ClientKey's reason
+-- above: nil and "both" admit, and a list admits when it names "retail" or "both". So a degraded
+-- install keeps the fifteen Retail categories and never grows the Forever-only four.
+Compat.ForClient = CompatLib and CompatLib.ForClient or function(clients)
+    if clients == nil or clients == "both" then return true end
+    if type(clients) ~= "table" then return false end
+    for _, token in ipairs(clients) do
+        if token == "retail" or token == "both" then return true end
+    end
     return false
 end
 

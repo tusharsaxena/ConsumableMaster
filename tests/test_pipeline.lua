@@ -174,7 +174,7 @@ test("Pipeline.CalcSummary renders the reason and the rewrite/skip tally", funct
         "a missing reason still renders rather than raising")
 end)
 
-test("Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set", function(t)
+h.retailTest("Pipeline.RunAutoDiscovery leaves a seeded item out of the discovered set", function(t)
     local KCM, mock = load()
     local seeded
     for _, id in ipairs(KCM.SEED.FOOD) do

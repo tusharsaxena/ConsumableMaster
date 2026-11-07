@@ -5,8 +5,14 @@ globals into namespaces (`compat`). Feature modules call `KCM.Compat.X` and neve
 rename is one edit in one file. Every rung is read at **call time**, never captured at load, so a
 test can swap either rung and a client that lacks one falls through to the next.
 
-Four members (`GetSpecialization`, `GetSpecializationInfo`, `GetSpellName`, `IsSecret`) are
-`LibKa0s-Compat-1.0`'s, bound onto `KCM.Compat` by name. The library documents them, and so does
+Six members (`GetSpecialization`, `GetSpecializationInfo`, `GetSpellName`, `IsSecret`, and the
+client helpers `ClientKey` and `ForClient`, wired by the WoW Forever port) are
+`LibKa0s-Compat-1.0`'s, bound onto `KCM.Compat` by name. `ClientKey` is the one place the addon asks
+which client it is on (clients-§3): `KCM.SEED_CLIENT` reads it once at load and `KCM.PerClient`
+answers a `{ retail, forever }` pair's list for that client (clients-§5); `ForClient` gates every
+category row in `defaults/Categories.lua` (clients-§4). Without the library both answer as Retail:
+`ClientKey` the absent value nil, which the seed selection reads as Retail's lists, and `ForClient` a
+stub that admits nil, `"both"` and any list naming `"retail"`. The library documents them, and so does
 [module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption). This page covers only the three shims the
 addon owns itself.
 

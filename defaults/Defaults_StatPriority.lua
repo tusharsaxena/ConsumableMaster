@@ -66,74 +66,79 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.STAT_PRIORITY = {
-    -- Warrior
-    ["1_71"] = { primary = "STR", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },        -- Arms
-    ["1_72"] = { primary = "STR", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },        -- Fury
-    ["1_73"] = { primary = "STR", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },        -- Protection
+KCM.SEED.STAT_PRIORITY = KCM.PerClient({
+    retail = {
+        -- Warrior
+        ["1_71"] = { primary = "STR", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },        -- Arms
+        ["1_72"] = { primary = "STR", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },        -- Fury
+        ["1_73"] = { primary = "STR", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },        -- Protection
 
-    -- Paladin
-    ["2_65"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },        -- Holy
-    ["2_66"] = { primary = "STR", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },        -- Protection
-    ["2_70"] = { primary = "STR", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },        -- Retribution
+        -- Paladin
+        ["2_65"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },        -- Holy
+        ["2_66"] = { primary = "STR", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },        -- Protection
+        ["2_70"] = { primary = "STR", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },        -- Retribution
 
-    -- Hunter
-    ["3_253"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },       -- Beast Mastery
-    ["3_254"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },       -- Marksmanship
-    ["3_255"] = { primary = "AGI", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Survival
+        -- Hunter
+        ["3_253"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },       -- Beast Mastery
+        ["3_254"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },       -- Marksmanship
+        ["3_255"] = { primary = "AGI", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Survival
 
-    -- Rogue
-    ["4_259"] = { primary = "AGI", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Assassination
-    ["4_260"] = { primary = "AGI", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Outlaw
-    ["4_261"] = { primary = "AGI", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Subtlety
+        -- Rogue
+        ["4_259"] = { primary = "AGI", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Assassination
+        ["4_260"] = { primary = "AGI", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Outlaw
+        ["4_261"] = { primary = "AGI", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Subtlety
 
-    -- Priest
-    ["5_256"] = { primary = "INT", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },       -- Discipline
-    ["5_257"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Holy
-    ["5_258"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },       -- Shadow
+        -- Priest
+        ["5_256"] = { primary = "INT", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },       -- Discipline
+        ["5_257"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Holy
+        ["5_258"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },       -- Shadow
 
-    -- Death Knight
-    ["6_250"] = { primary = "STR", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Blood
-    ["6_251"] = { primary = "STR", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },       -- Frost
-    ["6_252"] = { primary = "STR", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Unholy
+        -- Death Knight
+        ["6_250"] = { primary = "STR", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Blood
+        ["6_251"] = { primary = "STR", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },       -- Frost
+        ["6_252"] = { primary = "STR", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Unholy
 
-    -- Shaman
-    ["7_262"] = { primary = "INT", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Elemental
-    ["7_263"] = { primary = "AGI", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },       -- Enhancement
-    ["7_264"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Restoration
+        -- Shaman
+        ["7_262"] = { primary = "INT", secondary = { "MASTERY", "CRIT", "HASTE", "VERSATILITY" } },       -- Elemental
+        ["7_263"] = { primary = "AGI", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },       -- Enhancement
+        ["7_264"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Restoration
 
-    -- Mage
-    ["8_62"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },        -- Arcane
-    ["8_63"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },        -- Fire
-    ["8_64"] = { primary = "INT", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },        -- Frost
+        -- Mage
+        ["8_62"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },        -- Arcane
+        ["8_63"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },        -- Fire
+        ["8_64"] = { primary = "INT", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },        -- Frost
 
-    -- Warlock
-    ["9_265"] = { primary = "INT", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },       -- Affliction
-    ["9_266"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Demonology
-    ["9_267"] = { primary = "INT", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },       -- Destruction
+        -- Warlock
+        ["9_265"] = { primary = "INT", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },       -- Affliction
+        ["9_266"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },       -- Demonology
+        ["9_267"] = { primary = "INT", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },       -- Destruction
 
-    -- Monk
-    ["10_268"] = { primary = "AGI", secondary = { "CRIT", "VERSATILITY", "MASTERY", "HASTE" } },      -- Brewmaster
-    ["10_269"] = { primary = "AGI", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },      -- Windwalker
-    ["10_270"] = { primary = "INT", secondary = { "HASTE", "CRIT", "VERSATILITY", "MASTERY" } },      -- Mistweaver
+        -- Monk
+        ["10_268"] = { primary = "AGI", secondary = { "CRIT", "VERSATILITY", "MASTERY", "HASTE" } },      -- Brewmaster
+        ["10_269"] = { primary = "AGI", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },      -- Windwalker
+        ["10_270"] = { primary = "INT", secondary = { "HASTE", "CRIT", "VERSATILITY", "MASTERY" } },      -- Mistweaver
 
-    -- Druid
-    ["11_102"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },      -- Balance
-    ["11_103"] = { primary = "AGI", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },      -- Feral
-    ["11_104"] = { primary = "AGI", secondary = { "HASTE", "MASTERY", "VERSATILITY", "CRIT" } },      -- Guardian
-    ["11_105"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },      -- Restoration
+        -- Druid
+        ["11_102"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },      -- Balance
+        ["11_103"] = { primary = "AGI", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },      -- Feral
+        ["11_104"] = { primary = "AGI", secondary = { "HASTE", "MASTERY", "VERSATILITY", "CRIT" } },      -- Guardian
+        ["11_105"] = { primary = "INT", secondary = { "HASTE", "MASTERY", "CRIT", "VERSATILITY" } },      -- Restoration
 
-    -- Demon Hunter
-    ["12_577"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },      -- Havoc
-    ["12_581"] = { primary = "AGI", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },      -- Vengeance
-    -- Devourer: secondary order UNSOURCED. On 2026-10-07 the archon.gg page
-    -- (.../builds/devourer/demon-hunter/mythic-plus/overview/10/all-dungeons/this-week)
-    -- answered HTTP 403 to every fetch, so no order could be read. Left empty
-    -- rather than guessed; fill it in on the next refresh.
-    ["12_1480"] = { primary = "INT", secondary = {} },                                              -- Devourer
+        -- Demon Hunter
+        ["12_577"] = { primary = "AGI", secondary = { "CRIT", "MASTERY", "HASTE", "VERSATILITY" } },      -- Havoc
+        ["12_581"] = { primary = "AGI", secondary = { "HASTE", "CRIT", "MASTERY", "VERSATILITY" } },      -- Vengeance
+        -- Devourer: secondary order UNSOURCED. On 2026-10-07 the archon.gg page
+        -- (.../builds/devourer/demon-hunter/mythic-plus/overview/10/all-dungeons/this-week)
+        -- answered HTTP 403 to every fetch, so no order could be read. Left empty
+        -- rather than guessed; fill it in on the next refresh.
+        ["12_1480"] = { primary = "INT", secondary = {} },                                              -- Devourer
 
-    -- Evoker
-    ["13_1467"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },     -- Devastation
-    ["13_1468"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },     -- Preservation
-    ["13_1473"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },     -- Augmentation
-}
+        -- Evoker
+        ["13_1467"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },     -- Devastation
+        ["13_1468"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },     -- Preservation
+        ["13_1473"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },     -- Augmentation
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. Forever's priorities wait for its own
+    -- spec IDs; until then core/SpecHelper.lua's fallback ranks by the class's primary stat.
+    forever = {},
+})

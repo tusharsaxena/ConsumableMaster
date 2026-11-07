@@ -126,7 +126,7 @@ test("/cm with an unknown command reports it and prints help", function(t)
     t.truthy(text:find("/cm", 1, true), "prints the help listing")
 end)
 
-test("/cm dump pick renders a category's effective priority and marks owned picks", function(t)
+h.retailTest("/cm dump pick renders a category's effective priority and marks owned picks", function(t)
     local KCM, mock = load()
     -- Own the first item (positive-id) seed FOOD candidate so a pick exists.
     local seedFood
@@ -368,7 +368,7 @@ test("/cm priority <cat> with no sub-verb defaults to the list", function(t)
     t.truthy(text:find("entries", 1, true), "with an entry count")
 end)
 
-test("/cm priority list marks ownership and the current pick", function(t)
+h.retailTest("/cm priority list marks ownership and the current pick", function(t)
     local KCM, mock = load()
     local seed
     for _, id in ipairs(KCM.SEED.FOOD) do
@@ -455,7 +455,7 @@ test("/cm priority reset clears the user's edits but keeps discoveries", functio
     t.truthy(text:find("discovered items preserved", 1, true), "and the message says so")
 end)
 
-test("/cm priority up reorders the list by pinning", function(t)
+h.retailTest("/cm priority up reorders the list by pinning", function(t)
     local KCM, mock = load()
     local before = KCM.Selector.GetEffectivePriority("FOOD")
     local second = before[2]
@@ -464,7 +464,7 @@ test("/cm priority up reorders the list by pinning", function(t)
     t.eq(KCM.Selector.GetEffectivePriority("FOOD")[1], second, "the entry is now first")
 end)
 
-test("/cm priority up on the top entry reports the edge instead of reordering", function(t)
+h.retailTest("/cm priority up on the top entry reports the edge instead of reordering", function(t)
     local KCM, mock = load()
     local first = KCM.Selector.GetEffectivePriority("FOOD")[1]
     -- A spell entry is typed s:<spellID>; a bare negative sentinel is refused (CM-R-06).

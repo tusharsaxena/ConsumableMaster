@@ -1,6 +1,6 @@
 # CLAUDE.md — Ka0s Consumable Master
 
-**Ka0s Consumable Master** — an auto-managed consumable-macro addon for WoW: Midnight (Interface 120105, Ace3, Lua 5.1, English only).
+**Ka0s Consumable Master** — an auto-managed consumable-macro addon for WoW: Midnight and WoW Forever from one codebase (Interface 120105, 16001, Ace3, Lua 5.1, English only).
 
 ## Standards compliance (read first)
 
@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.93.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.94.0 (MIT).
 LibKa0s icons: chevron-down, chevron-up, clear, close, confirm, copy, eye, help, info, move, reset, segment, settings, star, volume-high.
 
 Those two lines are the answer to "which LibKa0s does this build carry, and which of its icons?",
@@ -105,10 +105,12 @@ and never patched in place — a fix goes upstream and re-vendors ([docs/testing
 
 ```
 lua5.1 tests/run.lua    # headless test harness
+KA0S_KIT_CLIENT=forever lua5.1 tests/run.lua    # the same suite under the kit's forever profile (clients-§6)
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .  # lint; luacheck loads no kit, so it runs bounded (testing-§15)
 ```
 
-Both must be green before committing. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
+All three must be green before committing: the addon serves Retail and WoW Forever, so the suite
+gates under both kit profiles. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
 **At release, not at commit.** Produce a full automated-test bundle (its complexity suite is
 `~/.claude/dev-copilot/bin/ka0s-bounded bash tests/_kit/run-automated-tests.sh --suite complexity`, the sighted lizard run with function-count parity, kit revision 51; a crashed or bounded lizard run is complexity fail, never a pass (`crashedFiles`))

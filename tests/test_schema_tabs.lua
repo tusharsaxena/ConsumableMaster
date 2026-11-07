@@ -53,7 +53,7 @@ end)
 -- body is a priority list, which is a collection and not a scalar. What is
 -- countable is the strip, and "one tab per category, no more" is asserted by
 -- "the Macros page carries one tab per category" above.
-test("schema: the Macros strip is the designed run of tabs, in order", function(t)
+h.retailTest("schema: the Macros strip is the designed run of tabs, in order", function(t)
     local KCM = h.loader.loadFullAddon()
     local want = {
         { "FOOD",       "Food"           },

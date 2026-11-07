@@ -14,16 +14,21 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.WPN_ENCH = {
-    -- Midnight (12.x)
-    243733,  -- Thalassian Phoenix Oil   (CRIT + HASTE)
-    243735,  -- Oil of Dawn              (healer)
-    237370,  -- Refulgent Whetstone      (bladed weapons)
-    237369,  -- Refulgent Weightstone    (blunt weapons)
-    -- The War Within (11.x)
-    224107,  -- Algari Mana Oil          (caster)
-    224113,  -- Oil of Deep Toxins
-    224110,  -- Oil of Beledar's Grace
-    222504,  -- Ironclaw Whetstone       (bladed weapons)
-    222508,  -- Ironclaw Weightstone     (blunt weapons)
-}
+KCM.SEED.WPN_ENCH = KCM.PerClient({
+    retail = {
+        -- Midnight (12.x)
+        243733,  -- Thalassian Phoenix Oil   (CRIT + HASTE)
+        243735,  -- Oil of Dawn              (healer)
+        237370,  -- Refulgent Whetstone      (bladed weapons)
+        237369,  -- Refulgent Weightstone    (blunt weapons)
+        -- The War Within (11.x)
+        224107,  -- Algari Mana Oil          (caster)
+        224113,  -- Oil of Deep Toxins
+        224110,  -- Oil of Beledar's Grace
+        222504,  -- Ironclaw Whetstone       (bladed weapons)
+        222508,  -- Ironclaw Weightstone     (blunt weapons)
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})

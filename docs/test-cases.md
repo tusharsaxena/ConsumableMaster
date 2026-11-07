@@ -350,6 +350,33 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
+### test_forever.lua (24)
+
+- Forever: the category list is exactly its fifteen keys
+- Retail: the category list is exactly its fifteen keys
+- Degraded: without the library the categories and seeds are Retail's
+- Forever: every row declares only known client tokens, and ALL keeps all nineteen
+- Forever: a Retail-only category has no bucket, slot, tab, schema row, verb or macro
+- Retail: a Forever-only category has no bucket, slot, tab, schema row, verb or macro
+- Forever: the four new categories have buckets, slots and tabs beside their kin
+- Forever: every seed list is empty by decision
+- Forever: no Retail item ID is a candidate, so every candidate comes from the bags
+- Forever: with no stat-priority seed a spec ranks by its class's primary stat
+- Forever: elixirs, scrolls and bandages classify by their subclass
+- Forever: a draught is matched like a potion
+- Forever: a protection potion is PROT_POT and never a combat potion
+- Forever: an item enhancement, temporary or not, is a weapon enchant
+- Retail: Forever's subclasses classify exactly as before the port
+- TooltipCache: vanilla stat wording gives the stat, the hour and the value
+- TooltipCache: a no-stat scroll or elixir keeps its value
+- TooltipCache: a bandage's heal over time is a flat heal
+- TooltipCache: a protection potion's absorb names its school
+- TooltipCache: vanilla weapon wording gives the affinity and leaves Retail's flags alone
+- Forever: elixirs and scrolls rank a weighed stat first, the rest by their value
+- Forever: bandages rank by the heal and protection potions by the absorb
+- Forever: a vanilla stone goes to the hand its wording names
+- Forever: a Retail profile's Vantus data loads, is not read, and survives a return to Retail
+
 ### test_itemsetup.lua (5)
 
 - ItemSetup: KCM.Item.ItemIDFromLink reads the id out of a full item link
@@ -1656,6 +1683,12 @@ Total.
 - skin switch: the drag icon's label changes
 - skin switch: a reorder row's glyph changes
 
+### test_client_globals.lua (3)
+
+- client globals: no call of a global a client lacks
+- client globals: every allowlist row has a reason and a finding to excuse
+- client globals: the check is falsifiable, a planted bare call is flagged for both clients
+
 ## Totals
 
 | Suite | Cases |
@@ -1678,6 +1711,7 @@ Total.
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
+| test_forever.lua | 24 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1741,5 +1775,6 @@ Total.
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
+| test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1404** |
+| **Total** | **1431** |

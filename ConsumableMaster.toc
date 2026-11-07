@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Title: Ka0s Consumable Master
 ## Notes: Auto-managed account-wide consumable macros.
 ## Author: add1kted2ka0s
@@ -154,16 +154,19 @@ core\SlashCommands.lua
 core\Diagnostics.lua
 
 # Defaults
-# Profile.lua first: KCM.dbDefaults, the AceDB defaults tree and THE
-# declaration site for every shipped default (savedvariables-§2). It sits at
-# the head of this block so it is evaluated in the same position it held when
-# it lived at the top of core/ConsumableMaster.lua — after the whole # Core
-# block, before defaults/Categories.lua, which its `perRow` comment relies on.
-defaults\Profile.lua
-# Categories.lua and the Defaults_*.lua seed files below: position is CONVENTIONAL.
-# Categories.lua builds KCM.Categories from literals (KCM.PREFIX only at call time);
-# each seed file reaches only KCM.ID and its own KCM.SEED slot; none reads KCM.Categories.
+# Categories.lua first: KCM.Categories, filtered ONCE at load to the rows this
+# client is declared for (clients-§4, through KCM.Compat.ForClient, so after the
+# whole # Core block). LOAD-BEARING: Profile.lua right below builds the
+# per-category buckets, the macro bar's perRow and its slot order from
+# KCM.Categories.BY_KEY, so a category absent on this client gets no bucket.
 defaults\Categories.lua
+# Profile.lua: KCM.dbDefaults, the AceDB defaults tree and THE declaration site
+# for every shipped default (savedvariables-§2). After Categories.lua, for the
+# reason above; nothing in # Core reads it at load.
+defaults\Profile.lua
+# The Defaults_*.lua seed files below: position is CONVENTIONAL. Each reaches
+# only KCM.ID, KCM.PerClient (core/Compat.lua: the client's list of its two,
+# clients-§5) and its own KCM.SEED slot; none reads KCM.Categories.
 defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
 defaults\Defaults_Drink.lua

@@ -22,6 +22,11 @@ end
 
 local function skinLib() return LibStub("LibKa0s-Skin-1.0", true) end
 
+-- The client's default skin under the active kit profile (LibKa0s v1.94.0, skinning-§2): WoW Forever
+-- on forever, Ka0s Default on retail. Pinned from the profile, never read back from the addon. A case
+-- that pins Ka0s Default's own values chooses it by name (h.loader.wearKa0s).
+local CLIENT_SKIN = h.loader.CLIENT_SKIN
+
 -- red under: a registration moved to PLAYER_LOGIN or keyed by anything but the folder.
 test("Skin: the owner is registered at file load under the addon's folder", function(t)
     local KCM = h.loader.loadPure()
@@ -32,14 +37,14 @@ test("Skin: the owner is registered at file load under the addon's folder", func
     t.eq(Skin and Skin:OwnerLabel(OWNER), "Ka0s Consumable Master", "the tab and the copy print the brand")
     local source, skin = Skin:GetChoice(OWNER)
     t.eq(source, "ka0s", "a fresh profile's source is the Ka0s skins")
-    t.eq(skin, "ka0s", "and its skin is Ka0s Default")
+    t.eq(skin, CLIENT_SKIN, "and its skin is the client's default: Ka0s Default on Retail")
 end)
 
 -- red under: an owner token snapped to a library token (a Ka0s Default pixel moved), a token
 -- refused for its name, or a follow that does not reach another skin.
 test("Skin: the owner tokens draw today's pixels on Ka0s Default and follow their role elsewhere",
     function(t)
-        local KCM = h.loader.loadPure()
+        local KCM = h.loader.wearKa0s(h.loader.loadPure())
         local Skin = skinLib()
         for name, def in pairs(KCM.SKIN_TOKENS) do
             local r, g, b, a = KCM.Skin.Color(name)
@@ -62,7 +67,7 @@ test("Skin: the owner tokens draw today's pixels on Ka0s Default and follow thei
     end)
 
 test("Skin: SkinColor keeps a call site's arity and SkinEscape its bytes", function(t)
-    local KCM = h.loader.loadPure()
+    local KCM = h.loader.wearKa0s(h.loader.loadPure())
     t.eq(KCM.SkinEscape("cm.warn"), "|cffff8800", "the warning escape is the |cffff8800 it replaces")
     t.eq(KCM.SkinEscape("cm.tipNote"), "|cff888888", "the note gray keeps its bytes")
     t.eq(KCM.SkinEscape("cm.tipSummary"), "|cffaaaaaa", "and the summary gray")
@@ -100,7 +105,7 @@ end)
 
 -- red under: a host copy of a Ka0s Default value that drifted from the library's.
 test("Skin: the degraded facade's Ka0s Default values are the live facade's", function(t)
-    local live = h.loader.loadPure()
+    local live = h.loader.wearKa0s(h.loader.loadPure())
     local degraded = h.loader.loadPureDegraded()
     local drift = {}
     for name in pairs(degraded.SKIN_FALLBACK) do
@@ -147,11 +152,11 @@ test("Skin: the profile's skin is applied at login and on every profile event", 
     KCM.db:SetProfile("Alt")
     KCM.db.profile.skin.skin = "glass"
     KCM.db:SetProfile("Default")
-    t.eq(select(2, Skin:GetChoice(OWNER)), "ka0s", "a switch back applies Default's Ka0s Default")
+    t.eq(select(2, Skin:GetChoice(OWNER)), CLIENT_SKIN, "a switch back applies Default's default skin")
     KCM.db:SetProfile("Alt")
     t.eq(select(2, Skin:GetChoice(OWNER)), "glass", "a switch applies the new profile's skin")
     KCM.db:ResetProfile()
-    t.eq(select(2, Skin:GetChoice(OWNER)), "ka0s", "a reset puts Ka0s Default back on")
+    t.eq(select(2, Skin:GetChoice(OWNER)), CLIENT_SKIN, "a reset puts the client's default skin back on")
 
     local src = readFile(ROOT .. "/core/ConsumableMaster.lua") or ""
     local init = src:match("function KCM:OnInitialize%(%)(.-)\nend")

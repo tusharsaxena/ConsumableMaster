@@ -255,7 +255,7 @@ test("classifier: a recipe carrying its crafted item's tooltip never matches", f
 end)
 
 -- ---- VANTUS: hard-coded itemIDs regardless of tt -------------------------
-test("classifier: VANTUS matches whitelisted rune IDs regardless of item data", function(t)
+h.retailTest("classifier: VANTUS matches whitelisted rune IDs regardless of item data", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local C    = KCM.Classifier
@@ -283,7 +283,7 @@ test("classifier: guard and edge cases for nil/unknown inputs", function(t)
 end)
 
 -- ---- AUG_RUNE: tooltip marker, plus reusable-ID helper --------------------
-test("classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper", function(t)
+h.retailTest("classifier: AUG_RUNE matches any augment-rune tooltip; reusable helper", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local C    = KCM.Classifier

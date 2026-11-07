@@ -50,13 +50,13 @@ local function append(list, ...)
     return out
 end
 
-test("Pins: no pins, or an empty array, answer the auto-ranked list", function(t)
+h.retailTest("Pins: no pins, or an empty array, answer the auto-ranked list", function(t)
     local base, merged = fixture(t)
     t.eqList(merged(nil), base, "nil pins")
     t.eqList(merged({}), base, "an empty pins array")
 end)
 
-test("Pins: a pin missing its item, its position or its candidate is dropped", function(t)
+h.retailTest("Pins: a pin missing its item, its position or its candidate is dropped", function(t)
     local base, merged = fixture(t)
     t.eqList(merged({
         { position = 1 },
@@ -66,14 +66,14 @@ test("Pins: a pin missing its item, its position or its candidate is dropped", f
     }), base, "every pin inactive: the auto-ranked list as it was")
 end)
 
-test("Pins: one pin mid-list lands exactly there, the rest in auto order around it", function(t)
+h.retailTest("Pins: one pin mid-list lands exactly there, the rest in auto order around it", function(t)
     local base, merged = fixture(t)
     local id = base[#base]
     t.eqList(merged({ { itemID = id, position = 3 } }),
         insertAt(without(base, { id }), 3, id), "slot 3")
 end)
 
-test("Pins: pins listed out of position order are placed by position", function(t)
+h.retailTest("Pins: pins listed out of position order are placed by position", function(t)
     local base, merged = fixture(t)
     local a, b = base[#base], base[#base - 1]
     local want = insertAt(insertAt(without(base, { a, b }), 2, b), 4, a)
@@ -83,14 +83,14 @@ test("Pins: pins listed out of position order are placed by position", function(
     }), want, "b at 2, a at 4")
 end)
 
-test("Pins: a pin on the last slot is last", function(t)
+h.retailTest("Pins: a pin on the last slot is last", function(t)
     local base, merged = fixture(t)
     local id = base[1]
     t.eqList(merged({ { itemID = id, position = #base } }),
         append(without(base, { id }), id), "position = #list")
 end)
 
-test("Pins: overshooting pins follow the list, in position then listing order", function(t)
+h.retailTest("Pins: overshooting pins follow the list, in position then listing order", function(t)
     local base, merged = fixture(t)
     local a, b, c = base[1], base[2], base[3]
     t.eqList(merged({
@@ -102,7 +102,7 @@ end)
 
 -- The collision the UI cannot write: the first listed wins the slot; the loser is
 -- never placed at a later slot and lands after every unpinned item.
-test("Pins: two pins on one slot -- the first wins it, the second goes to the end", function(t)
+h.retailTest("Pins: two pins on one slot -- the first wins it, the second goes to the end", function(t)
     local base, merged = fixture(t)
     local a, b = base[#base], base[#base - 1]
     local want = append(insertAt(without(base, { a, b }), 1, a), b)
@@ -115,7 +115,7 @@ end)
 -- A position no slot ever equals (zero, negative, fractional) parks at the head of
 -- the sorted pins, so every pin behind it is held off its slot too and all of them
 -- follow the unpinned items.
-test("Pins: a position no slot equals holds every later pin back to the end", function(t)
+h.retailTest("Pins: a position no slot equals holds every later pin back to the end", function(t)
     local base, merged = fixture(t)
     local a, b, c = base[#base], base[#base - 1], base[#base - 2]
     t.eqList(merged({ { itemID = a, position = 0 } }),
@@ -130,7 +130,7 @@ test("Pins: a position no slot equals holds every later pin back to the end", fu
 end)
 
 -- One item pinned twice: it is placed at both slots, so the list is one longer.
-test("Pins: an item pinned at two slots appears at both", function(t)
+h.retailTest("Pins: an item pinned at two slots appears at both", function(t)
     local base, merged = fixture(t)
     local a = base[#base]
     local rest = without(base, { a })
@@ -146,7 +146,7 @@ end)
 -- Pin merge
 -- ---------------------------------------------------------------------------
 
-test("Selector: a pin at position 1 moves its item to the front", function(t)
+h.retailTest("Selector: a pin at position 1 moves its item to the front", function(t)
     local KCM = h.loader.loadPure()
     local S = KCM.Selector
     local base = S.GetEffectivePriority("FOOD")
@@ -183,7 +183,7 @@ end)
 -- pins array as one contiguous 1..N run — so this pins the behavior of a
 -- hand-edited or corrupted SavedVariables: first pin listed wins the slot, the
 -- loser is displaced rather than silently dropped.
-test("Selector: two pins on the same position keep both items in the list", function(t)
+h.retailTest("Selector: two pins on the same position keep both items in the list", function(t)
     local KCM = h.loader.loadPure()
     local S = KCM.Selector
     local base = S.GetEffectivePriority("FOOD")

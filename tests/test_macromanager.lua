@@ -29,7 +29,7 @@ test("MacroManager: BuildBody emits #showtooltip + /cast <Name> for a spell pick
         "spell pick → #showtooltip + /cast <Name>")
 end)
 
-test("MacroManager: a targeted category's spell body carries the conditional", function(t)
+h.retailTest("MacroManager: a targeted category's spell body carries the conditional", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager
     local mock = h.loader.mock
@@ -40,7 +40,7 @@ test("MacroManager: a targeted category's spell body carries the conditional", f
         "[@mouseover,help][@target,help] is non-exhaustive")
 end)
 
-test("MacroManager: a targeted category's item body carries the same conditional", function(t)
+h.retailTest("MacroManager: a targeted category's item body carries the same conditional", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager
     local body = M.BuildBody("BATTLE_REZ", 248486)
@@ -48,7 +48,7 @@ test("MacroManager: a targeted category's item body carries the same conditional
         "/use takes @unit conditionals too, and #showtooltip names the item explicitly")
 end)
 
-test("MacroManager: turning mouseover off drops the conditional", function(t)
+h.retailTest("MacroManager: turning mouseover off drops the conditional", function(t)
     local KCM = h.loader.loadPure()
     local M   = KCM.MacroManager
     KCM.db.profile.categories.BATTLE_REZ.mouseover = false

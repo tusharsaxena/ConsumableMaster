@@ -1,7 +1,9 @@
 -- tests/test_categories.lua — new-category wiring: metadata, seeds, DB buckets.
 
 local h = _G.KCM_TEST
-local test = h.test
+-- Every case here pins a Retail-only category (Vantus, the augment rune, Bloodlust,
+-- Battle Rez) or a Retail seed, so each runs as Retail under both kit profiles.
+local test = h.retailTest
 
 test("Categories: VANTUS and WPN_ENCH registered with correct metadata and DB buckets", function(t)
     local KCM = h.loader.loadPure()

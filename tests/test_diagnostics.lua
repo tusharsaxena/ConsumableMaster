@@ -209,7 +209,7 @@ end)
 -- which re-fetches a pending entry and may resolve it. Snapshotted after that, the
 -- report would describe a cache it had just changed, and an item stranded at
 -- pending (the evidence a maintainer wants) could read as resolved.
-test("Diagnostics: the tooltip cache is snapshotted before any category is ranked", function(t)
+h.retailTest("Diagnostics: the tooltip cache is snapshotted before any category is ranked", function(t)
     local KCM = build()
     local TC = KCM.TooltipCache
     local order = {}

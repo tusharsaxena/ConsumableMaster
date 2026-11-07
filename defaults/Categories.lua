@@ -10,6 +10,13 @@
 --   rankerKey   : hint for Ranker module (Milestone 4)
 --   classifier  : hint for Classifier module (Milestone 4)
 --   emptyText   : fallback macro body when category has no resolvable items
+--   clients     : the game clients the category exists on (clients-§4):
+--                 { "retail" } or { "forever" }; omitted, it serves both.
+--                 A row the running client is not in is DROPPED from LIST
+--                 and BY_KEY below, once, at load, so it has no macro, no
+--                 settings tab, no macro-bar slot, no slash name and no
+--                 profile bucket on that client. It is never registered and
+--                 then hidden.
 --
 -- Fields (composite — composite=true):
 --   composite   : true marks this row as an aggregator; the pipeline routes
@@ -90,8 +97,22 @@ KCM.Categories.LIST = {
         classifier  = "HS",
         emptyText   = emptyMacro("no healthstone in bags"),
     },
+    -- WoW Forever only (owner ruling 2026-11-08): vanilla's first-aid bandages,
+    -- consumable subclass 7, ranked by the heal.
+    {
+        key         = "BANDAGE",
+        clients     = { "forever" },
+        macroName   = "KCM_BANDAGE",
+        displayName = "Bandage",
+        shortName   = "Bandage",
+        specAware   = false,
+        rankerKey   = "BANDAGE",
+        classifier  = "BANDAGE",
+        emptyText   = emptyMacro("no bandage in bags"),
+    },
     {
         key         = "VANTUS",
+        clients     = { "retail" },
         macroName   = "KCM_VANTUS",
         displayName = "Vantus Rune",
         shortName   = "Vantus",
@@ -110,6 +131,19 @@ KCM.Categories.LIST = {
         classifier  = "FLASK",
         emptyText   = emptyMacro("no flask for this spec"),
     },
+    -- WoW Forever only: vanilla's elixirs, consumable subclass 2. Spec-aware
+    -- like FLASK and ranked by the same stat-priority model.
+    {
+        key         = "ELIXIR",
+        clients     = { "forever" },
+        macroName   = "KCM_ELIXIR",
+        displayName = "Elixir",
+        shortName   = "Elixir",
+        specAware   = true,
+        rankerKey   = "ELIXIR",
+        classifier  = "ELIXIR",
+        emptyText   = emptyMacro("no elixir for this spec"),
+    },
     {
         key         = "CMBT_POT",
         macroName   = "KCM_CMBT_POT",
@@ -120,6 +154,20 @@ KCM.Categories.LIST = {
         classifier  = "CMBT_POT",
         emptyText   = emptyMacro("no combat potion for this spec"),
     },
+    -- WoW Forever only: a potion that absorbs one magic school's damage
+    -- ("Absorbs 1950 to 3250 fire damage."), ranked by the absorb amount.
+    -- CMBT_POT never takes one.
+    {
+        key         = "PROT_POT",
+        clients     = { "forever" },
+        macroName   = "KCM_PROT_POT",
+        displayName = "Protection Potion",
+        shortName   = "Prot",
+        specAware   = false,
+        rankerKey   = "PROT_POT",
+        classifier  = "PROT_POT",
+        emptyText   = emptyMacro("no protection potion in bags"),
+    },
     {
         key         = "STAT_FOOD",
         macroName   = "KCM_STAT_FOOD",
@@ -129,6 +177,20 @@ KCM.Categories.LIST = {
         rankerKey   = "STAT_FOOD",
         classifier  = "STAT_FOOD",
         emptyText   = emptyMacro("no stat food for this spec"),
+    },
+    -- WoW Forever only: vanilla's scrolls, consumable subclass 4. Spec-aware and
+    -- ranked like ELIXIR; a scroll with no stat (Protection) ranks after the
+    -- stat scrolls, by its value.
+    {
+        key         = "SCROLL",
+        clients     = { "forever" },
+        macroName   = "KCM_SCROLL",
+        displayName = "Scroll",
+        shortName   = "Scroll",
+        specAware   = true,
+        rankerKey   = "SCROLL",
+        classifier  = "SCROLL",
+        emptyText   = emptyMacro("no scroll for this spec"),
     },
     {
         key         = "WPN_ENCH",
@@ -143,6 +205,7 @@ KCM.Categories.LIST = {
     },
     {
         key         = "AUG_RUNE",
+        clients     = { "retail" },
         macroName   = "KCM_AUG_RUNE",
         displayName = "Augment Rune",
         shortName   = "Rune",
@@ -153,6 +216,7 @@ KCM.Categories.LIST = {
     },
     {
         key         = "BLOODLUST",
+        clients     = { "retail" },
         macroName   = "KCM_BLOODLUST",
         displayName = "Bloodlust",
         shortName   = "Lust",
@@ -162,6 +226,7 @@ KCM.Categories.LIST = {
     },
     {
         key         = "BATTLE_REZ",
+        clients     = { "retail" },
         macroName   = "KCM_BATTLE_REZ",
         displayName = "Battle Rez",
         shortName   = "Brez",
@@ -199,6 +264,23 @@ KCM.Categories.LIST = {
         emptyText   = emptyMacro("no AIO mana option available"),
     },
 }
+
+-- The client gate (clients-§4), applied ONCE, here, at load: LIST and BY_KEY
+-- hold only the rows the running client is declared for. Every reader -- the
+-- pipeline, the macro manager, the settings tabs, the macro bar, the slash and
+-- dump verbs, the profile defaults (defaults/Profile.lua builds its buckets
+-- from BY_KEY) -- sees this client's set and nothing else. ALL keeps every row
+-- for the docs and the tests; no feature code reads it.
+KCM.Categories.ALL = KCM.Categories.LIST
+do
+    -- core/Compat.lua loads in the # Core block, long before this file.
+    local admit = KCM.Compat.ForClient
+    local list = {}
+    for _, row in ipairs(KCM.Categories.ALL) do
+        if admit(row.clients) then list[#list + 1] = row end
+    end
+    KCM.Categories.LIST = list
+end
 
 KCM.Categories.BY_KEY = {}
 for _, row in ipairs(KCM.Categories.LIST) do

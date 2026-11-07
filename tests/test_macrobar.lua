@@ -51,7 +51,7 @@ test("macrobar model: NormalizeOrder drops unknown keys", function(t)
     for _, k in ipairs(out) do t.ne(k, "NOT_A_CATEGORY", "unknown key dropped") end
 end)
 
-test("macrobar model: NormalizeOrder appends categories missing from a saved order", function(t)
+h.retailTest("macrobar model: NormalizeOrder appends categories missing from a saved order", function(t)
     local KCM = h.loader.loadPure()
     local out, changed = KCM.MacroBarModel.NormalizeOrder({ "VANTUS" })
     t.truthy(changed, "reports a change")

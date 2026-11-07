@@ -19,10 +19,15 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.FLASK = {
-    241326,  -- Flask of the Shattered Sun      (CRIT)
-    241324,  -- Flask of the Blood Knights      (HASTE)
-    241322,  -- Flask of the Magisters          (MASTERY)
-    241321,  -- Flask of Thalassian Resistance  (VERSATILITY)
-    241334,  -- Vicious Thalassian Flask of Honor (PvP honor-gain flask)
-}
+KCM.SEED.FLASK = KCM.PerClient({
+    retail = {
+        241326,  -- Flask of the Shattered Sun      (CRIT)
+        241324,  -- Flask of the Blood Knights      (HASTE)
+        241322,  -- Flask of the Magisters          (MASTERY)
+        241321,  -- Flask of Thalassian Resistance  (VERSATILITY)
+        241334,  -- Vicious Thalassian Flask of Honor (PvP honor-gain flask)
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})

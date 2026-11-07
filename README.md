@@ -1,12 +1,12 @@
 # Consumable Master
 
-![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5-purple)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5_and_Forever_1.60.1-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1404%2F1404_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1431%2F1431_passing-green)
 
-Retail only for now; WoW Forever support is planned. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
+Supports Retail and WoW Forever. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
 Loot something better, change spec, reload or drop out of combat, and each macro re-points at your current best pick. Usually that's an item. Where a class ability does the job (Recuperate, for one), it's the spell. The macros are account-wide, so one set covers every character you have. The addon finds them by name rather than by slot, so you can shuffle them around your macro list and they'll keep working next to macros of your own.
 
@@ -31,6 +31,8 @@ Loot something better, change spec, reload or drop out of combat, and each macro
 | 15 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
 If a better pick turns up while you're in combat, the macro updates the moment you leave it. WoW doesn't allow macro changes mid-fight.
+
+On **WoW Forever** the set is a little different, because vanilla Azeroth has no Vantus runes, augment runes, Bloodlust or battle resurrection. Those four macros don't exist there. Forever gets four of its own instead: <code>KCM_ELIXIR</code> (spec-aware, by your stat priority), <code>KCM_SCROLL</code> (spec-aware, the same way), <code>KCM_BANDAGE</code> (the biggest heal) and <code>KCM_PROT_POT</code> (protection potions, the biggest absorb). That's still thirteen categories plus the two combo macros. Forever ships no built-in item lists yet, so every pick there comes from what's in your bags.
 
 ## Screenshots
 

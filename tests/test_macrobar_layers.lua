@@ -156,7 +156,7 @@ test("layers: the flyout is DIALOG and clamped from construction, set once", fun
         "the panel sits at the container's level through the named band (CON-Z09)")
 end)
 
-test("layers: a flyout entry uses the slot's ladder (CON-Z04)", function(t)
+h.retailTest("layers: a flyout entry uses the slot's ladder (CON-Z04)", function(t)
     local KCM  = withLayers()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT

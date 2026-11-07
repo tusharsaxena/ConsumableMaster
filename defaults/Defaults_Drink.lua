@@ -15,11 +15,16 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.DRINK = {
-    113509,  -- Conjured Mana Bun (mage conjured food) — top by default via the
-             -- Ranker's conjured-bonus layer; user can demote / remove.
-    260261,  -- Bloom Nectar
-    260260,  -- Springrunner Sparkling
-    260259,  -- Everspring Water
-    260258,  -- Purified Cordial
-}
+KCM.SEED.DRINK = KCM.PerClient({
+    retail = {
+        113509,  -- Conjured Mana Bun (mage conjured food) — top by default via the
+                 -- Ranker's conjured-bonus layer; user can demote / remove.
+        260261,  -- Bloom Nectar
+        260260,  -- Springrunner Sparkling
+        260259,  -- Everspring Water
+        260258,  -- Purified Cordial
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})

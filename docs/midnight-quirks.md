@@ -347,3 +347,19 @@ Blizzard removed `LEARNED_SPELL_IN_TAB` from retail; AceEvent throws `Attempt to
 If a future patch removes another event the addon listens for, AceEvent still throws on registration, but the throw no longer escapes. Every registration goes through `KCM.SafeRegisterEvent` (`LibKa0s-Core-1.0`, bound in `core/CoreSetup.lua`), which asks `C_EventUtils.IsEventValid` first (a private probe frame on a client without it), then `pcall`s the call, and appends a refused name once to `KCM.RejectedEvents` (events-frames-taint-§1). So one retired name costs only its own handler, and every other event in `KCM.EVENTS` stays bound. Before, a bare `self:RegisterEvent` raised out of `KCM:OnEnable` at that name and every event after it went unregistered.
 
 **The trade.** A retired name is now recorded and skipped rather than raised, so it no longer shows up as a Lua error on login. It shows up in two places instead: `/cm dump events` marks it `rejected`, and the `[Init]` line of a `/cm debug on` session ends `, rejected events: <NAME>`. The fix is unchanged: replace the name with whatever modern event covers the same trigger. The degraded Core stub (no LibKa0s) keeps only the `pcall` rung, so on that path AceEvent reports an unknown name to its first registrant only.
+
+## Interface line — track both clients' builds
+
+`ConsumableMaster.toc` declares two build numbers, Retail's first and WoW Forever's second (toc-file-§3):
+
+```
+## Interface: 120105, 16001
+```
+
+Each value is `(major * 10000) + (minor * 100) + patch` for that client's Live patch: Retail Midnight 12.1.5 and Forever 1.60.1. Each client picks the number that matches it. **When either client ships a patch, replace that client's number** (`/dev-copilot:wow-bump-interface` bumps them per client) so the addon reads as up to date in that client's AddOn list, and move the README `[WoW]` badge in the same change.
+
+## WoW Forever's consumable subclasses
+
+`Enum.ItemConsumableSubclass` keeps Retail's numbers on Forever (Potion 1, Elixir 2, Flask 3, Scroll 4, Food & Drink 5, Item Enhancement 6, Bandage 7, Other 8) and adds **Draught 13, Device 14 and ItemenhancementTemporary 15** (Ketho/BlizzardInterfaceResources `forever` 1.60.1 (70532), `Resources/LuaEnum.lua`). `core/Classifier.lua` reads them through two per-client lists picked once at load: on Forever a Draught matches like a Potion, and an Item Enhancement (6 or 15) is a weapon enchant on its subclass alone, because vanilla's wording ("Increase sharp weapon damage by 2 for 30 minutes") has no "your … weapon" for the tooltip flag. A Device joins nothing. On Retail both lists are what the Classifier matched before the port.
+
+Vanilla tooltips also phrase effects their own way, and `core/TooltipCache.lua` reads four of them into fields only the Forever paths use: a bandage's "Heals N damage over X sec." (a flat heal), a protection potion's "Absorbs X to Y fire damage." (`absorbValue`, `absorbSchool`), an "Increases armor by N" value (`effectValue`) and the weapon words "sharp" / "blunt" (`weaponWordAffinity`). Stamina, Spirit, armor and spell damage are not stat tokens, so an item granting only those ranks by its value, not by the stat priority. Which items carry which subclass on Forever is unconfirmed in game; the owner's `/cm dump bags` settles it.

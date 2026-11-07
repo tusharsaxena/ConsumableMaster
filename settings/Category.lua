@@ -536,7 +536,7 @@ end
 local function perHandFlags(cat, rowID, p)
     if not cat.perHand then return nil, nil, nil end
     local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(rowID)
-    local aff = (tt and tt.weaponAffinity) or "any"
+    local aff = (tt and (tt.weaponAffinity or tt.weaponWordAffinity)) or "any"
     return (p.mh and rowID == p.mh) and true or false,
            (p.oh and rowID == p.oh) and true or false,
            (aff == "any" or aff == p.mhAff or aff == p.ohAff)

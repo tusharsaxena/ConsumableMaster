@@ -191,7 +191,7 @@ end)
 
 -- red under: an owner token that lost a Ka0s Default pixel.
 test("Skin flip: Ka0s Default keeps this addon's pixels", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local got = drawn(KCM, barCfg(KCM))
     t.eq(rgba(got.buttonBorder), "0,0,0,1", "the button edge: icon.border's black (SF1-CM)")
     t.eq(rgba(got.buttonBackdrop), "0,0,0,0.6", "the button fill")
@@ -231,7 +231,7 @@ end)
 -- under every other skin, and Show border off still hides it.
 test("Skin flip: the button edge is the skin's icon.border under Ka0s Default and Obsidian (SF1-CM)",
     function(t)
-        local KCM = h.loader.loadFullAddon()
+        local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
         local Skin = skinLib()
         local cfg = barCfg(KCM)
         t.eq(rgba(KCM.dbDefaults.profile.macroBar.buttonBorderColor), "0,0,0,1",
@@ -479,7 +479,7 @@ end)
 -- red under: the count left on SetFont, where a 12.0.7 client draws no shadow; its font object's
 -- shadow lost under Ka0s Default; or the color written before the font object replaces it.
 test("Skin flip: the stack count wears a font object: its own shadow, or the skin's", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local Skin = skinLib()
     local _, restore = fontObjects()
     local cleanup = function()

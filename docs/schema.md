@@ -41,12 +41,15 @@ db.profile
 ├── scale                number     -- multiplies macroBar.scale
 ├── alpha                number     -- multiplies macroBar.alpha
 ├── categories
-│   ├── FOOD │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS │ AUG_RUNE │ BLOODLUST │ BATTLE_REZ ← single-pick, non-spec-aware
+│   │                       -- only this client's categories (defaults/Categories.lua `clients`):
+│   │                       -- VANTUS/AUG_RUNE/BLOODLUST/BATTLE_REZ on Retail, BANDAGE/PROT_POT and
+│   │                       -- ELIXIR/SCROLL on WoW Forever, the rest on both
+│   ├── FOOD │ DRINK │ HP_POT │ MP_POT │ HS │ VANTUS │ AUG_RUNE │ BLOODLUST │ BATTLE_REZ │ BANDAGE │ PROT_POT ← single-pick, non-spec-aware
 │   │   ├── added       { [id] = true }                  -- user-added items + spells
 │   │   ├── blocked     { [id] = true }                  -- never enters candidate set
 │   │   ├── pins        { { itemID = N, position = K }, ... } -- override Ranker order
 │   │   └── discovered  { [id] = unixTimestamp }         -- last-seen-in-bags
-│   ├── STAT_FOOD │ CMBT_POT │ FLASK │ WPN_ENCH  ← single-pick, spec-aware
+│   ├── STAT_FOOD │ CMBT_POT │ FLASK │ WPN_ENCH │ ELIXIR │ SCROLL  ← single-pick, spec-aware
 │   │   └── bySpec
 │   │       └── ["<classID>_<specID>"]
 │   │           ├── added
@@ -62,7 +65,9 @@ db.profile
 ├── skin                            -- the skin this addon wears (skinning-§2); eight
 │   │                               -- skipRender rows, drawn by General's Skin tab
 │   ├── source                      "ka0s" │ "eui"
-│   ├── skin                        a registered skin key ("ka0s" = Ka0s Default)
+│   ├── skin                        a registered skin key ("ka0s" = Ka0s Default); a new profile
+│   │                               -- takes the client's default (KCM.DEFAULT_SKIN): WoW Forever
+│   │                               -- on Forever, Ka0s Default on Retail
 │   ├── ignorePanel │ ignoreFonts   boolean  -- the Scope (true │ false in a new profile)
 │   ├── font │ texture              LibSharedMedia key; "" = the skin's own
 │   ├── outline                     "all" │ "hud" │ "off"  -- the Font outline ("hud" in a new profile)

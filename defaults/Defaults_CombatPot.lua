@@ -19,9 +19,14 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.CMBT_POT = {
-    241308,  -- Light's Potential           (primary stat, 30s)
-    241288,  -- Potion of Recklessness      (top secondary stat, 30s)
-    241292,  -- Draught of Rampant Abandon  (primary stat + void zone, 30s)
-    241296,  -- Potion of Zealotry          (stacking Holy damage on target)
-}
+KCM.SEED.CMBT_POT = KCM.PerClient({
+    retail = {
+        241308,  -- Light's Potential           (primary stat, 30s)
+        241288,  -- Potion of Recklessness      (top secondary stat, 30s)
+        241292,  -- Draught of Rampant Abandon  (primary stat + void zone, 30s)
+        241296,  -- Potion of Zealotry          (stacking Holy damage on target)
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})

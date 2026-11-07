@@ -666,7 +666,7 @@ end)
 -- red under: `isLocked` reading a value captured at load.
 test("Launcher: the tooltip reads the lock on every show, never a cached copy", function(t)
     withMenu(function(menu)
-        local KCM = loader.loadFullAddon()
+        local KCM = h.loader.wearKa0s(loader.loadFullAddon())
         local object = KCM.Launcher:Object()
 
         KCM.Schema:Set("macroBar.locked", true)
@@ -686,7 +686,7 @@ end)
 -- red under: a tooltip suppressed while disabled, or an `isEnabled` reading the
 -- whole latch (the perf arm) instead of the disabled hold.
 test("Launcher: the tooltip still draws while disabled, with the same two hints", function(t)
-    local KCM = loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(loader.loadFullAddon())
     KCM.Settings.Helpers.SetAndRefresh("enabled", false)
     local raw, lines = hover(KCM)
 

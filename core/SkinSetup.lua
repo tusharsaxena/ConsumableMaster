@@ -8,7 +8,9 @@
 --                            vocabulary (Shell, Button, Text, ...) and Token / Color / Resolve /
 --                            OnLooksChanged. Every surface that draws reads its colors here.
 --   KCM.SkinChoice()         the stored (source, skin) pair, read through the schema seam;
---                            "ka0s", "ka0s" before AceDB has built the profile.
+--                            "ka0s" and KCM.DEFAULT_SKIN before AceDB has built the profile.
+--   KCM.DEFAULT_SKIN         the client's default skin, Skin:DefaultSkin(): "forever" on WoW
+--                            Forever, "ka0s" on Retail and without the library.
 --   KCM.WriteSkinChoice(s,k,i,m) the write seam: every half through KCM.Schema:Set, the one door
 --                            `/cm set` and the panel already write through (architecture-§5);
 --                            `i`, the Scope's `{ panel, fonts }`, writes the two exceptions, and
@@ -110,6 +112,10 @@ local PANEL_PATH, FONTS_PATH = "skin.ignorePanel", "skin.ignoreFonts"
 local FONT_PATH, TEXTURE_PATH = "skin.font", "skin.texture"
 local OUTLINE_PATH = "skin.outline"
 local DEFAULT = "ka0s"
+-- The client's default skin (LibKa0s v1.94.0, Skin minor 18; skinning-§2): WoW Forever on the Forever
+-- client, Ka0s Default on Retail and without the library. defaults/Profile.lua stores it, and a
+-- profile with no skin reads it.
+KCM.DEFAULT_SKIN = (Skin and type(Skin.DefaultSkin) == "function") and Skin:DefaultSkin() or DEFAULT
 
 -- The brand the Skin tab and the copy confirmation print (skinning-§1's `opts.label`).
 local LABEL = "Ka0s Consumable Master"
@@ -370,11 +376,11 @@ local function seamSet(path, value)
     KCM.Schema:Set(path, value)
 end
 
---- The stored pair, lazily and nil-safely: Ka0s Default until the profile store exists.
+--- The stored pair, lazily and nil-safely: the client's default skin until the profile store exists.
 function KCM.SkinChoice()
     local get = seamGet()
-    if not get then return DEFAULT, DEFAULT end
-    return get(SOURCE_PATH) or DEFAULT, get(SKIN_PATH) or DEFAULT
+    if not get then return DEFAULT, KCM.DEFAULT_SKIN end
+    return get(SOURCE_PATH) or DEFAULT, get(SKIN_PATH) or KCM.DEFAULT_SKIN
 end
 
 --- A stored override as the profile keeps it: the LSM key, or "" for the skin's own.

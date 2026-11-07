@@ -334,15 +334,19 @@ end)
 -- as the surface source; this runner registers none, so no runner edit).
 --
 -- The degraded arm is a real load with libs/LibKa0s/ skipped. `ignore` is the
--- five members this addon does not wire, each because it has no caller here:
---     git grep -n 'Compat\.\(CanAccess\|IsSafeKey\|GetSpellInfo\|GetSpellTexture\|GetSpellCooldown\)' -- core modules settings
+-- members this addon does not wire, each because it has no caller here:
+--     git grep -n 'Compat\.\(CanAccess\|IsSafeKey\|GetSpellInfo\|GetSpellTexture\|GetSpellCooldown\|IsForever\|IsRetail\|UnitCharacterName\|RegionalNames\|CharacterKey\|RealmKey\)' -- core modules settings
 -- answers nothing. A member the major grows later is on neither list and fails
 -- here until this addon decides, which is the pressure the API document asks
 -- for (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires it").
 local COMPAT_NOT_WIRED = {
     "CanAccess", "IsSafeKey", "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown",
-    -- LibKa0s v1.92.0 (Compat minor 2) added these four client helpers. No caller here until the Forever port.
-    "IsForever", "IsRetail", "ClientKey", "ForClient",
+    -- LibKa0s v1.92.0 (Compat minor 2) added four client helpers. The Forever port wires ClientKey (the
+    -- seed selection) and ForClient (the category gate); these two have no caller here.
+    "IsForever", "IsRetail",
+    -- LibKa0s v1.94.0 (Compat minor 4): the character-identity readers. No caller here: this addon
+    -- shows no unit's name, and AceDB keys the profiles itself.
+    "UnitCharacterName", "RegionalNames", "CharacterKey", "RealmKey",
 }
 
 test("Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires", function(t)

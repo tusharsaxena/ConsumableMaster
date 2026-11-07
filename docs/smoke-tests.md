@@ -20,12 +20,14 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | DIAG-1 – DIAG-44 | Diagnostics | Debug console, the diagnostics report, the console's Diagnostics link, what the log carries and holds back, the lines the library writes into it, the shared window chrome and marks, the perf harness, resizing the console, its copy window and the perf panel, no line under any window title, the library windows' header band. Run for `core/DebugLogSetup.lua`, `core/Diagnostics.lua`, `core/PerfSetup.lua`. |
 | SKIN-1 – SKIN-47 | Skins | The one-time HUD reset's visible change under Ka0s Default and that it runs once, the media pickers' previews, the Font outline, the labels' From skin flags, `/cm skin`, width parity and the HUD size scale, the Skin tab, every skin live on the bar and in combat, the settings pages and the Profiles tree, the addon's own rows and tooltip lines, the tool windows, fonts and overrides, what stays unskinned, EllesmereUI on and off, the copy, profiles, the CLI, the first-run picker (login, preview, Apply, close, the gear, profiles, the stand-down, across Ka0s addons), the skin list's outside press, the settings icons' crop and outline, the picker's unlock preview, a degraded install. Run for `core/SkinSetup.lua`, a `skin.*` row, the macro bar's style appliers, the `KCM*` widgets and the raw reorder rows, `settings/Profiles.lua`, the picker wiring in `core/ConsumableMaster.lua`, and a LibKa0s re-vendor that moves a `Skin*` or `OptionsAppearance` / `OptionsSkinPicker` minor. |
 | DEGRADED-1 – DEGRADED-8 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
+| FOREVER-1 – FOREVER-18 | WoW Forever | The port's checks on a live WoW Forever client: the AddOns list, a clean load with Forever's fifteen macros and none of Retail's four, the four Forever-only categories classifying and ranking from the bags, draughts and vanilla weapon stones, the panel and bar, a Retail profile carried over, skins, the launcher and diagnostics; plus one Retail check that Forever's four are absent there. Run for `defaults/Categories.lua`'s `clients`, `defaults/Profile.lua`, the seed files, `core/Classifier.lua`'s per-client lists, the vanilla patterns in `core/TooltipCache.lua`, the four new Ranker scorers and a LibKa0s re-vendor that moves `Compat`. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
 Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/SkinSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Slash.lua`, `core/PerfSetup.lua`): run INSTALL-6, SLASH-1, SLASH-2, PANEL, PROFILE-1, PROFILE-15 – PROFILE-21, DIAG, BAR-6, BAR-12, BAR-26 – BAR-30, SKIN-1, SKIN-4 and SKIN-6. The swap is meant to be pixel-identical, so anything that looks different is the finding. A change to `.luacheckrc`, a headless-only gate or a doc needs no smoke run.
 
 ## Before you start
 
+- **Clients (clients-§6).** The addon serves Retail and WoW Forever. Every check outside the WoW Forever section runs on **Retail**, where its recorded result was taken; on Forever, Vantus, augment runes, Bloodlust and Battle Rez do not exist, so a check about them is Retail's alone. The **WoW Forever** section names the checks to run on a live **Forever** client, including the absence of Retail's four categories there, and FOREVER-18 checks on Retail that Forever's four are absent.
 - Turn error display on (`/console scriptErrors 1`, or load BugSack). Several failures below are Lua errors that the default UI hides, and a hidden error reads as a pass.
 - Pin the chat frame. Most regressions show up as a `KCM.Debug` line before they show in a macro body.
 - Drag every `KCM_*` macro onto an action bar so icon changes are visible.
@@ -710,6 +712,52 @@ Rename `Interface/AddOns/ConsumableMaster/libs/LibKa0s` to `libs/LibKa0s_off` an
 
 **DEGRADED-8. Sub-commands still answer without the library.** `/cm priority`, `/cm stat`, `/cm aio` and `/cm bar help` → each prints its rows as plain text (`/cm stat primary  Set primary stat — …`), with no gold, no color codes and no em dash between the command and its description (an em dash inside a description is its own text). `/cm priority food list` and `/cm stat list 7_263` still do what they name, with no Lua error. Gold rows here mean the degraded arm is copying the library's formatter (ConsumableMaster#44). Result: pass (owner-marked 2026-10-10)
 
+## WoW Forever
+
+**Client: WoW Forever** (1.60.1, interface 16001), every check here except FOREVER-18, which is **Retail**. The rest of this file is Retail's; these checks run the port's core on Forever, where the client draws its own frames and keeps its own `WTF`. Every Retail rule above holds: zero Lua errors, the cyan `[CM]` prefix, no taint warning. Forever ships **no seed lists** yet (owner ruling 2026-11-08, step 2), so every pick on Forever comes from the bags; a category with nothing matching in the bags writes its empty-state body.
+
+**Code:** `ConsumableMaster.toc` (the two-number `## Interface:` line), `defaults/Categories.lua` (`clients`), `defaults/Profile.lua`, `defaults/Defaults_*.lua` (`KCM.PerClient`), `core/Compat.lua` (`ClientKey`, `ForClient`), `core/Classifier.lua`, `core/TooltipCache.lua`, `modules/Ranker.lua`, `settings/Panel.lua` (`macroOrder`).
+
+**Setup.** Link the checkout into the Forever client once, from an elevated Windows prompt, then fully restart the client:
+`mklink /d "G:\Games\Blizzard\World of Warcraft\_forever_\Interface\AddOns\ConsumableMaster" "D:\Profile\Users\Tushar\Documents\GIT\ConsumableMaster"`.
+Forever's SavedVariables are `_forever_/WTF/Account/<ACCOUNT>/SavedVariables/ConsumableMaster.lua`. Props, as many as you can gather: two foods, a drink, a healing and a mana potion, a draught if Forever has one, an elixir of your primary stat and one of another stat, a Scroll of Agility (or your stat) and a Scroll of Protection, two bandages of different tiers, a fire and a shadow protection potion, a sharpening stone and a weightstone, a weapon oil, and a combat potion such as a Mighty Rage or Swiftness Potion.
+
+**FOREVER-1. The AddOns list.** At character select → **Ka0s Consumable Master** is listed with its logo and is **not** marked *Out of date*, and "Load out of date AddOns" does not need to be ticked for it to load. Result: owed
+
+**FOREVER-2. A fresh install writes Forever's fifteen macros.** With no `ConsumableMaster.lua` in Forever's SavedVariables, log in → zero Lua errors. The macro UI's **General Macros** tab holds exactly `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_BANDAGE`, `KCM_FLASK`, `KCM_ELIXIR`, `KCM_CMBT_POT`, `KCM_PROT_POT`, `KCM_STAT_FOOD`, `KCM_SCROLL`, `KCM_WPN_ENCH`, `KCM_HP_AIO`, `KCM_MP_AIO`, and **no** `KCM_VANTUS`, `KCM_AUG_RUNE`, `KCM_BLOODLUST` or `KCM_BATTLE_REZ`. The skin is WoW Forever (FOREVER-15). Result: owed
+
+**FOREVER-3. Retail's four are absent everywhere.** `/cm config` → the Macros page's tab strip runs Food, Drink, Healing Potion, Mana Potion, Healthstone, Bandage, AIO Health, AIO Mana, Flask, Elixir, Combat Potion, Protection Potion, Stat Food, Scroll, Weapon Enchant, with no Vantus Rune, Augment Rune, Bloodlust or Battle Rez tab, and no *Cast on mouseover* row anywhere. The macro bar has fifteen buttons in that order. `/cm priority vantus list`, `/cm priority bloodlust list` → `unknown category`, and the `known cats:` line names none of the four. `/cm list` shows no `categories.BATTLE_REZ.mouseover`. Result: owed
+
+**FOREVER-4. The bag dump the owner records.** With every prop in your bags, `/cm dump bags` and then `/cm dump item <id>` for each prop → copy the output into the run record. For each, note the `classID` / `subClassID` and the `classified:` line. This is the in-game evidence the port's subclass rulings wait on (Draught 13, Item Enhancement 6 and 15, which items are Elixir 2 and Scroll 4). Result: owed
+
+**FOREVER-5. Elixirs rank by your stat.** With an elixir of your primary stat and one of another stat in bags → `KCM_ELIXIR` uses the primary-stat elixir; `/cm priority elixir list` lists both with it first, and an elixir with no stat token (Fortitude, Water Breathing) after the stat ones. Hover its score → the explanation reads the stat tier or the effect value. Result: owed
+
+**FOREVER-6. Scrolls rank by your stat, then by value.** With a Scroll of your primary stat and a Scroll of Protection → `KCM_SCROLL` uses the stat scroll; drop it in the bank → the macro moves to the Protection scroll. With two Protection ranks, the higher armor value wins. Result: owed
+
+**FOREVER-7. Bandages rank by heal.** With two bandage tiers → `KCM_BANDAGE` uses the bigger heal; `/cm dump item <id>` shows `healValue` and `healOverSec`. Use it → the bandage channels on you. Result: owed
+
+**FOREVER-8. Protection potions are their own macro.** With a fire and a shadow protection potion → `KCM_PROT_POT` uses the one with the bigger absorb (the school is not weighed; pin the other from its tab to prefer it), and neither appears in `/cm priority cmbt_pot list`. `/cm dump item <id>` shows `absorbValue` and `absorbSchool`. Result: owed
+
+**FOREVER-9. Potions, draughts and combat potions.** A healing potion → `KCM_HP_POT`; a mana potion → `KCM_MP_POT`; a combat potion (Mighty Rage, Swiftness) → `KCM_CMBT_POT`. If Forever carries a draught (subclass 13), it lands in the potion category its effect names. `KCM_HP_AIO` uses a healthstone or the healing potion in combat and food out of it. Result: owed
+
+**FOREVER-10. Vanilla weapon stones and oils go to the right hand.** With a bladed weapon in the main hand, a sharpening stone and a weightstone in bags → `KCM_WPN_ENCH`'s main-hand pick is the sharpening stone, never the weightstone; swap to a mace → the weightstone. A weapon oil fits either hand. A Scroll, elixir or armor kit must not appear in `/cm priority wpn_ench list` (an armor kit there is a finding: record its `/cm dump item`, as it would mean Item Enhancement 6 holds permanent enhancements). Result: owed
+
+**FOREVER-11. Food and drink.** Two foods and a drink → `KCM_FOOD` and `KCM_DRINK` pick the bigger restore; a well-fed food classifies as `STAT_FOOD` only when its stat is one the parser reads (Stamina and Spirit are not; note what each did). Result: owed
+
+**FOREVER-12. Discovery adds new loot.** Loot or buy a consumable not yet in bags → within a moment its category's macro and list include it with no `/reload`. Result: owed
+
+**FOREVER-13. The panel and the bar.** Bare `/cm` and the minimap button's left-click → the settings panel opens on the landing page. Each Macros tab opens without error, its Add-by-ID box adds an item, a drag reorders a row. The macro bar's buttons show their picks, the flyout lists candidates, and a click uses the item. In combat → the panel refuses with COMBAT's line and the bar still works. Result: owed
+
+**FOREVER-14. A Retail profile carried over.** Log out, copy Retail's `ConsumableMaster.lua` (with Vantus or Bloodlust entries added) into Forever's SavedVariables, log in → zero Lua errors, Forever's fifteen macros, none of Retail's four. Log out and copy the file back to Retail → Retail's Vantus and Bloodlust entries are still there. Result: owed
+
+**FOREVER-15. Skins.** On a fresh profile the Skin tab names **WoW Forever** as the skin. Pick Obsidian, then Ka0s Default, then WoW Forever → the bar and the panel repaint each time, with no error. Result: owed
+
+**FOREVER-16. The launcher.** The minimap button shows the logo; right-click → the menu with **Enabled** and **Locked**, each working as on Retail (LAUNCH). Result: owed
+
+**FOREVER-17. Diagnostics and the stand-down.** `/cm diagnostics` → no Lua error; the report's `client:` line reads `version=1.60.1` and `interface=16001`, and its category rows name Forever's fifteen. `/cm disable` → the bar goes away and macros stop rewriting; `/cm enable` → they return. Result: owed
+
+**FOREVER-18. Client: Retail. Forever's four are absent on Retail.** On a live Retail client, `/reload` → the General Macros tab has no `KCM_ELIXIR`, `KCM_SCROLL`, `KCM_BANDAGE` or `KCM_PROT_POT`; the Macros strip and the bar show Retail's fifteen exactly as before the port; `/cm priority elixir list` → `unknown category`. A Retail healing potion, flask and whetstone still pick as MACRO describes. Result: owed
+
 ## Non-English client
 
 **LOC-1. Classification on a localized client.** On a deDE, frFR or other non-English client (a language pack on PTR or beta, or a non-English account), reload with the DISC-4 consumables in bags → `/cm dump item <id>` shows a localized `subType` (such as `"Tränke"`), `classified:` is still correct, and the `KCM_*` macros populate. Before the numeric-class change every consumable classified as `(none)` on such a client. Without one, the headless cases `classifier: keys on numeric subclass, not the localized subType` and its WeaponSlots equivalent, plus DISC-4, DISC-5, MACRO-9 and MACRO-10 on English, are the sign-off. Result: pass (owner-marked 2026-10-10)
@@ -760,3 +808,5 @@ Owed from the owner's fifth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-
 Owed from the owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, R6-RV, LibKa0s v1.85.0 round 6 re-cut): the new SKIN-45. From R6-PV: the new SKIN-46, and SKIN-17, which now expects the eye. From R6-RV2 (LibKa0s v1.85.0 sim checkbox re-cut): the new PANEL-35.
 
 Owed from the owner's first smoke feedback on the LibKa0s v1.89.0 re-vendor (Ka0sAddonsCommonTasks `docs/2026-11-06-REVENDOR_LIBKA0S_V1_89/SF1_SMOKE_FEEDBACK.md`, SF1-CM): the new SKIN-47, and SKIN-1 and SKIN-31, whose expected button edge moved from white to the skin's dark icon edge.
+
+Owed from the WoW Forever port, step 1 (`docs/superpowers/specs/2026-11-08-forever-port-design.md`, CM-F1 to CM-F6, LibKa0s v1.94.0): FOREVER-1 to FOREVER-18.

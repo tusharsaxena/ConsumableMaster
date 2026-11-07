@@ -2,7 +2,7 @@
 
 One file here is not seed data: `Profile.lua` holds `KCM.dbDefaults`, the AceDB defaults tree, and is the single declaration site for every shipped default value (`savedvariables-§2`) — schema rows, page fallbacks and migrations read through it rather than restating a literal.
 
-Everything else in this folder is **seed data**, not persistent user state. Files here are evaluated at addon load and written into `KCM.SEED.*` constants. The runtime candidate set for each category is computed as:
+Everything else in this folder is **seed data**, not persistent user state. Files here are evaluated at addon load and written into `KCM.SEED.*` constants. Each file declares **two lists**, `retail` and `forever`, and hands them to `KCM.PerClient` (`core/Compat.lua`), which answers the running client's once at load (clients-§5). WoW Forever's lists are **empty by decision** for now (step 2, owner ruling 2026-11-08): every Forever candidate comes from the bag scan, and a Forever spec ranks by its class's primary stat. `Categories.lua` declares which categories each client has (`clients`), and `Profile.lua`, which loads right after it, builds its buckets from that client's set. The runtime candidate set for each category is computed as:
 
 ```
 candidates = SEED ∪ db.added ∪ db.discovered − db.blocked
@@ -15,7 +15,7 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 | File                          | Populates            | Purpose                                                      |
 | ----------------------------- | -------------------- | ------------------------------------------------------------ |
 | `Profile.lua`                 | `KCM.dbDefaults`     | The AceDB defaults tree: `global.schemaVersion` (shipped as `0`, the pre-migration floor: a real version there would be stripped by AceDB at logout and backfilled onto legacy accounts, `savedvariables-§1`), `profile.enabled`, the per-category buckets, `statPriority` / `macroState` and the whole `macroBar` table |
-| `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key); composite rows for HP_AIO / MP_AIO |
+| `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key, `clients`); composite rows for HP_AIO / MP_AIO. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (no seed file: bag scan only) |
 | `Defaults_StatPriority.lua`   | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` |
 | `Defaults_Food.lua`           | `KCM.SEED.FOOD`      | Basic Well Fed food (non-stat); may include spell sentinels (e.g. Recuperate) |
 | `Defaults_Drink.lua`          | `KCM.SEED.DRINK`     | Mana-recovery drinks                                         |
@@ -38,7 +38,7 @@ Composite categories (`HP_AIO`, `MP_AIO`) have **no seed file** — they compose
 ## Category scope decisions
 
 - **No feasts.** Personal feasts and raid feasts are deliberately excluded from `STAT_FOOD`. Users wanting a feast macro can add the item ID manually.
-- **No bandages.** Bandage category was considered and cut; first aid is a separate workflow.
+- **No bandages on Retail.** Bandage category was considered and cut; first aid is a separate workflow. WoW Forever has one (BANDAGE, owner ruling 2026-11-08).
 - **No utility potions** in `CMBT_POT` (invisibility, slow fall, swiftness, absorb potions are not throughput).
 - **Healthstones** are always listed; on non-warlock characters the bag scan simply returns zero count and the macro falls back to its `emptyText`.
 

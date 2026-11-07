@@ -15,11 +15,13 @@ verify**. Neither repeats the other.
 
 ## 1. Runtime (in-game) — what a player needs
 
-**World of Warcraft (Retail), Interface `120105`.** Nothing else.
+**World of Warcraft, Retail or WoW Forever,** at the interface the TOC declares for that client:
+`## Interface: 120105, 16001`, Retail's number first and Forever's second (toc-file-§3). One codebase
+serves both clients. Nothing else.
 
 | Thing | Required? | Evidence |
 |-------|-----------|----------|
-| WoW Retail client, Interface 120105 | Yes | `ConsumableMaster.toc`, its `## Interface: 120105` line |
+| WoW Retail client (Interface 120105) or WoW Forever client (Interface 16001) | Yes, one of the two | `ConsumableMaster.toc`, its `## Interface: 120105, 16001` line |
 | Any other addon | **No** | The TOC has **no `## Dependencies:` line at all** — there is no hard addon dependency. |
 | Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0 | No — **vendored** | Listed in the TOC's `## OptionalDeps` line (`ConsumableMaster.toc`) and shipped inside the package under `libs/` (`libs/AceAddon-3.0/`, `libs/AceConfig-3.0/`, `libs/AceConsole-3.0/`, `libs/AceDB-3.0/`, `libs/AceDBOptions-3.0/`, `libs/AceEvent-3.0/`, `libs/AceGUI-3.0/`, `libs/CallbackHandler-1.0/`, `libs/LibDBIcon-1.0/`, `libs/LibDataBroker-1.1/`, `libs/LibSharedMedia-3.0/`, `libs/LibStub/`). If the player also runs a standalone copy, LibStub picks the newer one. The two broker libraries are the launcher's (`launcher-§1`) and arrived with it; they are copied from the sibling BankLedger checkout, which carries both, rather than fetched. Ace3: WoWUIDev/Ace3@ac3d1225 (untagged master; LibKa0s#76). |
 | `LibKa0s` | No — **vendored** | `libs/LibKa0s/`; the release is named in **one** place, the `Bundles [LibKa0s](…) vX.Y.Z (MIT).` line in **`CLAUDE.md`** (it moved out of `README.md` at test-kit revision 9), and byte-verified against that LibKa0s tag by `tests/test_vendor_sync.lua`. No version is restated here on purpose: this row carried `v1.25.0` for a whole release after the payload had moved on, because a second place to name the tag is a second place to forget it, and only the `CLAUDE.md` line is wired to the gate. |
@@ -128,14 +130,16 @@ that is a bug in this page — fix it here in the same change (`documentation-§
 
 ## 4. Am I set up correctly?
 
-Run these from the repo root. Both must be green; the third is a report, not a gate.
+Run these from the repo root. The first three must be green; the fourth is a report, not a gate.
 
 ```sh
 lua5.1 tests/run.lua                                    # headless suite — exits non-zero on failure
+KA0S_KIT_CLIENT=forever lua5.1 tests/run.lua            # the same suite as WoW Forever (clients-§6)
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .    # lint — must be 0 warnings, 0 errors
 bash tests/_kit/run-automated-tests.sh --suite complexity   # sighted complexity report (automated-tests-§3)
 ```
 
-The first two are the commit gate. The third is the **release** checkpoint — regenerate
+The first three are the commit gate: the addon serves Retail and WoW Forever, so the suite gates under
+both kit profiles. The fourth is the **release** checkpoint — regenerate
 a full automated-test bundle and read its diff before tagging; it never gates a commit. Full detail, and
 the vendored-copy diff to run after any re-vendor, in [`docs/testing.md`](./docs/testing.md).

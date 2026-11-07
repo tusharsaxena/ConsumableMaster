@@ -288,10 +288,12 @@ end
 -- when it names none. "any" is the PERMISSIVE answer and is deliberate: a
 -- tooltip that has not hydrated yet reads exactly like one that declares no
 -- affinity, and offering a rank the cache has not read is the better failure
--- than dropping it from the list with no word.
+-- than dropping it from the list with no word. `weaponWordAffinity` is the
+-- vanilla wording's ("Increase sharp weapon damage"), which carries no "your
+-- ... weapon" for `weaponAffinity` to read (WoW Forever's stones and oils).
 local function affinityOf(id)
     local tt = KCM.TooltipCache and KCM.TooltipCache.Get(id)
-    return (tt and tt.weaponAffinity) or "any"
+    return (tt and (tt.weaponAffinity or tt.weaponWordAffinity)) or "any"
 end
 
 -- Spell availability: the spellbook first, then a seed-declared class gate.
@@ -687,8 +689,12 @@ function S.SweepStaleDiscovered(nowUnix)
     local cutoff = nowUnix - DISCOVERED_TTL_SEC
     local bagCounts = (KCM.BagScanner and KCM.BagScanner.Scan and KCM.BagScanner.Scan()) or {}
     local totalSwept, touchedCats = 0, 0
-    for _, root in pairs(KCM.db.profile.categories) do
-        local catSwept = sweepCategory(root, bagCounts, nowUnix, cutoff)
+    -- Only this client's categories (clients-§4): a bucket a profile carries for
+    -- a category absent here (a Retail profile's VANTUS read on WoW Forever) is
+    -- left exactly as it was, for the client that reads it.
+    local byKey = (KCM.Categories and KCM.Categories.BY_KEY) or {}
+    for key, root in pairs(KCM.db.profile.categories) do
+        local catSwept = byKey[key] and sweepCategory(root, bagCounts, nowUnix, cutoff) or 0
         if catSwept > 0 then
             totalSwept = totalSwept + catSwept
             touchedCats = touchedCats + 1

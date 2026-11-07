@@ -207,7 +207,7 @@ test("macrobar flyout: Apply tears the strip down when the feature is off", func
     t.eq(ind:GetAttribute("kcmEntries"), 0, "on the indicator too")
 end)
 
-test("macrobar flyout: Apply binds an owned item entry with its chrome", function(t)
+h.retailTest("macrobar flyout: Apply binds an owned item entry with its chrome", function(t)
     local KCM  = h.loader.loadFullAddon()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
@@ -438,8 +438,10 @@ local function armGeometry(handle, right)
 end
 
 --- The full addon, its bar built, and the strip's geometry armed.
+-- On Ka0s Default by name: the handle's tints below are its values, and the forever kit profile's
+-- default skin is WoW Forever (skinning-§2).
 local function bench()
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local _, _, handle = support.buildBar(KCM)
     armGeometry(handle)
     return KCM, handle

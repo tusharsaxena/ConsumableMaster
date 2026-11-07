@@ -71,6 +71,14 @@ local HOT_OVER_IMMEDIATE_PCT    = 20
 -- secondary, earlier position = higher weight.
 local PRIMARY_WEIGHT = 1000
 
+-- WoW Forever's ELIXIR and SCROLL: an item whose stat the spec weighs (any
+-- positive stat-priority score) earns this floor, so it outranks every item
+-- whose stat the spec does not weigh, or that has no stat token at all (a
+-- Scroll of Protection's armor, an Elixir of Fortitude's health). Those rank
+-- below, by their parsed value (tt.effectValue). Far above any vanilla value
+-- (a few hundred) so the two tiers never cross.
+local STAT_TIER_BONUS = 1e6
+
 -- ---------------------------------------------------------------------------
 -- Item-info helpers
 -- ---------------------------------------------------------------------------
@@ -229,6 +237,15 @@ local function scoreByStatPriority(tt, specPriority)
     return total
 end
 
+-- ELIXIR / SCROLL (WoW Forever): the stat-priority score, lifted above the
+-- no-stat tier by STAT_TIER_BONUS; otherwise the effect's value. Returns the
+-- score's two parts for the explainer: (statScore, tierBonus, value).
+local function buffItemParts(tt, specPriority)
+    local stat = scoreByStatPriority(tt, specPriority)
+    if stat > 0 then return stat, STAT_TIER_BONUS, 0 end
+    return 0, 0, (tt and tt.effectValue) or 0
+end
+
 -- ---------------------------------------------------------------------------
 -- Per-category scorers
 -- ---------------------------------------------------------------------------
@@ -301,6 +318,33 @@ local scorers = {
     VANTUS = function(itemID, ctx, scoreCache)
         local quality, ilvl = itemFields(itemID, scoreCache)
         return ilvl + quality * QUALITY_WEIGHT
+    end,
+    -- WoW Forever only (defaults/Categories.lua). ELIXIR and SCROLL rank like
+    -- FLASK, by the spec's stat priority, with the no-stat tier below by value.
+    ELIXIR = function(itemID, ctx, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
+        local stat, tier, value = buffItemParts(tt, ctx and ctx.specPriority)
+        return stat + tier + value + ilvl + quality * QUALITY_WEIGHT
+    end,
+    SCROLL = function(itemID, ctx, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
+        local stat, tier, value = buffItemParts(tt, ctx and ctx.specPriority)
+        return stat + tier + value + ilvl + quality * QUALITY_WEIGHT
+    end,
+    -- BANDAGE: the heal, flat or over time (a bandage's "Heals N damage").
+    BANDAGE = function(itemID, ctx, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
+        return (tt.healValue or 0) + (tt.healValueAvg or 0)
+             + ilvl
+             + quality * QUALITY_WEIGHT
+    end,
+    -- PROT_POT: the absorb amount (a range's average). Schools are not weighed:
+    -- which school a fight needs is the player's call, made with a pin.
+    PROT_POT = function(itemID, ctx, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
+        return (tt.absorbValue or 0)
+             + ilvl
+             + quality * QUALITY_WEIGHT
     end,
     AUG_RUNE = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
@@ -558,6 +602,38 @@ local function explainStatBuffs(result, f)
            "Primary-stat buffs outweigh any secondary; secondary ranks by priority position."
 end
 registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK", "WPN_ENCH" }, explainStatBuffs)
+
+-- WoW Forever's ELIXIR and SCROLL: the stat buffs and the tier floor, or the
+-- no-stat value.
+local function explainBuffItem(result, f)
+    local stat, tier, value = buffItemParts(f.tt, f.ctx and f.ctx.specPriority)
+    if stat > 0 then
+        explainStatBuffs(result, f)
+        table.insert(result.signals, { label = "stat tier", value = tier, note = "a stat the spec weighs" })
+    else
+        table.insert(result.signals, { label = "effect value", value = value, note = "no stat the spec weighs" })
+    end
+    return stat + tier + value + f.ilvl + f.qualityScore,
+           "A stat the spec weighs ranks first, by priority; the rest rank by their value."
+end
+registerExplainer({ "ELIXIR", "SCROLL" }, explainBuffItem)
+
+local function explainBandage(result, f)
+    local heal = (f.tt.healValue or 0) + (f.tt.healValueAvg or 0)
+    table.insert(result.signals, {
+        label = "heal value", value = heal,
+        note  = f.tt.healOverSec and ("over %d sec"):format(f.tt.healOverSec) or nil,
+    })
+    return heal + f.ilvl + f.qualityScore, "The biggest heal wins; ilvl + quality break ties."
+end
+registerExplainer({ "BANDAGE" }, explainBandage)
+
+local function explainProtPot(result, f)
+    local amount = f.tt.absorbValue or 0
+    table.insert(result.signals, { label = "absorb", value = amount, note = f.tt.absorbSchool })
+    return amount + f.ilvl + f.qualityScore, "The biggest absorb wins; ilvl + quality break ties."
+end
+registerExplainer({ "PROT_POT" }, explainProtPot)
 
 -- The ilvl / quality terms every category shares, appended after the category's own signals.
 local function pushBaseSignals(result, f)
