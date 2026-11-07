@@ -100,12 +100,13 @@ local MAJORS = {
         -- `shownWhen.any`), paired the same way, and OptionsMedia at v1.83.0 (the Ka0sMedia_* preview
         -- pickers), paired the same way. LibKa0s v1.84.0 peeled four more: OptionsFlow (out of
         -- OptionsWidgets), OptionsTabbed (out of OptionsTabs), OptionsIdSuggest (out of OptionsIds)
-        -- and OptionsSkinPickerRows (out of OptionsSkinPicker), each paired the same way.
+        -- and OptionsSkinPickerRows (out of OptionsSkinPicker), each paired the same way. LibKa0s v1.93.0
+        -- peeled OptionsHeader out of OptionsTabs, paired the same way.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
                   "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
                   "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker", "OptionsSwitch",
                   "OptionsMedia", "OptionsFlow", "OptionsTabbed", "OptionsIdSuggest",
-                  "OptionsSkinPickerRows" },
+                  "OptionsSkinPickerRows", "OptionsHeader" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -127,6 +128,7 @@ local MAJORS = {
             { file = "OptionsTabbed",     minor = "__tabbedMinor",     shell = "__tabbedShellMinor" },
             { file = "OptionsIdSuggest",  minor = "__suggestMinor",    shell = "__suggestShellMinor" },
             { file = "OptionsSkinPickerRows", minor = "__pickerRowsMinor", shell = "__pickerRowsShellMinor" },
+            { file = "OptionsHeader",     minor = "__headerMinor",     shell = "__headerShellMinor" },
         },
     },
     {

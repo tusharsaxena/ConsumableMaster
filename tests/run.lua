@@ -579,6 +579,7 @@ local SUITES = {
     { name = "test_lizard_sighted",       dir = "tests/_kit/" },
     { name = "test_skin_values",          dir = "tests/_kit/" },
     { name = "test_skin_switch",          dir = "tests/_kit/" },
+    { name = "test_client_globals", dir = "tests/_kit/" },
 }
 
 -- The kit's diagnostics contract (debug-logging-§14), wired to THIS addon's dispatcher: the five

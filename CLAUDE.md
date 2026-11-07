@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Vendored payload — the LibKa0s provenance line
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.91.0 (MIT).
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.93.0 (MIT).
 LibKa0s icons: chevron-down, chevron-up, clear, close, confirm, copy, eye, help, info, move, reset, segment, settings, star, volume-high.
 
 Those two lines are the answer to "which LibKa0s does this build carry, and which of its icons?",
