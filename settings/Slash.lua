@@ -337,8 +337,8 @@ local COMMANDS = {
 -- array does not inherit the library's default, so it is added here by hand.
 --
 -- `dump` IS THIS ADDON'S FOURTEENTH, and it is a judgment rather than a quote.
--- It is read-only by construction -- core/SlashDump.lua's five targets print what
--- they find and write nothing, recompute nothing and invalidate nothing -- so it
+-- It is read-only by construction -- core/SlashDump.lua's targets write what they
+-- find to the debug console and nothing else, recompute nothing and invalidate nothing -- so it
 -- does not drive a feature; it reports on one, which is what `debug` and `perf`
 -- are live for. Refusing it would take the diagnostic away at the one moment
 -- somebody is asking why the addon is quiet.

@@ -57,8 +57,9 @@ The `DebugLog.SetEnabled` seam prints a **color-coded** chat ack through `KCM.Sa
 
 Don't introduce raw `print(...)` calls. Three sanctioned output paths:
 
-- `KCM.Say(fmt, ...)` (`core/CoreSetup.lua`, built on `LibKa0s-Core-1.0`) — the single secret-safe chat seam for all one-shot output: slash lines, dump rows, help, and one-shot warnings (oversized macro body, give-up notice on flush failure, etc.). Always prepends `[CM]`; pass a finished string or a format string + args that each get secret-stringified. `core/SlashCommands.lua`'s `say` is just `local say = KCM.Say`.
+- `KCM.Say(fmt, ...)` (`core/CoreSetup.lua`, built on `LibKa0s-Core-1.0`) — the single secret-safe chat seam for all one-shot output: slash acknowledgments and refusals, help, a report's one pointer line, and one-shot warnings (oversized macro body, give-up notice on flush failure, etc.). Always prepends `[CM]`; pass a finished string or a format string + args that each get secret-stringified. `core/SlashCommands.lua`'s `say` is just `local say = KCM.Say`.
 - `KCM.Debug(tag, ...)` — gated diagnostics into the console.
+- `KCM.DebugLog.Report(tag, title, fn)` — an ungated report into the console, with one chat pointer line ([below](#reports-chat-or-console)).
 - The only literal `print(...)` in the addon is `KCM.PREFIX` embedded in generated macro-body `/run print(...)` strings (`modules/MacroManager.lua`, `defaults/Categories.lua`) — that runs in the player's macro, not the addon.
 
 ## Coverage
@@ -92,16 +93,35 @@ What the log carries, by tag, so a pasted log can be read back into what happene
 
 **The quiet steady state.** Three kinds of repeating path, and how each is kept quiet: the per-view lines (`[Prio] paint`, `[Bar] … capped`) and the combat queue's `[Macro] held …` are **change-gated** through the console's own gate, `KCM.DebugChanged` (`core/Debug.lua` over `LibKa0s-DebugLog-1.0`'s `DebugChanged`, from LibKa0s v1.65.0); the pass summaries on a repeating reason (`[Scan]`, no-write `[Calc]`) and the oversize line (`[Macro] <CAT> body exceeds …`) are change-gated on their own summary through `KCM.DebugQuiet` (`core/ConsumableMaster.lua`), the one gate the addon keeps, because it **counts** the passes it held back for the `(after N unchanged pass(es))` suffix and the console's gate compares whole lines; the bar's holds (`[Bar] … held`) log on their **edge**; and an error a repeating path catches is logged **once per distinct error**, through `KCM.DebugOnce`. Every one of them is re-armed on each debug-enable and on each **Clear** of the console (the library re-arms its own gates; `core/DebugLogSetup.lua`'s `setEnabled` and `onClear` reset `KCM.DebugQuiet`), so a new logging window or a cleared console starts by showing the current state. The console's `(xN)` repeat folding is not relied on for any of this. The cooldown repaint (`SPELL_UPDATE_COOLDOWN` / `BAG_UPDATE_COOLDOWN`), the bar's fade tick and the flyout's idle poll log nothing at all. `tests/test_debugcoverage.lua` pins each rule with a repeat-N-times case.
 
+## Reports: chat or console
+
+The owner's ruling of 2026-11-08, ahead of a standard rule and a LibKa0s implementation (the owner is opening a library issue to build it collection-wide).
+
+| Output | Goes to | Verbs |
+|---|---|---|
+| Acknowledgment or short answer (one or two lines confirming an action or answering one question) | chat | `set`, `get`, `version`, `resync`, `priority <cat> add`, `stat list`, … |
+| Refusal or error: combat, unknown verb, usage line, disabled, library missing | chat | every verb, including a report verb's own usage and refusal lines |
+| Help | chat | `/cm`, `/cm help`, the bare `/cm dump` target list, `/cm priority`, `/cm stat`, `/cm aio`, `/cm bar help` |
+| `/cm list` | chat | the owner's choice |
+| **Report**: a multi-line read-out the player asks for to inspect or share | **debug console** | every `/cm dump <target>`, `/cm priority <cat> list` (and bare `/cm priority <cat>`), `/cm aio <key> list` (and bare `/cm aio <key>`) |
+| The diagnostics report | debug console | `/cm diagnostics`, through the library (unchanged) |
+
+**The seam.** Every report goes through `KCM.DebugLog.Report(tag, title, fn)` in `core/DebugLogSetup.lua`. `fn(out)` writes the body through `out`, one call per line; a refusal says itself through `KCM.Say` and writes nothing through `out`, and a run that wrote nothing writes no report and no pointer. Otherwise the seam writes a header line naming the command (`/cm dump bags`), then the body, under the report's tag (`Dump`, `Priority`, `AIO`; debug-logging-§3), through `D:Add`, the console's **ungated** append: a report is not a trace, so it lands whether or not logging is on. Then it shows the console if it is hidden, and prints exactly one chat line, `<title>: <N> lines written to the debug console. Use Copy to share it.`, where N counts the header. Without LibKa0s (the degraded stub) the same seam prints the body to chat as before, with no pointer line. The color codes a report row carries (`[owned]`, `[on]`, the `<-- pick` marker) are kept, so the console draws the rows as chat did.
+
+**The table serializer.** `/cm dump categories`, `statpriority`, `bags` and the `item` report's cached entry render a whole table. They used to call Blizzard's `DevTools_Dump`, which prints to the chat frame (the bare `[7005]=1,` lines), and fell back to a hand-written row when `Blizzard_DebugTools` was not loaded. `core/SlashDump.lua`'s local serializer (published as `KCM.SlashDump.Serialize` for the suite) writes the lines into the report instead: sorted keys (numbers, then strings), nested tables indented two spaces per level, `key = value` one per line, each value through `KCM.SafeToString` (strings quoted, secrets as the sentinel, functions as `<function>`). It stops at 400 lines and 6 levels and marks a cycle `<cycle>`.
+
+**The lift.** A LibKa0s `D:Report(tag, title, fn)` would take the header's slash from the descriptor, the pointer line from the library's strings and the chat fallback onto its degradation stub. The addon's `DL.Report` then becomes `return D:Report(tag, title, fn)`, its degraded arm goes, and no caller changes. `tests/test_slash_report.lua` pins the routing.
+
 ## Dump internals
 
-`/cm dump <target>` — inspect runtime state. `DUMP_TARGETS` in `core/SlashDump.lua` is the single source of truth; adding a row (plus its `DUMP_ORDER` name) makes it appear in `/cm dump` help automatically.
+`/cm dump <target>` — inspect runtime state. Every target is a report ([above](#reports-chat-or-console)): its body goes to the debug console. `DUMP_TARGETS` in `core/SlashDump.lua` is the single source of truth; adding a row (plus its `DUMP_ORDER` name) makes it appear in `/cm dump` help automatically.
 
 | Target | What it shows |
 |--------|---------------|
-| `categories` | The full `KCM.Categories.LIST` with macro name, display name, spec-awareness flag. |
+| `categories` | The full `KCM.Categories.LIST`, serialized: each row's key, macro name, display name, spec-awareness flag and the rest of its fields. |
 | `statpriority` | Current spec's stat priority (primary + ordered secondary), with classID / specID / specKey. |
-| `bags` | `BagScanner.Scan()` output as `itemID = count`. |
-| `item <id>` | Parsed tooltip fields for the item plus the raw tooltip lines (pattern-debugging view). Shows `pending: tooltip data not yet loaded` if the data hasn't hydrated yet. |
+| `bags` | `BagScanner.Scan()` output as `[itemID] = count`. |
+| `item <id>` | The header, instant info and classification, usability, the cached parse (serialized) and the raw tooltip lines (pattern-debugging view). Shows `pending: tooltip data not yet loaded` if the data hasn't hydrated yet. |
 | `events` | Every client event in `KCM.EVENTS` with its handler and its state: `registered`, `rejected` (the client refused the name; it is in `KCM.RejectedEvents`), or `off (addon disabled)` while a hold has the addon stood down. |
 | `pick <catKey>` | The effective priority list with per-entry Ranker scores, an `[owned]` tag for entries you actually have, and a `<-- pick` marker on the winner. Composite catKeys (`hp_aio` / `mp_aio`) print the configured order, per-sub-cat picks, and the assembled macro body. |
 

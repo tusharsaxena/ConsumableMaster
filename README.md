@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1435%2F1435_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1443%2F1443_passing-green)
 
 Supports Retail and WoW Forever. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
@@ -116,7 +116,7 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 | Symptom | Fix |
 |---------|-----|
 | Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Force rewrite macros** on the General page > Maintenance (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
-| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it is blocked or its tooltip hasn't loaded yet. |
+| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status in the debug console (use **Copy** to share it). If your item isn't there, it is blocked or its tooltip hasn't loaded yet. |
 | I just looted a better food / flask but the macro didn't update. | Give it a second; bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
 | Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check that the viewed spec on the **Stat Priority** page matches the spec you are actually playing. |

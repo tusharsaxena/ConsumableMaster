@@ -21,6 +21,19 @@ local function say(KCM, mock, line)
     return table.concat(mock.output, "\n")
 end
 
+-- A report verb (the owner's ruling of 2026-11-08) writes its body to the debug
+-- console and one pointer line to chat. This answers the console lines the verb
+-- appended, newline-joined, so a content assertion reads the report itself.
+local function report(KCM, mock, line)
+    local D = KCM.DebugLog.instance
+    local from = #D.buffer
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    local text = {}
+    for i = from + 1, #D.buffer do text[#text + 1] = D.buffer[i] end
+    return table.concat(text, "\n")
+end
+
 local function effectiveSet(KCM, catKey)
     local set = {}
     for _, id in ipairs(KCM.Selector.GetEffectivePriority(catKey)) do set[id] = true end
@@ -135,7 +148,7 @@ h.retailTest("/cm dump pick renders a category's effective priority and marks ow
     end
     t.truthy(seedFood, "FOOD ships at least one item seed")
     mock.setBag(seedFood, 1)
-    local text = say(KCM, mock, "dump pick food")
+    local text = report(KCM, mock, "dump pick food")
     t.truthy(text:find("effective priority", 1, true), "renders the effective priority list")
     t.truthy(text:find(tostring(seedFood), 1, true), "lists the owned candidate")
     t.truthy(text:find("owned", 1, true), "marks it owned")
@@ -363,7 +376,7 @@ end)
 
 test("/cm priority <cat> with no sub-verb defaults to the list", function(t)
     local KCM, mock = load()
-    local text = say(KCM, mock, "priority food")
+    local text = report(KCM, mock, "priority food")
     t.truthy(text:find("FOOD:", 1, true), "the effective list is printed")
     t.truthy(text:find("entries", 1, true), "with an entry count")
 end)
@@ -376,7 +389,7 @@ h.retailTest("/cm priority list marks ownership and the current pick", function(
     end
     mock.setItem(seed, { subType = "Food & Drink", tt = { healValue = 900 } })
     mock.setBag(seed, 1)
-    local text = say(KCM, mock, "priority food list")
+    local text = report(KCM, mock, "priority food list")
     t.truthy(text:find("[owned]", 1, true), "owned entries are tagged")
     t.truthy(text:find("<-- pick", 1, true), "and the winning entry is called out")
 end)
@@ -388,7 +401,7 @@ end)
 test("/cm priority list renders item and spell rows in the same columns", function(t)
     local KCM, mock = load()
     KCM:OnSlashCommand("priority food add s:5512")
-    local text = say(KCM, mock, "priority food list")
+    local text = report(KCM, mock, "priority food list")
     t.truthy(text:find("|cff888888[---]  |r", 1, true), "the not-owned tag keeps its two-space pad")
     t.truthy(text:match("  %d+%. |cff%x+%[[^%]]+%][^|]*|r s:5512 "),
         "a spell entry renders as s:<id> in the 12-wide ID column")
@@ -576,7 +589,7 @@ end)
 
 test("/cm aio list shows both sections with their on/off state", function(t)
     local KCM, mock = load()
-    local text = say(KCM, mock, "aio hp_aio list")
+    local text = report(KCM, mock, "aio hp_aio list")
     t.truthy(text:find("In Combat", 1, true), "in-combat section header")
     t.truthy(text:find("Out of Combat", 1, true), "out-of-combat section header")
     t.truthy(text:find("[on]", 1, true), "sub-categories ship enabled")
@@ -690,20 +703,20 @@ end)
 test("/cm dump <itemID> is a shortcut for the item target", function(t)
     local KCM, mock = load()
     mock.setItem(960010, { name = "Shortcut Snack", subType = "Food & Drink", tt = { healValue = 10 } })
-    local text = say(KCM, mock, "dump 960010")
+    local text = report(KCM, mock, "dump 960010")
     t.truthy(text:find("960010", 1, true), "a bare numeric argument dumps that item")
 end)
 
 test("/cm dump bags lists each owned itemID and its count", function(t)
     local KCM, mock = load()
     mock.setBag(960015, 4)
-    local text = say(KCM, mock, "dump bags")
-    t.truthy(text:find("960015 x 4", 1, true), "the scanned tally is rendered as id x count")
+    local text = report(KCM, mock, "dump bags")
+    t.truthy(text:find("[960015] = 4", 1, true), "the scanned tally is rendered as [id] = count")
 end)
 
 test("/cm dump pick on a composite renders the assembled macro body", function(t)
     local KCM, mock = load()
-    local text = say(KCM, mock, "dump pick hp_aio")
+    local text = report(KCM, mock, "dump pick hp_aio")
     t.truthy(text:find("In Combat", 1, true), "sections are rendered")
     t.truthy(text:find("empty-state stub", 1, true) or text:find("macro body", 1, true),
         "and either the body or the empty-state explanation is shown")
@@ -711,7 +724,7 @@ end)
 
 test("/cm dump statpriority prints the current spec's resolved stats", function(t)
     local KCM, mock = load()
-    local text = say(KCM, mock, "dump statpriority")
+    local text = report(KCM, mock, "dump statpriority")
     t.truthy(#text > 0, "the target produces output")
 end)
 
@@ -739,7 +752,7 @@ test("/cm dump item reports header, instant info, classification and usability i
         end,
     }
     KCM.TooltipCache.InvalidateAll()
-    local text = say(KCM, mock, "dump item 960031")
+    local text = report(KCM, mock, "dump item 960031")
     _G.C_TooltipInfo = saved
     local header     = text:find("item 960031  (Char Snack)", 1, true)
     local instant    = text:find('instant: type="Consumable"  subType="Potions"  classID=0  subClassID=1', 1, true)
@@ -758,14 +771,14 @@ end)
 test("/cm dump item on an unclassifiable item says (none) in red", function(t)
     local KCM, mock = load()
     mock.setItem(960035, { name = "Mystery Thing", subType = "Other" })
-    local text = say(KCM, mock, "dump item 960035")
+    local text = report(KCM, mock, "dump item 960035")
     t.truthy(text:find("classified: |cffff4444(none)|r", 1, true), "no category match is called out")
 end)
 
 test("/cm dump item on a pending tooltip says pending and asks no usability question", function(t)
     local KCM, mock = load()
     mock.setItem(960032, { name = "Not Loaded Yet", subType = "Potions", pending = true })
-    local text = say(KCM, mock, "dump item 960032")
+    local text = report(KCM, mock, "dump item 960032")
     t.truthy(text:find("pending: tooltip data not yet loaded", 1, true), "the load race is reported")
     t.falsy(text:find("usable:", 1, true),
         "and IsUsableByPlayer is never consulted — its answer would be wrong while pending")
@@ -780,7 +793,7 @@ test("/cm dump item renders every raw tooltip line, splitting left from right", 
             return { lines = { { leftText = "Two Column" }, { leftText = "Level", rightText = "80" } } }
         end,
     }
-    local text = say(KCM, mock, "dump item 960034")
+    local text = report(KCM, mock, "dump item 960034")
     _G.C_TooltipInfo = saved
     t.truthy(text:find("raw tooltip lines (2)", 1, true), "the line count heads the block")
     t.truthy(text:find('[ 1] "Two Column"', 1, true), "a left-only line renders bare")
@@ -804,7 +817,7 @@ end)
 test("/cm dump pick on a composite renders both sections with on/off tags", function(t)
     local KCM, mock = load()
     KCM:OnSlashCommand("aio hp_aio toggle HS off")
-    local text = say(KCM, mock, "dump pick hp_aio")
+    local text = report(KCM, mock, "dump pick hp_aio")
     t.truthy(text:find("HP_AIO (composite)", 1, true), "the composite header")
     t.truthy(text:find("  In Combat", 1, true), "the In Combat section")
     t.truthy(text:find("  Out of Combat", 1, true), "the Out of Combat section")
@@ -816,7 +829,7 @@ end)
 test("/cm dump pick on a spec-aware category prints the spec context first", function(t)
     local KCM, mock = load()
     local _, _, specKey, specName = KCM.SpecHelper.GetCurrent()
-    local text = say(KCM, mock, "dump pick flask")
+    local text = report(KCM, mock, "dump pick flask")
     t.truthy(text:find(("FLASK for spec %s (%s)"):format(specName or "?", specKey), 1, true),
         "the spec line heads the report")
     t.truthy(text:find("  primary=", 1, true), "with the resolved stat priority under it")

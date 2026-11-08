@@ -1442,6 +1442,17 @@ Total.
 - /cm profile <name>: the current profile answers that it already is
 - /cm profile: the published CliProfile and ProfileSwitch reach the library
 
+### test_slash_report.lua (8)
+
+- Report: every report verb writes to the console with logging off and says one chat line
+- Report: a hidden console is revealed, a shown one stays shown
+- Report: the bags dump renders through the serializer, not DevTools_Dump
+- Report: a usage or refusal line goes to chat and writes no report
+- Report: a spec-aware list with no spec refuses in chat and writes no report
+- Report: help, /cm list and the bare /cm dump listing stay in chat
+- Report: without the library a report prints to chat as before, with no pointer
+- Report: the serializer sorts keys, indents nested tables and stays bounded
+
 ### test_slash_store.lua (25)
 
 - /cm stat primary, secondary and reset leave exactly the stored map they always did
@@ -1764,6 +1775,7 @@ Total.
 | test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
+| test_slash_report.lua | 8 |
 | test_slash_store.lua | 25 |
 | test_slashsetup.lua | 26 |
 | test_spechelper.lua | 16 |
@@ -1781,4 +1793,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1435** |
+| **Total** | **1443** |

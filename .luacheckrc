@@ -58,7 +58,6 @@ read_globals = {
     -- Millisecond profiling clock, read by the perf brackets in
     -- core/ConsumableMaster.lua and modules/MacroBar.lua.
     "debugprofilestop",
-    "DevTools_Dump",
     -- Frames / UI
     "CreateFrame", "UIParent", "GameTooltip",
     "BackdropTemplateMixin", "ScrollingMessageFrame_OnMouseWheel",

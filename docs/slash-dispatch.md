@@ -124,6 +124,14 @@ category name reads as "show me this one". `/cm bar` with no sub-verb **toggles*
 `/cm debug` reads as a switch. `/cm dump <itemID>` is the same instinct spelled with a number: a
 numeric head routes to the `item` target rather than failing as an unknown target name.
 
+**The list sub-verbs and every dump target are reports** (the owner's ruling of 2026-11-08).
+`/cm priority <cat> list`, `/cm aio <key> list` (and their bare forms) and every `/cm dump <target>`
+write their body to the debug console through `KCM.DebugLog.Report` and print one chat pointer line,
+`<title>: <N> lines written to the debug console. Use Copy to share it.`. Their usage and refusal
+lines stay in chat and write no report, and so does every help listing, the bare `/cm dump` list
+included. `/cm stat list` is three fixed lines answering one question, so it stays in chat, as does
+`/cm list`. Which output goes where, and the seam: [debug.md](./debug.md#reports-chat-or-console).
+
 **`lock` / `unlock` are top-level verbs, and `bar lock` / `bar unlock` are kept beside them**
 (`slash-commands-§8`). Both are reserved verbs across the collection and both mean *lock the addon's
 frames*; whether an addon registers them at all is a **MAY**, and this addon now takes it. All four
@@ -246,8 +254,8 @@ and `/cm debug diagnostics` passes because `debug` is. `tests/test_disabled.lua`
 both. What the report prints is in [debug.md](./debug.md#the-diagnostics-report-cm-diagnostics).
 
 `dump` is this addon's fourteenth and it is a judgment rather than a quote from the rule.
-`core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and
-invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
+`core/SlashDump.lua`'s targets write what they find to the debug console and write nothing else,
+recompute nothing and invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
 `debug` and `perf` are live for. Refusing it would take the diagnostic away at the one moment
 somebody is asking why the addon has gone quiet.
 
@@ -349,7 +357,7 @@ is why the gate wraps the table rather than living in each body.
 ## See also
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md#slash-commands) — the summary and the file split in context.
-- [debug.md](./debug.md) — what `/cm debug` and `/cm dump` reach.
+- [debug.md](./debug.md) — what `/cm debug` and `/cm dump` reach, and which output is a report.
 - [schema.md](./schema.md) — the rows `/cm list`, `/cm get` and `/cm set` walk.
 - [settings-panel.md](./settings-panel.md) — the panel affordances these verbs share a seam with.
 - [macro-bar.md](./macro-bar.md) — what `/cm bar` is driving.

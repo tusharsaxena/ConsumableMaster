@@ -161,9 +161,13 @@ test("/cm dump events lists every event and names the rejected one", function(t)
     local mock = h.loader.mock
     mock.base.__badEvents = { [RETIRED] = true }
     pcall(KCM.OnEnable, KCM)
-    mock.output = {}
+    -- A report (the owner's ruling of 2026-11-08): the body is in the console.
+    local D = KCM.DebugLog.instance
+    local from = #D.buffer
     KCM:OnSlashCommand("dump events")
-    local text = table.concat(mock.output, "\n")
+    local lines = {}
+    for i = from + 1, #D.buffer do lines[#lines + 1] = D.buffer[i] end
+    local text = table.concat(lines, "\n")
     for _, pair in ipairs(KCM.EVENTS or {}) do
         t.truthy(text:find(pair[1], 1, true), pair[1] .. " is listed")
     end
