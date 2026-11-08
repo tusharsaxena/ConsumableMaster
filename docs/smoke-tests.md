@@ -745,7 +745,7 @@ Forever's SavedVariables are `_forever_/WTF/Account/<ACCOUNT>/SavedVariables/Con
 
 **FOREVER-10. Vanilla weapon stones and oils go to the right hand.** With a bladed weapon in the main hand, a sharpening stone and a weightstone in bags → `KCM_WPN_ENCH`'s main-hand pick is the sharpening stone, never the weightstone; swap to a mace → the weightstone. A weapon oil fits either hand. A Scroll, elixir or armor kit must not appear in `/cm priority wpn_ench list` (the owner's dump of 2026-11-08 showed the Light Armor Kit as subclass 6, "Permanent", so 6 is not a weapon enchant; an armor kit in the list is a regression). Forever's stones and oils are subclass 8 ("Other"), and they reach the list through their Use: wording. Result: passed (owner, 2026-11-08)
 
-**FOREVER-11. Food and drink.** Two foods and a drink → `KCM_FOOD` and `KCM_DRINK` pick the bigger restore; a well-fed food classifies as `STAT_FOOD` only when its stat is one the parser reads (Stamina and Spirit are not; note what each did). Result: passed (owner, 2026-11-08)
+**FOREVER-11. Food and drink.** Two foods and a drink → `KCM_FOOD` and `KCM_DRINK` pick the bigger restore; every food or drink whose tooltip says it makes you **well fed** classifies as `STAT_FOOD`, whatever the buff (CM-F12: Bristle Whisker Catfish's "8 Fishing Skill", Stamina and Spirit included), and a plain food stays `FOOD`. Result: passed (owner, 2026-11-08)
 
 **FOREVER-12. Discovery adds new loot.** Loot or buy a consumable not yet in bags → within a moment its category's macro and list include it with no `/reload`. Result: passed (owner, 2026-11-08)
 
@@ -766,6 +766,8 @@ Forever's SavedVariables are `_forever_/WTF/Account/<ACCOUNT>/SavedVariables/Con
 **FOREVER-21. Client: Retail. Retail's weapon enchants are unchanged.** On a live Retail client with a Retail oil and whetstone in bags → `KCM_WPN_ENCH` and `/cm priority wpn_ench list` pick and order exactly as before, and the score explanation shows no `enhance value` signal. Result: passed (owner, 2026-11-08)
 
 - **FOREVER-19. Empty slots show the note icon.** With a category that has nothing in your bags (Elixir, say), look at the macro bar and the `KCM_*` macro on an action bar → both show `inv_misc_note_02` (a parchment note), never a solid green square. Macros written before this fix repaint on the next recompute; `/cm rewritemacros` forces it. On **Retail** the empty icon stays the cooking pot. Result: passed (owner, 2026-11-08)
+
+**FOREVER-22. A Well Fed food with a non-stat buff is Stat Food.** With a Bristle Whisker Catfish (4593, "gain 8 Fishing Skill") in bags → `/cm dump item 4593` shows `classified: STAT_FOOD`, it is listed on the Stat Food tab and not on Food, and `KCM_FOOD` picks a plain food. On **Retail**, food classifies as before. Result: passed (owner, 2026-11-08: "catfish changes working now")
 
 ## Seed probe
 
