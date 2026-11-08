@@ -312,6 +312,11 @@ local COMMANDS = {
         function(rest) V.RunAIO(rest) end},
     {"dump",          "Dump internal state — try `/cm dump` for the list",
         function(rest) V.Dump(rest) end},
+    -- The seed probe (core/SeedProbe.lua): records item data for the seed lists into
+    -- its own store. A feature verb, so it is off LIVE_VERBS below and the dispatcher
+    -- refuses it while the addon is disabled. Reached at call time.
+    {"probe",         "Seed probe — record item data for the seed lists; try `/cm probe seed`",
+        function(rest) KCM.SeedProbe.Run(rest) end},
 }
 
 -- ---------------------------------------------------------------------------

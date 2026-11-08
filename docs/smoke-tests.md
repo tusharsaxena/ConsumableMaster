@@ -21,13 +21,14 @@ These are the in-client checks the headless suite cannot make: event-driven beha
 | SKIN-1 – SKIN-47 | Skins | The one-time HUD reset's visible change under Ka0s Default and that it runs once, the media pickers' previews, the Font outline, the labels' From skin flags, `/cm skin`, width parity and the HUD size scale, the Skin tab, every skin live on the bar and in combat, the settings pages and the Profiles tree, the addon's own rows and tooltip lines, the tool windows, fonts and overrides, what stays unskinned, EllesmereUI on and off, the copy, profiles, the CLI, the first-run picker (login, preview, Apply, close, the gear, profiles, the stand-down, across Ka0s addons), the skin list's outside press, the settings icons' crop and outline, the picker's unlock preview, a degraded install. Run for `core/SkinSetup.lua`, a `skin.*` row, the macro bar's style appliers, the `KCM*` widgets and the raw reorder rows, `settings/Profiles.lua`, the picker wiring in `core/ConsumableMaster.lua`, and a LibKa0s re-vendor that moves a `Skin*` or `OptionsAppearance` / `OptionsSkinPicker` minor. |
 | DEGRADED-1 – DEGRADED-8 | Degraded install | The build with `libs/LibKa0s` missing. Run for any library-absent fallback. |
 | FOREVER-1 – FOREVER-18 | WoW Forever | The port's checks on a live WoW Forever client: the AddOns list, a clean load with Forever's fifteen macros and none of Retail's four, the four Forever-only categories classifying and ranking from the bags, draughts and vanilla weapon stones, the panel and bar, a Retail profile carried over, skins, the launcher and diagnostics; plus one Retail check that Forever's four are absent there. Run for `defaults/Categories.lua`'s `clients`, `defaults/Profile.lua`, the seed files, `core/Classifier.lua`'s per-client lists, the vanilla patterns in `core/TooltipCache.lua`, the four new Ranker scorers and a LibKa0s re-vendor that moves `Compat`. |
+| PROBE-1 – PROBE-9 | Seed probe | `/cm probe seed`: mouseover in the bags, at a vendor and in the auction house, the vendor read, the auction-house scan armed then opened, the throttle, status, clear, the disabled refusal and the store. Both clients. Run for `core/SeedProbe.lua` and `core/SeedProbeStore.lua`. |
 | LOC-1 | Non-English client | Classification on a localized client. |
 
 Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/SkinSetup.lua`, `core/DebugLogSetup.lua`, `core/EnvSetup.lua`, `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Slash.lua`, `core/PerfSetup.lua`): run INSTALL-6, SLASH-1, SLASH-2, PANEL, PROFILE-1, PROFILE-15 – PROFILE-21, DIAG, BAR-6, BAR-12, BAR-26 – BAR-30, SKIN-1, SKIN-4 and SKIN-6. The swap is meant to be pixel-identical, so anything that looks different is the finding. A change to `.luacheckrc`, a headless-only gate or a doc needs no smoke run.
 
 ## Before you start
 
-- **Clients (clients-§6).** The addon serves Retail and WoW Forever. Every check outside the WoW Forever section runs on **Retail**, where its recorded result was taken; on Forever, Vantus, augment runes, Bloodlust and Battle Rez do not exist, so a check about them is Retail's alone. The **WoW Forever** section names the checks to run on a live **Forever** client, including the absence of Retail's four categories there, and FOREVER-18 checks on Retail that Forever's four are absent.
+- **Clients (clients-§6).** The addon serves Retail and WoW Forever. Every check outside the WoW Forever and Seed probe sections runs on **Retail**, where its recorded result was taken; on Forever, Vantus, augment runes, Bloodlust and Battle Rez do not exist, so a check about them is Retail's alone. The **WoW Forever** section names the checks to run on a live **Forever** client, including the absence of Retail's four categories there, and FOREVER-18 checks on Retail that Forever's four are absent.
 - Turn error display on (`/console scriptErrors 1`, or load BugSack). Several failures below are Lua errors that the default UI hides, and a hidden error reads as a pass.
 - Pin the chat frame. Most regressions show up as a `KCM.Debug` line before they show in a macro body.
 - Drag every `KCM_*` macro onto an action bar so icon changes are visible.
@@ -74,7 +75,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/SkinS
 
 **SLASH-11. `/cm dump`.** `/cm dump categories`, `/cm dump statpriority`, `/cm dump bags`, `/cm dump item <id>`, `/cm dump pick hp_aio`, `/cm dump pick mp_aio` → in the debug console, not chat: the category list with macro names and spec-awareness; the current spec's primary and secondaries; the bag scan as `[itemID] = count` lines; the parsed tooltip, the cached entry and the raw lines; each composite's assembled body. No Lua error. Result: pass (owner-marked 2026-10-10; re-run for the 2026-11-08 console routing is SLASH-17)
 
-**SLASH-12. `/cm dump events`.** → in the debug console, ten client events, each `registered`, and `0 rejected` in the header. Then `/cm debug on` and `/reload` → the `[Init]` line carries no `rejected events:` clause. Result: pass (owner-marked 2026-10-10)
+**SLASH-12. `/cm dump events`.** → in the debug console, fourteen client events, each `registered`, and `0 rejected` in the header. Then `/cm debug on` and `/reload` → the `[Init]` line carries no `rejected events:` clause. Result: owed (the count moved from ten to fourteen with the seed probe's four window events, 2026-11-08; it passed on ten, owner-marked 2026-10-10)
 
 **SLASH-13. A disabled addon refuses a feature verb.** `/cm disable`, then `/cm resync` → one line, `Ka0s Consumable Master is disabled — enable it with /cm enable` with the command in gold, and nothing else (no *auto-discovery found N*, no *recomputed all categories*). Same for `/cm bar on` (no bar appears), `/cm priority hp_pot add 12345` (after `/cm enable`, `/cm priority hp_pot list` has no 12345), `/cm stat primary AGI` and `/cm aio hp_aio toggle hs`. A verb that prints the refusal and then acts anyway is the failure. Result: pass (owner-marked 2026-10-10)
 
@@ -208,7 +209,7 @@ Anything under `libs/LibKa0s/` or a seam file (`core/CoreSetup.lua`, `core/SkinS
 
 **STATE-2. Enable off in combat.** Pull a dummy and `/cm disable` mid-fight (the panel is under the combat cover, COMBAT-8) → the bar goes on the regen that follows. The addon holds exactly one registration until then, `PLAYER_REGEN_ENABLED`, and drops it when it fires. Result: pass (owner-marked 2026-10-10)
 
-**STATE-3. Disabled through a `/reload`.** Disabled, `/reload` → the addon comes back still off and registers nothing (not ten events torn down a frame later). Result: pass (owner-marked 2026-10-10)
+**STATE-3. Disabled through a `/reload`.** Disabled, `/reload` → the addon comes back still off and registers nothing (not its client events torn down a frame later). Result: pass (owner-marked 2026-10-10)
 
 **STATE-4. Disabled through a relog.** Disabled, quit the client and log back in → still off (`db.profile.enabled = false`), and no macro write happens until it is ticked on. Result: pass (owner-marked 2026-10-10)
 
@@ -762,6 +763,32 @@ Forever's SavedVariables are `_forever_/WTF/Account/<ACCOUNT>/SavedVariables/Con
 
 - **FOREVER-19. Empty slots show the note icon.** With a category that has nothing in your bags (Elixir, say), look at the macro bar and the `KCM_*` macro on an action bar → both show `inv_misc_note_02` (a parchment note), never a solid green square. Macros written before this fix repaint on the next recompute; `/cm rewritemacros` forces it. On **Retail** the empty icon stays the cooking pot. Result: owed
 
+## Seed probe
+
+**Clients: both.** Every check here runs on **Retail** and on **WoW Forever**, and each carries one result per client. The probe and its record shape are [seed-probe.md](./seed-probe.md).
+
+**Code:** `core/SeedProbe.lua`, `core/SeedProbeStore.lua`, the `probe` row in `settings/Slash.lua`, the four `OnProbeEvent` rows of `KCM.EVENTS` and the `GET_ITEM_INFO_RECEIVED` hook in `core/ConsumableMaster.lua`, the stand-down hook in `core/LifecycleSetup.lua`, and the TOC's `## SavedVariables` line.
+
+**Setup.** Make a macro `/cm probe seed mouseover` and bind it to a key: typing the command in chat moves the mouse off the item. Keep error display on. Back up the SavedVariables file first (Before you start): these checks write `ConsumableMasterProbeDB`.
+
+**PROBE-1. Mouseover in the bags.** Hover a consumable in your bags and press the key → one chat line, `probed <name> (<id>): <categories>`, naming the categories the macro list puts it in (or `(none)`). Hover a piece of armor and press it → it is recorded too. Hover nothing (or the empty world) and press it → one line, `no item under the mouse: ...`, and nothing is recorded. Do the first press once in combat on a dummy → it works the same, with no Lua error. Result: Retail owed; Forever owed
+
+**PROBE-2. Mouseover at a vendor, in the auction house and on a link.** Hover an item in a merchant's window, an auction-house listing and an item link in chat, pressing the key on each → each gets its `probed` line. An item the client has not loaded yet adds `(loading: ...)`; `/cm probe seed status` a few seconds later shows the pending count dropping. Result: Retail owed; Forever owed
+
+**PROBE-3. Vendor.** Talk to an innkeeper or a food vendor, then `/cm probe seed vendor` → one line, `vendor <name>: N consumables recorded, M skipped`, where N counts the food, drink and potions on sale and M everything else. With no merchant open, and again after closing it → one line, `no merchant open: ...`. Then `/reload`, log out and open the SavedVariables file → `ConsumableMasterProbeDB.items[<id>].sources.vendor[<npcID>]` carries the vendor's name, zone, price and stack size; a limited-supply item has `numAvailable` and `limited = true`, and an item sold for a currency or tokens has `extendedCost`. Result: Retail owed; Forever owed
+
+**PROBE-4. The auction house, armed then opened.** Away from the auction house, `/cm probe seed auctionhouse` → `auction house scan armed: ...`. Walk to an auctioneer and open the auction house → `full scan requested`, then `reading N listings`, progress at 25%, 50% and 75%, `N consumables in M listings, filling their records` and `scan done, N consumables recorded from M listings` (with `, K still loading` if some were cold). The client keeps drawing throughout: no freeze of a second or more. No Lua error. A record in the file afterwards has `sources.auctionhouse` with `listings`, `quantity` and `minBuyout`. Result: Retail owed; Forever owed
+
+**PROBE-5. The auction-house throttle.** Within 15 minutes of PROBE-4, with the auction house open, `/cm probe seed auctionhouse` → one line, `auction house throttled: ... try again in N min.`, and no scan starts. Wait out the window and run it again with the auction house open → it scans at once, without arming. If Blizzard refuses or ignores the request, the probe says `no listing arrived within 60 s ...` or `the scan came back empty ...` once and does not try again. Close the auction house during the `reading` phase of a scan → `(partial: N of M listings read)` and the scan ends. Result: Retail owed; Forever owed
+
+**PROBE-6. Status.** `/cm probe seed status` → one chat line pointing at the debug console, and the console shows the store's item count with its client, the sources (mouseover, vendor with the vendor count, auction house), the pending count, what is in flight, whether a merchant and the auction house are open, and the scan state with the time until the next full scan. Result: Retail owed; Forever owed
+
+**PROBE-7. Clear.** `/cm probe seed clear` → `probe store cleared: N items removed`; `/cm probe seed status` then shows 0 items, and the time until the next full scan is unchanged. Clear during an auction-house scan → the line adds `; the running probe was stopped`, and no more scan lines follow. Result: Retail owed; Forever owed
+
+**PROBE-8. A disabled addon refuses the probe.** `/cm probe seed auctionhouse` away from the auction house (armed), then `/cm disable`, then `/cm probe seed mouseover` over an item → one line, `Ka0s Consumable Master is disabled — enable it with /cm enable`, and nothing is recorded. `/cm enable`, then open the auction house → no scan starts, because the stand-down dropped the armed one. Result: Retail owed; Forever owed
+
+**PROBE-9. The store is its own and per client.** After the checks above, log out and open the SavedVariables file → `ConsumableMasterProbeDB` sits beside `ConsumableMasterDB` and `ConsumableMasterPerfDB` with `schemaVersion = 1`, and every record's `client` names this client (`retail` or `forever`) and its `build`. `ConsumableMasterDB` holds no probe data, and the macros and their picks are as they were before the probe. Retail's and Forever's files are separate, so each client holds only its own records. Result: Retail owed; Forever owed
+
 ## Non-English client
 
 **LOC-1. Classification on a localized client.** On a deDE, frFR or other non-English client (a language pack on PTR or beta, or a non-English account), reload with the DISC-4 consumables in bags → `/cm dump item <id>` shows a localized `subType` (such as `"Tränke"`), `classified:` is still correct, and the `KCM_*` macros populate. Before the numeric-class change every consumable classified as `(none)` on such a client. Without one, the headless cases `classifier: keys on numeric subclass, not the localized subType` and its WeaponSlots equivalent, plus DISC-4, DISC-5, MACRO-9 and MACRO-10 on English, are the sign-off. Result: pass (owner-marked 2026-10-10)
@@ -814,3 +841,5 @@ Owed from the owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-
 Owed from the owner's first smoke feedback on the LibKa0s v1.89.0 re-vendor (Ka0sAddonsCommonTasks `docs/2026-11-06-REVENDOR_LIBKA0S_V1_89/SF1_SMOKE_FEEDBACK.md`, SF1-CM): the new SKIN-47, and SKIN-1 and SKIN-31, whose expected button edge moved from white to the skin's dark icon edge.
 
 Owed from the WoW Forever port, step 1 (`docs/superpowers/specs/2026-11-08-forever-port-design.md`, CM-F1 to CM-F6, LibKa0s v1.94.0): FOREVER-1 to FOREVER-18.
+
+Owed from the seed probe (`docs/superpowers/specs/2026-11-08-seed-probe-design.md`): PROBE-1 to PROBE-9 on both clients, and SLASH-12, whose event count moved from ten to fourteen.

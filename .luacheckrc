@@ -45,6 +45,9 @@ globals = {
     -- not name reads as a typo the moment anything here touches it
     -- (performance-§5).
     "ConsumableMasterPerfDB",
+    -- The seed probe's store (core/SeedProbeStore.lua), the third SavedVariables
+    -- global: an accepted deviation recorded in docs/ARCHITECTURE.md.
+    "ConsumableMasterProbeDB",
     "StaticPopupDialogs",
     "UISpecialFrames",
 }
@@ -102,6 +105,11 @@ read_globals = {
     -- Namespaced client tables
     "C_Spell", "C_Item", "C_Container", "C_TooltipInfo", "C_Timer",
     "C_AddOns", "C_TradeSkillUI", "C_SettingsUtil", "C_CVar",
+    -- The seed probe (core/SeedProbe.lua, core/SeedProbeStore.lua): the merchant and
+    -- auction-house reads, the zone and the client build.
+    "C_MerchantFrame", "C_AuctionHouse", "C_Map", "GetMerchantNumItems", "GetMerchantItemID",
+    "GetMerchantItemLink", "GetMerchantItemCostInfo", "GetMerchantItemCostItem",
+    "GetRealZoneText", "GetBuildInfo",
     -- Ace3 / vendored
     "LibStub",
 }

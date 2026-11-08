@@ -393,8 +393,8 @@ Total.
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
-- a retired event name leaves the other nine bound
-- a retired event name leaves the other nine bound on a client with no C_EventUtils
+- a retired event name leaves the other thirteen bound
+- a retired event name leaves the other thirteen bound on a client with no C_EventUtils
 - IsEventValid answering false rejects without calling RegisterEvent
 - a stand-down and stand-up does not record a rejected name twice
 - the degraded Core stub's SafeRegisterEvent records a raising name
@@ -1076,6 +1076,34 @@ Total.
 - Selector: a pin past the end of the list clamps to last place
 - Selector: two pins on the same position keep both items in the list
 - Selector.GetEffectivePriority returns an empty list for an unknown category
+
+### test_seedprobe.lua (25)
+
+- Probe store: its own global, built at initialize with schema 1, never inside AceDB
+- Probe store: the TOC declares ConsumableMasterProbeDB third
+- Probe store: a broken store is rebuilt, not raised on
+- Probe mouseover: records every field the item dump shows, and acks in chat
+- Probe mouseover: any item class is recorded, because the player pointed at it
+- Probe mouseover: a second probe refreshes the record and counts, firstSeen kept
+- Probe mouseover: nothing under the mouse is one refusal line and no record
+- Probe mouseover: a secret value from the tooltip is never stored or concatenated
+- Probe mouseover: a cold item is requested and completes when its data arrives
+- Probe mouseover: a body that never arrives is re-read a bounded number of times
+- Probe vendor: refused with no merchant open, before and after a visit
+- Probe vendor: every consumable with the vendor's NPC, name, zone, price and supply; the rest counted
+- Probe vendor: the fill is time-sliced, FILL_BATCH records a frame
+- Probe merge: one item seen by mouseover, two vendors and the auction house keeps every source
+- Probe AH: closed, the command arms a scan; opening starts it, the walk is time-sliced
+- Probe AH: open, the command scans now; a second command while it runs is refused
+- Probe AH: within 15 minutes of the last scan the command is refused and never retried
+- Probe AH: a scan whose list never arrives is reported once at the timeout
+- Probe AH: an empty list is reported, not retried
+- Probe AH: closing the auction house mid-walk keeps what was read
+- Probe status: a report in the debug console and one pointer line in chat
+- Probe clear: empties the store, says how many, stops a running probe, keeps the throttle
+- Probe help: /cm probe and /cm probe seed list the five subcommands; an unknown one is named
+- Probe: never touches the profile or the macros
+- Probe: a disabled addon refuses the verb on the one line, and the stand-down stops an armed scan
 
 ### test_skin.lua (10)
 
@@ -1759,6 +1787,7 @@ Total.
 | test_selector.lua | 39 |
 | test_selector_discovery.lua | 14 |
 | test_selector_pins.lua | 14 |
+| test_seedprobe.lua | 25 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 23 |
 | test_icon_rule.lua | 5 |
@@ -1793,4 +1822,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1443** |
+| **Total** | **1468** |

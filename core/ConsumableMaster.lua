@@ -37,6 +37,10 @@ function KCM.ID.SpellID(id) return (type(id) == "number" and id < 0) and -id or 
 
 function KCM:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("ConsumableMasterDB", KCM.dbDefaults, true)
+    -- The seed probe's own SavedVariables global, ConsumableMasterProbeDB, never
+    -- AceDB's (core/SeedProbeStore.lua; an accepted deviation in
+    -- docs/ARCHITECTURE.md). Built here because the client has read the file by now.
+    if KCM.SeedProbe and KCM.SeedProbe.InitStore then KCM.SeedProbe.InitStore() end
     if KCM.Database and KCM.Database.RunMigrations then
         KCM.Database.RunMigrations()
     end
@@ -880,6 +884,11 @@ function KCM:OnItemInfoReceived(event, itemID, success)
     if KCM.TooltipCache and KCM.TooltipCache.Invalidate then
         KCM.TooltipCache.Invalidate(itemID)
     end
+    -- The seed probe re-captures an item it is waiting on (core/SeedProbe.lua),
+    -- after the cache above has dropped its stale entry.
+    if KCM.SeedProbe and KCM.SeedProbe.OnItemInfoReceived then
+        KCM.SeedProbe.OnItemInfoReceived(itemID)
+    end
     -- Split bag vs non-bag events. First opening the options panel accesses
     -- ~150 priority-list items that aren't in bags, each firing an event as
     -- its data hydrates from the server. A full Pipeline.Recompute on each
@@ -894,6 +903,14 @@ function KCM:OnItemInfoReceived(event, itemID, success)
     elseif KCM.bus and KCM.bus.SendMessage then
         KCM.bus:SendMessage(KCM.MSG.PANEL_REFRESH)
     end
+end
+
+-- The seed probe's window events (MERCHANT_SHOW / _CLOSED, AUCTION_HOUSE_SHOW /
+-- _CLOSED) and, only while a scan waits for its list, REPLICATE_ITEM_LIST_UPDATE.
+-- Each one flips a flag or advances an armed probe; nothing runs until a
+-- `/cm probe seed` command asks (core/SeedProbe.lua).
+function KCM:OnProbeEvent(event)
+    if KCM.SeedProbe and KCM.SeedProbe.OnEvent then KCM.SeedProbe.OnEvent(event) end
 end
 
 function KCM:OnLearnedSpell()
@@ -929,6 +946,12 @@ KCM.EVENTS = {
     { "SPELL_UPDATE_COOLDOWN",         "OnCooldownUpdate" },
     { "BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate" },
     { "ADDON_RESTRICTION_STATE_CHANGED", "OnRestrictionChanged" },
+    -- The seed probe's open/closed flags (core/SeedProbe.lua): `vendor` and
+    -- `auctionhouse` have to know whether the window is open when they are typed.
+    { "MERCHANT_SHOW",                 "OnProbeEvent" },
+    { "MERCHANT_CLOSED",               "OnProbeEvent" },
+    { "AUCTION_HOUSE_SHOW",            "OnProbeEvent" },
+    { "AUCTION_HOUSE_CLOSED",          "OnProbeEvent" },
 }
 
 -- The names the client refused, each once, for the whole session. The addon's

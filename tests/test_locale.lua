@@ -280,7 +280,7 @@ local RESIDUE = {
     -- settings/Category.lua
     {"settings/Category.lua", "icon-button onClick failed: ", "DIAGNOSTIC"},
 
-    -- settings/Slash.lua — the twenty-two unrouted verb descriptions and their replies.
+    -- settings/Slash.lua — the twenty-three unrouted verb descriptions and their replies.
     {"settings/Slash.lua", "Show this help", "CLI SURFACE"},
     {"settings/Slash.lua", "Open the settings panel", "CLI SURFACE"},
     {"settings/Slash.lua", "Settings panel unavailable.", "CLI SURFACE"},
@@ -315,6 +315,7 @@ local RESIDUE = {
     {"settings/Slash.lua", "expected KEY=on|off pairs, comma-separated", "VALIDATOR"},
     {"settings/Slash.lua", "edited with %s, not with /cm set", "VALIDATOR"},
     {"settings/Slash.lua", "Dump internal state — try `/cm dump` for the list", "CLI SURFACE"},
+    {"settings/Slash.lua", "Seed probe — record item data for the seed lists; try `/cm probe seed`", "CLI SURFACE"},
 
     -- settings/Slash.lua — SLASH_STRINGS, the LibKa0s-Slash override table.
     {"settings/Slash.lua", "|cffffd100Ka0s Consumable Master|r v%s \\226\\128\\148 slash commands", "LIB DESCRIPTOR"},

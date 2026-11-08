@@ -2,10 +2,10 @@
 
 `/cm` and `/consumablemaster` reach one dispatcher: the **LibKa0s-Slash-1.0** instance built in
 `settings/Slash.lua`. The library owns the parse, the help renderer, the row and value formatters and
-the schema CLI. This addon owns twenty-four verbs, five sub-command tables with three different handler
+the schema CLI. This addon owns twenty-five verbs, six sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — twenty-four verbs is over eight, and four verbs
+Both halves of `documentation-§3`'s trigger fire here — twenty-five verbs is over eight, and five verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -16,6 +16,7 @@ Three files, and the split is deliberate:
 |---|---|
 | `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. It publishes the sub-command vocabulary as `KCM.SlashCommands.SplitVerb` / `FindCommand` / `CommandRows` on both arms: the library's own functions live, and on the degraded arm a minimal split, an exact lookup and plain `cmd  desc` rows. |
 | `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes six entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
+| `core/SeedProbe.lua` | The `probe` verb's body, `KCM.SeedProbe.Run`, and its `SEED_COMMANDS` table (`mouseover`, `vendor`, `auctionhouse`, `status`, `clear`), read through the same sub-command vocabulary. Bound in `COMMANDS` through a call-time thunk. See [seed-probe.md](./seed-probe.md). |
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
@@ -32,7 +33,7 @@ asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instan
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
 renderer's input.
 
-The twenty-four verbs, in declaration order, which is also the order `/cm help` and the About page
+The twenty-five verbs, in declaration order, which is also the order `/cm help` and the About page
 print them:
 
 | Verb | Backed by | Behavior |
@@ -60,6 +61,7 @@ print them:
 | `stat` | host | The per-spec stat tree. |
 | `aio` | host | The composite-category tree. |
 | `dump` | host | The dump targets. |
+| `probe` | host | The seed probe: `/cm probe seed mouseover`, `vendor`, `auctionhouse`, `status` and `clear` ([seed-probe.md](./seed-probe.md)). `status` is a report; the rest acknowledge or refuse in chat. |
 
 `config`, `resync` and `rewritemacros` all say something when they cannot do the thing: `resync` and
 `rewritemacros` announce that picks are computed now and macro writes land when combat ends, rather
@@ -243,7 +245,7 @@ one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
-| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `skin`, `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `skin`, `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio`, `probe` |
 
 `diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
 `debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the

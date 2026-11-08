@@ -103,14 +103,14 @@ local function assertOthersBound(t, KCM, mock, ok, err, label)
     t.eqList(KCM.RejectedEvents or {}, { RETIRED }, label .. ": the retired name is recorded once")
 end
 
-test("a retired event name leaves the other nine bound", function(t)
+test("a retired event name leaves the other thirteen bound", function(t)
     local KCM, mock, ok, err = enableWithRetired(false)
-    t.eq(#(KCM.EVENTS or {}), 10, "KCM.EVENTS holds the ten pairs")
+    t.eq(#(KCM.EVENTS or {}), 14, "KCM.EVENTS holds the fourteen pairs")
     assertOthersBound(t, KCM, mock, ok, err, "IsEventValid present")
     t.falsy(registeredOn(mock, KCM)[RETIRED], "the retired name is not registered")
 end)
 
-test("a retired event name leaves the other nine bound on a client with no C_EventUtils", function(t)
+test("a retired event name leaves the other thirteen bound on a client with no C_EventUtils", function(t)
     local KCM, mock, ok, err = enableWithRetired(true)
     assertOthersBound(t, KCM, mock, ok, err, "C_EventUtils nil")
 end)

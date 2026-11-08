@@ -572,6 +572,8 @@ local SUITES = {
     "test_selector",
     "test_selector_discovery",
     "test_selector_pins",
+    -- The seed probe (core/SeedProbe.lua, core/SeedProbeStore.lua; docs/seed-probe.md).
+    "test_seedprobe",
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",
     "test_skin_surfaces",
