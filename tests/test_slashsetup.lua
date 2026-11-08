@@ -585,10 +585,16 @@ end)
 
 test("Slash: sub-verbs fold case and tolerate extra spaces, arguments keep theirs", function(t)
     local KCM, mock = load()
+    -- Chat and the console together: the list verbs are reports (the owner's
+    -- ruling of 2026-11-08), so their body lands in the debug console.
     local function text(line)
+        local D = KCM.DebugLog.instance
+        local from = #D.buffer
         mock.output = {}
         KCM:OnSlashCommand(line)
-        return table.concat(mock.output, "\n")
+        local out = { table.concat(mock.output, "\n") }
+        for i = from + 1, #D.buffer do out[#out + 1] = D.buffer[i] end
+        return table.concat(out, "\n")
     end
     for _, line in ipairs({ "priority FOOD LiSt", "priority   food    list" }) do
         t.truthy(text(line):find("FOOD: ", 1, true), "/cm " .. line .. " prints the FOOD list")

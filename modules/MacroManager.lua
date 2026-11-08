@@ -24,7 +24,7 @@ local MAX_FLUSH_ATTEMPTS   = 3
 -- specific fileID as a sentinel meaning "let `#showtooltip` drive the icon";
 -- any other stored icon overrides `#showtooltip` on the action bar. This
 -- matters on ElvUI/Bartender/etc. but is also the stock Blizzard behavior.
-local DEFAULT_ICON         = 7704166
+local DEFAULT_ICON         = KCM.EMPTY_ICON   -- per client (core/Compat.lua): cooking pot / note
 local DYNAMIC_ICON         = 134400
 
 local function iconFor(itemID)

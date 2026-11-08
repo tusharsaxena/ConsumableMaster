@@ -888,7 +888,7 @@ end)
 -- at module load, so a spy installed after loadWithSchema() would miss every
 -- AceGUI:Create call the file makes — the swap has to bracket the file's own
 -- load, mirroring tests/test_widgets.lua's loadWidgets().
-test("Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover",
+h.retailTest("Settings: a targeted category tab offers the mouseover toggle, bound to bucket.mouseover",
     function(t)
         local mock = loader.mock
 

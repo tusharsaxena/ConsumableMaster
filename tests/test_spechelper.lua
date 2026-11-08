@@ -109,7 +109,7 @@ test("SpecHelper.GetCurrent stops at the classID when the spec id is unresolvabl
     t.eq(specKey, nil, "and no key is built from a missing half")
 end)
 
-test("SpecHelper.GetStatPriority ignores a user row that names no primary", function(t)
+h.retailTest("SpecHelper.GetStatPriority ignores a user row that names no primary", function(t)
     local KCM = h.loader.loadPure()
     local key = "7_263"
     KCM.db.profile.statPriority[key] = { secondary = { "CRIT" } }   -- half-written row

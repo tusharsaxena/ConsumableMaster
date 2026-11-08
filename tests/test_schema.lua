@@ -527,7 +527,7 @@ local function defaultAt(KCM, path)
     return v
 end
 
-test("schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows",
+h.retailTest("schema: stat priority, the composite sections, slot order and visibility, and mouseover are rows",
     function(t)
         local KCM = h.loader.loadFullAddon()
         local H = KCM.Settings.Helpers
@@ -766,7 +766,7 @@ local STORED_GUARD = {
     "visibility | string | always | nil | nil | nil | ",
 }
 
-test("schema: the layout pass moved no stored path, default, range or enum value", function(t)
+h.retailTest("schema: the layout pass moved no stored path, default, range or enum value", function(t)
     local KCM = h.loader.loadFullAddon()
     local got = {}
     for _, row in ipairs(KCM.Settings.Schema) do got[#got + 1] = guardLine(row) end

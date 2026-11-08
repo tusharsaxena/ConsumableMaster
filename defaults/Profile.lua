@@ -6,10 +6,14 @@
 -- those reads through KCM.dbDefaults instead. `tests/test_schema.lua` pins that
 -- rule for the schema rows.
 --
--- Loaded FIRST in the TOC's `# Defaults` block, which puts it in exactly the
--- position it occupied when it lived at the top of core/ConsumableMaster.lua:
--- after the whole `# Core` block, before defaults/Categories.lua. That matters
--- for one literal — see `perRow` below.
+-- Loaded SECOND in the TOC's `# Defaults` block, after the whole `# Core` block
+-- and right after defaults/Categories.lua, and that order is load-bearing: the
+-- per-category buckets, the macro bar's `perRow` and its slot `order` are built
+-- from KCM.Categories.BY_KEY, which holds only the categories this client is
+-- declared for (clients-§4). So a category absent on this client has no bucket
+-- and no slot: it is not created and then hidden. The literals below are still
+-- THE declaration site for every bucket's shape; only which of them a client
+-- gets is derived.
 --
 -- What is NOT here: defaults/Categories.lua (the category REGISTRY — keys,
 -- labels, macro names, the `targeted` flag) and the fifteen defaults/Defaults_*
@@ -18,6 +22,82 @@
 
 local _, NS = ...
 local KCM = NS
+
+-- Every category's profile bucket, declared once. Built into the profile below
+-- for the keys KCM.Categories.BY_KEY holds, so VANTUS / AUG_RUNE / BLOODLUST /
+-- BATTLE_REZ get a bucket on Retail only and ELIXIR / BANDAGE / SCROLL /
+-- PROT_POT on WoW Forever only (defaults/Categories.lua's `clients`).
+local CATEGORY_BUCKETS = {
+    FOOD      = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    DRINK     = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    HP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    MP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    HS        = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    VANTUS    = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    AUG_RUNE  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    BLOODLUST  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    -- `mouseover` drives the targeting clause MacroManager splices into
+    -- the body; see defaults/Categories.lua's `targeted` field.
+    BATTLE_REZ = { added = {}, blocked = {}, pins = {}, discovered = {}, mouseover = true },
+    BANDAGE   = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    PROT_POT  = { added = {}, blocked = {}, pins = {}, discovered = {} },
+    STAT_FOOD = { bySpec = {} },
+    CMBT_POT  = { bySpec = {} },
+    FLASK     = { bySpec = {} },
+    WPN_ENCH  = { bySpec = {} },
+    ELIXIR    = { bySpec = {} },
+    SCROLL    = { bySpec = {} },
+    -- Composite categories. No item buckets (added/blocked/pins/
+    -- discovered) — picks come from the underlying single categories
+    -- at recompute time. `enabled[ref]` toggles a sub-category in/out
+    -- of the macro body; `orderInCombat` / `orderOutOfCombat` are the
+    -- sub-category refs in the order they appear in the macro body
+    -- (also drives the row order in the panel). Sub-categories are
+    -- locked to their section: HS+HP_POT/MP_POT only ever go into
+    -- inCombat, FOOD/DRINK only ever go into outOfCombat.
+    HP_AIO    = {
+        enabled = { HS = true, HP_POT = true, FOOD = true },
+        orderInCombat = { "HS", "HP_POT" },
+        orderOutOfCombat = { "FOOD" },
+    },
+    MP_AIO    = {
+        enabled = { MP_POT = true, DRINK = true },
+        orderInCombat = { "MP_POT" },
+        orderOutOfCombat = { "DRINK" },
+    },
+}
+
+-- The macro bar's default slot order across every client's categories.
+-- Mirrors the cosmetic settings-tab order in KCM.Settings.macroOrder
+-- (settings/Panel.lua), which loads much later, so tests/test_macrobar.lua
+-- asserts the two never drift. Filtered by BY_KEY below, so Retail's order is
+-- exactly the fifteen it always was, and Forever's puts each of its four
+-- categories beside its nearest kin.
+local SLOT_ORDER = {
+    "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE",
+    "HP_AIO", "MP_AIO",
+    "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH",
+    "AUG_RUNE", "VANTUS",
+    "BLOODLUST", "BATTLE_REZ",
+}
+
+local BY_KEY = KCM.Categories.BY_KEY
+
+local function clientBuckets()
+    local out = {}
+    for key, bucket in pairs(CATEGORY_BUCKETS) do
+        if BY_KEY[key] then out[key] = bucket end
+    end
+    return out
+end
+
+local function clientOrder()
+    local out = {}
+    for _, key in ipairs(SLOT_ORDER) do
+        if BY_KEY[key] then out[#out + 1] = key end
+    end
+    return out
+end
 
 KCM.dbDefaults = {
     -- Schema shape is account-wide, so its version lives in `global`, not
@@ -72,41 +152,8 @@ KCM.dbDefaults = {
         visibility = "always",   -- always | inCombat | outOfCombat | never
         scale      = 1.0,
         alpha      = 1.0,
-        categories = {
-            FOOD      = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            DRINK     = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            HP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            MP_POT    = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            HS        = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            VANTUS    = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            AUG_RUNE  = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            BLOODLUST  = { added = {}, blocked = {}, pins = {}, discovered = {} },
-            -- `mouseover` drives the targeting clause MacroManager splices into
-            -- the body; see defaults/Categories.lua's `targeted` field.
-            BATTLE_REZ = { added = {}, blocked = {}, pins = {}, discovered = {}, mouseover = true },
-            STAT_FOOD = { bySpec = {} },
-            CMBT_POT  = { bySpec = {} },
-            FLASK     = { bySpec = {} },
-            WPN_ENCH  = { bySpec = {} },
-            -- Composite categories. No item buckets (added/blocked/pins/
-            -- discovered) — picks come from the underlying single categories
-            -- at recompute time. `enabled[ref]` toggles a sub-category in/out
-            -- of the macro body; `orderInCombat` / `orderOutOfCombat` are the
-            -- sub-category refs in the order they appear in the macro body
-            -- (also drives the row order in the panel). Sub-categories are
-            -- locked to their section: HS+HP_POT/MP_POT only ever go into
-            -- inCombat, FOOD/DRINK only ever go into outOfCombat.
-            HP_AIO    = {
-                enabled = { HS = true, HP_POT = true, FOOD = true },
-                orderInCombat = { "HS", "HP_POT" },
-                orderOutOfCombat = { "FOOD" },
-            },
-            MP_AIO    = {
-                enabled = { MP_POT = true, DRINK = true },
-                orderInCombat = { "MP_POT" },
-                orderOutOfCombat = { "DRINK" },
-            },
-        },
+        -- This client's categories only (CATEGORY_BUCKETS above).
+        categories = clientBuckets(),
         statPriority = {}, -- [specKey] = { primary = "AGI", secondary = {...} }  -- user overrides only
         -- The skin this addon wears (skinning-§2: per addon, per profile), applied through
         -- core/SkinSetup.lua and written only through the schema seam (settings/General.lua's
@@ -120,7 +167,9 @@ KCM.dbDefaults = {
         -- and no migration is owed.
         skin = {
             source      = "ka0s",
-            skin        = "ka0s",
+            -- The client's default skin: WoW Forever on the Forever client, Ka0s Default on
+            -- Retail (skinning-§2; core/SkinSetup.lua).
+            skin        = KCM.DEFAULT_SKIN or "ka0s",
             ignorePanel = true,
             ignoreFonts = false,
             font        = "",
@@ -163,16 +212,14 @@ KCM.dbDefaults = {
             scale    = 1.0,
             alpha    = 1.0,
             -- Grid. `perRow` counts buttons along the axis `orientation` fills
-            -- first (row for HORIZONTAL, column for VERTICAL); 15 = one row of
-            -- every managed macro. This CANNOT be `#KCM.Categories.LIST`: this
-            -- file loads immediately before defaults/Categories.lua in
-            -- ConsumableMaster.toc, so that table doesn't exist yet when this
-            -- literal is evaluated. Must be kept equal to the category count by
-            -- hand; the drift test in tests/test_macrobar.lua enforces it.
+            -- first (row for HORIZONTAL, column for VERTICAL); one row of every
+            -- managed macro, so the category count: fifteen on either client.
+            -- Derived since the WoW Forever port moved this file after
+            -- defaults/Categories.lua; tests/test_macrobar.lua still pins it.
             buttonSize  = 36,
             spacing     = 4,
             padding     = 4,
-            perRow      = 15,
+            perRow      = #KCM.Categories.LIST,
             orientation = "HORIZONTAL",   -- HORIZONTAL | VERTICAL
             growthH     = "RIGHT",        -- RIGHT | LEFT
             growthV     = "DOWN",         -- DOWN | UP
@@ -304,16 +351,8 @@ KCM.dbDefaults = {
             combatMode      = "ALWAYS",   -- ALWAYS | HIDE_IN_COMBAT | ONLY_IN_COMBAT
             fadeUnlessHover = false,
             fadeAlpha       = 0.15,
-            -- Slot order. Mirrors the cosmetic settings-tab order in
-            -- KCM.Settings.order (settings/Panel.lua) — which can't be
-            -- referenced from here because Panel.lua loads much later — so
-            -- tests/test_macrobar.lua asserts the two never drift.
-            order = {
-                "FOOD", "DRINK", "HP_POT", "MP_POT", "HS",
-                "HP_AIO", "MP_AIO",
-                "FLASK", "CMBT_POT", "STAT_FOOD", "WPN_ENCH", "AUG_RUNE", "VANTUS",
-                "BLOODLUST", "BATTLE_REZ",
-            },
+            -- Slot order: this client's categories in SLOT_ORDER's order (above).
+            order = clientOrder(),
             -- [catKey] = false hides that slot. Unset means visible, so a
             -- category shipped after the profile was written appears by default.
             shown = {},

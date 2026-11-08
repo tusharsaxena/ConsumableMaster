@@ -1,12 +1,12 @@
 # Consumable Master
 
-![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5-purple)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.5_and_Forever_1.60.1-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1404%2F1404_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1477%2F1477_passing-green)
 
-Retail only for now; WoW Forever support is planned. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
+Supports Retail and WoW Forever. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
 Loot something better, change spec, reload or drop out of combat, and each macro re-points at your current best pick. Usually that's an item. Where a class ability does the job (Recuperate, for one), it's the spell. The macros are account-wide, so one set covers every character you have. The addon finds them by name rather than by slot, so you can shuffle them around your macro list and they'll keep working next to macros of your own.
 
@@ -31,6 +31,8 @@ Loot something better, change spec, reload or drop out of combat, and each macro
 | 15 |All-in-one mana (combat: MP pot, out of combat: drink)       |<code>KCM_MP_AIO</code> |No          |
 
 If a better pick turns up while you're in combat, the macro updates the moment you leave it. WoW doesn't allow macro changes mid-fight.
+
+On **WoW Forever** the set is a little different, because vanilla Azeroth has no Vantus runes, augment runes, Bloodlust or battle resurrection. Those four macros don't exist there. Forever gets four of its own instead: <code>KCM_ELIXIR</code> (spec-aware, by your stat priority), <code>KCM_SCROLL</code> (spec-aware, the same way), <code>KCM_BANDAGE</code> (the biggest heal) and <code>KCM_PROT_POT</code> (protection potions, the biggest absorb). That's still thirteen categories plus the two combo macros. Forever ships no built-in item lists yet, so every pick there comes from what's in your bags.
 
 ## Screenshots
 
@@ -86,6 +88,7 @@ Each macro is built in four steps, in this order.
     *   Weapon Enchant checks each equipped weapon on its own. Attack Power oils and stones score highest for Strength and Agility specs, and Spell Power ones for Intellect specs, since that's each spec's real throughput stat. Other oils rank by your stat priority. The addon also tags every enhancement from its tooltip as bladed (whetstone), blunt (weightstone) or any (oil), and only considers the ones that match that hand's weapon. Dual-wield a sword and a mace and you can end up with a whetstone on one hand and a weightstone on the other. A hand that's empty, or has nothing valid to apply, is dropped from the macro. Swap weapons and the macro follows immediately, without a reload.
     *   Augment Rune picks the rune that grants the most primary stat. "Permanent" runes like Ethereal and Dreambound don't give a longer buff. They just aren't consumed, so they win ties and nothing else. The addon discovers new runes from their tooltip, which means a future one works without an addon update.
     *   Healthstone has a small preference for modern auto-leveling stones over old ones.
+    *   On WoW Forever, Elixir and Scroll rank by your stat priority, the same way Flask does. One whose stat your spec doesn't use still makes the list, below the ones it does, ordered by the size of its effect. Bandages rank on how much they heal, and protection potions on how much damage they absorb, whatever the school.
     *   Spell entries are class abilities (Recuperate as a Food entry, say). They score above every item, so they sit at the top by default. Pin items above them if you prefer.
 - Apply your pins. Any rows you dragged into place override the score.
 - Pick the first one you have, meaning the first item you own or spell you know. If you have none of them, clicking the macro prints a friendly `[CM] no category` note.
@@ -98,7 +101,7 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 |----------|--------|
 | Will this delete or overwrite my existing macros? | No. The addon finds its macros by name, never by slot, and it only ever touches its own. It never reads, moves or deletes yours. If you delete one of its macros by hand, it comes back on the next update. |
 | Do the macros work across all my characters? | Yes. They're account-wide, so every character shares one set, and your priority lists and stat choices are shared too. |
-| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food and Weapon Enchant depend on your stat priority, which changes with your spec. Weapon Enchant also looks at your weapon types. Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust and Battle Rez rank the same for every spec, so they share one list. |
+| Why are some categories per-spec and others aren't? | Flask, Combat Potion, Stat Food and Weapon Enchant depend on your stat priority, which changes with your spec. Weapon Enchant also looks at your weapon types. Food, Drink, HP Potion, MP Potion, Healthstone, Augment Rune, Vantus, Bloodlust and Battle Rez rank the same for every spec, so they share one list. On WoW Forever, Elixir and Scroll are per-spec too, and Bandage and Protection Potion share one list. |
 | How does it pick weapon enchants when I'm dual-wielding? | It picks for each hand separately. A whetstone only goes on a bladed weapon and a weightstone only on a blunt one. Oils fit any weapon at all, including a bow, gun or wand, which can't take a stone. So a sword-and-mace pair can end up with a different enhancement on each hand. A hand with nothing equipped is left out of the macro. Swapping weapons updates it right away, and you don't need to reload. |
 | Why isn't it using my reusable (permanent) augment rune? | That's deliberate. A reusable rune like Ethereal or Dreambound doesn't give a longer buff. It just isn't consumed, so it only wins when it ties the best rune on primary stat. If a single-use rune grants more stat, the addon picks that one instead. Drag the reusable one to the top of its list if you'd rather never spend charges. |
 | How do I add an item or spell the addon doesn't know about? | Open the category's tab on the Macros page and use **Add an item or spell**, under the Macro heading. Choose **Item** or **Spell**, then type the ID or the name, or shift-click the item (or spell) into the box, and press Enter or click **Add**. If it can't be found, the line under the box says so. An item's name only works once the game has seen that item this session. |
@@ -113,8 +116,8 @@ Hover the blue info button on any row to see exactly why it landed where it did.
 
 | Symptom | Fix |
 |---------|-----|
-| Action bar shows a cooking-pot icon instead of the picked item's icon. | Run **Force rewrite macros** on the General page > Maintenance (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
-| The macro shows the cooking pot but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status. If your item isn't there, it is blocked or its tooltip hasn't loaded yet. |
+| Action bar shows a cooking-pot icon (a note on WoW Forever) instead of the picked item's icon. | Run **Force rewrite macros** on the General page > Maintenance (or `/cm rewritemacros`), then `/reload`. Some bar addons hold the old icon until the button redraws. |
+| The macro shows the cooking pot (the note, on WoW Forever) but I _do_ own the item. | Run `/cm dump pick catKey` (e.g. `/cm dump pick FLASK`) to list every candidate with its score and owned status in the debug console (use **Copy** to share it). If your item isn't there, it is blocked or its tooltip hasn't loaded yet. |
 | I just looted a better food / flask but the macro didn't update. | Give it a second; bag updates are batched. If nothing changes, run `/cm resync`. If it happened in combat, the macro updates when you leave combat. |
 | My macro changed but my action bar didn't. | `/reload`. Some bar addons cache icons and don't redraw on every macro change. |
 | Swapped specs but the flask / combat-potion / stat-food / weapon-enchant macro didn't update. | Run `/cm resync`, and check that the viewed spec on the **Stat Priority** page matches the spec you are actually playing. |

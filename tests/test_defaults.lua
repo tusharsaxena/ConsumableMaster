@@ -202,7 +202,7 @@ end)
 -- Seed item lists
 -- ---------------------------------------------------------------------------
 
-test("Defaults: every single-pick category ships a non-empty seed list", function(t)
+h.retailTest("Defaults: every single-pick category ships a non-empty seed list", function(t)
     local KCM = h.loader.loadPure()
     for _, row in ipairs(KCM.Categories.LIST) do
         if not row.composite then
@@ -285,7 +285,7 @@ test("Defaults: a seeded itemID is shared only across a health/mana sibling pair
     end
 end)
 
-test("Defaults: the FOOD seed carries the conjured-food spell as a sentinel", function(t)
+h.retailTest("Defaults: the FOOD seed carries the conjured-food spell as a sentinel", function(t)
     local KCM = h.loader.loadPure()
     local spells = 0
     for _, id in ipairs(KCM.SEED.FOOD) do
@@ -297,7 +297,7 @@ test("Defaults: the FOOD seed carries the conjured-food spell as a sentinel", fu
     t.truthy(spells >= 1, "at least one spell entry (Recuperate) rides alongside the items")
 end)
 
-test("Defaults: the Healthstone seed is item-only", function(t)
+h.retailTest("Defaults: the Healthstone seed is item-only", function(t)
     local KCM = h.loader.loadPure()
     t.truthy(#KCM.SEED.HS >= 1, "healthstones are seeded")
     for _, id in ipairs(KCM.SEED.HS) do
@@ -305,7 +305,7 @@ test("Defaults: the Healthstone seed is item-only", function(t)
     end
 end)
 
-test("Defaults: every reusable augment rune the Classifier knows is in the seed", function(t)
+h.retailTest("Defaults: every reusable augment rune the Classifier knows is in the seed", function(t)
     local KCM = h.loader.loadPure()
     -- Mirrors REUSABLE_AUG_IDS in core/Classifier.lua, which the seed file's
     -- header promises to keep in sync.
@@ -359,7 +359,7 @@ local PLAYABLE_SPEC_KEYS = {
     "13_1467", "13_1468", "13_1473",        -- Evoker
 }
 
-test("Defaults: stat priority seeds every playable spec", function(t)
+h.retailTest("Defaults: stat priority seeds every playable spec", function(t)
     local KCM = h.loader.loadPure()
     t.eq(#PLAYABLE_SPEC_KEYS, 40, "the pinned list names all 40 playable specs")
     for _, key in ipairs(PLAYABLE_SPEC_KEYS) do

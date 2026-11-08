@@ -55,7 +55,7 @@ Body shape (`buildWeaponEnchantBody`, exposed as `M._buildWeaponEnchantBody` for
 
 Each hand contributes an **application pair** — `/use item:<id>` puts the enhancement on the cursor, `/use <slot>` applies it to that weapon. A hand with a nil pick (no weapon equipped, or nothing owned whose `tt.weaponAffinity` matches that weapon's type — note a ranged weapon matches oils, not stones) contributes **no lines at all**; it is never given the other hand's pick.
 
-- Both picks nil → `buildWeaponEnchantBody` returns nil and the caller falls through to `buildEmptyBody(cat)` with `iconItemID = nil`, so the cooking-pot icon renders.
+- Both picks nil → `buildWeaponEnchantBody` returns nil and the caller falls through to `buildEmptyBody(cat)` with `iconItemID = nil`, so the empty icon (`KCM.EMPTY_ICON`: Retail's cooking pot, Forever's note) renders.
 - Otherwise the stored icon follows `mhPick or ohPick`, so the bar shows the main-hand enhancement when there is one.
 
 Dual-wielding a bladed and a blunt weapon legitimately yields two *different* enhancements (whetstone + weightstone) in one body. Both pairs are unconditional — there are no `[combat]` conditionals here, unlike the composites.
@@ -99,14 +99,14 @@ If exactly one combat-state side ends up empty but the other has picks, an extra
 
 The Lua-conditional gate is necessary because `/run` doesn't accept `[combat]` / `[nocombat]` macro conditionals — those are evaluated by the secure-macro parser, which only attaches them to `/use` / `/cast` / `/castsequence` / `/click` / `/target` / etc.
 
-If both sides end up empty, the body falls through to `buildEmptyBody` and the cooking-pot icon renders.
+If both sides end up empty, the body falls through to `buildEmptyBody` and the empty icon (`KCM.EMPTY_ICON`) renders.
 
 ## Action-bar icon convention
 
 Two stored-icon constants in `modules/MacroManager.lua`:
 
 ```lua
-local DEFAULT_ICON = 7704166   -- cooking pot
+local DEFAULT_ICON = KCM.EMPTY_ICON   -- per client: 7704166 cooking pot (Retail), 134328 inv_misc_note_02 (Forever)
 local DYNAMIC_ICON = 134400    -- the `?` fileID
 ```
 
@@ -119,7 +119,7 @@ WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartend
 So:
 
 - **Active body** stores `DYNAMIC_ICON`. Body keeps `#showtooltip` and either `/use item:N` or `/cast <Spell>`. Action bar adopts the picked item's / spell's icon.
-- **Empty body** stores `DEFAULT_ICON` (cooking pot). Body has no `#showtooltip`. The static cooking pot renders directly.
+- **Empty body** stores `DEFAULT_ICON` (Retail's cooking pot, Forever's note: `KCM.EMPTY_ICON`, picked once per client in `core/Compat.lua`, because the Forever client has no file 7704166 and drew the missing-texture fill). Body has no `#showtooltip`. The static cooking pot renders directly.
 
 **Never store `DEFAULT_ICON` on an active body** — you'll see the cooking pot on the action bar instead of the picked flask.
 

@@ -121,6 +121,20 @@ if not lib then
         return 0
     end
 
+    -- A report (DL.Report on the live arm below) has no console to go to either,
+    -- but unlike the diagnostics report it is a few dozen lines the player asked
+    -- for by name, and chat is where it was printed before the 2026-11-08 ruling.
+    -- So it falls back to chat as it always did, with no pointer line: there is
+    -- no console to point at. Answers the line count, as the live arm does.
+    function DL.Report(_, _, fn)
+        local n = 0
+        fn(function(line)
+            n = n + 1
+            if KCM.Say then KCM.Say(line) end
+        end)
+        return n
+    end
+
     -- Deliberately publishes NO instance and NO AddLine. core/Debug.lua's
     -- emitter probes `DL and DL.instance` (`core/Debug.lua:39-40`) to decide
     -- whether a console exists, and falls back to the chat frame when it does
@@ -293,6 +307,46 @@ function DL.RefreshHeader()    D:RefreshHeader() end
 function DL.UpdateScrollBar()  D:UpdateScrollBar() end
 function DL.UpdateStatus()     D:UpdateStatus() end
 function DL.RunDiagnostics(spec) return D:RunDiagnostics(spec) end
+
+-- A REPORT: a multi-line read-out the player asks for to inspect or share
+-- (`/cm dump <target>`, `/cm priority <cat> list`, `/cm aio <key> list`). The
+-- owner's ruling of 2026-11-08, ahead of a standard rule and a LibKa0s
+-- implementation: a report goes to this console, not chat, and chat gets one
+-- line pointing at it (docs/debug.md, "Reports").
+--
+-- `fn(out)` writes the body through `out`, one call per line. Lines are
+-- collected first, so a verb that only refuses (a usage line, an unknown key)
+-- says its refusal to chat through KCM.Say, writes nothing through `out`, and
+-- this writes no report and no pointer. Otherwise: a header naming the command
+-- as typed, then the body, through D:Add -- the UNGATED append, because a
+-- report is not a trace and must land whether or not logging is on -- then the
+-- console is revealed if it is hidden, and exactly one chat line names the
+-- report, its line count (header included) and the Copy button. Answers the
+-- line count written, or 0.
+--
+-- `tag` is the console tag (debug-logging-§3): `Dump`, `Priority`, `AIO`.
+-- `title` is the command without the slash, e.g. "dump bags".
+--
+-- THE LIFT. This is the shape a LibKa0s `D:Report(tag, title, fn)` would take:
+-- the header from the descriptor's `slash`, the pointer line from the library's
+-- strings, the chat fallback on its degradation stub. When it lands, this body
+-- becomes `return D:Report(tag, title, fn)`, the degraded arm above goes, and
+-- no caller changes.
+local REPORT_POINTER = "%s: %d lines written to the debug console. Use Copy to share it."
+
+function DL.Report(tag, title, fn)
+    local lines = {}
+    fn(function(line) lines[#lines + 1] = line end)
+    if #lines == 0 then return 0 end
+    D:Add(tag, "/cm " .. title)
+    -- Colors stay in the view. Copy still carries them (D:Add stores one string for both); a
+    -- colored view with a plain Copy buffer is the LibKa0s version's job (owner ruling 2026-11-08).
+    for i = 1, #lines do D:Add(tag, lines[i]) end
+    local n = #lines + 1
+    if not D:IsShown() then D:Show() end
+    KCM.Say(REPORT_POINTER:format(title, n))
+    return n
+end
 
 -- Window, not flag. The library spells this one `Toggle`; ours has always meant
 -- the other thing (below), and a name-for-name alias would invert `/cm debug`.

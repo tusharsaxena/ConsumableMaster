@@ -8,6 +8,15 @@
 --
 -- Adding a dump target is still one DUMP_TARGETS entry plus one DUMP_ORDER
 -- name; both help surfaces render from those two tables.
+--
+-- EVERY DUMP IS A REPORT (the owner's ruling of 2026-11-08). A dump is a
+-- multi-line read-out the player asks for to inspect or share, so its body goes
+-- to the debug console through KCM.DebugLog.Report (core/DebugLogSetup.lua),
+-- whether or not trace logging is on, and chat gets one pointer line. Each
+-- target's `run(arg, out)` therefore writes its body through `out`, never `say`.
+-- Its usage and refusal lines stay on `say`: they go to chat, and a run that
+-- writes nothing through `out` writes no report. The bare `/cm dump` listing is
+-- help, so it stays in chat.
 
 local _, NS = ...
 local KCM = NS
@@ -16,34 +25,139 @@ local KCM = NS
 local say = KCM.Say
 
 -- ---------------------------------------------------------------------------
+-- The table serializer, for the dumps that render a whole table.
+-- ---------------------------------------------------------------------------
+--
+-- These dumps used to hand the table to Blizzard's DevTools_Dump, which prints
+-- to the CHAT FRAME (the bare `[7005]=1,` lines the owner saw in chat), and fell
+-- back to a hand-written row format when Blizzard_DebugTools had not loaded, so
+-- the same dump read two ways depending on client state. This writes the
+-- table's lines through the report's `out` instead: sorted keys (numbers, then
+-- strings), nested tables indented two spaces per level, every value through
+-- the secret-safe stringification the rest of this file renders values with.
+-- Bounded on both axes, so a huge or cyclic table cannot flood the console.
+
+local SERIAL_MAX_LINES = 400
+local SERIAL_MAX_DEPTH = 6
+
+local function isSecret(v)
+    return KCM.Compat and KCM.Compat.IsSecret and KCM.Compat.IsSecret(v) or false
+end
+
+local function valueText(v)
+    local tv = type(v)
+    if tv == "string" then
+        if isSecret(v) then return KCM.SafeToString(v) end
+        -- %q escapes a newline as a backslash plus a real newline; keep it one line.
+        return (("%q"):format(v):gsub("\\\n", "\\n"))
+    elseif tv == "function" or tv == "userdata" or tv == "thread" then
+        return "<" .. tv .. ">"
+    end
+    return KCM.SafeToString(v)
+end
+
+local function keyText(k)
+    if type(k) == "number" then return "[" .. KCM.SafeToString(k) .. "]" end
+    if type(k) == "string" and not isSecret(k) and k:match("^[%a_][%w_]*$") then return k end
+    return "[" .. valueText(k) .. "]"
+end
+
+local TYPE_RANK = { number = 1, string = 2 }
+
+local function keyLess(a, b)
+    local ra, rb = TYPE_RANK[type(a)] or 3, TYPE_RANK[type(b)] or 3
+    if ra ~= rb then return ra < rb end
+    if ra == 3 then return tostring(a) < tostring(b) end
+    return a < b
+end
+
+local function sortedKeys(tbl)
+    local keys = {}
+    for k in pairs(tbl) do keys[#keys + 1] = k end
+    table.sort(keys, keyLess)
+    return keys
+end
+
+-- Writes `value` through `out`, one line per scalar, starting at `indent`.
+-- Returns the number of lines written.
+local function serialize(out, value, indent)
+    indent = indent or "  "
+    local written, truncated = 0, false
+    local function emit(line)
+        if written >= SERIAL_MAX_LINES then
+            truncated = true
+            return
+        end
+        written = written + 1
+        out(line)
+    end
+    -- `open` holds the tables on the current path only, so a cycle reads
+    -- <cycle> while a table shared by two branches still renders under both.
+    local open = {}
+    local function walk(tbl, pad, depth)
+        for _, k in ipairs(sortedKeys(tbl)) do
+            if truncated then return end
+            local v = tbl[k]
+            local head = pad .. keyText(k) .. " = "
+            if type(v) ~= "table" or isSecret(v) then
+                emit(head .. valueText(v))
+            elseif open[v] then
+                emit(head .. "<cycle>")
+            elseif next(v) == nil then
+                emit(head .. "{}")
+            elseif depth >= SERIAL_MAX_DEPTH then
+                emit(head .. "{...}")
+            else
+                open[v] = true
+                emit(head .. "{")
+                walk(v, pad .. "  ", depth + 1)
+                emit(pad .. "}")
+                open[v] = nil
+            end
+        end
+    end
+    if type(value) ~= "table" or isSecret(value) then
+        emit(indent .. valueText(value))
+    elseif next(value) == nil then
+        emit(indent .. "{}")
+    else
+        open[value] = true
+        walk(value, indent, 1)
+    end
+    if truncated then
+        out(("%s... truncated at %d lines"):format(indent, SERIAL_MAX_LINES))
+        written = written + 1
+    end
+    return written
+end
+
+-- ---------------------------------------------------------------------------
 -- Dump targets: single source of truth. Each entry has a one-line summary
 -- (shown in help) and a handler. Add new dump targets here and they appear
 -- in both `/cm help` and `/cm dump` help output automatically.
+--
+-- A handler is `run(arg, out)`. `out` is the report writer; it defaults to
+-- `say`, so a direct call outside a report still prints somewhere readable.
 -- ---------------------------------------------------------------------------
 
 local DUMP_TARGETS = {}
 
 DUMP_TARGETS.categories = {
     summary = "category metadata table",
-    run = function()
+    run = function(_, out)
+        out = out or say
         if not (KCM.Categories and KCM.Categories.LIST) then
             say("KCM.Categories.LIST not loaded.")
             return
         end
-        if DevTools_Dump then
-            DevTools_Dump(KCM.Categories.LIST)
-        else
-            for i, row in ipairs(KCM.Categories.LIST) do
-                say(("  [%d] %s  macro=%s  display=%q  specAware=%s")
-                    :format(i, row.key, row.macroName, row.displayName, tostring(row.specAware)))
-            end
-        end
+        serialize(out, KCM.Categories.LIST)
     end,
 }
 
 DUMP_TARGETS.statpriority = {
     summary = "stat priority for current spec",
-    run = function()
+    run = function(_, out)
+        out = out or say
         if not (KCM.SpecHelper and KCM.SpecHelper.GetCurrent) then
             say("KCM.SpecHelper not loaded.")
             return
@@ -54,32 +168,21 @@ DUMP_TARGETS.statpriority = {
             return
         end
         local priority = KCM.SpecHelper.GetStatPriority(specKey)
-        say(("spec: %s  (classID=%s  specID=%s  key=%s)")
+        out(("spec: %s  (classID=%s  specID=%s  key=%s)")
             :format(specName or "?", tostring(classID), tostring(specID), specKey))
-        if DevTools_Dump then
-            DevTools_Dump(priority)
-        else
-            say(("  primary: %s"):format(tostring(priority.primary)))
-            say(("  secondary: %s"):format(table.concat(priority.secondary or {}, ", ")))
-        end
+        serialize(out, priority)
     end,
 }
 
 DUMP_TARGETS.bags = {
     summary = "bag contents as itemID -> count",
-    run = function()
+    run = function(_, out)
+        out = out or say
         if not (KCM.BagScanner and KCM.BagScanner.Scan) then
             say("KCM.BagScanner not loaded.")
             return
         end
-        local counts = KCM.BagScanner.Scan()
-        if DevTools_Dump then
-            DevTools_Dump(counts)
-        else
-            for id, n in pairs(counts) do
-                say(("  %d x %d"):format(id, n))
-            end
-        end
+        serialize(out, KCM.BagScanner.Scan())
     end,
 }
 
@@ -91,59 +194,66 @@ DUMP_TARGETS.bags = {
 
 -- The cached parse's name wins; C_Item is the fallback for an item whose
 -- tooltip has not hydrated yet.
-local function sayItemHeader(id, entry)
+local function sayItemHeader(out, id, entry)
     local name = (entry and entry.itemName)
         or (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id))
         or "?"
-    say(("item %d  (%s)"):format(id, tostring(name)))
+    out(("item %d  (%s)"):format(id, tostring(name)))
 end
 
 -- What the client says the item IS, and which of our categories claim it.
-local function sayInstantInfo(id)
+local function sayInstantInfo(out, id)
     if not (C_Item and C_Item.GetItemInfoInstant) then return end
     local _, iType, iSubType, _, _, iClass, iSub = C_Item.GetItemInfoInstant(id)
-    say(("  instant: type=%q  subType=%q  classID=%s  subClassID=%s")
+    out(("  instant: type=%q  subType=%q  classID=%s  subClassID=%s")
         :format(tostring(iType), tostring(iSubType),
                 tostring(iClass), tostring(iSub)))
     local hits = KCM.Classifier and KCM.Classifier.MatchAny
         and KCM.Classifier.MatchAny(id) or {}
     if #hits > 0 then
-        say(("  classified: %s"):format(table.concat(hits, ", ")))
+        out(("  classified: %s"):format(table.concat(hits, ", ")))
     else
-        say("  classified: |cffff4444(none)|r")
+        out("  classified: |cffff4444(none)|r")
     end
 end
 
 -- A pending entry suppresses the usability question entirely: asking
 -- IsUsableByPlayer before the tooltip has hydrated reports a wrong answer.
-local function sayUsability(id, entry)
+local function sayUsability(out, id, entry)
     if entry and entry.pending then
-        say("  pending: tooltip data not yet loaded — try again in a moment.")
+        out("  pending: tooltip data not yet loaded — try again in a moment.")
     elseif entry then
         local ok, reason = KCM.TooltipCache.IsUsableByPlayer(id)
         local playerLvl = UnitLevel("player") or 0
         if ok then
-            say(("  usable: yes  (minLevel=%d, you=%d)"):format(entry.minLevel or 0, playerLvl))
+            out(("  usable: yes  (minLevel=%d, you=%d)"):format(entry.minLevel or 0, playerLvl))
         else
-            say(("  usable: no   (%s)"):format(tostring(reason)))
+            out(("  usable: no   (%s)"):format(tostring(reason)))
         end
     end
 end
 
+-- The cached parse itself, as the serializer renders it.
+local function sayCachedEntry(out, entry)
+    if not entry then return end
+    out("  cached entry")
+    serialize(out, entry, "    ")
+end
+
 -- The unparsed tooltip, straight from the client — the ground truth when the
 -- parse above looks wrong. C_TooltipInfo is Retail-only.
-local function sayRawTooltipLines(id)
+local function sayRawTooltipLines(out, id)
     if not (C_TooltipInfo and C_TooltipInfo.GetItemByID) then return end
     local data = C_TooltipInfo.GetItemByID(id)
     if not (data and data.lines and #data.lines > 0) then return end
-    say(("  raw tooltip lines (%d)"):format(#data.lines))
+    out(("  raw tooltip lines (%d)"):format(#data.lines))
     for i, line in ipairs(data.lines) do
         local left = line.leftText or ""
         local right = line.rightText or ""
         if right ~= "" then
-            say(("    [%2d] L=%q  R=%q"):format(i, left, right))
+            out(("    [%2d] L=%q  R=%q"):format(i, left, right))
         else
-            say(("    [%2d] %q"):format(i, left))
+            out(("    [%2d] %q"):format(i, left))
         end
     end
 end
@@ -151,7 +261,8 @@ end
 DUMP_TARGETS.item = {
     summary = "parsed tooltip + raw lines for <itemID> (e.g. /cm dump item 241304)",
     usage   = "item <itemID>",
-    run = function(arg)
+    run = function(arg, out)
+        out = out or say
         local id = tonumber(arg or "")
         if not id then
             say("usage: /cm dump item <itemID>")
@@ -162,13 +273,11 @@ DUMP_TARGETS.item = {
             return
         end
         local entry = KCM.TooltipCache.Get(id)
-        sayItemHeader(id, entry)
-        sayInstantInfo(id)
-        sayUsability(id, entry)
-        if DevTools_Dump then
-            DevTools_Dump(entry)
-        end
-        sayRawTooltipLines(id)
+        sayItemHeader(out, id, entry)
+        sayInstantInfo(out, id)
+        sayUsability(out, id, entry)
+        sayCachedEntry(out, entry)
+        sayRawTooltipLines(out, id)
     end,
 }
 
@@ -238,18 +347,18 @@ local function describePick(refKey)
     return ("%d %s"):format(pick, itemNameFor(pick))
 end
 
-local function sayCompositeSections(cfg)
+local function sayCompositeSections(out, cfg)
     for _, section in ipairs(PICK_SECTIONS) do
-        say(("  %s"):format(section.label))
+        out(("  %s"):format(section.label))
         local arr = cfg[section.orderField] or {}
         if #arr == 0 then
-            say("    (none)")
+            out("    (none)")
         else
             for i, ref in ipairs(arr) do
                 -- Unset counts as enabled — same default the body builder uses.
                 local enabled = not (cfg.enabled and cfg.enabled[ref] == false)
                 local tag = enabled and "|cff44ff44[on]|r " or "|cff888888[off]|r"
-                say(("    %d. %s %s -> %s"):format(i, tag, ref, describePick(ref)))
+                out(("    %d. %s %s -> %s"):format(i, tag, ref, describePick(ref)))
             end
         end
     end
@@ -257,30 +366,32 @@ end
 
 -- The macro this composite would write right now. The pickFor closure is
 -- injected so the dump reflects LIVE picks, not whatever was cached.
-local function sayCompositeBody(cat)
+local function sayCompositeBody(out, cat)
     if not (KCM.MacroManager and KCM.MacroManager.BuildCompositeBody) then return end
     local body = KCM.MacroManager.BuildCompositeBody(cat,
         function(refKey) return KCM.Selector.PickBestForCategory(refKey) end)
     if body then
-        say("  macro body")
+        out("  macro body")
         for line in body:gmatch("[^\n]+") do
-            say("    " .. line)
+            out("    " .. line)
         end
     else
-        say("no usable picks — macro would show empty-state stub.")
+        out("no usable picks — macro would show empty-state stub.")
     end
 end
 
-local function dumpCompositePick(cat, catKey)
-    say(("%s (composite)"):format(catKey))
+-- The missing-bucket refusal is said BEFORE the header, so it reaches chat on
+-- its own and writes no report, as every other refusal inside a report does.
+local function dumpCompositePick(out, cat, catKey)
     local cfg = KCM.db and KCM.db.profile and KCM.db.profile.categories
         and KCM.db.profile.categories[cat.key]
     if not cfg then
         say("no DB bucket for composite category.")
         return
     end
-    sayCompositeSections(cfg)
-    sayCompositeBody(cat)
+    out(("%s (composite)"):format(catKey))
+    sayCompositeSections(out, cfg)
+    sayCompositeBody(out, cat)
 end
 
 -- --- single-category half --------------------------------------------------
@@ -289,19 +400,19 @@ end
 -- spec-blind category, or a spec-aware one with no active spec). The returned
 -- ctx is threaded into Ranker.BuildContext — rebuilding it there would drop the
 -- spec priority and print a wrong score column.
-local function sayPickSpecContext(cat, catKey)
+local function sayPickSpecContext(out, cat, catKey)
     if not (cat.specAware and KCM.SpecHelper) then
-        say(("%s"):format(catKey))
+        out(("%s"):format(catKey))
         return nil
     end
     local _, _, specKey, specName = KCM.SpecHelper.GetCurrent()
     if not specKey then
-        say(("%s (no active spec)"):format(catKey))
+        out(("%s (no active spec)"):format(catKey))
         return nil
     end
     local ctx = { specPriority = KCM.SpecHelper.GetStatPriority(specKey) }
-    say(("%s for spec %s (%s)"):format(catKey, specName or "?", specKey))
-    say(("  primary=%s  secondary=%s"):format(
+    out(("%s for spec %s (%s)"):format(catKey, specName or "?", specKey))
+    out(("  primary=%s  secondary=%s"):format(
         tostring(ctx.specPriority.primary),
         table.concat(ctx.specPriority.secondary or {}, ">")))
     return ctx
@@ -326,21 +437,22 @@ local function describeEntry(id)
     return describeItemEntry(id)
 end
 
-local function sayPriorityRows(catKey, priority, pick, ctx)
-    say(("  effective priority (%d entries)"):format(#priority))
+local function sayPriorityRows(out, catKey, priority, pick, ctx)
+    out(("  effective priority (%d entries)"):format(#priority))
     for i, id in ipairs(priority) do
         local did, name, have = describeEntry(id)
         local score = (KCM.Ranker and KCM.Ranker.Score and KCM.Ranker.Score(catKey, id, ctx)) or 0
         local haveTag = have and "|cff44ff44[owned]|r" or "|cff888888[---]|r"
         local pickTag = (id == pick) and "  |cffffd100<-- pick|r" or ""
-        say(("  %2d. %s %8.1f  %s  %s%s"):format(i, haveTag, score, did, name, pickTag))
+        out(("  %2d. %s %8.1f  %s  %s%s"):format(i, haveTag, score, did, name, pickTag))
     end
 end
 
 DUMP_TARGETS.pick = {
     summary = "effective priority (with scores) + best-owned pick for a category",
     usage   = "pick <catKey>",
-    run = function(arg)
+    run = function(arg, out)
+        out = out or say
         arg = (arg or ""):match("^(%S*)") or ""
         if arg == "" then
             sayPickUsage()
@@ -349,22 +461,22 @@ DUMP_TARGETS.pick = {
         local cat, catKey = resolvePickCat(arg)
         if not cat then return end
         if cat.composite then
-            dumpCompositePick(cat, catKey)
+            dumpCompositePick(out, cat, catKey)
             return
         end
 
-        local ctx = sayPickSpecContext(cat, catKey)
+        local ctx = sayPickSpecContext(out, cat, catKey)
         local priority = KCM.Selector.GetEffectivePriority(catKey)
         local pick = KCM.Selector.PickBestForCategory(catKey)
         if KCM.Ranker and KCM.Ranker.BuildContext then
             ctx = KCM.Ranker.BuildContext(catKey, priority, ctx)
         end
 
-        sayPriorityRows(catKey, priority, pick, ctx)
+        sayPriorityRows(out, catKey, priority, pick, ctx)
         -- Only the single-category report ends this way; the composite half
         -- says its own empty-state line from the macro body block.
         if not pick then
-            say("no owned item — macro would show empty-state stub.")
+            out("no owned item — macro would show empty-state stub.")
         end
     end,
 }
@@ -391,11 +503,12 @@ end
 
 DUMP_TARGETS.events = {
     summary = "client events and whether each registered",
-    run = function()
+    run = function(_, out)
+        out = out or say
         local rows, nRejected = eventStates()
-        say(("%d client events, %d rejected"):format(#rows, nRejected))
+        out(("%d client events, %d rejected"):format(#rows, nRejected))
         for _, row in ipairs(rows) do
-            say(("  %s  %s  -> %s"):format(row.event, row.state, row.handler))
+            out(("  %s  %s  -> %s"):format(row.event, row.state, row.handler))
         end
     end,
 }
@@ -420,6 +533,15 @@ local function dumpHelp()
     printDumpLines("/cm dump ")
 end
 
+-- One target, as a report: its body to the console, one pointer line to chat
+-- (core/DebugLogSetup.lua's DL.Report owns both, and the library-absent chat
+-- fallback). The title names what was typed, minus the slash.
+local function runReport(name, arg)
+    KCM.DebugLog.Report("Dump", "dump " .. name, function(out)
+        DUMP_TARGETS[name].run(arg, out)
+    end)
+end
+
 local function dumpDispatch(rest)
     rest = rest or ""
     local head, tail = rest:match("^(%S*)%s*(.-)$")
@@ -430,12 +552,11 @@ local function dumpDispatch(rest)
     end
     -- Shortcut: `/cm dump <itemID>` routes to the `item` target.
     if tonumber(head) then
-        DUMP_TARGETS.item.run(head)
+        runReport("item", head)
         return
     end
-    local target = DUMP_TARGETS[head]
-    if target then
-        target.run(tail)
+    if DUMP_TARGETS[head] then
+        runReport(head, tail)
         return
     end
     say("Unknown dump target: |cffffff00" .. head .. "|r")
@@ -445,9 +566,11 @@ end
 -- Published for core/SlashCommands.lua (whose `priority` verb renders composite
 -- categories through the `pick` target), for settings/Slash.lua, which wires
 -- Dispatch in as the `dump` verb, and for core/Diagnostics.lua (EventStates).
+-- Serialize is the table renderer above, published for the suite.
 KCM.SlashDump = {
     Dispatch    = dumpDispatch,
     Help        = dumpHelp,
     TARGETS     = DUMP_TARGETS,
     EventStates = eventStates,
+    Serialize   = serialize,
 }

@@ -167,7 +167,11 @@ L.LIB_FILES = Loader.xmlFiles(ROOT .. "/libs/LibKa0s/LibKa0s.xml")
 -- kit loader's environment, exactly as Loader.load would run them, so the two
 -- paths cannot drift; only the disk read is hoisted.
 local libChunks
-local libEnv = Loader.makeEnv({})
+-- The vendored library's mock set: the kit stamps the active client profile
+-- (KA0S_KIT_CLIENT) onto it once, and LibKa0s-Compat-1.0 reads WOW_PROJECT_* off
+-- it at call time. L.withClient below re-stamps it for one case.
+local libMocks = {}
+local libEnv = Loader.makeEnv(libMocks)
 local function loadLibs()
     if not libChunks then
         libChunks = {}
@@ -388,6 +392,36 @@ function L.loadWithSchemaDegraded()
     return L.loadWithSchema(true)
 end
 
+-- Ka0s Default by name, for a case that pins its values. Under the forever kit
+-- profile the client's default skin is WoW Forever (LibKa0s v1.94.0, Skin minor
+-- 18; skinning-§2), so a fresh build wears that; this puts the build on Ka0s
+-- Default, both the stored profile pair and the applied choice, and answers the
+-- namespace so it wraps a loader call. A no-op under the retail profile.
+L.CLIENT_SKIN = dofile(ROOT .. "/tests/_kit/mock_client.lua").current() == "forever" and "forever" or "ka0s"
+
+function L.wearKa0s(KCM)
+    local p = KCM.db and KCM.db.profile
+    if p and p.skin then p.skin.source, p.skin.skin = "ka0s", "ka0s" end
+    local Skin = _G.LibStub and _G.LibStub("LibKa0s-Skin-1.0", true)
+    if Skin and Skin:IsOwner(ADDON_NAME) then Skin:SetChoice(ADDON_NAME, "ka0s", "ka0s") end
+    return KCM
+end
+
+-- Run `fn` as if on client `name` ("retail" | "forever"), whatever the kit
+-- profile: the library's mock set is re-stamped with that profile, so
+-- LibKa0s-Compat-1.0's ClientKey and ForClient answer it, and put back on the way
+-- out, pass or fail. The addon reads the client at LOAD (the category gate and the
+-- seed selection), so `fn` builds its own namespace inside. This is how a
+-- per-client case runs its other client under either profile (clients-§6).
+function L.withClient(name, fn)
+    local MockClient = Loader.MockClient
+    local prev = MockClient.current()
+    MockClient.apply(libMocks, name)
+    local ok, err = pcall(fn)
+    MockClient.apply(libMocks, prev)
+    if not ok then error(err, 0) end
+end
+
 -- Record every path the settings write seam is asked to write, in order: the
 -- LibKa0s-Schema-1.0 instance settings/Panel.lua publishes as
 -- KCM.Settings.Helpers.schema, whose Set and SetMany the doors (SetAndRefresh,
@@ -449,6 +483,18 @@ function KCM_TEST.test(name, fn, skipReason)
     end or nil, skipReason)
 end
 
+-- A case that pins RETAIL's content -- a Retail-only category, a Retail seed
+-- list, the Retail tab strip or slot order -- registered so it runs as Retail
+-- under BOTH kit profiles (L.withClient). Under the forever profile those
+-- categories are absent and those seeds empty by decision, which the WoW Forever
+-- cases (tests/test_forever.lua) pin instead; this keeps Retail's behavior
+-- pinned, unchanged, on every run.
+function KCM_TEST.retailTest(name, fn, skipReason)
+    KCM_TEST.test(name, fn and function(t)
+        L.withClient("retail", function() fn(t) end)
+    end or nil, skipReason)
+end
+
 _G.KCM_TEST = KCM_TEST
 
 -- ---------------------------------------------------------------------------
@@ -488,6 +534,9 @@ local SUITES = {
     -- and the read-only guarantee. After test_disabled, which establishes the verbs first.
     "test_diagnostics",
     "test_envsetup",
+    -- The WoW Forever port, step 1: the category gate, the empty seeds and the four
+    -- Forever-only categories, each case on the client it names (clients-§6).
+    "test_forever",
     "test_itemsetup",
     "test_events",
     "test_harness",
@@ -523,6 +572,8 @@ local SUITES = {
     "test_selector",
     "test_selector_discovery",
     "test_selector_pins",
+    -- The seed probe (core/SeedProbe.lua, core/SeedProbeStore.lua; docs/seed-probe.md).
+    "test_seedprobe",
     -- The LibKa0s-Skin-1.0 seam (core/SkinSetup.lua; skinning-§1/§2/§3).
     "test_skin",
     "test_skin_surfaces",
@@ -542,6 +593,7 @@ local SUITES = {
     "test_slash",
     "test_slash_degraded",
     "test_slash_profile",
+    "test_slash_report",
     "test_slash_store",
     "test_slashsetup",
     "test_spechelper",

@@ -350,6 +350,44 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
+### test_forever.lua (35)
+
+- Forever: the category list is exactly its fifteen keys
+- Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot
+- Retail: an empty macro's icon stays the cooking pot
+- Retail: the category list is exactly its fifteen keys
+- Degraded: without the library the categories and seeds are Retail's
+- Forever: every row declares only known client tokens, and ALL keeps all nineteen
+- Forever: a Retail-only category has no bucket, slot, tab, schema row, verb or macro
+- Retail: a Forever-only category has no bucket, slot, tab, schema row, verb or macro
+- Forever: the four new categories have buckets, slots and tabs beside their kin
+- Forever: every seed list is empty by decision
+- Forever: no Retail item ID is a candidate, so every candidate comes from the bags
+- Forever: with no stat-priority seed a spec ranks by its class's primary stat
+- Forever: elixirs, scrolls and bandages classify by their subclass
+- Forever: a draught is matched like a potion
+- Forever: a protection potion is PROT_POT and never a combat potion
+- Forever: a temporary item enhancement is a weapon enchant; a permanent one (6) is not
+- Retail: Forever's subclasses classify exactly as before the port
+- TooltipCache: vanilla stat wording gives the stat, the hour and the value
+- TooltipCache: Forever's well-fed food reads the stat amount, not the buff's minutes (CM-F9)
+- TooltipCache: Retail's forward stat wording still reads its amount
+- TooltipCache: a no-stat scroll or elixir keeps its value
+- TooltipCache: a bandage's heal over time is a flat heal
+- TooltipCache: a protection potion's absorb names its school
+- TooltipCache: vanilla weapon wording gives the affinity and leaves Retail's flags alone
+- Forever: elixirs and scrolls rank a weighed stat first, the rest by their value
+- Forever: bandages rank by the heal and protection potions by the absorb
+- Forever: a vanilla stone goes to the hand its wording names
+- TooltipCache: Forever's stone, weightstone and oil wording sets the Forever flag and its value
+- TooltipCache: a poison is never read as a weapon enhancement
+- TooltipCache: Retail's weapon wording sets no Forever flag
+- Forever: subclass-8 stones and oils are weapon enchants; poisons and a weapon chain (6) are not
+- Retail: Forever's stone wording is no weapon enchant and the weapon chain still is
+- Forever: stones and weightstones rank by their 'by N', oils by their 'up to N'
+- Retail: a WPN_ENCH score and its explanation are unchanged without the Forever value
+- Forever: a Retail profile's Vantus data loads, is not read, and survives a return to Retail
+
 ### test_itemsetup.lua (5)
 
 - ItemSetup: KCM.Item.ItemIDFromLink reads the id out of a full item link
@@ -362,8 +400,8 @@ Total.
 
 - OnEnable registers every client event the addon reacts to
 - OnEnable registers no event without a matching handler method
-- a retired event name leaves the other nine bound
-- a retired event name leaves the other nine bound on a client with no C_EventUtils
+- a retired event name leaves the other thirteen bound
+- a retired event name leaves the other thirteen bound on a client with no C_EventUtils
 - IsEventValid answering false rejects without calling RegisterEvent
 - a stand-down and stand-up does not record a rejected name twice
 - the degraded Core stub's SafeRegisterEvent records a raising name
@@ -1046,6 +1084,36 @@ Total.
 - Selector: two pins on the same position keep both items in the list
 - Selector.GetEffectivePriority returns an empty list for an unknown category
 
+### test_seedprobe.lua (27)
+
+- Probe store: its own global, built at initialize with schema 1, never inside AceDB
+- Probe store: the TOC declares ConsumableMasterProbeDB third
+- Probe store: a broken store is rebuilt, not raised on
+- Probe mouseover: records every field the item dump shows, and acks in chat
+- Probe mouseover: any item class is recorded, because the player pointed at it
+- Probe mouseover: a second probe refreshes the record and counts, firstSeen kept
+- Probe mouseover: nothing under the mouse is one refusal line and no record
+- Probe mouseover: a secret value from the tooltip is never stored or concatenated
+- Probe mouseover: a cold item is requested and completes when its data arrives
+- Probe mouseover: a body that never arrives is re-read a bounded number of times
+- Probe mouseover: a loaded tooltip that parses to no effect is complete, not pending
+- Probe mouseover: a cold item stays pending until its name and tooltip arrive
+- Probe vendor: refused with no merchant open, before and after a visit
+- Probe vendor: every consumable with the vendor's NPC, name, zone, price and supply; the rest counted
+- Probe vendor: the fill is time-sliced, FILL_BATCH records a frame
+- Probe merge: one item seen by mouseover, two vendors and the auction house keeps every source
+- Probe AH: closed, the command arms a scan; opening starts it, the walk is time-sliced
+- Probe AH: open, the command scans now; a second command while it runs is refused
+- Probe AH: within 15 minutes of the last scan the command is refused and never retried
+- Probe AH: a scan whose list never arrives is reported once at the timeout
+- Probe AH: an empty list is reported, not retried
+- Probe AH: closing the auction house mid-walk keeps what was read
+- Probe status: a report in the debug console and one pointer line in chat
+- Probe purge: empties the store, says how many, stops a running probe, keeps the throttle
+- Probe help: /cm probe and /cm probe seed list the five subcommands; an unknown one is named
+- Probe: never touches the profile or the macros
+- Probe: a disabled addon refuses the verb on the one line, and the stand-down stops an armed scan
+
 ### test_skin.lua (10)
 
 - Skin: the owner is registered at file load under the addon's folder
@@ -1411,6 +1479,17 @@ Total.
 - /cm profile <name>: the current profile answers that it already is
 - /cm profile: the published CliProfile and ProfileSwitch reach the library
 
+### test_slash_report.lua (8)
+
+- Report: every report verb writes to the console with logging off and says one chat line
+- Report: a hidden console is revealed, a shown one stays shown
+- Report: the bags dump renders through the serializer, not DevTools_Dump
+- Report: a usage or refusal line goes to chat and writes no report
+- Report: a spec-aware list with no spec refuses in chat and writes no report
+- Report: help, /cm list and the bare /cm dump listing stay in chat
+- Report: without the library a report prints to chat as before, with no pointer
+- Report: the serializer sorts keys, indents nested tables and stays bounded
+
 ### test_slash_store.lua (25)
 
 - /cm stat primary, secondary and reset leave exactly the stored map they always did
@@ -1656,6 +1735,12 @@ Total.
 - skin switch: the drag icon's label changes
 - skin switch: a reorder row's glyph changes
 
+### test_client_globals.lua (3)
+
+- client globals: no call of a global a client lacks
+- client globals: every allowlist row has a reason and a finding to excuse
+- client globals: the check is falsifiable, a planted bare call is flagged for both clients
+
 ## Totals
 
 | Suite | Cases |
@@ -1678,6 +1763,7 @@ Total.
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
+| test_forever.lua | 35 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1710,6 +1796,7 @@ Total.
 | test_selector.lua | 39 |
 | test_selector_discovery.lua | 14 |
 | test_selector_pins.lua | 14 |
+| test_seedprobe.lua | 27 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 23 |
 | test_icon_rule.lua | 5 |
@@ -1726,6 +1813,7 @@ Total.
 | test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
+| test_slash_report.lua | 8 |
 | test_slash_store.lua | 25 |
 | test_slashsetup.lua | 26 |
 | test_spechelper.lua | 16 |
@@ -1741,5 +1829,6 @@ Total.
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 31 |
+| test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1404** |
+| **Total** | **1477** |

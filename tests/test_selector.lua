@@ -11,7 +11,7 @@ end
 -- ---------------------------------------------------------------
 -- BuildCandidateSet = (seed ∪ added ∪ discovered) − blocked
 -- ---------------------------------------------------------------
-test("Selector: BuildCandidateSet is seed-first; unknown category is empty", function(t)
+h.retailTest("Selector: BuildCandidateSet is seed-first; unknown category is empty", function(t)
     local KCM = h.loader.loadPure()
     local seed = KCM.SEED.HP_POT
     t.truthy(seed and #seed > 0, "HP_POT has a seed list")
@@ -43,7 +43,7 @@ end)
 -- ---------------------------------------------------------------
 -- Block: removes from set, idempotent return contract, AddItem unblocks
 -- ---------------------------------------------------------------
-test("Selector: Block removes from set, is idempotent, and AddItem unblocks", function(t)
+h.retailTest("Selector: Block removes from set, is idempotent, and AddItem unblocks", function(t)
     local KCM = h.loader.loadPure()
     local victim = KCM.SEED.HP_POT[1]
 
@@ -78,7 +78,7 @@ end)
 -- ---------------------------------------------------------------
 -- PickBestForCategory: first owned item, nil when nothing owned
 -- ---------------------------------------------------------------
-test("Selector: PickBestForCategory returns the one owned item, nil when nothing owned", function(t)
+h.retailTest("Selector: PickBestForCategory returns the one owned item, nil when nothing owned", function(t)
     local KCM = h.loader.loadPure()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
@@ -383,7 +383,7 @@ end)
 -- ListAvailable: every owned candidate, in effective-priority order
 -- (the macro-bar flyout's source of truth)
 -- ---------------------------------------------------------------
-test("Selector: ListAvailable returns every owned candidate, not just the best", function(t)
+h.retailTest("Selector: ListAvailable returns every owned candidate, not just the best", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local S    = KCM.Selector
@@ -399,7 +399,7 @@ test("Selector: ListAvailable returns every owned candidate, not just the best",
     t.contains(out, S.PickBestForCategory("HP_POT"), "includes the macro's current pick")
 end)
 
-test("Selector: ListAvailable preserves effective-priority order", function(t)
+h.retailTest("Selector: ListAvailable preserves effective-priority order", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local S    = KCM.Selector
@@ -466,7 +466,7 @@ test("Selector: ListAvailable on a per-hand category is empty with no weapon equ
     t.eq(#S.ListAvailable("WPN_ENCH"), 0, "nothing to enchant -> nothing offered")
 end)
 
-test("Selector: ListAvailable on a composite unions its components, deduped", function(t)
+h.retailTest("Selector: ListAvailable on a composite unions its components, deduped", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local S    = KCM.Selector
@@ -494,7 +494,7 @@ test("Selector: ListAvailable on a composite unions its components, deduped", fu
     t.eq(seen, 1, "an item shared by two components is listed once")
 end)
 
-test("Selector: ListAvailable on a composite honors disabled components", function(t)
+h.retailTest("Selector: ListAvailable on a composite honors disabled components", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local S    = KCM.Selector
@@ -525,14 +525,14 @@ local function compositeFixture(KCM, mock)
     return hp, food
 end
 
-test("Selector: ListAvailable on a composite walks the default orderings", function(t)
+h.retailTest("Selector: ListAvailable on a composite walks the default orderings", function(t)
     local KCM = h.loader.loadPure()
     local hp, food = compositeFixture(KCM, h.loader.mock)
     t.eqList(KCM.Selector.ListAvailable("HP_AIO"), { hp, food },
         "in-combat components first, then out-of-combat, in Categories order")
 end)
 
-test("Selector: ListAvailable on a composite follows the saved orderings and enable set", function(t)
+h.retailTest("Selector: ListAvailable on a composite follows the saved orderings and enable set", function(t)
     local KCM = h.loader.loadPure()
     local hp, food = compositeFixture(KCM, h.loader.mock)
     local cfg = KCM.db.profile.categories.HP_AIO
@@ -543,7 +543,7 @@ test("Selector: ListAvailable on a composite follows the saved orderings and ena
         "the saved orderings decide the walk; a disabled ref is skipped")
 end)
 
-test("Selector: ListAvailable on a composite with no saved bucket takes MacroManager's answer", function(t)
+h.retailTest("Selector: ListAvailable on a composite with no saved bucket takes MacroManager's answer", function(t)
     local KCM = h.loader.loadPure()
     compositeFixture(KCM, h.loader.mock)
     KCM.db.profile.categories.HP_AIO = nil

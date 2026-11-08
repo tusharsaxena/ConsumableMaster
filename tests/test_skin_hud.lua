@@ -92,7 +92,7 @@ end
 -- red under: the button border reading its stored style while the companion is on, the bar's
 -- family in place of the icon one, or the thickness left the player's under the icon family.
 test("Skin HUD: the buttons' border follows the skin's icon family while its companion is on", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local BB = KCM.MacroBarButton
     local followed = styleButton()
     BB.ApplyStyle(followed, barCfg(KCM))
@@ -125,7 +125,7 @@ end)
 -- red under: the flyout panel (and so the bar, which shares the reader) drawing its stored edge
 -- while the bar's companion is on.
 test("Skin HUD: the flyout panel's edge follows the skin's bar border style", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local flyout = { bg = recFrame("bg") }
     KCM.MacroBarFlyout.ApplyBackdrop(flyout, barCfg(KCM))
     local bd = lastCall(flyout.bg, "SetBackdrop")
@@ -142,7 +142,7 @@ end)
 -- red under: the label face read from the stored pick while its companion is on, or the count
 -- text left on its font object's face, or its size compounded pass over pass.
 test("Skin HUD: the label and count faces are the skin's HUD font", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local ok, err = withHudFace(function()
         local btn = styleButton()
         KCM.MacroBarButton.ApplyStyle(btn, barCfg(KCM))
@@ -169,7 +169,7 @@ end)
 -- on. The library's Token answers nil for hud.font then and Resolve the stored value (Skin minor
 -- 8), but the count's SetFont is not a recorded paint, so its put-back is this addon's.
 test("Skin HUD: Ignore fonts puts the count and label back on their own faces, live", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local Skin = skinLib()
     local ok, err = withHudFace(function()
         local btn = styleButton()
@@ -224,8 +224,8 @@ test("Skin HUD: another skin's icon border reaches the buttons", function(t)
 end)
 
 -- red under: the arrow left untinted, or tinted from a literal.
-test("Skin HUD: the flyout arrow takes icon.arrow", function(t)
-    local KCM = h.loader.loadFullAddon()
+h.retailTest("Skin HUD: the flyout arrow takes icon.arrow", function(t)
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
     mock.setItem(seed[1], { name = "Pot", subType = "Potions" })
@@ -250,7 +250,7 @@ end)
 -- red under: the wash typed again, or painted once at build so a skin switch leaves it stale;
 -- or a built bar not re-applied on a skin change.
 test("Skin HUD: the unlocked wash is menu.hover and a skin switch repaints the bar", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local Skin = skinLib()
     local _, bar = support.buildBar(KCM)
     local wash = bar.moveHint.tex
@@ -423,7 +423,7 @@ end)
 
 -- red under: the label drawing the stored "@skin" string as its flags, or ignoring the Font outline.
 test("Skin fonts: From skin flags follow the Font outline, and a picked flag wins", function(t)
-    local KCM = h.loader.loadFullAddon()
+    local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local Skin = skinLib()
     local ok, err = withFaces({ HUD_FACE }, function()
         local btn = styleButton()

@@ -11,8 +11,13 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.MP_POT = {
-    241300,  -- Lightfused Mana Potion (Midnight)
-    241294,  -- Potion of Devoured Dreams
-    241306,  -- Refreshing Serum (also restores health)
-}
+KCM.SEED.MP_POT = KCM.PerClient({
+    retail = {
+        241300,  -- Lightfused Mana Potion (Midnight)
+        241294,  -- Potion of Devoured Dreams
+        241306,  -- Refreshing Serum (also restores health)
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})

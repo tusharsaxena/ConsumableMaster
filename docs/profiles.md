@@ -19,7 +19,7 @@ Everything the player can set lives in `db.profile`, so a profile carries all of
 | In the profile | What it is |
 |---|---|
 | `enabled`, `visibility`, `scale`, `alpha` | The General page's Master controls |
-| `categories` | Every category's added / blocked / pinned / discovered sets (per spec for the four spec-aware ones), each composite's enabled flags and two section orders, and Battle Rez's mouseover flag |
+| `categories` | Every category's added / blocked / pinned / discovered sets (per spec for the spec-aware ones: four on Retail, six on WoW Forever), each composite's enabled flags and two section orders, and Battle Rez's mouseover flag |
 | `statPriority` | Every spec's stat order |
 | `macroBar` | Every Macro Bar setting, the slot order and shown set, and the drag-set position |
 | `skin` | The skin this addon wears (the source, the skin, the Scope, the Font and Texture overrides) and whether this profile has closed the first-run skin picker |

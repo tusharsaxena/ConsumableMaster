@@ -2,10 +2,10 @@
 
 `/cm` and `/consumablemaster` reach one dispatcher: the **LibKa0s-Slash-1.0** instance built in
 `settings/Slash.lua`. The library owns the parse, the help renderer, the row and value formatters and
-the schema CLI. This addon owns twenty-four verbs, five sub-command tables with three different handler
+the schema CLI. This addon owns twenty-five verbs, six sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — twenty-four verbs is over eight, and four verbs
+Both halves of `documentation-§3`'s trigger fire here — twenty-five verbs is over eight, and six verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -16,6 +16,7 @@ Three files, and the split is deliberate:
 |---|---|
 | `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. It publishes the sub-command vocabulary as `KCM.SlashCommands.SplitVerb` / `FindCommand` / `CommandRows` on both arms: the library's own functions live, and on the degraded arm a minimal split, an exact lookup and plain `cmd  desc` rows. |
 | `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes six entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
+| `core/SeedProbe.lua` | The `probe` verb's body, `KCM.SeedProbe.Run`, and its `SEED_COMMANDS` table (`mouseover`, `vendor`, `auction`, `status`, `purge`), read through the same sub-command vocabulary. Bound in `COMMANDS` through a call-time thunk. See [seed-probe.md](./seed-probe.md). |
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
@@ -32,7 +33,7 @@ asks `KCM.SlashCommands.GetLandingRows()`, which delegates to the library instan
 same table — so `KCM.COMMANDS` is the identity handle the suite asserts against rather than a second
 renderer's input.
 
-The twenty-four verbs, in declaration order, which is also the order `/cm help` and the About page
+The twenty-five verbs, in declaration order, which is also the order `/cm help` and the About page
 print them:
 
 | Verb | Backed by | Behavior |
@@ -60,6 +61,7 @@ print them:
 | `stat` | host | The per-spec stat tree. |
 | `aio` | host | The composite-category tree. |
 | `dump` | host | The dump targets. |
+| `probe` | host | The seed probe: `/cm probe seed mouseover`, `vendor`, `auction`, `status` and `purge` ([seed-probe.md](./seed-probe.md)). `status` is a report; the rest acknowledge or refuse in chat. |
 
 `config`, `resync` and `rewritemacros` all say something when they cannot do the thing: `resync` and
 `rewritemacros` announce that picks are computed now and macro writes land when combat ends, rather
@@ -92,9 +94,9 @@ General page's own combat wording), or *Reset failed (DB not ready).*
 
 ## The sub-command trees
 
-Four verbs dispatch a sub-verb of their own, from five ordered tables in two files. Every one of them
+Six verbs dispatch a sub-verb of their own, from six ordered tables in three files. Every one of them
 is a table plus a lookup through the library's `FindCommand` (read as `KCM.SlashCommands.FindCommand`)
-— never an `if` ladder — and the four in `core/SlashCommands.lua` render their help rows through
+— never an `if` ladder — and the four in `core/SlashCommands.lua` and `probe`'s in `core/SeedProbe.lua` render their help rows through
 `lib.CommandRows`, the formatter `/cm help` uses, so the help output and the dispatch read the same
 rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table and padded rows.
 
@@ -105,12 +107,13 @@ rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table an
 | `aio` | `AIO_COMMANDS` (same file) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
 | `bar` | `BAR_COMMANDS` (same file) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
+| `probe` | `SEED_COMMANDS` (`core/SeedProbe.lua`) | `seed <sub>` | `mouseover`, `vendor`, `auction`, `status`, `purge` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
 category before dispatching, so their handlers take `(cat, rest)` — the resolve happens once, in the
 verb, and a sub-verb never re-derives it. `stat` takes `(rest)`, because its optional `specKey`
 trails the sub-verb rather than preceding it. `bar` takes `()`: its five sub-verbs are complete
-sentences with nothing left to parse.
+sentences with nothing left to parse, and so do `probe seed`'s five.
 
 **A bare tree prints its own help, and each help is generated from the table it dispatches on** —
 `priorityHelp` and `aioHelp` append the known category keys, `statHelp` explains the `specKey`
@@ -123,6 +126,14 @@ lists that category, and `/cm aio <key>` with no sub-verb lists that composite, 
 category name reads as "show me this one". `/cm bar` with no sub-verb **toggles**, matching how
 `/cm debug` reads as a switch. `/cm dump <itemID>` is the same instinct spelled with a number: a
 numeric head routes to the `item` target rather than failing as an unknown target name.
+
+**The list sub-verbs and every dump target are reports** (the owner's ruling of 2026-11-08).
+`/cm priority <cat> list`, `/cm aio <key> list` (and their bare forms) and every `/cm dump <target>`
+write their body to the debug console through `KCM.DebugLog.Report` and print one chat pointer line,
+`<title>: <N> lines written to the debug console. Use Copy to share it.`. Their usage and refusal
+lines stay in chat and write no report, and so does every help listing, the bare `/cm dump` list
+included. `/cm stat list` is three fixed lines answering one question, so it stays in chat, as does
+`/cm list`. Which output goes where, and the seam: [debug.md](./debug.md#reports-chat-or-console).
 
 **`lock` / `unlock` are top-level verbs, and `bar lock` / `bar unlock` are kept beside them**
 (`slash-commands-§8`). Both are reserved verbs across the collection and both mean *lock the addon's
@@ -235,7 +246,7 @@ one-way:
 
 | Live while disabled | Refuses while disabled |
 |---|---|
-| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `skin`, `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio` |
+| `help`, `config`, `version`, `enable`, `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall`, **`dump`**, **`profile`** | `skin`, `resync`, `rewritemacros`, `bar`, `lock`, `unlock`, `priority`, `stat`, `aio`, `probe` |
 
 `diagnostics` joined the reserved set with `LibKa0s-Slash-1.0` minor 16 (LibKa0s v1.60.0,
 `debug-logging-§14`). A literal `liveVerbs` array does not inherit the library's default, so the
@@ -246,8 +257,8 @@ and `/cm debug diagnostics` passes because `debug` is. `tests/test_disabled.lua`
 both. What the report prints is in [debug.md](./debug.md#the-diagnostics-report-cm-diagnostics).
 
 `dump` is this addon's fourteenth and it is a judgment rather than a quote from the rule.
-`core/SlashDump.lua`'s five targets print what they find and write nothing, recompute nothing and
-invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
+`core/SlashDump.lua`'s targets write what they find to the debug console and write nothing else,
+recompute nothing and invalidate nothing, so `dump` does not drive a feature — it reports on one, which is exactly what
 `debug` and `perf` are live for. Refusing it would take the diagnostic away at the one moment
 somebody is asking why the addon has gone quiet.
 
@@ -349,7 +360,7 @@ is why the gate wraps the table rather than living in each body.
 ## See also
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md#slash-commands) — the summary and the file split in context.
-- [debug.md](./debug.md) — what `/cm debug` and `/cm dump` reach.
+- [debug.md](./debug.md) — what `/cm debug` and `/cm dump` reach, and which output is a report.
 - [schema.md](./schema.md) — the rows `/cm list`, `/cm get` and `/cm set` walk.
 - [settings-panel.md](./settings-panel.md) — the panel affordances these verbs share a seam with.
 - [macro-bar.md](./macro-bar.md) — what `/cm bar` is driving.

@@ -4,12 +4,14 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 
 ## In scope
 
-- **Account-wide consumable macros** — thirteen single-pick categories (FOOD, DRINK, HP_POT, MP_POT, HS, VANTUS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, AUG_RUNE, BLOODLUST, BATTLE_REZ) plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot.
+- **Account-wide consumable macros** — thirteen single-pick categories per client plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot. Both clients: FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (owner ruling 2026-11-08; [ARCHITECTURE.md → Per-client features](./ARCHITECTURE.md#per-client-features)).
+- **Retail Midnight and WoW Forever** (Interface 120105, 16001), from one codebase. Forever's seed lists are empty by decision for now, so every Forever pick comes from the bag scan. English only.
 - **Auto-rewriting macro bodies** based on bag contents, spec, and a per-category scorer.
-- **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH against per-spec stat priority (primary + ordered secondary).
+- **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH (and ELIXIR / SCROLL on WoW Forever) against per-spec stat priority (primary + ordered secondary).
 - **Spell entries** (e.g. Recuperate as a Food entry) via opaque-numeric IDs (positive = item, negative = spell sentinel).
 - **Settings panel** integrated into Blizzard's AddOns settings + matching `/cm` slash CLI for every panel-shaped operation.
 - **Auto-discovery** from bag scans, bounded by a 30-day stale-discovered sweep.
+- **A seed probe** (`/cm probe seed mouseover|vendor|auction|status|purge`), slash commands only, that records the item data a seed list needs into its own SavedVariable, `ConsumableMasterProbeDB` (an accepted deviation; [seed-probe.md](./seed-probe.md)).
 - **Combat-deferred writes** with bounded retry on flush.
 - **Drag-and-drop reordering of priority list rows**, on the single-category tabs of the Macros page. The gesture is `LibKa0s-Widgets-1.0`'s `ReorderList` — handle, carried copy and insertion line — and it replaced the ↑ / ↓ buttons those rows used to carry; the composite AIO sections still reorder with the arrows. `/cm priority <cat> up|down` does the same thing from chat.
 - **A CM-only macro bar** (on and unlocked by default, switchable off) holding the managed macros as secure buttons, with configurable layout / geometry / chrome / labels / visibility, drag-to-swap reordering, and a per-slot hover flyout listing every currently-usable candidate in that category. Deliberately narrow: it hosts *only* `KCM_*` macros — it is not a general-purpose action-bar replacement, and it will not accept arbitrary items, spells or foreign macros. See [macro-bar.md](./macro-bar.md).
@@ -25,12 +27,12 @@ These have been considered and explicitly declined. A change of heart needs an i
 - **Per-encounter / per-boss priorities.** No fight-specific lists.
 - **Auto-buying consumables from vendors.** No vendor automation.
 - **Cauldrons / phials** as separate categories. Phials are absorbed into FLASK by subclass (Flask/Phial, subClassID 3). Cauldrons don't have a managed macro. Weapon oils and whetstones are the WPN_ENCH category, and augment runes are the AUG_RUNE category — both matched by tooltip effect rather than by item class.
-- **Bandages.** First aid is a separate workflow; not relevant to current Midnight endgame.
+- **Bandages on Retail.** First aid is a separate workflow; not relevant to current Midnight endgame. WoW Forever has a BANDAGE category (owner ruling 2026-11-08), because vanilla first aid is part of every character's kit.
 - **Profile import/export.** Profiles live in `ConsumableMasterDB`, per account. AceDBOptions' *Copy From* is the only way to move settings between them; there is no serialization layer.
 - **A general-purpose action bar.** The macro bar hosts `KCM_*` macros only. Paging, stances, arbitrary items/spells/macros, and per-button keybindings are Bartender/ElvUI territory (keybindings are tracked as a possible narrow exception).
 - **Shopping-list / restock reminders.**
 - **Feasts** in `STAT_FOOD`. Personal feasts and ground feasts are excluded from the seed; users wanting a feast macro can add the item ID manually.
-- **Utility potions** in `CMBT_POT`. Invisibility, slow fall, swiftness, absorb potions are not throughput buffs and don't belong in the combat-pot macro.
+- **Utility potions** in `CMBT_POT`. Invisibility, slow fall, swiftness, absorb potions are not throughput buffs and don't belong in the combat-pot macro. On WoW Forever a school-protection potion has its own category, PROT_POT, and `CMBT_POT` never takes one.
 
 ## Resolved decisions
 

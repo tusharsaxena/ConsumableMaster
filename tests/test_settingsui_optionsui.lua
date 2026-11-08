@@ -425,7 +425,7 @@ test("Settings: a secondary stat row is boxed full-width and spaced from the nex
 --
 -- red under: restoring `parent = slot.frame` on either renderer, or setting
 -- either stride back to the row height (which closes the gap between rows).
-test("Settings: every draggable row on the Macros page is boxed full-width and spaced",
+h.retailTest("Settings: every draggable row on the Macros page is boxed full-width and spaced",
     function(t)
         local KCM = loader.loadFullAddon()
 

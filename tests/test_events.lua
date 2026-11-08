@@ -103,14 +103,14 @@ local function assertOthersBound(t, KCM, mock, ok, err, label)
     t.eqList(KCM.RejectedEvents or {}, { RETIRED }, label .. ": the retired name is recorded once")
 end
 
-test("a retired event name leaves the other nine bound", function(t)
+test("a retired event name leaves the other thirteen bound", function(t)
     local KCM, mock, ok, err = enableWithRetired(false)
-    t.eq(#(KCM.EVENTS or {}), 10, "KCM.EVENTS holds the ten pairs")
+    t.eq(#(KCM.EVENTS or {}), 14, "KCM.EVENTS holds the fourteen pairs")
     assertOthersBound(t, KCM, mock, ok, err, "IsEventValid present")
     t.falsy(registeredOn(mock, KCM)[RETIRED], "the retired name is not registered")
 end)
 
-test("a retired event name leaves the other nine bound on a client with no C_EventUtils", function(t)
+test("a retired event name leaves the other thirteen bound on a client with no C_EventUtils", function(t)
     local KCM, mock, ok, err = enableWithRetired(true)
     assertOthersBound(t, KCM, mock, ok, err, "C_EventUtils nil")
 end)
@@ -161,9 +161,13 @@ test("/cm dump events lists every event and names the rejected one", function(t)
     local mock = h.loader.mock
     mock.base.__badEvents = { [RETIRED] = true }
     pcall(KCM.OnEnable, KCM)
-    mock.output = {}
+    -- A report (the owner's ruling of 2026-11-08): the body is in the console.
+    local D = KCM.DebugLog.instance
+    local from = #D.buffer
     KCM:OnSlashCommand("dump events")
-    local text = table.concat(mock.output, "\n")
+    local lines = {}
+    for i = from + 1, #D.buffer do lines[#lines + 1] = D.buffer[i] end
+    local text = table.concat(lines, "\n")
     for _, pair in ipairs(KCM.EVENTS or {}) do
         t.truthy(text:find(pair[1], 1, true), pair[1] .. " is listed")
     end

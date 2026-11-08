@@ -65,12 +65,26 @@ KCM.Settings.order = KCM.Settings.order or {
 -- Keys are the lower-cased category keys, matching the sub-page keys the strip
 -- replaced, so defaults/Profile.lua's macroBar.order — which mirrors this list
 -- upper-cased — did not have to move either.
-KCM.Settings.macroOrder = KCM.Settings.macroOrder or {
-    "food", "drink", "hp_pot", "mp_pot", "hs",
-    "hp_aio", "mp_aio",
-    "flask", "cmbt_pot", "stat_food", "wpn_ench", "aug_rune", "vantus",
-    "bloodlust", "battle_rez",
-}
+--
+-- The run below names every client's categories; the strip is THIS client's,
+-- filtered once here by KCM.Categories.BY_KEY (clients-§4), so Retail's is the
+-- fifteen it always was and WoW Forever's places bandage, elixir, protection
+-- potion and scroll beside their nearest kin. A category absent on the client
+-- gets no tab: it is never registered and then hidden.
+if not KCM.Settings.macroOrder then
+    local byKey = (KCM.Categories and KCM.Categories.BY_KEY) or {}
+    local order = {}
+    for _, key in ipairs({
+        "food", "drink", "hp_pot", "mp_pot", "hs", "bandage",
+        "hp_aio", "mp_aio",
+        "flask", "elixir", "cmbt_pot", "prot_pot", "stat_food", "scroll", "wpn_ench",
+        "aug_rune", "vantus",
+        "bloodlust", "battle_rez",
+    }) do
+        if byKey[key:upper()] then order[#order + 1] = key end
+    end
+    KCM.Settings.macroOrder = order
+end
 
 -- Helpers is the addon's own half of the settings framework AND the published
 -- view of LibKa0s-Options-1.0's instance. settings/OptionsSetup.lua creates this

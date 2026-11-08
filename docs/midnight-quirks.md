@@ -300,7 +300,7 @@ For a future field where neither a NeverSecret companion nor a duration object e
 
 WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartender) only let `#showtooltip` drive the action-bar button's icon when the macro's stored icon is the `?` sentinel (fileID `134400`, exposed as `DYNAMIC_ICON` in `modules/MacroManager.lua`). Any other stored icon overrides `#showtooltip` on the bar.
 
-Consequence: active macro bodies must store `DYNAMIC_ICON`; empty-state bodies must drop `#showtooltip` entirely and store `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
+Consequence: active macro bodies must store `DYNAMIC_ICON`; empty-state bodies must drop `#showtooltip` entirely and store `DEFAULT_ICON` (`7704166`, the cooking pot, on Retail; `134328` on Forever, `KCM.EMPTY_ICON`). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
 
 The Options panel's `KCMMacroDragIcon` widget is exempt — it resolves to `GetItemIcon(lastItemID)` / `C_Spell.GetSpellTexture(spellID)` directly, since the `?` sentinel looks meaningless on a static UI widget.
 
@@ -347,3 +347,21 @@ Blizzard removed `LEARNED_SPELL_IN_TAB` from retail; AceEvent throws `Attempt to
 If a future patch removes another event the addon listens for, AceEvent still throws on registration, but the throw no longer escapes. Every registration goes through `KCM.SafeRegisterEvent` (`LibKa0s-Core-1.0`, bound in `core/CoreSetup.lua`), which asks `C_EventUtils.IsEventValid` first (a private probe frame on a client without it), then `pcall`s the call, and appends a refused name once to `KCM.RejectedEvents` (events-frames-taint-§1). So one retired name costs only its own handler, and every other event in `KCM.EVENTS` stays bound. Before, a bare `self:RegisterEvent` raised out of `KCM:OnEnable` at that name and every event after it went unregistered.
 
 **The trade.** A retired name is now recorded and skipped rather than raised, so it no longer shows up as a Lua error on login. It shows up in two places instead: `/cm dump events` marks it `rejected`, and the `[Init]` line of a `/cm debug on` session ends `, rejected events: <NAME>`. The fix is unchanged: replace the name with whatever modern event covers the same trigger. The degraded Core stub (no LibKa0s) keeps only the `pcall` rung, so on that path AceEvent reports an unknown name to its first registrant only.
+
+## Interface line — track both clients' builds
+
+`ConsumableMaster.toc` declares two build numbers, Retail's first and WoW Forever's second (toc-file-§3):
+
+```
+## Interface: 120105, 16001
+```
+
+Each value is `(major * 10000) + (minor * 100) + patch` for that client's Live patch: Retail Midnight 12.1.5 and Forever 1.60.1. Each client picks the number that matches it. **When either client ships a patch, replace that client's number** (`/dev-copilot:wow-bump-interface` bumps them per client) so the addon reads as up to date in that client's AddOn list, and move the README `[WoW]` badge in the same change.
+
+## WoW Forever's consumable subclasses
+
+`Enum.ItemConsumableSubclass` keeps Retail's numbers on Forever (Potion 1, Elixir 2, Flask 3, Scroll 4, Food & Drink 5, Item Enhancement 6, Bandage 7, Other 8) and adds **Draught 13, Device 14 and ItemenhancementTemporary 15** (Ketho/BlizzardInterfaceResources `forever` 1.60.1 (70532), `Resources/LuaEnum.lua`). `core/Classifier.lua` reads them through two per-client lists picked once at load: on Forever a Draught matches like a Potion, and a temporary Item Enhancement (15) is a weapon enchant on its subclass alone (Forever reports 6 as "Permanent": the Light Armor Kit, 2304, in the owner's dump of 2026-11-08, so 6 never is), because vanilla's wording ("Increase sharp weapon damage by 2 for 30 minutes") has no "your … weapon" for the tooltip flag. A Device joins nothing.
+
+**Forever's stones and oils are subclass 8, not 15.** The owner's dump of 2026-11-08 (build 70862) showed every sharpening stone, weightstone and oil as consumable subclass 8 ("Other"), none on 15. So on Forever WPN_ENCH also takes `tt.isVanillaWeaponEnhance`, which `core/TooltipCache.lua` sets from three Use: wordings: "Increase sharp weapon damage by N" (stones, bladed), "Increase the damage of a blunt weapon by N" (weightstones, blunt) and "... applied to target weapon ..." / "When applied to a melee weapon ..." (oils, either hand). Its `weaponEnhanceValue` is the stone's "by N" or the oil's "by up to N" (a proc oil such as Shadow Oil has none), and the WPN_ENCH scorer weighs it at 1000 per point, so a stronger stone outranks a weaker one whatever their item level. Poisons ("Coats a weapon with poison ...") are held out for now: they are a rogue's, and a line naming poison never sets the flag. Subclass 6 ("Permanent") never matches WPN_ENCH on Forever, even when Retail's "your … weapon" flag is set: the Steel Weapon Chain (6041, "Attaches a chain to your weapon, making it impossible to disarm.") matched through it before. Retail reads neither rule, so its weapon enchants match and score exactly as before. On Retail both lists are what the Classifier matched before the port.
+
+Vanilla tooltips also phrase effects their own way, and `core/TooltipCache.lua` reads four of them into fields only the Forever paths use: a bandage's "Heals N damage over X sec." (a flat heal), a protection potion's "Absorbs X to Y fire damage." (`absorbValue`, `absorbSchool`), an "Increases armor by N" value (`effectValue`) and the weapon words "sharp" / "blunt" (`weaponWordAffinity`), plus the stone and oil wordings above (`isVanillaWeaponEnhance`, `weaponEnhanceValue`). Stamina, Spirit, armor and spell damage are not stat tokens, so an item granting only those ranks by its value, not by the stat priority. Which items carry which subclass on Forever is unconfirmed in game; the owner's `/cm dump bags` settles it.

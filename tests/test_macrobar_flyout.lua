@@ -22,7 +22,7 @@ local fcfg = support.fcfg
 -- Flyout candidate list (modules/MacroBarFlyout.lua — cap + invert)
 -- ---------------------------------------------------------------------------
 
-test("macrobar flyout: candidates come back in rank order, best first", function(t)
+h.retailTest("macrobar flyout: candidates come back in rank order, best first", function(t)
     local KCM = h.loader.loadFullAddon()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
@@ -33,7 +33,7 @@ test("macrobar flyout: candidates come back in rank order, best first", function
         "entry 1 is the macro's pick, so it renders closest to the button")
 end)
 
-test("macrobar flyout: invert reverses the order without dropping anything", function(t)
+h.retailTest("macrobar flyout: invert reverses the order without dropping anything", function(t)
     local KCM = h.loader.loadFullAddon()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
@@ -45,7 +45,7 @@ test("macrobar flyout: invert reverses the order without dropping anything", fun
     t.eq(inverted[#inverted], normal[1], "and last becomes first")
 end)
 
-test("macrobar flyout: the list is capped to flyoutMax, keeping the top ranks", function(t)
+h.retailTest("macrobar flyout: the list is capped to flyoutMax, keeping the top ranks", function(t)
     local KCM = h.loader.loadFullAddon()
     local mock = h.loader.mock
     -- Own every seeded potion, whatever the seed's length happens to be.
@@ -139,7 +139,7 @@ test("macrobar click: a bar slot fires on mouse-up even with ActionButtonUseKeyD
         "so the client's gate acts on the click instead of silently returning")
 end)
 
-test("macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on", function(t)
+h.retailTest("macrobar click: a flyout entry fires on mouse-up even with ActionButtonUseKeyDown on", function(t)
     local KCM  = h.loader.loadFullAddon()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
@@ -214,7 +214,7 @@ end)
 -- being present any more — it never could be, since FO.RefreshCooldown above it
 -- has always called through that table bare — so the border branch is a plain
 -- buttonBorder test. This pins both sides of it.
-test("macrobar flyout: an entry's border follows buttonBorder through the bar's own applier", function(t)
+h.retailTest("macrobar flyout: an entry's border follows buttonBorder through the bar's own applier", function(t)
     local KCM  = h.loader.loadFullAddon()
     local mock = h.loader.mock
     for _, id in ipairs(KCM.SEED.HP_POT) do mock.setBag(id, 1) end
@@ -358,7 +358,7 @@ end
 -- red under: MB.Refresh calling FO.Apply(btn, c) with no cache, or
 -- FO.Candidates passing nil to Selector.ListAvailable — every shared potion is
 -- filled once per slot that lists it (twice: HP_POT and HP_AIO).
-test("macrobar flyout: an out-of-combat bar refresh scores each candidate once", function(t)
+h.retailTest("macrobar flyout: an out-of-combat bar refresh scores each candidate once", function(t)
     local KCM = h.loader.loadFullAddon()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT
@@ -379,7 +379,7 @@ test("macrobar flyout: an out-of-combat bar refresh scores each candidate once",
     end
 end)
 
-test("macrobar flyout: an in-combat bar refresh builds no flyout and scores nothing", function(t)
+h.retailTest("macrobar flyout: an in-combat bar refresh builds no flyout and scores nothing", function(t)
     local KCM = h.loader.loadFullAddon()
     local mock = h.loader.mock
     local seed = KCM.SEED.HP_POT

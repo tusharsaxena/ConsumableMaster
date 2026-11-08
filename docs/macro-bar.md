@@ -500,18 +500,17 @@ which is why `Helpers.EnumValues` normalizes both shapes before the validator
 counts them. Until v1.26.0 all three rows overrode `values` locally, because the
 composer's list came back empty (LibKa0s issue #15).
 
-`macroBar.perRow` has THREE hand-maintained copies of "the managed category
-count," and all three went stale (13 → 15) when this branch added two
-categories: the `dbDefaults` default (`defaults/Profile.lua`), the
-settings-page slider `max` (`settings/MacroBar.lua`), and
-`core/MacroBarLayout.lua`'s own internal `perRow` fallback inside
-`normalize()`, used only when `Grid`/`Dimensions` is called with no `perRow`
-in `cfg` at all. Only the slider `max` is derived (`#KCM.Categories.LIST`) —
-`settings/` loads after `defaults/` in `ConsumableMaster.toc`, so the table
-already exists when the row is declared. The other two stay literals:
-`defaults/Profile.lua` can't derive because it loads before
-`defaults/Categories.lua`, and `core/MacroBarLayout.lua`'s fallback was kept a literal on
-purpose since `normalize()` is a hot pure-math path and the fallback only
+`macroBar.perRow` has THREE copies of "the managed category count," and all
+three once went stale together (13 → 15) when two categories were added: the
+`dbDefaults` default (`defaults/Profile.lua`), the settings-page slider `max`
+(`settings/MacroBar.lua`), and `core/MacroBarLayout.lua`'s own internal
+`perRow` fallback inside `normalize()`, used only when `Grid`/`Dimensions` is
+called with no `perRow` in `cfg` at all. Two are derived from
+`#KCM.Categories.LIST` now: the default, since the WoW Forever port moved
+`defaults/Profile.lua` to load right after `defaults/Categories.lua` (it builds
+the buckets and the slot order from `BY_KEY` too), and the slider `max`, because
+`settings/` loads after `defaults/`. The layout fallback stays a literal (15) on
+purpose, since `normalize()` is a hot pure-math path and the fallback only
 ever fires when a caller omits `perRow` entirely. All three are pinned
 together by "macrobar defaults: perRow tracks the number of managed
 categories" in `tests/test_macrobar.lua`, which fails if any one drifts from

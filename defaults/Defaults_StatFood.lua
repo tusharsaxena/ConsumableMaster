@@ -16,43 +16,48 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.STAT_FOOD = {
-    -- Master tier (primary stat, highest amount)
-    242275,  -- Royal Roast                    (primary stat)
-    255847,  -- Impossibly Royal Roast         (primary stat, top tier)
+KCM.SEED.STAT_FOOD = KCM.PerClient({
+    retail = {
+        -- Master tier (primary stat, highest amount)
+        242275,  -- Royal Roast                    (primary stat)
+        255847,  -- Impossibly Royal Roast         (primary stat, top tier)
 
-    -- Intermediate / Advanced single-stat
-    242283,  -- Sun-Seared Lumifin             (CRIT)
-    242286,  -- Arcano Cutlets                 (CRIT)
-    242278,  -- Tasty Smoked Tetra             (CRIT)
-    242277,  -- Crimson Calamari               (HASTE)
-    242282,  -- Null and Void Plate            (HASTE)
-    242281,  -- Glitter Skewers                (MASTERY)
-    242285,  -- Warped Wise Wings              (MASTERY)
-    242284,  -- Void-Kissed Fish Rolls         (VERSATILITY)
-    242280,  -- Buttered Root Crab             (VERSATILITY)
-    242276,  -- Braised Blood Hunter           (VERSATILITY)
-    242294,  -- Felberry Figs                  (VERSATILITY)
+        -- Intermediate / Advanced single-stat
+        242283,  -- Sun-Seared Lumifin             (CRIT)
+        242286,  -- Arcano Cutlets                 (CRIT)
+        242278,  -- Tasty Smoked Tetra             (CRIT)
+        242277,  -- Crimson Calamari               (HASTE)
+        242282,  -- Null and Void Plate            (HASTE)
+        242281,  -- Glitter Skewers                (MASTERY)
+        242285,  -- Warped Wise Wings              (MASTERY)
+        242284,  -- Void-Kissed Fish Rolls         (VERSATILITY)
+        242280,  -- Buttered Root Crab             (VERSATILITY)
+        242276,  -- Braised Blood Hunter           (VERSATILITY)
+        242294,  -- Felberry Figs                  (VERSATILITY)
 
-    -- Primary-stat starter/intermediate
-    242288,  -- Twilight Angler's Medley       (primary stat)
-    242289,  -- Spellfire Filet                (primary stat)
-    242302,  -- Bloom Skewers                  (primary stat)
-    242303,  -- Mana-Infused Stew              (primary stat)
+        -- Primary-stat starter/intermediate
+        242288,  -- Twilight Angler's Medley       (primary stat)
+        242289,  -- Spellfire Filet                (primary stat)
+        242302,  -- Bloom Skewers                  (primary stat)
+        242303,  -- Mana-Infused Stew              (primary stat)
 
-    -- Dual-stat combined (Intermediate tier)
-    242290,  -- Wise Tails                     (CRIT + VERS)
-    242291,  -- Fried Bloomtail                (MASTERY + VERS)
-    242292,  -- Eversong Pudding               (MASTERY + CRIT)
-    242293,  -- Sunwell Delight                (VERS + HASTE)
-    242295,  -- Hearthflame Supper             (CRIT + HASTE)
-    242296,  -- Bloodthistle-Wrapped Cutlets   (MASTERY + HASTE)
+        -- Dual-stat combined (Intermediate tier)
+        242290,  -- Wise Tails                     (CRIT + VERS)
+        242291,  -- Fried Bloomtail                (MASTERY + VERS)
+        242292,  -- Eversong Pudding               (MASTERY + CRIT)
+        242293,  -- Sunwell Delight                (VERS + HASTE)
+        242295,  -- Hearthflame Supper             (CRIT + HASTE)
+        242296,  -- Bloodthistle-Wrapped Cutlets   (MASTERY + HASTE)
 
-    -- Dual-stat Starter tier (smaller amount)
-    242304,  -- Spiced Biscuits                (CRIT + VERS)
-    242305,  -- Silvermoon Standard            (MASTERY + VERS)
-    242306,  -- Forager's Medley               (MASTERY + CRIT)
-    242307,  -- Quick Sandwich                 (VERS + HASTE)
-    242308,  -- Portable Snack                 (CRIT + HASTE)
-    242309,  -- Farstrider Rations             (MASTERY + HASTE)
-}
+        -- Dual-stat Starter tier (smaller amount)
+        242304,  -- Spiced Biscuits                (CRIT + VERS)
+        242305,  -- Silvermoon Standard            (MASTERY + VERS)
+        242306,  -- Forager's Medley               (MASTERY + CRIT)
+        242307,  -- Quick Sandwich                 (VERS + HASTE)
+        242308,  -- Portable Snack                 (CRIT + HASTE)
+        242309,  -- Farstrider Rations             (MASTERY + HASTE)
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})

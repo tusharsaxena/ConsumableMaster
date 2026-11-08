@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Title: Ka0s Consumable Master
 ## Notes: Auto-managed account-wide consumable macros.
 ## Author: add1kted2ka0s
@@ -8,7 +8,10 @@
 # separate from the AceDB tree on purpose: LibKa0s-Perf writes the global
 # directly, so folding it into ConsumableMasterDB would stamp its keys onto
 # AceDB's root and trip AceDB's own discard branch on the next load.
-## SavedVariables: ConsumableMasterDB, ConsumableMasterPerfDB
+# ConsumableMasterProbeDB is the seed probe's store (core/SeedProbeStore.lua),
+# third and outside AceDB for the same reason: an accepted deviation from
+# toc-file-§2's two globals (docs/ARCHITECTURE.md, Documented deviations).
+## SavedVariables: ConsumableMasterDB, ConsumableMasterPerfDB, ConsumableMasterProbeDB
 ## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0, EllesmereUI
 ## DefaultState: enabled
 ## Category-enUS: Combat
@@ -152,18 +155,29 @@ core\SlashCommands.lua
 # conventional: core\DebugLogSetup.lua asks for them at RUN time, and every
 # module the sections read is reached through KCM when the report runs.
 core\Diagnostics.lua
+# The seed probe (`/cm probe seed ...`). SeedProbeStore first: it opens the
+# KCM.SeedProbe table and the store SeedProbe.lua builds on. Both after
+# core\CoreSetup.lua, because SeedProbe.lua takes the printer as a file-scope
+# upvalue. Everything else they reach (TooltipCache, Classifier, SpecHelper, the
+# Slash vocabulary, the debug console) is read at call time, and settings\Slash.lua
+# binds the verb through a thunk, so nothing later depends on this position.
+core\SeedProbeStore.lua
+core\SeedProbe.lua
 
 # Defaults
-# Profile.lua first: KCM.dbDefaults, the AceDB defaults tree and THE
-# declaration site for every shipped default (savedvariables-§2). It sits at
-# the head of this block so it is evaluated in the same position it held when
-# it lived at the top of core/ConsumableMaster.lua — after the whole # Core
-# block, before defaults/Categories.lua, which its `perRow` comment relies on.
-defaults\Profile.lua
-# Categories.lua and the Defaults_*.lua seed files below: position is CONVENTIONAL.
-# Categories.lua builds KCM.Categories from literals (KCM.PREFIX only at call time);
-# each seed file reaches only KCM.ID and its own KCM.SEED slot; none reads KCM.Categories.
+# Categories.lua first: KCM.Categories, filtered ONCE at load to the rows this
+# client is declared for (clients-§4, through KCM.Compat.ForClient, so after the
+# whole # Core block). LOAD-BEARING: Profile.lua right below builds the
+# per-category buckets, the macro bar's perRow and its slot order from
+# KCM.Categories.BY_KEY, so a category absent on this client gets no bucket.
 defaults\Categories.lua
+# Profile.lua: KCM.dbDefaults, the AceDB defaults tree and THE declaration site
+# for every shipped default (savedvariables-§2). After Categories.lua, for the
+# reason above; nothing in # Core reads it at load.
+defaults\Profile.lua
+# The Defaults_*.lua seed files below: position is CONVENTIONAL. Each reaches
+# only KCM.ID, KCM.PerClient (core/Compat.lua: the client's list of its two,
+# clients-§5) and its own KCM.SEED slot; none reads KCM.Categories.
 defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
 defaults\Defaults_Drink.lua

@@ -98,7 +98,7 @@ local function recordSets(KCM)
     return (h.loader.spySeamWrites(KCM))
 end
 
-test("/cm get and list render the list-shaped rows as text, never a table address", function(t)
+h.retailTest("/cm get and list render the list-shaped rows as text, never a table address", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "get macroBar.order")
     t.truthy(text:find("FOOD, DRINK", 1, true), "the slot order reads as a list: " .. text)
@@ -113,7 +113,7 @@ test("/cm get and list render the list-shaped rows as text, never a table addres
     t.truthy(text:find("categories.BATTLE_REZ.mouseover", 1, true), "and mouseover is listed")
 end)
 
-test("/cm set and reset reach the slot order, a flag map and mouseover", function(t)
+h.retailTest("/cm set and reset reach the slot order, a flag map and mouseover", function(t)
     local KCM, mock = load()
     local c = KCM.db.profile.macroBar
     KCM:OnSlashCommand("set macroBar.order drink,food")

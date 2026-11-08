@@ -9,6 +9,11 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.VANTUS = {
-    245880,  -- Vantus Rune: Radiant
-}
+KCM.SEED.VANTUS = KCM.PerClient({
+    retail = {
+        245880,  -- Vantus Rune: Radiant
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. The category is absent on WoW Forever
+    -- (defaults/Categories.lua, clients-§4), so nothing reads this list there.
+    forever = {},
+})

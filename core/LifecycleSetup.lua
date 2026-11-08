@@ -107,6 +107,9 @@ local function standDown()
     -- a copy of OnEnable's list read backwards: a tenth event added there cannot
     -- be forgotten here.
     if KCM.UnregisterAllEvents then KCM:UnregisterAllEvents() end
+    -- The seed probe stops whatever it had in flight; its window flags went with
+    -- the events above (core/SeedProbe.lua).
+    if KCM.SeedProbe and KCM.SeedProbe.StandDown then KCM.SeedProbe.StandDown() end
 
     -- THE ONE REGISTRATION A DISABLED ADDON KEEPS, and only when it is owed one.
     -- Secure work -- the bar's state driver, its anchors, a macro rewrite -- MUST

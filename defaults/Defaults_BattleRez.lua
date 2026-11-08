@@ -17,10 +17,15 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.BATTLE_REZ = {
-    KCM.ID.AsSpell(20484),   -- Rebirth       (Druid)
-    KCM.ID.AsSpell(61999),   -- Raise Ally    (Death Knight)
-    KCM.ID.AsSpell(391054),  -- Intercession  (Paladin)
-    KCM.ID.AsSpell(20707),   -- Soulstone     (Warlock; pre-cast on a living ally)
-    248486,                  -- Emergency Soul Link (Midnight; usable by anyone, in combat)
-}
+KCM.SEED.BATTLE_REZ = KCM.PerClient({
+    retail = {
+        KCM.ID.AsSpell(20484),   -- Rebirth       (Druid)
+        KCM.ID.AsSpell(61999),   -- Raise Ally    (Death Knight)
+        KCM.ID.AsSpell(391054),  -- Intercession  (Paladin)
+        KCM.ID.AsSpell(20707),   -- Soulstone     (Warlock; pre-cast on a living ally)
+        248486,                  -- Emergency Soul Link (Midnight; usable by anyone, in combat)
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. The category is absent on WoW Forever
+    -- (defaults/Categories.lua, clients-§4), so nothing reads this list there.
+    forever = {},
+})

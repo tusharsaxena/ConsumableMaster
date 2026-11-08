@@ -28,7 +28,7 @@ end
 
 -- red under: a converted escape that moved a Ka0s Default byte.
 test("Skin surfaces: the escapes built from tokens keep Ka0s Default's bytes", function(t)
-    local KCM = h.loader.loadPure()
+    local KCM = h.loader.wearKa0s(h.loader.loadPure())
     t.eq(KCM.SkinEscape("gtip.value"), "|cffffffff", "the score tooltip's value white")
     t.eq(KCM.SkinEscape("cm.tipNote"), "|cff888888", "its note gray")
     t.eq(KCM.SkinEscape("cm.tipSummary"), "|cffaaaaaa", "its summary gray")
@@ -68,7 +68,7 @@ local function rgba(...) return { ... } end
 
 -- red under: the hover wash typed again, or read once at build so a skin switch leaves it stale.
 test("Skin surfaces: the icon button's hover wash is cm.iconHover, read at hover time", function(t)
-    local KCM = h.loader.loadPure()
+    local KCM = h.loader.wearKa0s(h.loader.loadPure())
     local Skin = LibStub("LibKa0s-Skin-1.0", true)
     local w, paint, cleanup = buildWidget(KCM, "modules/KCMIconButton.lua", "KCMIconButton")
     local ok, err = pcall(function()
@@ -101,7 +101,7 @@ end)
 
 -- red under: the item row's label or hand tag back on a template color the skin cannot reach.
 test("Skin surfaces: the item row's name and hand tag take the skin's text", function(t)
-    local KCM = h.loader.loadPure()
+    local KCM = h.loader.wearKa0s(h.loader.loadPure())
     local Skin = LibStub("LibKa0s-Skin-1.0", true)
     local w, paint, cleanup = buildWidget(KCM, "modules/KCMItemRow.lua", "KCMItemRow")
     local ok, err = pcall(function()
@@ -122,7 +122,7 @@ end)
 
 -- red under: the score button's disabled art typed again.
 test("Skin surfaces: the score button's disabled art is the skin's disabled gray", function(t)
-    local KCM = h.loader.loadPure()
+    local KCM = h.loader.wearKa0s(h.loader.loadPure())
     local w, paint, cleanup = buildWidget(KCM, "modules/KCMScoreButton.lua", "KCMScoreButton")
     local ok, err = pcall(function()
         t.truthy(w, "the widget builds under the recorder")

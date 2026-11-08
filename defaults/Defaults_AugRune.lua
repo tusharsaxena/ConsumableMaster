@@ -19,23 +19,28 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.AUG_RUNE = {
-    -- Midnight (12.x)
-    259085,  -- Void-Touched Augment Rune
-    -- The War Within (11.x)
-    243191,  -- Ethereal Augment Rune         (reusable)
-    246492,  -- Soulgorged Augment Rune
-    224572,  -- Crystallized Augment Rune
-    -- Dragonflight (10.x)
-    211495,  -- Dreambound Augment Rune        (reusable)
-    201325,  -- Draconic Augment Rune
-    -- Shadowlands (9.x)
-    190384,  -- Eternal Augment Rune           (reusable)
-    181468,  -- Veiled Augment Rune
-    -- Battle for Azeroth (8.x)
-    174906,  -- Lightning-Forged Augment Rune  (reusable)
-    160053,  -- Battle-Scarred Augment Rune
-    -- Legion (7.x)
-    153023,  -- Lightforged Augment Rune       (reusable)
-    140587,  -- Defiled Augment Rune
-}
+KCM.SEED.AUG_RUNE = KCM.PerClient({
+    retail = {
+        -- Midnight (12.x)
+        259085,  -- Void-Touched Augment Rune
+        -- The War Within (11.x)
+        243191,  -- Ethereal Augment Rune         (reusable)
+        246492,  -- Soulgorged Augment Rune
+        224572,  -- Crystallized Augment Rune
+        -- Dragonflight (10.x)
+        211495,  -- Dreambound Augment Rune        (reusable)
+        201325,  -- Draconic Augment Rune
+        -- Shadowlands (9.x)
+        190384,  -- Eternal Augment Rune           (reusable)
+        181468,  -- Veiled Augment Rune
+        -- Battle for Azeroth (8.x)
+        174906,  -- Lightning-Forged Augment Rune  (reusable)
+        160053,  -- Battle-Scarred Augment Rune
+        -- Legion (7.x)
+        153023,  -- Lightforged Augment Rune       (reusable)
+        140587,  -- Defiled Augment Rune
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. The category is absent on WoW Forever
+    -- (defaults/Categories.lua, clients-§4), so nothing reads this list there.
+    forever = {},
+})

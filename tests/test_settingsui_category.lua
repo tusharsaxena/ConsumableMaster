@@ -450,7 +450,7 @@ local function recordSets(KCM)
 end
 
 -- red under: any of these controls writing its field directly again.
-test("Settings: every Stat Priority, composite and mouseover control writes through the schema helper",
+h.retailTest("Settings: every Stat Priority, composite and mouseover control writes through the schema helper",
     function(t)
         local KCM = loader.loadFullAddon()
         local UI  = KCM.Settings.Helpers.instance

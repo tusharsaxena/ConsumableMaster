@@ -29,8 +29,9 @@ local L = KCM.L
 
 -- Every chat line we emit goes through the shared secret-safe seam (KCM.Say,
 -- core/Constants.lua) so the [CM] tag is unconditional and a combat "secret"
--- can never raise mid-line — including dump body rows and help-table rows that
--- don't manually prepend the tag.
+-- can never raise mid-line — including help-table rows that don't manually
+-- prepend the tag. A REPORT's rows (the list sub-verbs) go to the debug console
+-- through KCM.DebugLog.Report instead; only its pointer line comes here.
 local say = KCM.Say
 
 
@@ -347,23 +348,29 @@ local function priorityRow(i, id, pick)
     return ("  %2d. %s %-12s %s%s"):format(i, haveTag, displayID(id), nameForStoredID(id), pickTag)
 end
 
+-- A REPORT (the owner's ruling of 2026-11-08): the list goes to the debug
+-- console through KCM.DebugLog.Report and chat gets one pointer line. The two
+-- refusals stay on `say`, so they reach chat and write no report. A composite
+-- renders through the `pick` dump target, inside this same report.
 local function priorityList(cat, _rest)
-    if cat.composite then
-        return KCM.SlashDump.TARGETS.pick.run(cat.key:lower())
-    end
-    if not (KCM.Selector and KCM.Selector.GetEffectivePriority) then
-        return say("Selector not loaded.")
-    end
-    local specKey = categorySpec(cat)
-    if cat.specAware and not specKey then
-        return say("spec-aware category but no active spec — try again after picking a spec.")
-    end
-    local priority = KCM.Selector.GetEffectivePriority(cat.key, specKey)
-    local pick     = KCM.Selector.PickBestForCategory(cat.key, specKey)
-    say(("%s: %d entries"):format(cat.key, #priority))
-    for i, id in ipairs(priority) do
-        say(priorityRow(i, id, pick))
-    end
+    KCM.DebugLog.Report("Priority", ("priority %s list"):format(cat.key:lower()), function(out)
+        if cat.composite then
+            return KCM.SlashDump.TARGETS.pick.run(cat.key:lower(), out)
+        end
+        if not (KCM.Selector and KCM.Selector.GetEffectivePriority) then
+            return say("Selector not loaded.")
+        end
+        local specKey = categorySpec(cat)
+        if cat.specAware and not specKey then
+            return say("spec-aware category but no active spec — try again after picking a spec.")
+        end
+        local priority = KCM.Selector.GetEffectivePriority(cat.key, specKey)
+        local pick     = KCM.Selector.PickBestForCategory(cat.key, specKey)
+        out(("%s: %d entries"):format(cat.key, #priority))
+        for i, id in ipairs(priority) do
+            out(priorityRow(i, id, pick))
+        end
+    end)
 end
 
 local function rejectComposite(cat, verb)
@@ -675,25 +682,30 @@ local function writeAIO(cat, field, value)
     return (setter and setter.Set and setter:Set(aioPath(cat, field), value)) and true or false
 end
 
+-- A REPORT, like `/cm priority <cat> list`: the configuration goes to the
+-- debug console and chat gets one pointer line; the missing-bucket refusal
+-- stays in chat and writes no report.
 local function aioList(cat)
     local cfg = compositeCfg(cat)
     if not cfg then return say("no DB bucket for " .. cat.key) end
-    say(("%s"):format(cat.key))
-    for _, field in ipairs(AIO_SECTIONS) do
-        say(("  %s"):format(AIO_SECTION_LABEL[field]))
-        local arr = cfg[field] or {}
-        if #arr == 0 then
-            say("    (none)")
-        else
-            for i, ref in ipairs(arr) do
-                local enabled = not (cfg.enabled and cfg.enabled[ref] == false)
-                local tag = enabled and "|cff44ff44[on]|r " or "|cff888888[off]|r"
-                local refCat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(ref)
-                local label  = refCat and refCat.displayName or ref
-                say(("    %d. %s %-10s — %s"):format(i, tag, ref, label))
+    KCM.DebugLog.Report("AIO", ("aio %s list"):format(cat.key:lower()), function(out)
+        out(("%s"):format(cat.key))
+        for _, field in ipairs(AIO_SECTIONS) do
+            out(("  %s"):format(AIO_SECTION_LABEL[field]))
+            local arr = cfg[field] or {}
+            if #arr == 0 then
+                out("    (none)")
+            else
+                for i, ref in ipairs(arr) do
+                    local enabled = not (cfg.enabled and cfg.enabled[ref] == false)
+                    local tag = enabled and "|cff44ff44[on]|r " or "|cff888888[off]|r"
+                    local refCat = KCM.Categories and KCM.Categories.Get and KCM.Categories.Get(ref)
+                    local label  = refCat and refCat.displayName or ref
+                    out(("    %d. %s %-10s — %s"):format(i, tag, ref, label))
+                end
             end
         end
-    end
+    end)
 end
 
 -- The words `toggle` accepts as an explicit value. Values are strictly

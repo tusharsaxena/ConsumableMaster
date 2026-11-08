@@ -19,14 +19,19 @@ local _, NS = ...
 local KCM = NS
 KCM.SEED = KCM.SEED or {}
 
-KCM.SEED.FOOD = {
-    KCM.ID.AsSpell(1231411),  -- Recuperate (spell) — always preferred for Food
-    113509,  -- Conjured Mana Bun (mage conjured food)
-    260264,  -- Quel'Danas Rations
-    260263,  -- Silvermoon Soiree Spread
-    260262,  -- Fairbreeze Feast
-    260257,  -- Ghostlands Pepper
-    260256,  -- Luxurious Omelette
-    260255,  -- Managi Roll
-    260254,  -- Kale'thas Sunsalad
-}
+KCM.SEED.FOOD = KCM.PerClient({
+    retail = {
+        KCM.ID.AsSpell(1231411),  -- Recuperate (spell) — always preferred for Food
+        113509,  -- Conjured Mana Bun (mage conjured food)
+        260264,  -- Quel'Danas Rations
+        260263,  -- Silvermoon Soiree Spread
+        260262,  -- Fairbreeze Feast
+        260257,  -- Ghostlands Pepper
+        260256,  -- Luxurious Omelette
+        260255,  -- Managi Roll
+        260254,  -- Kale'thas Sunsalad
+    },
+    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
+    -- on WoW Forever every candidate comes from the bag scan.
+    forever = {},
+})
