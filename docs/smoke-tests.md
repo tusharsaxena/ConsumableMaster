@@ -767,7 +767,7 @@ Forever's SavedVariables are `_forever_/WTF/Account/<ACCOUNT>/SavedVariables/Con
 
 - **FOREVER-19. Empty slots show the note icon.** With a category that has nothing in your bags (Elixir, say), look at the macro bar and the `KCM_*` macro on an action bar → both show `inv_misc_note_02` (a parchment note), never a solid green square. Macros written before this fix repaint on the next recompute; `/cm rewritemacros` forces it. On **Retail** the empty icon stays the cooking pot. Result: passed (owner, 2026-11-08)
 
-**FOREVER-22. A Well Fed food with a non-stat buff is Stat Food.** With a Bristle Whisker Catfish (4593, "gain 8 Fishing Skill") in bags → `/cm dump item 4593` shows `classified: STAT_FOOD`, it is listed on the Stat Food tab and not on Food, and `KCM_FOOD` picks a plain food. On **Retail**, food classifies as before. Result: owed
+**FOREVER-22. A Well Fed food with a non-stat buff is Stat Food.** With a Bristle Whisker Catfish (4593, "gain 8 Fishing Skill") in bags → `/cm dump item 4593` shows `classified: STAT_FOOD`, it is listed on the Stat Food tab and not on Food, and `KCM_FOOD` picks a plain food. On **Retail**, food classifies as before. Result: passed (owner, 2026-11-08: "catfish changes working now")
 
 ## Seed probe
 
