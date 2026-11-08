@@ -325,6 +325,21 @@ function C.Match(catKey, itemID)
     return fn(itemID, tt, sub) == true
 end
 
+-- A definite answer to "does `catKey` admit `itemID`?": true or false only once the client has
+-- resolved the item's class and, for a tooltip-read category, its tooltip has loaded (a TooltipCache
+-- entry that is not pending). nil while either is still in flight, and for a category with no
+-- matcher (seed-only ones), so a caller sweeping stored entries never drops one mid-load (CM-F13).
+function C.MatchDefinite(catKey, itemID)
+    if not (catKey and itemID and matchers[catKey]) then return nil end
+    local classID = classOf(itemID)
+    if not classID then return nil end
+    if classID == CLASS_CONSUMABLE and catKey ~= "HS" and catKey ~= "VANTUS" and not SUBCLASS_ONLY[catKey] then
+        local tt = KCM.TooltipCache and KCM.TooltipCache.Get(itemID)
+        if not tt or tt.pending then return nil end
+    end
+    return C.Match(catKey, itemID) == true
+end
+
 function C.MatchAny(itemID)
     local hits = {}
     if not itemID or not KCM.Categories or not KCM.Categories.LIST then

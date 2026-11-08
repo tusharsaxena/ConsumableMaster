@@ -631,16 +631,23 @@ local DISCOVERED_TTL_SEC = 30 * 86400
 -- self-heal on the next PLAYER_ENTERING_WORLD. The TTL alone never reclaimed
 -- them: the item is in bags, so the branch below keeps bumping its timestamp
 -- forever.
-local function noLongerEligible(id)
+--
+-- Also an entry the category itself now definitely rejects (Classifier.MatchDefinite, false only
+-- once the item has loaded): a rule change, such as Forever's Well Fed food moving from FOOD to
+-- STAT_FOOD (CM-F12), would otherwise leave the item listed in its old category for as long as it
+-- sits in the bags. The owner's Bristle Whisker Catfish stayed on Food after the fix (CM-F13).
+local function noLongerEligible(id, catKey)
     local C = KCM.Classifier
-    return C and C.IsConsumable and C.IsConsumable(id) == false
+    if not C then return false end
+    if C.IsConsumable and C.IsConsumable(id) == false then return true end
+    return catKey ~= nil and C.MatchDefinite ~= nil and C.MatchDefinite(catKey, id) == false
 end
 
-local function sweepBucket(bucket, bagCounts, nowUnix, cutoff)
+local function sweepBucket(bucket, bagCounts, nowUnix, cutoff, catKey)
     if not (bucket and bucket.discovered) then return 0 end
     local swept = 0
     for id, value in pairs(bucket.discovered) do
-        if noLongerEligible(id) then
+        if noLongerEligible(id, catKey) then
             bucket.discovered[id] = nil
             swept = swept + 1
         elseif bagCounts[id] and bagCounts[id] > 0 then
@@ -660,13 +667,13 @@ end
 -- two shapes are swept the same way and the caller does not need to know which
 -- it has; keeping the fan-out here is also what stops a spec-aware category
 -- from being counted as several touched categories below.
-local function sweepCategory(root, bagCounts, nowUnix, cutoff)
+local function sweepCategory(root, bagCounts, nowUnix, cutoff, catKey)
     if not root.bySpec then
-        return sweepBucket(root, bagCounts, nowUnix, cutoff)
+        return sweepBucket(root, bagCounts, nowUnix, cutoff, catKey)
     end
     local swept = 0
     for _, specBucket in pairs(root.bySpec) do
-        swept = swept + sweepBucket(specBucket, bagCounts, nowUnix, cutoff)
+        swept = swept + sweepBucket(specBucket, bagCounts, nowUnix, cutoff, catKey)
     end
     return swept
 end
@@ -694,7 +701,7 @@ function S.SweepStaleDiscovered(nowUnix)
     -- left exactly as it was, for the client that reads it.
     local byKey = (KCM.Categories and KCM.Categories.BY_KEY) or {}
     for key, root in pairs(KCM.db.profile.categories) do
-        local catSwept = byKey[key] and sweepCategory(root, bagCounts, nowUnix, cutoff) or 0
+        local catSwept = byKey[key] and sweepCategory(root, bagCounts, nowUnix, cutoff, key) or 0
         if catSwept > 0 then
             totalSwept = totalSwept + catSwept
             touchedCats = touchedCats + 1

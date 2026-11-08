@@ -346,6 +346,18 @@ test("Forever: a Well Fed food with no stat token is Stat Food, not Food", asFor
     t.eqList(C.MatchAny(9302), { "STAT_FOOD" }, "a Well Fed drink is Stat Food too")
 end))
 
+test("Forever: a food discovered into FOOD before the Well Fed rule leaves FOOD on the next sweep (CM-F13)",
+    asForever(function(t)
+        local KCM, mock = h.loader.loadPure(), h.loader.mock
+        local C = KCM.Classifier
+        item(mock, 4593, 5, { healValue = 530, isWellFed = true, buffDurationSec = 900 })
+        t.eq(C.MatchDefinite("FOOD", 4593), false, "FOOD definitely rejects the catfish now")
+        t.eq(C.MatchDefinite("STAT_FOOD", 4593), true, "Stat Food admits it")
+        mock.setItem(9399, { classID = 0, subClassID = 5, tt = { pending = true } })
+        t.eq(C.MatchDefinite("FOOD", 9399), nil, "a tooltip still loading is no answer")
+        t.eq(C.MatchDefinite("BLOODLUST", 4593), nil, "a seed-only category is no answer")
+    end))
+
 test("Retail: a Well Fed flag with no stat token classifies as before", asRetail(function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     local C = KCM.Classifier
