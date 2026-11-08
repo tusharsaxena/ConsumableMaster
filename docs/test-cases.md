@@ -350,9 +350,11 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
-### test_forever.lua (24)
+### test_forever.lua (26)
 
 - Forever: the category list is exactly its fifteen keys
+- Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot
+- Retail: an empty macro's icon stays the cooking pot
 - Retail: the category list is exactly its fifteen keys
 - Degraded: without the library the categories and seeds are Retail's
 - Forever: every row declares only known client tokens, and ALL keeps all nineteen
@@ -1711,7 +1713,7 @@ Total.
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
-| test_forever.lua | 24 |
+| test_forever.lua | 26 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1777,4 +1779,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1431** |
+| **Total** | **1433** |

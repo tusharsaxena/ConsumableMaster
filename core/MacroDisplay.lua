@@ -21,9 +21,9 @@ local KCM = NS
 KCM.MacroDisplay = KCM.MacroDisplay or {}
 local MD = KCM.MacroDisplay
 
--- Cooking pot — matches MacroManager.DEFAULT_ICON, the icon an empty-state
--- macro stores.
-MD.FALLBACK_ICON = 7704166
+-- The icon an empty-state macro stores (MacroManager.DEFAULT_ICON): Retail's
+-- cooking pot, Forever's note, per client (KCM.EMPTY_ICON, core/Compat.lua).
+MD.FALLBACK_ICON = KCM.EMPTY_ICON
 
 function MD.MacroIndex(macroName)
     if not (macroName and GetMacroIndexByName) then return 0 end

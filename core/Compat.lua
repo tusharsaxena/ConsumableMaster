@@ -89,6 +89,13 @@ Compat.ClientKey = CompatLib and CompatLib.ClientKey or absent
 -- it is on. An unknown client (nil) reads Retail's lists, as a degraded install does.
 KCM.SEED_CLIENT = (Compat.ClientKey() == "forever") and "forever" or "retail"
 
+-- The icon an empty-state macro stores, and the macro bar's fallback, per client, picked once with
+-- the seed lists. Retail's cooking pot (7704166) is a Midnight-era file the Forever client does not
+-- carry, so it drew the missing-texture fill there; Forever takes inv_misc_note_02 (134328), which
+-- both clients ship (owner, 2026-11-08). A macro's icon must be a file ID the client knows, so a
+-- texture shipped in this addon could not stand in for it.
+KCM.EMPTY_ICON = ({ retail = 7704166, forever = 134328 })[KCM.SEED_CLIENT]
+
 --- The running client's list out of a `{ retail = {...}, forever = {...} }` pair. A pair that
 --- forgot a client answers an empty list, never the other client's.
 function KCM.PerClient(lists)

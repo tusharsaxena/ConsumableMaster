@@ -106,7 +106,7 @@ If both sides end up empty, the body falls through to `buildEmptyBody` and the c
 Two stored-icon constants in `modules/MacroManager.lua`:
 
 ```lua
-local DEFAULT_ICON = 7704166   -- cooking pot
+local DEFAULT_ICON = KCM.EMPTY_ICON   -- per client: 7704166 cooking pot (Retail), 134328 inv_misc_note_02 (Forever)
 local DYNAMIC_ICON = 134400    -- the `?` fileID
 ```
 
@@ -119,7 +119,7 @@ WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartend
 So:
 
 - **Active body** stores `DYNAMIC_ICON`. Body keeps `#showtooltip` and either `/use item:N` or `/cast <Spell>`. Action bar adopts the picked item's / spell's icon.
-- **Empty body** stores `DEFAULT_ICON` (cooking pot). Body has no `#showtooltip`. The static cooking pot renders directly.
+- **Empty body** stores `DEFAULT_ICON` (Retail's cooking pot, Forever's note: `KCM.EMPTY_ICON`, picked once per client in `core/Compat.lua`, because the Forever client has no file 7704166 and drew the missing-texture fill). Body has no `#showtooltip`. The static cooking pot renders directly.
 
 **Never store `DEFAULT_ICON` on an active body** — you'll see the cooking pot on the action bar instead of the picked flask.
 

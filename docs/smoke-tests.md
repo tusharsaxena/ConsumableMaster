@@ -758,6 +758,8 @@ Forever's SavedVariables are `_forever_/WTF/Account/<ACCOUNT>/SavedVariables/Con
 
 **FOREVER-18. Client: Retail. Forever's four are absent on Retail.** On a live Retail client, `/reload` → the General Macros tab has no `KCM_ELIXIR`, `KCM_SCROLL`, `KCM_BANDAGE` or `KCM_PROT_POT`; the Macros strip and the bar show Retail's fifteen exactly as before the port; `/cm priority elixir list` → `unknown category`. A Retail healing potion, flask and whetstone still pick as MACRO describes. Result: owed
 
+- **FOREVER-19. Empty slots show the note icon.** With a category that has nothing in your bags (Elixir, say), look at the macro bar and the `KCM_*` macro on an action bar → both show `inv_misc_note_02` (a parchment note), never a solid green square. Macros written before this fix repaint on the next recompute; `/cm rewritemacros` forces it. On **Retail** the empty icon stays the cooking pot. Result: owed
+
 ## Non-English client
 
 **LOC-1. Classification on a localized client.** On a deDE, frFR or other non-English client (a language pack on PTR or beta, or a non-English account), reload with the DISC-4 consumables in bags → `/cm dump item <id>` shows a localized `subType` (such as `"Tränke"`), `classified:` is still correct, and the `KCM_*` macros populate. Before the numeric-class change every consumable classified as `(none)` on such a client. Without one, the headless cases `classifier: keys on numeric subclass, not the localized subType` and its WeaponSlots equivalent, plus DISC-4, DISC-5, MACRO-9 and MACRO-10 on English, are the sign-off. Result: pass (owner-marked 2026-10-10)

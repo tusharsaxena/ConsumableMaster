@@ -809,7 +809,9 @@ end)
 -- Mirrors modules/MacroManager.lua. Named here rather than exported: the values
 -- are a client contract (134400 is WoW's "?" fileID, which makes the bar follow
 -- #showtooltip), so a test that hard-codes them fails if the contract moves.
-local DEFAULT_ICON, DYNAMIC_ICON = 7704166, 134400
+-- The empty icon is per client (core/Compat.lua): Retail's cooking pot, Forever's note.
+local FOREVER = dofile("tests/_kit/mock_client.lua").current() == "forever"
+local DEFAULT_ICON, DYNAMIC_ICON = FOREVER and 134328 or 7704166, 134400
 
 local function compositeWith(KCM, picks)
     KCM.Selector.PickBestForCategory = function(refKey) return picks[refKey] end

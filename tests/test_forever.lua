@@ -50,6 +50,18 @@ test("Forever: the category list is exactly its fifteen keys", asForever(functio
     end
 end))
 
+test("Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot", asForever(function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.EMPTY_ICON, 134328, "inv_misc_note_02: the Forever client has no file 7704166")
+    if KCM.MacroDisplay then t.eq(KCM.MacroDisplay.FALLBACK_ICON, 134328, "the bar's fallback follows") end
+end))
+
+test("Retail: an empty macro's icon stays the cooking pot", asRetail(function(t)
+    local KCM = h.loader.loadPure()
+    t.eq(KCM.EMPTY_ICON, 7704166, "the cooking pot, unchanged by the port")
+    if KCM.MacroDisplay then t.eq(KCM.MacroDisplay.FALLBACK_ICON, 7704166, "the bar's fallback follows") end
+end))
+
 test("Retail: the category list is exactly its fifteen keys", asRetail(function(t)
     local KCM = h.loader.loadPure()
     t.eqList(listKeys(KCM), RETAIL_KEYS, "Retail's fifteen, unchanged by the port")

@@ -300,7 +300,7 @@ For a future field where neither a NeverSecret companion nor a duration object e
 
 WoW (and action-bar addons that render via `GetActionTexture` — ElvUI, Bartender) only let `#showtooltip` drive the action-bar button's icon when the macro's stored icon is the `?` sentinel (fileID `134400`, exposed as `DYNAMIC_ICON` in `modules/MacroManager.lua`). Any other stored icon overrides `#showtooltip` on the bar.
 
-Consequence: active macro bodies must store `DYNAMIC_ICON`; empty-state bodies must drop `#showtooltip` entirely and store `DEFAULT_ICON = 7704166` (cooking pot). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
+Consequence: active macro bodies must store `DYNAMIC_ICON`; empty-state bodies must drop `#showtooltip` entirely and store `DEFAULT_ICON` (`7704166`, the cooking pot, on Retail; `134328` on Forever, `KCM.EMPTY_ICON`). Storing `DEFAULT_ICON` on an active body shows the cooking pot on the bar instead of the picked item's icon.
 
 The Options panel's `KCMMacroDragIcon` widget is exempt — it resolves to `GetItemIcon(lastItemID)` / `C_Spell.GetSpellTexture(spellID)` directly, since the `?` sentinel looks meaningless on a static UI widget.
 
