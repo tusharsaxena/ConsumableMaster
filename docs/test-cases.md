@@ -350,7 +350,7 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
-### test_forever.lua (35)
+### test_forever.lua (38)
 
 - Forever: the category list is exactly its fifteen keys
 - Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot
@@ -371,6 +371,9 @@ Total.
 - Retail: Forever's subclasses classify exactly as before the port
 - TooltipCache: vanilla stat wording gives the stat, the hour and the value
 - TooltipCache: Forever's well-fed food reads the stat amount, not the buff's minutes (CM-F9)
+- TooltipCache: a Well Fed line is flagged whatever its buff
+- Forever: a Well Fed food with no stat token is Stat Food, not Food
+- Retail: a Well Fed flag with no stat token classifies as before
 - TooltipCache: Retail's forward stat wording still reads its amount
 - TooltipCache: a no-stat scroll or elixir keeps its value
 - TooltipCache: a bandage's heal over time is a flat heal
@@ -1763,7 +1766,7 @@ Total.
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
-| test_forever.lua | 35 |
+| test_forever.lua | 38 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1831,4 +1834,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1477** |
+| **Total** | **1480** |

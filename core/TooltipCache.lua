@@ -393,6 +393,10 @@ end
 local function parseFlags(txt, result)
     if txt:match(PATTERNS.conjuredExact) then result.isConjured = true end
     if txt:find(PATTERNS.feastSubstr, 1, true) then result.isFeast = true end
+    -- "you will become well fed and gain ...": a Well Fed food whatever its buff. Forever's Stat Food
+    -- path reads it (core/Classifier.lua FOOD_RULES), so a well-fed food whose buff is no stat token
+    -- (Fishing Skill, Stamina, Spirit) is still Stat Food there (CM-F12).
+    if txt:lower():find("become well fed", 1, true) then result.isWellFed = true end
     if txt:match("^Augment Rune%.?%s*$")
         or txt:match("%.%s*Augment Rune%.?%s*$") then
         result.isAugmentRune = true

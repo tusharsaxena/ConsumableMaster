@@ -73,6 +73,20 @@ local WEAPON_ENHANCE_RULES = KCM.PerClient({
     forever = { vanillaWording = true, never = { [6] = true } },
 })
 
+-- Food's Forever rule, picked once by client: `wellFedIsStat` makes any Well Fed food or drink
+-- (tt.isWellFed, "become well fed") Stat Food and keeps it out of FOOD and DRINK, whatever its buff.
+-- Forever gives basic cooked food a Well Fed buff, often one no stat token reads (Bristle Whisker
+-- Catfish 4593's "8 Fishing Skill", the owner's 2026-11-08 report; Stamina, Spirit). Retail's table
+-- is empty, so its food classifies exactly as before (CM-F12).
+local FOOD_RULES = KCM.PerClient({
+    retail  = {},
+    forever = { wellFedIsStat = true },
+})
+
+local function wellFedStat(tt)
+    return FOOD_RULES.wellFedIsStat == true and tt and tt.isWellFed == true
+end
+
 -- The matchers that classify on the subclass alone and skip the tooltip gate
 -- (see C.Match): FLASK on both clients, and WoW Forever's ELIXIR, SCROLL and
 -- BANDAGE, each one subclass with nothing else to tell apart.
@@ -132,13 +146,13 @@ end
 
 local matchers = {
     FOOD = function(_, tt, sub)
-        return sub == SC_FOODDRINK and hasHeal(tt) and not tt.hasStatBuff
+        return sub == SC_FOODDRINK and hasHeal(tt) and not tt.hasStatBuff and not wellFedStat(tt)
     end,
     DRINK = function(_, tt, sub)
-        return sub == SC_FOODDRINK and hasMana(tt) and not tt.hasStatBuff
+        return sub == SC_FOODDRINK and hasMana(tt) and not tt.hasStatBuff and not wellFedStat(tt)
     end,
     STAT_FOOD = function(_, tt, sub)
-        return sub == SC_FOODDRINK and tt.hasStatBuff and not tt.isFeast
+        return sub == SC_FOODDRINK and (tt.hasStatBuff or wellFedStat(tt)) and not tt.isFeast
     end,
     HP_POT = function(_, tt, sub)
         return POTION_SUBCLASSES[sub] == true and hasHeal(tt) and not tt.hasStatBuff

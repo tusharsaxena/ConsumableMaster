@@ -320,6 +320,39 @@ test("TooltipCache: Forever's well-fed food reads the stat amount, not the buff'
     t.eq(e.healValue, 530, "and the heal")
 end)
 
+-- The owner's report of 2026-11-08: Forever's Bristle Whisker Catfish is Well Fed, with a buff no
+-- stat token reads, and must be Stat Food (CM-F12).
+local CATFISH = { "Bristle Whisker Catfish",
+    "Use: Restores 530 health over 24 sec.  Must remain seated while eating. If you spend at least 10 sec eating, "
+    .. "you will become well fed and gain 8 Fishing Skill for 15 min. Additionally, experience gained from kills "
+    .. "is increased by 5%. (1 |4Sec:Sec; Cooldown)", "Requires Level 15" }
+
+test("TooltipCache: a Well Fed line is flagged whatever its buff", function(t)
+    local TC, mock = newTC()
+    local e = parse(TC, mock, 4593, CATFISH)
+    t.truthy(e.isWellFed, "become well fed")
+    t.falsy(e.hasStatBuff, "Fishing Skill is no stat token")
+    t.eq(e.healValue, 530, "the heal still reads")
+end)
+
+test("Forever: a Well Fed food with no stat token is Stat Food, not Food", asForever(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local C = KCM.Classifier
+    item(mock, 4593, 5, { healValue = 530, isWellFed = true, buffDurationSec = 900 })
+    item(mock, 9301, 5, { healValue = 243 })
+    item(mock, 9302, 5, { manaValue = 400, isWellFed = true })
+    t.eqList(C.MatchAny(4593), { "STAT_FOOD" }, "the catfish")
+    t.eqList(C.MatchAny(9301), { "FOOD" }, "a plain food stays Food")
+    t.eqList(C.MatchAny(9302), { "STAT_FOOD" }, "a Well Fed drink is Stat Food too")
+end))
+
+test("Retail: a Well Fed flag with no stat token classifies as before", asRetail(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local C = KCM.Classifier
+    item(mock, 9303, 5, { healValue = 530, isWellFed = true, buffDurationSec = 900 })
+    t.eqList(C.MatchAny(9303), { "FOOD" }, "Retail reads the stat tokens alone")
+end))
+
 test("TooltipCache: Retail's forward stat wording still reads its amount", function(t)
     local TC, mock = newTC()
     local e = parse(TC, mock, 9110, { "Some Flask", "Use: Increases your Mastery by 935 for 1 hour." })
