@@ -55,7 +55,9 @@ local POTION_SUBCLASSES = KCM.PerClient({
 })
 local WEAPON_ENHANCE_SUBCLASSES = KCM.PerClient({
     retail  = {},
-    forever = { [6] = true, [15] = true },
+    -- 15, the temporary enhancements, only: Forever reports 6 as "Permanent" (the Light Armor Kit,
+    -- 2304, in the owner's dump of 2026-11-08), so 6 is never a weapon enchant (CM-F9).
+    forever = { [15] = true },
 })
 
 -- The matchers that classify on the subclass alone and skip the tooltip gate

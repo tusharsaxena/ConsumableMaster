@@ -251,14 +251,14 @@ test("Forever: a protection potion is PROT_POT and never a combat potion", asFor
     t.eqList(C.MatchAny(9023), { "CMBT_POT" }, "a short potion with no absorb stays a combat potion")
 end))
 
-test("Forever: an item enhancement, temporary or not, is a weapon enchant", asForever(function(t)
+test("Forever: a temporary item enhancement is a weapon enchant; a permanent one (6) is not", asForever(function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     local C = KCM.Classifier
     item(mock, 9031, 15, { buffDurationSec = 1800, weaponWordAffinity = "bladed" })
     item(mock, 9032, 6, { buffDurationSec = 1800 })
     item(mock, 9033, 14, { buffDurationSec = 30 })
     t.eqList(C.MatchAny(9031), { "WPN_ENCH" }, "subclass 15, vanilla wording")
-    t.eqList(C.MatchAny(9032), { "WPN_ENCH" }, "subclass 6")
+    t.eqList(C.MatchAny(9032), {}, "subclass 6 is Forever's Permanent (the Light Armor Kit, 2304), never a weapon enchant")
     t.eqList(C.MatchAny(9033), {}, "a device (14) joins nothing")
 end))
 
@@ -305,6 +305,25 @@ test("TooltipCache: vanilla stat wording gives the stat, the hour and the value"
     t.eq(e.statBuffs[1] and e.statBuffs[1].amount, 25, "by 25")
     t.eq(e.buffDurationSec, 3600, "for an hour")
     t.eq(e.effectValue, 25, "and its value")
+end)
+
+-- The owner's Forever dump of 2026-11-08, verbatim (build 70862).
+test("TooltipCache: Forever's well-fed food reads the stat amount, not the buff's minutes (CM-F9)", function(t)
+    local TC, mock = newTC()
+    local e = parse(TC, mock, 4592, { "Longjaw Mud Snapper",
+        "Use: Restores 530 health over 24 sec.  Must remain seated while eating. If you spend at least 10 sec eating, "
+        .. "you will become well fed and gain 10 Attack Power for 15 min. Additionally, experience gained from kills "
+        .. "is increased by 5%. (1 |4Sec:Sec; Cooldown)", "Requires Level 5" })
+    t.eq(e.statBuffs[1] and e.statBuffs[1].stat, "AP", "Attack Power")
+    t.eq(e.statBuffs[1] and e.statBuffs[1].amount, 10, "10, not the 15 of 'for 15 min'")
+    t.eq(e.buffDurationSec, 900, "the 15 minutes are the duration")
+    t.eq(e.healValue, 530, "and the heal")
+end)
+
+test("TooltipCache: Retail's forward stat wording still reads its amount", function(t)
+    local TC, mock = newTC()
+    local e = parse(TC, mock, 9110, { "Some Flask", "Use: Increases your Mastery by 935 for 1 hour." })
+    t.eq(e.statBuffs[1] and e.statBuffs[1].amount, 935, "the forward form, untouched")
 end)
 
 test("TooltipCache: a no-stat scroll or elixir keeps its value", function(t)

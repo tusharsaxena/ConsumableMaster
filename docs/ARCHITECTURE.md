@@ -110,8 +110,8 @@ Ranker's preference table still name 5512, vanilla's Minor Healthstone.
 
 **Per-client tables in the Classifier.** `core/Classifier.lua` picks two subclass lists the same way:
 the subclasses that read as a Potion (Retail: 1; Forever: 1 and Draught 13) and the ones that are a
-weapon enchant on their own (Retail: none; Forever: Item Enhancement 6 and ItemenhancementTemporary
-15). Retail's lists are exactly what it matched before the port. Vanilla's tooltip wording is read
+weapon enchant on their own (Retail: none; Forever: ItemenhancementTemporary 15 only, since Forever
+reports Item Enhancement 6 as "Permanent", the Light Armor Kit in the owner's dump of 2026-11-08). Retail's lists are exactly what it matched before the port. Vanilla's tooltip wording is read
 into fields only the Forever paths use ([midnight-quirks.md](./midnight-quirks.md#wow-forevers-consumable-subclasses)).
 
 The headless suite runs under both kit profiles (clients-§6). A case that pins Retail's content runs

@@ -192,14 +192,22 @@ end
 -- Line-level parsers
 -- ---------------------------------------------------------------------------
 
+-- Words that, right after a number, make it a duration (parseStatBuffs).
+local DURATION_WORD = { min = true, mins = true, minute = true, minutes = true, sec = true, secs = true,
+    second = true, seconds = true, hr = true, hrs = true, hour = true, hours = true, day = true, days = true }
+
 local function parseStatBuffs(line, result)
     local seen = {}  -- dedupe per-line per-stat
     for _, entry in ipairs(STAT_TOKENS) do
         if not seen[entry.tag] then
             local tok = entry.token
-            local forward = tok .. "[^%d]+([%d,]+)"        -- "Mastery ... 935"
+            local forward = tok .. "[^%d]+([%d,]+)%s*(%a*)" -- "Mastery ... 935"
             local reverse = "([%d,]+)%s+" .. tok           -- "935 Mastery"
-            local amt = line:match(forward) or line:match(reverse)
+            local amt, unit = line:match(forward)
+            -- A forward match that lands on a duration is the buff's length, not its amount:
+            -- Forever's "gain 10 Attack Power for 15 min" read 15 (CM-F9). The reverse form answers.
+            if amt and DURATION_WORD[(unit or ""):lower()] then amt = nil end
+            amt = amt or line:match(reverse)
             if amt then
                 local n = toNumberCommas(amt)
                 if n and n > 0 then

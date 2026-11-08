@@ -350,7 +350,7 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
-### test_forever.lua (26)
+### test_forever.lua (28)
 
 - Forever: the category list is exactly its fifteen keys
 - Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot
@@ -367,9 +367,11 @@ Total.
 - Forever: elixirs, scrolls and bandages classify by their subclass
 - Forever: a draught is matched like a potion
 - Forever: a protection potion is PROT_POT and never a combat potion
-- Forever: an item enhancement, temporary or not, is a weapon enchant
+- Forever: a temporary item enhancement is a weapon enchant; a permanent one (6) is not
 - Retail: Forever's subclasses classify exactly as before the port
 - TooltipCache: vanilla stat wording gives the stat, the hour and the value
+- TooltipCache: Forever's well-fed food reads the stat amount, not the buff's minutes (CM-F9)
+- TooltipCache: Retail's forward stat wording still reads its amount
 - TooltipCache: a no-stat scroll or elixir keeps its value
 - TooltipCache: a bandage's heal over time is a flat heal
 - TooltipCache: a protection potion's absorb names its school
@@ -1713,7 +1715,7 @@ Total.
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
-| test_forever.lua | 26 |
+| test_forever.lua | 28 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1779,4 +1781,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1433** |
+| **Total** | **1435** |
