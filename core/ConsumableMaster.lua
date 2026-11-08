@@ -947,7 +947,7 @@ KCM.EVENTS = {
     { "BAG_UPDATE_COOLDOWN",           "OnCooldownUpdate" },
     { "ADDON_RESTRICTION_STATE_CHANGED", "OnRestrictionChanged" },
     -- The seed probe's open/closed flags (core/SeedProbe.lua): `vendor` and
-    -- `auctionhouse` have to know whether the window is open when they are typed.
+    -- `auction` have to know whether the window is open when they are typed.
     { "MERCHANT_SHOW",                 "OnProbeEvent" },
     { "MERCHANT_CLOSED",               "OnProbeEvent" },
     { "AUCTION_HOUSE_SHOW",            "OnProbeEvent" },

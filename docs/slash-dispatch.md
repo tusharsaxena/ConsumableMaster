@@ -16,7 +16,7 @@ Three files, and the split is deliberate:
 |---|---|
 | `settings/Slash.lua` | The **dispatch** — the ordered `COMMANDS` table, the library descriptor and instance, the degraded arm, and the two entry points the rest of the addon calls. It publishes the sub-command vocabulary as `KCM.SlashCommands.SplitVerb` / `FindCommand` / `CommandRows` on both arms: the library's own functions live, and on the degraded arm a minimal split, an exact lookup and plain `cmd  desc` rows. |
 | `core/SlashCommands.lua` | The **verb bodies** — the `priority`, `stat`, `aio` and `bar` namespaces and their sub-command tables. It publishes six entry points on `KCM.SlashCommands.Verbs` and knows nothing about how they are dispatched. |
-| `core/SeedProbe.lua` | The `probe` verb's body, `KCM.SeedProbe.Run`, and its `SEED_COMMANDS` table (`mouseover`, `vendor`, `auctionhouse`, `status`, `clear`), read through the same sub-command vocabulary. Bound in `COMMANDS` through a call-time thunk. See [seed-probe.md](./seed-probe.md). |
+| `core/SeedProbe.lua` | The `probe` verb's body, `KCM.SeedProbe.Run`, and its `SEED_COMMANDS` table (`mouseover`, `vendor`, `auction`, `status`, `purge`), read through the same sub-command vocabulary. Bound in `COMMANDS` through a call-time thunk. See [seed-probe.md](./seed-probe.md). |
 | `core/SlashDump.lua` | The `dump` targets and their own dispatcher, published as `KCM.SlashDump.Dispatch`, plus `EventStates()`, the rows `/cm dump events` and the diagnostics report's events section both print. |
 
 `layout-§1` puts `settings/` after `core/`, so `KCM.SlashCommands.Verbs` is already populated when
@@ -61,7 +61,7 @@ print them:
 | `stat` | host | The per-spec stat tree. |
 | `aio` | host | The composite-category tree. |
 | `dump` | host | The dump targets. |
-| `probe` | host | The seed probe: `/cm probe seed mouseover`, `vendor`, `auctionhouse`, `status` and `clear` ([seed-probe.md](./seed-probe.md)). `status` is a report; the rest acknowledge or refuse in chat. |
+| `probe` | host | The seed probe: `/cm probe seed mouseover`, `vendor`, `auction`, `status` and `purge` ([seed-probe.md](./seed-probe.md)). `status` is a report; the rest acknowledge or refuse in chat. |
 
 `config`, `resync` and `rewritemacros` all say something when they cannot do the thing: `resync` and
 `rewritemacros` announce that picks are computed now and macro writes land when combat ends, rather

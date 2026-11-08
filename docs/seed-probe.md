@@ -15,11 +15,14 @@ Code: `core/SeedProbe.lua` (the commands, the events, the pacing) and `core/Seed
 |---|---|
 | `/cm probe seed mouseover` | Records the item under the mouse: in your bags, at a vendor, in the auction house, or a chat link. Any item class is recorded, because you pointed at it. Bind it to a key through a macro, since typing it in chat moves the mouse away. No item under the mouse is a refusal in chat. |
 | `/cm probe seed vendor` | With a merchant open, records every **consumable** (classID 0) the vendor sells, with the vendor's NPC ID, name and zone, and counts the items it skipped. With no merchant open it refuses. |
-| `/cm probe seed auctionhouse` | With the auction house open, scans it now. With it closed, arms a scan for the next time you open it. Records every **consumable** listed, aggregated by item ID. |
+| `/cm probe seed auction` | With the auction house open, scans it now. With it closed, arms a scan for the next time you open it. Records every **consumable** listed, aggregated by item ID. |
 | `/cm probe seed status` | Writes a summary of the store and of any probe in flight to the debug console (a report, with one pointer line in chat). |
-| `/cm probe seed clear` | Empties the store's items and stops any probe in flight. The time of the last auction-house scan is kept, because Blizzard's throttle does not reset with it. |
+| `/cm probe seed purge` | Purges the store: empties its items and stops any probe in flight. The time of the last auction-house scan is kept, because Blizzard's throttle does not reset with it, and a stamp purged with the items would let the next `auction` ask for a scan the server refuses. |
 
-`/cm probe` and `/cm probe seed` on their own print this list.
+`/cm probe` and `/cm probe seed` on their own print this list. The verbs were `auctionhouse` and
+`clear` until 2026-11-08; the owner renamed them, and the old words are not kept as aliases. The
+record's source key is still `auctionhouse` (below): it is a data key, and a store already written
+keeps reading the same way.
 
 What each command says in chat:
 
@@ -86,7 +89,8 @@ A sample, as a mouseover on a potion leaves it:
                          lastScan = 1762600300 },
     },
     firstSeen = 1762600000, lastSeen = 1762600300,
-    pending = nil,               -- true while the item's data or tooltip has not arrived
+    pending = nil,               -- true while the item's name or tooltip lines have not arrived
+    noEffect = nil,              -- true when the tooltip loaded but parsed to no effect (parsed = nil)
 }
 ```
 
@@ -102,7 +106,9 @@ The fields, by where they come from:
 - **The tooltip:** `tooltip`, the raw lines from `C_TooltipInfo.GetItemByID`; `parsed`, a copy of the
   addon's own parse (`TooltipCache.Get`), never a reference into the cache; `usable` and
   `unusableReason`, the verdict `/cm dump item` prints; and `classified`, what `Classifier.MatchAny`
-  makes of it today. Together they hold at least everything `/cm dump item <id>` shows.
+  makes of it today. A tooltip that loaded but that the parser reads no effect from (a Craftsman's
+  Writ, wrapping paper, an Iron Shield Spike) has no `parsed` and no `usable`, and carries
+  `noEffect = true` instead. Together they hold at least everything `/cm dump item <id>` shows.
 - **Who saw it:** `seenBy`, the character's class, spec and level at capture.
 - **Sources,** merged across probes. `mouseover` counts the probes and keeps the last time.
   `vendor[npcID]` is one row per vendor (the NPC ID is the sixth field of the vendor's Creature GUID,
@@ -121,7 +127,7 @@ its earlier value, so a cold read never wipes a warm one.
 
 **Nothing runs until a command asks.** Four cheap events are registered with the others
 (`KCM.EVENTS`): `MERCHANT_SHOW`, `MERCHANT_CLOSED`, `AUCTION_HOUSE_SHOW` and `AUCTION_HOUSE_CLOSED`.
-Each one sets an open flag, because `vendor` and `auctionhouse` have to know whether the window is
+Each one sets an open flag, because `vendor` and `auction` have to know whether the window is
 open when they are typed. `AUCTION_HOUSE_SHOW` also starts an armed scan. `REPLICATE_ITEM_LIST_UPDATE`
 is registered only while a scan waits for its list, and dropped as soon as the list arrives.
 
@@ -131,8 +137,13 @@ scheduled with `C_Timer.After(0, ...)`. A vendor's whole list therefore takes a 
 full auction house of tens of thousands of listings spreads over a hundred frames or so instead of
 one.
 
-**Loading.** A record is complete when the item has loaded (`GetItemInfo` answers), the client has
-answered tooltip lines, and the tooltip parse is final. An incomplete record carries `pending = true`.
+**Loading.** A record is complete when the item has loaded (`GetItemInfo` answers a name) and the
+client has answered tooltip lines. An incomplete record carries `pending = true`. A tooltip that loaded
+but parses to nothing is complete, not pending: the tooltip cache holds such an item pending for its
+own reasons (its partial-tooltip guard, `core/TooltipCache.lua`), but the probe's job is to record
+what the client says, and a full tooltip with no effect the parser knows is a finished read. Until
+2026-11-08 the probe took the cache's word for it, and the owner's Forever store ended with 223 of
+498 records stuck at `pending = true` with full tooltips.
 The probe asks the client for the item (`C_Item.RequestLoadItemDataByID`), and when
 `GET_ITEM_INFO_RECEIVED` names it, `KCM:OnItemInfoReceived` drops the tooltip cache's stale entry and
 hands the item to the probe, which captures it again. The tooltip body can arrive after that event,

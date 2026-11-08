@@ -428,6 +428,164 @@ test("Forever: a vanilla stone goes to the hand its wording names", asForever(fu
 end))
 
 -- ---------------------------------------------------------------------------
+-- Forever's stones, weightstones and oils: subclass 8, worded (the owner's dump, build 70862)
+-- ---------------------------------------------------------------------------
+
+-- Verbatim Use: lines. Each row: id, name, line, expected value (nil for a proc oil).
+local STONES = {
+    { 2862, "Rough Sharpening Stone",  "Use: Increase sharp weapon damage by 2 for 30 minutes.", 2 },
+    { 2863, "Coarse Sharpening Stone", "Use: Increase sharp weapon damage by 3 for 30 minutes.", 3 },
+    { 2871, "Heavy Sharpening Stone",  "Use: Increase sharp weapon damage by 4 for 30 minutes.", 4 },
+    { 7964, "Solid Sharpening Stone",  "Use: Increase sharp weapon damage by 6 for 30 minutes.", 6 },
+}
+local WEIGHTSTONES = {
+    { 3239, "Rough Weightstone",  "Use: Increase the damage of a blunt weapon by 2 for 30 minutes.", 2 },
+    { 3240, "Coarse Weightstone", "Use: Increase the damage of a blunt weapon by 3 for 30 minutes.", 3 },
+    { 3241, "Heavy Weightstone",  "Use: Increase the damage of a blunt weapon by 4 for 30 minutes.", 4 },
+    { 7965, "Solid Weightstone",  "Use: Increase the damage of a blunt weapon by 6 for 30 minutes.", 6 },
+}
+local OILS = {
+    { 20744, "Minor Wizard Oil", "Use: While applied to target weapon it increases spell damage and healing by up "
+        .. "to 8. Lasts for 30 minutes.", 8 },
+    { 20745, "Minor Mana Oil", "Use: While applied to target weapon it restores 5 mana to the caster every 5 "
+        .. "seconds and increases healing done by up to 10. Lasts for 30 minutes.", 10 },
+    { 3824, "Shadow Oil", "Use: When applied to a melee weapon it gives a 15% chance of casting Shadowbolt III at "
+        .. "the opponent when it hits.  Lasts 30 minutes.", nil },
+    { 3829, "Frost Oil", "Use: When applied to a melee weapon it gives a 10% chance of casting Frostbolt at the "
+        .. "opponent when it hits.  Lasts 30 minutes.", nil },
+}
+local POISONS = {
+    { 6947, "Instant Poison" }, { 2892, "Deadly Poison" }, { 3775, "Crippling Poison" },
+    { 5237, "Mind-numbing Poison" },
+}
+local POISON_LINES = { "Use: Coats a weapon with poison that lasts for 30 minutes.",
+    "Each strike has a 20% chance of poisoning the enemy." }
+local CHAIN_LINE = "Use: Attaches a chain to your weapon, making it impossible to disarm."
+
+-- The real parser's entry for each row, read before the client's namespace is built.
+local function parsedRows(rows, extra)
+    local TC, mock = newTC()
+    local out = {}
+    for i, row in ipairs(rows) do
+        local lines = { row[2] }
+        if row[3] then lines[#lines + 1] = row[3] end
+        for _, l in ipairs(extra or {}) do lines[#lines + 1] = l end
+        out[i] = { id = row[1], name = row[2], value = row[4], tt = parse(TC, mock, row[1], lines) }
+    end
+    return out
+end
+
+test("TooltipCache: Forever's stone, weightstone and oil wording sets the Forever flag and its value", function(t)
+    for _, set in ipairs({ { STONES, "bladed" }, { WEIGHTSTONES, "blunt" }, { OILS, nil } }) do
+        for _, r in ipairs(parsedRows(set[1])) do
+            t.eq(r.tt.isVanillaWeaponEnhance, true, r.name .. ": the Forever flag")
+            t.eq(r.tt.weaponEnhanceValue, r.value, r.name .. ": its value")
+            t.eq(r.tt.weaponWordAffinity, set[2], r.name .. ": its hand")
+            t.eq(r.tt.isWeaponEnhance, nil, r.name .. ": Retail's flag is not set")
+            t.eq(r.tt.weaponAffinity, nil, r.name .. ": nor Retail's affinity")
+            t.falsy(r.tt.pending, r.name .. ": and the tooltip is final")
+        end
+    end
+end)
+
+test("TooltipCache: a poison is never read as a weapon enhancement", function(t)
+    for _, r in ipairs(parsedRows(POISONS, POISON_LINES)) do
+        t.eq(r.tt.isVanillaWeaponEnhance, nil, r.name .. ": no Forever flag")
+        t.eq(r.tt.isWeaponEnhance, nil, r.name .. ": no Retail flag")
+        t.eq(r.tt.weaponEnhanceValue, nil, r.name .. ": no value")
+    end
+end)
+
+test("TooltipCache: Retail's weapon wording sets no Forever flag", function(t)
+    local TC, mock = newTC()
+    local e = parse(TC, mock, 9301, { "Use: Sharpens your bladed weapon, increasing Critical Strike by 50 for 1 hour." })
+    t.eq(e.isWeaponEnhance, true, "Retail's flag")
+    t.eq(e.isVanillaWeaponEnhance, nil, "and no Forever flag")
+    t.eq(e.weaponEnhanceValue, nil, "nor its value")
+end)
+
+test("Forever: subclass-8 stones and oils are weapon enchants; poisons and a weapon chain (6) are not",
+    asForever(function(t)
+        local rows = parsedRows(STONES)
+        for _, r in ipairs(parsedRows(WEIGHTSTONES)) do rows[#rows + 1] = r end
+        for _, r in ipairs(parsedRows(OILS)) do rows[#rows + 1] = r end
+        local poisons = parsedRows(POISONS, POISON_LINES)
+        local chain = parsedRows({ { 6041, "Steel Weapon Chain", CHAIN_LINE } })[1]
+        t.eq(chain.tt.isWeaponEnhance, true, "the chain's tooltip does carry Retail's flag")
+        local KCM, mock = h.loader.loadPure(), h.loader.mock
+        local C = KCM.Classifier
+        for _, r in ipairs(rows) do
+            item(mock, r.id, 8, r.tt)
+            t.eqList(C.MatchAny(r.id), { "WPN_ENCH" }, r.name .. " (subclass 8)")
+        end
+        for _, r in ipairs(poisons) do
+            item(mock, r.id, 8, r.tt)
+            t.eqList(C.MatchAny(r.id), {}, r.name .. " is held out (rogue-only)")
+        end
+        item(mock, 6041, 6, chain.tt)
+        t.eqList(C.MatchAny(6041), {}, "Steel Weapon Chain: subclass 6 is Permanent, never WPN_ENCH")
+        item(mock, 6042, 6, { isVanillaWeaponEnhance = true, weaponEnhanceValue = 4 })
+        t.falsy(C.Match("WPN_ENCH", 6042), "nor with the Forever flag")
+    end))
+
+test("Retail: Forever's stone wording is no weapon enchant and the weapon chain still is", asRetail(function(t)
+    local stone = parsedRows({ STONES[1] })[1]
+    local chain = parsedRows({ { 6041, "Steel Weapon Chain", CHAIN_LINE } })[1]
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local C = KCM.Classifier
+    item(mock, 2862, 8, stone.tt)
+    t.eqList(C.MatchAny(2862), {}, "the Forever flag is not read on Retail")
+    item(mock, 6041, 6, chain.tt)
+    t.eqList(C.MatchAny(6041), { "WPN_ENCH" }, "Retail's tooltip flag decides, as before the port")
+end))
+
+-- A stone's "by N" outranks ilvl and quality: the weaker stone is given the higher ilvl.
+local function rankSeries(t, R, mock, rows, label)
+    local ids, scores = {}, {}
+    for i, r in ipairs(rows) do
+        item(mock, r.id, 8, r.tt)
+        mock.items[r.id].ilvl = 60 - 10 * i
+        ids[#ids + 1] = r.id
+    end
+    local order = R.SortCandidates("WPN_ENCH", ids, {})
+    local want = {}
+    for i = #ids, 1, -1 do want[#want + 1] = ids[i] end
+    t.eqList(order, want, label .. ": the bigger value first, whatever the ilvl")
+    for _, r in ipairs(rows) do
+        scores[r.id] = R.Score("WPN_ENCH", r.id, {})
+        t.eq(R.Explain("WPN_ENCH", r.id, {}).score, scores[r.id], label .. " " .. r.id .. ": the explanation adds up")
+    end
+    return scores
+end
+
+test("Forever: stones and weightstones rank by their 'by N', oils by their 'up to N'", asForever(function(t)
+    local stones, weights = parsedRows(STONES), parsedRows(WEIGHTSTONES)
+    local oils = parsedRows({ OILS[1], OILS[2] })
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local R = KCM.Ranker
+    local s = rankSeries(t, R, mock, stones, "sharpening stones")
+    rankSeries(t, R, mock, weights, "weightstones")
+    rankSeries(t, R, mock, oils, "oils")
+    -- 2 x 1000 + ilvl 50 + quality 1 x 100, and so on down the series.
+    t.eq(s[2862], 2150, "Rough Sharpening Stone")
+    t.eq(s[2863], 3140, "Coarse Sharpening Stone")
+    t.eq(s[2871], 4130, "Heavy Sharpening Stone")
+    t.eq(s[7964], 6120, "Solid Sharpening Stone")
+end))
+
+test("Retail: a WPN_ENCH score and its explanation are unchanged without the Forever value", asRetail(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local R = KCM.Ranker
+    mock.setItem(9311, { subType = "Other", ilvl = 40, quality = 2,
+        tt = { isWeaponEnhance = true, weaponAffinity = "bladed" } })
+    t.eq(R.Score("WPN_ENCH", 9311, {}), 240, "ilvl + quality, as before")
+    local ex = R.Explain("WPN_ENCH", 9311, {})
+    t.eq(ex.summary, "Primary-stat buffs outweigh any secondary; secondary ranks by priority position.",
+        "the stat-buff summary")
+    for _, sig in ipairs(ex.signals) do t.truthy(sig.label ~= "enhance value", "no enhance-value signal") end
+end))
+
+-- ---------------------------------------------------------------------------
 -- A profile written on the other client
 -- ---------------------------------------------------------------------------
 

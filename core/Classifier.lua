@@ -43,8 +43,8 @@ local SC_BANDAGE   = 7
 -- The subclasses that read as a POTION, and the ones that are a weapon enchant
 -- by subclass alone: two lists, picked once by client (clients-§5,
 -- KCM.PerClient). WoW Forever keeps Retail's numbers and adds Draught 13,
--- matched like a Potion, and ItemenhancementTemporary 15; there an Item
--- Enhancement (6 or 15) is a weapon enchant even though vanilla's wording
+-- matched like a Potion, and ItemenhancementTemporary 15; there a temporary
+-- Item Enhancement (15) is a weapon enchant even though vanilla's wording
 -- ("Increase sharp weapon damage by 2") has no "your ... weapon" for the
 -- tooltip flag to read (Ketho/BlizzardInterfaceResources `forever` 1.60.1,
 -- Resources/LuaEnum.lua; owner ruling 2026-11-08). Retail's lists are exactly
@@ -58,6 +58,19 @@ local WEAPON_ENHANCE_SUBCLASSES = KCM.PerClient({
     -- 15, the temporary enhancements, only: Forever reports 6 as "Permanent" (the Light Armor Kit,
     -- 2304, in the owner's dump of 2026-11-08), so 6 is never a weapon enchant (CM-F9).
     forever = { [15] = true },
+})
+
+-- WPN_ENCH's two Forever rules, picked once by client like the lists above.
+-- `vanillaWording`: the stones, weightstones and oils Forever actually ships
+-- are subclass 8 ("Other"), so tt.isVanillaWeaponEnhance (TooltipCache's read
+-- of their Use: line, poisons left out) makes them weapon enchants. `never`:
+-- subclass 6 is Forever's "Permanent" enhancement, so a Steel Weapon Chain
+-- (6041, "Attaches a chain to your weapon") is no weapon enchant even though
+-- Retail's "your ... weapon" flag reads it as one. Retail's table is empty, so
+-- its WPN_ENCH reads the tooltip flag alone, exactly as before.
+local WEAPON_ENHANCE_RULES = KCM.PerClient({
+    retail  = {},
+    forever = { vanillaWording = true, never = { [6] = true } },
 })
 
 -- The matchers that classify on the subclass alone and skip the tooltip gate
@@ -179,9 +192,14 @@ local matchers = {
     --
     -- On WoW Forever an Item Enhancement subclass is a weapon enchant on its own
     -- (WEAPON_ENHANCE_SUBCLASSES); Retail's list is empty, so there only the
-    -- tooltip flag decides, as before.
+    -- tooltip flag decides, as before. Forever also reads its own wording flag
+    -- and never admits a permanent enhancement (WEAPON_ENHANCE_RULES).
     WPN_ENCH = function(_, tt, sub)
-        return (tt and tt.isWeaponEnhance == true) or WEAPON_ENHANCE_SUBCLASSES[sub] == true
+        local rules = WEAPON_ENHANCE_RULES
+        if rules.never and rules.never[sub] then return false end
+        return (tt and tt.isWeaponEnhance == true)
+            or (rules.vanillaWording == true and tt and tt.isVanillaWeaponEnhance == true)
+            or WEAPON_ENHANCE_SUBCLASSES[sub] == true
     end,
     AUG_RUNE = function(_, tt)
         return tt and tt.isAugmentRune == true

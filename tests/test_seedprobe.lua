@@ -359,6 +359,40 @@ case("Probe mouseover: a body that never arrives is re-read a bounded number of 
     t.truthy(W.rec(171008).pending, "the record is left marked pending")
 end)
 
+-- The owner's Forever store of 2026-11-08 held 223 of 498 records at pending = true with full
+-- tooltips: items the parser has nothing to say about. Loaded is complete.
+case("Probe mouseover: a loaded tooltip that parses to no effect is complete, not pending", function(t, KCM, W)
+    W.item(10000, { name = "Craftsman's Writ - Major Healing Potion", subType = "Other",
+        classID = 0, subClassID = 8,
+        lines = { { leftText = "Craftsman's Writ - Major Healing Potion" },
+                  { leftText = "Bring this writ to the Argent Dawn." } } })
+    W.hover = 10000
+    local out = W.run("probe seed mouseover")
+    t.eq(KCM.TooltipCache.Get(10000).pending, true, "the cache still holds it pending (its own guard, unchanged)")
+    local rec = W.rec(10000)
+    t.falsy(rec.pending, "the record is complete")
+    t.eq(rec.parsed, nil, "with no parsed entry")
+    t.eq(rec.noEffect, true, "and the no-effect marker")
+    t.eq(rec.usable, nil, "no usability verdict either")
+    t.eq(#rec.tooltip, 2, "the raw tooltip is kept")
+    t.eqList(rec.classified, {}, "and it joins no category")
+    t.falsy(out[1]:find("(loading", 1, true), "the ack does not say loading: " .. out[1])
+    t.eqList(W.requested, {}, "nothing was requested")
+    t.eq(W.timers.delayed(), 0, "and no re-read sweep is armed")
+end)
+
+case("Probe mouseover: a cold item stays pending until its name and tooltip arrive", function(t, _, W)
+    W.item(10001, { name = "Wrapping Paper", subType = "Other", classID = 0, subClassID = 8, cold = true,
+        lines = { { leftText = "Wrapping Paper" }, { leftText = "Use: Wrap an item." } } })
+    W.hover = 10001
+    W.run("probe seed mouseover")
+    t.truthy(W.rec(10001).pending, "no name and no lines: still loading")
+    W.arrive(10001)
+    W.timers.drain()
+    t.falsy(W.rec(10001).pending, "loaded, it is complete though nothing parses")
+    t.eq(W.rec(10001).noEffect, true, "and marked so")
+end)
+
 -- ---------------------------------------------------------------------------
 -- vendor
 -- ---------------------------------------------------------------------------
@@ -433,7 +467,7 @@ end)
 
 local function scanNow(W)
     W.openAH()
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     W.listReady()
     W.timers.drain()
 end
@@ -460,7 +494,7 @@ case("Probe merge: one item seen by mouseover, two vendors and the auction house
 end)
 
 -- ---------------------------------------------------------------------------
--- auctionhouse
+-- auction
 -- ---------------------------------------------------------------------------
 
 case("Probe AH: closed, the command arms a scan; opening starts it, the walk is time-sliced", function(t, KCM, W)
@@ -473,7 +507,7 @@ case("Probe AH: closed, the command arms a scan; opening starts it, the walk is 
         list[i] = { id = pick, count = 2, buyout = 100 * i, hasAllInfo = pick ~= 5002 }
     end
     W.ah = list
-    local out = W.run("probe seed auctionhouse")
+    local out = W.run("probe seed auction")
     t.truthy(out[1]:find("armed", 1, true), "armed: " .. out[1])
     t.eq(W.replicateCalls, 0, "no scan with the auction house closed")
     W.openAH()
@@ -506,9 +540,9 @@ case("Probe AH: open, the command scans now; a second command while it runs is r
     W.item(5001)
     W.ah = { { id = 5001, count = 1, buyout = 10 } }
     W.openAH()
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     t.eq(W.replicateCalls, 1, "scanned now")
-    local out = W.run("probe seed auctionhouse")
+    local out = W.run("probe seed auction")
     t.truthy(out[1]:find("already running", 1, true), "busy: " .. out[1])
     t.eq(W.replicateCalls, 1, "not asked twice")
 end)
@@ -516,18 +550,18 @@ end)
 case("Probe AH: within 15 minutes of the last scan the command is refused and never retried", function(t, _, W)
     W.store().lastAuctionScan = time() - 5 * 60
     W.openAH()
-    local out = W.run("probe seed auctionhouse")
+    local out = W.run("probe seed auction")
     t.truthy(out[1]:find("throttled", 1, true), "the refusal: " .. out[1])
     t.eq(W.replicateCalls, 0, "ReplicateItems was not called")
     t.eq(W.timers.delayed(), 0, "and nothing was scheduled to retry")
     W.store().lastAuctionScan = time() - 16 * 60
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     t.eq(W.replicateCalls, 1, "after the window it scans")
 end)
 
 case("Probe AH: a scan whose list never arrives is reported once at the timeout", function(t, KCM, W)
     W.openAH()
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     W.timers.elapse(KCM.SeedProbe.SCAN_TIMEOUT)
     t.truthy(W.said("no listing arrived"), "the report")
     t.eq(W.replicateCalls, 1, "not retried")
@@ -539,7 +573,7 @@ end)
 case("Probe AH: an empty list is reported, not retried", function(t, KCM, W)
     W.ah = {}
     W.openAH()
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     W.listReady()
     t.truthy(W.said("came back empty"), "the report")
     t.eq(W.replicateCalls, 1, "not retried")
@@ -552,7 +586,7 @@ case("Probe AH: closing the auction house mid-walk keeps what was read", functio
     for i = 1, 1200 do list[i] = { id = 5001, count = 1, buyout = 10 } end
     W.ah = list
     W.openAH()
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     W.listReady()
     W.timers.frame()
     W.closeAH()
@@ -563,7 +597,7 @@ case("Probe AH: closing the auction house mid-walk keeps what was read", functio
 end)
 
 -- ---------------------------------------------------------------------------
--- status, clear, help
+-- status, purge, help
 -- ---------------------------------------------------------------------------
 
 case("Probe status: a report in the debug console and one pointer line in chat", function(t, KCM, W)
@@ -583,15 +617,15 @@ case("Probe status: a report in the debug console and one pointer line in chat",
     t.truthy(text:find("auction house scan: idle", 1, true), "the scan state")
 end)
 
-case("Probe clear: empties the store, says how many, stops a running probe, keeps the throttle", function(t, KCM, W)
+case("Probe purge: empties the store, says how many, stops a running probe, keeps the throttle", function(t, KCM, W)
     W.item(5001)
     W.hover = 5001
     W.run("probe seed mouseover")
     W.openAH()
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     local last = W.store().lastAuctionScan
-    local out = W.run("probe seed clear")
-    t.truthy(out[1]:find("probe store cleared: 1 items removed; the running probe was stopped", 1, true),
+    local out = W.run("probe seed purge")
+    t.truthy(out[1]:find("probe store purged: 1 items removed; the running probe was stopped", 1, true),
         "the ack: " .. out[1])
     t.eq(next(W.store().items), nil, "empty")
     t.eq(KCM.SeedProbe.__state.scan, nil, "the scan stopped")
@@ -604,9 +638,16 @@ end)
 case("Probe help: /cm probe and /cm probe seed list the five subcommands; an unknown one is named", function(t, _, W)
     for _, line in ipairs({ "probe", "probe seed", "probe seed help" }) do
         local out = table.concat(W.run(line), "\n")
-        for _, sub in ipairs({ "mouseover", "vendor", "auctionhouse", "status", "clear" }) do
+        for _, sub in ipairs({ "mouseover", "vendor", "auction", "status", "purge" }) do
             t.truthy(out:find("/cm probe seed " .. sub, 1, true), "/cm " .. line .. " lists " .. sub)
         end
+        t.falsy(out:find("auctionhouse", 1, true), "/cm " .. line .. " no longer names auctionhouse")
+        t.falsy(out:find("/cm probe seed clear", 1, true), "/cm " .. line .. " no longer names clear")
+    end
+    -- The old words are gone, not aliased (owner, 2026-11-08).
+    for _, old in ipairs({ "auctionhouse", "clear" }) do
+        local said = W.run("probe seed " .. old)[1]
+        t.truthy(said:find("unknown probe seed subcommand '" .. old .. "'", 1, true), old .. " is unknown now")
     end
     t.truthy(W.run("probe seed bogus")[1]:find("unknown probe seed subcommand 'bogus'", 1, true), "unknown subcommand")
     t.truthy(W.run("probe other")[1]:find("unknown probe 'other'", 1, true), "unknown probe")
@@ -646,7 +687,7 @@ end)
 
 case("Probe: a disabled addon refuses the verb on the one line, and the stand-down stops an armed scan", function(t, KCM, W)
     W.item(5001)
-    W.run("probe seed auctionhouse")
+    W.run("probe seed auction")
     t.eq(KCM.SeedProbe.__state.scan, "armed", "armed")
     W.run("disable")
     t.eq(KCM.SeedProbe.__state.scan, nil, "the stand-down dropped the armed scan")

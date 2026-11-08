@@ -350,7 +350,7 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
-### test_forever.lua (28)
+### test_forever.lua (35)
 
 - Forever: the category list is exactly its fifteen keys
 - Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot
@@ -379,6 +379,13 @@ Total.
 - Forever: elixirs and scrolls rank a weighed stat first, the rest by their value
 - Forever: bandages rank by the heal and protection potions by the absorb
 - Forever: a vanilla stone goes to the hand its wording names
+- TooltipCache: Forever's stone, weightstone and oil wording sets the Forever flag and its value
+- TooltipCache: a poison is never read as a weapon enhancement
+- TooltipCache: Retail's weapon wording sets no Forever flag
+- Forever: subclass-8 stones and oils are weapon enchants; poisons and a weapon chain (6) are not
+- Retail: Forever's stone wording is no weapon enchant and the weapon chain still is
+- Forever: stones and weightstones rank by their 'by N', oils by their 'up to N'
+- Retail: a WPN_ENCH score and its explanation are unchanged without the Forever value
 - Forever: a Retail profile's Vantus data loads, is not read, and survives a return to Retail
 
 ### test_itemsetup.lua (5)
@@ -1077,7 +1084,7 @@ Total.
 - Selector: two pins on the same position keep both items in the list
 - Selector.GetEffectivePriority returns an empty list for an unknown category
 
-### test_seedprobe.lua (25)
+### test_seedprobe.lua (27)
 
 - Probe store: its own global, built at initialize with schema 1, never inside AceDB
 - Probe store: the TOC declares ConsumableMasterProbeDB third
@@ -1089,6 +1096,8 @@ Total.
 - Probe mouseover: a secret value from the tooltip is never stored or concatenated
 - Probe mouseover: a cold item is requested and completes when its data arrives
 - Probe mouseover: a body that never arrives is re-read a bounded number of times
+- Probe mouseover: a loaded tooltip that parses to no effect is complete, not pending
+- Probe mouseover: a cold item stays pending until its name and tooltip arrive
 - Probe vendor: refused with no merchant open, before and after a visit
 - Probe vendor: every consumable with the vendor's NPC, name, zone, price and supply; the rest counted
 - Probe vendor: the fill is time-sliced, FILL_BATCH records a frame
@@ -1100,7 +1109,7 @@ Total.
 - Probe AH: an empty list is reported, not retried
 - Probe AH: closing the auction house mid-walk keeps what was read
 - Probe status: a report in the debug console and one pointer line in chat
-- Probe clear: empties the store, says how many, stops a running probe, keeps the throttle
+- Probe purge: empties the store, says how many, stops a running probe, keeps the throttle
 - Probe help: /cm probe and /cm probe seed list the five subcommands; an unknown one is named
 - Probe: never touches the profile or the macros
 - Probe: a disabled addon refuses the verb on the one line, and the stand-down stops an armed scan
@@ -1754,7 +1763,7 @@ Total.
 | test_disabled.lua | 21 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
-| test_forever.lua | 28 |
+| test_forever.lua | 35 |
 | test_itemsetup.lua | 5 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
@@ -1787,7 +1796,7 @@ Total.
 | test_selector.lua | 39 |
 | test_selector_discovery.lua | 14 |
 | test_selector_pins.lua | 14 |
-| test_seedprobe.lua | 25 |
+| test_seedprobe.lua | 27 |
 | test_skin.lua | 10 |
 | test_skin_surfaces.lua | 23 |
 | test_icon_rule.lua | 5 |
@@ -1822,4 +1831,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1468** |
+| **Total** | **1477** |

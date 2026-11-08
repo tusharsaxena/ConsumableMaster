@@ -1,4 +1,4 @@
--- SeedProbe.lua -- `/cm probe seed mouseover|vendor|auctionhouse|status|clear`.
+-- SeedProbe.lua -- `/cm probe seed mouseover|vendor|auction|status|purge`.
 --
 -- The probe records item data for building the seed lists, on Retail and on WoW
 -- Forever, into ConsumableMasterProbeDB (core/SeedProbeStore.lua holds the store
@@ -8,7 +8,7 @@
 -- WHEN THINGS RUN. Nothing captures until a command asks. Four cheap events are
 -- registered with the rest (KCM.EVENTS, core/ConsumableMaster.lua): MERCHANT_SHOW,
 -- MERCHANT_CLOSED, AUCTION_HOUSE_SHOW and AUCTION_HOUSE_CLOSED, because `vendor`
--- and `auctionhouse` have to know whether the window is open when they are typed,
+-- and `auction` have to know whether the window is open when they are typed,
 -- and no client query answers that as reliably as the events do. Each handler
 -- flips one flag, and AUCTION_HOUSE_SHOW starts a scan only when one is armed.
 -- REPLICATE_ITEM_LIST_UPDATE is registered only while a scan waits for its list,
@@ -337,8 +337,11 @@ local function probeVendor()
 end
 
 -- ---------------------------------------------------------------------------
--- auctionhouse
+-- auction
 -- ---------------------------------------------------------------------------
+--
+-- The verb is `auction` (owner, 2026-11-08); the record's source key stays
+-- `auctionhouse` (SP.MergeSource), a data key a stored file already carries.
 
 local function endScan()
     st.scan, st.walk = nil, nil
@@ -517,7 +520,7 @@ function SP.OnEvent(event)
 end
 
 -- ---------------------------------------------------------------------------
--- status and clear
+-- status and purge
 -- ---------------------------------------------------------------------------
 
 local function sourceCounts(items)
@@ -573,11 +576,14 @@ local function probeStatus()
     KCM.DebugLog.Report("Probe", "probe seed status", writeStatus)
 end
 
-local function probeClear()
+-- The items go; lastAuctionScan stays, because Blizzard's 15-minute throttle
+-- does not reset with the store, and a stamp purged with it would let the next
+-- `auction` spend a scan the server refuses.
+local function probePurge()
     local n = SP.Count()
     local stopped = stopAll()
     SP.Store().items = {}
-    say(("probe store cleared: %d items removed%s"):format(n, stopped and "; the running probe was stopped" or ""))
+    say(("probe store purged: %d items removed%s"):format(n, stopped and "; the running probe was stopped" or ""))
 end
 
 -- ---------------------------------------------------------------------------
@@ -588,10 +594,10 @@ local SEED_COMMANDS = {
     {"mouseover",    "Record the item under the mouse (bags, a vendor, the auction house, a link); bind it to a key",
         probeMouseover},
     {"vendor",       "Record every consumable the open merchant sells", probeVendor},
-    {"auctionhouse", "Scan the auction house for consumables; armed for the next visit when it is closed",
+    {"auction",      "Scan the auction house for consumables; armed for the next visit when it is closed",
         probeAuctionHouse},
     {"status",       "Write the probe store's summary to the debug console", probeStatus},
-    {"clear",        "Empty the probe store", probeClear},
+    {"purge",        "Purge the probe store (stops a running probe; the scan throttle is kept)", probePurge},
 }
 SP.SEED_COMMANDS = SEED_COMMANDS
 

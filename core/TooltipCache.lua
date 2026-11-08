@@ -31,6 +31,9 @@
 --   weaponWordAffinity             -- "bladed" | "blunt" from a line that names a
 --                                     weapon without Retail's "your ... weapon"
 --                                     ("Increase sharp weapon damage by 2")
+--   isVanillaWeaponEnhance         -- a Forever stone, weightstone or oil Use: line
+--                                     (never a poison); read by WPN_ENCH on Forever only
+--   weaponEnhanceValue             -- its "by N" (stones) or "by up to N" (oils)
 --   A bandage's "Heals N damage over X sec." is a flat heal: healValue and
 --   healOverSec, like a heal-over-time potion's.
 --   minLevel                       -- required player level (0 if none)
@@ -428,7 +431,8 @@ end
 -- Retail tooltip's weaponAffinity and isWeaponEnhance never move: "sharp" or
 -- "bladed" reads bladed and "blunt" blunt; anything else records nothing,
 -- which every reader takes as "any". Whether the item IS a weapon enchant is
--- the Classifier's call, from the consumable subclass (WoW Forever's 6 and 15).
+-- the Classifier's call, from the consumable subclass (WoW Forever's 15) or the
+-- Use: wording (parseVanillaWeaponEnhance, below).
 local function parseWeaponWords(txt, result)
     if result.weaponWordAffinity then return end
     local low = txt:lower()
@@ -437,6 +441,41 @@ local function parseWeaponWords(txt, result)
         result.weaponWordAffinity = "bladed"
     elseif low:find("blunt", 1, true) then
         result.weaponWordAffinity = "blunt"
+    end
+end
+
+-- WoW Forever's stones and oils are consumable subclass 8 ("Other"), like every
+-- other odd item, so their Use: line is what makes them weapon enchants. Three
+-- wordings, verbatim from the owner's dump (build 70862), read on the
+-- lowercased line; each sets isVanillaWeaponEnhance, the Forever-path flag the
+-- Classifier reads on Forever alone, and weaponEnhanceValue, the size the
+-- Ranker weighs:
+--   "Use: Increase sharp weapon damage by 2 for 30 minutes."          stone, by N
+--   "Use: Increase the damage of a blunt weapon by 2 for 30 minutes." weightstone, by N
+--   "Use: While applied to target weapon it increases spell damage and healing by
+--   up to 8. ..." / "When applied to a melee weapon it gives a 15% chance ..."
+--                                                                     oil, up to N (a proc oil has none)
+-- A poison ("Coats a weapon with poison ...") is left out on purpose: it is a
+-- rogue's, and not a WPN_ENCH candidate (lead's hold, 2026-11-08). Retail's
+-- isWeaponEnhance and weaponAffinity are never touched.
+local VANILLA_WEAPON = {
+    { pat = "sharp weapon damage by ([%d,]+)" },
+    { pat = "damage of a blunt weapon by ([%d,]+)" },
+    { pat = "applied to [%a%s]-weapon", upTo = "by up to ([%d,]+)" },
+}
+
+local function parseVanillaWeaponEnhance(txt, result)
+    local low = txt:lower()
+    if low:sub(1, 4) ~= "use:" or low:find("poison", 1, true) then return end
+    for _, form in ipairs(VANILLA_WEAPON) do
+        local cap = low:match(form.pat)
+        if cap then
+            result.isVanillaWeaponEnhance = true
+            if form.upTo then cap = low:match(form.upTo) end
+            local v = toNumberCommas(cap)
+            if v and v > (result.weaponEnhanceValue or 0) then result.weaponEnhanceValue = v end
+            return
+        end
     end
 end
 
@@ -459,6 +498,7 @@ local function parseLines(lines)
             parseMaxLevel(txt, result)
             parseWeaponEnhance(txt, result)
             parseWeaponWords(txt, result)
+            parseVanillaWeaponEnhance(txt, result)
             parseAbsorb(txt, result)
             parseEffectValue(txt, result)
             parseDuration(txt, result)

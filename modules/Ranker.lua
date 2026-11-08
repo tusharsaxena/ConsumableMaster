@@ -79,6 +79,13 @@ local PRIMARY_WEIGHT = 1000
 -- (a few hundred) so the two tiers never cross.
 local STAT_TIER_BONUS = 1e6
 
+-- WPN_ENCH on WoW Forever: a stone's "by N" or an oil's "by up to N"
+-- (tt.weaponEnhanceValue, set only by Forever's Use: wording) times this
+-- weight, so a stronger stone outranks a weaker one whatever their ilvl and
+-- quality (together a few hundred). A Retail tooltip never sets the field, so
+-- the term is 0 there and Retail's scores do not move.
+local ENHANCE_VALUE_WEIGHT = 1e3
+
 -- ---------------------------------------------------------------------------
 -- Item-info helpers
 -- ---------------------------------------------------------------------------
@@ -312,6 +319,7 @@ local scorers = {
     WPN_ENCH = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return scoreByStatPriority(tt, ctx and ctx.specPriority)
+             + (tt.weaponEnhanceValue or 0) * ENHANCE_VALUE_WEIGHT
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
@@ -601,7 +609,25 @@ local function explainStatBuffs(result, f)
     return statTotal + f.ilvl + f.qualityScore,
            "Primary-stat buffs outweigh any secondary; secondary ranks by priority position."
 end
-registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK", "WPN_ENCH" }, explainStatBuffs)
+registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK" }, explainStatBuffs)
+
+-- WPN_ENCH: the stat buffs, plus Forever's stone or oil value when the tooltip
+-- carries one. Without it (every Retail tooltip) this is explainStatBuffs exactly.
+local function explainWeaponEnhance(result, f)
+    local score, summary = explainStatBuffs(result, f)
+    local value = f.tt.weaponEnhanceValue or 0
+    if value > 0 then
+        local contrib = value * ENHANCE_VALUE_WEIGHT
+        table.insert(result.signals, {
+            label = "enhance value", value = contrib,
+            note  = ("by %d x weight %d"):format(value, ENHANCE_VALUE_WEIGHT),
+        })
+        score = score + contrib
+        summary = "A stronger stone or oil ranks first; stat buffs, ilvl + quality add to it."
+    end
+    return score, summary
+end
+registerExplainer({ "WPN_ENCH" }, explainWeaponEnhance)
 
 -- WoW Forever's ELIXIR and SCROLL: the stat buffs and the tier floor, or the
 -- no-stat value.

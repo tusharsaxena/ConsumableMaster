@@ -163,22 +163,31 @@ end
 
 -- What the addon itself makes of the item today: the parsed entry
 -- (TooltipCache.Get, copied), the usability verdict `/cm dump item` prints, and
--- the categories the Classifier claims it for. Answers whether the parse was final.
-local function captureParse(rec, id)
+-- the categories the Classifier claims it for.
+--
+-- `loaded` says the item's data is all there (a name and tooltip lines). The
+-- cache still answers pending for such an item when its tooltip parses to no
+-- effect (TooltipCache's partial-tooltip guard: a Craftsman's Writ, wrapping
+-- paper, an Iron Shield Spike). For the probe that is a finished read, not a
+-- loading one: the record keeps `parsed = nil` and `noEffect = true`, and is
+-- complete. A read that has not loaded leaves an earlier parse alone.
+local function captureParse(rec, id, loaded)
     local TC = KCM.TooltipCache
     local entry = TC and TC.Get and TC.Get(id)
-    local final = entry and not entry.pending
-    if final then
+    if entry and not entry.pending then
         rec.parsed = SP.CopyPlain(entry)
+        rec.noEffect = nil
         local ok, reason = TC.IsUsableByPlayer(id)
         rec.usable = ok and true or false
         rec.unusableReason = (not ok) and clean(reason) or nil
+    elseif loaded then
+        rec.parsed, rec.usable, rec.unusableReason = nil, nil, nil
+        rec.noEffect = true
     end
     local hits = KCM.Classifier and KCM.Classifier.MatchAny and KCM.Classifier.MatchAny(id) or {}
     local classified = {}
     for i, key in ipairs(hits) do classified[i] = key end
     rec.classified = classified
-    return final and true or false
 end
 
 local function captureSeenBy(rec)
@@ -194,8 +203,9 @@ end
 --- Capture item `id` into its record, creating it on first sight. A later capture
 --- refreshes the identity, instant, use-effect, tooltip and classifier fields and
 --- leaves the sources alone (SP.MergeSource adds to them).
---- Answers the record and whether it is complete: the item had loaded, the client
---- answered tooltip lines, and the parse was final. An incomplete record carries
+--- Answers the record and whether it is complete: the item had loaded (a
+--- GetItemInfo name) and the client answered tooltip lines. A tooltip that loaded
+--- but parses to nothing is complete (captureParse). An incomplete record carries
 --- `pending = true` until a later capture completes it.
 function SP.Capture(id, link)
     local items = SP.Store().items
@@ -210,10 +220,10 @@ function SP.Capture(id, link)
     local loaded = captureInfo(rec, id, link)
     captureSpell(rec, id)
     local hasLines = captureTooltipLines(rec, id)
-    local final = captureParse(rec, id)
+    local complete = loaded and hasLines
+    captureParse(rec, id, complete)
     captureSeenBy(rec)
     rec.lastSeen = now()
-    local complete = loaded and hasLines and final
     rec.pending = (not complete) or nil
     return rec, complete
 end
@@ -248,7 +258,8 @@ function MERGE.auctionhouse(prev, _, data)
     return data
 end
 
---- Merge one source into a record: `kind` is mouseover, vendor or auctionhouse;
+--- Merge one source into a record: `kind` is mouseover, vendor or auctionhouse
+--- (the `auction` verb's data key, kept from the store's first schema);
 --- `key` is the vendor's NPC ID; `data` is the source's row.
 function SP.MergeSource(rec, kind, key, data)
     local merge = MERGE[kind]
