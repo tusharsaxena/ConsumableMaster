@@ -27,7 +27,7 @@ Recipes for the routine modifications. For deeper context on any module, see [mo
        forever = {},
    })
    ```
-6. Add the file to `ConsumableMaster.toc` in the `# Defaults` section (after `Categories.lua`, before the `# Modules` section).
+6. Add the file to `ConsumableMaster.toc` in the `# Defaults` section (after `Categories.lua` and `Profile.lua`, before the `# Modules` section).
 7. Add the bucket to `CATEGORY_BUCKETS` in `defaults/Profile.lua`; the profile gets it on every client whose `BY_KEY` holds the key:
    ```lua
    NEW = { added = {}, blocked = {}, pins = {}, discovered = {} },   -- non-spec
@@ -64,14 +64,14 @@ See [schema.md](./schema.md#composite-bucket-shape) for the composite bucket sha
 
 ## Refresh seed item IDs after a patch
 
-The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>`, update the relevant `defaults/Defaults_*.lua` file, then run the [Discovery checks](./smoke-tests.md#discovery) of the smoke suite.
+The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>` (or record them in bulk with the seed probe, `/cm probe seed`, [seed-probe.md](./seed-probe.md)), update the relevant `defaults/Defaults_*.lua` file, then run the [Discovery checks](./smoke-tests.md#discovery) of the smoke suite.
 
 Updating a defaults file is a zero-migration upgrade for existing users — the candidate set is `(seed ∪ added ∪ discovered) − blocked` at runtime, and the right-side sets live in SavedVariables independent of the seed.
 
 ## Fix a misclassification
 
 1. Run `/cm dump item <id>` to see the live `classID`/`subClassID` (`instant:` line) + parsed tooltip.
-2. **Wrong class?** Classification keys on the numeric `classID`/`subClassID` (Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5) — locale-independent, and unchanged across Blizzard's display-string renames, so a subtype rename needs no code change. Only a genuinely new consumable subclass would need a `core/Classifier.lua` edit (add its subclass constant + matcher).
+2. **Wrong class?** Classification keys on the numeric `classID`/`subClassID` (Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5; WoW Forever adds its own per-client subclasses, [ARCHITECTURE.md → Per-client features](./ARCHITECTURE.md#per-client-features)) — locale-independent, and unchanged across Blizzard's display-string renames, so a subtype rename needs no code change. Only a genuinely new consumable subclass would need a `core/Classifier.lua` edit (add its subclass constant + matcher).
 3. **Tooltip parse missing a field?** Check `PATTERNS` in `core/TooltipCache.lua`. Watch for non-breaking spaces (U+00A0 — Lua `%s` does not match) and `|4singular:plural;` grammar escapes. Both are normalized in `normalizeTooltipText`; don't bypass it.
 4. Re-run `/cm dump item <id>` to confirm the fix.
 5. Run `/cm resync` to rebuild the candidate set, then `/cm dump pick <catKey>` to confirm the item now lands where expected.
@@ -80,6 +80,6 @@ For the Midnight-specific gotcha catalog see [midnight-quirks.md](./midnight-qui
 
 ## Verify a behavior change in-game
 
-The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` before committing. In-game behavior still needs manual validation: run the quick pass MACRO-1 in [smoke-tests.md](./smoke-tests.md) as the post-change minimum, and use that file's [Index](./smoke-tests.md#index), which names the themes to run for the code you touched.
+The pure layer is covered by a headless harness — run `lua5.1 tests/run.lua` and `KA0S_KIT_CLIENT=forever lua5.1 tests/run.lua` (current suite inventory in [test-cases.md](./test-cases.md)) and `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` before committing. In-game behavior still needs manual validation: run the quick pass MACRO-1 in [smoke-tests.md](./smoke-tests.md) as the post-change minimum, and use that file's [Index](./smoke-tests.md#index), which names the themes to run for the code you touched.
 
 If you can only reason about the change from code and cannot test it in WoW, say so explicitly — don't claim it works.

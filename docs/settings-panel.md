@@ -95,7 +95,7 @@ scroll before, which put the control that governs the dropdowns below it out of 
 scrolled to them.
 
 It is the **only** picker for that state, which is `options-ui-§14`'s rule — a banner replaces a picker, it never
-mirrors one. The spec-aware tabs on the Macros page (Flask, Combat Potion, Stat Food, Weapon Enchant)
+mirrors one. The spec-aware tabs on the Macros page (Flask, Combat Potion, Stat Food, Weapon Enchant, and Elixir and Scroll on WoW Forever)
 therefore **state** the viewed spec as a sentence and offer no second picker of their own; two
 controls over one piece of session state is a synchronization problem the design would have invented
 and then owned forever.
@@ -360,11 +360,18 @@ Augment Rune; then the three that are set once per tier and left.
 | 8-12 | **Flask** · **Combat Potion** · **Stat Food** · **Weapon Enchant** · **Augment Rune** | Spec-aware categories — the same per-category surface, resolved against the spec named in the Stat Priority banner |
 | 13-15 | **Vantus Rune** · **Bloodlust** · **Battle Rez** | Remaining categories, same surface |
 
+That is Retail's strip. The run in `settings/Panel.lua` names every client's categories and is
+filtered by `KCM.Categories.BY_KEY`, so WoW Forever's fifteen tabs are **Food** · **Drink** ·
+**Healing Potion** · **Mana Potion** · **Healthstone** · **Bandage**, then **AIO Health** ·
+**AIO Mana**, then **Flask** · **Elixir** · **Combat Potion** · **Protection Potion** · **Stat Food** ·
+**Scroll** · **Weapon Enchant**: each Forever-only category beside its nearest kin, and no Vantus,
+Augment Rune, Bloodlust or Battle Rez tab.
+
 Tabs are labeled with each category's `displayName`, never its `shortName`: `shortName` exists for
 the macro bar's 32px buttons, where "Brez" and "Rune" are the only thing that fits, and a tab reading
 "Rune" two places from one reading "Vantus" would say nothing about which rune it meant.
 
-Every single-category tab renders **Macro** (the drag icon; on the four spec-aware tabs the line
+Every single-category tab renders **Macro** (the drag icon; on the spec-aware tabs the line
 "Spec-aware. Showing the list for <spec>. Change the spec in the Stat Priority page's banner."; on
 Battle Rez *Cast on mouseover*), then **Add an item or spell**, the **glyph legend**, then the
 **Priority list**, which is a draggable list, and **Reset category…** (it raises a confirmation, hence

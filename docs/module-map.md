@@ -431,7 +431,7 @@ KCM.Classifier.IsReusableAugRune(id) -> bool -- REUSABLE_AUG_IDS membership; Ran
 
 `IsReusableAugRune` backs the AUG_RUNE scorer's `REUSABLE_BONUS`: a reusable rune (Ethereal, Dreambound, Eternal, Lightning-Forged, Lightforged) only wins when it *ties* the best rune on primary-stat amount — the bonus is smaller than one stat step, so a higher-stat consumable rune still beats it. Keep the ID set in sync with the `(reusable)` annotations in `defaults/Defaults_AugRune.lua`.
 
-Per-category predicates key on the numeric `classID`/`subClassID` (locale-independent — Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5) plus parsed `tt`, never the localized subType display string (localization-§4; see scope.md). Weapon-enchant / augment-rune predicates key on `tt` flags. The remaining English dependency is TooltipCache's tooltip-text parsing.
+Per-category predicates key on the numeric `classID`/`subClassID` (locale-independent — Consumable=0; Potion=1, Flask/Phial=3, Food & Drink=5; on WoW Forever also Elixir=2, Scroll=4, Bandage=7, Draught=13 read as a Potion, and the temporary Item Enhancement 15) plus parsed `tt`, never the localized subType display string (localization-§4; see scope.md). The per-client tables are in [ARCHITECTURE.md → Per-client features](./ARCHITECTURE.md#per-client-features). Weapon-enchant / augment-rune predicates key on `tt` flags. The remaining English dependency is TooltipCache's tooltip-text parsing.
 
 ### BagScanner (`core/BagScanner.lua`)
 
@@ -452,7 +452,10 @@ KCM.TooltipCache.Get(itemID) -> { healValue, healValueAvg, healOverSec,
                                   isWeaponEnhance, weaponAffinity,   -- "bladed"|"blunt"|"any"
                                   isAugmentRune,
                                   statBuffs = { {stat, amount}, ... },
-                                  minLevel, itemName, pending, unsupported }
+                                  -- vanilla wording, read by the WoW Forever paths:
+                                  absorbValue, absorbSchool, effectValue,
+                                  weaponWordAffinity, isVanillaWeaponEnhance, weaponEnhanceValue,
+                                  minLevel, maxLevel, itemName, pending, unsupported }
 KCM.TooltipCache.Invalidate(itemID)
 KCM.TooltipCache.InvalidateAll()
 KCM.TooltipCache.IsUsableByPlayer(itemID) -> bool

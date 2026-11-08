@@ -8,7 +8,7 @@ AceDB schema, the opaque-numeric ID convention, the composite-bucket shape, and 
 
 ```
 db.global
-├── schemaVersion        6          -- migration marker; default 0, walked to 6 by
+├── schemaVersion        7          -- migration marker; default 0, walked to 7 by
 │                                   -- RunMigrations (core/Database.lua)
 └── minimap                         -- LibDBIcon-1.0's OWN table, handed straight to
     ├── hide             boolean    -- :Register (launcher-§3). GLOBAL and not profile:
@@ -25,7 +25,7 @@ db.global
                                     -- it (architecture-§5).
 
 db.profile
-├── schemaVersion        6          -- THIS profile's migration marker; gates every
+├── schemaVersion        7          -- THIS profile's migration marker; gates every
 │                                   -- step that writes the profile scope. Not a
 │                                   -- default: RunMigrations writes it on arrival.
 ├── enabled              boolean    -- master enable. It drives the LATCH

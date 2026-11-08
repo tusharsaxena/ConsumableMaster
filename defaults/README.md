@@ -50,7 +50,7 @@ The playbook for re-running the seed refresh when Blizzard adds new consumables 
 
 ## Sources (in order of preference)
 
-1. **In-game vendors and dump commands.** Primary source for Midnight seed lists. Walk the relevant vendor (e.g. the Silvermoon innkeeper for FOOD/DRINK), note the item IDs, and run `/cm dump item <id>` to confirm subType / classID / classified bucket. The Silvermoon innkeeper is the canonical source for `FOOD` and `DRINK` in Midnight (vendor IDs 260254–260264). For batch name lookups paste the `/run` snippet under [In-game name dump](#in-game-name-dump) below.
+1. **In-game vendors and dump commands.** Primary source for Midnight seed lists. The seed probe (`/cm probe seed mouseover|vendor|auction`, [docs/seed-probe.md](../docs/seed-probe.md)) records every field a seed list needs, on Retail and WoW Forever, into `ConsumableMasterProbeDB`. Walk the relevant vendor (e.g. the Silvermoon innkeeper for FOOD/DRINK), note the item IDs, and run `/cm dump item <id>` to confirm subType / classID / classified bucket. The Silvermoon innkeeper is the canonical source for `FOOD` and `DRINK` in Midnight (vendor IDs 260254–260264). For batch name lookups paste the `/run` snippet under [In-game name dump](#in-game-name-dump) below.
 
 2. **Method.gg — "List of all Midnight Consumables, Enchants and Gems"**
    [https://www.method.gg/guides/list-of-all-midnight-consumables-enchants-and-gems](https://www.method.gg/guides/list-of-all-midnight-consumables-enchants-and-gems)

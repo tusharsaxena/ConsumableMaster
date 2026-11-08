@@ -5,7 +5,7 @@
 the schema CLI. This addon owns twenty-five verbs, six sub-command tables with three different handler
 arities, the dump targets and the codecs that keep a `/cm set` round-trip in this addon's own shape.
 
-Both halves of `documentation-§3`'s trigger fire here — twenty-five verbs is over eight, and five verbs
+Both halves of `documentation-§3`'s trigger fire here — twenty-five verbs is over eight, and six verbs
 carry a subcommand tree — which is why this page exists rather than a table in `ARCHITECTURE.md`.
 
 ## Where the pieces live
@@ -94,9 +94,9 @@ General page's own combat wording), or *Reset failed (DB not ready).*
 
 ## The sub-command trees
 
-Four verbs dispatch a sub-verb of their own, from five ordered tables in two files. Every one of them
+Six verbs dispatch a sub-verb of their own, from six ordered tables in three files. Every one of them
 is a table plus a lookup through the library's `FindCommand` (read as `KCM.SlashCommands.FindCommand`)
-— never an `if` ladder — and the four in `core/SlashCommands.lua` render their help rows through
+— never an `if` ladder — and the four in `core/SlashCommands.lua` and `probe`'s in `core/SeedProbe.lua` render their help rows through
 `lib.CommandRows`, the formatter `/cm help` uses, so the help output and the dispatch read the same
 rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table and padded rows.
 
@@ -107,12 +107,13 @@ rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table an
 | `aio` | `AIO_COMMANDS` (same file) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
 | `bar` | `BAR_COMMANDS` (same file) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |
+| `probe` | `SEED_COMMANDS` (`core/SeedProbe.lua`) | `seed <sub>` | `mouseover`, `vendor`, `auction`, `status`, `purge` |
 
 **Three handler arities, and each one is forced by its grammar.** `priority` and `aio` resolve a
 category before dispatching, so their handlers take `(cat, rest)` — the resolve happens once, in the
 verb, and a sub-verb never re-derives it. `stat` takes `(rest)`, because its optional `specKey`
 trails the sub-verb rather than preceding it. `bar` takes `()`: its five sub-verbs are complete
-sentences with nothing left to parse.
+sentences with nothing left to parse, and so do `probe seed`'s five.
 
 **A bare tree prints its own help, and each help is generated from the table it dispatches on** —
 `priorityHelp` and `aioHelp` append the known category keys, `statHelp` explains the `specKey`

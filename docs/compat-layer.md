@@ -12,7 +12,9 @@ which client it is on (clients-§3): `KCM.SEED_CLIENT` reads it once at load and
 answers a `{ retail, forever }` pair's list for that client (clients-§5); `ForClient` gates every
 category row in `defaults/Categories.lua` (clients-§4). Without the library both answer as Retail:
 `ClientKey` the absent value nil, which the seed selection reads as Retail's lists, and `ForClient` a
-stub that admits nil, `"both"` and any list naming `"retail"`. The library documents them, and so does
+stub that admits nil, `"both"` and any list naming `"retail"`. `KCM.SEED_CLIENT` also picks
+`KCM.EMPTY_ICON`, the icon an empty-state macro stores: `7704166` (the cooking pot) on Retail,
+`134328` (`inv_misc_note_02`) on WoW Forever, whose client has no file 7704166. The library documents them, and so does
 [module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption). This page covers only the three shims the
 addon owns itself.
 
