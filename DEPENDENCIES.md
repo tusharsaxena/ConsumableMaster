@@ -83,6 +83,18 @@ system-managed user site directory, which is the situation PEP 668 exists to pre
 - **A WoW client, to develop.** The whole suite runs headless against `tests/wow_mock.lua`. You
   need the client only for the in-game smoke tests (`docs/smoke-tests.md`).
 
+### Seed validation — Python 3 and network access (optional)
+
+Only for re-validating the seed lists against the game's data (`/dev-copilot:validate-seeds`, the
+contract in [`docs/validate-seeds.md`](./docs/validate-seeds.md), issue #49). Nothing in the addon,
+its headless suite or its lint needs either.
+
+| Tool | Version | Why — with evidence | Install | Verify |
+|------|---------|---------------------|---------|--------|
+| **Python 3** | **3.8 or later**, standard library only (no `pip` package) | `tools/seeds/seeds.py` (its docstring: "Python 3.8+ and its standard library only"); `from __future__ import annotations` and `typing` keep it 3.8-safe | preinstalled on Ubuntu (`sudo apt install -y python3`) | `python3 --version` |
+| **pytest** (optional) | any recent | The contract's gate runs `python3 -m pytest -q tools/seeds`. `tools/seeds/test_seeds.py` is plain `unittest`, so `python3 -m unittest discover -s tools/seeds` runs it without pytest. | `sudo apt install -y python3-pytest` | `python3 -m pytest --version` |
+| **Network access to wago.tools** | — | `seeds.py derive` (without `--replay`) and `status` call `https://wago.tools/api/builds` and `https://wago.tools/db2/<Table>/csv?build=<build>` (`BUILDS_URL`, `CSV_URL`), with the identifying `USER_AGENT` the site requires (urllib's default gets HTTP 403). A new Retail build downloads about 200 MB into the git-ignored `tools/seeds/.cache/`; `derive --replay` and the tests need no network. | — | `curl -sA ConsumableMaster-seed-check https://wago.tools/api/builds \| head -c 80` |
+
 ---
 
 ## 3. Release / assets
@@ -116,13 +128,15 @@ step regenerates, so they are recorded here for their licensing rather than as d
   reads the `.ttf` out of the addon folder.
 
 **No image or font tooling is required.** There is no script in this repo that regenerates any
-asset — no `scripts/` directory, no Python, no Pillow, no ImageMagick. If one is added, it belongs
-in this section in the same change.
+asset — no `scripts/` directory, no Pillow, no ImageMagick, and the one Python tool
+(`tools/seeds/seeds.py`, section 2) writes seed ids, not assets. If one is added, it belongs in this
+section in the same change.
 
 ### Not evidenced
 
-Nothing else was found. Specifically: no Python is used anywhere in this repo, no vendored binaries
-exist, and no system library is linked against. If you hit a missing tool that is not on this page,
+Nothing else was found. Specifically: no Python is used anywhere in this repo beyond the seed
+validator under `tools/seeds/` (section 2), no vendored binaries exist, and no system library is
+linked against. If you hit a missing tool that is not on this page,
 that is a bug in this page — fix it here in the same change (`documentation-§7`,
 `documentation-§5`).
 
@@ -137,9 +151,11 @@ lua5.1 tests/run.lua                                    # headless suite — exi
 KA0S_KIT_CLIENT=forever lua5.1 tests/run.lua            # the same suite as WoW Forever (clients-§6)
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .    # lint — must be 0 warnings, 0 errors
 bash tests/_kit/run-automated-tests.sh --suite complexity   # sighted complexity report (automated-tests-§3)
+python3 -m pytest -q tools/seeds                        # the seed validator's tests (optional; docs/validate-seeds.md)
 ```
 
 The first three are the commit gate: the addon serves Retail and WoW Forever, so the suite gates under
 both kit profiles. The fourth is the **release** checkpoint — regenerate
 a full automated-test bundle and read its diff before tagging; it never gates a commit. Full detail, and
-the vendored-copy diff to run after any re-vendor, in [`docs/testing.md`](./docs/testing.md).
+the vendored-copy diff to run after any re-vendor, in [`docs/testing.md`](./docs/testing.md). The fifth is the
+seed validator's own suite, part of [`docs/validate-seeds.md`](./docs/validate-seeds.md)'s gate, not the commit gate.

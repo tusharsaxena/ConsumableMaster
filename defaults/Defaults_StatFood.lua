@@ -11,6 +11,8 @@
 --
 -- Source: Method.gg Midnight consumables list + Warcraft Wiki cooking
 -- recipes, 2026-04-22. See defaults/README.md to re-run.
+-- Validated: 2026-11-15 against Retail 12.1.5.70783 on wago.tools (tools/seeds/seeds.py,
+-- docs/seed-research/2026-11-15-retail/, issue #49).
 
 local _, NS = ...
 local KCM = NS
@@ -24,7 +26,7 @@ KCM.SEED.STAT_FOOD = KCM.PerClient({
 
         -- Intermediate / Advanced single-stat
         242283,  -- Sun-Seared Lumifin             (CRIT)
-        242286,  -- Arcano Cutlets                 (CRIT)
+        242286,  -- Fel-Kissed Filet               (HASTE)
         242278,  -- Tasty Smoked Tetra             (CRIT)
         242277,  -- Crimson Calamari               (HASTE)
         242282,  -- Null and Void Plate            (HASTE)
@@ -56,6 +58,7 @@ KCM.SEED.STAT_FOOD = KCM.PerClient({
         242307,  -- Quick Sandwich                 (VERS + HASTE)
         242308,  -- Portable Snack                 (CRIT + HASTE)
         242309,  -- Farstrider Rations             (MASTERY + HASTE)
+        242287,  -- Arcano Cutlets; added from the 2026-11-15 wago.tools validation (12.1.5.70783)
     },
     -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
     -- on WoW Forever every candidate comes from the bag scan.

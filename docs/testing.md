@@ -121,6 +121,22 @@ sudo apt install -y pipx && pipx ensurepath && pipx install lizard
 `pipx`, not `pip` — Ubuntu 24.04 marks its Python externally managed (PEP 668) and
 `pip install lizard` fails. See DEPENDENCIES.md for the alternative.
 
+## The seed validator's tests
+
+`tools/seeds/seeds.py` checks the seed lists against the client's own DB2 tables on wago.tools
+([validate-seeds.md](./validate-seeds.md)). It is Python, so neither gate above sees it; its suite is
+`tools/seeds/test_seeds.py`:
+
+```sh
+python3 -m pytest -q tools/seeds        # or: python3 -m unittest discover -s tools/seeds
+```
+
+It needs no network: each case builds a few CSV rows and a small seed file in a temp dir. Two repo
+cases read the real `defaults/` and fail while the newest bundle under `docs/seed-research/` of
+either flavor has a candidate or flag nobody ruled. The suite is part of the validation contract's
+`## Gate`, run with the three commands above whenever a seed run lands; it does not count toward the
+`[Tests]` badge, which is the headless Lua suite's.
+
 ## Test-case inventory & badge
 
 The authoritative test count lives in [test-cases.md](./test-cases.md) — a **generated**

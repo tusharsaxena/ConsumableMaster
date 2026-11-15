@@ -1,0 +1,6 @@
+{
+  "shipped:unnamed:CLASSIFIER_HS:224464": {
+    "reason": "HEALTHSTONE_IDS is one table for both clients; 224464 is Retail's Demonic Healthstone and matches nothing on Forever, where 5512 (Minor Healthstone on this build) is the one discovered (Defaults_Healthstone.lua, Forever note)",
+    "ruling": "keep"
+  }
+}

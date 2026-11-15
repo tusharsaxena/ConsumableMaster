@@ -1,0 +1,506 @@
+{
+  "AUG_RUNE:118630": {
+    "reason": "a Warlords garrison rune; Defaults_AugRune.lua's header leaves pre-Legion runes out as an obsolete mechanic",
+    "ruling": "reject"
+  },
+  "AUG_RUNE:118631": {
+    "reason": "a Warlords garrison rune; Defaults_AugRune.lua's header leaves pre-Legion runes out as an obsolete mechanic",
+    "ruling": "reject"
+  },
+  "AUG_RUNE:118632": {
+    "reason": "a Warlords garrison rune; Defaults_AugRune.lua's header leaves pre-Legion runes out as an obsolete mechanic",
+    "ruling": "reject"
+  },
+  "AUG_RUNE:274797": {
+    "reason": "needs owner review: ExpansionID -3 is no Retail expansion (an event or special-mode copy, by the look of it), new since the refresh, and whether it is reusable is not in DB2",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241289": {
+    "reason": "a crafting-quality twin of shipped 241288 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241293": {
+    "reason": "a crafting-quality twin of shipped 241292 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241297": {
+    "reason": "a crafting-quality twin of shipped 241296 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241302": {
+    "reason": "invisibility: a utility potion, never seeded in CMBT_POT (Defaults_CombatPot.lua header; defaults/README.md, Procedure step 2)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241303": {
+    "reason": "invisibility: a utility potion, never seeded in CMBT_POT (Defaults_CombatPot.lua header; defaults/README.md, Procedure step 2)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241309": {
+    "reason": "a crafting-quality twin of shipped 241308 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241338": {
+    "reason": "slow fall: a utility potion, never seeded in CMBT_POT (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:241339": {
+    "reason": "slow fall: a utility potion, never seeded in CMBT_POT (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245897": {
+    "reason": "a Fleeting copy of shipped 241308, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245898": {
+    "reason": "a Fleeting copy of shipped 241308, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245900": {
+    "reason": "a Fleeting copy of shipped 241296, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245901": {
+    "reason": "a Fleeting copy of shipped 241296, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245902": {
+    "reason": "a Fleeting copy of shipped 241288, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245903": {
+    "reason": "a Fleeting copy of shipped 241288, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245910": {
+    "reason": "a Fleeting copy of shipped 241292, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:245911": {
+    "reason": "a Fleeting copy of shipped 241292, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:259092": {
+    "reason": "stun and snare immunity: a utility potion, not throughput (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:259245": {
+    "reason": "a Dodge buff usable only in Slayer's Rise: a zone-bound utility potion, not throughput",
+    "ruling": "reject"
+  },
+  "CMBT_POT:268954": {
+    "reason": "a cosmetic appearance effect with no combat benefit (its own description says so)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:268955": {
+    "reason": "a cosmetic appearance effect with no combat benefit (its own description says so)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:271886": {
+    "reason": "the crafting-quality 13 twin of accepted 271887; the seed carries one tier (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:271887": {
+    "reason": "a 30 s Versatility combat potion new since the refresh (absent from the Item table of 12.0.5.67114, the build live at the 2026-04-22 refresh); throughput, not utility; crafting quality 14, the tier the shipped combat potions carry",
+    "ruling": "accept"
+  },
+  "CMBT_POT:271889": {
+    "reason": "the crafting-quality 13 twin of accepted 271890; the seed carries one tier (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:271890": {
+    "reason": "a 30 s Shadow-damage proc potion, the shape of shipped Potion of Zealotry 241296, new since the refresh (absent from the Item table of 12.0.5.67114, the build live at the 2026-04-22 refresh); crafting quality 14, the tier the shipped combat potions carry",
+    "ruling": "accept"
+  },
+  "CMBT_POT:274763": {
+    "reason": "a Fleeting copy of accepted Liquid Luster 271887, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:274764": {
+    "reason": "a Fleeting copy of accepted Liquid Luster 271887, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "CMBT_POT:274765": {
+    "reason": "a Fleeting copy of accepted Alluring Nostrum 271890, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:241310": {
+    "reason": "a Haranir profession phial; Defaults_Flask.lua's header keeps phials out of the seed so the default list stays combat-focused",
+    "ruling": "reject"
+  },
+  "FLASK:241311": {
+    "reason": "a Haranir profession phial; Defaults_Flask.lua's header keeps phials out of the seed so the default list stays combat-focused",
+    "ruling": "reject"
+  },
+  "FLASK:241312": {
+    "reason": "a Haranir profession phial; Defaults_Flask.lua's header keeps phials out of the seed so the default list stays combat-focused",
+    "ruling": "reject"
+  },
+  "FLASK:241313": {
+    "reason": "a Haranir profession phial; Defaults_Flask.lua's header keeps phials out of the seed so the default list stays combat-focused",
+    "ruling": "reject"
+  },
+  "FLASK:241316": {
+    "reason": "a Haranir profession phial; Defaults_Flask.lua's header keeps phials out of the seed so the default list stays combat-focused",
+    "ruling": "reject"
+  },
+  "FLASK:241317": {
+    "reason": "a Haranir profession phial; Defaults_Flask.lua's header keeps phials out of the seed so the default list stays combat-focused",
+    "ruling": "reject"
+  },
+  "FLASK:241320": {
+    "reason": "a crafting-quality twin of shipped 241321 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "FLASK:241323": {
+    "reason": "a crafting-quality twin of shipped 241322 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "FLASK:241325": {
+    "reason": "a crafting-quality twin of shipped 241324 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "FLASK:241327": {
+    "reason": "a crafting-quality twin of shipped 241326 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "FLASK:245926": {
+    "reason": "a Fleeting copy of shipped 241321, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245927": {
+    "reason": "a Fleeting copy of shipped 241321, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245928": {
+    "reason": "a Fleeting copy of shipped 241326, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245929": {
+    "reason": "a Fleeting copy of shipped 241326, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245930": {
+    "reason": "a Fleeting copy of shipped 241324, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245931": {
+    "reason": "a Fleeting copy of shipped 241324, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245932": {
+    "reason": "a Fleeting copy of shipped 241322, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "FLASK:245933": {
+    "reason": "a Fleeting copy of shipped 241322, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "HP_POT:241299": {
+    "reason": "a crafting-quality twin of shipped 241298 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "HP_POT:241305": {
+    "reason": "a crafting-quality twin of shipped 241304 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "HP_POT:241307": {
+    "reason": "a crafting-quality twin of shipped 241306 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "HP_POT:245918": {
+    "reason": "a Fleeting copy of shipped 241304, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "HP_POT:245919": {
+    "reason": "a Fleeting copy of shipped 241304, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "HP_POT:271883": {
+    "reason": "the crafting-quality 13 twin of accepted 271884; the seed carries one tier (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "HP_POT:271884": {
+    "reason": "a direct-heal potion (Restores $s1 health; Potion subclass, no absorb) new since the refresh (absent from the Item table of 12.0.5.67114, the build live at the 2026-04-22 refresh); crafting quality 14, the tier shipped 241304 carries",
+    "ruling": "accept"
+  },
+  "MP_POT:241295": {
+    "reason": "a crafting-quality twin of shipped 241294 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "MP_POT:241301": {
+    "reason": "a crafting-quality twin of shipped 241300 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "MP_POT:241307": {
+    "reason": "a crafting-quality twin of shipped 241306 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "MP_POT:245904": {
+    "reason": "a Fleeting copy of shipped 241294, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "MP_POT:245905": {
+    "reason": "a Fleeting copy of shipped 241294, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "MP_POT:245916": {
+    "reason": "a Fleeting copy of shipped 241300, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "MP_POT:245917": {
+    "reason": "a Fleeting copy of shipped 241300, the same use spell; the seed carries the base item and auto-discovery takes the copies",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242274": {
+    "reason": "needs owner review: a highest-secondary-stat meal already in 12.0.5.67114 at the 2026-04-22 refresh and not seeded; the seed ships no meal of that shape, and whether that is deliberate is not recorded",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242287": {
+    "reason": "Arcano Cutlets (Well Fed: Critical Strike); the shipped comment at 242286 names it, but 242286 is Fel-Kissed Filet, so this is the id the seed meant",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:242746": {
+    "reason": "a Hearty variant; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242747": {
+    "reason": "a Hearty variant of shipped 242275; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242748": {
+    "reason": "a Hearty variant of shipped 242276; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242749": {
+    "reason": "a Hearty variant of shipped 242277; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242750": {
+    "reason": "a Hearty variant of shipped 242278; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242752": {
+    "reason": "a Hearty variant of shipped 242280; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242753": {
+    "reason": "a Hearty variant of shipped 242281; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242754": {
+    "reason": "a Hearty variant of shipped 242282; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242755": {
+    "reason": "a Hearty variant of shipped 242283; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242756": {
+    "reason": "a Hearty variant of shipped 242284; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242757": {
+    "reason": "a Hearty variant of shipped 242285; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242758": {
+    "reason": "a Hearty variant of shipped 242286; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242759": {
+    "reason": "a Hearty variant; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242760": {
+    "reason": "a Hearty variant of shipped 242288; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242761": {
+    "reason": "a Hearty variant of shipped 242289; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242762": {
+    "reason": "a Hearty variant of shipped 242290; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242763": {
+    "reason": "a Hearty variant of shipped 242291; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242764": {
+    "reason": "a Hearty variant of shipped 242292; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242765": {
+    "reason": "a Hearty variant of shipped 242293; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242766": {
+    "reason": "a Hearty variant of shipped 242294; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242767": {
+    "reason": "a Hearty variant of shipped 242295; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242768": {
+    "reason": "a Hearty variant of shipped 242296; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242769": {
+    "reason": "a Hearty variant of shipped 242302; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242770": {
+    "reason": "a Hearty variant of shipped 242303; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242771": {
+    "reason": "a Hearty variant of shipped 242304; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242772": {
+    "reason": "a Hearty variant of shipped 242305; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242773": {
+    "reason": "a Hearty variant of shipped 242306; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242774": {
+    "reason": "a Hearty variant of shipped 242307; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242775": {
+    "reason": "a Hearty variant of shipped 242308; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:242776": {
+    "reason": "a Hearty variant of shipped 242309; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:255848": {
+    "reason": "needs owner review: a highest-secondary-stat meal already in 12.0.5.67114 at the 2026-04-22 refresh and not seeded; the seed ships no meal of that shape, and whether that is deliberate is not recorded",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:268679": {
+    "reason": "a Hearty variant of shipped 255847; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:268680": {
+    "reason": "a Hearty variant; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:275258": {
+    "reason": "needs owner review: a highest-secondary-stat meal new since the refresh (absent from the Item table of 12.0.5.67114, the build live at the 2026-04-22 refresh); the seed ships no meal of that shape and left out its 12.0 twins (242274, 255848), so whether the shape belongs is the owner's call",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:275259": {
+    "reason": "a Hearty variant; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:275260": {
+    "reason": "needs owner review: a highest-secondary-stat meal new since the refresh (absent from the Item table of 12.0.5.67114, the build live at the 2026-04-22 refresh); the seed ships no meal of that shape and left out its 12.0 twins (242274, 255848), so whether the shape belongs is the owner's call",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:275261": {
+    "reason": "needs owner review: a highest-secondary-stat meal new since the refresh (absent from the Item table of 12.0.5.67114, the build live at the 2026-04-22 refresh); the seed ships no meal of that shape and left out its 12.0 twins (242274, 255848), so whether the shape belongs is the owner's call",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:275262": {
+    "reason": "a Hearty variant; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:275263": {
+    "reason": "a Hearty variant; Defaults_StatFood.lua's header seeds the base tier only, and auto-discovery takes the Hearty ones",
+    "ruling": "reject"
+  },
+  "VANTUS:245879": {
+    "reason": "needs owner review: the crafting-quality 13 twin of shipped 245880; VANTUS matches by whitelist alone (core/Classifier.lua VANTUS_IDS), so unlike the other lists' tiers this one is never discovered from bags",
+    "ruling": "reject"
+  },
+  "VANTUS:272194": {
+    "reason": "needs owner review: it targets Ula'tek Temple, which is not a JournalInstance on 12.1.5.70783, so its raid tier may not be live; Defaults_Vantus.lua adds a rune as its tier ships",
+    "ruling": "reject"
+  },
+  "VANTUS:272195": {
+    "reason": "needs owner review: it targets Ula'tek Temple, which is not a JournalInstance on 12.1.5.70783, so its raid tier may not be live; Defaults_Vantus.lua adds a rune as its tier ships",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:220156": {
+    "reason": "outside Defaults_WpnEnch.lua's scope (Enchanting oils, Blacksmithing whetstones and weightstones): a poison-proc wax, quality 1, item level 610",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:222502": {
+    "reason": "a crafting-quality twin of shipped 222504 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:222503": {
+    "reason": "a crafting-quality twin of shipped 222504 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:222509": {
+    "reason": "a crafting-quality twin of shipped 222508 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:222510": {
+    "reason": "a crafting-quality twin of shipped 222508 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:224105": {
+    "reason": "a crafting-quality twin of shipped 224107 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:224106": {
+    "reason": "a crafting-quality twin of shipped 224107 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:224108": {
+    "reason": "a crafting-quality twin of shipped 224110 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:224109": {
+    "reason": "a crafting-quality twin of shipped 224110 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:224111": {
+    "reason": "a crafting-quality twin of shipped 224113 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:224112": {
+    "reason": "a crafting-quality twin of shipped 224113 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:237367": {
+    "reason": "a crafting-quality twin of shipped 237369 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:237371": {
+    "reason": "a crafting-quality twin of shipped 237370 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:243734": {
+    "reason": "a crafting-quality twin of shipped 243733 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:243736": {
+    "reason": "a crafting-quality twin of shipped 243735 (same name); the seed carries one tier and auto-discovery takes the others (defaults/README.md, Procedure step 5)",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:243737": {
+    "reason": "needs owner review: a Midnight Enchanting oil already in 12.0.5.67114 and not seeded at the 2026-07 refresh; whether the omission is deliberate is not recorded",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:243738": {
+    "reason": "needs owner review: a Midnight Enchanting oil already in 12.0.5.67114 and not seeded at the 2026-07 refresh; whether the omission is deliberate is not recorded",
+    "ruling": "reject"
+  },
+  "shipped:renamed:HS:224464": {
+    "reason": "the build names 224464 Demonic Healthstone (consumable, the class 5512 has), still a healthstone; the comment is corrected by hand, the id stays",
+    "ruling": "keep"
+  },
+  "shipped:renamed:STAT_FOOD:242286": {
+    "reason": "242286 is Fel-Kissed Filet (Well Fed: Haste), a Midnight single-stat meal the list's own rule admits; the comment, which named Arcano Cutlets, is corrected by hand and 242287 is accepted beside it",
+    "ruling": "keep"
+  }
+}
