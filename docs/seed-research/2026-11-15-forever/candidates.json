@@ -1,0 +1,134 @@
+{
+ "build": "1.60.1.70938",
+ "candidates": [],
+ "date": "2026-11-15",
+ "flags": [
+  {
+   "comment": "Modern healthstone (auto-scales with warlock level)",
+   "file": "core/Classifier.lua",
+   "id": "224464",
+   "key": "shipped:unnamed:CLASSIFIER_HS:224464",
+   "kind": "unnamed",
+   "list": "CLASSIFIER_HS",
+   "name": ""
+  }
+ ],
+ "flavor": "forever",
+ "lists": [
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "AUG_RUNE",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "BATTLE_REZ",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "BLOODLUST",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "CLASS_GATE",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "CMBT_POT",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "DRINK",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "FLASK",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "FOOD",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "HP_POT",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "HS",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "MP_POT",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "STAT_FOOD",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "STAT_PRIORITY",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "VANTUS",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 0,
+   "list": "WPN_ENCH",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 0
+  },
+  {
+   "candidates": 0,
+   "flags": 1,
+   "list": "CLASSIFIER_HS",
+   "rule": "flags only: empty by decision (owner ruling 2026-11-08)",
+   "shipped": 2
+  }
+ ],
+ "product": "wowf",
+ "tool": "tools/seeds/seeds.py derive",
+ "unplaced": []
+}

@@ -107,6 +107,10 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
 
    For full coverage after a seed refresh — especially if the refresh introduced a new subType or tooltip phrasing — also run the [Discovery checks](../docs/smoke-tests.md#discovery) and the quick pass MACRO-1 ([Macros](../docs/smoke-tests.md#macros)) from the smoke-test suite.
 
+## Validating against the game's data
+
+After a patch, and after a hand refresh, run the seed validator: `/dev-copilot:validate-seeds ConsumableMaster retail` (and `forever`). It checks every list in this folder, and the `core/Classifier.lua` whitelists, against the client's own DB2 tables on wago.tools for one pinned build: an id the build no longer has, a name that disagrees with its comment, an item whose class no longer fits its list, and the current-expansion items a list's rule admits but the list lacks. Every candidate gets a ruling recorded as data, so the next run shows only what is new. The tool is `tools/seeds/seeds.py`; the procedure, the rules a ruling follows and what each list's rule is are in [docs/validate-seeds.md](../docs/validate-seeds.md), and each run is a frozen bundle under `docs/seed-research/`. It does not replace the in-game checks above: DB2 holds no vendor stock (so `FOOD` and `DRINK` get no candidates) and says what an item does, not what a player uses.
+
 ## Common pitfalls
 
 - **"Name fabrication" trap.** Do NOT guess item names from itemIDs. The prior seed had ~30 invented stat-food names ("Sizzling Steak Sandwich", etc.) that didn't match any real item. Always cross-check with the in-game name dump snippet, `/cm dump item`, or Method.gg.

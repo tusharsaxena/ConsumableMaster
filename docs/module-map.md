@@ -933,6 +933,14 @@ Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)
 |------|----------------|
 | `locales/enUS.lua` | Publishes `KCM.L`, a key-returning metatable, and carries the notes a first translator needs. The **settings surface** — `settings/` and the `modules/KCM*` widgets — routes its user-facing strings through `L[...]`, and `tests/test_locale.lua` gates that: a bare prose literal added there is red until it is wrapped or given a class in that file's residue register. Outside it, `/cm` command output (`core/SlashCommands.lua`, `core/SlashDump.lua`) and the seeded category display names (`defaults/Categories.lua`) are still bare English — a known gap, not a claim. English is the only shipped locale; this is a shell, not localization plumbing. |
 
+### tools/
+
+| File | Responsibility |
+|------|----------------|
+| `tools/seeds/seeds.py` | The seed validator (Python 3.8+, standard library only; never loaded by the client, ignored by `.pkgmeta`). `status`, `derive`, `rule`, `check`, `report` and `apply` check every `defaults/Defaults_*.lua` list and the `core/Classifier.lua` whitelists against one pinned wago.tools build of the client's own product (`wow`, `wowf`), propose candidates where a list has a mechanical rule (`RULES`), and write accepted ids back. Contract and procedure: [validate-seeds.md](./validate-seeds.md). |
+| `tools/seeds/test_seeds.py` | Its offline tests, over fixture CSV rows and seed files ([testing.md](./testing.md#the-seed-validators-tests)). |
+| `tools/seeds/retail_rulings.json`, `tools/seeds/forever_rulings.json` | The rulings, one per candidate or flag key, written only by `seeds.py rule`. |
+
 ### Shared infrastructure
 
 - `libs/` — vendored Ace3 (including AceConfig-3.0 and AceDBOptions-3.0, for the Profiles page alone) + LibStub + CallbackHandler-1.0 + LibSharedMedia + LibKa0s, tracked in git (standard WoW addon practice). Loaded before any addon source by the `# Libraries` block of `ConsumableMaster.toc`, which lists each library file directly (no `embeds.xml` wrapper — toc-file-§4).

@@ -3,6 +3,8 @@
 -- Warlock Healthstones. The modern ranked healthstone (224464) auto-upgrades
 -- with warlock level; 5512 is the classic evergreen id kept as a safety net.
 -- Source: Wowhead, 2026-04.
+-- Validated: 2026-11-15 against Retail 12.1.5.70783 on wago.tools (tools/seeds/seeds.py,
+-- docs/seed-research/2026-11-15-retail/, issue #49).
 
 local _, NS = ...
 local KCM = NS
@@ -10,7 +12,7 @@ KCM.SEED = KCM.SEED or {}
 
 KCM.SEED.HS = KCM.PerClient({
     retail = {
-        224464,  -- Healthstone (modern Dragonflight+)
+        224464,  -- Demonic Healthstone (modern Dragonflight+)
         5512,    -- Healthstone (legacy; compatibility fallback)
     },
     -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;

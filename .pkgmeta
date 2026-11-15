@@ -8,6 +8,7 @@ enable-nolib-creation: no
 ignore:
   - docs        # includes docs/audits/ and docs/reviews/ bundles
   - tests
+  - tools       # the seed validator (tools/seeds/, Python, docs/validate-seeds.md); never loaded by the client
   - _dev        # the scratch dir packaging reserves; ignored whether or not it exists today
   - .luacheckrc
   - .pkgmeta

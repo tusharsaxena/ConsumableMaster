@@ -22,6 +22,7 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + its five pages (General, Macros, Stat Priority, Macro Bar, Profiles) |
 | `locales/` | `enUS.lua` (`KCM.L`) — English only |
+| `tools/seeds/` | The seed validator (`seeds.py`, Python 3, never loaded by the client and ignored by `.pkgmeta`): checks the `defaults/` seed lists against each client's DB2 tables on wago.tools (`clients-§10`), with its rulings as data (`retail_rulings.json`, `forever_rulings.json`). Contract: [validate-seeds.md](./validate-seeds.md) |
 
 `ConsumableMaster.toc` is the load-order source of truth (dependency order, not alphabetical).
 
@@ -584,12 +585,13 @@ Things that are true today, understood, and not bugs. Each is either a ratified 
   for issues.
 - **Tracked vs ignored.** `libs/` is tracked (vendored Ace3 / LibSharedMedia / LibKa0s — standard WoW
   addon practice), as are `defaults/`, `docs/`, `tests/`, `locales/` and all `.lua` source.
-  `.gitignore` covers `.claude/settings.local.json`, OS cruft and editor scratch files.
+  `.gitignore` covers `.claude/settings.local.json`, OS cruft and editor scratch files;
+  `tools/seeds/.gitignore` keeps the validator's per-build download cache (`.cache/`) out.
 
 ## Documentation map
 
 Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
-generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`, `docs/perf-analysis/`, `docs/revendor/`.
+generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/superpowers/`, `docs/perf-analysis/`, `docs/revendor/`, `docs/seed-research/`.
 
 ### Required (documentation-§3, Tier 1)
 
@@ -633,6 +635,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `macro-bar.md` | The optional on-screen macro bar — its model, slots and repaint path |
 | `macro-manager.md` | Macro ownership, fingerprints, and the rewrite protocol |
 | `seed-probe.md` | The seed probe's commands (`/cm probe seed ...`), its store and record shape, and how a scan is paced |
+| `validate-seeds.md` | The seed-validation contract `/dev-copilot:validate-seeds` runs: `tools/seeds/seeds.py`, its flavors (`retail`, `forever`), the precedent a ruling follows, and the gate. Each run is a frozen bundle under `docs/seed-research/` |
 
 ## Documented deviations
 
