@@ -339,8 +339,8 @@ function DL.Report(tag, title, fn)
     fn(function(line) lines[#lines + 1] = line end)
     if #lines == 0 then return 0 end
     D:Add(tag, "/cm " .. title)
-    -- Colors stay in the view. Copy still carries them (D:Add stores one string for both); a
-    -- colored view with a plain Copy buffer is the LibKa0s version's job (owner ruling 2026-11-08).
+    -- Colors stay in the view. Since LibKa0s v1.105.0 (DebugLog minor 23) D:Add stores the
+    -- buffer stripped of its escapes, so Copy is plain text (owner ruling 2026-11-08).
     for i = 1, #lines do D:Add(tag, lines[i]) end
     local n = #lines + 1
     if not D:IsShown() then D:Show() end

@@ -540,7 +540,8 @@ test("macrobar handle: the strip and the mark draw two distinct tooltips in one 
 -- The owner's rule, the same in every Ka0s addon with a drag strip: the
 -- tooltip sits to the strip's RIGHT, or to its LEFT when the strip's right edge
 -- plus the tooltip's width would leave the screen. Only a literal `true` means
--- placed; anything else makes the widget fall back to the cursor, so a read
+-- placed; anything else makes the widget fall back to its own placement (below the
+-- strip since LibKa0s v1.105.0; the cursor before it), so a read
 -- that cannot be trusted must answer non-true and leave the tooltip unanchored
 -- rather than guess. Plain tables stand in for the frames: the placement reads
 -- five methods and nothing else.
@@ -621,7 +622,7 @@ test("PlaceTooltipBeside answers non-true and anchors nothing when a read is sec
         _G.issecretvalue = function(v) return rawequal(v, secret) end
         local placed = MB.PlaceTooltipBeside(tip, strip)
         _G.issecretvalue = prior
-        t.truthy(placed ~= true, "the widget must fall back to the cursor")
+        t.truthy(placed ~= true, "the widget must fall back to its own placement")
         t.eq(#tip.points, 0, "nothing anchored on a guess")
     end)
 
@@ -633,16 +634,28 @@ test("PlaceTooltipBeside answers non-true and anchors nothing when a read is nil
 end)
 
 -- A hover whose placement cannot read the strip still shows its tooltip: the
--- widget re-owns it at the cursor with the same lines (WidgetsDragHandle 4).
+-- widget falls back to its own placement with the same lines. Through LibKa0s
+-- v1.104.0 that fallback re-owned the tooltip at the cursor (WidgetsDragHandle 4);
+-- since v1.105.0 (WidgetsDragHandleTip 1, LibKa0s#92) it is never the cursor: the
+-- tooltip stays owned by UIParent at ANCHOR_NONE and attaches below the strip
+-- (anti-pattern #119).
 -- red under: a placement that anchors on a guess and answers true anyway.
-test("macrobar handle: an unreadable strip falls back to the cursor with the same tooltip",
+test("macrobar handle: an unreadable strip falls back below the strip with the same tooltip",
     function(t)
         local _, handle = bench()
         handle.GetRight = function() return nil end
         local rec = hover(handle)
-        t.eq(rec.anchor, "ANCHOR_CURSOR", "re-owned at the cursor")
-        t.eq(rec.point, nil, "nothing anchored beside a strip it could not read")
+        t.truthy(rawequal(rec.owner, _G.UIParent), "still owned by UIParent")
+        t.eq(rec.anchor, "ANCHOR_NONE", "at ANCHOR_NONE")
+        for _, a in ipairs(rec.owners) do
+            t.truthy(a ~= "ANCHOR_CURSOR", "never re-owned at the cursor")
+        end
+        t.truthy(rec.point ~= nil, "the library's fallback anchors it")
+        t.eq(rec.point and rec.point[1], "TOP", "its top edge")
+        t.truthy(rec.point and rawequal(rec.point[2], handle), "to the strip")
+        t.eq(rec.point and rec.point[3], "BOTTOM", "below it, not beside a strip it could not read")
         t.truthy(hasLine(rec, "Consumable Master"), "the same tooltip, still shown")
+        t.truthy(rec.shown, "and shown")
     end)
 
 -- The lock can change between two hovers of the same strip, which is why both

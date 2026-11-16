@@ -178,7 +178,7 @@ end
 --- `help` field) or one of its marks, whose parent is the strip, so all three
 --- tooltips show in one place.
 --- @return true|nil  true only once the tooltip is anchored; nil (the widget's
----                   cursor fallback) when any read is missing, nil or secret,
+---                   own fallback, below the strip) when any read is missing, nil or secret,
 ---                   with nothing anchored.
 function MB.PlaceTooltipBeside(tip, frame)
     if not (tip and frame) then return nil end
