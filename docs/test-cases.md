@@ -604,7 +604,7 @@ Total.
 - PlaceTooltipBeside compares in screen pixels, so a scaled strip flips when it should
 - PlaceTooltipBeside answers non-true and anchors nothing when a read is secret
 - PlaceTooltipBeside answers non-true and anchors nothing when a read is nil
-- macrobar handle: an unreadable strip falls back below the strip with the same tooltip
+- macrobar handle: an unreadable strip falls back above the strip with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark holds its resting gray, because no click is wired here
 - macrobar handle: a layout pass while unlocked refits the strip at the new scale and width

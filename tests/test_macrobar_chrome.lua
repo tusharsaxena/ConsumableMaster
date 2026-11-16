@@ -637,10 +637,11 @@ end)
 -- widget falls back to its own placement with the same lines. Through LibKa0s
 -- v1.104.0 that fallback re-owned the tooltip at the cursor (WidgetsDragHandle 4);
 -- since v1.105.0 (WidgetsDragHandleTip 1, LibKa0s#92) it is never the cursor: the
--- tooltip stays owned by UIParent at ANCHOR_NONE and attaches below the strip
--- (anti-pattern #119).
+-- tooltip stays owned by UIParent at ANCHOR_NONE and attaches to the strip
+-- (anti-pattern #119): above it, centered, since the re-cut v1.105.0 (smoke
+-- round 1, SR-L1; it was below at the first cut), and below only without room.
 -- red under: a placement that anchors on a guess and answers true anyway.
-test("macrobar handle: an unreadable strip falls back below the strip with the same tooltip",
+test("macrobar handle: an unreadable strip falls back above the strip with the same tooltip",
     function(t)
         local _, handle = bench()
         handle.GetRight = function() return nil end
@@ -651,9 +652,9 @@ test("macrobar handle: an unreadable strip falls back below the strip with the s
             t.truthy(a ~= "ANCHOR_CURSOR", "never re-owned at the cursor")
         end
         t.truthy(rec.point ~= nil, "the library's fallback anchors it")
-        t.eq(rec.point and rec.point[1], "TOP", "its top edge")
+        t.eq(rec.point and rec.point[1], "BOTTOM", "its bottom edge")
         t.truthy(rec.point and rawequal(rec.point[2], handle), "to the strip")
-        t.eq(rec.point and rec.point[3], "BOTTOM", "below it, not beside a strip it could not read")
+        t.eq(rec.point and rec.point[3], "TOP", "above it, not beside a strip it could not read")
         t.truthy(hasLine(rec, "Consumable Master"), "the same tooltip, still shown")
         t.truthy(rec.shown, "and shown")
     end)
