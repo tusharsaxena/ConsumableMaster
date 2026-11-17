@@ -34,6 +34,23 @@ local function report(KCM, mock, line)
     return table.concat(text, "\n")
 end
 
+-- The same report as the console SHOWS it. Since LibKa0s v1.105.0 (DebugLog minor
+-- 23) `buffer` holds each line stripped of its escapes, so Copy is plain text, and
+-- the colors live only in the view: a case that pins a color reads it there, through
+-- a recorder on the message frame's AddMessage (the library's own way, its
+-- tests/test_debuglog_plain.lua), with no new public reader.
+local function reportView(KCM, mock, line)
+    local D = KCM.DebugLog.instance
+    D:Show()
+    local log, seen = D._frameForTest.log, {}
+    rawset(log, "AddMessage", function(_, msg) seen[#seen + 1] = msg end)
+    mock.output = {}
+    local ok, err = pcall(KCM.OnSlashCommand, KCM, line)
+    rawset(log, "AddMessage", nil)
+    if not ok then error(err, 0) end
+    return table.concat(seen, "\n")
+end
+
 local function effectiveSet(KCM, catKey)
     local set = {}
     for _, id in ipairs(KCM.Selector.GetEffectivePriority(catKey)) do set[id] = true end
@@ -401,7 +418,7 @@ end)
 test("/cm priority list renders item and spell rows in the same columns", function(t)
     local KCM, mock = load()
     KCM:OnSlashCommand("priority food add s:5512")
-    local text = report(KCM, mock, "priority food list")
+    local text = reportView(KCM, mock, "priority food list")
     t.truthy(text:find("|cff888888[---]  |r", 1, true), "the not-owned tag keeps its two-space pad")
     t.truthy(text:match("  %d+%. |cff%x+%[[^%]]+%][^|]*|r s:5512 "),
         "a spell entry renders as s:<id> in the 12-wide ID column")
@@ -771,7 +788,7 @@ end)
 test("/cm dump item on an unclassifiable item says (none) in red", function(t)
     local KCM, mock = load()
     mock.setItem(960035, { name = "Mystery Thing", subType = "Other" })
-    local text = report(KCM, mock, "dump item 960035")
+    local text = reportView(KCM, mock, "dump item 960035")
     t.truthy(text:find("classified: |cffff4444(none)|r", 1, true), "no category match is called out")
 end)
 
@@ -817,7 +834,7 @@ end)
 test("/cm dump pick on a composite renders both sections with on/off tags", function(t)
     local KCM, mock = load()
     KCM:OnSlashCommand("aio hp_aio toggle HS off")
-    local text = report(KCM, mock, "dump pick hp_aio")
+    local text = reportView(KCM, mock, "dump pick hp_aio")
     t.truthy(text:find("HP_AIO (composite)", 1, true), "the composite header")
     t.truthy(text:find("  In Combat", 1, true), "the In Combat section")
     t.truthy(text:find("  Out of Combat", 1, true), "the Out of Combat section")

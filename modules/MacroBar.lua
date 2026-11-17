@@ -145,7 +145,8 @@ end
 -- drag strip (KickCD's NS.Util.PlaceTooltipBeside is the reference). The widget
 -- owns GameTooltip by UIParent at ANCHOR_NONE, draws and shows it, then calls
 -- this under pcall; only a literal `true` means placed, and anything else falls
--- back to the cursor tooltip with the same lines.
+-- back to the widget's own placement with the same lines: attached above the
+-- strip, below only without room (LibKa0s v1.105.0, SR-L1), never the cursor.
 -- ---------------------------------------------------------------------------
 
 -- The gap between the strip's edge and the tooltip, in the tooltip's own units
@@ -178,7 +179,7 @@ end
 --- `help` field) or one of its marks, whose parent is the strip, so all three
 --- tooltips show in one place.
 --- @return true|nil  true only once the tooltip is anchored; nil (the widget's
----                   cursor fallback) when any read is missing, nil or secret,
+---                   own fallback, above the strip) when any read is missing, nil or secret,
 ---                   with nothing anchored.
 function MB.PlaceTooltipBeside(tip, frame)
     if not (tip and frame) then return nil end

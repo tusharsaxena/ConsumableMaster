@@ -101,12 +101,13 @@ local MAJORS = {
         -- pickers), paired the same way. LibKa0s v1.84.0 peeled four more: OptionsFlow (out of
         -- OptionsWidgets), OptionsTabbed (out of OptionsTabs), OptionsIdSuggest (out of OptionsIds)
         -- and OptionsSkinPickerRows (out of OptionsSkinPicker), each paired the same way. LibKa0s v1.93.0
-        -- peeled OptionsHeader out of OptionsTabs, paired the same way.
+        -- peeled OptionsHeader out of OptionsTabs, paired the same way. LibKa0s v1.105.0 peeled
+        -- OptionsSkinPickerQueue (the picker's queue) out of OptionsSkinPicker, paired the same way.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
                   "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
                   "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker", "OptionsSwitch",
                   "OptionsMedia", "OptionsFlow", "OptionsTabbed", "OptionsIdSuggest",
-                  "OptionsSkinPickerRows", "OptionsHeader" },
+                  "OptionsSkinPickerRows", "OptionsHeader", "OptionsSkinPickerQueue" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -129,6 +130,7 @@ local MAJORS = {
             { file = "OptionsIdSuggest",  minor = "__suggestMinor",    shell = "__suggestShellMinor" },
             { file = "OptionsSkinPickerRows", minor = "__pickerRowsMinor", shell = "__pickerRowsShellMinor" },
             { file = "OptionsHeader",     minor = "__headerMinor",     shell = "__headerShellMinor" },
+            { file = "OptionsSkinPickerQueue", minor = "__pickerQueueMinor", shell = "__pickerQueueShellMinor" },
         },
     },
     {
