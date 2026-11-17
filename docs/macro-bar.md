@@ -404,12 +404,22 @@ same way back. In combat the flag is written at once and the hide waits for
 widget reserves its frame on both sides of the label, so the label stays
 centered.
 
-**Where the tooltips sit.** All three — the strip's, the help icon's and the
-X's — open **beside the strip**: to its right, or to its left when the strip's
-right edge plus the tooltip's width would leave the screen. The strip hands the
+Left of the X sits a **settings mark** (the widget's `settings = true`,
+DragHandle minor 14, LibKa0s#86, turned on at AD-86-CM). A left click opens this
+addon's settings: the strip passes no `onSettings`, so the widget calls
+LibKa0s-Core-1.0's `OpenSettings(owner)`, and `owner` is the folder name, the
+key `core/LauncherSetup.lua` registers the launcher's `openSettings` under. The
+minimap button and this mark are two doors on one opener (`KCM.Options.Open`).
+Its art is the declared `settings` icon, its tooltip its own (`Open settings`,
+`Click to open Consumable Master's settings.`), and it widens the strip by one
+more mark's frame on each side of the label, as the X does.
+
+**Where the tooltips sit.** All four — the strip's, the help icon's, the
+X's and the settings mark's — open **beside the strip**: to its right, or to
+its left when the strip's right edge plus the tooltip's width would leave the screen. The strip hands the
 widget `MB.PlaceTooltipBeside` as its `tooltipPlace` (LibKa0s WidgetsDragHandle
 minor 4), so no descriptor names an owner or an anchor. A mark resolves to its
-strip, so the three share one position. The comparison is in screen pixels,
+strip, so the four share one position. The comparison is in screen pixels,
 because the bar takes the master scale and the strip inherits it. Every
 geometry read is asked whether it is nil or secret first; any such read answers
 nil, nothing is anchored, and the widget shows the same tooltip at the cursor.

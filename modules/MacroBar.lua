@@ -301,9 +301,20 @@ local function buildBar()
                 KCM.L["/cm bar on brings it back."],
             },
         },
-        -- WHERE all three tooltips sit (the strip's, the ?'s and the X's) is
-        -- this one hook's, beside the strip; no descriptor names an owner or an
-        -- anchor, because the hook replaces both (TP-CM-02).
+        -- The settings mark, left of the X (DragHandle minor 14, LibKa0s#86,
+        -- AD-86-CM). `true` rather than a function: the click goes through
+        -- LibKa0s-Core-1.0's opener registry by `owner`, this folder's name,
+        -- which is the key core/LauncherSetup.lua registers its openSettings
+        -- under -- one opener behind the minimap button and this mark.
+        settings        = true,
+        settingsIcon    = KCM.Icon and KCM.Icon("settings") or nil,
+        settingsTooltip = {
+            title = KCM.L["Open settings"],
+            body  = { KCM.L["Click to open Consumable Master's settings."] },
+        },
+        -- WHERE all four tooltips sit (the strip's, the ?'s, the X's and the
+        -- settings mark's) is this one hook's, beside the strip; no descriptor
+        -- names an owner or an anchor, because the hook replaces both (TP-CM-02).
         tooltipPlace = MB.PlaceTooltipBeside,
         -- The STRIP's tooltip: titled for the addon. Its one body line is a
         -- FUNCTION rather than a string because it is read on every hover, and

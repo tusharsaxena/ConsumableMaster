@@ -432,7 +432,7 @@ local function armGeometry(handle, right)
     _G.UIParent.GetEffectiveScale = function() return 1 end
     handle.GetRight          = function() return right or 500 end
     handle.GetEffectiveScale = function() return 1 end
-    for _, mark in ipairs({ handle.help, handle.close }) do
+    for _, mark in pairs({ handle.help, handle.close, handle.settings }) do
         mark.GetParent = function() return handle end
     end
 end
@@ -803,15 +803,65 @@ test("macrobar handle: the X's tooltip says what the click does and the way back
     t.truthy(hasLine(rec, X_BACK), "…and carries the chat line's way back")
 end)
 
--- The X widens the strip: the widget reserves the close mark's frame on both
--- sides of the label (Widgets 10.3, `handle:Reserve()`). This addon pins no
--- Measure literal; the reserve is read from the library's own constants.
-test("macrobar handle: the X widens the label's reserve by the close mark's frame", function(t)
+-- The X and the settings mark widen the strip: the widget reserves each mark's
+-- frame on both sides of the label (Widgets 10.3, `handle:Reserve()`; the
+-- settings mark's share since DragHandle minor 14, AD-86-CM). This addon pins
+-- no Measure literal; the reserve is read from the library's own constants.
+-- RE-PINNED at AD-86-CM: it was RESERVE + one mark's frame (the X alone).
+test("macrobar handle: the X and the settings mark widen the label's reserve by a frame each",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local D = LibStub("LibKa0s-Widgets-1.0").DRAG_HANDLE
+        t.eq(handle:Reserve(), D.RESERVE + 2 * (D.HELP_HIT + D.CLOSE_GAP),
+            "the reserve is the strip's with a close mark and a settings mark")
+    end)
+
+-- ---------------------------------------------------------------------------
+-- The drag handle's settings mark (AD-86-CM, LibKa0s#86, DragHandle minor 14)
+--
+-- The strip opts in with `settings = true`: no onSettings of its own, so a
+-- click goes through LibKa0s-Core-1.0's registry by the strip's owner, which
+-- is this addon's folder -- the same key the launcher registers its opener
+-- under (core/LauncherSetup.lua's `name`). One opener, two doors.
+-- ---------------------------------------------------------------------------
+
+-- red under: a strip built without `settings`.
+test("macrobar handle: the strip carries a settings mark left of the X", function(t)
     local KCM = h.loader.loadFullAddon()
     local _, _, handle = support.buildBar(KCM)
-    local D = LibStub("LibKa0s-Widgets-1.0").DRAG_HANDLE
-    t.eq(handle:Reserve(), D.RESERVE + D.HELP_HIT + D.CLOSE_GAP,
-        "the reserve is the strip's with a close mark")
+    t.truthy(handle.settings, "the widget drew the settings mark")
+    t.truthy(handle.settings ~= handle.close and handle.settings ~= handle.help,
+        "…as its own frame, not the X or the ?")
+end)
+
+-- red under: a strip without `settings`, or one whose click opens anything but
+-- the launcher's opener (KCM.Options.Open, the published panel seam).
+test("macrobar handle: the settings mark's left click opens Consumable Master's settings",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local opens = 0
+        KCM.Options.Open = function() opens = opens + 1; return true end
+        t.truthy(handle.settings, "the strip carries a settings mark")
+        local c = KCM.db.profile.macroBar
+        local enabled, locked = c.enabled, c.locked
+        handle.settings:GetScript("OnClick")(handle.settings, "LeftButton")
+        t.eq(opens, 1, "the panel was asked to open, once")
+        t.eq(c.enabled, enabled, "the bar is not hidden")
+        t.eq(c.locked, locked, "the lock is untouched")
+    end)
+
+-- red under: dropping `settingsTooltip` (the mark would show the strip's
+-- tooltip, titled for the addon, with the drag line).
+test("macrobar handle: the settings mark's tooltip says what the click does", function(t)
+    local _, handle = bench()
+    t.truthy(handle.settings, "the strip carries a settings mark")
+    local rec = hover(handle.settings)
+    t.eq(rec.lines[1], "Open settings", "the mark carries its own title")
+    assertBesideStrip(t, rec, handle, "settings mark")
+    t.truthy(hasLine(rec, "Click to open Consumable Master's settings."),
+        "…says what the click does")
 end)
 
 -- The bar is a secure frame: its hide waits for PLAYER_REGEN_ENABLED, through
