@@ -746,12 +746,15 @@ Total.
 - layers: a flyout entry uses the slot's ladder (CON-Z04)
 - layers: no strata literal and no unnamed level offset in core, modules or settings
 
-### test_macrobar_tooltips.lua (9)
+### test_macrobar_tooltips.lua (12)
 
 - bar tooltip: a slot's tooltip opens right of the whole bar, top level with the slot
 - bar tooltip: a slot's tooltip flips to the bar's left when the right side has no room
 - bar tooltip: an open flyout and the drag strip count as the bar's window group
 - bar tooltip: a flyout entry's tooltip opens beside the group, outside the flyout
+- bar tooltip: a Left flyout's entry tooltip opens left, beyond the flyout
+- bar tooltip: a Right flyout's entry tooltip opens right, beyond the flyout
+- bar tooltip: a Left flyout at the screen's left edge opens its entry tooltip right of the bar
 - bar tooltip: a built flyout entry's hover places beside the group
 - bar tooltip: unreadable geometry attaches above the slot, never the cursor
 - bar tooltip: MD.SetTooltip with no placer keeps the Settings canvas's anchor
@@ -1802,7 +1805,7 @@ Total.
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 21 |
 | test_macrobar_layers.lua | 9 |
-| test_macrobar_tooltips.lua | 9 |
+| test_macrobar_tooltips.lua | 12 |
 | test_macromanager.lua | 60 |
 | test_mediasetup.lua | 13 |
 | test_perfsetup.lua | 11 |
@@ -1852,4 +1855,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1494** |
+| **Total** | **1497** |

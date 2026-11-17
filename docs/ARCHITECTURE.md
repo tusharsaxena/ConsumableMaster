@@ -303,8 +303,13 @@ no `ANCHOR_CURSOR`, no cursor-following `OnUpdate` and no chart.
   group** is the bar plus the drag strip and every open flyout: `buildBar` (`modules/MacroBar.lua`)
   registers the bar with `SetGroup`, its companions re-read on each hover (the strip and
   `FO.Built()`'s flyouts, the shown ones only), so a tooltip never covers an open flyout or the
-  strip. Every member prefers the right (`prefer = "right"`): a flyout pops out over its own slot,
-  inside the bar's span, so it is no docked companion panel with an away side. With no room on
+  strip. No side is forced: a slot is in the main window, so it opens right, else left; an open
+  flyout is a companion docked to the bar, so an entry's tooltip prefers the flyout's side of the
+  bar's center, away from the bar (body rule 1), and goes outside the group's other edge when that
+  side has no room. A **Flyout side** Left flyout opens its entries' tooltips left of it, a Right
+  one right of it, and a Top or Bottom one on whichever side of the bar's center its slot sits.
+  Until the AD-92-CM review fixes every member was forced right (`prefer = "right"`), on the
+  mistaken ground that a flyout stays inside the bar's span. With no room on
   either side the library attaches the tooltip above the element; with the library absent or the
   element unreadable, `MD.PlaceBody` attaches it centered above the element (`BOTTOM` on its
   `TOP`, `TIP_GAP` up). Until AD-92-CM both owned the tooltip at `ANCHOR_RIGHT`, on the slot's
@@ -333,7 +338,9 @@ no `ANCHOR_CURSOR`, no cursor-following `OnUpdate` and no chart.
 | An action-bar button holding a `KCM_*` macro | the client (`#showtooltip`) | *What it does not bind*: a Blizzard frame |
 
 The `ANCHOR_RIGHT` sites above are a closed list: `tests/test_macrobar_tooltips.lua`'s guard holds
-the addon's own files to no cursor or corner anchor, and to `ANCHOR_RIGHT` only in those four files.
+the addon's own files to no cursor or corner anchor, and to `ANCHOR_RIGHT` only on one allowed
+line in each of those four files, once: in `core/MacroDisplay.lua`, which also serves the HUD, that
+line is `MD.SetTooltip`'s no-placer branch, so a HUD path owning at `ANCHOR_RIGHT` there is caught.
 
 ## Invariants worth not breaking
 

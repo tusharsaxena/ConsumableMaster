@@ -155,7 +155,8 @@ end
 -- tooltip opens BESIDE the display's window group (the bar, its drag strip and
 -- every open flyout; modules/MacroBar.lua registers it with
 -- LibKa0s-Tooltip-1.0's SetGroup), right when it fits, else left, its top level
--- with the hovered element's top: the library's PlaceBeside, after Show, on a
+-- with the hovered element's top (a flyout entry's: on the flyout's side of the
+-- bar, as a companion panel's): the library's PlaceBeside, after Show, on a
 -- tooltip owned at ANCHOR_NONE. Never at the cursor, never at a corner of the
 -- slot (the ANCHOR_RIGHT this file used until then sat the tooltip over the
 -- next slot). When the library is absent or the element cannot be read, the
@@ -168,12 +169,12 @@ end
 
 local TIP_GAP = 2   -- LibKa0s-Tooltip-1.0's TIP_GAP, for the fallback attach
 
--- Right first, left when the right has no room, for every member of the group.
--- The library would otherwise read a flyout as a companion panel and prefer its
--- side away from the bar's center, but a flyout is no docked panel: it pops out
--- above or below its own slot, inside the bar's span, so an entry's tooltip
--- opens where its slot's does.
-local PREFER_RIGHT = { prefer = "right" }
+-- No side is forced. A slot is in the main window, so the library prefers the
+-- right and falls back to the left. An open flyout is a companion docked to the
+-- bar (Flyout side Left or Right reaches past the bar's edge), so an entry's
+-- tooltip prefers the flyout's side of the bar's center, away from the bar, and
+-- when that side has no room it goes outside the group's other edge (body
+-- rule 1). Either way it sits outside the whole group.
 
 -- The placement major, read at call time (a newer vendored copy, or none).
 local function tipLib()
@@ -197,7 +198,7 @@ end
 --- @return string
 function MD.PlaceBody(tip, element)
     local Tip = tipLib()
-    local side = Tip and Tip.PlaceBeside(tip, element, nil, PREFER_RIGHT)
+    local side = Tip and Tip.PlaceBeside(tip, element)
     if side then return side end
     tip:ClearAllPoints()
     tip:SetPoint("BOTTOM", element, "TOP", 0, TIP_GAP)

@@ -41,6 +41,9 @@ local function loadBar()
             rawset(f, "Hide", function(self) rawset(self, "__shown", false) end)
             rawset(f, "SetShown", function(self, on) rawset(self, "__shown", on and true or false) end)
             rawset(f, "IsShown", function(self) return rawget(self, "__shown") == true end)
+            -- The frame's own flag stands in for IsVisible: the stub's catch-all answered a table, so
+            -- every built flyout (unplaced, its edges reading 0) joined the bar's window group.
+            rawset(f, "IsVisible", function(self) return rawget(self, "__shown") == true end)
             return f
         end
     end)
@@ -163,7 +166,10 @@ test("bar tooltip: an open flyout and the drag strip count as the bar's window g
     scr.restore()
 end)
 
--- red under: MD.SetTooltipForID owning at ANCHOR_RIGHT on the entry.
+-- red under: MD.SetTooltipForID owning at ANCHOR_RIGHT on the entry, or a right preference forced
+-- on every member. Re-pinned by the AD-92-CM review fixes to the rule's companion side: a flyout
+-- is a panel docked to the bar, and this one (over the bar's first slot, its center left of the
+-- bar's) opens its entries' tooltips on its own side, left, outside the whole group.
 test("bar tooltip: a flyout entry's tooltip opens beside the group, outside the flyout", function(t)
     local KCM, bar = loadBar()
     local scr, tip = screen()
@@ -174,9 +180,57 @@ test("bar tooltip: a flyout entry's tooltip opens beside the group, outside the 
     local entry = place(_G.CreateFrame("Button", nil, btn.flyout), 804, 636, 40, 40)
     KCM.MacroDisplay.SetTooltipForID(entry, 1234)
     assertPlacedBeside(t, tip, "flyout entry")
-    local l, _, _, top = scr.rectOf(tip)
-    t.eq(l, 1200 + GAP, "outside the whole group's right edge, not on the entry's corner (844)")
+    t.eq(tip.__point and tip.__point.point, "TOPRIGHT", "its top-right")
+    local _, _, r, top = scr.rectOf(tip)
+    t.eq(r, 800 - GAP, "outside the whole group's left edge, the flyout's side, not on the entry's corner")
     t.eq(top, 676, "top level with the entry's top")
+    scr.restore()
+end)
+
+--- A slot on the bar with its flyout open at (fl, fb, fw, fh) and one entry in it at (el, eb).
+local function entryInFlyout(KCM, bar, fl, fb, fw, fh, el, eb)
+    local btn = slotOnBar(KCM, bar, 800)
+    place(btn.flyout, fl, fb, fw, fh)
+    btn.flyout:Show()
+    return place(_G.CreateFrame("Button", nil, btn.flyout), el, eb, 40, 40)
+end
+
+-- red under: a right preference forced on a flyout entry (PREFER_RIGHT until the AD-92-CM review
+-- fixes), which opened a Left flyout's entry tooltips right of the bar, the side of the main
+-- window, against body rule 1's companion side.
+test("bar tooltip: a Left flyout's entry tooltip opens left, beyond the flyout", function(t)
+    local KCM, bar = loadBar()
+    local scr, tip = screen()
+    local entry = entryInFlyout(KCM, bar, 620, 502, 180, 40, 620, 502)
+    KCM.MacroDisplay.SetTooltipForID(entry, 1234)
+    assertPlacedBeside(t, tip, "Left flyout entry")
+    local _, _, r, top = scr.rectOf(tip)
+    t.eq(r, 620 - GAP, "outside the open flyout's left edge, away from the bar")
+    t.eq(top, 542, "top level with the entry's top")
+    scr.restore()
+end)
+
+test("bar tooltip: a Right flyout's entry tooltip opens right, beyond the flyout", function(t)
+    local KCM, bar = loadBar()
+    local scr, tip = screen()
+    local entry = entryInFlyout(KCM, bar, 1200, 502, 180, 40, 1340, 502)
+    KCM.MacroDisplay.SetTooltipForID(entry, 1234)
+    assertPlacedBeside(t, tip, "Right flyout entry")
+    local l = scr.rectOf(tip)
+    t.eq(l, 1380 + GAP, "outside the open flyout's right edge, away from the bar")
+    scr.restore()
+end)
+
+-- A companion's side that has no room: the tooltip goes outside the group's other edge.
+test("bar tooltip: a Left flyout at the screen's left edge opens its entry tooltip right of the bar", function(t)
+    local KCM, bar = loadBar()
+    local scr, tip = screen()
+    local entry = entryInFlyout(KCM, bar, 20, 502, 130, 40, 20, 502)
+    place(bar, 150, 500, 400, 44)   -- the whole group at the left edge: 20 - 2 - 250 < 0
+    KCM.MacroDisplay.SetTooltipForID(entry, 1234)
+    assertPlacedBeside(t, tip, "Left flyout entry, left edge")
+    local l = scr.rectOf(tip)
+    t.eq(l, 550 + GAP, "outside the group's right edge, never over the flyout")
     scr.restore()
 end)
 
@@ -190,6 +244,7 @@ h.retailTest("bar tooltip: a built flyout entry's hover places beside the group"
     mock.setBag(seed[1], 1)
     local scr, tip = screen()
     place(bar, 800, 500, 400, 44)
+    if bar.handle then bar.handle:Hide() end   -- unplaced, the strip would read 0 and widen the group
     local btn = KCM.MacroBarButton.Create(bar, "HP_POT", 98)
     place(btn, 804, 502, 40, 40)
     KCM.MacroBarFlyout.Apply(btn, support.fcfg{ flyout = true })
@@ -200,8 +255,10 @@ h.retailTest("bar tooltip: a built flyout entry's hover places beside the group"
     place(e, 804, 548, 40, 40)
     e:GetScript("OnEnter")(e)
     assertPlacedBeside(t, tip, "built entry")
-    local l, _, _, top = scr.rectOf(tip)
-    t.eq(l, 1200 + GAP, "beside the group")
+    -- Re-pinned by the AD-92-CM review fixes: the flyout (over the bar's first slot) is a companion
+    -- left of the bar's center, so its entry's tooltip opens on its side, outside the group's left.
+    local _, _, r, top = scr.rectOf(tip)
+    t.eq(r, 800 - GAP, "beside the group, on the flyout's side")
     t.eq(top, 588, "top level with the entry")
     scr.restore()
 end)
@@ -245,14 +302,38 @@ end)
 -- Settings-canvas pages the rule does not bind.
 -- ---------------------------------------------------------------------------
 
--- The closed list of own files that still own a tooltip at ANCHOR_RIGHT, each a Settings canvas
--- page's (docs/ARCHITECTURE.md, *Tooltip placement*, out of scope).
+-- The closed list of the own code lines that still own a tooltip at ANCHOR_RIGHT, each a Settings
+-- canvas page's (docs/ARCHITECTURE.md, *Tooltip placement*, out of scope): per file, the one
+-- allowed line, whitespace-trimmed. A file may carry that line once and no other ANCHOR_RIGHT, so a
+-- HUD path added to a file that also serves the canvas (core/MacroDisplay.lua) is still caught.
 local CANVAS_RIGHT = {
-    ["core/MacroDisplay.lua"]       = "MD.SetTooltip's no-placer path: the Macros page's drag icon",
-    ["modules/KCMItemRow.lua"]      = "a priority row on the Macros page",
-    ["settings/MacroBarSlots.lua"]  = "a slot row's tick on the Macro Bar page's Buttons tab",
-    ["settings/StatPriority.lua"]   = "a stat row's tick on the Stat Priority page",
+    -- MD.SetTooltip's no-placer branch: the Macros page's drag icon
+    ["core/MacroDisplay.lua"]      =
+        'if place then ownForPlacement(owner) else GameTooltip:SetOwner(owner, "ANCHOR_RIGHT") end',
+    -- a priority row on the Macros page
+    ["modules/KCMItemRow.lua"]     = 'GameTooltip:SetOwner(self, "ANCHOR_RIGHT")',
+    -- a slot row's tick on the Macro Bar page's Buttons tab
+    ["settings/MacroBarSlots.lua"] = 'GameTooltip:SetOwner(glyph, "ANCHOR_RIGHT")',
+    -- a stat row's tick on the Stat Priority page
+    ["settings/StatPriority.lua"]  = 'GameTooltip:SetOwner(self, "ANCHOR_RIGHT")',
 }
+
+--- Every ANCHOR_RIGHT site in `code` (comments stripped) that the allow-list does not cover for
+--- `rel`: a list of trimmed lines, empty when the file is clean.
+local function strayRight(rel, code)
+    local allowed, seen, out = CANVAS_RIGHT[rel], 0, {}
+    for line in (code .. "\n"):gmatch("([^\n]*)\n") do
+        if line:find("ANCHOR_RIGHT", 1, true) then
+            local trimmed = line:match("^%s*(.-)%s*$")
+            if trimmed == allowed and seen == 0 then
+                seen = 1
+            else
+                out[#out + 1] = trimmed
+            end
+        end
+    end
+    return out
+end
 
 --- The addon's own Lua files, from its TOC (the vendored libraries are not its own).
 local function ownFiles()
@@ -289,10 +370,13 @@ test("bar tooltip guard: no own file anchors a tooltip at the cursor or a corner
                                  "ANCHOR_BOTTOM", "ANCHOR_PRESERVE" }) do
                 t.falsy(code:find(a, 1, true), rel .. ": no " .. a)
             end
-            if code:find("ANCHOR_RIGHT", 1, true) then right[#right + 1] = rel end
+            for _, line in ipairs(strayRight(rel, code)) do right[#right + 1] = rel .. ": " .. line end
         end
-        for _, rel in ipairs(right) do
-            t.truthy(CANVAS_RIGHT[rel], rel .. ": ANCHOR_RIGHT outside the Settings canvas")
+        t.eqList(right, {}, "no ANCHOR_RIGHT outside the Settings canvas's allowed lines")
+        for rel in pairs(CANVAS_RIGHT) do
+            local fh = io.open(ROOT .. "/" .. rel, "rb")
+            local code = codeOf(fh:read("*a")); fh:close()
+            t.truthy(code:find(CANVAS_RIGHT[rel], 1, true), rel .. ": the allowed line is still there")
         end
     end)
 
@@ -300,7 +384,17 @@ test("bar tooltip guard: no own file anchors a tooltip at the cursor or a corner
 test("bar tooltip guard: the check is falsifiable", function(t)
     local planted = codeOf('GameTooltip:SetOwner(self, "ANCHOR_CURSOR") -- ANCHOR_NONE')
     t.truthy(planted:find("ANCHOR_CURSOR", 1, true), "a planted cursor anchor is seen")
-    t.falsy(CANVAS_RIGHT["modules/MacroBarButton.lua"], "a slot's ANCHOR_RIGHT would be flagged")
+    t.eq(#strayRight("modules/MacroBarButton.lua", 'GameTooltip:SetOwner(self, "ANCHOR_RIGHT")'), 1,
+        "a slot's ANCHOR_RIGHT would be flagged")
+    -- A HUD path owning at ANCHOR_RIGHT in the file that also serves the canvas.
+    local mixed = CANVAS_RIGHT["core/MacroDisplay.lua"] .. "\n"
+        .. '    GameTooltip:SetOwner(entry, "ANCHOR_RIGHT")'
+    t.eqList(strayRight("core/MacroDisplay.lua", mixed), { 'GameTooltip:SetOwner(entry, "ANCHOR_RIGHT")' },
+        "a second ANCHOR_RIGHT in a mixed file is caught")
+    t.eq(#strayRight("core/MacroDisplay.lua", CANVAS_RIGHT["core/MacroDisplay.lua"] .. "\n"
+        .. CANVAS_RIGHT["core/MacroDisplay.lua"]), 1, "and so is the allowed line twice")
+    t.eq(#strayRight("core/MacroDisplay.lua", CANVAS_RIGHT["core/MacroDisplay.lua"]), 0,
+        "the canvas branch alone passes")
     t.falsy(codeOf("-- ANCHOR_CURSOR in a comment"):find("ANCHOR_CURSOR", 1, true),
         "a comment is not a site")
 end)
