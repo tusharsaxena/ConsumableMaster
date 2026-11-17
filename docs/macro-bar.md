@@ -26,8 +26,9 @@ files, which `tests/test_macrobar.lua` and its peeled siblings
 `tests/test_macrobar_chrome.lua` for the chrome appliers) exercise headlessly. The `modules/`
 files are a thin apply pass whose behavior is otherwise validated in-game
 (see [smoke-tests.md](./smoke-tests.md)) — the one exception is the drag
-handle's three tooltips and where they sit, its mark tint and its close mark,
-which are plain Lua closures over the lock and the `macroBar.enabled` write,
+handle's four tooltips and where they sit, its mark tint, its close mark and
+its settings mark, which are plain Lua closures over the lock, the
+`macroBar.enabled` write and the settings opener,
 hovered and clicked headlessly in `tests/test_macrobar_chrome.lua`.
 
 `core/MacroDisplay.lua` is also used by `modules/KCMMacroDragIcon.lua` — the

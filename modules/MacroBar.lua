@@ -140,7 +140,7 @@ end
 -- Drag strip tooltip placement (TP-CM-02, LibKa0s WidgetsDragHandle minor 4)
 --
 -- The strip passes this as LibKa0s-Widgets' `tooltipPlace`, so its tooltip and
--- both marks' (? and X) open BESIDE the strip: to its right, or to its left
+-- its three marks' (?, X and settings) open BESIDE the strip: to its right, or to its left
 -- when that would leave the screen. The same rule, line for line, as every Ka0s
 -- drag strip (KickCD's NS.Util.PlaceTooltipBeside is the reference). The widget
 -- owns GameTooltip by UIParent at ANCHOR_NONE, draws and shows it, then calls
@@ -176,7 +176,7 @@ end
 --- Place a strip tooltip beside the strip: to its right, or to its left when
 --- the strip's right edge plus the tooltip's width would pass the screen's right
 --- edge. `frame` is the frame hovered: the strip itself (it carries the widget's
---- `help` field) or one of its marks, whose parent is the strip, so all three
+--- `help` field) or one of its marks, whose parent is the strip, so all four
 --- tooltips show in one place.
 --- @return true|nil  true only once the tooltip is anchored; nil (the widget's
 ---                   own fallback, above the strip) when any read is missing, nil or secret,
