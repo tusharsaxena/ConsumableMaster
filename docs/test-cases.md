@@ -580,7 +580,7 @@ Total.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (33)
+### test_macrobar_chrome.lua (34)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -595,15 +595,16 @@ Total.
 - macrobar label: the font FACE, FLAGS and SHADOW reach the FontString
 - macrobar label: the class-color companion repaints the label, alpha and all
 - macrobar button: an unresolvable class falls through to the stored swatch
-- macrobar handle: the strip's tooltip is the addon's, drawn beside the strip
-- macrobar handle: the mark's tooltip is the bar's, drawn beside the strip
+- macrobar handle: the strip's tooltip is the addon's, attached above the strip
+- macrobar handle: the mark's tooltip is the bar's, attached above the strip
 - macrobar handle: the strip and the mark draw two distinct tooltips in one place
-- PlaceTooltipBeside puts the tooltip to the strip's right when it fits
-- PlaceTooltipBeside flips to the strip's left when the right side would leave the screen
-- PlaceTooltipBeside anchors to the STRIP when the hovered frame is its ? or X mark
-- PlaceTooltipBeside compares in screen pixels, so a scaled strip flips when it should
-- PlaceTooltipBeside answers non-true and anchors nothing when a read is secret
-- PlaceTooltipBeside answers non-true and anchors nothing when a read is nil
+- macrobar handle: the retired beside-the-strip hook is gone
+- macrobar handle: mid-screen, the strip's tooltip sits centered above the strip
+- macrobar handle: at the screen's top, the strip's tooltip flips below the strip
+- macrobar handle: every mark's tooltip is placed by its strip
+- macrobar handle: a scaled strip is placed in screen units
+- macrobar handle: a secret strip read falls back to the attached point, never a guess
+- macrobar handle: a nil strip read falls back to the attached point
 - macrobar handle: an unreadable strip falls back above the strip with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark holds its resting gray, because no click is wired here
@@ -744,6 +745,18 @@ Total.
 - layers: the flyout is DIALOG and clamped from construction, set once
 - layers: a flyout entry uses the slot's ladder (CON-Z04)
 - layers: no strata literal and no unnamed level offset in core, modules or settings
+
+### test_macrobar_tooltips.lua (9)
+
+- bar tooltip: a slot's tooltip opens right of the whole bar, top level with the slot
+- bar tooltip: a slot's tooltip flips to the bar's left when the right side has no room
+- bar tooltip: an open flyout and the drag strip count as the bar's window group
+- bar tooltip: a flyout entry's tooltip opens beside the group, outside the flyout
+- bar tooltip: a built flyout entry's hover places beside the group
+- bar tooltip: unreadable geometry attaches above the slot, never the cursor
+- bar tooltip: MD.SetTooltip with no placer keeps the Settings canvas's anchor
+- bar tooltip guard: no own file anchors a tooltip at the cursor or a corner of a HUD element
+- bar tooltip guard: the check is falsifiable
 
 ### test_macromanager.lua (60)
 
@@ -1783,12 +1796,13 @@ Total.
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
 | test_macrobar.lua | 36 |
-| test_macrobar_chrome.lua | 33 |
+| test_macrobar_chrome.lua | 34 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
 | test_macrobar_flyout.lua | 21 |
 | test_macrobar_layers.lua | 9 |
+| test_macrobar_tooltips.lua | 9 |
 | test_macromanager.lua | 60 |
 | test_mediasetup.lua | 13 |
 | test_perfsetup.lua | 11 |
@@ -1838,4 +1852,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1484** |
+| **Total** | **1494** |

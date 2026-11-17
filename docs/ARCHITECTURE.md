@@ -286,6 +286,55 @@ first-run skin picker at `DIALOG`, the copy window at `FULLSCREEN`, menus and th
 `FULLSCREEN_DIALOG`, tooltips and the reorder ghost at `TOOLTIP`. The in-slot ladder is in
 [macro-bar.md](./macro-bar.md#buttons).
 
+## Tooltip placement
+
+standalone-windows' *Tooltip placement* (v2.113.0, adopted by AD-92-CM, LibKa0s#92) binds every
+tooltip of a HUD display. The macro bar is this addon's one HUD display, and every tooltip it
+places itself goes through `LibKa0s-Tooltip-1.0`: owned at `ANCHOR_NONE`, placed after `Show` so
+the tooltip's real size is read, never at the cursor and never at a corner offset. The addon has
+no `ANCHOR_CURSOR`, no cursor-following `OnUpdate` and no chart.
+
+- **A slot and a flyout entry: body, beside the bar's window group.** `MD.SetTooltip(owner,
+  macroName, MD.PlaceBody)` (the slot's `OnEnter`) and `MD.SetTooltipForID` (a flyout entry's)
+  fill the tooltip, show it, then `MD.PlaceBody` (`core/MacroDisplay.lua`) calls the library's
+  `PlaceBeside`: the tooltip's `TOPLEFT` `TIP_GAP` (2 px) right of the group's right edge, else its
+  `TOPRIGHT` `TIP_GAP` left of its left edge, its top level with the hovered element's top, clamped
+  on screen; the client's comparison tooltips open further out on the same side. The **window
+  group** is the bar plus the drag strip and every open flyout: `buildBar` (`modules/MacroBar.lua`)
+  registers the bar with `SetGroup`, its companions re-read on each hover (the strip and
+  `FO.Built()`'s flyouts, the shown ones only), so a tooltip never covers an open flyout or the
+  strip. Every member prefers the right (`prefer = "right"`): a flyout pops out over its own slot,
+  inside the bar's span, so it is no docked companion panel with an away side. With no room on
+  either side the library attaches the tooltip above the element; with the library absent or the
+  element unreadable, `MD.PlaceBody` attaches it centered above the element (`BOTTOM` on its
+  `TOP`, `TIP_GAP` up). Until AD-92-CM both owned the tooltip at `ANCHOR_RIGHT`, on the slot's
+  corner, over the next slot. `tests/test_macrobar_tooltips.lua` pins it on the kit's fake screen.
+- **The drag strip: chrome, attached above, placed by the library.** The strip is the bar's title
+  bar, so its tooltip and its `?`, X and settings marks' are chrome tooltips: centered on the
+  strip, `TIP_GAP` above it, below only without room above. The spec hands the widget no
+  `tooltipPlace` hook, so `LibKa0s-Widgets-1.0`'s DragHandle places them through `PlaceAttached`
+  (WidgetsDragHandleTip minor 1); a mark places by its strip, and an unreadable or secret read gets
+  the widget's relative point above the strip. `MB.PlaceTooltipBeside` (TP-CM-02), which put them
+  beside the strip, is retired. `tests/test_macrobar_chrome.lua` pins it.
+
+**Left where they are, and why.** Each is outside what this rule binds, or the library's to place:
+
+| Tooltip | Placed by | Why it stays |
+|---|---|---|
+| The Macros page's drag icon (`modules/KCMMacroDragIcon.lua`, `MD.SetTooltip` with no placer, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| A priority row's item or spell tooltip on the Macros page (`modules/KCMItemRow.lua`, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| A slot row's tick on the Macro Bar page's Buttons tab (`settings/MacroBarSlots.lua`, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| A stat row's tick on the Stat Priority page (`settings/StatPriority.lua`, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| Every other settings row, tab, nav, picker and score-button tooltip (General, Macro Bar, Appearance, Profiles, the Skin tab, the Ka0sMedia_* pickers, AceConfigDialog's) | `LibKa0s-Options-1.0` and Ace3, on the Settings canvas | *What it does not bind*: settings canvas pages are options-ui's, not this rule's |
+| The launcher's right-click options menu | the client's menu system | *What it does not bind*: a client-placed tooltip |
+| The broker row on a LibDataBroker display | the display (Titan Panel, ChocolateBar, ...) | *What it does not bind*: an LDB display places its own tooltip |
+| The minimap button | `LibKa0s-Launcher-1.0`, `PlaceLauncher` | bound (launcher-§7), but the library's code; the addon fills no tooltip (no `onTooltipShow`) |
+| The debug console and its Copy window, the perf panel, the skin picker | the library's own windows | bound, but the library's to place (LibKa0s v1.105.0) |
+| An action-bar button holding a `KCM_*` macro | the client (`#showtooltip`) | *What it does not bind*: a Blizzard frame |
+
+The `ANCHOR_RIGHT` sites above are a closed list: `tests/test_macrobar_tooltips.lua`'s guard holds
+the addon's own files to no cursor or corner anchor, and to `ANCHOR_RIGHT` only in those four files.
+
 ## Invariants worth not breaking
 
 - **`MacroManager` is the only caller of `CreateMacro` / `EditMacro`.** Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper must all stay pure (no protected APIs) so the pipeline can run in combat without taint.

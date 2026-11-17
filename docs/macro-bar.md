@@ -23,7 +23,8 @@ files, which `tests/test_macrobar.lua` and its peeled siblings
 (`tests/test_macrobar_layout.lua` for `core/MacroBarLayout.lua`'s geometry,
 `tests/test_macrobar_display.lua` for `core/MacroDisplay.lua` and the cooldown application,
 `tests/test_macrobar_flyout.lua` for the flyout's candidate list and click gating,
-`tests/test_macrobar_chrome.lua` for the chrome appliers) exercise headlessly. The `modules/`
+`tests/test_macrobar_chrome.lua` for the chrome appliers,
+`tests/test_macrobar_tooltips.lua` for where a slot's and a flyout entry's tooltips open) exercise headlessly. The `modules/`
 files are a thin apply pass whose behavior is otherwise validated in-game
 (see [smoke-tests.md](./smoke-tests.md)) — the one exception is the drag
 handle's four tooltips and where they sit, its mark tint, its close mark and
@@ -416,18 +417,25 @@ Its art is the declared `settings` icon, its tooltip its own (`Open settings`,
 more mark's frame on each side of the label, as the X does.
 
 **Where the tooltips sit.** All four — the strip's, the help icon's, the
-X's and the settings mark's — open **beside the strip**: to its right, or to
-its left when the strip's right edge plus the tooltip's width would leave the screen. The strip hands the
-widget `MB.PlaceTooltipBeside` as its `tooltipPlace` (LibKa0s WidgetsDragHandle
-minor 4), so no descriptor names an owner or an anchor. A mark resolves to its
-strip, so the four share one position. The comparison is in screen pixels,
-because the bar takes the master scale and the strip inherits it. Every
-geometry read is asked whether it is nil or secret first; any such read answers
-nil, nothing is anchored, and the widget shows the same tooltip at the cursor.
-It is the same rule, line for line, as every Ka0s drag strip (KickCD's
-`NS.Util.PlaceTooltipBeside` is the reference): the owner chose one placement
-across the collection over the `ANCHOR_TOP` / `ANCHOR_TOPRIGHT` pair this bar
-used before (TP-CM-02).
+X's and the settings mark's — are **attached above the strip**, centered on
+it, 2 px over its top edge, and open below it only when the screen has no room
+above (AD-92-CM, LibKa0s#92: the strip is the bar's title bar, a chrome element
+under standalone-windows' *Tooltip placement*). The widget places them itself,
+through LibKa0s-Tooltip-1.0's `PlaceAttached` on the strip, so a mark places by
+its strip and the four share one position, in screen units whatever the bar's
+scale. The spec hands it no `tooltipPlace` hook and no descriptor names an owner
+or an anchor. An unreadable or secret read gets the widget's relative point
+above the strip; never the cursor. From TP-CM-02 until AD-92-CM the hook was
+`MB.PlaceTooltipBeside`, which opened them beside the strip; it is retired.
+
+**A slot's and a flyout entry's tooltips** are body tooltips: they open
+**beside the whole bar**, outside its right edge (its left when the right has no
+room), their top level with the hovered slot's or entry's top, never at the
+cursor and never on the slot's corner. The bar, its drag strip and every open
+flyout are one window group (`buildBar` registers it with LibKa0s-Tooltip-1.0's
+`SetGroup`), so a tooltip clears an open flyout and the strip too.
+`core/MacroDisplay.lua`'s `MD.PlaceBody` places them; see
+[ARCHITECTURE.md → Tooltip placement](./ARCHITECTURE.md#tooltip-placement).
 
 ## Defaults & the v2 / v3 / v4 migrations
 

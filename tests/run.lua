@@ -558,6 +558,8 @@ local SUITES = {
     "test_macrobar_flyout",
     -- Where each frame sits: the layers table and the bar's strata and level bands (item 030).
     "test_macrobar_layers",
+    -- Where the bar's own tooltips open: beside the whole display, never the cursor (AD-92-CM).
+    "test_macrobar_tooltips",
     "test_macromanager",
     "test_mediasetup",
     "test_perfsetup",

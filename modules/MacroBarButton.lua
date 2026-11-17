@@ -654,7 +654,8 @@ function BB.Create(parent, catKey, index)
     btn:SetScript("OnEnter", function(self)
         local cfg = KCM.MacroBarModel and KCM.MacroBarModel.Config()
         if cfg and cfg.tooltips == false then return end
-        if KCM.MacroDisplay then KCM.MacroDisplay.SetTooltip(self, macroName(self.catKey)) end
+        if KCM.MacroDisplay then KCM.MacroDisplay.SetTooltip(self, macroName(self.catKey),
+            KCM.MacroDisplay.PlaceBody) end
     end)
     btn:SetScript("OnLeave", function()
         if GameTooltip then GameTooltip:Hide() end

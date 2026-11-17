@@ -147,18 +147,77 @@ function MD.CooldownForID(id)
     return itemCooldown(id)
 end
 
+-- ---------------------------------------------------------------------------
+-- Where the macro bar's tooltips open (AD-92-CM, LibKa0s#92; WowAddonStandards
+-- standalone-windows, *Tooltip placement*)
+--
+-- A bar slot and a flyout entry are BODY elements of a HUD display, so their
+-- tooltip opens BESIDE the display's window group (the bar, its drag strip and
+-- every open flyout; modules/MacroBar.lua registers it with
+-- LibKa0s-Tooltip-1.0's SetGroup), right when it fits, else left, its top level
+-- with the hovered element's top: the library's PlaceBeside, after Show, on a
+-- tooltip owned at ANCHOR_NONE. Never at the cursor, never at a corner of the
+-- slot (the ANCHOR_RIGHT this file used until then sat the tooltip over the
+-- next slot). When the library is absent or the element cannot be read, the
+-- tooltip attaches centered above the element (BOTTOM on its TOP, TIP_GAP up).
+--
+-- The Macros page's drag icon (modules/KCMMacroDragIcon.lua) shares
+-- MD.SetTooltip and passes no placer, so it keeps ANCHOR_RIGHT: a Settings
+-- canvas page is outside the rule (*What it does not bind*).
+-- ---------------------------------------------------------------------------
+
+local TIP_GAP = 2   -- LibKa0s-Tooltip-1.0's TIP_GAP, for the fallback attach
+
+-- Right first, left when the right has no room, for every member of the group.
+-- The library would otherwise read a flyout as a companion panel and prefer its
+-- side away from the bar's center, but a flyout is no docked panel: it pops out
+-- above or below its own slot, inside the bar's span, so an entry's tooltip
+-- opens where its slot's does.
+local PREFER_RIGHT = { prefer = "right" }
+
+-- The placement major, read at call time (a newer vendored copy, or none).
+local function tipLib()
+    local Tip = LibStub and LibStub("LibKa0s-Tooltip-1.0", true)
+    if type(Tip) == "table" and type(Tip.PlaceBeside) == "function" then return Tip end
+    return nil
+end
+
+--- Own GameTooltip for a placement: by `owner`, at ANCHOR_NONE.
+local function ownForPlacement(owner)
+    local Tip = tipLib()
+    if Tip and Tip.Own then Tip.Own(GameTooltip, owner) else GameTooltip:SetOwner(owner, "ANCHOR_NONE") end
+end
+
+--- The body rule on the SHOWN GameTooltip for `element` (a bar slot or a flyout
+--- entry): beside the bar's window group (the library's GroupOf walks up to the
+--- registered bar), else attached above the element. Answers the side placed:
+--- "right", "left", the library's "above" / "below", or "attached".
+--- @param tip table GameTooltip, shown
+--- @param element table the hovered slot or entry
+--- @return string
+function MD.PlaceBody(tip, element)
+    local Tip = tipLib()
+    local side = Tip and Tip.PlaceBeside(tip, element, nil, PREFER_RIGHT)
+    if side then return side end
+    tip:ClearAllPoints()
+    tip:SetPoint("BOTTOM", element, "TOP", 0, TIP_GAP)
+    return "attached"
+end
+
 -- Point GameTooltip at one opaque KCM ID. Used by the flyout, where the entry
--- is a specific candidate rather than "whatever the macro resolves to".
+-- is a specific candidate rather than "whatever the macro resolves to". A flyout
+-- entry is a bar body element, so it is always placed by MD.PlaceBody.
 function MD.SetTooltipForID(owner, id)
     if not (GameTooltip and owner and id) then return end
     local ID = KCM.ID
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    ownForPlacement(owner)
     if ID and ID.IsSpell(id) and GameTooltip.SetSpellByID then
         GameTooltip:SetSpellByID(ID.SpellID(id))
     elseif GameTooltip.SetItemByID then
         GameTooltip:SetItemByID(id)
     end
     GameTooltip:Show()
+    MD.PlaceBody(GameTooltip, owner)
 end
 
 -- The same three, keyed by macro name (i.e. against whatever the macro
@@ -229,9 +288,14 @@ end
 -- picks get their real in-game tooltip, and so does the step an AIO macro is
 -- showing; anything unresolved falls back to the macro name plus its body so
 -- the button is never a mystery.
-function MD.SetTooltip(owner, macroName)
+--
+-- `place` is where it opens: the bar slot passes MD.PlaceBody (owned at
+-- ANCHOR_NONE, placed after Show, beside the bar's group); with none (the
+-- Macros page's drag icon, a Settings canvas page the placement rule does not
+-- bind) it keeps the canvas's ANCHOR_RIGHT.
+function MD.SetTooltip(owner, macroName, place)
     if not (GameTooltip and owner) then return end
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    if place then ownForPlacement(owner) else GameTooltip:SetOwner(owner, "ANCHOR_RIGHT") end
     local id = MD.PickID(macroName) or compositePickFor(macroName)
     if not setTooltipForID(id) then
         setTooltipFromMacro(macroName)
@@ -239,6 +303,7 @@ function MD.SetTooltip(owner, macroName)
     -- Show() runs on every path including the fallback — an early return that
     -- skipped it would leave a stale tooltip anchored to the button.
     GameTooltip:Show()
+    if place then place(GameTooltip, owner) end
 end
 
 -- Put a KCM macro on the cursor, for both drag surfaces (the macro-bar slot and
