@@ -1502,7 +1502,7 @@ Total.
 - /cm profile <name>: the current profile answers that it already is
 - /cm profile: the published CliProfile and ProfileSwitch reach the library
 
-### test_slash_report.lua (8)
+### test_slash_report.lua (12)
 
 - Report: every report verb writes to the console with logging off and says one chat line
 - Report: a hidden console is revealed, a shown one stays shown
@@ -1512,6 +1512,10 @@ Total.
 - Report: help, /cm list and the bare /cm dump listing stay in chat
 - Report: without the library a report prints to chat as before, with no pointer
 - Report: the serializer sorts keys, indents nested tables and stays bounded
+- Report: DL.Report is the library's D:Report, called with the tag, title and body
+- Report: a body that raises keeps what it wrote, adds one failed line and still points
+- Report: SlashDump.Serialize renders through the library's D:Serialize
+- Report: without the library the serializer answers one line, as the library's stub does
 
 ### test_slash_store.lua (25)
 
@@ -1837,7 +1841,7 @@ Total.
 | test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
 | test_slash_profile.lua | 9 |
-| test_slash_report.lua | 8 |
+| test_slash_report.lua | 12 |
 | test_slash_store.lua | 25 |
 | test_slashsetup.lua | 26 |
 | test_spechelper.lua | 16 |
@@ -1855,4 +1859,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1497** |
+| **Total** | **1501** |

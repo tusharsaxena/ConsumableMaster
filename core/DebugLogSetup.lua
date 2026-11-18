@@ -125,7 +125,9 @@ if not lib then
     -- but unlike the diagnostics report it is a few dozen lines the player asked
     -- for by name, and chat is where it was printed before the 2026-11-08 ruling.
     -- So it falls back to chat as it always did, with no pointer line: there is
-    -- no console to point at. Answers the line count, as the live arm does.
+    -- no console to point at. Answers the line count, as the live arm does. This
+    -- is the library-absent arm LibKa0s's own DebugLog docs prescribe (23.11.1.5,
+    -- "What a host owes at its re-vendor").
     function DL.Report(_, _, fn)
         local n = 0
         fn(function(line)
@@ -133,6 +135,16 @@ if not lib then
             if KCM.Say then KCM.Say(line) end
         end)
         return n
+    end
+
+    -- The table serializer is the library's (D:Serialize, LibKa0s#79), so with
+    -- no library a value is one line: its text, or `<table>` for a table, at the
+    -- caller's indent so it reads where the live arm's first line would. The
+    -- same one-line answer the library's documented stub gives.
+    function DL.Serialize(value, opts)
+        local s = KCM.SafeToString or tostring
+        local indent = type(opts) == "table" and type(opts.indent) == "string" and opts.indent or "  "
+        return { indent .. s(type(value) == "table" and "<table>" or value) }, false
     end
 
     -- Deliberately publishes NO instance and NO AddLine. core/Debug.lua's
@@ -310,43 +322,26 @@ function DL.RunDiagnostics(spec) return D:RunDiagnostics(spec) end
 
 -- A REPORT: a multi-line read-out the player asks for to inspect or share
 -- (`/cm dump <target>`, `/cm priority <cat> list`, `/cm aio <key> list`). The
--- owner's ruling of 2026-11-08, ahead of a standard rule and a LibKa0s
--- implementation: a report goes to this console, not chat, and chat gets one
--- line pointing at it (docs/debug.md, "Reports").
+-- owner's ruling of 2026-11-08: a report goes to this console, not chat, and
+-- chat gets one line pointing at it (docs/debug.md, "Reports").
 --
--- `fn(out)` writes the body through `out`, one call per line. Lines are
--- collected first, so a verb that only refuses (a usage line, an unknown key)
--- says its refusal to chat through KCM.Say, writes nothing through `out`, and
--- this writes no report and no pointer. Otherwise: a header naming the command
--- as typed, then the body, through D:Add -- the UNGATED append, because a
--- report is not a trace and must land whether or not logging is on -- then the
--- console is revealed if it is hidden, and exactly one chat line names the
--- report, its line count (header included) and the Copy button. Answers the
--- line count written, or 0.
+-- The library's D:Report (DebugLog minor 23, LibKa0s#79), which this file's own
+-- body was the reference for: `fn(out)` writes the body through `out`, one call
+-- per line, collected first, so a verb that only refuses says its refusal to
+-- chat through KCM.Say, writes nothing through `out`, and no report or pointer
+-- is written. Otherwise a `/cm <title>` header (the descriptor's `slash`) and
+-- the body, ungated, the console revealed if hidden, and one chat pointer
+-- through the descriptor's `print`. A body that raises keeps what it wrote and
+-- costs one `<title> failed: <err>` line. Answers the line count, header
+-- included, or 0.
 --
 -- `tag` is the console tag (debug-logging-§3): `Dump`, `Priority`, `AIO`.
 -- `title` is the command without the slash, e.g. "dump bags".
---
--- THE LIFT. This is the shape a LibKa0s `D:Report(tag, title, fn)` would take:
--- the header from the descriptor's `slash`, the pointer line from the library's
--- strings, the chat fallback on its degradation stub. When it lands, this body
--- becomes `return D:Report(tag, title, fn)`, the degraded arm above goes, and
--- no caller changes.
-local REPORT_POINTER = "%s: %d lines written to the debug console. Use Copy to share it."
+function DL.Report(tag, title, fn) return D:Report(tag, title, fn) end
 
-function DL.Report(tag, title, fn)
-    local lines = {}
-    fn(function(line) lines[#lines + 1] = line end)
-    if #lines == 0 then return 0 end
-    D:Add(tag, "/cm " .. title)
-    -- Colors stay in the view. Since LibKa0s v1.105.0 (DebugLog minor 23) D:Add stores the
-    -- buffer stripped of its escapes, so Copy is plain text (owner ruling 2026-11-08).
-    for i = 1, #lines do D:Add(tag, lines[i]) end
-    local n = #lines + 1
-    if not D:IsShown() then D:Show() end
-    KCM.Say(REPORT_POINTER:format(title, n))
-    return n
-end
+-- The table serializer the dumps render a table with: the library's
+-- D:Serialize (LibKa0s#79), ported from this addon's own. `lines, truncated`.
+function DL.Serialize(value, opts) return D:Serialize(value, opts) end
 
 -- Window, not flag. The library spells this one `Toggle`; ours has always meant
 -- the other thing (below), and a name-for-name alias would invert `/cm debug`.
