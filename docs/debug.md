@@ -96,7 +96,7 @@ What the log carries, by tag, so a pasted log can be read back into what happene
 
 ## Reports: chat or console
 
-The owner's ruling of 2026-11-08, ahead of a standard rule and a LibKa0s implementation (the owner is opening a library issue to build it collection-wide).
+The owner's ruling of 2026-11-08, since built collection-wide as LibKa0s's `D:Report` and `D:Serialize` (DebugLog minor 23, LibKa0s#79); this addon's own seam was the reference for it.
 
 | Output | Goes to | Verbs |
 |---|---|---|
