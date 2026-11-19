@@ -607,7 +607,7 @@ Total.
 - macrobar handle: a nil strip read falls back to the attached point
 - macrobar handle: an unreadable strip falls back above the strip with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
-- macrobar handle: the mark holds its resting gray, because no click is wired here
+- macrobar handle: the mark lights under the cursor and rests gray again on leave
 - macrobar handle: a layout pass while unlocked refits the strip at the new scale and width
 - macrobar handle: the X hides the bar through macroBar.enabled and says the way back
 - macrobar handle: the X's tooltip says what the click does and the way back

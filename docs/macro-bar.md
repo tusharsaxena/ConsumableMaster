@@ -393,8 +393,10 @@ handle wider than the bar it labels, while a 14px icon costs the same at every
 width. The handle's own tooltip stays a single line, so hovering it to drag
 doesn't dump a wall of text.
 
-Left of the help icon sits a **close mark** (an X, the widget's `onClose`,
-LibKa0s-Widgets 10.3). Clicking it hides the bar: it writes `macroBar.enabled =
+In the strip's right corner sits a **close mark** (an X, the widget's `onClose`,
+LibKa0s-Widgets 10.3; the corner mark from DragHandle minor 15, LibKa0s v1.107.0,
+where the help icon sat). The marks read help, settings, close from left to right,
+the window header's order, in the header's tints. Clicking it hides the bar: it writes `macroBar.enabled =
 false` through `MB.SetEnabled`, the same write as `/cm bar off` and the Macro
 Bar page's Enabled row, so the `[Set]` trace, the row's `onChange` and an open
 page all follow. It never touches `profile.enabled` (that would stop the macro
@@ -406,7 +408,7 @@ same way back. In combat the flag is written at once and the hide waits for
 widget reserves its frame on both sides of the label, so the label stays
 centered.
 
-Left of the X sits a **settings mark** (the widget's `settings = true`,
+Left of the X, right of the help icon, sits a **settings mark** (the widget's `settings = true`,
 DragHandle minor 14, LibKa0s#86, turned on at AD-86-CM). A left click opens this
 addon's settings: the strip passes no `onSettings`, so the widget calls
 LibKa0s-Core-1.0's `OpenSettings(owner)`, and `owner` is the folder name, the

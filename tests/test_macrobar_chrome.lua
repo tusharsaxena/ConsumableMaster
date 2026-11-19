@@ -696,16 +696,16 @@ test("macrobar handle: the mark's lock line is re-read on every hover", function
     t.falsy(hasLine(unlocked, LOCKED_LINE), "the first hover's line did not survive the second")
 end)
 
--- The mark brightens under the cursor only where a right-click is wired, and
--- nothing is wired here: `DragHandle` is handed no `onRightClick`, so the
--- widget registers no click at all. At LibKa0s v1.48.0 the brighten was
--- unconditional, so this addon's mark lit up and then did nothing — a control
--- advertising itself and then declining. v1.48.1 chooses the over-tint from
--- `spec.onRightClick`, and this is the host that case was found on.
+-- The mark lights under the cursor on every strip, as a window header's marks
+-- do (DragHandle minor 15, LibKa0s v1.107.0, AF-LK-01: `text.link` under the
+-- pointer, `icon.tint` at rest). Through minor 14 it lit only where a
+-- right-click was wired, so this addon's unwired mark held its resting gray;
+-- RE-PINNED at AF-RV-CM, since the owner ruled the strip's marks take the
+-- header's tints.
 --
--- red under: an unconditional HELP_TINT_OVER on OnEnter, or an `onRightClick`
--- added here without the affordance that a click deserves.
-test("macrobar handle: the mark holds its resting gray, because no click is wired here",
+-- red under: a hover that leaves the mark at rest, or a leave that does not
+-- put the resting gray back.
+test("macrobar handle: the mark lights under the cursor and rests gray again on leave",
     function(t)
         local _, handle = bench()
         local help = handle.help
@@ -717,10 +717,12 @@ test("macrobar handle: the mark holds its resting gray, because no click is wire
         _G.GameTooltip = recordingTooltip()
         help:GetScript("OnEnter")(help)
         t.eq(#tints, 1, "the hover tinted the art once")
-        t.eqList(tints[1], { 0.7, 0.7, 0.72 }, "…to the resting gray, not to full white")
+        local rest = { 0.7, 0.7, 0.72 }
+        t.truthy(tints[1][1] ~= rest[1] or tints[1][2] ~= rest[2] or tints[1][3] ~= rest[3],
+            "…away from the resting gray")
 
         help:GetScript("OnLeave")(help)
-        t.eqList(tints[2], { 0.7, 0.7, 0.72 }, "and leaving it leaves the same tint behind")
+        t.eqList(tints[2], rest, "and leaving it puts the resting gray back")
     end)
 
 -- The strip's fit (LibKa0s#68). `applyLayout` moves the bar's scale and width, and the strip measures
