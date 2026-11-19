@@ -207,7 +207,7 @@ Twenty-five verbs are declared, in this order: `help`, `config`, `skin`, `versio
 
 The verb table, the six sub-command tables and their three handler arities, the case-preserving parse, the overridden usage strings and the degraded arm are in [slash-dispatch.md](./slash-dispatch.md).
 
-**Chat or console: what a verb's output is.** The owner's ruling of 2026-11-08, ahead of a standard rule and a LibKa0s implementation. **Chat** (`KCM.Say`) carries acknowledgments and short answers, refusals and errors (combat, unknown verb, usage lines, disabled, library missing), the help index and sub-command help, and `/cm list`. **The debug console** carries every **report**, a multi-line read-out the player asks for to inspect or share: every `/cm dump <target>`, `/cm priority <cat> list`, `/cm aio <key> list` and `/cm probe seed status`, through one seam, `KCM.DebugLog.Report(tag, title, fn)` (`core/DebugLogSetup.lua`). A report is written with the console's ungated append whether or not logging is on, the console is revealed if it is hidden, and chat gets exactly one pointer line (`dump bags: 23 lines written to the debug console. Use Copy to share it.`). A usage or refusal line inside a report verb stays in chat and writes no report. Without LibKa0s a report prints to chat as before, with no pointer. `/cm diagnostics` already wrote to the console through the library and is unchanged. When LibKa0s grows `D:Report`, the seam's body becomes that call and no caller changes. Detail: [debug.md](./debug.md#reports-chat-or-console).
+**Chat or console: what a verb's output is.** The owner's ruling of 2026-11-08, since built collection-wide as LibKa0s's `D:Report` (LibKa0s#79). **Chat** (`KCM.Say`) carries acknowledgments and short answers, refusals and errors (combat, unknown verb, usage lines, disabled, library missing), the help index and sub-command help, and `/cm list`. **The debug console** carries every **report**, a multi-line read-out the player asks for to inspect or share: every `/cm dump <target>`, `/cm priority <cat> list`, `/cm aio <key> list` and `/cm probe seed status`, through one seam, `KCM.DebugLog.Report(tag, title, fn)` (`core/DebugLogSetup.lua`). A report is written with the console's ungated append whether or not logging is on, the console is revealed if it is hidden, and chat gets exactly one pointer line (`dump bags: 23 lines written to the debug console. Use Copy to share it.`). A usage or refusal line inside a report verb stays in chat and writes no report. Without LibKa0s a report prints to chat as before, with no pointer. `/cm diagnostics` already wrote to the console through the library and is unchanged. Since AD-79-CM (LibKa0s#79) the seam is a one-line forwarder onto the library's `D:Report`, which this addon's own body was the reference for, and the dumps' table serializer is `D:Serialize` (`KCM.DebugLog.Serialize`); no caller changed. Detail: [debug.md](./debug.md#reports-chat-or-console).
 
 ## Event Subscriptions
 
@@ -286,6 +286,62 @@ first-run skin picker at `DIALOG`, the copy window at `FULLSCREEN`, menus and th
 `FULLSCREEN_DIALOG`, tooltips and the reorder ghost at `TOOLTIP`. The in-slot ladder is in
 [macro-bar.md](./macro-bar.md#buttons).
 
+## Tooltip placement
+
+standalone-windows' *Tooltip placement* (v2.113.0, adopted by AD-92-CM, LibKa0s#92) binds every
+tooltip of a HUD display. The macro bar is this addon's one HUD display, and every tooltip it
+places itself goes through `LibKa0s-Tooltip-1.0`: owned at `ANCHOR_NONE`, placed after `Show` so
+the tooltip's real size is read, never at the cursor and never at a corner offset. The addon has
+no `ANCHOR_CURSOR`, no cursor-following `OnUpdate` and no chart.
+
+- **A slot and a flyout entry: body, beside the bar's window group.** `MD.SetTooltip(owner,
+  macroName, MD.PlaceBody)` (the slot's `OnEnter`) and `MD.SetTooltipForID` (a flyout entry's)
+  fill the tooltip, show it, then `MD.PlaceBody` (`core/MacroDisplay.lua`) calls the library's
+  `PlaceBeside`: the tooltip's `TOPLEFT` `TIP_GAP` (2 px) right of the group's right edge, else its
+  `TOPRIGHT` `TIP_GAP` left of its left edge, its top level with the hovered element's top, clamped
+  on screen; the client's comparison tooltips open further out on the same side. The **window
+  group** is the bar plus the drag strip and every open flyout: `buildBar` (`modules/MacroBar.lua`)
+  registers the bar with `SetGroup`, its companions re-read on each hover (the strip and
+  `FO.Built()`'s flyouts, the shown ones only), so a tooltip never covers an open flyout or the
+  strip. No side is forced: a slot is in the main window, so it opens right, else left; an open
+  flyout is a companion docked to the bar, so an entry's tooltip prefers the flyout's side of the
+  bar's center, away from the bar (body rule 1), and goes outside the group's other edge when that
+  side has no room. A **Flyout side** Left flyout opens its entries' tooltips left of it, a Right
+  one right of it, and a Top or Bottom one on whichever side of the bar's center its slot sits.
+  Until the AD-92-CM review fixes every member was forced right (`prefer = "right"`), on the
+  mistaken ground that a flyout stays inside the bar's span. With no room on
+  either side the library attaches the tooltip above the element; with the library absent or the
+  element unreadable, `MD.PlaceBody` attaches it centered above the element (`BOTTOM` on its
+  `TOP`, `TIP_GAP` up). Until AD-92-CM both owned the tooltip at `ANCHOR_RIGHT`, on the slot's
+  corner, over the next slot. `tests/test_macrobar_tooltips.lua` pins it on the kit's fake screen.
+- **The drag strip: chrome, attached above, placed by the library.** The strip is the bar's title
+  bar, so its tooltip and its `?`, X and settings marks' are chrome tooltips: centered on the
+  strip, `TIP_GAP` above it, below only without room above. The spec hands the widget no
+  `tooltipPlace` hook, so `LibKa0s-Widgets-1.0`'s DragHandle places them through `PlaceAttached`
+  (WidgetsDragHandleTip minor 1); a mark places by its strip, and an unreadable or secret read gets
+  the widget's relative point above the strip. `MB.PlaceTooltipBeside` (TP-CM-02), which put them
+  beside the strip, is retired. `tests/test_macrobar_chrome.lua` pins it.
+
+**Left where they are, and why.** Each is outside what this rule binds, or the library's to place:
+
+| Tooltip | Placed by | Why it stays |
+|---|---|---|
+| The Macros page's drag icon (`modules/KCMMacroDragIcon.lua`, `MD.SetTooltip` with no placer, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| A priority row's item or spell tooltip on the Macros page (`modules/KCMItemRow.lua`, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| A slot row's tick on the Macro Bar page's Buttons tab (`settings/MacroBarSlots.lua`, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| A stat row's tick on the Stat Priority page (`settings/StatPriority.lua`, `ANCHOR_RIGHT`) | this addon, on the Settings canvas | *What it does not bind*: a Settings canvas page |
+| Every other settings row, tab, nav, picker and score-button tooltip (General, Macro Bar, Appearance, Profiles, the Skin tab, the Ka0sMedia_* pickers, AceConfigDialog's) | `LibKa0s-Options-1.0` and Ace3, on the Settings canvas | *What it does not bind*: settings canvas pages are options-ui's, not this rule's |
+| The launcher's right-click options menu | the client's menu system | *What it does not bind*: a client-placed tooltip |
+| The broker row on a LibDataBroker display | the display (Titan Panel, ChocolateBar, ...) | *What it does not bind*: an LDB display places its own tooltip |
+| The minimap button | `LibKa0s-Launcher-1.0`, `PlaceLauncher` | bound (launcher-§7), but the library's code; the addon fills no tooltip (no `onTooltipShow`) |
+| The debug console and its Copy window, the perf panel, the skin picker | the library's own windows | bound, but the library's to place (LibKa0s v1.105.0) |
+| An action-bar button holding a `KCM_*` macro | the client (`#showtooltip`) | *What it does not bind*: a Blizzard frame |
+
+The `ANCHOR_RIGHT` sites above are a closed list: `tests/test_macrobar_tooltips.lua`'s guard holds
+the addon's own files to no cursor or corner anchor, and to `ANCHOR_RIGHT` only on one allowed
+line in each of those four files, once: in `core/MacroDisplay.lua`, which also serves the HUD, that
+line is `MD.SetTooltip`'s no-placer branch, so a HUD path owning at `ANCHOR_RIGHT` there is caught.
+
 ## Invariants worth not breaking
 
 - **`MacroManager` is the only caller of `CreateMacro` / `EditMacro`.** Selector, Ranker, Classifier, BagScanner, TooltipCache, SpecHelper must all stay pure (no protected APIs) so the pipeline can run in combat without taint.
@@ -334,7 +390,7 @@ All vendored under `libs/`:
 - AceConfig-3.0, with its Registry, Cmd and Dialog sub-libraries (AceConfigDialog draws the Profiles page and nothing else, `options-ui-§3`). Byte-identical to MultiMeters' and KickCD's copies: AceConfig-3.0 minor 3, AceConfigRegistry-3.0 minor 22, AceConfigCmd-3.0 minor 14, AceConfigDialog-3.0 minor 92, AceDBOptions-3.0 minor 15
 - LibSharedMedia-3.0 (debug-console monospace font registration; also the media source behind the macro bar's `Ka0sMedia_*` pickers, which LibKa0s-Options-1.0 owns)
 - LibDataBroker-1.1 and LibDBIcon-1.0 (the launcher — the broker plugin and the minimap button, `launcher-§1`). LibDataBroker is listed **first** and that is load-bearing: LibDBIcon resolves it with a non-silent `LibStub` at file load and calls `error()` when it answers nil. `LibKa0s-Launcher-1.0` resolves both with `LibStub(..., true)` at Register time instead, so it degrades by name rather than raising — no LibDataBroker means no launcher at all, no LibDBIcon means the broker plugin without the button
-- LibKa0s — the Ka0s-owned shared modules, vendored whole-folder (except `media/icons/`, which ships only the marks the `LibKa0s icons:` line in [../CLAUDE.md](../CLAUDE.md) declares, cut by `tools/prune-icons.lua` at re-vendor, `library-stack-§7`) from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. Fifteen majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows, schema CLI and the sub-command vocabulary — `SplitVerb`, `FindCommand`, `CommandRows` — behind `/cm priority`, `stat`, `aio` and `bar`), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture), `Media-1.0` (the seven declared icon marks and the font), `Env-1.0` (the TOC-manifest reader behind `KCM.Meta` / `KCM.Version`), `Item-1.0` (one primitive, `ItemIDFromLink`), `Widgets-1.0` (two surfaces: `ReorderList`, behind the priority rows' drag handle, and `DragHandle`, the macro bar's unlocked strip, adopted at v1.48.0), `Launcher-1.0` (the minimap button and the broker plugin as one object, adopted at v1.39.0) and `Lifecycle-1.0` (the one latch the disabled state and the perf harness's suspended arm are two named holds on, adopted at v1.41.0), `Compat-1.0` (the spec and spell ladders and the secret guard behind `KCM.Compat`, adopted at v1.55.0), `Bus-1.0` (the stand-down record behind every bus target, and the strict message catalog, adopted at v1.55.0) `Schema-1.0` (the settings write seam, adopted at v1.56.0, [#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)) and `Skin-1.0` (the skin this addon wears, its owner tokens, the Skin tab and the first-run picker, adopted at v1.80.0 in the 2026-10-29 skinning rollout, [Skins](#skins)). `Pool`, `Glow`, `Sim`, `Toast`, `Charts` and `IconBrowser` (new at v1.89.0) are vendored with the payload but not consumed. Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
+- LibKa0s — the Ka0s-owned shared modules, vendored whole-folder (except `media/icons/`, which ships only the marks the `LibKa0s icons:` line in [../CLAUDE.md](../CLAUDE.md) declares, cut by `tools/prune-icons.lua` at re-vendor, `library-stack-§7`) from [github.com/tusharsaxena/LibKa0s](https://github.com/tusharsaxena/LibKa0s) and loaded through the library's own packaged XML. Fifteen majors are adopted: `Core-1.0` (chat printer), `DebugLog-1.0` (debug console), `Slash-1.0` (dispatcher, help rows, schema CLI and the sub-command vocabulary — `SplitVerb`, `FindCommand`, `CommandRows` — behind `/cm priority`, `stat`, `aio` and `bar`), `Options-1.0` + its `OptionsWidgets` / `OptionsScroll` attachments (panel shell, row widgets, canvas contract), `Perf-1.0` + `PerfPanel` (A/B capture), `Media-1.0` (the seven declared icon marks and the font), `Env-1.0` (the TOC-manifest reader behind `KCM.Meta` / `KCM.Version`), `Item-1.0` (one primitive, `ItemIDFromLink`), `Widgets-1.0` (two surfaces: `ReorderList`, behind the priority rows' drag handle, and `DragHandle`, the macro bar's unlocked strip, adopted at v1.48.0, its settings mark turned on at the v1.105.0 adoption, AD-86-CM, LibKa0s#86; this addon owns no window with a title bar, so `HeaderButtons` has no caller here, and the library's windows lay their own marks), `Launcher-1.0` (the minimap button and the broker plugin as one object, adopted at v1.39.0) and `Lifecycle-1.0` (the one latch the disabled state and the perf harness's suspended arm are two named holds on, adopted at v1.41.0), `Compat-1.0` (the spec and spell ladders and the secret guard behind `KCM.Compat`, adopted at v1.55.0), `Bus-1.0` (the stand-down record behind every bus target, and the strict message catalog, adopted at v1.55.0) `Schema-1.0` (the settings write seam, adopted at v1.56.0, [#39](https://github.com/tusharsaxena/ConsumableMaster/issues/39)) and `Skin-1.0` (the skin this addon wears, its owner tokens, the Skin tab and the first-run picker, adopted at v1.80.0 in the 2026-10-29 skinning rollout, [Skins](#skins)). `Pool`, `Glow`, `Sim`, `Toast`, `Charts` and `IconBrowser` (new at v1.89.0) are vendored with the payload but not consumed. Never patched in place — a fix goes upstream, then re-vendors whole-folder ([testing.md](./testing.md)).
 
 ### LibKa0s adoption
 

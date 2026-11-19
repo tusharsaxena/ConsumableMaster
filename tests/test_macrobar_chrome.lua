@@ -2,7 +2,7 @@
 -- (MacroBarButton.ApplyStyle), the flyout's bind/apply pass, and the
 -- options-ui-§15/options-ui-§16/options-ui-§17 rows those appliers are what honors.
 -- Since the drag-handle adoption it also carries the unlocked strip's own
--- chrome: the three tooltips the strip and its marks draw (beside the strip), the mark's
+-- chrome: the three tooltips the strip and its marks draw (attached above the strip), the mark's
 -- hover tint, and the close mark that hides the bar (X-01, X-02, X-05).
 --
 -- Peeled out of tests/test_macrobar.lua at the seam issue #32 named, which the
@@ -391,22 +391,27 @@ end)
 -- around: `tooltip` for the strip, `helpTooltip` for the ? mark and
 -- `closeTooltip` for the X, each with its own title and body.
 --
--- WHERE they sit is no longer a descriptor's anchor (TP-CM-02, LibKa0s
--- WidgetsDragHandle minor 4). All three open BESIDE the strip through
--- `MB.PlaceTooltipBeside`, the widget's `tooltipPlace`: to the strip's right, or
--- to its left when the right side would leave the screen. The collection's
--- strips place their tooltips by that one rule (KickCD, AuraMaster, AbsorbTracker).
+-- WHERE they sit (AD-92-CM, LibKa0s#92): the strip is the bar's title bar, a
+-- CHROME element (WowAddonStandards standalone-windows, *Tooltip placement*), so
+-- every one of its tooltips is ATTACHED to the strip: centered on it, 2 px
+-- (TIP_GAP) above it, flipped below only when the screen has no room above,
+-- never at the cursor and never at a corner offset. The widget places them
+-- itself (WidgetsDragHandleTip minor 1, LibKa0s-Tooltip-1.0's PlaceAttached on
+-- the strip): one absolute point on UIParent's BOTTOMLEFT in screen units. The
+-- spec hands it no `tooltipPlace` hook.
 --
 -- What is observed is what a hover puts on screen -- the frame the tooltip is
 -- owned BY, where it is anchored, and its lines in order -- rather than the
 -- shape of the table handed to the widget.
 -- ---------------------------------------------------------------------------
 
+local TIP_GAP = 2   -- LibKa0s-Tooltip-1.0's TIP_GAP
+
 --- A GameTooltip that records which setter fired with which arguments, and
---- answers the two reads the placement makes: its width (`width`, 200 unless
---- given) and its effective scale (1). The shared frame stub answers every
---- method with itself, so it can say a tooltip was built but not what it says,
---- who owns it or where it sits.
+--- answers the reads the placement makes: its width (`width`, 200 unless given),
+--- its height (80) and its effective scale (1). The shared frame stub answers
+--- every method with itself, so it can say a tooltip was built but not what it
+--- says, who owns it or where it sits.
 local function recordingTooltip(width)
     local gt = { calls = {}, points = {} }
     local function record(name)
@@ -419,31 +424,39 @@ local function recordingTooltip(width)
     gt.ClearAllPoints    = function() gt.points = {} end
     gt.SetPoint          = function(_, ...) gt.points[#gt.points + 1] = { ... } end
     gt.GetWidth          = function() return width or 200 end
+    gt.GetHeight         = function() return 80 end
     gt.GetEffectiveScale = function() return 1 end
     return gt
 end
 
---- Give the placement real numbers to read: a 1000 px screen at scale 1 and the
---- strip's right edge at `right` (500 unless given). The mock's GetParent
---- answers the frame itself, so each mark is parented to the strip here, as
---- the client parents it.
-local function armGeometry(handle, right)
+--- Give the placement real numbers to read: a 1000 x 800 screen at scale 1 and
+--- the strip at `g.left`, `g.bottom`, `g.width` x `g.height` in its own units at
+--- effective scale `g.scale` (1 unless given). By default the strip sits
+--- mid-screen, 400..600 x 500..516, with room above it.
+local function armGeometry(handle, g)
+    g = g or {}
+    local l, b = g.left or 400, g.bottom or 500
+    local w, hgt = g.width or 200, g.height or 16
+    _G.UIParent.GetWidth          = function() return 1000 end
+    _G.UIParent.GetHeight         = function() return 800 end
     _G.UIParent.GetRight          = function() return 1000 end
+    _G.UIParent.GetTop            = function() return 800 end
     _G.UIParent.GetEffectiveScale = function() return 1 end
-    handle.GetRight          = function() return right or 500 end
-    handle.GetEffectiveScale = function() return 1 end
-    for _, mark in ipairs({ handle.help, handle.close }) do
-        mark.GetParent = function() return handle end
-    end
+    handle.GetLeft           = function() return l end
+    handle.GetBottom         = function() return b end
+    handle.GetRight          = function() return l + w end
+    handle.GetTop            = function() return b + hgt end
+    handle.GetEffectiveScale = function() return g.scale or 1 end
 end
 
---- The full addon, its bar built, and the strip's geometry armed.
+--- The full addon, its bar built, and the strip's geometry armed (`g`, as
+--- armGeometry's).
 -- On Ka0s Default by name: the handle's tints below are its values, and the forever kit profile's
 -- default skin is WoW Forever (skinning-§2).
-local function bench()
+local function bench(g)
     local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
     local _, _, handle = support.buildBar(KCM)
-    armGeometry(handle)
+    armGeometry(handle, g)
     return KCM, handle
 end
 
@@ -474,18 +487,20 @@ local function hasLine(rec, needle)
     return false
 end
 
---- Assert `rec` is a placed tooltip: owned once, by UIParent at ANCHOR_NONE (the
---- hook's owner), and anchored TOPLEFT to the STRIP's TOPRIGHT with a gap.
-local function assertBesideStrip(t, rec, handle, what)
-    t.eq(#rec.owners, 1, what .. ": placed on the first try, so owned once")
-    t.eq(rec.owner, _G.UIParent, what .. ": owned by UIParent, as the hook requires")
-    t.eq(rec.anchor, "ANCHOR_NONE", what .. ": not at the cursor and not ANCHOR_TOP")
+--- Assert `rec` is a chrome tooltip attached ABOVE the default mid-screen strip:
+--- owned once, by UIParent at ANCHOR_NONE, its BOTTOM on one absolute point of
+--- UIParent's BOTTOMLEFT, centered on the strip (x 500) and TIP_GAP over its top
+--- (516 + 2).
+local function assertAboveStrip(t, rec, what)
+    t.eq(#rec.owners, 1, what .. ": owned once")
+    t.eq(rec.owner, _G.UIParent, what .. ": owned by UIParent")
+    t.eq(rec.anchor, "ANCHOR_NONE", what .. ": never the cursor, never a corner anchor")
     t.truthy(rec.point, what .. ": anchored")
-    t.eq(rec.point[1], "TOPLEFT", what)
-    t.truthy(rawequal(rec.point[2], handle), what .. ": beside the strip, not the frame hovered")
-    t.eq(rec.point[3], "TOPRIGHT", what)
-    t.truthy(rec.point[4] > 0, what .. ": a gap clear of the strip's edge")
-    t.eq(rec.point[5], 0, what)
+    t.eq(rec.point and rec.point[1], "BOTTOM", what .. ": its bottom edge")
+    t.truthy(rec.point and rawequal(rec.point[2], _G.UIParent), what .. ": one absolute point")
+    t.eq(rec.point and rec.point[3], "BOTTOMLEFT", what)
+    t.eq(rec.point and rec.point[4], 500, what .. ": centered on the strip, not on the frame hovered")
+    t.eq(rec.point and rec.point[5], 516 + TIP_GAP, what .. ": the gap above the strip's top")
 end
 
 local MARK_BODY   = "Drag a button onto another to swap them."
@@ -493,28 +508,32 @@ local MARK_FOOTER = "Only Consumable Master macros can sit on this bar."
 local LOCKED_LINE = "Locked. Unlock the bar to drag this handle — /cm unlock."
 local UNLOCK_LINE = "Lock the bar to hide this handle — /cm lock."
 
--- red under: a spec without `tooltipPlace` (the strip owns its tooltip at
--- ANCHOR_TOP), or dropping `tooltip` so the mark's descriptor is drawn for both.
-test("macrobar handle: the strip's tooltip is the addon's, drawn beside the strip",
+-- RE-PINNED by AD-92-CM (this case and the mark's, the X's and the settings
+-- mark's below): they asserted the tooltip TOPLEFT on the strip's TOPRIGHT, the
+-- beside-the-strip placement of MB.PlaceTooltipBeside (TP-CM-02); the rule now
+-- reads that as a body placement on a chrome element.
+-- red under: dropping `tooltip` so the mark's descriptor is drawn for both, or a
+-- spec that hands the widget a beside-the-strip `tooltipPlace` again.
+test("macrobar handle: the strip's tooltip is the addon's, attached above the strip",
     function(t)
         local _, handle = bench()
         local rec = hover(handle)
         t.eq(rec.lines[1], "Consumable Master", "the addon's name heads the strip's tooltip")
-        assertBesideStrip(t, rec, handle, "strip")
+        assertAboveStrip(t, rec, "strip")
         t.truthy(rec.shown, "the tooltip is actually shown")
     end)
 
 -- red under: dropping `helpTooltip`, which would fall the mark back to the
 -- strip's descriptor -- same title, none of the long-form help -- or a mark
--- whose tooltip is anchored to the mark rather than to its strip.
-test("macrobar handle: the mark's tooltip is the bar's, drawn beside the strip",
+-- whose tooltip is attached to the mark rather than to its strip.
+test("macrobar handle: the mark's tooltip is the bar's, attached above the strip",
     function(t)
         local _, handle = bench()
         local help = handle.help
         t.truthy(help, "the widget drew the help mark")
         local rec = hover(help)
         t.eq(rec.lines[1], "Macro bar", "the mark carries its own title")
-        assertBesideStrip(t, rec, handle, "? mark")
+        assertAboveStrip(t, rec, "? mark")
         t.truthy(hasLine(rec, MARK_BODY), "…with the mark's own body")
         t.truthy(hasLine(rec, MARK_FOOTER), "…and its own footer")
     end)
@@ -535,102 +554,99 @@ test("macrobar handle: the strip and the mark draw two distinct tooltips in one 
     end)
 
 -- ---------------------------------------------------------------------------
--- MB.PlaceTooltipBeside -- the strip's tooltipPlace (TP-CM-02)
+-- Where the strip's tooltips sit: the chrome rule (AD-92-CM, LibKa0s#92)
 --
--- The owner's rule, the same in every Ka0s addon with a drag strip: the
--- tooltip sits to the strip's RIGHT, or to its LEFT when the strip's right edge
--- plus the tooltip's width would leave the screen. Only a literal `true` means
--- placed; anything else makes the widget fall back to its own placement (below the
--- strip since LibKa0s v1.105.0; the cursor before it), so a read
--- that cannot be trusted must answer non-true and leave the tooltip unanchored
--- rather than guess. Plain tables stand in for the frames: the placement reads
--- five methods and nothing else.
+-- RE-PINNED by AD-92-CM. Until then the strip handed the widget
+-- MB.PlaceTooltipBeside (TP-CM-02) as its `tooltipPlace`, and six cases drove
+-- that function directly: right when it fits, left near the screen's right edge,
+-- a mark resolving to its strip, screen pixels on a scaled strip, a secret read
+-- and a nil read. The function is retired, and the six became the cases below,
+-- one for one, driven through a real hover: above mid-screen, below at the
+-- screen's top, every mark placed by its strip, screen units on a scaled strip,
+-- and a secret and a nil read falling back to the widget's attached point; plus
+-- the hook being gone.
 -- ---------------------------------------------------------------------------
 
---- A fresh load whose screen is `screenRight` px wide, a strip whose right edge
---- reads `right` (through `read`, so a case can hand back a secret or a nil) at
---- effective scale `scale` (1 unless given), its two marks, and a tooltip
---- `width` wide.
-local function placeBench(screenRight, right, width, read, scale)
-    local KCM = h.loader.loadFullAddon()
-    _G.UIParent.GetRight          = function() return screenRight end
-    _G.UIParent.GetEffectiveScale = function() return 1 end
-    local strip = {
-        GetRight          = read or function() return right end,
-        GetEffectiveScale = function() return scale or 1 end,
-    }
-    strip.help  = { GetParent = function() return strip end }
-    strip.close = { GetParent = function() return strip end }
-    return KCM.MacroBar, strip, recordingTooltip(width)
-end
-
-test("PlaceTooltipBeside puts the tooltip to the strip's right when it fits", function(t)
-    local MB, strip, tip = placeBench(1000, 500, 200)
-    t.eq(MB.PlaceTooltipBeside(tip, strip), true, "a placement it made answers true")
-    t.eq(#tip.points, 1)
-    local p = tip.points[1]
-    t.eq(p[1], "TOPLEFT")
-    t.truthy(rawequal(p[2], strip), "anchored to the strip itself")
-    t.eq(p[3], "TOPRIGHT")
-    t.truthy(p[4] > 0, "a gap clear of the strip's edge")
-    t.eq(p[5], 0)
+test("macrobar handle: the retired beside-the-strip hook is gone", function(t)
+    local KCM = bench()
+    t.eq(KCM.MacroBar.PlaceTooltipBeside, nil, "MB.PlaceTooltipBeside is retired")
 end)
 
-test("PlaceTooltipBeside flips to the strip's left when the right side would leave the screen",
+-- red under: the retired beside placement (TOPLEFT on the strip's TOPRIGHT).
+test("macrobar handle: mid-screen, the strip's tooltip sits centered above the strip",
     function(t)
-        -- red under: a placement that always anchors right (900 + 200 runs 100 px
-        -- off a 1000 px screen).
-        local MB, strip, tip = placeBench(1000, 900, 200)
-        t.eq(MB.PlaceTooltipBeside(tip, strip), true)
-        local p = tip.points[1]
-        t.eq(p[1], "TOPRIGHT")
-        t.truthy(rawequal(p[2], strip))
-        t.eq(p[3], "TOPLEFT")
-        t.truthy(p[4] < 0, "a gap clear of the strip's left edge")
+        local _, handle = bench()
+        local rec = hover(handle)
+        t.eq(rec.point and rec.point[1], "BOTTOM")
+        t.eq(rec.point and rec.point[4], 500, "centered on the strip's 400..600")
+        t.eq(rec.point and rec.point[5], 518, "its bottom TIP_GAP over the strip's top (516)")
     end)
 
-test("PlaceTooltipBeside anchors to the STRIP when the hovered frame is its ? or X mark",
+-- red under: a placement that always opens above (778 + 80 runs off an 800 px
+-- screen).
+test("macrobar handle: at the screen's top, the strip's tooltip flips below the strip",
     function(t)
-        -- The widget hands the hook the frame hovered; for a mark that is the
-        -- mark, whose parent is the strip. One position for the strip and both
-        -- marks, not three.
-        local MB, strip, tip = placeBench(1000, 500, 200)
-        for _, mark in ipairs({ strip.help, strip.close }) do
-            tip.points = {}
-            t.eq(MB.PlaceTooltipBeside(tip, mark), true)
-            t.truthy(rawequal(tip.points[1][2], strip), "the mark resolves to its strip")
-            t.eq(tip.points[1][3], "TOPRIGHT")
+        local _, handle = bench({ bottom = 760 })
+        local rec = hover(handle)
+        t.eq(rec.point and rec.point[1], "TOP", "its top edge")
+        t.truthy(rec.point and rawequal(rec.point[2], _G.UIParent), "one absolute point")
+        t.eq(rec.point and rec.point[4], 500, "still centered on the strip")
+        t.eq(rec.point and rec.point[5], 760 - TIP_GAP, "TIP_GAP under the strip's bottom")
+    end)
+
+-- The widget hands the placement the strip whichever of its frames is hovered:
+-- one position for the strip and all three marks, not four. The marks' own
+-- edges read 0 here, so a mark placed by itself would land at x 100.
+test("macrobar handle: every mark's tooltip is placed by its strip", function(t)
+    local _, handle = bench()
+    local strip = hover(handle)
+    for _, key in ipairs({ "help", "close", "settings" }) do
+        local mark = handle[key]
+        t.truthy(mark, key .. " mark drawn")
+        if mark then
+            t.eqList(hover(mark).point, strip.point, key .. " mark: placed by the strip")
         end
-    end)
+    end
+end)
 
-test("PlaceTooltipBeside compares in screen pixels, so a scaled strip flips when it should",
-    function(t)
-        -- red under: comparing the strip's raw GetRight (450, in its own scaled
-        -- units) with the screen. At scale 2 its right edge is 900 screen px, and
-        -- 900 + 200 does not fit in 1000. The bar takes the master scale and the
-        -- strip inherits it.
-        local MB, strip, tip = placeBench(1000, 450, 200, nil, 2)
-        t.eq(MB.PlaceTooltipBeside(tip, strip), true)
-        t.eq(tip.points[1][1], "TOPRIGHT")
-    end)
+-- red under: reading the strip's raw edges (its own units) as screen units. At
+-- scale 2 a strip of 200..300 x 250..258 own units spans 400..600 x 500..516 on
+-- screen, the default strip's place. The bar takes the master scale and the
+-- strip inherits it.
+test("macrobar handle: a scaled strip is placed in screen units", function(t)
+    local _, handle = bench({ left = 200, bottom = 250, width = 100, height = 8, scale = 2 })
+    assertAboveStrip(t, hover(handle), "scaled strip")
+end)
 
-test("PlaceTooltipBeside answers non-true and anchors nothing when a read is secret",
+--- Assert `rec` fell back to the widget's own attached point: the tooltip's
+--- BOTTOM on the strip's TOP, TIP_GAP up, owned by UIParent at ANCHOR_NONE.
+local function assertFallbackAbove(t, rec, handle, what)
+    t.truthy(rawequal(rec.owner, _G.UIParent), what .. ": still owned by UIParent")
+    t.eq(rec.anchor, "ANCHOR_NONE", what .. ": at ANCHOR_NONE")
+    for _, a in ipairs(rec.owners) do
+        t.truthy(a ~= "ANCHOR_CURSOR", what .. ": never re-owned at the cursor")
+    end
+    t.eqList(rec.point, { "BOTTOM", handle, "TOP", 0, TIP_GAP }, what .. ": attached above the strip")
+    t.truthy(rec.shown, what .. ": and shown")
+end
+
+test("macrobar handle: a secret strip read falls back to the attached point, never a guess",
     function(t)
+        local _, handle = bench()
         local secret = {}
-        local MB, strip, tip = placeBench(1000, nil, 200, function() return secret end)
+        handle.GetTop = function() return secret end
         local prior = rawget(_G, "issecretvalue")
         _G.issecretvalue = function(v) return rawequal(v, secret) end
-        local placed = MB.PlaceTooltipBeside(tip, strip)
+        local rec = hover(handle)
         _G.issecretvalue = prior
-        t.truthy(placed ~= true, "the widget must fall back to its own placement")
-        t.eq(#tip.points, 0, "nothing anchored on a guess")
+        assertFallbackAbove(t, rec, handle, "secret top")
     end)
 
-test("PlaceTooltipBeside answers non-true and anchors nothing when a read is nil", function(t)
+test("macrobar handle: a nil strip read falls back to the attached point", function(t)
     -- A strip not yet laid out answers nil for its edges in the client.
-    local MB, strip, tip = placeBench(1000, nil, 200, function() return nil end)
-    t.truthy(MB.PlaceTooltipBeside(tip, strip) ~= true)
-    t.eq(#tip.points, 0)
+    local _, handle = bench()
+    handle.GetTop = function() return nil end
+    assertFallbackAbove(t, hover(handle), handle, "nil top")
 end)
 
 -- A hover whose placement cannot read the strip still shows its tooltip: the
@@ -797,21 +813,71 @@ test("macrobar handle: the X's tooltip says what the click does and the way back
     local _, handle = bench()
     local rec = hover(handle.close)
     t.eq(rec.lines[1], "Hide the macro bar", "the X carries its own title")
-    assertBesideStrip(t, rec, handle, "X mark")
+    assertAboveStrip(t, rec, "X mark")
     t.truthy(hasLine(rec, "Click to hide the macro bar. Its layout and position are kept."),
         "…says what the click does")
     t.truthy(hasLine(rec, X_BACK), "…and carries the chat line's way back")
 end)
 
--- The X widens the strip: the widget reserves the close mark's frame on both
--- sides of the label (Widgets 10.3, `handle:Reserve()`). This addon pins no
--- Measure literal; the reserve is read from the library's own constants.
-test("macrobar handle: the X widens the label's reserve by the close mark's frame", function(t)
+-- The X and the settings mark widen the strip: the widget reserves each mark's
+-- frame on both sides of the label (Widgets 10.3, `handle:Reserve()`; the
+-- settings mark's share since DragHandle minor 14, AD-86-CM). This addon pins
+-- no Measure literal; the reserve is read from the library's own constants.
+-- RE-PINNED at AD-86-CM: it was RESERVE + one mark's frame (the X alone).
+test("macrobar handle: the X and the settings mark widen the label's reserve by a frame each",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local D = LibStub("LibKa0s-Widgets-1.0").DRAG_HANDLE
+        t.eq(handle:Reserve(), D.RESERVE + 2 * (D.HELP_HIT + D.CLOSE_GAP),
+            "the reserve is the strip's with a close mark and a settings mark")
+    end)
+
+-- ---------------------------------------------------------------------------
+-- The drag handle's settings mark (AD-86-CM, LibKa0s#86, DragHandle minor 14)
+--
+-- The strip opts in with `settings = true`: no onSettings of its own, so a
+-- click goes through LibKa0s-Core-1.0's registry by the strip's owner, which
+-- is this addon's folder -- the same key the launcher registers its opener
+-- under (core/LauncherSetup.lua's `name`). One opener, two doors.
+-- ---------------------------------------------------------------------------
+
+-- red under: a strip built without `settings`.
+test("macrobar handle: the strip carries a settings mark left of the X", function(t)
     local KCM = h.loader.loadFullAddon()
     local _, _, handle = support.buildBar(KCM)
-    local D = LibStub("LibKa0s-Widgets-1.0").DRAG_HANDLE
-    t.eq(handle:Reserve(), D.RESERVE + D.HELP_HIT + D.CLOSE_GAP,
-        "the reserve is the strip's with a close mark")
+    t.truthy(handle.settings, "the widget drew the settings mark")
+    t.truthy(handle.settings ~= handle.close and handle.settings ~= handle.help,
+        "…as its own frame, not the X or the ?")
+end)
+
+-- red under: a strip without `settings`, or one whose click opens anything but
+-- the launcher's opener (KCM.Options.Open, the published panel seam).
+test("macrobar handle: the settings mark's left click opens Consumable Master's settings",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local opens = 0
+        KCM.Options.Open = function() opens = opens + 1; return true end
+        t.truthy(handle.settings, "the strip carries a settings mark")
+        local c = KCM.db.profile.macroBar
+        local enabled, locked = c.enabled, c.locked
+        handle.settings:GetScript("OnClick")(handle.settings, "LeftButton")
+        t.eq(opens, 1, "the panel was asked to open, once")
+        t.eq(c.enabled, enabled, "the bar is not hidden")
+        t.eq(c.locked, locked, "the lock is untouched")
+    end)
+
+-- red under: dropping `settingsTooltip` (the mark would show the strip's
+-- tooltip, titled for the addon, with the drag line).
+test("macrobar handle: the settings mark's tooltip says what the click does", function(t)
+    local _, handle = bench()
+    t.truthy(handle.settings, "the strip carries a settings mark")
+    local rec = hover(handle.settings)
+    t.eq(rec.lines[1], "Open settings", "the mark carries its own title")
+    assertAboveStrip(t, rec, "settings mark")
+    t.truthy(hasLine(rec, "Click to open Consumable Master's settings."),
+        "…says what the click does")
 end)
 
 -- The bar is a secure frame: its hide waits for PLAYER_REGEN_ENABLED, through

@@ -29,106 +29,19 @@ local say = KCM.Say
 -- ---------------------------------------------------------------------------
 --
 -- These dumps used to hand the table to Blizzard's DevTools_Dump, which prints
--- to the CHAT FRAME (the bare `[7005]=1,` lines the owner saw in chat), and fell
--- back to a hand-written row format when Blizzard_DebugTools had not loaded, so
--- the same dump read two ways depending on client state. This writes the
--- table's lines through the report's `out` instead: sorted keys (numbers, then
--- strings), nested tables indented two spaces per level, every value through
--- the secret-safe stringification the rest of this file renders values with.
--- Bounded on both axes, so a huge or cyclic table cannot flood the console.
-
-local SERIAL_MAX_LINES = 400
-local SERIAL_MAX_DEPTH = 6
-
-local function isSecret(v)
-    return KCM.Compat and KCM.Compat.IsSecret and KCM.Compat.IsSecret(v) or false
-end
-
-local function valueText(v)
-    local tv = type(v)
-    if tv == "string" then
-        if isSecret(v) then return KCM.SafeToString(v) end
-        -- %q escapes a newline as a backslash plus a real newline; keep it one line.
-        return (("%q"):format(v):gsub("\\\n", "\\n"))
-    elseif tv == "function" or tv == "userdata" or tv == "thread" then
-        return "<" .. tv .. ">"
-    end
-    return KCM.SafeToString(v)
-end
-
-local function keyText(k)
-    if type(k) == "number" then return "[" .. KCM.SafeToString(k) .. "]" end
-    if type(k) == "string" and not isSecret(k) and k:match("^[%a_][%w_]*$") then return k end
-    return "[" .. valueText(k) .. "]"
-end
-
-local TYPE_RANK = { number = 1, string = 2 }
-
-local function keyLess(a, b)
-    local ra, rb = TYPE_RANK[type(a)] or 3, TYPE_RANK[type(b)] or 3
-    if ra ~= rb then return ra < rb end
-    if ra == 3 then return tostring(a) < tostring(b) end
-    return a < b
-end
-
-local function sortedKeys(tbl)
-    local keys = {}
-    for k in pairs(tbl) do keys[#keys + 1] = k end
-    table.sort(keys, keyLess)
-    return keys
-end
-
--- Writes `value` through `out`, one line per scalar, starting at `indent`.
--- Returns the number of lines written.
+-- to the CHAT FRAME, so the table's lines go through the report's `out`
+-- instead. The walker itself is the library's (KCM.DebugLog.Serialize, which is
+-- D:Serialize, LibKa0s#79; this file's own walker was the reference it was
+-- ported from): sorted keys (numbers, then strings), nested tables indented two
+-- spaces per level, secret values as `<secret>`, bounded at 400 lines and depth
+-- 6. Without the library it is one line (core/DebugLogSetup.lua's stub).
+--
+-- Writes `value` through `out`, starting at `indent`, and answers the number of
+-- lines written: the shape every caller here and the suite were written to.
 local function serialize(out, value, indent)
-    indent = indent or "  "
-    local written, truncated = 0, false
-    local function emit(line)
-        if written >= SERIAL_MAX_LINES then
-            truncated = true
-            return
-        end
-        written = written + 1
-        out(line)
-    end
-    -- `open` holds the tables on the current path only, so a cycle reads
-    -- <cycle> while a table shared by two branches still renders under both.
-    local open = {}
-    local function walk(tbl, pad, depth)
-        for _, k in ipairs(sortedKeys(tbl)) do
-            if truncated then return end
-            local v = tbl[k]
-            local head = pad .. keyText(k) .. " = "
-            if type(v) ~= "table" or isSecret(v) then
-                emit(head .. valueText(v))
-            elseif open[v] then
-                emit(head .. "<cycle>")
-            elseif next(v) == nil then
-                emit(head .. "{}")
-            elseif depth >= SERIAL_MAX_DEPTH then
-                emit(head .. "{...}")
-            else
-                open[v] = true
-                emit(head .. "{")
-                walk(v, pad .. "  ", depth + 1)
-                emit(pad .. "}")
-                open[v] = nil
-            end
-        end
-    end
-    if type(value) ~= "table" or isSecret(value) then
-        emit(indent .. valueText(value))
-    elseif next(value) == nil then
-        emit(indent .. "{}")
-    else
-        open[value] = true
-        walk(value, indent, 1)
-    end
-    if truncated then
-        out(("%s... truncated at %d lines"):format(indent, SERIAL_MAX_LINES))
-        written = written + 1
-    end
-    return written
+    local lines = KCM.DebugLog.Serialize(value, { indent = indent or "  " })
+    for i = 1, #lines do out(lines[i]) end
+    return #lines
 end
 
 -- ---------------------------------------------------------------------------
@@ -566,7 +479,7 @@ end
 -- Published for core/SlashCommands.lua (whose `priority` verb renders composite
 -- categories through the `pick` target), for settings/Slash.lua, which wires
 -- Dispatch in as the `dump` verb, and for core/Diagnostics.lua (EventStates).
--- Serialize is the table renderer above, published for the suite.
+-- Serialize is the adapter above onto the library's serializer, published for the suite.
 KCM.SlashDump = {
     Dispatch    = dumpDispatch,
     Help        = dumpHelp,

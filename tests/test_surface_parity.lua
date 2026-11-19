@@ -164,13 +164,13 @@ end)
 -- Member list produced by:
 --     grep -n '^function DL\.\|^DL\.' core/DebugLogSetup.lua
 -- which is the live surface (:298-:369). The degraded branch (:61-:150)
--- publishes nine of them (Report joined both arms with the owner's report
--- ruling of 2026-11-08).
+-- publishes ten of them (Report joined both arms with the owner's report
+-- ruling of 2026-11-08, Serialize with the LibKa0s#79 adoption, AD-79-CM).
 local DEBUGLOG_SEAM = {
     "AddLine", "IsEnabled", "Show", "Hide", "Clear", "ShowCopy", "RefreshHeader",
     "UpdateScrollBar", "UpdateStatus", "Toggle_Window", "IsWindowShown",
     "SetEnabled", "Toggle", "FormatPlain", "FormatColored", "instance",
-    "RunDiagnostics", "Report",
+    "RunDiagnostics", "Report", "Serialize",
 }
 
 -- Live-only ON PURPOSE, each argued at core/DebugLogSetup.lua:138-148:

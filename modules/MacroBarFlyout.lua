@@ -352,6 +352,15 @@ end
 -- puts them back on the SAME frames. Both are protected operations; the one
 -- caller, MB.Update, is already behind the bar's single combat gate.
 
+--- Every flyout FO.Create has built, in creation order: the bar's tooltip window
+--- group reads it on each hover (modules/MacroBar.lua's tipCompanions; the
+--- library keeps the shown ones). The list itself, not a copy: read it, never
+--- write it.
+--- @return table
+function FO.Built()
+    return built
+end
+
 --- Unregister every built flyout's `kcmCombat` attribute driver.
 function FO.StandDown()
     if not UnregisterAttributeDriver then return end

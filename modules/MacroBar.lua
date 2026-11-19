@@ -137,66 +137,48 @@ local function fadeTick(self, elapsed)
 end
 
 -- ---------------------------------------------------------------------------
--- Drag strip tooltip placement (TP-CM-02, LibKa0s WidgetsDragHandle minor 4)
+-- The bar's tooltip window group (AD-92-CM, LibKa0s#92; WowAddonStandards
+-- standalone-windows, *Tooltip placement*)
 --
--- The strip passes this as LibKa0s-Widgets' `tooltipPlace`, so its tooltip and
--- both marks' (? and X) open BESIDE the strip: to its right, or to its left
--- when that would leave the screen. The same rule, line for line, as every Ka0s
--- drag strip (KickCD's NS.Util.PlaceTooltipBeside is the reference). The widget
--- owns GameTooltip by UIParent at ANCHOR_NONE, draws and shows it, then calls
--- this under pcall; only a literal `true` means placed, and anything else falls
--- back to the widget's own placement with the same lines: attached above the
--- strip, below only without room (LibKa0s v1.105.0, SR-L1), never the cursor.
+-- A slot's and a flyout entry's tooltips are BODY tooltips: they open beside
+-- the WHOLE display (core/MacroDisplay.lua's MD.PlaceBody, the library's
+-- PlaceBeside), never over a part of it. The display is the bar plus the
+-- frames that hang off it: the drag strip above it while unlocked and every
+-- open flyout. buildBar registers the bar as a window group whose companions
+-- are those frames, read again on each hover so a hidden strip or a closed
+-- flyout drops out (the library keeps only the shown ones).
+--
+-- The drag strip's own four tooltips (the strip's, the ?'s, the X's and the
+-- settings mark's) are CHROME: the strip is the bar's title bar, so they are
+-- attached centered ABOVE the strip, below only without room above, by the
+-- widget's own placement (LibKa0s WidgetsDragHandleTip, the library's
+-- PlaceAttached). The spec below hands the widget no `tooltipPlace`. From
+-- TP-CM-02 until AD-92-CM that hook was MB.PlaceTooltipBeside, which opened
+-- them beside the strip; it is retired.
 -- ---------------------------------------------------------------------------
 
--- The gap between the strip's edge and the tooltip, in the tooltip's own units
--- (SetPoint's).
-local TIP_GAP = 4
-
---- A frame geometry read as a plain number, or nil when the method is missing
---- or the answer is nil, secret (KCM.Compat.IsSecret) or not a number. Asked
---- before any arithmetic, because arithmetic on a secret raises.
-local function plainRead(frame, method)
-    local fn = frame and frame[method]
-    if not fn then return nil end
-    local v = fn(frame)
-    if v == nil or KCM.Compat.IsSecret(v) or type(v) ~= "number" then return nil end
-    return v
-end
-
---- `method`'s answer in SCREEN px (times the frame's effective scale), or nil.
---- The bar takes the master scale and the strip inherits it, so a raw edge and
---- a raw screen width are in different units and comparing them would flip on
---- the wrong side.
-local function screenRead(frame, method)
-    local v, s = plainRead(frame, method), plainRead(frame, "GetEffectiveScale")
-    return v and s and v * s or nil
-end
-
---- Place a strip tooltip beside the strip: to its right, or to its left when
---- the strip's right edge plus the tooltip's width would pass the screen's right
---- edge. `frame` is the frame hovered: the strip itself (it carries the widget's
---- `help` field) or one of its marks, whose parent is the strip, so all three
---- tooltips show in one place.
---- @return true|nil  true only once the tooltip is anchored; nil (the widget's
----                   own fallback, above the strip) when any read is missing, nil or secret,
----                   with nothing anchored.
-function MB.PlaceTooltipBeside(tip, frame)
-    if not (tip and frame) then return nil end
-    local strip = frame
-    if not frame.help and frame.GetParent then strip = frame:GetParent() end
-    local right    = screenRead(strip, "GetRight")
-    local width    = screenRead(tip, "GetWidth")
-    local screen   = screenRead(UIParent, "GetRight")
-    local tipScale = plainRead(tip, "GetEffectiveScale")
-    if not (right and width and screen and tipScale) then return nil end
-    tip:ClearAllPoints()
-    if right + TIP_GAP * tipScale + width <= screen then
-        tip:SetPoint("TOPLEFT", strip, "TOPRIGHT", TIP_GAP, 0)
-    else
-        tip:SetPoint("TOPRIGHT", strip, "TOPLEFT", -TIP_GAP, 0)
+--- The frames docked to `frame` (the bar) for tooltip placement: its drag strip
+--- and every flyout built (the library keeps the shown ones). A flyout whose own
+--- shown flag outlived its slot's hide (IsShown is the frame's own flag, not
+--- whether it draws) is left out by IsVisible, so it never widens the group.
+local function tipCompanions(frame)
+    local out = {}
+    if frame.handle then out[#out + 1] = frame.handle end
+    local FO = KCM.MacroBarFlyout
+    for _, flyout in ipairs(FO and FO.Built and FO.Built() or {}) do
+        if not flyout.IsVisible or flyout:IsVisible() then out[#out + 1] = flyout end
     end
-    return true
+    return out
+end
+
+--- Register `frame` (the bar) as a tooltip window group with tipCompanions.
+--- Read at call time: a build without the major registers nothing and every
+--- body tooltip falls back to attaching above its element.
+local function registerTipGroup(frame)
+    local Tip = LibStub and LibStub("LibKa0s-Tooltip-1.0", true)
+    if type(Tip) == "table" and type(Tip.SetGroup) == "function" then
+        Tip.SetGroup(frame, function() return tipCompanions(frame) end)
+    end
 end
 
 -- The drag handle's close mark (X-01, X-02). It turns off the smallest thing the
@@ -301,10 +283,20 @@ local function buildBar()
                 KCM.L["/cm bar on brings it back."],
             },
         },
-        -- WHERE all three tooltips sit (the strip's, the ?'s and the X's) is
-        -- this one hook's, beside the strip; no descriptor names an owner or an
-        -- anchor, because the hook replaces both (TP-CM-02).
-        tooltipPlace = MB.PlaceTooltipBeside,
+        -- The settings mark, left of the X (DragHandle minor 14, LibKa0s#86,
+        -- AD-86-CM). `true` rather than a function: the click goes through
+        -- LibKa0s-Core-1.0's opener registry by `owner`, this folder's name,
+        -- which is the key core/LauncherSetup.lua registers its openSettings
+        -- under -- one opener behind the minimap button and this mark.
+        settings        = true,
+        settingsIcon    = KCM.Icon and KCM.Icon("settings") or nil,
+        settingsTooltip = {
+            title = KCM.L["Open settings"],
+            body  = { KCM.L["Click to open Consumable Master's settings."] },
+        },
+        -- No `tooltipPlace`: all four tooltips (the strip's, the ?'s, the X's
+        -- and the settings mark's) are the widget's to place, attached above the
+        -- strip (AD-92-CM). No descriptor names an owner or an anchor.
         -- The STRIP's tooltip: titled for the addon. Its one body line is a
         -- FUNCTION rather than a string because it is read on every hover, and
         -- the lock can change between two hovers of the same strip.
@@ -347,6 +339,7 @@ local function buildBar()
     end
 
     frame.handle = handle
+    registerTipGroup(frame)
 
     return frame
 end
