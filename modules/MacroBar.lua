@@ -193,6 +193,22 @@ local function closeBar()
     KCM.Say(KCM.L["Macro bar hidden. /cm bar on brings it back."])
 end
 
+-- The drag handle's settings mark (AF-STRIP-CM; the owner's ruling of
+-- 2026-11-19: a strip's gear opens that display's own settings). The bar's
+-- page is the Macro Bar subcategory, panelKey "macrobar" (settings/MacroBar.lua),
+-- opened through KCM.Options.Open, the launcher's opener with a page named.
+-- Resolved at click time: settings/ loads after this file. An open that did
+-- not happen says why: the library prints its own combat refusal, and a build
+-- with no panel gets the launcher's line.
+local function openBarSettings()
+    local Options = KCM.Options
+    if not (Options and Options.Open) then
+        KCM.Say("Settings panel unavailable.")
+        return
+    end
+    Options.Open("macrobar")
+end
+
 local function buildBar()
     local frame = CreateFrame("Frame", BAR_NAME, UIParent, "BackdropTemplate")
     frame:SetFrameStrata(LAYERS.STRATA.HUD)
@@ -272,8 +288,10 @@ local function buildBar()
         -- never a near-invisible click target (frame-layering-§2, DragHandle
         -- minor 5).
         ignoreParentAlpha = true,
-        -- The close mark, left of the help mark (Widgets 10.3). Its tooltip
-        -- carries the chat line's way back.
+        -- The close mark, in the strip's corner (Widgets 10.3; the corner from
+        -- DragHandle minor 15). Its tooltip carries both ways back: the chat
+        -- line's slash and the Macro Bar page's Enabled row. The line names
+        -- /cm config, not the gear: once the X is clicked the strip is gone.
         onClose      = closeBar,
         closeIcon    = KCM.Icon and KCM.Icon("close") or nil,
         closeTooltip = {
@@ -281,18 +299,18 @@ local function buildBar()
             body   = {
                 KCM.L["Click to hide the macro bar. Its layout and position are kept."],
                 KCM.L["/cm bar on brings it back."],
+                KCM.L["Or tick Enable macro bar on the Macro Bar settings page (/cm config, then Macro Bar)."],
             },
         },
         -- The settings mark, left of the X (DragHandle minor 14, LibKa0s#86,
-        -- AD-86-CM). `true` rather than a function: the click goes through
-        -- LibKa0s-Core-1.0's opener registry by `owner`, this folder's name,
-        -- which is the key core/LauncherSetup.lua registers its openSettings
-        -- under -- one opener behind the minimap button and this mark.
-        settings        = true,
+        -- AD-86-CM; on by default from minor 15). A function (AF-STRIP-CM):
+        -- the bar's own page, not the addon's root, which is where `true`
+        -- took it through LibKa0s-Core-1.0's opener registry.
+        settings        = openBarSettings,
         settingsIcon    = KCM.Icon and KCM.Icon("settings") or nil,
         settingsTooltip = {
             title = KCM.L["Open settings"],
-            body  = { KCM.L["Click to open Consumable Master's settings."] },
+            body  = { KCM.L["Click to open the Macro Bar settings."] },
         },
         -- No `tooltipPlace`: all four tooltips (the strip's, the ?'s, the X's
         -- and the settings mark's) are the widget's to place, attached above the

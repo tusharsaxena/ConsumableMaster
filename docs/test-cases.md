@@ -580,7 +580,7 @@ Total.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (34)
+### test_macrobar_chrome.lua (35)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -607,13 +607,14 @@ Total.
 - macrobar handle: a nil strip read falls back to the attached point
 - macrobar handle: an unreadable strip falls back above the strip with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
-- macrobar handle: the mark holds its resting gray, because no click is wired here
+- macrobar handle: the mark lights under the cursor and rests gray again on leave
 - macrobar handle: a layout pass while unlocked refits the strip at the new scale and width
 - macrobar handle: the X hides the bar through macroBar.enabled and says the way back
 - macrobar handle: the X's tooltip says what the click does and the way back
 - macrobar handle: the X and the settings mark widen the label's reserve by a frame each
 - macrobar handle: the strip carries a settings mark left of the X
-- macrobar handle: the settings mark's left click opens Consumable Master's settings
+- macrobar handle: the settings mark's left click opens the Macro Bar settings page
+- macrobar handle: the settings mark says so when no settings panel can open
 - macrobar handle: the settings mark's tooltip says what the click does
 - macrobar handle: in combat the X stores the flag and the bar hides at combat end
 
@@ -1345,7 +1346,7 @@ Total.
 - Settings: a composite's Enabled checkbox stores a real boolean for its sub-category
 - Settings: every Stat Priority, composite and mouseover control writes through the schema helper
 
-### test_settingsui_optionsui.lua (21)
+### test_settingsui_optionsui.lua (22)
 
 - Settings: every page draws a tab strip, and General opens on Master controls
 - Settings: the Stat Priority page draws its strip with no spec resolvable
@@ -1367,6 +1368,7 @@ Total.
 - Settings: leaving combat replays the parked registration, and only then
 - Settings: a registration parked while the addon is stood down still registers on regen
 - Settings: a registration parked by a stand-down in combat still registers on regen
+- Settings: Options.Open hands a page key to the library's opener
 - Settings: /cm config in combat answers false and prints the library's refusal once
 
 ### test_settings_layout.lua (7)
@@ -1803,7 +1805,7 @@ Total.
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
 | test_macrobar.lua | 36 |
-| test_macrobar_chrome.lua | 34 |
+| test_macrobar_chrome.lua | 35 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
@@ -1836,7 +1838,7 @@ Total.
 | test_skin_settings.lua | 9 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
-| test_settingsui_optionsui.lua | 21 |
+| test_settingsui_optionsui.lua | 22 |
 | test_settings_layout.lua | 7 |
 | test_slash.lua | 90 |
 | test_slash_degraded.lua | 15 |
@@ -1859,4 +1861,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1501** |
+| **Total** | **1503** |

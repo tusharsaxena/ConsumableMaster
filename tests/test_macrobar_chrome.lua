@@ -696,16 +696,16 @@ test("macrobar handle: the mark's lock line is re-read on every hover", function
     t.falsy(hasLine(unlocked, LOCKED_LINE), "the first hover's line did not survive the second")
 end)
 
--- The mark brightens under the cursor only where a right-click is wired, and
--- nothing is wired here: `DragHandle` is handed no `onRightClick`, so the
--- widget registers no click at all. At LibKa0s v1.48.0 the brighten was
--- unconditional, so this addon's mark lit up and then did nothing — a control
--- advertising itself and then declining. v1.48.1 chooses the over-tint from
--- `spec.onRightClick`, and this is the host that case was found on.
+-- The mark lights under the cursor on every strip, as a window header's marks
+-- do (DragHandle minor 15, LibKa0s v1.107.0, AF-LK-01: `text.link` under the
+-- pointer, `icon.tint` at rest). Through minor 14 it lit only where a
+-- right-click was wired, so this addon's unwired mark held its resting gray;
+-- RE-PINNED at AF-RV-CM, since the owner ruled the strip's marks take the
+-- header's tints.
 --
--- red under: an unconditional HELP_TINT_OVER on OnEnter, or an `onRightClick`
--- added here without the affordance that a click deserves.
-test("macrobar handle: the mark holds its resting gray, because no click is wired here",
+-- red under: a hover that leaves the mark at rest, or a leave that does not
+-- put the resting gray back.
+test("macrobar handle: the mark lights under the cursor and rests gray again on leave",
     function(t)
         local _, handle = bench()
         local help = handle.help
@@ -717,10 +717,12 @@ test("macrobar handle: the mark holds its resting gray, because no click is wire
         _G.GameTooltip = recordingTooltip()
         help:GetScript("OnEnter")(help)
         t.eq(#tints, 1, "the hover tinted the art once")
-        t.eqList(tints[1], { 0.7, 0.7, 0.72 }, "…to the resting gray, not to full white")
+        local rest = { 0.7, 0.7, 0.72 }
+        t.truthy(tints[1][1] ~= rest[1] or tints[1][2] ~= rest[2] or tints[1][3] ~= rest[3],
+            "…away from the resting gray")
 
         help:GetScript("OnLeave")(help)
-        t.eqList(tints[2], { 0.7, 0.7, 0.72 }, "and leaving it leaves the same tint behind")
+        t.eqList(tints[2], rest, "and leaving it puts the resting gray back")
     end)
 
 -- The strip's fit (LibKa0s#68). `applyLayout` moves the bar's scale and width, and the strip measures
@@ -761,6 +763,7 @@ test("macrobar handle: a layout pass while unlocked refits the strip at the new 
 
 local X_ACK  = "Macro bar hidden. /cm bar on brings it back."
 local X_BACK = "/cm bar on brings it back."
+local X_PAGE = "Or tick Enable macro bar on the Macro Bar settings page (/cm config, then Macro Bar)."
 
 --- Every path written through the schema seam while `fn` runs, in order.
 local function recordWrites(KCM, fn)
@@ -817,6 +820,7 @@ test("macrobar handle: the X's tooltip says what the click does and the way back
     t.truthy(hasLine(rec, "Click to hide the macro bar. Its layout and position are kept."),
         "…says what the click does")
     t.truthy(hasLine(rec, X_BACK), "…and carries the chat line's way back")
+    t.truthy(hasLine(rec, X_PAGE), "…and the settings page's way back (AF-STRIP-CM)")
 end)
 
 -- The X and the settings mark widen the strip: the widget reserves each mark's
@@ -834,12 +838,14 @@ test("macrobar handle: the X and the settings mark widen the label's reserve by 
     end)
 
 -- ---------------------------------------------------------------------------
--- The drag handle's settings mark (AD-86-CM, LibKa0s#86, DragHandle minor 14)
+-- The drag handle's settings mark (AD-86-CM, LibKa0s#86, DragHandle minor 14;
+-- AF-STRIP-CM, minor 15)
 --
--- The strip opts in with `settings = true`: no onSettings of its own, so a
--- click goes through LibKa0s-Core-1.0's registry by the strip's owner, which
--- is this addon's folder -- the same key the launcher registers its opener
--- under (core/LauncherSetup.lua's `name`). One opener, two doors.
+-- The strip hands the mark a function: the bar's own settings page, the Macro
+-- Bar subcategory (`macrobar`, settings/MacroBar.lua's panelKey), through
+-- KCM.Options.Open(pageKey), the launcher's opener with a page named. The owner
+-- ruled (2026-11-19) that a strip's gear opens that display's own settings.
+-- Until AF-STRIP-CM it passed `settings = true` and opened the addon's root.
 -- ---------------------------------------------------------------------------
 
 -- red under: a strip built without `settings`.
@@ -851,21 +857,40 @@ test("macrobar handle: the strip carries a settings mark left of the X", functio
         "…as its own frame, not the X or the ?")
 end)
 
--- red under: a strip without `settings`, or one whose click opens anything but
--- the launcher's opener (KCM.Options.Open, the published panel seam).
-test("macrobar handle: the settings mark's left click opens Consumable Master's settings",
+-- red under: a strip without `settings`, one whose click opens anything but
+-- the published panel seam (KCM.Options.Open), or one that opens the root
+-- rather than the Macro Bar page.
+test("macrobar handle: the settings mark's left click opens the Macro Bar settings page",
     function(t)
         local KCM = h.loader.loadFullAddon()
         local _, _, handle = support.buildBar(KCM)
-        local opens = 0
-        KCM.Options.Open = function() opens = opens + 1; return true end
+        local opens, page = 0, nil
+        KCM.Options.Open = function(key) opens = opens + 1; page = key; return true end
         t.truthy(handle.settings, "the strip carries a settings mark")
         local c = KCM.db.profile.macroBar
         local enabled, locked = c.enabled, c.locked
         handle.settings:GetScript("OnClick")(handle.settings, "LeftButton")
         t.eq(opens, 1, "the panel was asked to open, once")
+        t.eq(page, "macrobar", "…at the Macro Bar page, the bar's own settings")
         t.eq(c.enabled, enabled, "the bar is not hidden")
         t.eq(c.locked, locked, "the lock is untouched")
+    end)
+
+-- red under: a gear whose click errors, or stays silent, when the build has no
+-- panel opener (KCM.Options.Open missing): it says the launcher's line instead.
+test("macrobar handle: the settings mark says so when no settings panel can open",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        t.truthy(handle.settings, "the strip carries a settings mark")
+        local said = {}
+        local realSay = KCM.Say
+        KCM.Say = function(msg) said[#said + 1] = msg end
+        KCM.Options.Open = nil
+        local ok = pcall(handle.settings:GetScript("OnClick"), handle.settings, "LeftButton")
+        KCM.Say = realSay
+        t.truthy(ok, "the click raised no error")
+        t.eqList(said, { "Settings panel unavailable." }, "...and printed the launcher's line once")
     end)
 
 -- red under: dropping `settingsTooltip` (the mark would show the strip's
@@ -876,7 +901,7 @@ test("macrobar handle: the settings mark's tooltip says what the click does", fu
     local rec = hover(handle.settings)
     t.eq(rec.lines[1], "Open settings", "the mark carries its own title")
     assertAboveStrip(t, rec, "settings mark")
-    t.truthy(hasLine(rec, "Click to open Consumable Master's settings."),
+    t.truthy(hasLine(rec, "Click to open the Macro Bar settings."),
         "…says what the click does")
 end)
 

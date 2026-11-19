@@ -499,8 +499,9 @@ KCM.Settings.Register()      -- = the file-local registerPanel; the PLAYER_LOGIN
                              --   so this is the named alias, not the live call path
 -- Everything on KCM.Options below Register is settings/OptionsShim.lua's; the
 -- schema, the chrome and Register itself are settings/Panel.lua's.
-KCM.Options.Open()           -- UI.OpenOptionsPanel(): the parent About canvas, sub-pages
-                             --   force-expanded; false in combat (the library refuses)
+KCM.Options.Open(pageKey?)   -- UI.OpenOptionsPanel(pageKey): the parent About canvas, or
+                             --   the page with that panelKey ("macrobar" from the bar's
+                             --   drag strip), sub-pages force-expanded; false in combat
 KCM.Options.MacroTabs()      -- the Macros strip: { { key, label, tooltip }, ... }
 KCM.Options.SetMacroTab(key) -> bool  -- select a category tab from outside the strip
 

@@ -393,28 +393,33 @@ handle wider than the bar it labels, while a 14px icon costs the same at every
 width. The handle's own tooltip stays a single line, so hovering it to drag
 doesn't dump a wall of text.
 
-Left of the help icon sits a **close mark** (an X, the widget's `onClose`,
-LibKa0s-Widgets 10.3). Clicking it hides the bar: it writes `macroBar.enabled =
+In the strip's right corner sits a **close mark** (an X, the widget's `onClose`,
+LibKa0s-Widgets 10.3; the corner mark from DragHandle minor 15, LibKa0s v1.107.0,
+where the help icon sat). The marks read help, settings, close from left to right,
+the window header's order, in the header's tints. Clicking it hides the bar: it writes `macroBar.enabled =
 false` through `MB.SetEnabled`, the same write as `/cm bar off` and the Macro
 Bar page's Enabled row, so the `[Set]` trace, the row's `onChange` and an open
 page all follow. It never touches `profile.enabled` (that would stop the macro
 writes the player's action bars rely on), the lock or the position, so
 `/cm bar on` brings the bar back where it was. Chat says so in one line, `Macro
 bar hidden. /cm bar on brings it back.`, and the X's own tooltip ends with the
-same way back. In combat the flag is written at once and the hide waits for
+same way back and the other one, the Macro Bar page's Enable macro bar row, which
+the gear beside it opens (AF-STRIP-CM). In combat the flag is written at once and the hide waits for
 `PLAYER_REGEN_ENABLED`, like any other bar-off. The mark widens the strip: the
 widget reserves its frame on both sides of the label, so the label stays
 centered.
 
-Left of the X sits a **settings mark** (the widget's `settings = true`,
-DragHandle minor 14, LibKa0s#86, turned on at AD-86-CM). A left click opens this
-addon's settings: the strip passes no `onSettings`, so the widget calls
-LibKa0s-Core-1.0's `OpenSettings(owner)`, and `owner` is the folder name, the
-key `core/LauncherSetup.lua` registers the launcher's `openSettings` under. The
-minimap button and this mark are two doors on one opener (`KCM.Options.Open`).
-Its art is the declared `settings` icon, its tooltip its own (`Open settings`,
-`Click to open Consumable Master's settings.`), and it widens the strip by one
-more mark's frame on each side of the label, as the X does.
+Left of the X, right of the help icon, sits a **settings mark** (DragHandle
+minor 14, LibKa0s#86, turned on at AD-86-CM; standard on every strip from minor
+15). A left click opens the bar's own page, **Macro Bar**: the strip hands the
+widget a function, `openBarSettings`, which calls `KCM.Options.Open("macrobar")`,
+the minimap button's opener with the page's panelKey named (AF-STRIP-CM, the
+owner's ruling of 2026-11-19 that a strip's gear opens its display's settings;
+from AD-86-CM until then `settings = true` opened the addon's root through
+LibKa0s-Core-1.0's `OpenSettings(owner)`). In combat the library refuses the
+open in its own words. Its art is the declared `settings` icon, its tooltip its
+own (`Open settings`, `Click to open the Macro Bar settings.`), and it widens the
+strip by one more mark's frame on each side of the label, as the X does.
 
 **Where the tooltips sit.** All four — the strip's, the help icon's, the
 X's and the settings mark's — are **attached above the strip**, centered on
