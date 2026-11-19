@@ -580,7 +580,7 @@ Total.
 - macrobar: dragging one slot onto another stores the swapped order
 - Named state: modules/MacroBar.lua is the only runtime writer of the bar's geometry
 
-### test_macrobar_chrome.lua (34)
+### test_macrobar_chrome.lua (35)
 
 - macrobar button: ApplyStyle sizes the slot and paints the border child
 - macrobar button: ApplyStyle hides the border child when the border is off
@@ -614,6 +614,7 @@ Total.
 - macrobar handle: the X and the settings mark widen the label's reserve by a frame each
 - macrobar handle: the strip carries a settings mark left of the X
 - macrobar handle: the settings mark's left click opens the Macro Bar settings page
+- macrobar handle: the settings mark says so when no settings panel can open
 - macrobar handle: the settings mark's tooltip says what the click does
 - macrobar handle: in combat the X stores the flag and the bar hides at combat end
 
@@ -1804,7 +1805,7 @@ Total.
 | test_load.lua | 1 |
 | test_locale.lua | 11 |
 | test_macrobar.lua | 36 |
-| test_macrobar_chrome.lua | 34 |
+| test_macrobar_chrome.lua | 35 |
 | test_macrobar_buttons.lua | 14 |
 | test_macrobar_layout.lua | 39 |
 | test_macrobar_display.lua | 31 |
@@ -1860,4 +1861,4 @@ Total.
 | test_skin_switch.lua | 31 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1502** |
+| **Total** | **1503** |

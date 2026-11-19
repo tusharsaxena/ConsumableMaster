@@ -290,8 +290,8 @@ local function buildBar()
         ignoreParentAlpha = true,
         -- The close mark, in the strip's corner (Widgets 10.3; the corner from
         -- DragHandle minor 15). Its tooltip carries both ways back: the chat
-        -- line's slash and the Macro Bar page's Enabled row, which the gear
-        -- beside it opens.
+        -- line's slash and the Macro Bar page's Enabled row. The line names
+        -- /cm config, not the gear: once the X is clicked the strip is gone.
         onClose      = closeBar,
         closeIcon    = KCM.Icon and KCM.Icon("close") or nil,
         closeTooltip = {
@@ -299,7 +299,7 @@ local function buildBar()
             body   = {
                 KCM.L["Click to hide the macro bar. Its layout and position are kept."],
                 KCM.L["/cm bar on brings it back."],
-                KCM.L["Or tick Enable macro bar on the Macro Bar settings page (the gear on this strip)."],
+                KCM.L["Or tick Enable macro bar on the Macro Bar settings page (/cm config, then Macro Bar)."],
             },
         },
         -- The settings mark, left of the X (DragHandle minor 14, LibKa0s#86,

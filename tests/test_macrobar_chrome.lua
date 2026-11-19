@@ -763,7 +763,7 @@ test("macrobar handle: a layout pass while unlocked refits the strip at the new 
 
 local X_ACK  = "Macro bar hidden. /cm bar on brings it back."
 local X_BACK = "/cm bar on brings it back."
-local X_PAGE = "Or tick Enable macro bar on the Macro Bar settings page (the gear on this strip)."
+local X_PAGE = "Or tick Enable macro bar on the Macro Bar settings page (/cm config, then Macro Bar)."
 
 --- Every path written through the schema seam while `fn` runs, in order.
 local function recordWrites(KCM, fn)
@@ -874,6 +874,23 @@ test("macrobar handle: the settings mark's left click opens the Macro Bar settin
         t.eq(page, "macrobar", "…at the Macro Bar page, the bar's own settings")
         t.eq(c.enabled, enabled, "the bar is not hidden")
         t.eq(c.locked, locked, "the lock is untouched")
+    end)
+
+-- red under: a gear whose click errors, or stays silent, when the build has no
+-- panel opener (KCM.Options.Open missing): it says the launcher's line instead.
+test("macrobar handle: the settings mark says so when no settings panel can open",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        t.truthy(handle.settings, "the strip carries a settings mark")
+        local said = {}
+        local realSay = KCM.Say
+        KCM.Say = function(msg) said[#said + 1] = msg end
+        KCM.Options.Open = nil
+        local ok = pcall(handle.settings:GetScript("OnClick"), handle.settings, "LeftButton")
+        KCM.Say = realSay
+        t.truthy(ok, "the click raised no error")
+        t.eqList(said, { "Settings panel unavailable." }, "...and printed the launcher's line once")
     end)
 
 -- red under: dropping `settingsTooltip` (the mark would show the strip's
