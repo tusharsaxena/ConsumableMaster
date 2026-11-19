@@ -187,7 +187,12 @@ end
 -- refused in combat, and nil when there is no category to open yet (none
 -- registered, one still parked for the end of combat, or no
 -- Settings.OpenToCategory on this client).
-function O.Open()
+--
+-- `pageKey` (optional, AF-STRIP-CM) names a page by its panelKey ("macrobar",
+-- "general", ...) and opens that subcategory; the library opens the root for a
+-- key it does not know, as for none. The macro bar's drag strip passes
+-- "macrobar", so its gear lands on the bar's own page.
+function O.Open(pageKey)
     -- There is no panel to open on a degraded install. Answering false is the
     -- contract core/SlashCommands.lua already branches on, so `/cm config`
     -- explains itself instead of silently doing nothing.
@@ -195,7 +200,7 @@ function O.Open()
         sayPanelUnavailable()
         return false
     end
-    local opened = UI.OpenOptionsPanel()
+    local opened = UI.OpenOptionsPanel(pageKey)
     if opened then return true end
     -- false: refused in combat. The library has already said so in chat and
     -- written `[Cfg] open refused (in combat)` through the descriptor's `debug`

@@ -848,6 +848,24 @@ test("Settings: a registration parked by a stand-down in combat still registers 
         t.eq(seen.addon, 1, "the category registers although the addon stood down mid-fight")
     end)
 
+-- AF-STRIP-CM: KCM.Options.Open(pageKey) hands the key to the library's opener,
+-- so the drag strip's gear opens the Macro Bar page rather than the root.
+--
+-- red under: an Open that drops its argument.
+test("Settings: Options.Open hands a page key to the library's opener", function(t)
+    local KCM = enabledAddon()
+    KCM.Settings.Register()
+    local UI = KCM.Settings.optionsUI
+    local real, keys = UI.OpenOptionsPanel, {}
+    UI.OpenOptionsPanel = function(key) keys[#keys + 1] = key or "<root>"; return true end
+    local a = KCM.Options.Open("macrobar")
+    local b = KCM.Options.Open()
+    UI.OpenOptionsPanel = real
+    t.eq(a, true, "the keyed open answers true")
+    t.eq(b, true, "and so does the root open")
+    t.eqList(keys, { "macrobar", "<root>" }, "the key reached the library, and no key opens the root")
+end)
+
 -- options-ui-§2: opening is refused outright in combat, in the library's words,
 -- once. The gate is UI.OpenOptionsPanel's; KCM.Options.Open only reports it.
 --

@@ -763,6 +763,7 @@ test("macrobar handle: a layout pass while unlocked refits the strip at the new 
 
 local X_ACK  = "Macro bar hidden. /cm bar on brings it back."
 local X_BACK = "/cm bar on brings it back."
+local X_PAGE = "Or tick Enable macro bar on the Macro Bar settings page (the gear on this strip)."
 
 --- Every path written through the schema seam while `fn` runs, in order.
 local function recordWrites(KCM, fn)
@@ -819,6 +820,7 @@ test("macrobar handle: the X's tooltip says what the click does and the way back
     t.truthy(hasLine(rec, "Click to hide the macro bar. Its layout and position are kept."),
         "…says what the click does")
     t.truthy(hasLine(rec, X_BACK), "…and carries the chat line's way back")
+    t.truthy(hasLine(rec, X_PAGE), "…and the settings page's way back (AF-STRIP-CM)")
 end)
 
 -- The X and the settings mark widen the strip: the widget reserves each mark's
@@ -836,12 +838,14 @@ test("macrobar handle: the X and the settings mark widen the label's reserve by 
     end)
 
 -- ---------------------------------------------------------------------------
--- The drag handle's settings mark (AD-86-CM, LibKa0s#86, DragHandle minor 14)
+-- The drag handle's settings mark (AD-86-CM, LibKa0s#86, DragHandle minor 14;
+-- AF-STRIP-CM, minor 15)
 --
--- The strip opts in with `settings = true`: no onSettings of its own, so a
--- click goes through LibKa0s-Core-1.0's registry by the strip's owner, which
--- is this addon's folder -- the same key the launcher registers its opener
--- under (core/LauncherSetup.lua's `name`). One opener, two doors.
+-- The strip hands the mark a function: the bar's own settings page, the Macro
+-- Bar subcategory (`macrobar`, settings/MacroBar.lua's panelKey), through
+-- KCM.Options.Open(pageKey), the launcher's opener with a page named. The owner
+-- ruled (2026-11-19) that a strip's gear opens that display's own settings.
+-- Until AF-STRIP-CM it passed `settings = true` and opened the addon's root.
 -- ---------------------------------------------------------------------------
 
 -- red under: a strip built without `settings`.
@@ -853,19 +857,21 @@ test("macrobar handle: the strip carries a settings mark left of the X", functio
         "…as its own frame, not the X or the ?")
 end)
 
--- red under: a strip without `settings`, or one whose click opens anything but
--- the launcher's opener (KCM.Options.Open, the published panel seam).
-test("macrobar handle: the settings mark's left click opens Consumable Master's settings",
+-- red under: a strip without `settings`, one whose click opens anything but
+-- the published panel seam (KCM.Options.Open), or one that opens the root
+-- rather than the Macro Bar page.
+test("macrobar handle: the settings mark's left click opens the Macro Bar settings page",
     function(t)
         local KCM = h.loader.loadFullAddon()
         local _, _, handle = support.buildBar(KCM)
-        local opens = 0
-        KCM.Options.Open = function() opens = opens + 1; return true end
+        local opens, page = 0, nil
+        KCM.Options.Open = function(key) opens = opens + 1; page = key; return true end
         t.truthy(handle.settings, "the strip carries a settings mark")
         local c = KCM.db.profile.macroBar
         local enabled, locked = c.enabled, c.locked
         handle.settings:GetScript("OnClick")(handle.settings, "LeftButton")
         t.eq(opens, 1, "the panel was asked to open, once")
+        t.eq(page, "macrobar", "…at the Macro Bar page, the bar's own settings")
         t.eq(c.enabled, enabled, "the bar is not hidden")
         t.eq(c.locked, locked, "the lock is untouched")
     end)
@@ -878,7 +884,7 @@ test("macrobar handle: the settings mark's tooltip says what the click does", fu
     local rec = hover(handle.settings)
     t.eq(rec.lines[1], "Open settings", "the mark carries its own title")
     assertAboveStrip(t, rec, "settings mark")
-    t.truthy(hasLine(rec, "Click to open Consumable Master's settings."),
+    t.truthy(hasLine(rec, "Click to open the Macro Bar settings."),
         "…says what the click does")
 end)
 
