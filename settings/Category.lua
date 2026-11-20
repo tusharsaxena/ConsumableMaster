@@ -894,6 +894,8 @@ Page.OWNED_ICON       = OWNED_ICON
 Page.NOT_OWNED_ICON   = NOT_OWNED_ICON
 Page.IsOwned          = isOwned
 Page.WarnText         = warnText
+-- Also read by the skin-switch guard (tests/skin_switch_facts.lua): the score tooltip's escapes.
+Page.ScoreTooltipDesc = formatScoreTooltipDesc
 Page.MakeItemRow      = makeItemRow
 Page.MakeCheckbox     = makeCheckbox
 Page.MakeMacroDragIcon = makeMacroDragIcon

@@ -554,12 +554,17 @@ The bar block is the exception to the graying, from LibKa0s v1.85.0: under a ski
 style is None its rows stay live, because the stored style is what draws, and a real style grays
 them and **Show border** too. The stored pick is kept, so unticking it brings the pick back.
 
-**So do the swatches and the shadow** (FS-CM-FLIP). No composer draws these, so each block carries a
-host row in its `extra`, *Use the skin's color* or *Use the skin's shadow*, default on:
+**So do the swatches and the shadow** (FS-CM-FLIP). Each block carries a host row in its `extra`,
+*Use the skin's color* or *Use the skin's shadow*, default on. Through OptionsCompose minor 19 no
+composer drew these; from minor 20 (LibKa0s v1.108.0, LibKa0s#97) the composers emit the same
+companions at the same paths, and skip one an `extra` row already declares, so the host rows (with
+this addon's tooltips) stand and nothing is drawn twice:
 `macroBar.barBackdropColorFromSkin`, `barBorderColorFromSkin`, `buttonBackdropColorFromSkin`,
 `buttonBorderColorFromSkin`, `labelColorFromSkin`, `labelShadowFromSkin`,
 `flyoutBackdropColorFromSkin` and `flyoutShadeColorFromSkin`. A swatch keeps no `disabledIf`
-(options-ui-§17): it stays live and keeps its value, and the row's tooltip says it is not read. The
+(options-ui-§17): it stays live and keeps its value, and the row's tooltip says it is not read.
+**Font shadow** is a toggle, not a swatch: from OptionsCompose minor 20 the composer grays it while
+*Use the skin's shadow* is ticked, and keeps its stored value. The
 class-color companions above come first and are unchanged. Schema v6 turned all eleven on in every
 existing profile, once ([schema.md](./schema.md#migrations)).
 

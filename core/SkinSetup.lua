@@ -147,8 +147,15 @@ KCM.SKIN_TOKENS = {
 -- D2 and D4): today's pixels there, the library role everywhere else. Apart from SKIN_TOKENS only
 -- for the degraded facade: these answer nothing there, so a bar with no library draws its stored
 -- swatch (the LibKa0s Options doc's rule), where a settings surface draws the host copy.
+--
+-- U-16 (owner, 2026-11-20; Ka0sAddonsCommonTasks docs/2026-11-20-LIBKA0S_94_97_99_100/SD_RULE.md):
+-- the bar's and the flyout's edge read the skin's `bar.border` itself, black under Ka0s Default, so
+-- the `cm.barBorder` token (0.25 gray there, 64 levels off) is gone, as SF1-CM did for the button edge.
+-- U-17 (owner, 2026-11-20, same file): the three near misses below are OVERRIDES the owner kept under
+-- Ka0s Default (the button fill 0.6 against bar.bg's 0.5, the flyout fill 0.85 against popup.bg's
+-- 0.92, and the shade 0.8 against cover.dim's 0.6, which has to hold the arrow over bright icon art);
+-- every other skin draws the followed token.
 local HUD_TOKENS = {
-    ["cm.barBorder"]    = { default = { 0.25, 0.25, 0.25, 1 }, follow = "bar.border" },
     ["cm.buttonBg"]     = { default = { 0, 0, 0, 0.6 }, follow = "bar.bg" },
     -- SF1-CM (the owner's ruling, Ka0sAddonsCommonTasks docs/2026-11-06-REVENDOR_LIBKA0S_V1_89/
     -- SF1_SMOKE_FEEDBACK.md item 1): Ka0s Default's button edge is the skin's thin dark icon edge,

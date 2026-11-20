@@ -62,8 +62,11 @@ local function swatchTip(text)
 end
 
 -- A "Use the skin's ..." companion (FS-CM-FLIP; LibKa0s Options doc, Moving to this version): a
--- host row in the block's `extra`, because no composer draws one for a swatch or a shadow. Its
--- swatch stays live and keeps its value (options-ui-§17), so nothing here sets `disabledIf`.
+-- host row in the block's `extra`, written when no composer drew one for a swatch or a shadow.
+-- From OptionsCompose minor 20 (LibKa0s v1.108.0) the composers emit the same companion at the same
+-- path and skip one an `extra` row declares, so these rows, and their tooltips, stay the host's. Its
+-- swatch stays live and keeps its value (options-ui-§17), so nothing here sets `disabledIf`; Font
+-- shadow, a toggle, is grayed by the composer while its companion is on.
 local function skinRow(key, label, tooltip)
     return { path = "macroBar." .. key, type = "bool", label = label, tooltip = tooltip,
              default = BAR_DEFAULTS[key] }

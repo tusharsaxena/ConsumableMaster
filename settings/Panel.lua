@@ -705,15 +705,18 @@ Helpers.CustomCheckbox = UI and UI.SessionCheckbox
 
 -- AceGUI Label with optional fontSize hint ("medium" maps to GameFontHighlight,
 -- otherwise GameFontNormalSmall). Used for inline descriptions / legends.
+--
+-- The font goes through the WIDGET's SetFontObject, never its `label` FontString's
+-- (SD-SK-CM.1, LibKa0s#97): the skin hooks the widget's method (SkinAce: it forgets
+-- the stock font, then repaints the skin's face over the new one), and a set on the
+-- FontString after KCM.SkinAcquire's paint is one no hook sees.
 function Helpers.Label(ctx, text, fontSize)
     local scroll = ensureScroll(ctx)
     local lbl = KCM.SkinAcquire(AceGUI, "Label")
     lbl:SetText(text or "")
     lbl:SetFullWidth(true)
-    if lbl.label and lbl.label.SetFontObject then
-        if fontSize == "medium" and _G.GameFontHighlight then
-            lbl.label:SetFontObject(_G.GameFontHighlight)
-        end
+    if fontSize == "medium" and _G.GameFontHighlight and lbl.SetFontObject then
+        lbl:SetFontObject(_G.GameFontHighlight)
     end
     if lbl.label and lbl.label.SetJustifyH then
         lbl.label:SetJustifyH("LEFT")

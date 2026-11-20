@@ -429,8 +429,10 @@ under standalone-windows' *Tooltip placement*). The widget places them itself,
 through LibKa0s-Tooltip-1.0's `PlaceAttached` on the strip, so a mark places by
 its strip and the four share one position, in screen units whatever the bar's
 scale. The spec hands it no `tooltipPlace` hook and no descriptor names an owner
-or an anchor. An unreadable or secret read gets the widget's relative point
-above the strip; never the cursor. From TP-CM-02 until AD-92-CM the hook was
+or an anchor. An unreadable or secret read places them above the strip's
+nearest readable ancestor, the bar, by the same absolute point (WidgetsDragHandleTip
+minor 3, LibKa0s v1.108.0, LibKa0s#99), and hides them when nothing up the tree
+reads; never the cursor and never a point into the strip. From TP-CM-02 until AD-92-CM the hook was
 `MB.PlaceTooltipBeside`, which opened them beside the strip; it is retired.
 
 **A slot's and a flyout entry's tooltips** are body tooltips: they open

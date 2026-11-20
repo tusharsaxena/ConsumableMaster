@@ -70,6 +70,47 @@ end
 
 -- ── the acquisitions ─────────────────────────────────────────────────────────────────────────
 
+--- One Helpers.Label draw under `fontSize`, on a recording widget: answers what the widget's own
+--- SetFontObject was handed and what its `label` FontString was handed directly.
+local function drawLabel(KCM, fontSize)
+    local AceGUI = typedAce()
+    local create = AceGUI.Create
+    local seen = { widget = {}, direct = {} }
+    AceGUI.Create = function(self, wtype)
+        local w = create(self, wtype)
+        rawset(w.label, "SetFontObject", function(_, obj) seen.direct[#seen.direct + 1] = obj end)
+        rawset(w, "SetFontObject", function(me, obj) seen.widget[#seen.widget + 1] = obj; return me end)
+        return w
+    end
+    local font = rawget(_G, "GameFontHighlight")
+    _G.GameFontHighlight = font or { name = "GameFontHighlight" }
+    local ok, err = pcall(KCM.Settings.Helpers.Label, { scroll = { AddChild = function() end } }, "x", fontSize)
+    seen.font = _G.GameFontHighlight
+    _G.GameFontHighlight = font
+    AceGUI.Create = create
+    if not ok then error(err, 0) end
+    return seen
+end
+
+-- SD-SK-CM.1 (Ka0sAddonsCommonTasks docs/2026-11-20-SKIN_DEFAULTS_AUDIT, LibKa0s#97): a "medium"
+-- description set its font on the label's FontString after the paint, where the library's hook
+-- (SkinAce's Label SetFontObject) never saw it, so the skin's face stayed off until a repaint.
+-- red under: `lbl.label:SetFontObject(_G.GameFontHighlight)` in settings/Panel.lua's Helpers.Label.
+test("Skin settings: a medium description takes its font through the widget, which the skin hooks", function(t)
+    local KCM = loadOn("obsidian", false)
+    local seen = drawLabel(KCM, "medium")
+    t.eq(#seen.widget, 1, "the widget's own SetFontObject, once")
+    t.truthy(seen.widget[1] == seen.font, "handed GameFontHighlight")
+    t.eq(#seen.direct, 0, "never set on the FontString behind the hook")
+end)
+
+test("Skin settings: a small description sets no font of its own", function(t)
+    local KCM = loadOn("obsidian", false)
+    local seen = drawLabel(KCM, nil)
+    t.eq(#seen.widget, 0, "no font through the widget")
+    t.eq(#seen.direct, 0, "and none on the FontString")
+end)
+
 -- red under: a settings file that acquires straight from AceGUI again (past the seam's paint).
 test("Skin settings: every AceGUI widget a settings file acquires goes through KCM.SkinAcquire", function(t)
     local raw, routed = {}, 0

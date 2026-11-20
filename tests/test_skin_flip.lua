@@ -149,8 +149,16 @@ test("Skin flip: every color and shadow companion is a bool row defaulting on, i
         t.eq(row and row.subgroup, KCM.L[c[4]], c[1] .. " sits under its swatch's heading")
         t.truthy(row and row.tooltip and row.tooltip:find("not read while this is on", 1, true),
             c[1] .. "'s tooltip says the row it governs is not read")
-        t.eq(H.FindSchema("macroBar." .. c[2]).disabledIf, nil,
-            c[2] .. " stays live: no disabledIf on a composed swatch")
+        if c[2] == "labelShadow" then
+            -- Font shadow is a toggle, not a swatch: from OptionsCompose minor 20 (LibKa0s v1.108.0,
+            -- LibKa0s#97 Batch A) the composer grays it while its companion is on. RE-PINNED at
+            -- SD-RV-CM; it pinned minor 19's live row.
+            t.eq(H.FindSchema("macroBar." .. c[2]).disabledIf, "macroBar." .. c[1],
+                c[2] .. " is grayed while its companion is on")
+        else
+            t.eq(H.FindSchema("macroBar." .. c[2]).disabledIf, nil,
+                c[2] .. " stays live: no disabledIf on a composed swatch")
+        end
     end
 end)
 
@@ -198,13 +206,15 @@ test("Skin flip: Ka0s Default keeps this addon's pixels", function(t)
     t.eq(rgba(got.label), "1,0.82,0,1", "the gold label")
     t.eq(rgba(got.count), "1,1,1,1", "the count: NumberFontNormal's white")
     t.eq(rgba(got.flyoutBackdrop), "0,0,0,0.85", "the flyout fill")
-    t.eq(rgba(got.flyoutBorder), "0.25,0.25,0.25,1", "the flyout edge")
+    -- U-16 (owner, 2026-11-20): the bar's and the flyout's edge take the skin's bar.border, black
+    -- under Ka0s Default; they kept a 0.25 gray owner token before.
+    t.eq(rgba(got.flyoutBorder), "0,0,0,1", "the flyout edge: bar.border's black (U-16)")
     t.eq(rgba(got.shade), "0,0,0,0.8", "the shaded band")
     local bar, seen = barDraws(KCM)
     KCM.MacroBar.Update()
     t.truthy(bar, "the bar built")
     t.eq(rgba(seen.fill), "0,0,0,0.5", "the bar fill")
-    t.eq(rgba(seen.edge), "0.25,0.25,0.25,1", "the bar edge")
+    t.eq(rgba(seen.edge), "0,0,0,1", "the bar edge: bar.border's black (U-16)")
 end)
 
 -- red under: any flipped surface still reading its stored swatch; `bar.bg` is the same in every
@@ -217,9 +227,10 @@ test("Skin flip: a skin switch changes what each flipped surface draws", functio
     local after = drawn(KCM, barCfg(KCM))
     Skin:SetChoice(OWNER, "ka0s", "ka0s")
     -- Not the button edge: it reads `icon.border` under Ka0s Default too (SF1-CM), and that token is
-    -- black in Obsidian as well; the probe-skin case below and the SF1-CM case pin its follow.
+    -- black in Obsidian as well; nor the flyout edge, which reads `bar.border` under Ka0s Default
+    -- too (U-16), black in Obsidian as well. The probe-skin case below pins both follows.
     for _, name in ipairs({ "buttonBackdrop", "label", "flyoutBackdrop",
-        "flyoutBorder", "shade", "count" }) do
+        "shade", "count" }) do
         t.truthy(rgba(before[name]) ~= rgba(after[name]),
             name .. " draws something else under Obsidian (" .. rgba(after[name]) .. ")")
     end
@@ -297,7 +308,8 @@ test("Skin flip: the bar's fill and edge draw the skin's tokens, and a skin swit
     KCM.MacroBar.Update()
     KCM.Skin.Color = real
     t.eq(rgba(seen.fill), "0.1,0.2,0.3,0.4", "the bar's fill is bar.bg")
-    t.truthy(asked["cm.barBorder"], "the edge reads its owner token")
+    t.truthy(asked["bar.border"], "the edge reads the skin's bar.border (U-16)")
+    t.falsy(asked["cm.barBorder"], "and no owner token")
 end)
 
 -- red under: the swatch unread with the companion off, so a player's own color is lost.

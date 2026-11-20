@@ -403,7 +403,7 @@ local function applyBackdrop()
     end
     if edgeFile or c.barBorder ~= false then
         bar:SetBackdropBorderColor(BB.Swatch(c.barBorderColor, c.useClassColorBarBorder,
-            c.barBorderColorFromSkin, "cm.barBorder", "barBorderColor"))
+            c.barBorderColorFromSkin, "bar.border", "barBorderColor"))
     end
 end
 

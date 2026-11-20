@@ -421,6 +421,7 @@ local function recordingTooltip(width)
     gt.SetText  = record("SetText")
     gt.AddLine  = record("AddLine")
     gt.Show     = record("Show")
+    gt.Hide     = record("Hide")
     gt.ClearAllPoints    = function() gt.points = {} end
     gt.SetPoint          = function(_, ...) gt.points[#gt.points + 1] = { ... } end
     gt.GetWidth          = function() return width or 200 end
@@ -455,9 +456,9 @@ end
 -- default skin is WoW Forever (skinning-§2).
 local function bench(g)
     local KCM = h.loader.wearKa0s(h.loader.loadFullAddon())
-    local _, _, handle = support.buildBar(KCM)
+    local _, bar, handle = support.buildBar(KCM)
     armGeometry(handle, g)
-    return KCM, handle
+    return KCM, handle, bar
 end
 
 --- Hover `frame` and read back every owner it was given, the last one, the
@@ -476,6 +477,8 @@ local function hover(frame)
             rec.lines[#rec.lines + 1] = c[2]
         elseif c[1] == "Show" then
             rec.shown = true
+        elseif c[1] == "Hide" then
+            rec.hidden = true
         end
     end
     rec.point = _G.GameTooltip.points[1]
@@ -618,61 +621,85 @@ test("macrobar handle: a scaled strip is placed in screen units", function(t)
     assertAboveStrip(t, hover(handle), "scaled strip")
 end)
 
---- Assert `rec` fell back to the widget's own attached point: the tooltip's
---- BOTTOM on the strip's TOP, TIP_GAP up, owned by UIParent at ANCHOR_NONE.
-local function assertFallbackAbove(t, rec, handle, what)
+--- Give the strip's parent (the bar frame) a readable rect: 300..700 x 480..540 at
+--- scale 1, so a strip that cannot be read has a readable ancestor to place by. The
+--- shared frame stub answers GetParent with the frame itself, so the link the
+--- client keeps (the strip is built on the bar) is restored here.
+local function armParent(handle, bar)
+    handle.GetParent      = function() return bar end
+    bar.GetParent         = function() return _G.UIParent end
+    bar.GetLeft           = function() return 300 end
+    bar.GetBottom         = function() return 480 end
+    bar.GetRight          = function() return 700 end
+    bar.GetTop            = function() return 540 end
+    bar.GetEffectiveScale = function() return 1 end
+    return bar
+end
+
+--- Assert `rec` was placed ABOVE the bar, the strip's nearest readable ancestor
+--- (WidgetsDragHandleTip minor 3, LibKa0s v1.108.0, LibKa0s#99, the owner's R-3):
+--- owned by UIParent at ANCHOR_NONE, its BOTTOM on one absolute point of
+--- UIParent's BOTTOMLEFT, centered on the bar (x 500) and TIP_GAP over its top
+--- (540 + 2). Nothing anchors into the strip it could not read.
+local function assertAboveParent(t, rec, what)
     t.truthy(rawequal(rec.owner, _G.UIParent), what .. ": still owned by UIParent")
     t.eq(rec.anchor, "ANCHOR_NONE", what .. ": at ANCHOR_NONE")
     for _, a in ipairs(rec.owners) do
         t.truthy(a ~= "ANCHOR_CURSOR", what .. ": never re-owned at the cursor")
     end
-    t.eqList(rec.point, { "BOTTOM", handle, "TOP", 0, TIP_GAP }, what .. ": attached above the strip")
+    t.truthy(rec.point, what .. ": anchored")
+    t.eq(rec.point and rec.point[1], "BOTTOM", what .. ": its bottom edge")
+    t.truthy(rec.point and rawequal(rec.point[2], _G.UIParent), what .. ": one absolute point, not the strip")
+    t.eq(rec.point and rec.point[3], "BOTTOMLEFT", what)
+    t.eq(rec.point and rec.point[4], 500, what .. ": centered on the bar")
+    t.eq(rec.point and rec.point[5], 540 + TIP_GAP, what .. ": the gap above the bar's top")
     t.truthy(rec.shown, what .. ": and shown")
+    t.falsy(rec.hidden, what .. ": never hidden")
 end
 
-test("macrobar handle: a secret strip read falls back to the attached point, never a guess",
+-- RE-PINNED at SD-RV-CM (LibKa0s v1.108.0, WidgetsDragHandleTip minor 3,
+-- LibKa0s#99, the owner's ruling R-3): through minor 2 a strip whose rect did not
+-- read fell back to a relative point on the strip (BOTTOM on its TOP), which the
+-- restricted tree refuses in an instance. Now the placement walks the strip's
+-- ancestors and attaches above the nearest one whose rect reads, by an absolute
+-- point on UIParent; with none readable the tooltip is hidden, with no error.
+-- red under: a placement that anchors on a guess, or into the unreadable strip.
+test("macrobar handle: a secret strip read places above the bar, its nearest readable ancestor",
     function(t)
-        local _, handle = bench()
+        local _, handle, bar = bench()
+        armParent(handle, bar)
         local secret = {}
         handle.GetTop = function() return secret end
         local prior = rawget(_G, "issecretvalue")
         _G.issecretvalue = function(v) return rawequal(v, secret) end
         local rec = hover(handle)
         _G.issecretvalue = prior
-        assertFallbackAbove(t, rec, handle, "secret top")
+        assertAboveParent(t, rec, "secret top")
     end)
 
-test("macrobar handle: a nil strip read falls back to the attached point", function(t)
-    -- A strip not yet laid out answers nil for its edges in the client.
-    local _, handle = bench()
+test("macrobar handle: a nil strip read with no readable ancestor hides the tooltip", function(t)
+    -- A strip not yet laid out answers nil for its edges in the client; here its bar
+    -- is unplaced too, and UIParent is never a placement target.
+    local _, handle, bar = bench()
+    armParent(handle, bar)
     handle.GetTop = function() return nil end
-    assertFallbackAbove(t, hover(handle), handle, "nil top")
+    bar.GetTop    = function() return nil end
+    local rec = hover(handle)
+    t.eq(rec.point, nil, "nil top: no point, never a guess")
+    t.truthy(rec.hidden, "nil top: the tooltip is hidden")
 end)
 
--- A hover whose placement cannot read the strip still shows its tooltip: the
--- widget falls back to its own placement with the same lines. Through LibKa0s
--- v1.104.0 that fallback re-owned the tooltip at the cursor (WidgetsDragHandle 4);
--- since v1.105.0 (WidgetsDragHandleTip 1, LibKa0s#92) it is never the cursor: the
--- tooltip stays owned by UIParent at ANCHOR_NONE and attaches to the strip
--- (anti-pattern #119): above it, centered, since the re-cut v1.105.0 (smoke
--- round 1, SR-L1; it was below at the first cut), and below only without room.
--- red under: a placement that anchors on a guess and answers true anyway.
-test("macrobar handle: an unreadable strip falls back above the strip with the same tooltip",
+-- A hover whose placement cannot read the strip still shows its tooltip, with the
+-- same lines: never at the cursor (LibKa0s#92, anti-pattern #119), and from
+-- v1.108.0 above the strip's nearest readable ancestor (LibKa0s#99).
+test("macrobar handle: an unreadable strip places above the bar with the same tooltip",
     function(t)
-        local _, handle = bench()
+        local _, handle, bar = bench()
+        armParent(handle, bar)
         handle.GetRight = function() return nil end
         local rec = hover(handle)
-        t.truthy(rawequal(rec.owner, _G.UIParent), "still owned by UIParent")
-        t.eq(rec.anchor, "ANCHOR_NONE", "at ANCHOR_NONE")
-        for _, a in ipairs(rec.owners) do
-            t.truthy(a ~= "ANCHOR_CURSOR", "never re-owned at the cursor")
-        end
-        t.truthy(rec.point ~= nil, "the library's fallback anchors it")
-        t.eq(rec.point and rec.point[1], "BOTTOM", "its bottom edge")
-        t.truthy(rec.point and rawequal(rec.point[2], handle), "to the strip")
-        t.eq(rec.point and rec.point[3], "TOP", "above it, not beside a strip it could not read")
+        assertAboveParent(t, rec, "unreadable right")
         t.truthy(hasLine(rec, "Consumable Master"), "the same tooltip, still shown")
-        t.truthy(rec.shown, "and shown")
     end)
 
 -- The lock can change between two hovers of the same strip, which is why both

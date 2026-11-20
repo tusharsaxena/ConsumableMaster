@@ -318,8 +318,9 @@ no `ANCHOR_CURSOR`, no cursor-following `OnUpdate` and no chart.
   bar, so its tooltip and its `?`, X and settings marks' are chrome tooltips: centered on the
   strip, `TIP_GAP` above it, below only without room above. The spec hands the widget no
   `tooltipPlace` hook, so `LibKa0s-Widgets-1.0`'s DragHandle places them through `PlaceAttached`
-  (WidgetsDragHandleTip minor 1); a mark places by its strip, and an unreadable or secret read gets
-  the widget's relative point above the strip. `MB.PlaceTooltipBeside` (TP-CM-02), which put them
+  (WidgetsDragHandleTip minor 1); a mark places by its strip, and an unreadable or secret read places
+  above the strip's nearest readable ancestor, the bar, by the same absolute point (minor 3, LibKa0s
+  v1.108.0, LibKa0s#99), or hides the tooltip when nothing up the tree reads. `MB.PlaceTooltipBeside` (TP-CM-02), which put them
   beside the strip, is retired. `tests/test_macrobar_chrome.lua` pins it.
 
 **Left where they are, and why.** Each is outside what this rule binds, or the library's to place:
@@ -475,12 +476,14 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   font object gave it, read off the string so Ka0s Default's pixels hold; the unlocked
   wash `menu.hover` (D4, today's pixel), the flyout arrow `icon.arrow` (D9) and the count's color
   `hud.text`. Eight host rows, each in its block's `extra`, put each swatch and the shadow on the skin:
-  `barBackdropColorFromSkin` (`bar.bg`), `barBorderColorFromSkin` (`cm.barBorder`),
+  `barBackdropColorFromSkin` (`bar.bg`), `barBorderColorFromSkin` (`bar.border`, the bar's and the
+  flyout's edge, since U-16: the owner's ruling of 2026-11-20 dropped the 0.25 gray `cm.barBorder`),
   `buttonBackdropColorFromSkin` (`cm.buttonBg`), `buttonBorderColorFromSkin` (`cm.buttonBorder`),
   `flyoutBackdropColorFromSkin` (`cm.flyoutBg`), `flyoutShadeColorFromSkin` (`cm.flyoutShade`),
-  `labelColorFromSkin` (`hud.label`) and `labelShadowFromSkin` (`hud.shadow`). The `cm.*` five keep
+  `labelColorFromSkin` (`hud.label`) and `labelShadowFromSkin` (`hud.shadow`). The `cm.*` four keep
   today's pixels under Ka0s Default (`cm.buttonBorder`'s is `icon.border`'s black since SF1-CM, the owner's
-  ruling: a thin dark edge as under every other skin, where it was white) and follow their library role elsewhere (`HUD_TOKENS` in
+  ruling: a thin dark edge as under every other skin, where it was white; `cm.buttonBg`, `cm.flyoutBg`
+  and `cm.flyoutShade` are owner OVERRIDES under Ka0s Default, U-17 of 2026-11-20) and follow their library role elsewhere (`HUD_TOKENS` in
   `core/SkinSetup.lua`), and they stay out of `KCM.SKIN_FALLBACK`, so a degraded bar draws its stored
   swatches. `BB.Swatch` is the one resolver: a class color first, then the skin, then the stored
   swatch over its shipped default in `defaults/Profile.lua`. Every skin states its own `icon.border`,
@@ -604,12 +607,19 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   StaticPopups, the launcher's tooltip and menu (LibDBIcon and Blizzard's menu), the LibSharedMedia
   pull-outs, the macro icons, Blizzard's pushed and highlight art and the cooldown swipe are the
   client's. A non-applicable item row's 0.4 alpha is state, not chrome (D8).
-- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 51,
+- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 58,
   `Kit.skinValues` in `tests/run.lua`) fails on a color or texture typed where a skin cannot reach
-  it. Every value this addon types sits in a kit category, so it carries no allow row. The kit's
-  switch test (`tests/_kit/test_skin_switch.lua`) flips a probe skin and fails a surface that does
-  not change; `tests/skin_switch_facts.lua` is the declaration, one setter per surface, and a
-  surface left out is not tested. `tests/test_skin_hud.lua` pins what the
+  it. Every value this addon types sits in a kit category but one, `KCM.SwatchColor`'s scratch
+  table, whose row takes the kit's `unreachable default` category. The kit's switch test
+  (`tests/_kit/test_skin_switch.lua`) flips a probe skin and fails a surface that does not change,
+  or one whose texture, color, font or shadow family stays put while another moves (revision 58);
+  `tests/skin_switch_facts.lua` is the declaration, one setter per HUD surface, and a surface left
+  out is not tested. It declares every painted surface the skin-defaults audit listed (SD-SK-CM.2,
+  LibKa0s#97): the bar, its buttons and its flyout with its entries, the macro bar's tooltip lines,
+  and, panel-scoped, the settings widgets' marks, labels, hover washes and icon edges, the
+  descriptions, the warning and score-tooltip escapes and the reorder rows' carried copy. The edge
+  styles declare `expect = "texture"`, a border texture from the skin. No surface holds a family:
+  the U-17 overrides are Ka0s Default values that still follow under every other skin. `tests/test_skin_hud.lua` pins what the
   bar draws, the companions and the reset running once; `tests/test_skin_picker.lua` the picker;
   `tests/test_skin_settings.lua` the settings pages' painting.
 
