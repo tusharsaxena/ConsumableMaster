@@ -1732,7 +1732,7 @@ Total.
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (33)
+### test_skin_switch.lua (49)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
 - skin switch: the check is falsifiable, a bar whose texture never moves is reported
@@ -1757,6 +1757,14 @@ Total.
 - skin switch: the flyout indicator's shade changes
 - skin switch: the flyout indicator's arrow changes
 - skin switch: the flyout indicator's arrow changes with the Scope ignored
+- skin switch: a flyout entry's backdrop changes
+- skin switch: a flyout entry's edge color changes
+- skin switch: a flyout entry's edge style changes
+- skin switch: a flyout entry's stack count color changes
+- skin switch: a flyout entry's stack count color changes with the Scope ignored
+- skin switch: a flyout entry's stack count face changes
+- skin switch: the macro bar's tooltip lines changes
+- skin switch: the macro bar's tooltip lines changes with the Scope ignored
 - skin switch: the icon button's mark changes
 - skin switch: the icon button's label changes
 - skin switch: the score button's mark changes
@@ -1767,6 +1775,14 @@ Total.
 - skin switch: the drag icon's label changes
 - skin switch: a reorder row's glyph changes
 - skin switch: a settings description changes
+- skin switch: the icon button's hover wash changes
+- skin switch: the drag icon's hover flash changes
+- skin switch: the drag icon's edge changes
+- skin switch: an item row's icon edge changes
+- skin switch: a settings warning line changes
+- skin switch: the score tooltip's note and summary changes
+- skin switch: a reorder row's carried icon changes
+- skin switch: a reorder row's carried text changes
 
 ### test_client_globals.lua (3)
 
@@ -1862,7 +1878,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 33 |
+| test_skin_switch.lua | 49 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1507** |
+| **Total** | **1523** |

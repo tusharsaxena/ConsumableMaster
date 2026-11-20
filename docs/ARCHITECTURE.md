@@ -607,12 +607,19 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   StaticPopups, the launcher's tooltip and menu (LibDBIcon and Blizzard's menu), the LibSharedMedia
   pull-outs, the macro icons, Blizzard's pushed and highlight art and the cooldown swipe are the
   client's. A non-applicable item row's 0.4 alpha is state, not chrome (D8).
-- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 51,
+- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 58,
   `Kit.skinValues` in `tests/run.lua`) fails on a color or texture typed where a skin cannot reach
-  it. Every value this addon types sits in a kit category, so it carries no allow row. The kit's
-  switch test (`tests/_kit/test_skin_switch.lua`) flips a probe skin and fails a surface that does
-  not change; `tests/skin_switch_facts.lua` is the declaration, one setter per surface, and a
-  surface left out is not tested. `tests/test_skin_hud.lua` pins what the
+  it. Every value this addon types sits in a kit category but one, `KCM.SwatchColor`'s scratch
+  table, whose row takes the kit's `unreachable default` category. The kit's switch test
+  (`tests/_kit/test_skin_switch.lua`) flips a probe skin and fails a surface that does not change,
+  or one whose texture, color, font or shadow family stays put while another moves (revision 58);
+  `tests/skin_switch_facts.lua` is the declaration, one setter per HUD surface, and a surface left
+  out is not tested. It declares every painted surface the skin-defaults audit listed (SD-SK-CM.2,
+  LibKa0s#97): the bar, its buttons and its flyout with its entries, the macro bar's tooltip lines,
+  and, panel-scoped, the settings widgets' marks, labels, hover washes and icon edges, the
+  descriptions, the warning and score-tooltip escapes and the reorder rows' carried copy. The edge
+  styles declare `expect = "texture"`, a border texture from the skin. No surface holds a family:
+  the U-17 overrides are Ka0s Default values that still follow under every other skin. `tests/test_skin_hud.lua` pins what the
   bar draws, the companions and the reset running once; `tests/test_skin_picker.lua` the picker;
   `tests/test_skin_settings.lua` the settings pages' painting.
 
