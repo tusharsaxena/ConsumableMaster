@@ -548,7 +548,7 @@ KCM.Settings.Helpers.Button(ctx, spec)
 KCM.Settings.Helpers.ButtonPair(ctx, leftSpec, rightSpec)
 KCM.Settings.Helpers.Grid(ctx, items)
 KCM.Settings.Helpers.CustomCheckbox(ctx, parent, relWidth, spec)   -- non-schema-backed checkbox
-KCM.Settings.Helpers.Label(ctx, text, fontSize?)
+KCM.Settings.Helpers.Label(ctx, text, fontSize?)              -- "medium" sets GameFontHighlight through the widget, which the skin hooks
 KCM.Settings.Helpers.AddSpacer(scroll, height)
 KCM.Settings.Helpers.AttachTooltip(widget, label, tooltip)
 KCM.Settings.Helpers.BuildAboutContent(ctx)             -- parent canvas content, via the library's BuildLandingPage

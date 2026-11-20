@@ -138,6 +138,34 @@ return function(L, owner, realprint)
         return isolate(tex, "SetVertexColor")
     end
 
+    --- A settings description (settings/Panel.lua's Helpers.Label, "medium"), drawn as a page
+    --- re-render draws it: the pool hands the same Label back, KCM.SkinAcquire paints it, and the
+    --- font goes on through the widget (SD-SK-CM.1). The widget is AceGUI's Label in shape: its
+    --- SetFontObject sets its `label` FontString's, as AceGUIWidget-Label.lua's does.
+    local function onDescription()
+        local w
+        local function draw()
+            local AceGUI = LibStub("AceGUI-3.0")
+            local create = AceGUI.Create
+            AceGUI.Create = function() return w end
+            local ok, err = pcall(KCM.Settings.Helpers.Label, { scroll = { AddChild = function() end } },
+                "x", "medium")
+            AceGUI.Create = create
+            if not ok then error(err, 0) end
+        end
+        return function()
+            local font = rawget(_G, "GameFontHighlight")
+            _G.GameFontHighlight = font or fake("Font")
+            cleanups[#cleanups + 1] = function() _G.GameFontHighlight = font end
+            local label = fake("FontString", 12)
+            w = setmetatable({ type = "Label", frame = fake("Frame"), label = label }, {
+                __index = function() return function(me) return me end end })
+            w.SetFontObject = function(me, obj) me.label:SetFontObject(obj or _G.GameFontHighlight); return me end
+            draw()
+            return label
+        end, draw
+    end
+
     local surfaces = {}
 
     local function add(name, build, paint, extra)
@@ -183,6 +211,10 @@ return function(L, owner, realprint)
     add("an item row's hand tag", onWidget("modules/KCMItemRow.lua", "KCMItemRow", "handTag"), nil, panel)
     add("the drag icon's label", onWidget("modules/KCMMacroDragIcon.lua", "KCMMacroDragIcon", "label"), nil, panel)
     add("a reorder row's glyph", panelGlyph, nil, panel)
+    do
+        local build, paint = onDescription()
+        add("a settings description", build, paint, panel)
+    end
 
     return {
         owner = owner,

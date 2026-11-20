@@ -1280,8 +1280,10 @@ Total.
 - Skin verb: refused while the addon is disabled, and no picker shows
 - Skin verb: without LibKa0s the verb prints the library-absent line
 
-### test_skin_settings.lua (9)
+### test_skin_settings.lua (11)
 
+- Skin settings: a medium description takes its font through the widget, which the skin hooks
+- Skin settings: a small description sets no font of its own
 - Skin settings: every AceGUI widget a settings file acquires goes through KCM.SkinAcquire
 - Skin settings: under a non-default skin an acquired widget is painted, past the proxy
 - Skin settings: under Ka0s Default the acquired widgets paint like every skin's
@@ -1730,7 +1732,7 @@ Total.
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (32)
+### test_skin_switch.lua (33)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
 - skin switch: the check is falsifiable, a bar whose texture never moves is reported
@@ -1764,6 +1766,7 @@ Total.
 - skin switch: an item row's hand tag changes
 - skin switch: the drag icon's label changes
 - skin switch: a reorder row's glyph changes
+- skin switch: a settings description changes
 
 ### test_client_globals.lua (3)
 
@@ -1836,7 +1839,7 @@ Total.
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 17 |
 | test_skin_verb.lua | 6 |
-| test_skin_settings.lua | 9 |
+| test_skin_settings.lua | 11 |
 | test_settingsui.lua | 34 |
 | test_settingsui_category.lua | 14 |
 | test_settingsui_optionsui.lua | 22 |
@@ -1859,7 +1862,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 32 |
+| test_skin_switch.lua | 33 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1504** |
+| **Total** | **1507** |
