@@ -318,8 +318,9 @@ no `ANCHOR_CURSOR`, no cursor-following `OnUpdate` and no chart.
   bar, so its tooltip and its `?`, X and settings marks' are chrome tooltips: centered on the
   strip, `TIP_GAP` above it, below only without room above. The spec hands the widget no
   `tooltipPlace` hook, so `LibKa0s-Widgets-1.0`'s DragHandle places them through `PlaceAttached`
-  (WidgetsDragHandleTip minor 1); a mark places by its strip, and an unreadable or secret read gets
-  the widget's relative point above the strip. `MB.PlaceTooltipBeside` (TP-CM-02), which put them
+  (WidgetsDragHandleTip minor 1); a mark places by its strip, and an unreadable or secret read places
+  above the strip's nearest readable ancestor, the bar, by the same absolute point (minor 3, LibKa0s
+  v1.108.0, LibKa0s#99), or hides the tooltip when nothing up the tree reads. `MB.PlaceTooltipBeside` (TP-CM-02), which put them
   beside the strip, is retired. `tests/test_macrobar_chrome.lua` pins it.
 
 **Left where they are, and why.** Each is outside what this rule binds, or the library's to place:

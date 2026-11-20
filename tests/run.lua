@@ -647,9 +647,18 @@ local SUITES = {
 -- suite registers through Kit.test directly, not through KCM_TEST.test above, so nothing handed
 -- the real print back and the rest of the run, summary included, went into the capture. The
 -- wrapper below is KCM_TEST.test's restore for the kit's own suites.
--- The typed-value gate (kit revision 50): no row, because every value this addon types sits in a
--- kit category. The switch test's painted surfaces are their own file, the one list an audit reads.
-Kit.skinValues = {}
+-- The typed-value gate (kit revision 50): every value this addon types sits in a kit category but
+-- one. Kit revision 58 (LibKa0s v1.108.0) reads four-number tables, and finds the class-color
+-- resolver's scratch table, whose every channel lib.RGBA overwrites before the color is read; it
+-- takes the kit's row category for a value no player sees (the owner's U-6). The switch test's
+-- painted surfaces are their own file, the one list an audit reads.
+Kit.skinValues = {
+    rows = {
+        { file = "core/CoreSetup.lua", substring = "local swatch = { 1, 1, 1, 1 }",
+          why = "KCM.SwatchColor's scratch table: lib.RGBA writes all four channels before it is read",
+          category = "unreachable default" },
+    },
+}
 Kit.skinSwitch = dofile(ROOT .. "/tests/skin_switch_facts.lua")(L, ADDON_NAME, realprint)
 
 local diagKCM

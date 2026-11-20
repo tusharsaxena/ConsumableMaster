@@ -149,8 +149,16 @@ test("Skin flip: every color and shadow companion is a bool row defaulting on, i
         t.eq(row and row.subgroup, KCM.L[c[4]], c[1] .. " sits under its swatch's heading")
         t.truthy(row and row.tooltip and row.tooltip:find("not read while this is on", 1, true),
             c[1] .. "'s tooltip says the row it governs is not read")
-        t.eq(H.FindSchema("macroBar." .. c[2]).disabledIf, nil,
-            c[2] .. " stays live: no disabledIf on a composed swatch")
+        if c[2] == "labelShadow" then
+            -- Font shadow is a toggle, not a swatch: from OptionsCompose minor 20 (LibKa0s v1.108.0,
+            -- LibKa0s#97 Batch A) the composer grays it while its companion is on. RE-PINNED at
+            -- SD-RV-CM; it pinned minor 19's live row.
+            t.eq(H.FindSchema("macroBar." .. c[2]).disabledIf, "macroBar." .. c[1],
+                c[2] .. " is grayed while its companion is on")
+        else
+            t.eq(H.FindSchema("macroBar." .. c[2]).disabledIf, nil,
+                c[2] .. " stays live: no disabledIf on a composed swatch")
+        end
     end
 end)
 

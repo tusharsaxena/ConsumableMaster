@@ -603,9 +603,9 @@ Total.
 - macrobar handle: at the screen's top, the strip's tooltip flips below the strip
 - macrobar handle: every mark's tooltip is placed by its strip
 - macrobar handle: a scaled strip is placed in screen units
-- macrobar handle: a secret strip read falls back to the attached point, never a guess
-- macrobar handle: a nil strip read falls back to the attached point
-- macrobar handle: an unreadable strip falls back above the strip with the same tooltip
+- macrobar handle: a secret strip read places above the bar, its nearest readable ancestor
+- macrobar handle: a nil strip read with no readable ancestor hides the tooltip
+- macrobar handle: an unreadable strip places above the bar with the same tooltip
 - macrobar handle: the mark's lock line is re-read on every hover
 - macrobar handle: the mark lights under the cursor and rests gray again on leave
 - macrobar handle: a layout pass while unlocked refits the strip at the new scale and width
@@ -1726,13 +1726,14 @@ Total.
 
 ### test_skin_values.lua (3)
 
-- skin values: every host row carries its file, substring, why and cause id
+- skin values: every host row carries its file, substring, why and a cause id or kit row category
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (31)
+### test_skin_switch.lua (32)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
+- skin switch: the check is falsifiable, a bar whose texture never moves is reported
 - skin switch: the bar's fill changes
 - skin switch: the bar's edge color changes
 - skin switch: the bar's edge style changes
@@ -1858,7 +1859,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 31 |
+| test_skin_switch.lua | 32 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1503** |
+| **Total** | **1504** |
