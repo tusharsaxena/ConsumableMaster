@@ -242,7 +242,7 @@ KCM.dbDefaults = {
             -- profile reaches this build through the v6 step with the companion on.
             barBorderStyle      = "None",
             barBorderSize       = 4,
-            barBorderColor      = { 0.25, 0.25, 0.25, 1 },
+            barBorderColor      = { 0, 0, 0, 1 },  -- the skin's bar.border, black (U-16)
             useClassColorBarBorder = false,
             -- The three HUD style companions (skinning-§6, the composer's
             -- `fromSkin`; CM-03): while on, the style is the skin's and its

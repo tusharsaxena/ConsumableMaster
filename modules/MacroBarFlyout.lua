@@ -473,7 +473,7 @@ function FO.ApplyBackdrop(flyout, cfg)
     bg:SetBackdropColor(BB.Swatch(cfg.flyoutBackdropColor, cfg.useClassColorFlyoutBackdrop,
         cfg.flyoutBackdropColorFromSkin, "cm.flyoutBg", "flyoutBackdropColor"))
     bg:SetBackdropBorderColor(BB.Swatch(cfg.barBorderColor, cfg.useClassColorBarBorder,
-        cfg.barBorderColorFromSkin, "cm.barBorder", "barBorderColor"))
+        cfg.barBorderColorFromSkin, "bar.border", "barBorderColor"))
 end
 
 function FO.RefreshCooldown(btn)

@@ -476,12 +476,14 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   font object gave it, read off the string so Ka0s Default's pixels hold; the unlocked
   wash `menu.hover` (D4, today's pixel), the flyout arrow `icon.arrow` (D9) and the count's color
   `hud.text`. Eight host rows, each in its block's `extra`, put each swatch and the shadow on the skin:
-  `barBackdropColorFromSkin` (`bar.bg`), `barBorderColorFromSkin` (`cm.barBorder`),
+  `barBackdropColorFromSkin` (`bar.bg`), `barBorderColorFromSkin` (`bar.border`, the bar's and the
+  flyout's edge, since U-16: the owner's ruling of 2026-11-20 dropped the 0.25 gray `cm.barBorder`),
   `buttonBackdropColorFromSkin` (`cm.buttonBg`), `buttonBorderColorFromSkin` (`cm.buttonBorder`),
   `flyoutBackdropColorFromSkin` (`cm.flyoutBg`), `flyoutShadeColorFromSkin` (`cm.flyoutShade`),
-  `labelColorFromSkin` (`hud.label`) and `labelShadowFromSkin` (`hud.shadow`). The `cm.*` five keep
+  `labelColorFromSkin` (`hud.label`) and `labelShadowFromSkin` (`hud.shadow`). The `cm.*` four keep
   today's pixels under Ka0s Default (`cm.buttonBorder`'s is `icon.border`'s black since SF1-CM, the owner's
-  ruling: a thin dark edge as under every other skin, where it was white) and follow their library role elsewhere (`HUD_TOKENS` in
+  ruling: a thin dark edge as under every other skin, where it was white; `cm.buttonBg`, `cm.flyoutBg`
+  and `cm.flyoutShade` are owner OVERRIDES under Ka0s Default, U-17 of 2026-11-20) and follow their library role elsewhere (`HUD_TOKENS` in
   `core/SkinSetup.lua`), and they stay out of `KCM.SKIN_FALLBACK`, so a degraded bar draws its stored
   swatches. `BB.Swatch` is the one resolver: a class color first, then the skin, then the stored
   swatch over its shipped default in `defaults/Profile.lua`. Every skin states its own `icon.border`,
