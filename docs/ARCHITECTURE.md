@@ -607,7 +607,7 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   StaticPopups, the launcher's tooltip and menu (LibDBIcon and Blizzard's menu), the LibSharedMedia
   pull-outs, the macro icons, Blizzard's pushed and highlight art and the cooldown swipe are the
   client's. A non-applicable item row's 0.4 alpha is state, not chrome (D8).
-- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 58,
+- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 59,
   `Kit.skinValues` in `tests/run.lua`) fails on a color or texture typed where a skin cannot reach
   it. Every value this addon types sits in a kit category but one, `KCM.SwatchColor`'s scratch
   table, whose row takes the kit's `unreachable default` category. The kit's switch test
