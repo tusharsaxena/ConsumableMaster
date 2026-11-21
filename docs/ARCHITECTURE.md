@@ -114,7 +114,7 @@ Ranker's preference table still name 5512, vanilla's Minor Healthstone.
 the subclasses that read as a Potion (Retail: 1; Forever: 1 and Draught 13) and the ones that are a
 weapon enchant on their own (Retail: none; Forever: ItemenhancementTemporary 15 only, since Forever
 reports Item Enhancement 6 as "Permanent", the Light Armor Kit in the owner's dump of 2026-11-08). A third table, `WEAPON_ENHANCE_RULES`, holds WPN_ENCH's two Forever rules: the subclass-8 stones and oils match through their own tooltip flag (`isVanillaWeaponEnhance`, poisons left out), and subclass 6 never matches, even with Retail's "your … weapon" flag set (the Steel Weapon Chain, 6041). Retail's table is empty. Retail's lists are exactly what it matched before the port. Vanilla's tooltip wording is read
-into fields only the Forever paths use ([midnight-quirks.md](./midnight-quirks.md#wow-forevers-consumable-subclasses)).
+into fields only the Forever paths use ([forever-quirks.md](./forever-quirks.md#wow-forevers-consumable-subclasses)).
 
 The headless suite runs under both kit profiles (clients-§6). A case that pins Retail's content runs
 as Retail under both (`h.retailTest`), `tests/test_forever.lua` pins each client's set on both, and the
@@ -607,7 +607,7 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
   StaticPopups, the launcher's tooltip and menu (LibDBIcon and Blizzard's menu), the LibSharedMedia
   pull-outs, the macro icons, Blizzard's pushed and highlight art and the cooldown swipe are the
   client's. A non-applicable item row's 0.4 alpha is state, not chrome (D8).
-- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 58,
+- **The gates.** The kit's typed-value gate (`tests/_kit/test_skin_values.lua`, kit revision 59,
   `Kit.skinValues` in `tests/run.lua`) fails on a color or texture typed where a skin cannot reach
   it. Every value this addon types sits in a kit category but one, `KCM.SwatchColor`'s scratch
   table, whose row takes the kit's `unreachable default` category. The kit's switch test
@@ -676,7 +676,8 @@ generated directories are named once each and never enumerated per run: `docs/au
 | Doc | Status | Trigger |
 |---|---|---|
 | `slash-dispatch.md` | Present | Twenty-five verbs, over the eight-or-more threshold, and six of them carry a subcommand tree (`priority`, `stat`, `aio`, `bar`, `probe`, plus the `dump` targets) |
-| `midnight-quirks.md` | Present | Always (documentation-§3): the vendored catalog block (client-quirks-§1), then the addon’s own client-version workarounds |
+| `midnight-quirks.md` | Present | Clients includes Retail (documentation-§3): the vendored Retail catalog block (client-quirks-§1), then the addon’s own Retail client-version workarounds |
+| `forever-quirks.md` | Present | Clients includes Forever (`Retail · Forever`, forever-quirks-§1): the vendored Forever catalog block, then the addon’s own Forever findings (the consumable subclasses) |
 | `debug.md` | Present | The diagnostics report (`core/Diagnostics.lua`, debug-logging-§14) and the `/cm dump` targets in `core/SlashDump.lua` are the addon’s own beyond the library console |
 | `message-bus.md` | Not applicable | Five messages; threshold is more than ten. The table lives in `ARCHITECTURE.md` → `## Message Bus` |
 | `compat-layer.md` | Present | `core/Compat.lua` publishes three addon-specific shims (`grep -cE '^\s*function\s+Compat\.' core/Compat.lua` answers 3; `KCM.PerClient` beside them is a seed-list helper, not a shim), at the three-or-more threshold since `GetItemInfo` joined the two class-ID spec readers. The other six are `LibKa0s-Compat-1.0`'s, which the library documents ([module-map.md → LibKa0s adoption](./module-map.md#libka0s-adoption)) |
