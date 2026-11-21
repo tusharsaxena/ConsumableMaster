@@ -103,11 +103,14 @@ local MAJORS = {
         -- and OptionsSkinPickerRows (out of OptionsSkinPicker), each paired the same way. LibKa0s v1.93.0
         -- peeled OptionsHeader out of OptionsTabs, paired the same way. LibKa0s v1.105.0 peeled
         -- OptionsSkinPickerQueue (the picker's queue) out of OptionsSkinPicker, paired the same way.
+        -- LibKa0s v1.109.0 peeled OptionsComposeMaster (the Master controls block) out of
+        -- OptionsCompose, paired the same way.
         files = { "Options", "OptionsWidgets", "OptionsTabs", "OptionsScroll", "OptionsCompose", "OptionsNav",
                   "OptionsRegistry", "OptionsIds", "OptionsIdList", "OptionsCombat", "OptionsDrawer",
                   "OptionsKeybinds", "OptionsAppearance", "OptionsSkinPicker", "OptionsSwitch",
                   "OptionsMedia", "OptionsFlow", "OptionsTabbed", "OptionsIdSuggest",
-                  "OptionsSkinPickerRows", "OptionsHeader", "OptionsSkinPickerQueue" },
+                  "OptionsSkinPickerRows", "OptionsHeader", "OptionsSkinPickerQueue",
+                  "OptionsComposeMaster" },
         primary = "Options",
         paired = {
             { file = "OptionsWidgets", minor = "__widgetsMinor", shell = "__widgetsShellMinor" },
@@ -131,6 +134,7 @@ local MAJORS = {
             { file = "OptionsSkinPickerRows", minor = "__pickerRowsMinor", shell = "__pickerRowsShellMinor" },
             { file = "OptionsHeader",     minor = "__headerMinor",     shell = "__headerShellMinor" },
             { file = "OptionsSkinPickerQueue", minor = "__pickerQueueMinor", shell = "__pickerQueueShellMinor" },
+            { file = "OptionsComposeMaster", minor = "__masterMinor", shell = "__masterShellMinor" },
         },
     },
     {
@@ -140,8 +144,11 @@ local MAJORS = {
         -- EllesmereUI provider and the AceGUI rows. SkinOwnerTokens (out of Skin) and SkinDefsOthers
         -- (out of SkinDefs) joined at LibKa0s v1.84.0, paired the same way. SkinPaintHud and
         -- SkinAceConfirm (both out of SkinPaintExtras) joined at LibKa0s v1.91.0, paired the same way.
+        -- SkinPaintNav (the tabs and the navigation, out of SkinPaintControls) joined at LibKa0s
+        -- v1.109.0, paired the same way.
         files = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras", "SkinPaintHud", "SkinAceConfirm",
-                  "SkinPaintControls", "SkinEUI", "SkinAce", "SkinOwnerTokens", "SkinDefsOthers" },
+                  "SkinPaintControls", "SkinEUI", "SkinAce", "SkinOwnerTokens", "SkinDefsOthers",
+                  "SkinPaintNav" },
         primary = "Skin",
         paired = {
             { file = "SkinDefs",          minor = "__defsMinor",     shell = "__defsShellMinor" },
@@ -154,6 +161,7 @@ local MAJORS = {
             { file = "SkinAce",           minor = "__aceMinor",      shell = "__aceShellMinor" },
             { file = "SkinOwnerTokens",   minor = "__tokensMinor",   shell = "__tokensShellMinor" },
             { file = "SkinDefsOthers",    minor = "__othersMinor",   shell = "__othersShellMinor" },
+            { file = "SkinPaintNav",      minor = "__paintNavMinor", shell = "__paintNavShellMinor" },
         },
     },
     {
