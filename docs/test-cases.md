@@ -1208,7 +1208,7 @@ Total.
 - Skin fonts: HUD text in the skin's face draws at S.HudFontSize, the stored size untouched
 - Skin fonts: without the library the label draws its stored size and an outline
 
-### test_skin_flip.lua (27)
+### test_skin_flip.lua (28)
 
 - Skin flip: every color and shadow companion is a bool row defaulting on, in both places
 - Skin flip: the pick's default moved, and the bar family holds the thickness
@@ -1237,6 +1237,7 @@ Total.
 - Skin flip: a profile reset re-runs the step against defaults, moving nothing a player sees
 - Skin flip: a profile switched to later moves on arrival
 - Skin flip: the player's own None draws no edge once the companion is off
+- flip: the bar border swatch keeps its stored default, so a picked color's untouched channel stays
 
 ### test_skin_outline.lua (10)
 
@@ -1851,7 +1852,7 @@ Total.
 | test_skin_surfaces.lua | 23 |
 | test_icon_rule.lua | 5 |
 | test_skin_hud.lua | 20 |
-| test_skin_flip.lua | 27 |
+| test_skin_flip.lua | 28 |
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 17 |
 | test_skin_verb.lua | 6 |
@@ -1881,4 +1882,4 @@ Total.
 | test_skin_switch.lua | 49 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1523** |
+| **Total** | **1524** |
