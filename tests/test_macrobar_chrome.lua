@@ -920,6 +920,33 @@ test("macrobar handle: the settings mark says so when no settings panel can open
         t.eqList(said, { "Settings panel unavailable." }, "...and printed the launcher's line once")
     end)
 
+-- A right-click opens what the gear opens (SRC-CM-01; standalone-windows *The
+-- drag strip's marks*, standard v2.118.0; WidgetsDragHandle minor 17): the strip
+-- passes no `onRightClick`, so the widget runs `settings` on a right-click on the
+-- strip and on every mark.
+--
+-- red under: LibKa0s v1.109.0's DragHandle, which registered no click without
+-- `onRightClick` (a right-click did nothing), or a host `onRightClick` that opens
+-- another page.
+test("macrobar handle: a right-click on the strip or any mark opens the Macro Bar page",
+    function(t)
+        local KCM = h.loader.loadFullAddon()
+        local _, _, handle = support.buildBar(KCM)
+        local pages = {}
+        KCM.Options.Open = function(key) pages[#pages + 1] = key; return true end
+        local c = KCM.db.profile.macroBar
+        local enabled, locked = c.enabled, c.locked
+        for _, f in ipairs({ handle, handle.help, handle.settings, handle.close }) do
+            local script = f:GetScript("OnClick")
+            t.truthy(script, "every part of the strip answers a click")
+            script(f, "RightButton")
+        end
+        t.eqList(pages, { "macrobar", "macrobar", "macrobar", "macrobar" },
+            "the strip, the ?, the gear and the X each open the gear's page once")
+        t.eq(c.enabled, enabled, "the X's right-click hides nothing")
+        t.eq(c.locked, locked, "the lock is untouched")
+    end)
+
 -- red under: dropping `settingsTooltip` (the mark would show the strip's
 -- tooltip, titled for the addon, with the drag line).
 test("macrobar handle: the settings mark's tooltip says what the click does", function(t)
