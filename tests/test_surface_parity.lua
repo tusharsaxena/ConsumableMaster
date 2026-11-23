@@ -348,6 +348,10 @@ local COMPAT_NOT_WIRED = {
     -- LibKa0s v1.94.0 (Compat minor 4): the character-identity readers. No caller here: this addon
     -- shows no unit's name, and AceDB keys the profiles itself.
     "UnitCharacterName", "RegionalNames", "CharacterKey", "RealmKey",
+    -- LibKa0s v1.110.0 (Compat minor 6): the container-group and bank-readiness reader. No caller here:
+    -- the bag scan reads C_Container directly and nothing here reads the bank.
+    "ContainerGroups", "CONTAINER_PATTERNS_BY_CLIENT", "CanViewCharacterBank", "NumPurchasedBankTabs",
+    "UnreadyBankContainers", "BankerKind",
 }
 
 test("Parity: KCM.Compat degraded carries every LibKa0s-Compat member it wires", function(t)
