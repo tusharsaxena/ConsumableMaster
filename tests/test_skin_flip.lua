@@ -719,3 +719,12 @@ test("Skin flip: the player's own None draws no edge once the companion is off",
     KCM.MacroBar.Update()
     t.eq(seen.backdrop.edgeFile, [[Interface\Buttons\WHITE8X8]], "following a skin's None: the thin solid edge")
 end)
+
+test("flip: the bar border swatch keeps its stored default, so a picked color's untouched channel stays", function(t)
+    -- red under: the default moved to black (U-16), which AceDB refills into a picked color's stripped
+    -- channels. The edge is still the skin's black while the companion is on (the cases above).
+    local c = _G.KCM.dbDefaults
+    local color = c.profile.macroBar.barBorderColor
+    for i = 1, 3 do t.eq(color[i], 0.25, "channel " .. i) end
+    t.eq(c.profile.macroBar.barBorderColorFromSkin, true, "U-16's black edge stands")
+end)

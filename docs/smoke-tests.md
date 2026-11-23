@@ -883,3 +883,6 @@ Owed from the LibKa0s v1.105.0 adoption, tooltip placement (Ka0sAddonsCommonTask
 Owed from the adoption feedback run (Ka0sAddonsCommonTasks `docs/2026-11-19-ADOPTION_FEEDBACK/`, AF-RV-CM, LibKa0s v1.107.0): the new BAR-43, and BAR-10 and BAR-40, whose mark order moved (? · settings · close); from AF-STRIP-CM, the new BAR-44, and BAR-40 again, whose gear now opens the Macro Bar page.
 
 Owed from the LibKa0s v1.108.0 run (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_94_97_99_100/`, SD-RV-CM): the new BAR-45 (the composers' companions, Font shadow grayed while its companion is on). From SD-SK-CM: the new SKIN-48 (settings descriptions on the skin's face) and SKIN-49 (the bar's and the flyout's edge on the skin's `bar.border`, U-16), and SKIN-31, whose Ka0s Default edge moved from dark gray to black.
+
+Amended by the owner on 2026-11-23 (Ka0sAddonsCommonTasks `docs/2026-11-23-R2_RESTORE_AND_PROBE_FIXES/`, R2P-CM): SKIN-49's edge is still the skin's black while
+*Use the skin's color* is on. The swatch under it defaults to 0.25 gray again, so a picked color keeps its channels.

@@ -675,7 +675,7 @@ local STORED_GUARD = {
     "macroBar.barBackdrop | bool | true | nil | nil | nil | ",
     "macroBar.barBackdropColor | color | {1=0,2=0,3=0,4=0.5} | nil | nil | nil | ",
     "macroBar.barBorder | bool | true | nil | nil | nil | ",
-    "macroBar.barBorderColor | color | {1=0,2=0,3=0,4=1} | nil | nil | nil | ",
+    "macroBar.barBorderColor | color | {1=0.25,2=0.25,3=0.25,4=1} | nil | nil | nil | ",
     "macroBar.barBorderSize | number | 4 | 1 | 16 | 1 | ",
     "macroBar.barBorderStyle | string | None | nil | nil | nil | ",
     "macroBar.barBorderStyleFromSkin | bool | true | nil | nil | nil | ",
