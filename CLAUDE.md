@@ -107,9 +107,10 @@ and never patched in place — a fix goes upstream and re-vendors ([docs/testing
 lua5.1 tests/run.lua    # headless test harness
 KA0S_KIT_CLIENT=forever lua5.1 tests/run.lua    # the same suite under the kit's forever profile (clients-§6)
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .  # lint; luacheck loads no kit, so it runs bounded (testing-§15)
+python3 -m pytest -q tools/seeds    # the seed contract's own tests, as docs/validate-seeds.md -> ## Gate writes them (no network)
 ```
 
-All three must be green before committing: the addon serves Retail and WoW Forever, so the suite
+All four must be green before committing: the addon serves Retail and WoW Forever, so the suite
 gates under both kit profiles. Neither gate can see the vendored library, so after any re-vendor of `libs/LibKa0s/` also run the copy diff in [docs/testing.md](./docs/testing.md#verifying-the-vendored-libka0s-copies). Manual in-game validation: [docs/smoke-tests.md](./docs/smoke-tests.md).
 
 **At release, not at commit.** Produce a full automated-test bundle (its complexity suite is
