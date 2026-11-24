@@ -956,6 +956,11 @@ Total.
 - --list prints the inventory and runs no tests
 - --list exits 0 without running the suite
 
+### test_sample_names.lua (2)
+
+- sample names: the matcher sees the convention's names and nothing else
+- sample names: no Sample*/Mock* name lives outside tests/ (LibKa0s#104)
+
 ### test_schema.lua (42)
 
 - schema: Settings.Helpers and Settings.Schema tables exist
@@ -1842,6 +1847,7 @@ Total.
 | test_ranker.lua | 26 |
 | test_register.lua | 1 |
 | test_runner_list.lua | 4 |
+| test_sample_names.lua | 2 |
 | test_schema.lua | 42 |
 | test_schema_adoption.lua | 13 |
 | test_schema_tabs.lua | 13 |
@@ -1883,4 +1889,4 @@ Total.
 | test_skin_switch.lua | 49 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1525** |
+| **Total** | **1527** |
