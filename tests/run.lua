@@ -568,6 +568,8 @@ local SUITES = {
     "test_ranker",
     "test_register",
     "test_runner_list",
+    -- One source of sample names: no Sample*/Mock* literal outside tests/ (FB2-CM-01, LibKa0s#104).
+    "test_sample_names",
     "test_schema",
     "test_schema_adoption",
     "test_schema_tabs",
