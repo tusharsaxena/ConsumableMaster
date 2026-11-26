@@ -29,9 +29,9 @@ test("MediaSetup: KCM.Icon answers the vendored path, extensionless", function(t
     -- extension itself and a path carrying `.tga` is one of the two spellings
     -- that draw nothing at all.
     local KCM = loader.loadPure()
-    t.eq(KCM.Icon("help"), VENDORED .. "icons\\help",
-        "the help mark resolves into the vendored payload")
-    t.falsy(KCM.Icon("help"):find("%.tga$"), "and the path carries no extension")
+    t.eq(KCM.Icon("ph:question"), VENDORED .. "icons\\phosphor\\question",
+        "the help mark (Phosphor's filled question, the owner's pick, 2026-11-27) resolves into the vendored payload")
+    t.falsy(KCM.Icon("ph:question"):find("%.tga$"), "and the path carries no extension")
 end)
 
 test("MediaSetup: an icon the library does not ship answers nil", function(t)
@@ -125,7 +125,7 @@ local function declaredIcons(t)
 end
 
 -- Every mark this addon draws: the six names in the declaration. The host draws
--- help and close (modules/MacroBar.lua's handle), segment (the drag handles of
+-- ph:question (the help mark) and close (modules/MacroBar.lua's handle), segment (the drag handles of
 -- settings/Category.lua, settings/StatPriority.lua, settings/MacroBar.lua) and
 -- info (settings/Category.lua's score button); the library draws close, copy
 -- and clear on this addon's behalf once told its folder name (the debug console,
@@ -135,8 +135,8 @@ end
 -- `confirm`, `close` and `star` are this addon's own marks too (cause L6, core/SkinSetup.lua's
 -- KCM.SkinPanelMark, whose names this file's scan cannot read). `eye` is the skin picker's, drawn
 -- since core/SkinSetup.lua passes spec.preview (R6-PV).
-local DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "eye", "help", "info",
-    "move", "reset", "segment", "settings", "star", "volume-high" }
+local DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "eye", "info",
+    "move", "ph:question", "reset", "segment", "settings", "star", "volume-high" }
 
 test("MediaSetup: every mark this addon draws is one the library ships", function(t)
     -- The names are plain strings in this addon's source and the catalog is in
@@ -160,17 +160,26 @@ test("MediaSetup: every declared icon has its file in the vendored copy, and no 
         local root = (_G.KCM_TEST_ROOT or ".") .. "/libs/LibKa0s/media/icons/"
         local missing = {}
         for _, name in ipairs(declaredIcons(t)) do
-            local fh = io.open(root .. name .. ".tga", "rb")
+            local fh = io.open(root .. name:gsub("^ph:", "phosphor/"):gsub("^gi:", "game-icons/") .. ".tga", "rb")
             if fh then fh:close() else missing[#missing + 1] = name end
         end
         t.eq(table.concat(missing, ", "), "", "declared icons with no file in the vendored payload")
         local lic = io.open(root .. "LICENSE-open-iconic.txt", "rb")
         t.truthy(lic, "the Open Iconic license travels with the set")
         if lic then lic:close() end
+        local prefixed = {}
+        for _, name in ipairs(declaredIcons(t)) do
+            if name:match("^ph:") then prefixed.phosphor = true end
+            if name:match("^gi:") then prefixed["game-icons"] = true end
+        end
         for _, set in ipairs({ "phosphor", "game-icons" }) do
             local probe = io.open(root .. set .. "/LICENSE-" .. set .. ".txt", "rb")
             if probe then probe:close() end
-            t.falsy(probe, "media/icons/" .. set .. "/ ships, but no " .. set .. " icon is declared")
+            if prefixed[set] then
+                t.truthy(probe, "media/icons/" .. set .. "/ is declared, and its license travels with it")
+            else
+                t.falsy(probe, "media/icons/" .. set .. "/ ships, but no " .. set .. " icon is declared")
+            end
         end
     end)
 
@@ -200,7 +209,7 @@ test("MediaSetup: every icon name the source draws is declared in CLAUDE.md", fu
         end
     end
     t.truthy(scanned > 0, "the TOC lists core/, modules/ and settings/ files")
-    for _, name in ipairs({ "help", "info", "segment" }) do
+    for _, name in ipairs({ "ph:question", "info", "segment" }) do
         t.truthy(drawn[name], "the scan found the '" .. name .. "' draw site")
     end
     local undeclared = {}
@@ -249,6 +258,6 @@ test("MediaSetup: with no library there is no art and no face, and that is not a
     -- help button down to its Blizzard rung; KCM.MediaFont answering nil is what
     -- leaves the console on a REAL client font rather than on a dead path.
     local KCM = loader.loadPureDegraded()
-    t.eq(KCM.Icon("help"), nil)
+    t.eq(KCM.Icon("ph:question"), nil)
     t.eq(KCM.MediaFont("JetBrains Mono"), nil)
 end)

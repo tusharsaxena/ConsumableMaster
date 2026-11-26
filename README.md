@@ -166,6 +166,7 @@ Bugs, feature requests and planned work all live on GitHub: [github.com/tusharsa
 
 ## Credits
 
-Icons: [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, MIT license. Only the icons
+Icons: [Open Iconic](https://github.com/iconic/open-iconic) by Waybury, MIT license, and the **?** on the macro
+bar's drag handle from [Phosphor](https://phosphoricons.com) by Phosphor Icons (MIT, the Fill weight). Only the icons
 the addon draws are shipped. The icons are bundled inside the LibKa0s payload, with their license
 text beside them.

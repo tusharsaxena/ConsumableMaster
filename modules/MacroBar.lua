@@ -274,7 +274,7 @@ local function buildBar()
         -- The last rung of the mark's ladder is the widget's own, and it is the
         -- same Blizzard texture this file used to name: a nil here falls back
         -- there rather than drawing nothing.
-        helpIcon  = KCM.Icon and KCM.Icon("help") or nil,
+        helpIcon  = KCM.Icon and KCM.Icon("ph:question") or nil,
         -- Dragging is the LOCK's business, not the handle's. The bar's own
         -- OnDragStart asks the lock; the handle asks it too, so nothing that
         -- reaches the handle on a locked bar can move it.
