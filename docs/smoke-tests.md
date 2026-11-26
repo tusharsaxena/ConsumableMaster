@@ -898,3 +898,11 @@ Owed from the strip right-click run (Ka0sAddonsCommonTasks `docs/2026-11-23-STRI
 Owed from the feedback batch of 2026-11-24 (Ka0sAddonsCommonTasks `docs/2026-11-24-FEEDBACK_BATCH/`, FB-CM-01, LibKa0s v1.112.0, standard v2.119.0): the new DIAG-45, the library's copy window carrying its close alone as a companion while the console, the perf panel and the skin picker keep their gear, and SKIN-50, High Contrast's HUD shadow at 1 px on the macro bar. Consumable Master draws no titled window of its own, so the companion rule moves nothing in its code, and its color ladders already put a class color first (the macro bar resolves the player's class, which always resolves).
 
 On 2026-11-24 the owner reported that every check owed from the LibKa0s v1.108.0 run (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_94_97_99_100/`, run SKIN 11-20 of the owner's smoke sheet, a copy of `Ka0sPendingSmoke-2026-11-23.csv`) passed, recorded on the owner's word. Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-24)`: BAR-45, SKIN-48, SKIN-49 and SKIN-31. R2P-CM-1, the owner's 2026-11-23 amendment of SKIN-49, passed the same day and is recorded in `docs/2026-11-23-R2_RESTORE_AND_PROBE_FIXES/`.
+
+## Help glyph (2026-11-27)
+
+The owner picked the help and missing-icon glyphs (Ka0sAddonsCommonTasks round 6). Unrun.
+
+| ID | Check | Result |
+|---|---|---|
+| GLYPH-1 | Unlock the macro bar: its drag handle shows the **?** help mark as a white filled circle with the question mark cut out (Phosphor `ph:question`), not the bare **?**; hovering it still shows the help tooltip. | |
