@@ -6,10 +6,43 @@
 -- global id keeps the key stable across UI reorderings and matches what
 -- SpecHelper.GetCurrent() produces at runtime.
 --
--- Values:
+-- Two lists, one per client (clients-§5), in two SHAPES (core/SpecHelper.lua
+-- SpecHelper.STATS):
+--
+-- Retail values:
 --   primary    : "STR" | "AGI" | "INT"            -- dominant stat
 --   secondary  : ordered list of secondary stats the spec favors
 --                ("HASTE" | "CRIT" | "MASTERY" | "VERSATILITY")
+--
+-- WoW Forever values (issue #48):
+--   ranked     : ONE ordered list over Forever's stats, no primary. Position 1
+--                weighs the most; a stat left out is excluded and weighs nothing.
+--                (STR AGI INT STA SPI AP SP FIRE_SP FROST_SP SHADOW_SP HEAL HIT
+--                CRIT ARMOR HEALTH MANA MANA_REGEN)
+--
+-- Forever has ONE spec per class (spec ids 1482-1491), so each order is the
+-- class's general-purpose one, drafted from vanilla theorycraft norms for a
+-- leveling and dungeon character; a player who tanks or heals drags the stats
+-- their role wants to the top. Every class ranks at least eight stats, so nothing
+-- starts all-excluded (the issue's original complaint). Per class:
+--   Warrior  STR first (2 attack power each), then AP; AGI for crit and dodge;
+--            hit before crit (the miss table); STA/ARMOR/HEALTH for tanking. No
+--            caster stat: a warrior has no mana.
+--   Paladin  STR and AP for Retribution-style leveling; CRIT/HIT; then INT and
+--            the healing stats a Holy paladin drags up; STA/ARMOR last.
+--   Hunter   AGI first (ranged AP, crit), AP, HIT, CRIT; INT and MANA_REGEN for
+--            the mana bar; STA. STR is excluded: it gives a hunter no ranged AP.
+--   Rogue    AGI, AP, HIT, CRIT, STR (1 AP each), STA. No caster stat.
+--   Priest   Shadow-style leveling: SP, SHADOW_SP, INT, SPI (Spirit Tap and
+--            regen), then HEAL and MANA_REGEN for a healer; STA last.
+--   Shaman   Enhancement-style leveling: STR, AP, AGI, CRIT, HIT; then INT, SP,
+--            HEAL and MANA_REGEN for the caster side; STA/ARMOR.
+--   Mage     SP, then INT; FROST_SP before FIRE_SP (frost levels); HIT, CRIT;
+--            SPI and MANA_REGEN for the mana bar; STA last. SHADOW_SP excluded.
+--   Warlock  SP, SHADOW_SP, then STA (Life Tap and the pet's health feed off it),
+--            INT, HIT, CRIT, FIRE_SP (Destruction's Immolate and Soul Fire), SPI.
+--   Druid    Feral-style leveling: STR, AGI, AP, CRIT, HIT; then INT, SP, HEAL,
+--            MANA_REGEN for the caster forms; STA/ARMOR (bear form).
 --
 -- Used by the Ranker to pick the best-fit stat food / flask / combat potion
 -- when no user override is present.
@@ -61,6 +94,9 @@
 --   4. Bump defaults/README.md's snapshot date to match.
 --
 -- Last refreshed: 2026-04-21 from archon.gg (WoW Midnight 12.0).
+-- Refresh attempted 2026-11-27 (issue #48): archon.gg answered HTTP 403 to every
+-- fetch, so no page could be read and Retail's orders are unchanged.
+-- Forever's orders: drafted 2026-11-27 (issue #48) from vanilla norms, above.
 
 local _, NS = ...
 local KCM = NS
@@ -138,7 +174,23 @@ KCM.SEED.STAT_PRIORITY = KCM.PerClient({
         ["13_1468"] = { primary = "INT", secondary = { "MASTERY", "HASTE", "CRIT", "VERSATILITY" } },     -- Preservation
         ["13_1473"] = { primary = "INT", secondary = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" } },     -- Augmentation
     },
-    -- Empty by decision: step 2, owner ruling 2026-11-08. Forever's priorities wait for its own
-    -- spec IDs; until then core/SpecHelper.lua's fallback ranks by the class's primary stat.
-    forever = {},
+    -- One spec per class; the rationale per class is in the header above.
+    forever = {
+        ["1_1491"]  = { ranked = { "STR", "AP", "AGI", "HIT", "CRIT", "STA", "ARMOR", "HEALTH" } },       -- Warrior
+        ["2_1486"]  = { ranked = { "STR", "AP", "CRIT", "HIT", "AGI", "INT", "HEAL", "SP", "MANA_REGEN",
+                                   "SPI", "MANA", "STA", "ARMOR", "HEALTH" } },                            -- Paladin
+        ["3_1485"]  = { ranked = { "AGI", "AP", "HIT", "CRIT", "INT", "MANA_REGEN", "STA", "SPI", "MANA",
+                                   "ARMOR", "HEALTH" } },                                                  -- Hunter
+        ["4_1488"]  = { ranked = { "AGI", "AP", "HIT", "CRIT", "STR", "STA", "ARMOR", "HEALTH" } },       -- Rogue
+        ["5_1487"]  = { ranked = { "SP", "SHADOW_SP", "INT", "SPI", "HEAL", "MANA_REGEN", "MANA", "HIT",
+                                   "CRIT", "STA", "HEALTH", "ARMOR" } },                                   -- Priest
+        ["7_1489"]  = { ranked = { "STR", "AP", "AGI", "CRIT", "HIT", "INT", "SP", "HEAL", "MANA_REGEN",
+                                   "SPI", "MANA", "STA", "ARMOR", "HEALTH" } },                            -- Shaman
+        ["8_1482"]  = { ranked = { "SP", "INT", "FROST_SP", "FIRE_SP", "HIT", "CRIT", "SPI", "MANA_REGEN",
+                                   "MANA", "STA", "HEALTH", "ARMOR" } },                                   -- Mage
+        ["9_1490"]  = { ranked = { "SP", "SHADOW_SP", "STA", "INT", "HIT", "CRIT", "FIRE_SP", "SPI",
+                                   "MANA_REGEN", "MANA", "HEALTH", "ARMOR" } },                            -- Warlock
+        ["11_1484"] = { ranked = { "STR", "AGI", "AP", "CRIT", "HIT", "INT", "SP", "HEAL", "MANA_REGEN",
+                                   "SPI", "MANA", "STA", "ARMOR", "HEALTH" } },                            -- Druid
+    },
 })

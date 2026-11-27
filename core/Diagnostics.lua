@@ -181,10 +181,10 @@ local function spec(out)
         return
     end
     local pri = SH.GetStatPriority(specKey)
-    local override = type(stored) == "table" and type(stored[specKey]) == "table"
-        and stored[specKey].primary ~= nil
-    out:add("Spec", "stat priority: primary=%s secondary=%s override=%s",
-        pri.primary, table.concat(pri.secondary or {}, ">"), yn(override))
+    -- What counts as an override, and how the priority reads, are the per-client
+    -- stat model's (core/SpecHelper.lua): Retail's line is exactly what it was.
+    local override = type(stored) == "table" and SH.IsOverride(stored[specKey])
+    out:add("Spec", "stat priority: %s override=%s", SH.DescribePriority(pri), yn(override))
 end
 
 -- ---------------------------------------------------------------------------

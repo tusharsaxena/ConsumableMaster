@@ -355,7 +355,7 @@ end)
 -- red under: dropping the boundary (a drag could then land an included stat in
 -- the excluded tail, where its position is not stored), or making the excluded
 -- rows draggable.
-test("Settings: the Stat Priority secondaries are one bounded reorder list", function(t)
+h.retailTest("Settings: the Stat Priority secondaries are one bounded reorder list", function(t)
     local KCM = loader.loadFullAddon()
     local UI  = KCM.Settings.Helpers.instance
     local specKey = "8_262"
@@ -388,7 +388,7 @@ end)
 --
 -- red under: passing the handle slot as the box's parent again, or setting the
 -- stride equal to the row height (which closes the gap between rows).
-test("Settings: a secondary stat row is boxed full-width and spaced from the next",
+h.retailTest("Settings: a secondary stat row is boxed full-width and spaced from the next",
     function(t)
         local KCM = loader.loadFullAddon()
         local UI  = KCM.Settings.Helpers.instance
@@ -455,7 +455,7 @@ h.retailTest("Settings: every draggable row on the Macros page is boxed full-wid
 -- toggle and toggles nothing is the failure a texture assertion cannot see), or
 -- reading the stat off an upvalue captured when the row was built rather than off
 -- the row at fire time.
-test("Settings: clicking a secondary stat's glyph toggles whether it is ranked",
+h.retailTest("Settings: clicking a secondary stat's glyph toggles whether it is ranked",
     function(t)
         local KCM = loader.loadFullAddon()
         local UI  = KCM.Settings.Helpers.instance
@@ -494,7 +494,7 @@ test("Settings: clicking a secondary stat's glyph toggles whether it is ranked",
 --
 -- red under: keeping a stat in the included list after it was excluded, or
 -- letting a duplicate through (Ranker would then weigh the same stat twice).
-test("Settings: the secondary split is stored order first, then the rest", function(t)
+h.retailTest("Settings: the secondary split is stored order first, then the rest", function(t)
     local KCM = loader.loadFullAddon()
     local split = KCM.Options.SplitSecondaries
 

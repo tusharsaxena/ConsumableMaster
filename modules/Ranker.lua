@@ -71,6 +71,18 @@ local HOT_OVER_IMMEDIATE_PCT    = 20
 -- secondary, earlier position = higher weight.
 local PRIMARY_WEIGHT = 1000
 
+-- WoW Forever's ranked priority (`{ ranked = {...} }`, core/SpecHelper.lua
+-- SpecHelper.STATS): the stat at position k of N weighs RANK_BASE^(N - k), and
+-- the score is that weight times the amount (issue #48, owner ruling 2026-11-27).
+-- The base is above any amount a vanilla consumable grants (the largest are
+-- 2,000 armor and 2,000 mana, the smallest a 0.5% hit), so ONE position outweighs
+-- any amount: the player's order is the lever, and within one stat the bigger
+-- amount wins. No conversion between stats is attempted (out of scope). A double
+-- keeps about four positions of distinction in one sum, and near the top of a long
+-- list the score is past SPELL_SCORE and past where an ilvl still adds to it, so
+-- SortCandidates sorts spells first and breaks a tie on ilvl + quality itself.
+local RANK_BASE = 1e4
+
 -- WoW Forever's ELIXIR and SCROLL: an item whose stat the spec weighs (any
 -- positive stat-priority score) earns this floor, so it outranks every item
 -- whose stat the spec does not weigh, or that has no stat token at all (a
@@ -144,8 +156,21 @@ local function secondaryWeight(stat, sec)
     return 0
 end
 
+-- Weight of a stat in a ranked (Forever) priority: RANK_BASE^(N - k) for the
+-- k-th of N, 0 for a stat the list leaves out.
+local function rankedWeight(stat, ranked)
+    local n = #ranked
+    for idx, name in ipairs(ranked) do
+        if name == stat then return RANK_BASE ^ (n - idx) end
+    end
+    return 0
+end
+
 local function statWeight(stat, specPriority)
     if not stat or not specPriority then return 0 end
+    -- Only a Forever priority carries `ranked`; a Retail one never does, so
+    -- everything below is Retail's weighting, untouched.
+    if specPriority.ranked then return rankedWeight(stat, specPriority.ranked) end
     local p = specPriority.primary
     local alias = PRIMARY_ALIAS[stat]
     if alias then return alias[p] and PRIMARY_WEIGHT or 0 end
@@ -253,6 +278,29 @@ local function buffItemParts(tt, specPriority)
     return 0, 0, (tt and tt.effectValue) or 0
 end
 
+-- STAT_FOOD / FLASK / CMBT_POT under a ranked (Forever) priority: the stat score
+-- plus STAT_TIER_BONUS when it is positive, so an item whose stat the player
+-- ranks -- however low -- outranks every item whose stat they do not, and item
+-- level only orders what the priority cannot tell apart (issue #48). A Retail
+-- priority has no `ranked`, so this is the bare stat score there, unchanged.
+local function rankedStatParts(tt, specPriority)
+    local stat = scoreByStatPriority(tt, specPriority)
+    local tier = (specPriority and specPriority.ranked and stat > 0) and STAT_TIER_BONUS or 0
+    return stat, tier
+end
+
+-- WPN_ENCH's stat term. A ranked (Forever) priority weighs nothing here: #48's
+-- ruling moved Stat Food, Elixir, Scroll and Flask onto the player's order, not
+-- weapon enhancements, and the vanilla parser reads a wizard oil's "spell damage
+-- and healing" as SP and HEAL -- weighted, every oil would bury every sharpening
+-- stone for a class whose order names SP at all. So Forever's stones and oils keep
+-- ranking by their own value (ENHANCE_VALUE_WEIGHT), as before #48. Retail's term
+-- is the stat score, unchanged.
+local function weaponStatScore(tt, specPriority)
+    if specPriority and specPriority.ranked then return 0 end
+    return scoreByStatPriority(tt, specPriority)
+end
+
 -- ---------------------------------------------------------------------------
 -- Per-category scorers
 -- ---------------------------------------------------------------------------
@@ -300,25 +348,28 @@ local scorers = {
     end,
     STAT_FOOD = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
-        return scoreByStatPriority(tt, ctx and ctx.specPriority)
+        local stat, tier = rankedStatParts(tt, ctx and ctx.specPriority)
+        return stat + tier
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
     CMBT_POT = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
-        return scoreByStatPriority(tt, ctx and ctx.specPriority)
+        local stat, tier = rankedStatParts(tt, ctx and ctx.specPriority)
+        return stat + tier
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
     FLASK = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
-        return scoreByStatPriority(tt, ctx and ctx.specPriority)
+        local stat, tier = rankedStatParts(tt, ctx and ctx.specPriority)
+        return stat + tier
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
     WPN_ENCH = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
-        return scoreByStatPriority(tt, ctx and ctx.specPriority)
+        return weaponStatScore(tt, ctx and ctx.specPriority)
              + (tt.weaponEnhanceValue or 0) * ENHANCE_VALUE_WEIGHT
              + ilvl
              + quality * QUALITY_WEIGHT
@@ -441,16 +492,41 @@ end
 -- Returns two values:
 --   1. sorted array of itemIDs (highest score first)
 --   2. parallel array of { id, score } rows — handy for debug dumps
+-- A ranked (WoW Forever) score can reach RANK_BASE^16 x amount, so two guarantees the
+-- magnitudes alone gave Retail need saying out loud there (issue #48 review):
+--   * a spell sorts above every item. SPELL_SCORE (1e9) is below a ranked score
+--     a few places up the list, so the sentinel alone no longer keeps it on top.
+--   * item level and quality still break a tie. Past ~1e16 a double cannot add an
+--     ilvl to the stat score, so two items with the same buffs score the same; the
+--     row carries ilvl + quality (`base`) to order them. Rounding is monotonic, so
+--     this only orders what the sum already tied and never inverts it.
+-- A Retail priority has no `ranked`: `base` is 0 and every item scores below the
+-- sentinel, so the order there is exactly score, then id, as before.
+local function sortRow(catKey, id, ctx, scoreCache, ranked)
+    local row = { id = id, score = R.Score(catKey, id, ctx, scoreCache), base = 0 }
+    row.spell = KCM.ID and KCM.ID.IsSpell(id) or false
+    if ranked and not row.spell then
+        local quality, ilvl = itemFields(id, scoreCache)
+        row.base = ilvl + quality * QUALITY_WEIGHT
+    end
+    return row
+end
+
+local function sortRowBefore(a, b)
+    if a.spell ~= b.spell then return a.spell end
+    if a.score ~= b.score then return a.score > b.score end
+    if a.base ~= b.base then return a.base > b.base end
+    return a.id < b.id
+end
+
 function R.SortCandidates(catKey, itemIDs, ctx, scoreCache)
     ctx = R.BuildContext(catKey, itemIDs, ctx, scoreCache)
+    local ranked = ctx and ctx.specPriority and ctx.specPriority.ranked ~= nil
     local rows = {}
     for _, id in ipairs(itemIDs or {}) do
-        table.insert(rows, { id = id, score = R.Score(catKey, id, ctx, scoreCache) })
+        table.insert(rows, sortRow(catKey, id, ctx, scoreCache, ranked))
     end
-    table.sort(rows, function(a, b)
-        if a.score == b.score then return a.id < b.id end
-        return a.score > b.score
-    end)
+    table.sort(rows, sortRowBefore)
     local ids = {}
     for i, row in ipairs(rows) do ids[i] = row.id end
     return ids, rows
@@ -584,17 +660,30 @@ local function explainBattleRez(_, f)
 end
 registerExplainer({ "BATTLE_REZ" }, explainBattleRez)
 
+-- The note on one stat buff's signal. A ranked (Forever) weight is a power of
+-- RANK_BASE and an amount can be a fraction ("0.5%" hit), so neither fits %d --
+-- which on a 32-bit `long` would overflow -- and they print with %g; Retail's note
+-- reads exactly as it always did.
+local function buffNote(amount, w, ranked)
+    if ranked then return ("amount %g x weight %g"):format(amount or 0, w) end
+    return ("amount %d x weight %d"):format(amount or 0, w)
+end
+
 local function explainStatBuffs(result, f)
     local specPriority = f.ctx and f.ctx.specPriority
+    local ranked       = specPriority and specPriority.ranked ~= nil
     local statTotal    = 0
     for _, sb in ipairs(f.tt.statBuffs or {}) do
         local w       = statWeight(sb.stat, specPriority)
         local contrib = w * (sb.amount or 1)
-        if contrib > 0 then
+        -- `~= 0`, not `> 0`: a Forever buff can be a PENALTY ("decreases your
+        -- Stamina by 5"), and the explanation must add up to the score. Retail never
+        -- parses a negative amount, so there the two tests agree.
+        if contrib ~= 0 then
             table.insert(result.signals, {
                 label = ("%s buff"):format(sb.stat),
                 value = contrib,
-                note  = ("amount %d x weight %d"):format(sb.amount or 0, w),
+                note  = buffNote(sb.amount, w, ranked),
             })
             statTotal = statTotal + contrib
         end
@@ -609,12 +698,34 @@ local function explainStatBuffs(result, f)
     return statTotal + f.ilvl + f.qualityScore,
            "Primary-stat buffs outweigh any secondary; secondary ranks by priority position."
 end
-registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK" }, explainStatBuffs)
 
--- WPN_ENCH: the stat buffs, plus Forever's stone or oil value when the tooltip
--- carries one. Without it (every Retail tooltip) this is explainStatBuffs exactly.
-local function explainWeaponEnhance(result, f)
+-- STAT_FOOD / CMBT_POT / FLASK: the stat buffs, and under a ranked (Forever)
+-- priority the tier a ranked stat earns (rankedStatParts). The score is summed in
+-- the scorer's own order, so the two agree to the last bit at any magnitude.
+local function explainStatCategory(result, f)
     local score, summary = explainStatBuffs(result, f)
+    local specPriority = f.ctx and f.ctx.specPriority
+    if not (specPriority and specPriority.ranked) then return score, summary end
+    local stat, tier = rankedStatParts(f.tt, specPriority)
+    if tier > 0 then
+        table.insert(result.signals, { label = "stat tier", value = tier, note = "a stat you rank" })
+    end
+    return stat + tier + f.ilvl + f.qualityScore,
+           "Your stat order decides: one place up outweighs any amount; ilvl + quality break ties."
+end
+registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK" }, explainStatCategory)
+
+-- WPN_ENCH: the stat buffs (none under a ranked priority, weaponStatScore), plus
+-- Forever's stone or oil value when the tooltip carries one. Without it (every
+-- Retail tooltip) this is explainStatBuffs exactly.
+local function explainWeaponEnhance(result, f)
+    local score, summary
+    if f.ctx and f.ctx.specPriority and f.ctx.specPriority.ranked then
+        -- weaponStatScore: a ranked priority weighs no stat here.
+        score, summary = f.ilvl + f.qualityScore, "Ranks by the stone's or oil's value; ilvl + quality break ties."
+    else
+        score, summary = explainStatBuffs(result, f)
+    end
     local value = f.tt.weaponEnhanceValue or 0
     if value > 0 then
         local contrib = value * ENHANCE_VALUE_WEIGHT
@@ -703,6 +814,8 @@ end
 -- Expose helpers for tests / debug code that wants per-signal insight.
 R._scorers                    = scorers
 R._statWeight                 = statWeight
+R._rankedWeight               = rankedWeight
+R.RANK_BASE                   = RANK_BASE
 R._scoreByStatPriority        = scoreByStatPriority
 R._qualifiesForImmediateBonus = qualifiesForImmediateBonus
 R._augAmount                  = augAmount

@@ -130,6 +130,8 @@ core/MacroBarLayout.lua  Pure geometry. Grid(count, cfg) -> positions +
 
 core/SpecHelper.lua  Class/spec identity. Spec keys are "<classID>_<specID>".
                    GetStatPriority merges user override → seed → class fallback.
+                   STATS: the per-client stat model (Retail primary +
+                   secondaries; Forever one ranked list), picked once.
 
 core/TooltipCache.lua  C_TooltipInfo.GetItemByID(id) → parsed struct cached per
                    session. Invalidate(id) on GET_ITEM_INFO_RECEIVED.
@@ -186,9 +188,11 @@ core/DebugLogSetup.lua  The addon's half of LibKa0s-DebugLog-1.0: resolves the
                    when the library is absent.
 
 modules/Ranker.lua  Pure scorers per category. Spec-aware scorers weight stats
-                   against { primary, secondary[] } from SpecHelper. Spell
-                   entries short-circuit to a fixed SPELL_SCORE above any
-                   item. HP_POT / MP_POT apply an immediate-pot bonus that
+                   against { primary, secondary[] } (Retail) or { ranked[] }
+                   (Forever: RANK_BASE^(N-k) x amount; WPN_ENCH weighs no
+                   stat there) from SpecHelper. Spell entries short-circuit
+                   to a fixed SPELL_SCORE, and SortCandidates sorts them above
+                   every item and breaks a ranked score tie on ilvl + quality. HP_POT / MP_POT apply an immediate-pot bonus that
                    HOT candidates only earn when their amount beats the
                    best-immediate in the set by >20%.
 
@@ -256,7 +260,8 @@ settings/         Settings UI framework + one module per page.
 │                        and Cancel at render time.
 ├── StatPriority.lua     The viewed-spec picker as the page BANNER
 │                        (options-ui-§14), then a ONE-TAB strip over the primary
-│                        stat and the four secondaries as a draggable list.
+│                        stat and the four secondaries as a draggable list
+│                        (Retail), or one ranked list over Forever's stats.
 ├── Category.lua         The Macros page: a 15-tab strip GENERATED from
 │                        Categories.LIST in KCM.Settings.macroOrder, one tab per
 │                        category. Dispatches to single (Add-by-ID + Priority
@@ -485,11 +490,13 @@ Reads the equipped weapon's numeric `subClassID`, gated on `classID == Weapon` s
 KCM.SpecHelper.GetCurrent() -> classID, specID, specKey, specName
 KCM.SpecHelper.MakeKey(classID, specID) -> "<classID>_<specID>"
 KCM.SpecHelper.AllSpecs() -> { { classID, specID, specKey, specName }, ... }
-KCM.SpecHelper.GetStatPriority(specKey) -> { primary, secondary = { ... } }
+KCM.SpecHelper.GetStatPriority(specKey) -> { primary, secondary = { ... } } (Retail) | { ranked = { ... } } (Forever)
+KCM.SpecHelper.STATS -> { ranked, primaries?, stats } -- this client's stat model (KCM.PerClient)
+KCM.SpecHelper.CleanRanked(list) / IsOverride(entry) / DescribePriority(p)
 KCM.SpecHelper.WithStatPriority(specKey, entry|nil) -> the whole statPriority map, one spec replaced (pure)
 ```
 
-`GetStatPriority` merges in this order: user override (`db.profile.statPriority[specKey]`) → seed default (`KCM.SEED.STAT_PRIORITY[specKey]`) → class-primary fallback. `statPriority` is a whole-value schema row, so it is never written in place. `WithStatPriority(specKey, entry)` answers the whole map with one spec's override replaced (or dropped, for a nil entry) and writes nothing. Every writer hands that map to `KCM.Schema:Set("statPriority", …)`: the Stat Priority page's `writeStatPriority` and Defaults, `/cm stat primary|secondary|reset`, and Reset all priorities. Spec + spell lookups route through `KCM.Compat`.
+`GetStatPriority` merges in this order: user override (`db.profile.statPriority[specKey]`) → seed default (`KCM.SEED.STAT_PRIORITY[specKey]`) → class-primary fallback. `statPriority` is a whole-value schema row, so it is never written in place. `WithStatPriority(specKey, entry)` answers the whole map with one spec's override replaced (or dropped, for a nil entry) and writes nothing. Every writer hands that map to `KCM.Schema:Set("statPriority", …)`: the Stat Priority page's `writeStatPriority` and Defaults, `/cm stat primary|secondary|reset` (`/cm stat order|reset` on WoW Forever), and Reset all priorities. Spec + spell lookups route through `KCM.Compat`.
 
 ### Settings panel (`settings/Panel.lua` + `settings/PanelRows.lua` + `settings/OptionsShim.lua` + per-page modules)
 
@@ -932,7 +939,7 @@ Each PAGE module registers a builder via `KCM.Settings.RegisterTab(key, builder)
 |------|-----------|---------|
 | `defaults/Profile.lua` | `KCM.dbDefaults` | The AceDB defaults tree, and THE declaration site for every shipped default value (`savedvariables-§2`): the `global.schemaVersion` seed, `profile.enabled`, the per-category buckets, `statPriority` / `macroState`, and the whole `macroBar` table. Schema rows, page fallbacks and migrations all read through it rather than restating a literal. Second in the TOC's `# Defaults` block, after `Categories.lua`: every bucket is declared here once, and the profile gets the ones `KCM.Categories.BY_KEY` holds, so a category absent on this client has no bucket and no slot. |
 | `defaults/Categories.lua` | `KCM.Categories.LIST` + `KCM.Categories.BY_KEY` + `Get(key)` + `ALL` | Category metadata: macro name, displayName, shortName (abbreviation for macro-bar button labels), specAware, classifier/ranker keys, and `clients` (clients-§4). LIST and BY_KEY are filtered once at load through `KCM.Compat.ForClient` to the rows this client is declared for; `ALL` keeps the nineteen for the docs and the tests. Composite rows carry `composite=true` + `components = { inCombat={...}, outOfCombat={...} }`. First in the TOC's `# Defaults` block. |
-| `defaults/Defaults_StatPriority.lua` | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>`. |
+| `defaults/Defaults_StatPriority.lua` | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` (Retail); one `ranked` list per Forever class (spec ids 1482–1491). |
 | `defaults/Defaults_<CAT>.lua` | `KCM.SEED.<CATKEY>` | Seed item / spell IDs per category, as two lists, `retail` and `forever`, handed to `KCM.PerClient` (`core/Compat.lua`), which answers this client's once at load (clients-§5). Forever's are empty by decision (step 2, owner ruling 2026-11-08). Spell entries use `KCM.ID.AsSpell(spellID)`. Composite categories and the four Forever-only categories have no seed file. |
 | `defaults/README.md` | — | Seed file map + category scope decisions + refresh procedure. See [../defaults/README.md](../defaults/README.md). |
 

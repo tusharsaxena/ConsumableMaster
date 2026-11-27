@@ -566,7 +566,7 @@ end
 
 local ROW_PATTERN = "^  |c%x%x%x%x%x%x%x%x(.-)|r \226\128\148 |c%x%x%x%x%x%x%x%x(.*)|r$"
 
-test("Slash: every sub-help row has the one row shape (priority/stat/aio/bar)", function(t)
+h.retailTest("Slash: every sub-help row has the one row shape (priority/stat/aio/bar)", function(t)
     local KCM, mock = load()
     local lib = LibStub("LibKa0s-Slash-1.0")
     for _, spec in ipairs(SUB_HELP) do
@@ -583,7 +583,7 @@ test("Slash: every sub-help row has the one row shape (priority/stat/aio/bar)", 
     end
 end)
 
-test("Slash: sub-verbs fold case and tolerate extra spaces, arguments keep theirs", function(t)
+h.retailTest("Slash: sub-verbs fold case and tolerate extra spaces, arguments keep theirs", function(t)
     local KCM, mock = load()
     -- Chat and the console together: the list verbs are reports (the owner's
     -- ruling of 2026-11-08), so their body lands in the debug console.

@@ -527,6 +527,11 @@ local function statList(rest)
     end
     local p = KCM.SpecHelper.GetStatPriority(specKey)
     say(("spec: %s"):format(describeSpec(specKey)))
+    -- WoW Forever's priority is one ranked list (SpecHelper.STATS); Retail's is a
+    -- primary and its secondaries, printed exactly as before.
+    if p.ranked then
+        return say(("  ranked:    %s"):format(table.concat(p.ranked, ", ")))
+    end
     say(("  primary:   %s"):format(tostring(p.primary)))
     say(("  secondary: %s"):format(table.concat(p.secondary or {}, ", ")))
 end
@@ -547,15 +552,11 @@ local function statPrimary(rest)
     afterMutation("slash_stat_primary")
 end
 
-local function statSecondary(rest)
-    local args = tokenize(rest)
-    if not args[1] then
-        return say("Usage: /cm stat secondary <CSV> [specKey]  (e.g. CRIT,HASTE,MASTERY,VERSATILITY)")
-    end
-    local specKey = resolveSpecKey(args[2])
-    if not specKey then return say("could not resolve spec.") end
+-- A CSV of stat tags, upper-cased and deduplicated in typed order, against an
+-- allowed set. Answers the list and the tokens that are not allowed.
+local function parseStatCSV(csv, allowed)
     local list, seen, bad = {}, {}, {}
-    for token in (args[1]):gmatch("[^,]+") do
+    for token in csv:gmatch("[^,]+") do
         local up = trim(token):upper()
         if up == "" then -- luacheck: ignore 542
             -- An empty CSV slot is skipped, and the branch is written out rather than folded into
@@ -563,7 +564,7 @@ local function statSecondary(rest)
             -- unknown, new. luacheck's 542 is answered on the line above rather than in
             -- .luacheckrc, because this is the only empty branch in the repository and a
             -- file-wide suppression would hide the next one (lint.md, `M4c-03`).
-        elseif not SECONDARY_STATS[up] then
+        elseif not allowed[up] then
             bad[#bad + 1] = up
         elseif not seen[up] then
             -- Dedupe: a duplicate would weight the same stat twice in
@@ -573,6 +574,17 @@ local function statSecondary(rest)
             list[#list + 1] = up
         end
     end
+    return list, bad
+end
+
+local function statSecondary(rest)
+    local args = tokenize(rest)
+    if not args[1] then
+        return say("Usage: /cm stat secondary <CSV> [specKey]  (e.g. CRIT,HASTE,MASTERY,VERSATILITY)")
+    end
+    local specKey = resolveSpecKey(args[2])
+    if not specKey then return say("could not resolve spec.") end
+    local list, bad = parseStatCSV(args[1], SECONDARY_STATS)
     if #bad > 0 then
         return say(("Unknown secondary stat(s): %s.  Allowed: CRIT, HASTE, MASTERY, VERSATILITY")
             :format(table.concat(bad, ", ")))
@@ -583,6 +595,33 @@ local function statSecondary(rest)
     end
     say(("statpriority.%s.secondary = %s"):format(specKey, table.concat(list, ", ")))
     afterMutation("slash_stat_secondary")
+end
+
+-- WoW Forever's one ranked list (SpecHelper.STATS): `/cm stat order <CSV>`. A
+-- stat left out of the CSV is excluded, as unticking it on the page does.
+local function rankedStatSet()
+    local set = {}
+    for _, stat in ipairs(KCM.SpecHelper.STATS.stats or {}) do set[stat] = true end
+    return set
+end
+
+local function statOrder(rest)
+    local args = tokenize(rest)
+    local allowedList = table.concat(KCM.SpecHelper.STATS.stats or {}, ", ")
+    if not args[1] then
+        return say("Usage: /cm stat order <CSV> [specKey]  (e.g. AGI,AP,HIT,CRIT,STA)")
+    end
+    local specKey = resolveSpecKey(args[2])
+    if not specKey then return say("could not resolve spec.") end
+    local list, bad = parseStatCSV(args[1], rankedStatSet())
+    if #bad > 0 then
+        return say(("Unknown stat(s): %s.  Allowed: %s"):format(table.concat(bad, ", "), allowedList))
+    end
+    if not writeStatPriority(specKey, { ranked = list }) then
+        return say("could not write the stat priority.")
+    end
+    say(("statpriority.%s.ranked = %s"):format(specKey, table.concat(list, ", ")))
+    afterMutation("slash_stat_order")
 end
 
 local function statReset(rest)
@@ -602,16 +641,27 @@ local function statReset(rest)
     afterMutation("slash_stat_reset")
 end
 
-local STAT_COMMANDS = {
+-- Each row's `clients` (clients-§4): `primary` and `secondary` edit Retail's
+-- shape and `order` Forever's, so each exists on its own client only, gated
+-- HERE, at registration, through Compat.ForClient -- the other client's help and
+-- dispatch never see it. A row with no declaration serves both.
+local STAT_COMMAND_ROWS = {
     {"list",      "Print stat priority — `/cm stat list [specKey]`",
         function(rest) statList(rest) end},
     {"primary",   "Set primary stat — `/cm stat primary <STR|AGI|INT> [specKey]`",
-        function(rest) statPrimary(rest) end},
+        function(rest) statPrimary(rest) end, clients = { "retail" }},
     {"secondary", "Set secondary list — `/cm stat secondary <CSV> [specKey]`",
-        function(rest) statSecondary(rest) end},
+        function(rest) statSecondary(rest) end, clients = { "retail" }},
+    {"order",     "Set the ranked stat list — `/cm stat order <CSV> [specKey]`",
+        function(rest) statOrder(rest) end, clients = { "forever" }},
     {"reset",     "Drop user override — `/cm stat reset [specKey]`",
         function(rest) statReset(rest) end},
 }
+
+local STAT_COMMANDS = {}
+for _, row in ipairs(STAT_COMMAND_ROWS) do
+    if KCM.Compat.ForClient(row.clients) then STAT_COMMANDS[#STAT_COMMANDS + 1] = row end
+end
 
 local function statHelp()
     say("stat subcommands")

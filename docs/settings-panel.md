@@ -148,7 +148,7 @@ own UI and last in every Ka0s addon that ships one.
 |---|---|---|
 | **General** | 3 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group), **Maintenance** (Force resync, Force rewrite macros, Reset all priorities…; a host tab with no rows) and **Skin** (the library's tab over the seven `skin.*` rows, last; [below](#the-general-pages-skin-tab)). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
 | **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
-| **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
+| **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list (Retail), or one draggable list over every Forever stat (WoW Forever) |
 | **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 75 of the addon's 98 schema rows live here |
 | **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
@@ -455,6 +455,15 @@ is what let `Bar` through.
 ### The Stat Priority page
 
 One tab, **Priority**, under the spec banner.
+
+**The page's shape is per client** (issue #48). It reads `SpecHelper.STATS` (`core/SpecHelper.lua`,
+picked once by `KCM.PerClient`) and never asks which client it is on. On **Retail** it is the primary
+dropdown and the four secondaries below. On **WoW Forever** there is no primary dropdown: a **Stats**
+section holds ONE draggable list over all seventeen Forever stats (Strength, Agility, Intellect,
+Stamina, Spirit, Attack Power, Spell Damage, Fire/Frost/Shadow Spell Damage, Healing, Hit Chance,
+Critical Strike, Armor, Maximum Health, Maximum Mana, Mana per 5 sec), the shipped order first and the
+excluded stats in the dimmed tail. Rows, glyphs, drag and the boundary are the same widget and the same
+rules as Retail's secondary list; a write stores `{ ranked = { ... } }`.
 
 - **Primary stat** — one dropdown spanning **both** columns. It used to be a half-cell paired with an
   invisible one, which is `wide` written out by hand.

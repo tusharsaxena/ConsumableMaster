@@ -574,7 +574,7 @@ test("schema: a flag map keeps its members' booleans, drops strangers and refuse
             "the bar's visibility map is keyed by category")
     end)
 
-test("schema: statPriority keeps well-formed overrides and repairs their lists", function(t)
+h.retailTest("schema: statPriority keeps well-formed overrides and repairs their lists", function(t)
     local KCM = h.loader.loadFullAddon()
     local H = KCM.Settings.Helpers
     local def = H.FindSchema("statPriority")

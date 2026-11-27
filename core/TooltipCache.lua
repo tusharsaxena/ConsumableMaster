@@ -199,7 +199,7 @@ end
 local DURATION_WORD = { min = true, mins = true, minute = true, minutes = true, sec = true, secs = true,
     second = true, seconds = true, hr = true, hrs = true, hour = true, hours = true, day = true, days = true }
 
-local function parseStatBuffs(line, result)
+local function parseRetailStatBuffs(line, result)
     local seen = {}  -- dedupe per-line per-stat
     for _, entry in ipairs(STAT_TOKENS) do
         if not seen[entry.tag] then
@@ -235,6 +235,125 @@ local function parseStatBuffs(line, result)
         end
     end
 end
+
+-- ---------------------------------------------------------------------------
+-- WoW Forever's stat buffs, in vanilla wording (issue #48)
+-- ---------------------------------------------------------------------------
+--
+-- A SECOND parser, picked once by client below, so Retail's (parseRetailStatBuffs)
+-- is untouched. It reads the tags of Forever's stat set (core/SpecHelper.lua
+-- SpecHelper.STATS) off the LOWERCASED line, because vanilla capitalizes the same
+-- stat both ways ("Increases Spell Damage by 7", "increase spell damage by up to
+-- 15"). Wordings, verbatim from Forever's own tooltips (ConsumableMasterProbeDB,
+-- 498 items, 2026-11-27):
+--   "Increases Strength by 4 for 1 hrs"        "Increases the target's Stamina by 4"
+--   "Drink to increase your Spirit by 10"      "gain 6 Attack Power for 15 min"
+--   "Increases spell damage by up to 20"       "Increases spell fire damage by up to 10"
+--   "increase healing done by spells and effects by up to 10"  "gain 2 Healing Power"
+--   "Increases Spell Healing by 13"            "Increases armor by 150"
+--   "Increases the player's maximum health by 27"  "regenerate 3 mana every 5 sec"
+--   "gain 6 Stamina and Spirit for 15 min"     "increasing your chance to hit with spells by 0.5%"
+--   "Increases your Intellect by 4 and decreases your Stamina by 5" (a penalty: -5)
+-- Longest token first within a tag; one buff per tag per line.
+local VANILLA_STAT_TOKENS = {
+    { token = "fire%-spell%-damage",           tag = "FIRE_SP"   },
+    { token = "frost%-spell%-damage",          tag = "FROST_SP"  },
+    { token = "shadow%-spell%-damage",         tag = "SHADOW_SP" },
+    { token = "damage done by magical spells", tag = "SP"        },
+    { token = "spell damage",                  tag = "SP"        },
+    { token = "spell power",                   tag = "SP"        },
+    { token = "healing power",                 tag = "HEAL"      },
+    { token = "spell healing",                 tag = "HEAL"      },
+    { token = "healing done",                  tag = "HEAL"      },
+    -- A wizard oil's "spell damage and healing by up to 8" is both.
+    { token = "damage and healing",            tag = "HEAL"      },
+    { token = "attack power",                  tag = "AP"        },
+    { token = "critical strike",               tag = "CRIT"      },
+    { token = "chance to hit",                 tag = "HIT"       },
+    { token = "maximum health",                tag = "HEALTH"    },
+    { token = "maximum mana",                  tag = "MANA"      },
+    { token = "strength",                      tag = "STR"       },
+    { token = "agility",                       tag = "AGI"       },
+    { token = "intellect",                     tag = "INT"       },
+    { token = "stamina",                       tag = "STA"       },
+    { token = "spirit",                        tag = "SPI"       },
+    { token = "armor",                         tag = "ARMOR"     },
+}
+
+-- Mana every five seconds reads amount-first only ("regenerate 6 mana every 5 sec",
+-- an oil's "restores 5 mana to the caster every 5 seconds", "12 mana per 5 sec").
+local MANA_REGEN_FORMS = {
+    "(%d[%d,%.]*) mana every", "(%d[%d,%.]*) mana to the caster every", "(%d[%d,%.]*) mana per 5",
+}
+
+-- One school's spell damage, rewritten to a single word before the tokens run, so
+-- the school-agnostic "spell damage" token cannot also read it: "spell fire
+-- damage" and "fire spell damage" and "damage done by Fire spells" all become
+-- "fire-spell-damage". A protection potion's "3250 fire damage" names no spell and
+-- is left alone.
+local SPELL_SCHOOLS = { "fire", "frost", "shadow" }
+
+local function vanillaLine(line)
+    local low = line:lower():gsub("spell (%a+) damage", "%1 spell damage")
+    for _, school in ipairs(SPELL_SCHOOLS) do
+        low = low:gsub(school .. " spell damage", school .. "-spell-damage")
+                 :gsub("damage done by " .. school .. " spells", school .. "-spell-damage")
+    end
+    return low
+end
+
+-- A vanilla number may be a fraction ("by 0.5%") or carry a trailing period.
+local function toNumberLoose(s)
+    if not s then return nil end
+    return tonumber((s:gsub(",", "")))
+end
+
+-- One token's amount on a lowercased line: a "decreases ... <stat> by N" penalty
+-- first (negative), then the forward "<stat> ... by N" form, then the reverse
+-- "N <stat>", then the paired "gain 6 Stamina and Spirit" form that names the
+-- amount once for two stats. The forward form needs its " by ": without it a camp
+-- item's "gain 71 Armor and 2 increase to all stats" read 2 armor.
+local function vanillaAmount(low, tok)
+    local dec = low:match("decreases?[^%d]-" .. tok .. "[^%d]-(%d[%d,%.]*)")
+    if dec then
+        local n = toNumberLoose(dec)
+        return n and -n
+    end
+    local amt, unit = low:match(tok .. "[^%d]- by [^%d]-(%d[%d,%.]*)%s*(%a*)")
+    if amt and DURATION_WORD[unit or ""] then amt = nil end
+    amt = amt or low:match("(%d[%d,%.]*)%s+" .. tok) or low:match("(%d[%d,%.]*)%s+%a+ and " .. tok)
+    return toNumberLoose(amt)
+end
+
+local function addBuff(result, stat, n)
+    table.insert(result.statBuffs, { stat = stat, amount = n })
+    result.hasStatBuff = true
+end
+
+local function parseVanillaStatBuffs(line, result)
+    local low = vanillaLine(line)
+    local seen = {}
+    for _, entry in ipairs(VANILLA_STAT_TOKENS) do
+        if not seen[entry.tag] and low:find(entry.token) then
+            local n = vanillaAmount(low, entry.token)
+            if n and n ~= 0 then
+                addBuff(result, entry.tag, n)
+                seen[entry.tag] = true
+            end
+        end
+    end
+    for _, form in ipairs(MANA_REGEN_FORMS) do
+        local n = toNumberLoose(low:match(form))
+        if n and n > 0 then return addBuff(result, "MANA_REGEN", n) end
+    end
+end
+
+-- The stat parser this client reads, picked ONCE (clients-§5, KCM.PerClient):
+-- Retail's tokens and wildcard, exactly as before, or Forever's vanilla wording.
+local parseStatBuffs = KCM.PerClient({
+    retail  = parseRetailStatBuffs,
+    forever = parseVanillaStatBuffs,
+})
 
 -- Strip any balanced-parentheses block that mentions "cooldown" (any case).
 -- Flask / potion tooltips commonly render buff duration and cooldown on a

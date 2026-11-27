@@ -27,6 +27,90 @@ local CLASS_PRIMARY_FALLBACK = {
     [13] = "INT", -- Evoker
 }
 
+-- ---------------------------------------------------------------------------
+-- The stat model, per client (clients-§5: picked ONCE, here, by KCM.PerClient)
+-- ---------------------------------------------------------------------------
+--
+-- Which stats a priority can name on this client, and the SHAPE a priority takes:
+--
+--   retail  : `{ primary = "STR"|"AGI"|"INT", secondary = { ... } }` -- a primary
+--             stat and an ordered list over the four secondaries. Unchanged.
+--   forever : `{ ranked = { ... } }` -- ONE ordered list over every stat Forever's
+--             consumables grant, no primary (issue #48, owner ruling 2026-11-27).
+--             A stat missing from the list is excluded: it weighs nothing.
+--
+-- Every reader -- the Ranker, the settings page, `/cm stat`, the diagnostics --
+-- asks this table, never the client. `stats` is the canonical order: the order an
+-- excluded tail is shown in.
+--
+-- Forever's set, and why each is in it (docs/schema.md -> statPriority):
+--   STR AGI INT STA SPI    the five vanilla attributes
+--   AP                     attack power ("gain 6 Attack Power", Frenzy potions)
+--   SP                     spell damage / spell power, school-agnostic
+--   FIRE_SP FROST_SP SHADOW_SP
+--                          ONE school's spell damage ("Increases spell fire damage
+--                          by up to 10"). Kept apart from SP on purpose: Elixir of
+--                          Fire Power is worth nothing to a frost mage, so folding it
+--                          into SP would rank it for every caster. Only the three
+--                          schools vanilla consumables grant.
+--   HEAL                   healing done by spells ("Healing Power", "Spell Healing")
+--   HIT CRIT               hit and critical strike chance (percent amounts)
+--   ARMOR                  armor (Elixir of Defense, Scroll of Protection, Stoneshield)
+--   HEALTH MANA            maximum health / mana (Elixir of Fortitude, Flask of the
+--                          Titans; Flask of Distilled Wisdom)
+--   MANA_REGEN             mana every 5 sec (Mageblood)
+SpecHelper.STATS = KCM.PerClient({
+    retail = {
+        ranked    = false,
+        primaries = { "STR", "AGI", "INT" },
+        stats     = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" },
+    },
+    forever = {
+        ranked = true,
+        stats  = {
+            "STR", "AGI", "INT", "STA", "SPI", "AP", "SP", "FIRE_SP", "FROST_SP", "SHADOW_SP",
+            "HEAL", "HIT", "CRIT", "ARMOR", "HEALTH", "MANA", "MANA_REGEN",
+        },
+    },
+})
+
+local RANKED_STAT = {}
+for _, stat in ipairs(SpecHelper.STATS.ranked and SpecHelper.STATS.stats or {}) do RANKED_STAT[stat] = true end
+
+--- A ranked list cleaned the way every reader and writer agrees on: only this
+--- client's stats, each once, in the order given. A new table; a non-table reads
+--- as empty.
+function SpecHelper.CleanRanked(list)
+    local out, seen = {}, {}
+    if type(list) ~= "table" then return out end
+    for _, stat in ipairs(list) do
+        if RANKED_STAT[stat] and not seen[stat] then
+            seen[stat] = true
+            out[#out + 1] = stat
+        end
+    end
+    return out
+end
+
+--- Whether a stored `statPriority` entry is an override this client reads. A
+--- Retail entry names a primary; a Forever entry carries a `ranked` list. A
+--- Retail-shaped entry on Forever (the pre-#48 page offered Retail's stats there)
+--- is NOT one: it reads as no override, so the spec takes its shipped Forever
+--- order, and nothing is written until the player edits.
+function SpecHelper.IsOverride(entry)
+    if type(entry) ~= "table" then return false end
+    if SpecHelper.STATS.ranked then return type(entry.ranked) == "table" end
+    return entry.primary ~= nil
+end
+
+--- One line for a resolved priority, for `/cm stat list`, `/cm dump` and the
+--- diagnostics report. Retail's reads exactly as it always did.
+function SpecHelper.DescribePriority(p)
+    p = p or {}
+    if p.ranked then return ("ranked=%s"):format(table.concat(p.ranked, ">")) end
+    return ("primary=%s secondary=%s"):format(tostring(p.primary), table.concat(p.secondary or {}, ">"))
+end
+
 function SpecHelper.MakeKey(classID, specID)
     if not classID or not specID then return nil end
     return tostring(classID) .. "_" .. tostring(specID)
@@ -75,9 +159,28 @@ end
 --   3. class-primary fallback (secondary list empty; tooltip parsing remains
 --      usable but with no secondary-stat tiebreak guidance)
 --
--- Returns a table { primary = "STR"|"AGI"|"INT", secondary = { ... } }. Never
--- returns nil so callers don't need to nil-check every field.
+-- Returns a table { primary = "STR"|"AGI"|"INT", secondary = { ... } } on Retail,
+-- and { ranked = { ... } } on WoW Forever (SpecHelper.STATS). Never returns nil
+-- so callers don't need to nil-check every field.
+
+-- Forever's resolution: the override's list, else the seed's, else the class's
+-- primary stat alone -- the same three steps, in the same order, as Retail's.
+local function getRankedPriority(specKey)
+    local db = KCM.db and KCM.db.profile
+    local user = db and db.statPriority and db.statPriority[specKey]
+    if SpecHelper.IsOverride(user) then
+        return { ranked = SpecHelper.CleanRanked(user.ranked) }
+    end
+    local seed = KCM.SEED and KCM.SEED.STAT_PRIORITY and KCM.SEED.STAT_PRIORITY[specKey]
+    if seed and seed.ranked then
+        return { ranked = SpecHelper.CleanRanked(seed.ranked) }
+    end
+    local classID = type(specKey) == "string" and tonumber(specKey:match("^(%d+)_"))
+    return { ranked = { (classID and CLASS_PRIMARY_FALLBACK[classID]) or "STR" } }
+end
+
 function SpecHelper.GetStatPriority(specKey)
+    if SpecHelper.STATS.ranked then return getRankedPriority(specKey) end
     local db = KCM.db and KCM.db.profile
     if db and db.statPriority and db.statPriority[specKey] then
         local user = db.statPriority[specKey]

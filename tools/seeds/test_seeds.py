@@ -413,7 +413,11 @@ class RepoTest(unittest.TestCase):
                      "WPN_ENCH", "HS", "BLOODLUST", "BATTLE_REZ", "CLASS_GATE", "STAT_PRIORITY"):
             self.assertIn(want, names)
         self.assertTrue(all(b["records"] for b in lists["retail"]), "a Retail list read as empty")
-        self.assertTrue(all(not b["records"] for b in lists["forever"]), "Forever's lists are empty by decision")
+        # The stat priorities are Forever's own since issue #48; the item lists stay empty by decision.
+        self.assertTrue(any(b["records"] for b in lists["forever"] if b["name"] == "STAT_PRIORITY"),
+                        "Forever ships its stat priorities")
+        self.assertTrue(all(not b["records"] for b in lists["forever"] if b["name"] != "STAT_PRIORITY"),
+                        "Forever's item lists are empty by decision")
 
     def test_the_newest_bundle_of_each_flavor_is_fully_ruled(self):
         for flavor in seeds.PRODUCTS:
