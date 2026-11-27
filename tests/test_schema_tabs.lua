@@ -67,6 +67,7 @@ h.retailTest("schema: the Macros strip is the designed run of tabs, in order", f
         { "CMBT_POT",   "Combat Potion"  },
         { "STAT_FOOD",  "Stat Food"      },
         { "WPN_ENCH",   "Weapon Enchant" },
+        { "POISON",     "Poison"         },
         { "AUG_RUNE",   "Augment Rune"   },
         { "VANTUS",     "Vantus Rune"    },
         { "BLOODLUST",  "Bloodlust"      },

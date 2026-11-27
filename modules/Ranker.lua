@@ -86,6 +86,13 @@ local STAT_TIER_BONUS = 1e6
 -- the term is 0 there and Retail's scores do not move.
 local ENHANCE_VALUE_WEIGHT = 1e3
 
+-- POISON on WoW Forever: a rank's required level (tt.minLevel) times this weight,
+-- so Instant Poison II (level 28) outranks Instant Poison (20) whatever the two
+-- items' ilvl and quality. The family a hand takes is the player's choice
+-- (modules/Poison.lua); this orders the ranks inside it. Retail's poisons are
+-- spells and rank on SPELL_SCORE like every other spell.
+local POISON_LEVEL_WEIGHT = 1e3
+
 -- ---------------------------------------------------------------------------
 -- Item-info helpers
 -- ---------------------------------------------------------------------------
@@ -351,6 +358,12 @@ local scorers = {
     PROT_POT = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
         return (tt.absorbValue or 0)
+             + ilvl
+             + quality * QUALITY_WEIGHT
+    end,
+    POISON = function(itemID, ctx, scoreCache)
+        local quality, ilvl, tt = itemFields(itemID, scoreCache)
+        return (tt.minLevel or 0) * POISON_LEVEL_WEIGHT
              + ilvl
              + quality * QUALITY_WEIGHT
     end,
@@ -660,6 +673,18 @@ local function explainProtPot(result, f)
     return amount + f.ilvl + f.qualityScore, "The biggest absorb wins; ilvl + quality break ties."
 end
 registerExplainer({ "PROT_POT" }, explainProtPot)
+
+local function explainPoison(result, f)
+    local level = f.tt.minLevel or 0
+    local contrib = level * POISON_LEVEL_WEIGHT
+    table.insert(result.signals, {
+        label = "required level", value = contrib,
+        note  = ("level %d x weight %d"):format(level, POISON_LEVEL_WEIGHT),
+    })
+    return contrib + f.ilvl + f.qualityScore,
+           "The highest rank (by required level) wins; the hand's family is chosen above the list."
+end
+registerExplainer({ "POISON" }, explainPoison)
 
 -- The ilvl / quality terms every category shares, appended after the category's own signals.
 local function pushBaseSignals(result, f)

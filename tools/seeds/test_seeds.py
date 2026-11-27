@@ -265,6 +265,20 @@ class FlagTest(unittest.TestCase):
         flags = seeds.flags_for("forever", fx.build(), fx.lists("forever"))
         self.assertFalse([f for f in flags if f["kind"] == "unmatched"])
 
+    def test_a_forever_poison_must_be_a_subclass_8_consumable(self):
+        # Issue #47: Forever ships its poison ranks, so FIT holds them to the class they report.
+        from types import SimpleNamespace
+        b = SimpleNamespace(specs={}, spell_names={}, items={
+            6947: {"name": "Instant Poison", "class": 0, "sub": 8},
+            3775: {"name": "Crippling Poison", "class": 0, "sub": 1},
+        })
+        recs = [{"id": 6947, "kind": "item", "comment": "Instant Poison", "line": 1},
+                {"id": 3775, "kind": "item", "comment": "Crippling Poison", "line": 2}]
+        lists = [{"list": "POISON", "file": Path("/repo/defaults/Defaults_Poison.lua"), "records": recs,
+                  "named": True}]
+        keys = {f["key"] for f in seeds.flags_for("forever", b, lists)}
+        self.assertEqual(keys, {"shipped:misfiled:POISON:3775"})
+
 
 class CandidateTest(unittest.TestCase):
     def setUp(self):
@@ -413,7 +427,14 @@ class RepoTest(unittest.TestCase):
                      "WPN_ENCH", "HS", "BLOODLUST", "BATTLE_REZ", "CLASS_GATE", "STAT_PRIORITY"):
             self.assertIn(want, names)
         self.assertTrue(all(b["records"] for b in lists["retail"]), "a Retail list read as empty")
-        self.assertTrue(all(not b["records"] for b in lists["forever"]), "Forever's lists are empty by decision")
+        # Forever's lists are empty by decision, the poison ranks apart (issue #47): a small, fixed set.
+        seeded = {"POISON", "POISON_FAMILY"}
+        self.assertTrue(all(not b["records"] for b in lists["forever"] if b["name"] not in seeded),
+                        "Forever's lists are empty by decision")
+        forever = {b["name"]: b["records"] for b in lists["forever"]}
+        for name in seeded:
+            self.assertEqual(len(forever.get(name, [])), 20, name + ": every rank of the five families")
+            self.assertTrue(all(r["kind"] == "item" for r in forever[name]), name + " ships items")
 
     def test_the_newest_bundle_of_each_flavor_is_fully_ruled(self):
         for flavor in seeds.PRODUCTS:

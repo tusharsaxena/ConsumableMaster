@@ -23,6 +23,9 @@ WHAT THIS IS
     (FOOD and DRINK are a vendor's stock, HS a fixed whitelist, BLOODLUST and BATTLE_REZ class
     spells plus one item) are checked for flags alone. WoW Forever proposes none: its lists are
     empty by decision (owner ruling 2026-11-08), and every Forever candidate comes from the bag scan.
+    The exception is POISON (issue #47): every rank of vanilla's five poison families is shipped,
+    with POISON_FAMILY beside it, and both are checked for flags like any list (consumable
+    subclass 8, the Other the poisons report).
 
     The core/Classifier.lua whitelists (HEALTHSTONE_IDS, VANTUS_IDS, REUSABLE_AUG_IDS) are shipped
     ids too, and are checked like a list. An accepted VANTUS candidate is written to VANTUS_IDS as
@@ -152,6 +155,8 @@ FIT = {
         "FOOD": (0, {5}), "DRINK": (0, {5}), "STAT_FOOD": (0, {5}), "VANTUS": (0, {9}),
         "WPN_ENCH": (0, {8, 15}), "AUG_RUNE": (0, {8}), "HS": (0, None), "BLOODLUST": (0, None),
         "BATTLE_REZ": (0, None), "CLASSIFIER_HS": (0, None),
+        # Issue #47: vanilla's rogue poisons, class 0 / subclass 8, and their family map.
+        "POISON": (0, {8}), "POISON_FAMILY": (0, {8}),
     },
 }
 

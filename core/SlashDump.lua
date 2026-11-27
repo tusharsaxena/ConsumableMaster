@@ -386,6 +386,12 @@ DUMP_TARGETS.pick = {
         end
 
         sayPriorityRows(out, catKey, priority, pick, ctx)
+        -- The poison category picks per hand or per missing buff, not the list's
+        -- first owned entry, so it says its own picks (modules/Poison.lua).
+        if cat.poison and KCM.Poison and KCM.Poison.DumpLines then
+            for _, line in ipairs(KCM.Poison.DumpLines()) do out(line) end
+            return
+        end
         -- Only the single-category report ends this way; the composite half
         -- says its own empty-state line from the macro body block.
         if not pick then
@@ -407,7 +413,7 @@ local function eventStates()
     for _, name in ipairs(KCM.RejectedEvents or {}) do rejected[name] = true end
     local down = KCM.IsStoodDown and KCM.IsStoodDown()
     local rows = {}
-    for _, pair in ipairs(KCM.EVENTS or {}) do
+    for _, pair in ipairs(KCM.ClientEvents and KCM.ClientEvents() or KCM.EVENTS or {}) do
         local state = rejected[pair[1]] and "rejected" or (down and "off (addon disabled)" or "registered")
         rows[#rows + 1] = { event = pair[1], state = state, handler = pair[2] }
     end

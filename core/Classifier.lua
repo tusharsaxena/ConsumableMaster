@@ -83,6 +83,16 @@ local FOOD_RULES = KCM.PerClient({
     forever = { wellFedIsStat = true },
 })
 
+-- POISON's rule, picked once by client: `vanillaWording` admits a subclass-8 item whose Use: line
+-- coats a weapon with poison (tt.isVanillaPoison), WoW Forever's rogue poisons (issue #47). Retail's
+-- table is empty: its poisons are class spells (defaults/Defaults_Poison.lua), so its matcher admits
+-- nothing and the bag scan files no item there.
+local SC_OTHER = 8
+local POISON_RULES = KCM.PerClient({
+    retail  = {},
+    forever = { vanillaWording = true },
+})
+
 local function wellFedStat(tt)
     return FOOD_RULES.wellFedIsStat == true and tt and tt.isWellFed == true
 end
@@ -214,6 +224,11 @@ local matchers = {
         return (tt and tt.isWeaponEnhance == true)
             or (rules.vanillaWording == true and tt and tt.isVanillaWeaponEnhance == true)
             or WEAPON_ENHANCE_SUBCLASSES[sub] == true
+    end,
+    -- WoW Forever's rogue poisons (POISON_RULES above); never on Retail.
+    POISON = function(_, tt, sub)
+        return POISON_RULES.vanillaWording == true and sub == SC_OTHER
+            and tt and tt.isVanillaPoison == true
     end,
     AUG_RUNE = function(_, tt)
         return tt and tt.isAugmentRune == true

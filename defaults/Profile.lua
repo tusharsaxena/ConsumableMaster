@@ -47,6 +47,24 @@ local CATEGORY_BUCKETS = {
     WPN_ENCH  = { bySpec = {} },
     ELIXIR    = { bySpec = {} },
     SCROLL    = { bySpec = {} },
+    -- Rogue poisons (issue #47): one key, one bucket shape per client, picked once like the seed
+    -- lists (clients-§5). WoW Forever: the family each weapon hand takes (defaults/Defaults_Poison.lua's
+    -- `families`), over the usual item bucket. Retail: the order the macro tries the lethal and the
+    -- non-lethal poisons in, and which of them it may cast at all (`enabled`, a flag map that reads
+    -- unset as on, as a composite's does).
+    POISON    = KCM.PerClient({
+        retail  = {
+            added = {}, blocked = {}, pins = {}, discovered = {},
+            lethal    = { "DEADLY", "AMPLIFYING", "INSTANT", "WOUND" },
+            nonLethal = { "ATROPHIC", "NUMBING", "CRIPPLING" },
+            enabled   = {},
+        },
+        forever = {
+            added = {}, blocked = {}, pins = {}, discovered = {},
+            mainHand = "INSTANT",
+            offHand  = "DEADLY",
+        },
+    }),
     -- Composite categories. No item buckets (added/blocked/pins/
     -- discovered) — picks come from the underlying single categories
     -- at recompute time. `enabled[ref]` toggles a sub-category in/out
@@ -76,7 +94,7 @@ local CATEGORY_BUCKETS = {
 local SLOT_ORDER = {
     "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE",
     "HP_AIO", "MP_AIO",
-    "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH",
+    "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH", "POISON",
     "AUG_RUNE", "VANTUS",
     "BLOODLUST", "BATTLE_REZ",
 }

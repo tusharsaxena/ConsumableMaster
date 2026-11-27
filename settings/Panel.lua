@@ -77,7 +77,7 @@ if not KCM.Settings.macroOrder then
     for _, key in ipairs({
         "food", "drink", "hp_pot", "mp_pot", "hs", "bandage",
         "hp_aio", "mp_aio",
-        "flask", "elixir", "cmbt_pot", "prot_pot", "stat_food", "scroll", "wpn_ench",
+        "flask", "elixir", "cmbt_pot", "prot_pot", "stat_food", "scroll", "wpn_ench", "poison",
         "aug_rune", "vantus",
         "bloodlust", "battle_rez",
     }) do

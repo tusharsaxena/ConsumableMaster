@@ -105,14 +105,14 @@ test("Buttons: shown slots first in order, then hidden ones dimmed and handle-le
         local ctx = openButtons(KCM)
 
         t.eqList(rowKeys(ctx), shownThen(KCM, { "DRINK", "HS" }),
-            "thirteen shown slots in the bar's order, then the two hidden in theirs")
+            "fourteen shown slots in the bar's order, then the two hidden in theirs")
         local rec = lists[#lists]
         t.truthy(rec, "the tab drew a reorder list")
-        t.eq(rec.opts.boundary, 13, "the boundary is the shown count, so a drag cannot cross it")
+        t.eq(rec.opts.boundary, 14, "the boundary is the shown count, so a drag cannot cross it")
         t.eq(rec.opts.handleSize, nil, "the handle gutter is the library's (options-ui-§18)")
-        t.eq(#rec.specs, 15, "every slot is a row of the list, hidden ones included")
+        t.eq(#rec.specs, 16, "every slot is a row of the list, hidden ones included")
         for i, spec in ipairs(rec.specs) do
-            local shown = i <= 13
+            local shown = i <= 14
             t.eq(spec.draggable, shown, "row " .. i .. (shown and " has" or " has no") .. " handle")
             t.eq(spec.dimmed, not shown, "row " .. i .. (shown and " is not" or " is") .. " dimmed")
         end
@@ -145,7 +145,7 @@ test("Buttons: a drag splices the shown group and writes the order once; a drop 
         armLog(KCM)
         local before = table.concat(KCM.db.profile.macroBar.order, ",")
         t.falsy(lists[#lists].opts.onMove(2, 2), "a drop where the drag began is no move")
-        t.falsy(lists[#lists].opts.onMove(1, 15), "nor is a target past the shown group")
+        t.falsy(lists[#lists].opts.onMove(1, 16), "nor is a target past the shown group")
         KCM.State.debug = false
         t.eq(table.concat(KCM.db.profile.macroBar.order, ","), before, "the order is untouched")
         t.eqList(setLines(KCM), {}, "and nothing was logged")
@@ -180,7 +180,7 @@ test("Buttons: untick goes to the top of the hidden group, tick to the end of th
         t.eqList(c.order, want, "at the end of the shown group, ahead of the still-hidden slot")
     end)
 
--- The checkboxes this list replaced let a player untick all fifteen; the bar then
+-- The checkboxes this list replaced let a player untick all sixteen; the bar then
 -- collapses to an empty backdrop (docs/smoke-tests.md BAR-18). Kept.
 test("Buttons: every slot can be hidden, as the checkboxes allowed", function(t)
     local KCM = h.loader.loadFullAddon()
@@ -360,16 +360,16 @@ end
 test("Buttons: the rule sits between the groups, and only when both have a slot", function(t)
     local KCM = h.loader.loadFullAddon()
     KCM.db.profile.macroBar.shown = { DRINK = false, HS = false }
-    t.eq(slotSequence(KCM), ("S"):rep(13) .. "H" .. ("S"):rep(2), "13 shown, the rule, 2 hidden")
+    t.eq(slotSequence(KCM), ("S"):rep(14) .. "H" .. ("S"):rep(2), "14 shown, the rule, 2 hidden")
 
     KCM = h.loader.loadFullAddon()
-    t.eq(slotSequence(KCM), ("S"):rep(15), "every slot shown: no rule")
+    t.eq(slotSequence(KCM), ("S"):rep(16), "every slot shown: no rule")
 
     KCM = h.loader.loadFullAddon()
     local none = {}
     for _, k in ipairs(shipped(KCM)) do none[k] = false end
     KCM.db.profile.macroBar.shown = none
-    t.eq(slotSequence(KCM), ("S"):rep(15), "every slot hidden: no rule")
+    t.eq(slotSequence(KCM), ("S"):rep(16), "every slot hidden: no rule")
 end)
 
 test("Buttons: the list's options -- stride, boundary, handle icon and tooltip, move, no debug sink", function(t)
@@ -380,7 +380,7 @@ test("Buttons: the list's options -- stride, boundary, handle icon and tooltip, 
     local ctx = openButtons(KCM)
     local opts = lists[#lists].opts
     t.eq(opts.stride, 32, "the stride is the row height plus its 4px gap")
-    t.eq(opts.boundary, 14, "the boundary is the shown count")
+    t.eq(opts.boundary, 15, "the boundary is the shown count")
     t.eq(opts.handleIcon, KCM.Icon("segment"), "the handle is the shared segment glyph")
     t.eq(opts.handleTooltip, KCM.L["Drag to reorder"], "and says what it does")
     t.eq(type(opts.onMove), "function", "a drop is handed to the page")

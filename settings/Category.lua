@@ -329,6 +329,9 @@ StaticPopupDialogs["KCM_RESET_CATEGORY"] = {
         if not data then return end
         if data.composite then
             resetCompositeCategory(data.catKey)
+        elseif data.poison and KCM.Settings.CategoryPoison then
+            -- The poison tab's own rows as well as its list (settings/CategoryPoison.lua).
+            KCM.Settings.CategoryPoison.Reset()
         else
             resetSingleCategory(data.catKey, data.specKey)
         end
@@ -356,6 +359,7 @@ local function promptResetCategory(cat)
             catKey    = cat.key,
             specKey   = specKey,
             composite = false,
+            poison    = cat.poison and true or false,
         })
     end
 end
@@ -492,14 +496,31 @@ local function renderCategoryHeader(ctx, scroll, cat, specKey)
     end
 end
 
--- Per-hand picks + affinity (Weapon Enchant only). Computed once up front so both the header
--- note and the per-row pickMH/pickOH/applicable flags use the same numbers.
+-- Does this tab's list feed two weapon hands: Weapon Enchant, and WoW Forever's poisons (issue
+-- #47, modules/Poison.lua's `hands` model), whose hands pick by family rather than by affinity.
+local function poisonHands(cat)
+    local P = cat.poison and KCM.Poison
+    return (P and P.Model and P.Model() == "hands") and true or false
+end
+
+local function handsOf(cat)
+    return cat.perHand or poisonHands(cat)
+end
+
+-- Per-hand picks + affinity (Weapon Enchant, Forever's poisons). Computed once up front so both
+-- the header note and the per-row pickMH/pickOH/applicable flags use the same numbers.
 local function computePerHand(cat)
-    if not cat.perHand then return nil, nil, nil, nil end
+    if not handsOf(cat) then return nil, nil, nil, nil end
     local Sel = KCM.Selector
     local WS  = KCM.WeaponSlots
-    return (Sel and Sel.PickBestForSlot and Sel.PickBestForSlot(cat.key, 16)) or nil,
-           (Sel and Sel.PickBestForSlot and Sel.PickBestForSlot(cat.key, 17)) or nil,
+    local mh, oh
+    if cat.perHand then
+        mh = (Sel and Sel.PickBestForSlot and Sel.PickBestForSlot(cat.key, 16)) or nil
+        oh = (Sel and Sel.PickBestForSlot and Sel.PickBestForSlot(cat.key, 17)) or nil
+    else
+        mh, oh = KCM.Poison.HandPicks()
+    end
+    return mh, oh,
            (WS and WS.SlotAffinity and WS.SlotAffinity(16)) or nil,
            (WS and WS.SlotAffinity and WS.SlotAffinity(17)) or nil
 end
@@ -517,10 +538,13 @@ end
 
 -- The icon legend above the list, plus the main/off-hand affinity line when per-hand.
 local function renderPriorityLegend(ctx, cat, mhAff, ohAff)
-    if cat.perHand then
-        H.Label(ctx,
-            (L["Main hand: %s | Off hand: %s"]):format(affinityLabel(mhAff), affinityLabel(ohAff)),
-            "medium")
+    if handsOf(cat) then
+        -- The stone affinity is Weapon Enchant's; a poison fits any weapon.
+        if cat.perHand then
+            H.Label(ctx,
+                (L["Main hand: %s | Off hand: %s"]):format(affinityLabel(mhAff), affinityLabel(ohAff)),
+                "medium")
+        end
         H.Label(ctx,
             (L["%s in bags    %s not in bags    %s picked (MH/OH) in macro"]):format(legendMarks()),
             "medium")
@@ -534,7 +558,7 @@ end
 -- Per-hand pick/applicability flags for one row. Nil across the board for categories that are
 -- not per-hand, which is what makeItemRow expects for "this axis does not apply".
 local function perHandFlags(cat, rowID, p)
-    if not cat.perHand then return nil, nil, nil end
+    if not handsOf(cat) then return nil, nil, nil end
     local tt  = KCM.TooltipCache and KCM.TooltipCache.Get(rowID)
     local aff = (tt and (tt.weaponAffinity or tt.weaponWordAffinity)) or "any"
     return (p.mh and rowID == p.mh) and true or false,
@@ -728,7 +752,7 @@ end
 local function priorityRowContext(cat, specKey, priority, mh, oh, mhAff, ohAff)
     return {
         rankerCtx = buildRankerCtx(cat, specKey, priority),
-        pick = (not cat.perHand) and KCM.Selector and KCM.Selector.PickBestForCategory
+        pick = (not handsOf(cat)) and KCM.Selector and KCM.Selector.PickBestForCategory
             and KCM.Selector.PickBestForCategory(cat.key, specKey) or nil,
         mh = mh, oh = oh, mhAff = mhAff, ohAff = ohAff,
     }
@@ -846,6 +870,10 @@ local function renderSingle(ctx, cat)
     local specKey = cat.specAware and (O.ResolveViewedSpec and O.ResolveViewedSpec()) or nil
 
     renderCategoryHeader(ctx, scroll, cat, specKey)
+    -- WoW Forever's poison tab: the two hand families above the list (settings/CategoryPoison.lua,
+    -- reached at render time and guarded, as the Add-by-ID line is).
+    local poisonTab = cat.poison and KCM.Settings.CategoryPoison
+    if poisonTab and poisonTab.RenderHands then poisonTab.RenderHands(ctx, scroll) end
     -- settings/CategoryAddByID.lua's, reached at RENDER time so this file has
     -- no load-order dependency on the one that loads after it.
     --
@@ -1003,6 +1031,9 @@ local function renderMacros(ctx)
     })
 
     if not cat then return renderNoCategories(ctx) end
+    -- Retail's poison tab is settings/CategoryPoison.lua's whole (its two spell lists).
+    local poisonTab = cat.poison and KCM.Settings.CategoryPoison
+    if poisonTab and poisonTab.OwnsTab() then return poisonTab.Render(ctx, cat) end
     if not cat.composite then return renderSingle(ctx, cat) end
     -- settings/CategoryComposite.lua's, reached at RENDER time and guarded for
     -- the reason renderSingle gives for the Add-by-ID line.

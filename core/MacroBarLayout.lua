@@ -44,7 +44,7 @@ local function normalize(cfg)
         buttonSize  = max(1, tonumber(cfg.buttonSize) or 36),
         spacing     = max(0, tonumber(cfg.spacing) or 4),
         padding     = max(0, tonumber(cfg.padding) or 4),
-        perRow      = max(1, floor(tonumber(cfg.perRow) or 15)),
+        perRow      = max(1, floor(tonumber(cfg.perRow) or 16)),
         orientation = cfg.orientation == "VERTICAL" and "VERTICAL" or "HORIZONTAL",
         growthH     = cfg.growthH == "LEFT" and "LEFT" or "RIGHT",
         growthV     = cfg.growthV == "UP"   and "UP"   or "DOWN",

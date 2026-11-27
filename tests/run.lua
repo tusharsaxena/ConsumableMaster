@@ -230,6 +230,7 @@ local PURE_LAYER_OMITS = {
     ["settings/Category.lua"]    = true,
     ["settings/CategoryAddByID.lua"] = true,
     ["settings/CategoryComposite.lua"] = true,
+    ["settings/CategoryPoison.lua"] = true,
     ["settings/Slash.lua"]       = true,
     -- The frame layer: every one of these builds real widgets at load, which is
     -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
@@ -537,6 +538,8 @@ local SUITES = {
     -- The WoW Forever port, step 1: the category gate, the empty seeds and the four
     -- Forever-only categories, each case on the client it names (clients-§6).
     "test_forever",
+    -- The rogue poison category (issue #47): Forever's per-hand items, Retail's spells.
+    "test_poison",
     "test_itemsetup",
     "test_events",
     "test_harness",
