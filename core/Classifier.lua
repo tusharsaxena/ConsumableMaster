@@ -104,10 +104,34 @@ local SUBCLASS_ONLY = { FLASK = true, ELIXIR = true, SCROLL = true, BANDAGE = tr
 
 -- Healthstones look like potions subtype-wise but are always warlock-only.
 -- Kept as a whitelist rather than a rule so classification stays O(1).
-local HEALTHSTONE_IDS = {
-    [5512]   = true,  -- Classic healthstone (legacy fallback)
-    [224464] = true,  -- Modern healthstone (auto-scales with warlock level)
-}
+-- One list per client (clients-§5, issue #46): Retail's modern stone is no
+-- Forever item, and Forever's vanilla ranks (Minor to Major, each with its two
+-- Improved Healthstone variants) are no Retail stone. HS matches on this
+-- whitelist alone, so Forever's list carries every rank, not only the seeded
+-- top tier per band. tools/seeds/seeds.py writes Forever's block with the seed.
+local HEALTHSTONE_IDS = KCM.PerClient({
+    retail = {
+        [5512]   = true,  -- Classic healthstone (legacy fallback)
+        [224464] = true,  -- Modern healthstone (auto-scales with warlock level)
+    },
+    forever = {
+        [5509] = true,  -- Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [5510] = true,  -- Greater Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [5511] = true,  -- Lesser Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [5512] = true,  -- Minor Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [9421] = true,  -- Major Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19004] = true,  -- Minor Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19005] = true,  -- Minor Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19006] = true,  -- Lesser Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19007] = true,  -- Lesser Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19008] = true,  -- Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19009] = true,  -- Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19010] = true,  -- Greater Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19011] = true,  -- Greater Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19012] = true,  -- Major Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19013] = true,  -- Major Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+    },
+})
 
 -- Vantus runes share a generic subType, so match by itemID like healthstones.
 -- One universal rune per raid tier; keep in sync with Defaults_Vantus.lua.

@@ -15,16 +15,20 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 | File                          | Populates            | Purpose                                                      |
 | ----------------------------- | -------------------- | ------------------------------------------------------------ |
 | `Profile.lua`                 | `KCM.dbDefaults`     | The AceDB defaults tree: `global.schemaVersion` (shipped as `0`, the pre-migration floor: a real version there would be stripped by AceDB at logout and backfilled onto legacy accounts, `savedvariables-§1`), `profile.enabled`, the per-category buckets, `statPriority` / `macroState` and the whole `macroBar` table |
-| `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key, `clients`); composite rows for HP_AIO / MP_AIO. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (no seed file: bag scan only) |
+| `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key, `clients`); composite rows for HP_AIO / MP_AIO. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (each with its own seed file below, empty on Retail) |
 | `Defaults_StatPriority.lua`   | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` (Retail); a `ranked` list per Forever class |
 | `Defaults_Food.lua`           | `KCM.SEED.FOOD`      | Basic Well Fed food (non-stat); may include spell sentinels (e.g. Recuperate) |
 | `Defaults_Drink.lua`          | `KCM.SEED.DRINK`     | Mana-recovery drinks                                         |
 | `Defaults_StatFood.lua`       | `KCM.SEED.STAT_FOOD` | Cooked stat meals (feasts excluded)                          |
 | `Defaults_HPPot.lua`          | `KCM.SEED.HP_POT`    | Direct-heal potions (no absorb/shield)                       |
 | `Defaults_MPPot.lua`          | `KCM.SEED.MP_POT`    | Mana-restoration potions                                     |
-| `Defaults_Healthstone.lua`    | `KCM.SEED.HS`        | Warlock Healthstones                                         |
+| `Defaults_Healthstone.lua`    | `KCM.SEED.HS`        | Warlock Healthstones (Forever: every vanilla rank)           |
+| `Defaults_Bandage.lua`        | `KCM.SEED.BANDAGE`   | WoW Forever only: First Aid bandages, ranked by the heal     |
 | `Defaults_CombatPot.lua`      | `KCM.SEED.CMBT_POT`  | Offensive combat potions (utility potions excluded)          |
 | `Defaults_Flask.lua`          | `KCM.SEED.FLASK`     | Flasks / Alchemist's Concoctions                             |
+| `Defaults_Elixir.lua`         | `KCM.SEED.ELIXIR`    | WoW Forever only: elixirs, one per stat per band (utility out) |
+| `Defaults_ProtPot.lua`        | `KCM.SEED.PROT_POT`  | WoW Forever only: protection potions, one per school per band |
+| `Defaults_Scroll.lua`         | `KCM.SEED.SCROLL`    | WoW Forever only: stat scrolls, one per stat per band        |
 | `Defaults_Vantus.lua`         | `KCM.SEED.VANTUS`    | Per-raid Vantus (Versatility) runes                          |
 | `Defaults_WpnEnch.lua`        | `KCM.SEED.WPN_ENCH`  | Weapon oils / whetstones / weightstones (per-hand)           |
 | `Defaults_Poison.lua`         | `KCM.SEED.POISON` (+ `POISON_FAMILY`, `KCM.POISON_MODEL`) | Rogue poisons: Forever's item ranks per family, Retail's poison spells |
@@ -42,6 +46,17 @@ Composite categories (`HP_AIO`, `MP_AIO`) have **no seed file** — they compose
 - **No bandages on Retail.** Bandage category was considered and cut; first aid is a separate workflow. WoW Forever has one (BANDAGE, owner ruling 2026-11-08).
 - **No utility potions** in `CMBT_POT` (invisibility, slow fall, swiftness, absorb potions are not throughput).
 - **Healthstones** are always listed; on non-warlock characters the bag scan simply returns zero count and the macro falls back to its `emptyText`.
+- **WoW Forever seeds the top tier per band** (owner ruling 2026-11-27, issue #46): see below.
+
+## WoW Forever's lists
+
+Built on 2026-11-27 from offline stores, because no more in-game probe runs were possible then: Forever's own DB2 on wago.tools (product `wowf`, 1.60.1.71139), ForeverDB (the installed WoW Forever data addon, GPL-3.0, read as evidence of which items exist and where they come from; no row of it is copied into the repo), the owner's Auctionator auction-house data and the `/cm probe seed` store. The run is `docs/seed-research/2026-11-27-forever/`; each id's comment names its evidence (`Evidence: ForeverDB (vendor, drop), AH, probe (ah)`).
+
+- **One item per ~10-level band** (by required level: 1-9, 10-19, ..., 50-60) per list. A bandage, gated by First Aid rather than level, bands by its required skill over five; a level-0 item by its item level less ten.
+- **Per stat** for `STAT_FOOD`, `ELIXIR`, `SCROLL`, `FLASK` and `CMBT_POT` (spec-aware like the other four), **per school** for `PROT_POT`, **per weapon kind** for `WPN_ENCH` (a stone for a blade, a weightstone for a mace, an oil for a caster, since the picker works per hand).
+- **The top tier** is an item a vendor sells or the auction house trades before one only a drop, quest or recipe names, then the higher item level. An item no source records (a DB2-only ghost) and one its own text confines to a zone or battleground never enter.
+- **Header rules still apply:** no utility potion, elixir, flask or scroll, no heal with a drawback (Forever's Discolored potions), no situational undead-only oil or stone, no Well Fed food without a combat stat. No poison: the Rogue poison category owns those.
+- **Healthstones:** `HEALTHSTONE_IDS` in `core/Classifier.lua` is one list per client, and Forever's carries every vanilla rank with its two Improved Healthstone variants, because HS matches on that whitelist alone.
 
 ---
 
@@ -85,7 +100,7 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
 
 ## Procedure
 
-1. **Collect candidate item IDs.** For FOOD and DRINK, walk the Silvermoon innkeeper in-game and grab their stock. For everything else, start from Method.gg and the Wiki and verify in-game. Group the working list by seed file (`HP_POT`, `MP_POT`, `CMBT_POT`, `FLASK`, `STAT_FOOD`, `FOOD`, `DRINK`). Exclude `HS` — healthstone IDs are a fixed two-entry whitelist in `Defaults_Healthstone.lua`.
+1. **Collect candidate item IDs.** (Retail; WoW Forever's lists come from the seed tool, [above](#wow-forevers-lists).) For FOOD and DRINK, walk the Silvermoon innkeeper in-game and grab their stock. For everything else, start from Method.gg and the Wiki and verify in-game. Group the working list by seed file (`HP_POT`, `MP_POT`, `CMBT_POT`, `FLASK`, `STAT_FOOD`, `FOOD`, `DRINK`). Exclude `HS` — healthstone IDs are a fixed two-entry whitelist in `Defaults_Healthstone.lua`.
 
 2. **Disambiguate dual-purpose items.** Some potions do more than one thing:
    - Refreshing Serum (241306) restores both HP and mana — seed it in both `HP_POT` and `MP_POT`.
@@ -110,7 +125,7 @@ Replace the `ids = { ... }` list with whatever IDs you need to label. If a line 
 
 ## Validating against the game's data
 
-After a patch, and after a hand refresh, run the seed validator: `/dev-copilot:validate-seeds ConsumableMaster retail` (and `forever`). It checks every list in this folder, and the `core/Classifier.lua` whitelists, against the client's own DB2 tables on wago.tools for one pinned build: an id the build no longer has, a name that disagrees with its comment, an item whose class no longer fits its list, and the current-expansion items a list's rule admits but the list lacks. Every candidate gets a ruling recorded as data, so the next run shows only what is new. The tool is `tools/seeds/seeds.py`; the procedure, the rules a ruling follows and what each list's rule is are in [docs/validate-seeds.md](../docs/validate-seeds.md), and each run is a frozen bundle under `docs/seed-research/`. It does not replace the in-game checks above: DB2 holds no vendor stock (so `FOOD` and `DRINK` get no candidates) and says what an item does, not what a player uses.
+After a patch, and after a hand refresh, run the seed validator: `/dev-copilot:validate-seeds ConsumableMaster retail` (and `forever`). It checks every list in this folder, and the `core/Classifier.lua` whitelists, against the client's own DB2 tables on wago.tools for one pinned build: an id the build no longer has, a name that disagrees with its comment, an item whose class no longer fits its list, and the items a list's rule admits but the list lacks (Retail: the current expansion; WoW Forever: its own subclasses, with an item's sources as evidence, issue #46). Every candidate gets a ruling recorded as data, so the next run shows only what is new. The tool is `tools/seeds/seeds.py`; the procedure, the rules a ruling follows and what each list's rule is are in [docs/validate-seeds.md](../docs/validate-seeds.md), and each run is a frozen bundle under `docs/seed-research/`. It does not replace the in-game checks above: DB2 holds no vendor stock (so `FOOD` and `DRINK` get no candidates) and says what an item does, not what a player uses.
 
 ## Common pitfalls
 

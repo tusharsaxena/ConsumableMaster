@@ -22,6 +22,9 @@ local SKIPPED_PREFIXES = {
     "tests/", "libs/",
     "docs/audits/", "docs/reviews/", "docs/automated-tests/", "docs/perf-analysis/",
     "docs/revendor/", "docs/superpowers/",
+    -- Frozen seed-research bundles: game data, whose item names (Candied Fruit Sampler) are no sample
+    -- person (tools/seeds/seeds.py writes them; docs/validate-seeds.md).
+    "docs/seed-research/",
 }
 
 -- Text files only: the binaries (art, fonts) carry no names and would only slow the scan.

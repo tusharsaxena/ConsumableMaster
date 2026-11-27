@@ -138,11 +138,16 @@ empty-state line on both: there is no class gate.
 **Seed data is two lists per file** (clients-§5). Each `defaults/Defaults_*.lua` hands a
 `{ retail = …, forever = … }` pair to `KCM.PerClient` (`core/Compat.lua`), which answers the running
 client's list once at load; nothing that reads `KCM.SEED` asks which client it is on. Forever's item
-lists and `CLASS_GATE` are **empty by decision** (step 2, owner ruling 2026-11-08), so on Forever every
-candidate comes from the bag scan. Its `STAT_PRIORITY` is its own since issue #48: a ranked order for
-each of the nine classes (one spec each, ids 1482–1491), with the rationale per class in the file's
-header; an unseeded spec ranks by its class's primary stat alone. The Healthstone whitelist in `core/Classifier.lua` and the
-Ranker's preference table still name 5512, vanilla's Minor Healthstone.
+lists seed the **top tier per ~10-level band** (per stat, school or weapon kind), built from Forever's
+own DB2 and offline stores (owner ruling 2026-11-27, issue #46, which lifted the 2026-11-08 "empty by
+decision" ruling; [defaults/README.md](../defaults/README.md#wow-forevers-lists)); the bag scan finds
+every other tier, and the POISON lists ship every rank of vanilla's five families (issue #47). Its
+`STAT_PRIORITY` is its own since issue #48: a ranked order for each of the nine classes (one spec
+each, ids 1482–1491), with the rationale per class in the file's header; an unseeded spec ranks by
+its class's primary stat alone. The Healthstone whitelist in `core/Classifier.lua` (`HEALTHSTONE_IDS`) is one list
+per client: Retail's two stones, and every vanilla rank on Forever. The Ranker's healthstone preference
+follows (`modules/Ranker.lua`, `HEALTHSTONE_PREFERENCE`): Retail's modern-over-legacy table names
+5512, which is vanilla's Minor rank, so Forever has none and its ranks sort by ilvl alone.
 
 **Per-client tables in the Classifier.** `core/Classifier.lua` picks two subclass lists the same way:
 the subclasses that read as a Potion (Retail: 1; Forever: 1 and Draught 13) and the ones that are a

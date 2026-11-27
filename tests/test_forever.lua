@@ -1,7 +1,7 @@
 -- tests/test_forever.lua -- the WoW Forever port, step 1 (docs/superpowers/specs/
 -- 2026-11-08-forever-port-design.md): which categories exist on which client, the
--- empty-by-decision Forever seeds, the four Forever-only categories and Forever's
--- three new consumable subclasses.
+-- Forever seeds (issue #46: the top tier per band, each list Forever's own), the four
+-- Forever-only categories and Forever's three new consumable subclasses.
 --
 -- Every case names its client and runs as that client under BOTH kit profiles
 -- (h.loader.withClient), so the retail profile proves Forever's shape and the
@@ -165,45 +165,76 @@ end))
 -- The seed lists (clients-§5)
 -- ---------------------------------------------------------------------------
 
--- The poison lists are the exception (issue #47, owner ruling 2026-11-27): Forever's poisons are
--- a small, fixed set of vanilla ranks, so every rank is seeded.
-local FOREVER_SEEDED = { POISON = true, POISON_FAMILY = true, STAT_PRIORITY = true } -- stat priorities: issue #48
-
-test("Forever: every seed list is empty by decision, the poison ranks apart", asForever(function(t)
+-- Issue #46 lifted the 2026-11-08 "empty by decision" ruling: every Forever item category seeds the
+-- top tier per ~10-level band, chosen from Forever's own DB2 and offline stores
+-- (docs/seed-research/2026-11-27-forever/).
+test("Forever: every item category seeds its own list", asForever(function(t)
     local KCM = h.loader.loadPure()
     t.eq(KCM.SEED_CLIENT, "forever", "Forever's lists are the ones chosen")
-    local n = 0
-    for name, list in pairs(KCM.SEED) do
-        n = n + 1
-        if FOREVER_SEEDED[name] then
-            t.truthy(next(list), name .. " is seeded on Forever")
-        else
-            t.eq(next(list), nil, name .. " is empty on Forever")
-        end
-    end
-    -- Fourteen item lists, the stat priorities, the class gate and the poison families. The
-    -- four Forever-only categories ship no seed file: the Selector reads a missing list as empty.
-    t.eq(n, 17, "every seed table is declared, the stat priorities and class gate included")
-end))
-
-test("Forever: no Retail item ID is a candidate, so every candidate comes from the bags", asForever(function(t)
-    local KCM = h.loader.loadPure()
-    local retail
-    h.loader.withClient("retail", function() retail = h.loader.loadPure().SEED end)
-    local retailIds = {}
-    for name, list in pairs(retail) do
-        if name ~= "STAT_PRIORITY" and name ~= "CLASS_GATE" then
-            for _, id in ipairs(list) do retailIds[id] = true end
-        end
-    end
-    t.truthy(next(retailIds), "the Retail seeds are not empty")
     for _, row in ipairs(KCM.Categories.LIST) do
         if not row.composite then
-            for _, id in ipairs(KCM.Selector.BuildCandidateSet(row.key) or {}) do
-                t.falsy(retailIds[id], row.key .. ": " .. tostring(id) .. " is a Retail seed")
+            local seed = KCM.SEED[row.key]
+            t.truthy(seed and #seed > 0, row.key .. " seeds at least one item on Forever")
+            for _, id in ipairs(seed or {}) do
+                t.truthy(KCM.ID.IsItem(id), row.key .. ": " .. tostring(id) .. " is an item")
             end
         end
     end
+    local n = 0
+    for _ in pairs(KCM.SEED) do n = n + 1 end
+    -- Eighteen item lists (the four Forever-only categories ship a seed file each, and POISON,
+    -- issue #47), the poison families, the stat priorities and the class gate.
+    t.eq(n, 21, "every seed table is declared, the stat priorities and class gate included")
+end))
+
+test("Forever: a Retail-only category's list stays empty there", asForever(function(t)
+    local KCM = h.loader.loadPure()
+    for _, key in ipairs(RETAIL_ONLY) do
+        t.eq(next(KCM.SEED[key]), nil, key .. " seeds nothing on Forever")
+    end
+end))
+
+test("Forever: every seeded candidate is a Forever seed, never Retail's list", asForever(function(t)
+    local KCM = h.loader.loadPure()
+    for _, row in ipairs(KCM.Categories.LIST) do
+        if not row.composite then
+            local own = {}
+            for _, id in ipairs(KCM.SEED[row.key]) do own[id] = true end
+            for _, id in ipairs(KCM.Selector.BuildCandidateSet(row.key) or {}) do
+                t.truthy(own[id], row.key .. ": " .. tostring(id) .. " is in Forever's own seed")
+            end
+        end
+    end
+end))
+
+test("Forever: the healthstone whitelist is Forever's own, every vanilla rank", asForever(function(t)
+    local C = h.loader.loadPure().Classifier
+    for _, id in ipairs({ 5512, 19004, 19005, 5511, 19006, 19007, 5509, 19008, 19009,
+                          5510, 19010, 19011, 9421, 19012, 19013 }) do
+        t.truthy(C.Match("HS", id), tostring(id) .. " is a Forever healthstone")
+    end
+    t.falsy(C.Match("HS", 224464), "Retail's Demonic Healthstone is no Forever item")
+end))
+
+-- Retail's preference table names 5512, which on Forever is the Minor rank: Forever has no preference,
+-- so its ranks sort by ilvl and the Major outranks the Minor.
+test("Forever: the healthstone ranks sort by ilvl, Major first, never by Retail's preference", asForever(function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5512, { subType = "Potion", quality = 1, ilvl = 10 })
+    mock.setItem(5509, { subType = "Potion", quality = 1, ilvl = 34 })
+    mock.setItem(9421, { subType = "Potion", quality = 1, ilvl = 58 })
+    t.eqList(R.SortCandidates("HS", { 5512, 5509, 9421 }, nil, nil), { 9421, 5509, 5512 },
+        "Major, then Healthstone, then Minor")
+    t.eq(R.Score("HS", 5512, nil, nil), 10, "ilvl alone, no Retail preference for 5512")
+    t.eq(R.Explain("HS", 9421, nil).score, R.Score("HS", 9421, nil, nil), "Explain matches the scorer")
+end))
+
+test("Retail: the healthstone whitelist is Retail's own", asRetail(function(t)
+    local C = h.loader.loadPure().Classifier
+    t.truthy(C.Match("HS", 224464) and C.Match("HS", 5512), "Retail's two stones")
+    t.falsy(C.Match("HS", 9421), "vanilla's Major Healthstone is Forever's rank, not Retail's")
 end))
 
 test("Forever: an unseeded spec ranks by its class's primary stat alone", asForever(function(t)

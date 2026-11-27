@@ -127,7 +127,8 @@ test("Ranker: immediate MP pot outranks similar-amount HOT pot", function(t)
     t.eqList(mpIds, { 3101, 3102 }, "immediate MP pot outranks similar-amount HOT pot")
 end)
 
-test("Ranker: HS preference table prefers modern stone and sorts it first", function(t)
+-- Retail's preference table: Forever ranks its vanilla ranks by heal instead (tests/test_forever.lua).
+h.retailTest("Ranker: HS preference table prefers modern stone and sorts it first", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local R    = KCM.Ranker

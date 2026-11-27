@@ -75,7 +75,7 @@ POISON (issue #47) is the worked example: one key on both clients, with the pick
 
 ## Refresh seed item IDs after a patch
 
-The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>` (or record them in bulk with the seed probe, `/cm probe seed`, [seed-probe.md](./seed-probe.md)), update the relevant `defaults/Defaults_*.lua` file, then run the [Discovery checks](./smoke-tests.md#discovery) of the smoke suite.
+The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>` (or record them in bulk with the seed probe, `/cm probe seed`, [seed-probe.md](./seed-probe.md)), update the relevant `defaults/Defaults_*.lua` file, then run the [Discovery checks](./smoke-tests.md#discovery) of the smoke suite. To check every list against the game's own data, or to build WoW Forever's lists (the top tier per band, from DB2 plus offline evidence stores), run the seed tool by [validate-seeds.md](./validate-seeds.md).
 
 Updating a defaults file is a zero-migration upgrade for existing users — the candidate set is `(seed ∪ added ∪ discovered) − blocked` at runtime, and the right-side sets live in SavedVariables independent of the seed.
 
