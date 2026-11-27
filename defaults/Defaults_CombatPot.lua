@@ -16,6 +16,10 @@
 -- Validated: 2026-11-15 against Retail 12.1.5.70783 on wago.tools (tools/seeds/seeds.py,
 -- docs/seed-research/2026-11-15-retail/, issue #49).
 -- See defaults/README.md to re-run the refresh.
+-- WoW Forever Source: wago.tools DB2 (wowf), ForeverDB (evidence only, no rows copied), the owner's
+-- Auctionator and /cm probe seed stores (issue #46, which lifted the 2026-11-08 "empty by decision"
+-- ruling). Last refresh: 2026-11-27 against WoW Forever 1.60.1.71139 (tools/seeds/seeds.py,
+-- docs/seed-research/2026-11-27-forever/).
 
 local _, NS = ...
 local KCM = NS
@@ -30,7 +34,29 @@ KCM.SEED.CMBT_POT = KCM.PerClient({
         271887,  -- Liquid Luster; added from the 2026-11-15 wago.tools validation (12.1.5.70783)
         271890,  -- Alluring Nostrum; added from the 2026-11-15 wago.tools validation (12.1.5.70783)
     },
-    -- Empty by decision: step 2, owner ruling 2026-11-08. No Retail ID is a Forever candidate;
-    -- on WoW Forever every candidate comes from the bag scan.
-    forever = {},
+    -- WoW Forever: the top tier per ~10-level band (per stat, for a stat-keyed list), built from
+    -- offline stores on 2026-11-27 (issue #46; the owner lifted the 2026-11-08 "empty by decision"
+    -- ruling that day). Forever's own subclasses and tables chose them, never Retail's list
+    -- (clients-§5); each comment names its evidence. The bag scan finds every other tier.
+    forever = {
+        13442,  -- Mighty Rage Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250932,  -- Minor Spellblasting Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250933,  -- Lesser Spellblasting Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250934,  -- Spellblasting Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250935,  -- Greater Spellblasting Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250936,  -- Superior Spellblasting Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250937,  -- Major Spellblasting Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250938,  -- Minor Frenzy Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250939,  -- Lesser Frenzy Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250940,  -- Frenzy Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250941,  -- Greater Frenzy Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250942,  -- Superior Frenzy Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250943,  -- Major Frenzy Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250944,  -- Minor Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250945,  -- Lesser Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
+        250946,  -- Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250947,  -- Greater Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: AH, probe (ah), DB2 (crafted)
+        250948,  -- Superior Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+        250949,  -- Major Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
+    },
 })

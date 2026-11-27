@@ -84,6 +84,37 @@ local SECONDARY_OPTIONS = {
 -- none to carry, so they take this one and it is stable across repaints.
 local SECONDARY_SORTING = { "CRIT", "HASTE", "MASTERY", "VERSATILITY" }
 
+-- WoW Forever's stats (issue #48): ONE ranked list over every stat its
+-- consumables grant, and no primary dropdown. Which shape this page draws is the
+-- per-client stat model's answer (core/SpecHelper.lua SpecHelper.STATS, picked
+-- once by KCM.PerClient, clients-§5) -- the page never asks which client it is on.
+local RANKED_OPTIONS = {
+    STR        = L["Strength"],
+    AGI        = L["Agility"],
+    INT        = L["Intellect"],
+    STA        = L["Stamina"],
+    SPI        = L["Spirit"],
+    AP         = L["Attack Power"],
+    SP         = L["Spell Damage"],
+    FIRE_SP    = L["Fire Spell Damage"],
+    FROST_SP   = L["Frost Spell Damage"],
+    SHADOW_SP  = L["Shadow Spell Damage"],
+    HEAL       = L["Healing"],
+    HIT        = L["Hit Chance"],
+    CRIT       = L["Critical Strike"],
+    ARMOR      = L["Armor"],
+    HEALTH     = L["Maximum Health"],
+    MANA       = L["Maximum Mana"],
+    MANA_REGEN = L["Mana per 5 sec"],
+}
+
+local MODEL  = (KCM.SpecHelper and KCM.SpecHelper.STATS) or {}
+local RANKED = MODEL.ranked == true
+-- The list this page draws: Retail's four secondaries, or Forever's whole set.
+local LIST_FIELD   = RANKED and "ranked" or "secondary"
+local LIST_OPTIONS = RANKED and RANKED_OPTIONS or SECONDARY_OPTIONS
+local LIST_SORTING = RANKED and MODEL.stats or SECONDARY_SORTING
+
 -- One secondary row's height, named because the drag needs it twice: as the
 -- stride its arithmetic runs on, and as the height of the copy it carries under
 -- the cursor. Uniform across the list, which options-ui-§18 requires -- the drop
@@ -200,7 +231,25 @@ local function specSelectorValues()
     return values, sorting
 end
 
+-- Forever's read and write: the ranked list alone, cleaned by the same rule the
+-- resolver applies (SpecHelper.CleanRanked), so a row no write could produce
+-- never appears.
+local function readRanked(specKey)
+    local p = KCM.SpecHelper.GetStatPriority(specKey)
+    return { ranked = KCM.SpecHelper.CleanRanked(p.ranked) }
+end
+
+local function writeRanked(specKey, mutate)
+    local cur = readRanked(specKey)
+    mutate(cur)
+    if not KCM.Schema then return false end
+    return KCM.Schema:Set("statPriority", KCM.SpecHelper.WithStatPriority(specKey, {
+        ranked = KCM.SpecHelper.CleanRanked(cur.ranked),
+    })) and true or false
+end
+
 local function readStatPriority(specKey)
+    if RANKED and specKey and KCM.SpecHelper then return readRanked(specKey) end
     if not (KCM.SpecHelper and KCM.SpecHelper.GetStatPriority) or not specKey then
         return { primary = "STR", secondary = { "", "", "", "" } }
     end
@@ -212,6 +261,7 @@ end
 
 local function writeStatPriority(specKey, mutate)
     if not specKey or not (KCM.db and KCM.db.profile) then return false end
+    if RANKED then return writeRanked(specKey, mutate) end
     local cur = readStatPriority(specKey)
     mutate(cur)
     -- Drop empties and duplicates while preserving first-seen order. A
@@ -249,13 +299,13 @@ end
 local function splitSecondaries(stored)
     local included, seen = {}, {}
     for _, stat in ipairs(stored or {}) do
-        if SECONDARY_OPTIONS[stat] and not seen[stat] then
+        if LIST_OPTIONS[stat] and not seen[stat] then
             seen[stat] = true
             included[#included + 1] = stat
         end
     end
     local excluded = {}
-    for _, stat in ipairs(SECONDARY_SORTING) do
+    for _, stat in ipairs(LIST_SORTING) do
         if not seen[stat] then excluded[#excluded + 1] = stat end
     end
     return included, excluded
@@ -280,7 +330,24 @@ O.SplitSecondaries = splitSecondaries
 -- rules splitSecondaries applies to the list.
 local PROFILE_DEFAULTS = (KCM.dbDefaults and KCM.dbDefaults.profile) or {}
 
+-- Forever's normalizer keeps a `ranked` list, cleaned. An entry without one -- the
+-- Retail shape the pre-#48 page stored on Forever, primary and MASTERY/HASTE and
+-- all -- is dropped, the same way the resolver reads it as no override
+-- (SpecHelper.IsOverride). It only runs on a WRITE, so an old profile is never
+-- rewritten until the player edits a priority.
+local function normalizeRanked(value)
+    local out = {}
+    for specKey, entry in pairs(value) do
+        if type(specKey) == "string" and specKey:match("^%d+_%d+$")
+                and KCM.SpecHelper.IsOverride(entry) then
+            out[specKey] = { ranked = KCM.SpecHelper.CleanRanked(entry.ranked) }
+        end
+    end
+    return out
+end
+
 local function normalizeStatPriority(value)
+    if RANKED then return normalizeRanked(value) end
     local out = {}
     for specKey, entry in pairs(value) do
         if type(specKey) == "string" and specKey:match("^%d+_%d+$")
@@ -304,7 +371,11 @@ local function renderStatPriority(value)
     local parts = {}
     for i, k in ipairs(keys) do
         local e = value[k]
-        parts[i] = ("%s: %s > %s"):format(k, tostring(e.primary), table.concat(e.secondary or {}, ", "))
+        if e.ranked then
+            parts[i] = ("%s: %s"):format(k, table.concat(e.ranked, " > "))
+        else
+            parts[i] = ("%s: %s > %s"):format(k, tostring(e.primary), table.concat(e.secondary or {}, ", "))
+        end
     end
     return table.concat(parts, "; ")
 end
@@ -316,7 +387,9 @@ H.AddRow({
     section   = "statpriority",
     group     = TAB_PRIORITY,
     label     = L["Stat priority"],
-    tooltip   = L["Every spec's primary stat and ranked secondary stats, where you have changed them from the shipped ranking. Edited on this page or with /cm stat."],
+    tooltip   = RANKED
+        and L["Every spec's ranked stats, where you have changed them from the shipped ranking. Edited on this page or with /cm stat."]
+        or L["Every spec's primary stat and ranked secondary stats, where you have changed them from the shipped ranking. Edited on this page or with /cm stat."],
     default   = PROFILE_DEFAULTS.statPriority,
     normalize = normalizeStatPriority,
     render    = renderStatPriority,
@@ -332,7 +405,7 @@ H.AddRow({
 --- Store one new secondary ORDER. Everything the list can do -- a drag and an
 --- Include toggle alike -- ends here, as ONE write.
 local function writeSecondaryOrder(specKey, order)
-    return writeStatPriority(specKey, function(p) p.secondary = order end)
+    return writeStatPriority(specKey, function(p) p[LIST_FIELD] = order end)
 end
 
 local function afterMutation(reason)
@@ -497,7 +570,7 @@ local function applyRow(row, stat, included, onToggle)
     KCM.SkinPanelGlyph(row.kcmGlyph, row.kcmGlyphTexture,
         included and "confirm" or "close", included and "sem.good" or "sem.bad")
 
-    row.kcmLabel:SetText(SECONDARY_OPTIONS[stat] or stat)
+    row.kcmLabel:SetText(LIST_OPTIONS[stat] or stat)
     -- Grayed rather than hidden: a name you cannot read is a row you cannot aim
     -- at, and aiming at it is how you rank the stat again. The skin's accent and
     -- disabled text, through KCM.SkinPanelText (S.Text, which records the label for the
@@ -541,7 +614,7 @@ end
 --- stat comes in as an argument, read off the frame at click time.
 local function toggleSecondary(specKey, stat)
     local cur   = readStatPriority(specKey)
-    local order = splitSecondaries(cur.secondary)
+    local order = splitSecondaries(cur[LIST_FIELD])
     local wasIncluded = false
     local next_ = {}
     for _, s in ipairs(order) do
@@ -590,7 +663,7 @@ local function renderSecondaryRow(ctx, scroll, specKey, stat, included, list, dr
         -- left the row itself bare, so this list looked unlike every other
         -- draggable list in the collection.
         list:AddRow(row, {
-            ghostText      = SECONDARY_OPTIONS[stat] or stat,
+            ghostText      = LIST_OPTIONS[stat] or stat,
             ghostIcon      = ghostIcon,
             ghostIconColor = ghostIconColor,
             ghostTextColor = { KCM.SkinPanelColor(included and "text.accent" or "text.disabled") },
@@ -609,7 +682,7 @@ end
 -- a hope -- the excluded stats' order is not stored anywhere, so a drag that
 -- could reach them would be a gesture with nothing to save.
 local function renderSecondaries(ctx, scroll, specKey, cur)
-    local included, excluded = splitSecondaries(cur.secondary)
+    local included, excluded = splitSecondaries(cur[LIST_FIELD])
 
     -- Parked on the ctx so the NEXT render can hand them back, and so a case can
     -- reach a row on a page whose ctx the toolkit otherwise keeps private.
@@ -661,9 +734,16 @@ end
 -- ---------------------------------------------------------------------
 
 --- Everything below the strip, for a spec that resolved.
-local function renderPriority(ctx, scroll, specKey)
-    local cur = readStatPriority(specKey)
+-- WoW Forever's list: one ranked list over every stat, no primary dropdown.
+local function renderRankedList(ctx, scroll, specKey, cur)
+    H.Section(ctx, L["Stats"])
+    H.Label(ctx, L["Drag to rank. Position 1 weighs the most, and one place up outweighs any amount; an excluded stat is not weighed at all."], "medium")
+    H.AddSpacer(scroll, 8)
+    renderSecondaries(ctx, scroll, specKey, cur)
+end
 
+-- Retail's: the primary stat dropdown, then the ranked secondaries.
+local function renderPrimaryAndSecondaries(ctx, scroll, specKey, cur)
     -- WIDE: the primary stat spans both columns. It used to be a half-cell paired
     -- with an invisible one, which is what `wide` says in a schema and what
     -- SetFullWidth says here.
@@ -687,6 +767,15 @@ local function renderPriority(ctx, scroll, specKey)
     -- text sitting on top of the list.
     H.AddSpacer(scroll, 8)
     renderSecondaries(ctx, scroll, specKey, cur)
+end
+
+local function renderPriority(ctx, scroll, specKey)
+    local cur = readStatPriority(specKey)
+    if RANKED then
+        renderRankedList(ctx, scroll, specKey, cur)
+    else
+        renderPrimaryAndSecondaries(ctx, scroll, specKey, cur)
+    end
 
     H.AddSpacer(scroll, 12)
     H.Button(ctx, {
@@ -732,7 +821,8 @@ local function render(ctx)
         tabs  = { {
             key     = TAB_PRIORITY,
             label   = L["Priority"],
-            tooltip = L["The primary stat and the ranked secondary stats for the spec named above."],
+            tooltip = RANKED and L["The ranked stats for the spec named above."]
+                or L["The primary stat and the ranked secondary stats for the spec named above."],
         } },
         value = TAB_PRIORITY,
         -- One tab, so a click is already on the selection and there is nothing to

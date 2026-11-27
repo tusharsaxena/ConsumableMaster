@@ -19,10 +19,21 @@ WHAT THIS IS
                    no longer admits it: a flask that stopped being a flask
 
     Candidates (key `<LIST>:<id>`, ruled accept or reject): ids the build has that a list's rule
-    admits and the list does not ship. Only lists with a mechanical rule propose any; the others
-    (FOOD and DRINK are a vendor's stock, HS a fixed whitelist, BLOODLUST and BATTLE_REZ class
-    spells plus one item) are checked for flags alone. WoW Forever proposes none: its lists are
-    empty by decision (owner ruling 2026-11-08), and every Forever candidate comes from the bag scan.
+    admits and the list does not ship. Only lists with a mechanical rule propose any; on Retail the
+    others (FOOD and DRINK are a vendor's stock, HS a fixed whitelist, BLOODLUST and BATTLE_REZ class
+    spells plus one item) are checked for flags alone.
+
+    WoW Forever (issue #46; the owner lifted the 2026-11-08 "empty by decision" ruling on 2026-11-27)
+    has its own rules, FOREVER_RULES, written against Forever's subclasses and tables, never by
+    filtering Retail's lists (clients-§5). Its window takes only items a player can get, which DB2
+    alone cannot say: `derive --evidence` freezes the run's evidence (ForeverDB, Auctionator, the
+    /cm probe seed store, extracted by scratch scripts outside the repo) into the bundle's
+    evidence.json, and an item no source records is reported as a ghost, never proposed. Each
+    candidate carries its band group (a ~10-level band, per stat / school / weapon kind) and its
+    rank there, for the top-tier-per-band ruling; an accepted id's comment names its evidence.
+    POISON and POISON_FAMILY (issue #47) have no Forever rule: every rank of vanilla's five poison
+    families is shipped by hand, and both are checked for flags like any list (consumable subclass 8,
+    the Other the poisons report).
 
     The core/Classifier.lua whitelists (HEALTHSTONE_IDS, VANTUS_IDS, REUSABLE_AUG_IDS) are shipped
     ids too, and are checked like a list. An accepted VANTUS candidate is written to VANTUS_IDS as
@@ -30,7 +41,8 @@ WHAT THIS IS
 
 THE STEPS
     python3 tools/seeds/seeds.py status [--flavor retail|forever]
-    python3 tools/seeds/seeds.py derive --flavor F --bundle docs/seed-research/<date>-F --date <date> [--build V] [--replay]
+    python3 tools/seeds/seeds.py derive --flavor F --bundle docs/seed-research/<date>-F --date <date> [--build V]
+                                        [--evidence <tsv> ...] [--replay]
     python3 tools/seeds/seeds.py check  --bundle docs/seed-research/<date>-F
     python3 tools/seeds/seeds.py rule   --tsv rulings.tsv --bundle docs/seed-research/<date>-F
     python3 tools/seeds/seeds.py report --bundle docs/seed-research/<date>-F --date <date>
@@ -92,8 +104,8 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # The flavor is the client (clients-§1) and its source is that client's own wago product.
 PRODUCTS = {"retail": "wow", "forever": "wowf"}
 
-# The tables each flavor reads, and why. Forever reads only what its flag checks need: it proposes
-# no candidates, so it has no use for the effect tables.
+# The tables each flavor reads, and why. Forever reads the effect tables too since issue #46: its own
+# rules (FOREVER_RULES) read heals, regen auras, absorb schools and temporary enchants like Retail's.
 TABLES = {
     "retail": (
         ("Item", "ClassID / SubclassID / CraftingQualityID: the category fit and the quality tier"),
@@ -110,10 +122,32 @@ TABLES = {
     ),
     "forever": (
         ("Item", "ClassID / SubclassID: the category fit"),
-        ("ItemSparse", "Display_lang: the name"),
-        ("SpellName", "Name_lang: spell-seed names"),
+        ("ItemSparse", "Display_lang / RequiredLevel / ItemLevel: the name, the level band and the tier"),
+        ("ItemXItemEffect", "ItemID -> ItemEffectID, step 1 of the item -> spell join"),
+        ("ItemEffect", "ItemEffectID -> SpellID, step 2: the spell the item casts"),
+        ("SpellName", "Name_lang: spell-seed names, and the Well Fed buff a meal references"),
+        ("Spell", "Description_lang: what the item's spell says it does (the stat, the school, the weapon)"),
+        ("SpellEffect", "Effect / EffectAura / EffectMiscValue_0 / EffectBasePointsF / EffectItemType: heal, mana, "
+                        "absorb school, temporary enchant, and which items a spell creates"),
+        ("SpellMisc", "DurationIndex: a combat potion's buff duration"),
+        ("SpellDuration", "Duration: DurationIndex -> milliseconds"),
     ),
 }
+
+# The evidence a run can carry besides DB2 (issue #46): which items a vendor sells, the auction house
+# trades, a mob drops or a quest rewards. DB2 says what an item does, never whether a player can get
+# it, so on WoW Forever, whose DB2 holds many items the game never hands out, a candidate needs one of
+# these. `derive --evidence <tsv>` reads them (`<itemID>\t<source>\t<kind>` lines, a
+# `#source\t<name>\t<description>` header), keeps the consumables (ClassID 0) of the build, and freezes
+# them into the bundle's evidence.json, so `--replay` needs nothing outside the bundle. The extraction
+# from each store is a scratch script outside the repo (docs/validate-seeds.md -> Evidence): a store's
+# rows are never copied, only the facts "this id has a <kind> source in <source>".
+EVIDENCE_FILE = "evidence.json"
+EVIDENCE_LABELS = {"fdb": "ForeverDB", "ah": "AH", "probe": "probe", "db2": "DB2"}
+# How good a source is, best first (owner ruling 2026-11-27: vendor > AH-seen > drop/recipe). A tag is
+# `<source>:<kind>`; the probe's own vendor and auction-house sightings rank as those kinds.
+SOURCE_RANK = {"vendor": 4, "ah": 3, "seen": 3, "drop": 2, "quest": 2, "container": 2, "object": 2, "recipe": 2,
+               "crafted": 1}
 
 # The newest expansion's ExpansionID on Retail (Midnight). A list's candidate window is read
 # against this; when the next expansion ships, raise it and re-derive.
@@ -123,12 +157,16 @@ CURRENT_EXPANSION = 11
 EFFECT_HEAL = 10
 EFFECT_ENERGIZE = 30
 EFFECT_ENCHANT_ITEM_TEMPORARY = 54
+EFFECT_CREATE_ITEM = 24
+EFFECT_APPLY_AURA = 6
 AURA_PERIODIC_HEAL = 8
 AURA_OBS_MOD_HEALTH = 20   # food: health regained while seated
 AURA_OBS_MOD_POWER = 21    # drink: mana regained while seated
 AURA_PERIODIC_ENERGIZE = 24
 AURA_SCHOOL_ABSORB = 69
 POWER_MANA = 0
+# SpellEffect.EffectMiscValue_0 of an absorb aura: the school mask (a protection potion takes one).
+SCHOOL_MASKS = {2: "HOLY", 4: "FIRE", 8: "NATURE", 16: "FROST", 32: "SHADOW", 64: "ARCANE"}
 CMBT_POT_MAX_DURATION_MS = 60000  # Defaults_CombatPot.lua's header and core/Classifier.lua's CMBT_POT_MAX_DURATION
 
 CANDIDATE_RULINGS = ("accept", "reject")
@@ -152,6 +190,10 @@ FIT = {
         "FOOD": (0, {5}), "DRINK": (0, {5}), "STAT_FOOD": (0, {5}), "VANTUS": (0, {9}),
         "WPN_ENCH": (0, {8, 15}), "AUG_RUNE": (0, {8}), "HS": (0, None), "BLOODLUST": (0, None),
         "BATTLE_REZ": (0, None), "CLASSIFIER_HS": (0, None),
+        # The Forever-only categories (defaults/Categories.lua), one subclass each.
+        "ELIXIR": (0, {2}), "SCROLL": (0, {4}), "BANDAGE": (0, {7}), "PROT_POT": (0, {1, 13}),
+        # Issue #47: vanilla's rogue poisons, class 0 / subclass 8, and their family map.
+        "POISON": (0, {8}), "POISON_FAMILY": (0, {8}),
     },
 }
 
@@ -162,8 +204,9 @@ CLASSIFIER_LISTS = (
     ("VANTUS_IDS", "CLASSIFIER_VANTUS", "VANTUS", True),
     ("REUSABLE_AUG_IDS", "CLASSIFIER_REUSABLE_AUG", "AUG_RUNE", True),
 )
-# A seed list whose accepted candidates are also written to a Classifier whitelist.
-CLASSIFIER_SYNC = {"VANTUS": "VANTUS_IDS"}
+# A seed list whose accepted candidates are also written to a Classifier whitelist: VANTUS and HS
+# match on their whitelist alone, so a seeded rune or stone the whitelist lacks is never discovered.
+CLASSIFIER_SYNC = {"VANTUS": "VANTUS_IDS", "HS": "HEALTHSTONE_IDS"}
 # The seed list that maps a Classifier whitelist's category (CLASSIFIER_LISTS) to its seed key.
 SEED_OF_CATEGORY = {"HS": "HS", "VANTUS": "VANTUS", "AUG_RUNE": "AUG_RUNE"}
 
@@ -354,24 +397,66 @@ def read_seed_lists(defaults: Path = DEFAULTS) -> Dict[str, List[dict]]:
     return out
 
 
-def classifier_tables(text: str) -> Dict[str, dict]:
-    """`{table: {records, open, close}}` for every `local NAME = {` table of `[id] = true` rows."""
-    lines, _nl = split_lines(text)
+ANY_CLIENT = "*"
+
+
+def _classifier_rows(lines: List[str], start: int, stop) -> Tuple[List[dict], int]:
+    """The `[id] = true` rows from `start` up to the first line `stop(line)` holds for."""
+    records, j = [], start
+    while j < len(lines) and not stop(lines[j]):
+        m = CLASSIFIER_ROW.match(lines[j])
+        if m:
+            records.append({"id": int(m.group("id")), "kind": "item",
+                            "comment": (m.group("comment") or "").strip(), "line": j})
+        j += 1
+    return records, j
+
+
+def _per_client_blocks(lines: List[str], start: int) -> Dict[str, dict]:
+    """The `retail = {...}` / `forever = {...}` blocks of a `KCM.PerClient({` table opened above `start`."""
     out: Dict[str, dict] = {}
-    for table, _key, _cat, _named in CLASSIFIER_LISTS:
-        opener = re.compile(r"^local %s\s*=\s*\{\s*$" % table)
-        for i, line in enumerate(lines):
-            if opener.match(line):
-                records, j = [], i + 1
-                while j < len(lines) and not lines[j].startswith("}"):
-                    m = CLASSIFIER_ROW.match(lines[j])
-                    if m:
-                        records.append({"id": int(m.group("id")), "kind": "item",
-                                        "comment": (m.group("comment") or "").strip(), "line": j})
-                    j += 1
-                out[table] = {"records": records, "open": i, "close": j}
-                break
+    i = start
+    while i < len(lines) and not lines[i].startswith("})"):
+        b = BLOCK_OPEN.match(lines[i])
+        if not b:
+            i += 1
+            continue
+        if b.group("rest").strip().startswith("}"):
+            out[b.group("client")] = {"records": [], "open": i, "close": i, "indent": b.group("indent") * 2}
+            i += 1
+            continue
+        closer = re.compile(r"^%s\}\s*,?\s*$" % re.escape(b.group("indent")))
+        records, j = _classifier_rows(lines, i + 1, closer.match)
+        out[b.group("client")] = {"records": records, "open": i, "close": j, "indent": b.group("indent") * 2}
+        i = j + 1
     return out
+
+
+def classifier_tables(text: str) -> Dict[str, Dict[str, dict]]:
+    """`{table: {client: {records, open, close, indent}}}` for every core/Classifier.lua whitelist of
+    `[id] = true` rows. A plain `local NAME = {` table serves both clients and is keyed ANY_CLIENT; a
+    `local NAME = KCM.PerClient({ retail = {...}, forever = {...} })` table is keyed per client."""
+    lines, _nl = split_lines(text)
+    out: Dict[str, Dict[str, dict]] = {}
+    for table, _key, _cat, _named in CLASSIFIER_LISTS:
+        opener = re.compile(r"^local %s\s*=\s*(?P<per>KCM\.PerClient\(\s*)?\{\s*$" % table)
+        for i, line in enumerate(lines):
+            m = opener.match(line)
+            if not m:
+                continue
+            if m.group("per"):
+                out[table] = _per_client_blocks(lines, i + 1)
+            else:
+                records, j = _classifier_rows(lines, i + 1, lambda text_line: text_line.startswith("}"))
+                out[table] = {ANY_CLIENT: {"records": records, "open": i, "close": j, "indent": "    "}}
+            break
+    return out
+
+
+def classifier_block(tables: Dict[str, Dict[str, dict]], table: str, client: str) -> Optional[dict]:
+    """The block of `table` the client reads: its own, else the shared one."""
+    blocks = tables.get(table) or {}
+    return blocks.get(client) or blocks.get(ANY_CLIENT)
 
 
 def category_clients(path: Path = CATEGORIES) -> Dict[str, set]:
@@ -390,13 +475,18 @@ def checked_lists(flavor: str, defaults: Path = DEFAULTS, classifier: Path = CLA
     """Every list the flavor ships: its seed blocks, plus the Classifier whitelists whose category
     the client has. Each is `{list, file, records, named}`."""
     out = []
-    for block in read_seed_lists(defaults)[flavor]:
-        out.append({"list": block["name"], "file": block["file"], "records": block["records"], "named": True})
     clients = category_clients(categories)
+    for block in read_seed_lists(defaults)[flavor]:
+        # A category the client does not have (clients-§4) has no list to check there: Retail's
+        # BANDAGE block and Forever's VANTUS block are empty by construction, not by a ruling.
+        if block["name"] in clients and flavor not in clients[block["name"]]:
+            continue
+        out.append({"list": block["name"], "file": block["file"], "records": block["records"], "named": True})
     tables = classifier_tables(classifier.read_bytes().decode("utf-8"))
     for table, key, category, named in CLASSIFIER_LISTS:
-        if flavor in clients.get(category, {"retail", "forever"}) and table in tables:
-            out.append({"list": key, "file": classifier, "records": tables[table]["records"], "named": named})
+        block = classifier_block(tables, table, flavor)
+        if flavor in clients.get(category, {"retail", "forever"}) and block is not None:
+            out.append({"list": key, "file": classifier, "records": block["records"], "named": named})
     return out
 
 
@@ -417,6 +507,10 @@ class Build:
         self.duration_ms: Dict[int, int] = {}
         self.specs: Dict[int, dict] = {}
         self.journal: set = set()
+        self.created: set = set()   # items some spell creates (a recipe, a conjure): SpellEffect 24
+        # `{item: [tag]}` from the bundle's evidence.json, or None when the run carries no evidence
+        # (every item then counts as sourced, as before issue #46).
+        self.evidence: Optional[Dict[int, List[str]]] = None
         self._read(tables)
 
     def _read(self, t: Dict[str, Path]) -> None:
@@ -431,7 +525,8 @@ class Build:
             klass, sub, cq = classes[iid]
             self.items[iid] = {"name": row.get("Display_lang", ""), "class": klass, "sub": sub, "cq": cq,
                                "exp": as_int(row.get("ExpansionID")), "quality": as_int(row.get("OverallQualityID")),
-                               "ilvl": as_int(row.get("ItemLevel"))}
+                               "ilvl": as_int(row.get("ItemLevel")), "req": as_int(row.get("RequiredLevel")),
+                               "skill": as_int(row.get("RequiredSkillRank"))}
         for row in iter_csv(t["SpellName"]):
             self.spell_names[as_int(row["ID"])] = row.get("Name_lang", "")
         if "ItemEffect" in t and "ItemXItemEffect" in t:
@@ -468,10 +563,13 @@ class Build:
         for hop in range(2):
             for row in iter_csv(path):
                 spell = as_int(row["SpellID"])
+                if hop == 0 and as_int(row["Effect"]) == EFFECT_CREATE_ITEM and as_int(row.get("EffectItemType")):
+                    self.created.add(as_int(row.get("EffectItemType")))
                 if spell in wanted and as_int(row.get("DifficultyID")) == 0:
                     self.effects[spell].append((as_int(row["Effect"]), as_int(row["EffectAura"]),
                                                 as_int(row.get("EffectMiscValue_0")),
-                                                as_int(row.get("EffectTriggerSpell"))))
+                                                as_int(row.get("EffectTriggerSpell")),
+                                                as_int(row.get("EffectBasePointsF") or row.get("EffectBasePoints"))))
             if hop == 0:
                 wanted = {e[3] for spell in list(self.effects) for e in self.effects[spell] if e[3]} - set(self.effects)
 
@@ -528,6 +626,40 @@ class Build:
         """The longest base duration (ms) of the item's own spells; 0 when none is known."""
         return max([self.duration_ms.get(s, 0) for s in self.spells_of(item)] or [0])
 
+    def magnitude(self, item: int) -> int:
+        """The largest base points among the item's effects: a tie-break between two items of one
+        item level, never a value the addon reads (the Ranker reads the tooltip)."""
+        return max([abs(e[4]) for e in self.effects_of(item) if len(e) > 4] or [0])
+
+    def absorb_school(self, item: int) -> Optional[str]:
+        """The one magic school a protection potion absorbs, from the absorb aura's school mask;
+        None for no absorb, or one that covers several schools or physical damage."""
+        masks = {e[2] for e in self.effects_of(item) if e[0] == EFFECT_APPLY_AURA and e[1] == AURA_SCHOOL_ABSORB}
+        if len(masks) != 1:
+            return None
+        return SCHOOL_MASKS.get(masks.pop())
+
+    # -- evidence (issue #46) --------------------------------------------------
+
+    def tags_of(self, item: int) -> List[str]:
+        """Every source recorded for the item: the run's evidence plus DB2's own `db2:crafted`."""
+        tags = list((self.evidence or {}).get(item, ()))
+        if item in self.created:
+            tags.append("db2:crafted")
+        return sorted(set(tags))
+
+    def source_rank(self, item: int) -> int:
+        """The best source the item has (SOURCE_RANK), 0 for none."""
+        return max([SOURCE_RANK.get(t.split(":", 1)[1], 0) for t in self.tags_of(item)] or [0])
+
+    def sourced(self, item: int) -> bool:
+        """Whether a player can get the item, as far as the run's evidence says: any vendor, auction
+        house, drop, quest, container or probe source. DB2's `crafted` alone is not one (a ghost recipe
+        crafts a ghost item); a run with no evidence counts everything as sourced."""
+        if self.evidence is None:
+            return True
+        return any(not t.startswith("db2:") for t in self.tags_of(item))
+
 
 # ---------------------------------------------------------------------------
 # The rules: what each list admits, and the window its candidates come from
@@ -572,7 +704,7 @@ def _in_window(b: Build, item: int, expansions) -> bool:
 
 # Each rule: (window, admits). `window(b, item)` is the set a list draws candidates from, and
 # `admits(b, item)` whether the list's own definition takes the item. A shipped id inside the window
-# that the rule does not admit is an `unmatched` flag. Retail only; Forever has no rules (above).
+# that the rule does not admit is an `unmatched` flag. Retail's; Forever's are FOREVER_RULES below.
 RULES = {
     "FLASK": (lambda b, i: _consumable(b, i, {3}) and _in_window(b, i, {CURRENT_EXPANSION}),
               lambda b, i: _consumable(b, i, {3})),
@@ -607,9 +739,259 @@ NO_RULE = {
 }
 
 
-def item_notes(b: Build, item: int, shipped_names: Dict[str, int]) -> List[str]:
+# ---------------------------------------------------------------------------
+# WoW Forever's rules (issue #46), written against Forever's own subclasses and tables, never by
+# filtering Retail's lists (clients-§5). The owner lifted the 2026-11-08 "empty by decision" ruling on
+# 2026-11-27: each Forever list seeds the top tier per ~10-level band (per stat for the stat-keyed
+# lists, per school for protection potions), and the bag scan finds the rest.
+# ---------------------------------------------------------------------------
+
+FOREVER_POTION = {1, 13}   # Potion and Draught, as core/Classifier.lua's POTION_SUBCLASSES (Forever)
+FOREVER_WEAPON = {8, 15}   # Other (vanilla's stones and oils) and the temporary Item Enhancement
+# A poison (the Rogue poison category owns those), a fishing lure, and Forever's engraving runes, which
+# learn a rune through the same temporary-enchant effect and enhance no weapon.
+NOT_A_WEAPON_ENCHANT = re.compile(r"poison|fishing|\blure\b|\bengrave", re.I)
+
+
+# An item its own text confines to one zone or battleground (Warsong Gulch's bandages, the PvP
+# draughts): never a default, wherever the player stands.
+RESTRICTED = re.compile(r"usable only inside|only be used in|only usable in", re.I)
+
+
+def restricted(b: Build, item: int) -> bool:
+    return RESTRICTED.search(b.text_of(item)) is not None
+
+
+def _forever_window(subs):
+    """A Forever window: a consumable of the subclasses that a player can get (Build.sourced) and
+    use anywhere (restricted)."""
+    return lambda b, i: _consumable(b, i, subs) and b.sourced(i) and not restricted(b, i)
+
+
+# Vanilla's seated food and drink carry a regen aura, not Retail's "obs mod" pair: MOD_REGEN (84,
+# health) and MOD_POWER_REGEN (85, its misc value the power, 0 for mana). Only read inside the Food &
+# Drink subclass, so a regen elixir never counts.
+AURA_MOD_REGEN = 84
+AURA_MOD_POWER_REGEN = 85
+
+
+def _seated(b: Build, item: int, auras) -> bool:
+    return any(e[0] == EFFECT_APPLY_AURA and e[1] in auras and (e[1] != AURA_MOD_POWER_REGEN or e[2] == POWER_MANA)
+               for e in b.effects_of(item))
+
+
+def _forever_food(b: Build, item: int) -> bool:
+    return _seated(b, item, (AURA_OBS_MOD_HEALTH, AURA_MOD_REGEN))
+
+
+def _forever_drink(b: Build, item: int) -> bool:
+    return _seated(b, item, (AURA_OBS_MOD_POWER, AURA_MOD_POWER_REGEN))
+
+
+def _buff(b: Build, item: int) -> bool:
+    return any(e[0] == EFFECT_APPLY_AURA for e in b.effects_of(item))
+
+
+def _forever_wpn_ench(b: Build, item: int) -> bool:
+    """A temporary weapon enchant that is no poison (the Rogue poison category owns those), no
+    fishing lure and no permanent enhancement (subclass 6 never enters the window)."""
+    text = b.items[item]["name"] + " " + b.text_of(item)
+    return b.temp_enchant(item) and NOT_A_WEAPON_ENCHANT.search(text) is None
+
+
+FOREVER_RULES = {
+    "FOOD": (_forever_window({5}), lambda b, i: _forever_food(b, i) and not b.well_fed(i)),
+    "DRINK": (_forever_window({5}), lambda b, i: _forever_drink(b, i) and not b.well_fed(i)),
+    # core/Classifier.lua's FOOD_RULES.wellFedIsStat: any Well Fed food is Stat Food on Forever.
+    "STAT_FOOD": (_forever_window({5}),
+                  lambda b, i: (_forever_food(b, i) or _forever_drink(b, i)) and b.well_fed(i)),
+    "HP_POT": (_forever_window(FOREVER_POTION), lambda b, i: "HP_POT" in potion_lists(b, i)),
+    "MP_POT": (_forever_window(FOREVER_POTION), lambda b, i: "MP_POT" in potion_lists(b, i)),
+    "CMBT_POT": (_forever_window(FOREVER_POTION), lambda b, i: "CMBT_POT" in potion_lists(b, i)),
+    "PROT_POT": (_forever_window(FOREVER_POTION),
+                 lambda b, i: not b.heals(i) and b.absorb_school(i) is not None),
+    # A warlock's stone is conjured, so DB2's create-item effect is its source (Build.sourced does
+    # not count it for any other list).
+    "HS": (lambda b, i: _consumable(b, i, None) and "healthstone" in norm(b.items[i]["name"])
+           and (b.sourced(i) or i in b.created),
+           lambda b, i: b.heals(i)),
+    "BANDAGE": (_forever_window({7}), lambda b, i: b.heals(i)),
+    # A flask, elixir or scroll the seed takes is a buff: its spell applies an aura. A damage scroll
+    # (Scroll of Cryoblast) or a spellbook page with no use spell is the subclass's, not the list's.
+    "FLASK": (_forever_window({3}), lambda b, i: _buff(b, i)),
+    "ELIXIR": (_forever_window({2}), lambda b, i: _buff(b, i)),
+    "SCROLL": (_forever_window({4}), lambda b, i: _buff(b, i)),
+    "WPN_ENCH": (_forever_window(FOREVER_WEAPON), _forever_wpn_ench),
+}
+
+
+def rules_for(flavor: str) -> dict:
+    return RULES if flavor == "retail" else FOREVER_RULES
+
+
+# The stat a Forever stat-keyed item buffs, in vanilla wording: the earliest of these in its use text
+# (after "well fed", for a meal) names its group. A school-specific spell-power line comes first so
+# "Increases fire spell damage" is not read as plain spell damage. It needs the increase verb: a
+# potion that deals a school's damage ("dealing $s1 Fire damage", Dragonfire Potion) buffs no stat.
+FOREVER_STATS = (
+    (r"\bincreas\w* (?:spell )?(fire|frost|shadow|nature|arcane|holy) (?:spell )?(?:damage|power)\b", None),
+    (r"\branged attack power\b", "RAP"),
+    (r"\battack power\b", "AP"),
+    (r"spell damage|spell power|damage (?:and healing )?done by (?:magical )?spells|magical damage", "SP"),
+    (r"healing (?:done|spells|bonus|power)|healing by up to|spell healing", "HEAL"),
+    (r"\bhaste\b|attack speed|casting speed", "HASTE"),
+    (r"physical damage|damage done by \$s\d+%|damage done by \d+%", "DMG"),
+    (r"\bagility\b", "AGI"),
+    (r"\bstrength\b", "STR"),
+    (r"\bstamina\b", "STA"),
+    (r"\bintellect\b", "INT"),
+    (r"\bspirit\b", "SPI"),
+    (r"mana (?:every|per) 5|mana regeneration|regenerate \S+ mana|\bmana every\b", "MP5"),
+    (r"health (?:every|per) 5|health regeneration|regenerate \S+ health|\bhealth every\b", "HP5"),
+    (r"maximum health|\bhealth by\b|increases health|max health", "HP"),
+    (r"maximum mana", "MANA"),
+    (r"\barmor\b", "ARMOR"),
+    (r"critical strike|critical hit|crit", "CRIT"),
+    (r"\bdodge\b", "DODGE"),
+    (r"\bdefense\b", "DEF"),
+    (r"chance to hit|hit chance|\bto hit\b", "HIT"),
+    (r"\bresist(?:ance)?\b", "RESIST"),
+)
+FOREVER_STAT_RES = tuple((re.compile(p, re.I), tag) for p, tag in FOREVER_STATS)
+# The lists grouped per stat, and the one grouped per school (owner ruling 2026-11-27). CMBT_POT is
+# grouped per stat as well: it is spec-aware like the four the ruling names, and one potion per band
+# would hand a caster's band to a healer's potion (Forever's Mender's, Spellblasting and Frenzy tiers).
+# WPN_ENCH is grouped per weapon kind, because the per-hand picker needs a stone for a blade, a
+# weightstone for a mace and an oil for a caster (Selector.PickBestForSlot).
+STAT_KEYED = {"STAT_FOOD", "ELIXIR", "SCROLL", "FLASK", "CMBT_POT"}
+BANDS = ((0, 9, "1-9"), (10, 19, "10-19"), (20, 29, "20-29"), (30, 39, "30-39"), (40, 49, "40-49"))
+TOP_BAND = "50-60"
+
+
+def forever_stat(text: str) -> Optional[str]:
+    low = text.lower()
+    if "well fed" in low:
+        low = low[low.index("well fed"):]
+    best = None
+    for regex, tag in FOREVER_STAT_RES:
+        m = regex.search(low)
+        if m and (best is None or m.start() < best[0]):
+            best = (m.start(), tag or ("SP_" + m.group(1).upper()))
+    return best[1] if best else None
+
+
+def weapon_kind(text: str) -> str:
+    low = text.lower()
+    for words, kind in ((("sharp", "blade", "edged"), "SHARP"), (("blunt",), "BLUNT"),
+                        (("mana",), "MANA_OIL"), (("spell", "healing"), "SPELL_OIL")):
+        if any(w in low for w in words):
+            return kind
+    return "OTHER"
+
+
+def level_band(required: int) -> str:
+    return next((label for lo, hi, label in BANDS if lo <= required <= hi), TOP_BAND)
+
+
+def effective_level(it: dict) -> int:
+    """The level an item belongs to: its required level; else (a bandage, gated by First Aid rather
+    than level) its required skill over five, the rate a profession climbs to 300 by level 60; else
+    (a level-0 quest or event food) ten under its item level, the gap vanilla's consumables keep."""
+    return it["req"] or it.get("skill", 0) // 5 or max(it["ilvl"] - 10, 0)
+
+
+def band_group(b: Build, list_key: str, item: int) -> Optional[str]:
+    """The group a Forever candidate competes in for its list's band pick; None for HS, which seeds
+    every rank (its whitelist is the only matcher, so a rank left out is never discovered)."""
+    if list_key == "HS":
+        return None
+    band = "band " + level_band(effective_level(b.items[item]))
+    if list_key in STAT_KEYED:
+        return "%s, stat %s" % (band, forever_stat(b.items[item]["name"] + ". " + b.text_of(item)) or "none")
+    if list_key == "PROT_POT":
+        return "%s, school %s" % (band, b.absorb_school(item))
+    if list_key == "WPN_ENCH":
+        return "%s, kind %s" % (band, weapon_kind(b.items[item]["name"] + " " + b.text_of(item)))
+    return band
+
+
+def tier_key(b: Build, item: int) -> tuple:
+    """Best first: an item a vendor sells or the auction house trades before one only a drop, quest
+    or recipe record names (owner ruling 2026-11-27: prefer a real obtainable source); then the higher
+    item level (vanilla's tier), the bigger effect, the better source (a vendor over the AH), the
+    higher level, and the lower id so the order is total."""
     it = b.items[item]
-    notes = ["expansion %d, quality %d, item level %d" % (it["exp"], it["quality"], it["ilvl"])]
+    rank = b.source_rank(item)
+    return (-min(rank, SOURCE_RANK["ah"]), -it["ilvl"], -b.magnitude(item), -rank, -effective_level(it), item)
+
+
+def annotate_bands(b: Build, cands: List[dict]) -> None:
+    """Add each Forever candidate's band group and its place in it to its notes: `top of <group>` for
+    the best, `<n> of <m> in <group>, behind <id>` for the rest. The rulings read these notes."""
+    groups: Dict[Tuple[str, str], List[dict]] = defaultdict(list)
+    for c in cands:
+        group = band_group(b, c["list"], int(c["id"]))
+        c["group"] = group
+        if group is None:
+            c["notes"].append("every rank: the whitelist is HS's only matcher")
+            continue
+        groups[(c["list"], group)].append(c)
+    for (_list, group), rows in groups.items():
+        rows.sort(key=lambda c: tier_key(b, int(c["id"])))
+        for n, c in enumerate(rows, 1):
+            c["rank"] = n
+            c["notes"].append("top of %s (%d)" % (group, len(rows)) if n == 1
+                              else "%d of %d in %s, behind %s" % (n, len(rows), group, rows[0]["id"]))
+
+
+def evidence_label(tags: List[str]) -> str:
+    """`ForeverDB (vendor, drop), AH, probe (vendor)`: a tag list as the seed comment and the notes
+    write it. An AH sighting has no kind worth naming."""
+    kinds: Dict[str, List[str]] = {}
+    for tag in tags:
+        source, kind = tag.split(":", 1)
+        kinds.setdefault(source, [])
+        if kind not in ("seen",) and kind not in kinds[source]:
+            kinds[source].append(kind)
+    out = []
+    for source in sorted(kinds, key=lambda s: list(EVIDENCE_LABELS).index(s) if s in EVIDENCE_LABELS else 99):
+        label = EVIDENCE_LABELS.get(source, source)
+        out.append("%s (%s)" % (label, ", ".join(kinds[source])) if kinds[source] else label)
+    return ", ".join(out)
+
+
+def _head_notes(b: Build, item: int, flavor: str) -> List[str]:
+    """The item's tier line (Forever's carries the required level, Retail's the expansion) and,
+    when the run carries evidence, its sources."""
+    it = b.items[item]
+    if flavor == "forever":
+        notes = ["required level %d, quality %d, item level %d" % (it["req"], it["quality"], it["ilvl"])]
+    else:
+        notes = ["expansion %d, quality %d, item level %d" % (it["exp"], it["quality"], it["ilvl"])]
+    if b.evidence is not None:
+        notes.append("evidence: " + (evidence_label(b.tags_of(item)) or "none"))
+    return notes
+
+
+def _effect_notes(b: Build, item: int, flavor: str) -> List[str]:
+    notes = []
+    effects = [w for w, f in (("heal", b.heals), ("mana", b.restores_mana), ("absorb", b.absorbs)) if f(item)]
+    if effects:
+        notes.append("effects: " + ", ".join(effects))
+    if b.duration(item):
+        notes.append("duration %ds" % (b.duration(item) // 1000))
+    stat = stat_note(b.text_of(item)) if flavor == "retail" else None
+    if stat:
+        notes.append(stat)
+    school = b.absorb_school(item) if flavor == "forever" else None
+    if school:
+        notes.append("absorbs: " + school)
+    return notes
+
+
+def item_notes(b: Build, item: int, shipped_names: Dict[str, int], flavor: str = "retail") -> List[str]:
+    it = b.items[item]
+    notes = _head_notes(b, item, flavor)
     if it["cq"]:
         notes.append("crafting quality %d" % it["cq"])
     twin = shipped_names.get(norm(it["name"]))
@@ -619,14 +1001,7 @@ def item_notes(b: Build, item: int, shipped_names: Dict[str, int]) -> List[str]:
         base = shipped_names.get(norm(it["name"][len(prefix):])) if it["name"].startswith(prefix) else None
         if base:
             notes.append("%s copy of shipped %d" % (prefix.strip(), base))
-    effects = [w for w, f in (("heal", b.heals), ("mana", b.restores_mana), ("absorb", b.absorbs)) if f(item)]
-    if effects:
-        notes.append("effects: " + ", ".join(effects))
-    if b.duration(item):
-        notes.append("duration %ds" % (b.duration(item) // 1000))
-    stat = stat_note(b.text_of(item))
-    if stat:
-        notes.append(stat)
+    notes += _effect_notes(b, item, flavor)
     spells = b.spells_of(item)
     if spells:
         notes.append("use: %d %s: %s" % (spells[0], b.spell_names.get(spells[0], ""), b.text_of(item)[:160].strip()))
@@ -690,7 +1065,7 @@ def flags_for(flavor: str, b: Build, lists: List[dict]) -> List[dict]:
                     fit = FIT[flavor].get(lst["list"])
                     if fit and (it["class"] != fit[0] or (fit[1] is not None and it["sub"] not in fit[1])):
                         kinds.append("misfiled")
-                    rule = RULES.get(lst["list"]) if flavor == "retail" else None
+                    rule = rules_for(flavor).get(lst["list"])
                     if rule and rule[0](b, rec["id"]) and not rule[1](b, rec["id"]):
                         kinds.append("unmatched")
             for kind in kinds:
@@ -701,32 +1076,79 @@ def flags_for(flavor: str, b: Build, lists: List[dict]) -> List[dict]:
 
 
 def candidates_for(flavor: str, b: Build, lists: List[dict]) -> Tuple[List[dict], List[dict]]:
-    """`(candidates, unplaced)`. unplaced: current-expansion potions no rule places (an absorb, a
-    long utility buff), reported for the analysis and never ruled."""
-    if flavor != "retail":
-        return [], []
+    """`(candidates, unplaced)`. unplaced: in-window potions no rule places (an absorb, a long
+    utility buff), reported for the analysis and never ruled. A rule proposes only for a list the
+    flavor declares (a seed block, empty or not); on WoW Forever each candidate also carries its
+    band group and rank (annotate_bands)."""
+    rules = rules_for(flavor)
+    declared = {lst["list"] for lst in lists}
+    shipped, shipped_names = shipped_items(b, lists)
+    out, unplaced = spec_candidates(b, lists) if flavor == "retail" else [], []
+    placed = shipped["HP_POT"] | shipped["MP_POT"] | shipped["CMBT_POT"] | shipped["PROT_POT"]
+    for item in sorted(b.items):
+        for key, (window, admits) in rules.items():
+            if key not in declared or item in shipped[key] or not window(b, item) or not admits(b, item):
+                continue
+            out.append(candidate_row(b, key, item, shipped_names, flavor))
+        if item not in placed and rules["HP_POT"][0](b, item) and not potion_place(b, item, flavor):
+            unplaced.append({"id": item, "name": b.items[item]["name"],
+                             "notes": item_notes(b, item, shipped_names, flavor)})
+    if flavor == "forever":
+        annotate_bands(b, out)
+    return out, unplaced
+
+
+def shipped_items(b: Build, lists: List[dict]) -> Tuple[Dict[str, set], Dict[str, int]]:
+    """`({list: shipped item ids}, {normalized name: the first shipped id of that name})`."""
     shipped: Dict[str, set] = defaultdict(set)
-    shipped_names: Dict[str, int] = {}
+    names: Dict[str, int] = {}
     for lst in lists:
         for rec in lst["records"]:
             if rec["kind"] == "item":
                 shipped[lst["list"]].add(rec["id"])
                 if rec["id"] in b.items:
-                    shipped_names.setdefault(norm(b.items[rec["id"]]["name"]), rec["id"])
-    out, unplaced = spec_candidates(b, lists), []
-    potion_ids = shipped["HP_POT"] | shipped["MP_POT"] | shipped["CMBT_POT"]
-    for item in sorted(b.items):
-        for key, (window, admits) in RULES.items():
-            if key not in shipped or item in shipped[key] or not window(b, item) or not admits(b, item):
+                    names.setdefault(norm(b.items[rec["id"]]["name"]), rec["id"])
+    return shipped, names
+
+
+def potion_place(b: Build, item: int, flavor: str) -> List[str]:
+    """Every potion list the item fits; Forever adds the protection potion."""
+    out = potion_lists(b, item)
+    if flavor == "forever" and FOREVER_RULES["PROT_POT"][1](b, item):
+        out.append("PROT_POT")
+    return out
+
+
+def candidate_row(b: Build, key: str, item: int, shipped_names: Dict[str, int], flavor: str) -> dict:
+    notes = item_notes(b, item, shipped_names, flavor)
+    if key == "VANTUS":
+        notes += vantus_notes(b, item)
+    row = {"key": "%s:%d" % (key, item), "list": key, "id": str(item), "name": b.items[item]["name"],
+           "notes": notes}
+    if b.evidence is not None:
+        row["evidence"] = b.tags_of(item)
+    return row
+
+
+def ghosts_for(flavor: str, b: Build, lists: List[dict]) -> List[dict]:
+    """Forever items a list's subclass holds and its rule admits, left out of the window because no
+    evidence says a player can get them (DB2-only: a test item, a cut one). Reported, never ruled."""
+    if flavor != "forever" or b.evidence is None:
+        return []
+    declared = {lst["list"] for lst in lists}
+    out = []
+    for key, (_window, admits) in FOREVER_RULES.items():
+        fit = FIT["forever"].get(key)
+        if key not in declared or key == "HS" or not fit:
+            continue
+        for item in sorted(b.items):
+            if not _consumable(b, item, fit[1]) or not admits(b, item):
                 continue
-            notes = item_notes(b, item, shipped_names)
-            if key == "VANTUS":
-                notes += vantus_notes(b, item)
-            out.append({"key": "%s:%d" % (key, item), "list": key, "id": str(item), "name": b.items[item]["name"],
-                        "notes": notes})
-        if (item not in potion_ids and RULES["HP_POT"][0](b, item) and not potion_lists(b, item)):
-            unplaced.append({"id": item, "name": b.items[item]["name"], "notes": item_notes(b, item, shipped_names)})
-    return out, unplaced
+            why = "no source" if not b.sourced(item) else "restricted" if restricted(b, item) else None
+            if why:
+                out.append({"list": key, "id": item, "name": b.items[item]["name"],
+                            "req": b.items[item]["req"], "why": why})
+    return out
 
 
 def spec_candidates(b: Build, lists: List[dict]) -> List[dict]:
@@ -747,11 +1169,9 @@ def spec_candidates(b: Build, lists: List[dict]) -> List[dict]:
 def coverage_gate(flavor: str, b: Build, lists: List[dict]) -> List[str]:
     """A rule that admits none of its own list's shipped in-window ids is a broken pipeline (a
     table shape changed, a join came up empty), not a list to rule on."""
-    if flavor != "retail":
-        return []
     problems = []
     for lst in lists:
-        rule = RULES.get(lst["list"])
+        rule = rules_for(flavor).get(lst["list"])
         ids = [r["id"] for r in lst["records"] if r["kind"] == "item"]
         if not rule or not ids:
             continue
@@ -799,6 +1219,87 @@ def bundle_tables(flavor: str, bundle: Path, build: str, replay: bool, cache_dir
     return out
 
 
+def read_evidence_tsv(path: Path) -> Tuple[Dict[str, str], List[Tuple[int, str, str]]]:
+    """`({source: description}, [(item, source, kind)])` from one evidence TSV."""
+    sources: Dict[str, str] = {}
+    rows: List[Tuple[int, str, str]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        parts = line.rstrip("\r").split("\t")
+        if line.startswith("#source") and len(parts) == 3:
+            sources[parts[1].strip()] = parts[2].strip()
+            continue
+        if not line.strip() or line.startswith("#"):
+            continue
+        if len(parts) != 3 or not parts[0].strip().isdigit():
+            raise SystemExit("%s: an evidence line is <itemID>\\t<source>\\t<kind>; got %r" % (path, line))
+        source, kind = parts[1].strip(), parts[2].strip()
+        if kind not in SOURCE_RANK:
+            raise SystemExit("%s: unknown evidence kind %r (one of %s)" % (path, kind, ", ".join(sorted(SOURCE_RANK))))
+        rows.append((int(parts[0]), source, kind))
+    for _item, source, _kind in rows:
+        if source not in sources:
+            raise SystemExit("%s: source %r has no #source header line" % (path, source))
+    return sources, rows
+
+
+def build_evidence(paths: List[Path], b: Build) -> dict:
+    """The bundle's evidence.json: every source's description, and the tags of each consumable
+    (ClassID 0) the build has. Anything else in a store is dropped, never frozen."""
+    sources: Dict[str, str] = {}
+    items: Dict[str, set] = defaultdict(set)
+    for path in paths:
+        found, rows = read_evidence_tsv(path)
+        sources.update(found)
+        for item, source, kind in rows:
+            it = b.items.get(item)
+            # A recipe is matched by name in its store, so it only counts for an item a spell of this
+            # build creates: a same-name copy nothing makes is no recipe's.
+            if it and it["class"] == 0 and (kind != "recipe" or item in b.created):
+                items[str(item)].add("%s:%s" % (source, kind))
+    return {"sources": sources, "items": {k: sorted(v) for k, v in sorted(items.items(), key=lambda kv: int(kv[0]))}}
+
+
+def load_evidence(bundle: Path) -> Optional[dict]:
+    path = bundle / EVIDENCE_FILE
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+def attach_evidence(b: Build, evidence: Optional[dict]) -> None:
+    b.evidence = None if evidence is None else {int(k): list(v) for k, v in evidence["items"].items()}
+
+
+def _source_rows(evidence: dict, b: Build) -> List[str]:
+    """One table row per evidence source, with how many consumables it records, then DB2's own."""
+    rows = []
+    for name, why in sorted(evidence["sources"].items()):
+        count = sum(1 for tags in evidence["items"].values() if any(t.startswith(name + ":") for t in tags))
+        rows.append("| `%s` | %s | %d |" % (name, _cell(why), count))
+    crafted = sum(1 for i in b.created if b.items.get(i, {}).get("class") == 0)
+    rows += ["| `db2` | DB2's own SpellEffect: a spell creates the item (`crafted`); counts only for HS | %d |"
+             % crafted, ""]
+    return rows
+
+
+def format_evidence(doc: dict, evidence: Optional[dict], b: Build, lists: List[dict]) -> List[str]:
+    """SOURCES.md's evidence sections: the stores, and every shipped and candidate id's sources."""
+    if evidence is None:
+        return ["## Evidence", "", "None: this run read DB2 alone.", ""]
+    lines = ["## Evidence sources", "",
+             "Read by scratch scripts outside the repo (docs/validate-seeds.md -> Evidence); only the fact",
+             "\"this id has a <kind> source\" is frozen, in `%s`, for the consumables of this build." % EVIDENCE_FILE, "",
+             "| Source | What it is | Consumable ids with a record |", "| --- | --- | --- |"]
+    lines += _source_rows(evidence, b)
+    lines += ["## Evidence per id", "", "Every id the flavor ships, then every candidate.", "",
+              "| List | Id | Name | Evidence |", "| --- | --- | --- | --- |"]
+    rows = [(lst["list"], rec["id"]) for lst in lists for rec in lst["records"] if rec["kind"] == "item"]
+    rows += [(c["list"] + " (candidate)", int(c["id"])) for c in doc["candidates"] if c["id"].isdigit()]
+    for label, item in rows:
+        lines.append("| %s | `%d` | %s | %s |" % (label, item, _cell(b.items.get(item, {}).get("name", "")),
+                                                 _cell(evidence_label(b.tags_of(item)) or "none")))
+    lines.append("")
+    return lines
+
+
 def format_sources(flavor: str, build: str, created: str, date: str) -> str:
     lines = ["# Sources — seed validation, %s (%s)" % (date, flavor), "",
              "Written by `tools/seeds/seeds.py derive`. Frozen: never edited after the run.", "",
@@ -825,10 +1326,29 @@ def format_diff(doc: dict) -> str:
                                                        row["rule"]))
     lines.append("")
     if doc["unplaced"]:
-        lines += ["## Current-expansion potions no rule places — %d" % len(doc["unplaced"]), "",
+        lines += ["## In-window potions no rule places — %d" % len(doc["unplaced"]), "",
                   "Reported, never ruled: an absorb, a utility buff longer than 60 s, or no use spell.", ""]
         lines += ["- `%d` %s — %s" % (u["id"], _cell(u["name"]), _cell("; ".join(u["notes"][:3])))
                   for u in doc["unplaced"]]
+        lines.append("")
+    if doc.get("unevidenced"):
+        lines += ["## Shipped ids no evidence source records — %d" % len(doc["unevidenced"]), "",
+                  "Not seen on the auction house, at a vendor or anywhere else the run's evidence covers.",
+                  "Reported, never ruled: absence from one account's AH scans is no proof an item is gone.", ""]
+        lines += ["- %s `%s` %s" % (u["list"], u["id"], _cell(u["name"])) for u in doc["unevidenced"]]
+        lines.append("")
+    ghosts = [g for g in doc.get("ghosts", ()) if g.get("why", "no source") == "no source"]
+    zoned = [g for g in doc.get("ghosts", ()) if g.get("why") == "restricted"]
+    if ghosts:
+        lines += ["## DB2-only items left out of the window — %d" % len(ghosts), "",
+                  "The list's subclass and rule take them, but no evidence says a player can get them (no",
+                  "vendor, auction house, drop, quest, container, recipe or probe record). Reported, never ruled.", ""]
+        lines += ["- %s `%d` %s (required level %d)" % (g["list"], g["id"], _cell(g["name"]), g["req"]) for g in ghosts]
+        lines.append("")
+    if zoned:
+        lines += ["## Zone-restricted items left out of the window — %d" % len(zoned), "",
+                  "Their own text confines them to one zone or battleground. Reported, never ruled.", ""]
+        lines += ["- %s `%d` %s (required level %d)" % (g["list"], g["id"], _cell(g["name"]), g["req"]) for g in zoned]
         lines.append("")
     return "\n".join(lines)
 
@@ -841,15 +1361,29 @@ def derive_doc(flavor: str, b: Build, lists: List[dict], build: str, date: str) 
     cands, unplaced = candidates_for(flavor, b, lists)
     rows = []
     for lst in lists:
-        rule = ("window + rule" if (flavor == "retail" and (lst["list"] in RULES or lst["list"] == "STAT_PRIORITY"))
-                else NO_RULE.get(lst["list"], "flags only") if flavor == "retail"
-                else "flags only: empty by decision (owner ruling 2026-11-08)")
         rows.append({"list": lst["list"], "shipped": len(lst["records"]),
                      "flags": sum(1 for f in flags if f["list"] == lst["list"]),
-                     "candidates": sum(1 for c in cands if c["list"] == lst["list"]), "rule": rule})
-    return {"flavor": flavor, "product": PRODUCTS[flavor], "build": build, "date": date,
-            "tool": "tools/seeds/seeds.py derive", "lists": rows, "candidates": cands, "flags": flags,
-            "unplaced": unplaced}
+                     "candidates": sum(1 for c in cands if c["list"] == lst["list"]),
+                     "rule": rule_label(flavor, lst["list"])})
+    doc = {"flavor": flavor, "product": PRODUCTS[flavor], "build": build, "date": date,
+           "tool": "tools/seeds/seeds.py derive", "lists": rows, "candidates": cands, "flags": flags,
+           "unplaced": unplaced}
+    if b.evidence is not None:
+        doc["ghosts"] = ghosts_for(flavor, b, lists)
+        doc["unevidenced"] = [{"list": lst["list"], "id": r["id"], "name": b.items.get(r["id"], {}).get("name", "")}
+                              for lst in lists for r in lst["records"]
+                              if r["kind"] == "item" and not b.tags_of(r["id"])]
+    return doc
+
+
+def rule_label(flavor: str, key: str) -> str:
+    if flavor == "retail":
+        if key in RULES or key == "STAT_PRIORITY":
+            return "window + rule"
+        return NO_RULE.get(key, "flags only")
+    if key in FOREVER_RULES:
+        return "window + rule (Forever subclasses, sourced items, top tier per band)"
+    return "flags only"
 
 
 def load_candidates(bundle: Path) -> dict:
@@ -965,7 +1499,7 @@ def edit_seed_file(path: Path, client: str, seed: str, adds: List[dict], drops: 
     for c in adds:
         if c["id"] in have:
             continue
-        new.append("%s%s,  -- %s; %s" % (indent, c["id"], c["name"], note))
+        new.append("%s%s,  -- %s" % (indent, c["id"], provenance(c, note)))
         changes.append("%s %s: +%s" % (seed, client, c["id"]))
     if changes:
         out = [line for i, line in enumerate(lines[:block["close"]]) if i not in kill] + new + lines[block["close"]:]
@@ -973,19 +1507,32 @@ def edit_seed_file(path: Path, client: str, seed: str, adds: List[dict], drops: 
     return changes
 
 
-def edit_classifier(path: Path, table: str, adds: List[dict], drops: List[str], note: str) -> List[str]:
+def provenance(c: dict, note: str) -> str:
+    """An accepted id's comment: its name, the run, and (issue #46) the sources it was seen at."""
+    text = "%s; %s" % (c["name"], note)
+    if c.get("evidence"):
+        text += "; Evidence: " + evidence_label(c["evidence"])
+    return text
+
+
+def edit_classifier(path: Path, table: str, adds: List[dict], drops: List[str], note: str,
+                    client: str = ANY_CLIENT) -> List[str]:
+    """Insert `adds` into (and delete `drops` from) the whitelist block the client reads: its own
+    block of a per-client table, else the shared table."""
     text = path.read_bytes().decode("utf-8")
     lines, nl = split_lines(text)
-    found = classifier_tables(text).get(table)
+    found = classifier_block(classifier_tables(text), table, client)
     if found is None:
         raise SystemExit("%s has no local %s table." % (path, table))
+    if adds and found["open"] == found["close"]:
+        raise SystemExit("%s: %s's %s block is written inline; open it by hand first." % (path, table, client))
     have = {str(r["id"]): r for r in found["records"]}
     kill = {have[d]["line"] for d in drops if d in have}
     changes = ["%s: -%s" % (table, d) for d in drops if d in have]
     new = []
     for c in adds:
         if c["id"] not in have:
-            new.append("    [%s] = true,  -- %s; %s" % (c["id"], c["name"], note))
+            new.append("%s[%s] = true,  -- %s" % (found["indent"], c["id"], provenance(c, note)))
             changes.append("%s: +%s" % (table, c["id"]))
     if changes:
         out = [line for i, line in enumerate(lines[:found["close"]]) if i not in kill] + new + lines[found["close"]:]
@@ -1008,13 +1555,13 @@ def apply_bundle(doc: dict, rulings: dict, date: str, defaults: Path = DEFAULTS,
         by_list[f["list"]][1].append(f["id"])
     for key, (adds, drops) in sorted(by_list.items()):
         if key in tables:
-            changes += edit_classifier(classifier, tables[key], adds, drops, note)
+            changes += edit_classifier(classifier, tables[key], adds, drops, note, flavor)
             continue
         if key not in files:
             raise SystemExit("apply: no seed file declares KCM.SEED.%s." % key)
         changes += edit_seed_file(files[key], flavor, key, adds, drops, note)
         if adds and key in CLASSIFIER_SYNC:
-            changes += edit_classifier(classifier, CLASSIFIER_SYNC[key], adds, [], note)
+            changes += edit_classifier(classifier, CLASSIFIER_SYNC[key], adds, [], note, flavor)
     return changes
 
 
@@ -1106,7 +1653,16 @@ def cmd_derive(args) -> int:
     log("Deriving %s against build %s" % (flavor, build))
     tables = bundle_tables(flavor, args.bundle, build, args.replay, args.cache_dir)
     b = Build(tables)
-    doc = derive_doc(flavor, b, checked_lists(flavor), build, args.date)
+    if args.replay:
+        evidence = load_evidence(args.bundle)
+    elif args.evidence:
+        evidence = build_evidence(args.evidence, b)
+        write_json(args.bundle / EVIDENCE_FILE, evidence)
+    else:
+        evidence = None
+    attach_evidence(b, evidence)
+    lists = checked_lists(flavor)
+    doc = derive_doc(flavor, b, lists, build, args.date)
     if args.replay and (args.bundle / "candidates.json").exists():
         if load_candidates(args.bundle) != json.loads(json.dumps(doc)):
             raise SystemExit("--replay: the re-derivation differs from %s/candidates.json, so the seeds have moved "
@@ -1116,7 +1672,8 @@ def cmd_derive(args) -> int:
         return 0
     write_json(args.bundle / "candidates.json", doc)
     if not args.replay:
-        write_text(args.bundle / "SOURCES.md", format_sources(flavor, build, created, args.date))
+        write_text(args.bundle / "SOURCES.md", format_sources(flavor, build, created, args.date)
+                   + "\n".join(format_evidence(doc, evidence, b, lists)))
     write_text(args.bundle / "DIFF.md", format_diff(doc))
     unruled = unruled_keys(doc, load_rulings(args.rulings or rulings_path(flavor)))
     for row in doc["lists"]:
@@ -1191,6 +1748,8 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
     derive.add_argument("--date", type=_date, required=True)
     derive.add_argument("--build", help="pin this build instead of the live one")
     derive.add_argument("--replay", action="store_true", help="read only the bundle's raw/, no network")
+    derive.add_argument("--evidence", type=Path, action="append",
+                        help="an evidence TSV (<itemID>\\t<source>\\t<kind>), frozen into evidence.json; repeatable")
     rule = sub.add_parser("rule", help="record rulings (the only writer of the rulings file)")
     rule.add_argument("--bundle", type=Path, required=True)
     rule.add_argument("--key", action="append")

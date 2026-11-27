@@ -193,6 +193,12 @@ function P.RecomputeOne(catKey, scoreCache, reason)
         -- so any item that overlaps multiple categories isn't re-parsed).
         return KCM.MacroManager.SetCompositeMacro(cat, scoreCache)
     end
+    if cat.poison and KCM.Poison then
+        -- The rogue poison category (issue #47): one key, a model per client,
+        -- owned by modules/Poison.lua -- Forever's per-hand family picks, or
+        -- Retail's next missing poison spell.
+        return KCM.Poison.Recompute(cat, scoreCache)
+    end
     if cat.perHand then
         -- Per-hand categories (weapon enchants) don't have one "best" pick;
         -- each equipped weapon gets its own affinity-filtered pick and the
@@ -248,9 +254,9 @@ local function runMacroPass(reason)
     local rewrote, skipped, total, held, failed = 0, 0, 0, 0, 0
     for _, cat in ipairs(KCM.Categories.LIST) do
         -- Isolate each category so one bad scorer can't break the other
-        -- fourteen macros. One pcall per category per recompute (15 per
+        -- fifteen macros. One pcall per category per recompute (16 per
         -- frame at peak — `KCM.Categories.LIST` in defaults/Categories.lua
-        -- carries 13 consumable categories plus HP_AIO and MP_AIO) is cheap.
+        -- carries 14 single categories plus HP_AIO and MP_AIO) is cheap.
         total = total + 1
         local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
         if not ok then
@@ -316,9 +322,9 @@ function P.Recompute(reason)
     -- runs whenever a recompute does. While the addon is disabled no recompute
     -- arrives, though: the stand-down drops GET_ITEM_INFO_RECEIVED
     -- (UnregisterAllEvents, core/LifecycleSetup.lua) and the options bus
-    -- target's PANEL_REFRESH (settings/OptionsShim.lua). So item rows in a
-    -- panel opened in a fresh session while disabled stay `[Loading]` until
-    -- re-enable (docs/ARCHITECTURE.md, Known Limitations). Macros keep their
+    -- target's PANEL_REFRESH (settings/OptionsShim.lua). An item row in a
+    -- panel opened while disabled hydrates itself instead, through a one-shot
+    -- LoadItem (KCM.HydrateItem, core/ItemSetup.lua, #40). Macros keep their
     -- last-written body until standUp's RequestRecompute
     -- (core/LifecycleSetup.lua) runs on the off->on transition.
     if macrosEnabled() then
@@ -841,6 +847,12 @@ function KCM:OnRegenEnabled(event)
     if KCM.MacroManager and KCM.MacroManager.FlushPending then
         flushed, still = KCM.MacroManager.FlushPending()
     end
+    -- A poison that fell off mid-fight was never read (aura reads wait for the
+    -- combat to end, modules/Poison.lua), so the Retail poison macro catches up
+    -- here -- with one pass, and only when its next cast actually moved.
+    if KCM.Poison and KCM.Poison.AuraChanged and KCM.Poison.AuraChanged() then
+        requestRecompute("regen_poison")
+    end
     -- `held` is what the flush could not apply (a failed write kept for retry):
     -- a hold that never empties is visible here, not only in /cm diagnostics.
     traceEvent(event or "PLAYER_REGEN_ENABLED", " flushed=%s held=%s", flushed, still or 0)
@@ -921,6 +933,24 @@ function KCM:OnLearnedSpell()
     requestRecompute("learned_spell")
 end
 
+-- The player's own auras moved (Retail only, KCM.EVENTS): the poison macro is
+-- rebuilt when its next cast changed. UNIT_AURA fires for every unit in the
+-- group, so the unit test comes first; the aura reads behind AuraChanged are
+-- out of combat only and cost no pass when nothing moved.
+function KCM:OnUnitAura(event, unit)
+    if unit ~= "player" then return end
+    if KCM.Poison and KCM.Poison.AuraChanged and KCM.Poison.AuraChanged() then
+        requestRecompute("unit_aura")
+    end
+end
+
+-- A talent loadout was saved (Retail only): Dragon-Tempered Blades and the
+-- talented poisons change what the poison macro may cast.
+function KCM:OnTalentsChanged(event)
+    traceEvent(event or "TRAIT_CONFIG_UPDATED")
+    requestRecompute("talents")
+end
+
 function KCM:OnEquipmentChanged(event, slotID)
     -- Only main hand (16) / off hand (17) swaps affect the per-hand weapon
     -- enchant pick; every other equipment slot is a no-op here.
@@ -931,7 +961,10 @@ function KCM:OnEquipmentChanged(event, slotID)
 end
 
 -- THE REGISTRATION LIST, and the one place it is written down: { event, handler
--- method } pairs, in registration order. KCM:OnEnable walks it, the latch's
+-- method } pairs, in registration order. A pair carrying a third field, its
+-- `clients` (clients-§4), is gated at registration through KCM.ClientEvents
+-- below: on a client it does not name it is never registered, not registered
+-- and then ignored. KCM:OnEnable walks it, the latch's
 -- `standUp` CALLS OnEnable rather than copying it, and `standDown` drops the lot
 -- with UnregisterAllEvents, so the two can never name different sets. `/cm dump
 -- events` renders from it too.
@@ -952,7 +985,24 @@ KCM.EVENTS = {
     { "MERCHANT_CLOSED",               "OnProbeEvent" },
     { "AUCTION_HOUSE_SHOW",            "OnProbeEvent" },
     { "AUCTION_HOUSE_CLOSED",          "OnProbeEvent" },
+    -- Retail's poison macro (issue #47, modules/Poison.lua): the buffs it
+    -- keeps up, and the talents that decide which it may cast. WoW Forever's
+    -- poison macro does not depend on what is applied, so it registers neither.
+    { "UNIT_AURA",                     "OnUnitAura",       { "retail" } },
+    { "TRAIT_CONFIG_UPDATED",          "OnTalentsChanged", { "retail" } },
 }
+
+--- The pairs of KCM.EVENTS this client registers: every pair with no `clients`,
+--- and each that names this client. Asked at registration time (OnEnable, and
+--- `/cm dump events`), because this file loads ahead of core/Compat.lua.
+function KCM.ClientEvents()
+    local admit = KCM.Compat and KCM.Compat.ForClient
+    local out = {}
+    for _, pair in ipairs(KCM.EVENTS) do
+        if pair[3] == nil or (admit and admit(pair[3])) then out[#out + 1] = pair end
+    end
+    return out
+end
 
 -- The names the client refused, each once, for the whole session. The addon's
 -- ONE rejected list (events-frames-taint-§1): every KCM.SafeRegisterEvent call
@@ -973,7 +1023,7 @@ KCM.RejectedEvents = KCM.RejectedEvents or {}
 -- skipped; the trade is written up in docs/midnight-quirks.md.
 function KCM:OnEnable()
     if KCM.IsStoodDown and KCM.IsStoodDown() then return end
-    for _, e in ipairs(KCM.EVENTS) do
+    for _, e in ipairs(KCM.ClientEvents()) do
         KCM.SafeRegisterEvent(self, e[1], e[2], KCM.RejectedEvents)
     end
 end

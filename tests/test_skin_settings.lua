@@ -127,7 +127,7 @@ test("Skin settings: every AceGUI widget a settings file acquires goes through K
         end
     end
     t.eq(table.concat(raw, ", "), "", "no raw AceGUI:Create in settings/")
-    t.eq(routed, 18, "the eighteen acquisitions are routed")
+    t.eq(routed, 19, "the nineteen acquisitions are routed")
 end)
 
 -- red under: KCM.SkinAcquire losing its KCM.SkinPaintAce (the raw handle paints nothing itself).

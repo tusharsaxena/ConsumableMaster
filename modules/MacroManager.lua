@@ -601,6 +601,18 @@ function M.SetWeaponEnchantMacro(cat, mhPick, ohPick)
     return commitMacro(cat.macroName, body, iconItemID, cat.key)
 end
 
+-- Retail's poison macro (issue #47, modules/Poison.lua): the one poison spell to cast next, as
+-- any spell pick is written; with none, `idle` says every wanted poison is already up, and the
+-- body is the category's idleText rather than its empty-state line (a rogue with nothing left to
+-- apply is not a character with no poison). Both no-pick bodies take the empty-state icon.
+function M.SetPoisonMacro(cat, pick, idle)
+    if not cat then return "error", "no category" end
+    if pick then return M.SetMacro(cat.macroName, pick, cat.key) end
+    if not KCM.db or not KCM.db.profile then return "error", "db not ready" end
+    local body = (idle and cat.idleText) or buildEmptyBody(cat)
+    return commitMacro(cat.macroName, body, nil, cat.key)
+end
+
 -- ---------------------------------------------------------------------------
 -- SetCompositeMacro — write the body for a composite category (KCM_HP_AIO,
 -- KCM_MP_AIO). Mirrors SetMacro's guard ladder (size limit, fingerprint cache,

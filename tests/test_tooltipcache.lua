@@ -114,7 +114,7 @@ test("TooltipCache: weaponAffinity from bladed/blunt/plain phrasing", function(t
     t.eq(oil.weaponAffinity, "any", "plain 'your weapon' -> any")
 end)
 
-test("TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff", function(t)
+h.retailTest("TooltipCache: parses 'Primary Stat' as a PRIMARY stat buff", function(t)
     local TC, mock = newTC()
     local rune = parse(TC, mock, 243191, {
         "Ethereal Augment Rune",

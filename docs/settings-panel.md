@@ -45,9 +45,9 @@ asserts the Profiles page draws **no** strip, rather than merely skipping it.
 
 The **Macros** page is why the strip exists here at all. Every macro category used to be its own
 `RegisterCanvasLayoutSubcategory` entry — fifteen rows in the AddOns sidebar for fifteen variations on
-one surface, and eighteen sub-pages in all. They are one page with fifteen tabs now, and the sidebar
+one surface, and eighteen sub-pages in all. They are one page with a tab per category now (sixteen on either client since the poison category), and the sidebar
 is down to five entries, the Profiles page among them. The strip is **generated** from `KCM.Categories.LIST` in
-`KCM.Settings.macroOrder`, exactly as the fifteen builders were: a sixteenth category is a row in
+`KCM.Settings.macroOrder`, exactly as the fifteen builders were: a new category is a row in
 `Categories.LIST` plus a key in `macroOrder`, and it gets a tab for free. There is no hand-written tab
 list, for the reason `options-ui-§13` gives against one — a list declared apart from the data goes
 stale the first time a category is renamed and nothing says so.
@@ -69,7 +69,7 @@ reorder list (the Macro Bar's Buttons tab among them) must be released *before* 
 which `RenderTabbedSchema`'s own tab click gives the host no hook to do.
 
 **The strip's geometry does not depend on which tab is selected** (`options-ui-§13`,
-anti-patterns #70). The strips here wrap — fifteen tabs on Macros, seven on Macro Bar —
+anti-patterns #70). The strips here wrap — sixteen tabs on Macros, seven on Macro Bar —
 and the reserved chrome band and every wrapped row's offset are the same numbers for every value of
 the selection. The pitch is measured once, from the **unselected** tab art, which no click can
 change. Every strip is the library's `O.TabStrip`, so that is the library's to get right, and its own
@@ -81,7 +81,7 @@ what stays here is which tabs each page draws, in what order.
 anything when no spec could be resolved; the strip is drawn first now and the empty state is content
 inside the page. The Macros page had the same shape one step further in — it returned before the strip
 whenever the category list came back empty — and it is gone for the same reason: the guard was
-unreachable in the shipped configuration (`Categories.LIST` is a constant of fifteen), but
+unreachable in the shipped configuration (`Categories.LIST` is a constant of sixteen), but
 *unreachable today* is not *cannot render strip-less*, and the second is the rule. With no tabs the
 library's own `#spec.tabs > 0` guard declines to draw one, because a zero-tab strip is not a strip;
 the decision is the library's on the same terms for all nine addons rather than a host branch that
@@ -147,9 +147,9 @@ own UI and last in every Ka0s addon that ships one.
 | Page | Strip | Covers |
 |---|---|---|
 | **General** | 3 tabs, drawn by `RenderTabbedSchema` | **Master controls** (the canonical set, `options-ui-§15`; the page's one schema group), **Maintenance** (Force resync, Force rewrite macros, Reset all priorities…; a host tab with no rows) and **Skin** (the library's tab over the seven `skin.*` rows, last; [below](#the-general-pages-skin-tab)). Maintenance was a subsection under the canonical block until 2026-09-09; it is its own tab now, which `options-ui-§15` permits because it forbids splitting only the *canonical set* and these three were never in it. Master controls stays first, which `options-ui-§15` does require. |
-| **Macros** | 15 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
-| **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list |
-| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 75 of the addon's 98 schema rows live here |
+| **Macros** | 16 tabs | One tab per macro category — the per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets. The whole subject of the addon |
+| **Stat Priority** | 1 tab + banner | Per-spec stat ordering: the spec picker in the page banner, then the primary stat and the draggable secondary list (Retail), or one draggable list over every Forever stat (WoW Forever) |
+| **Macro Bar** | 7 tabs, host-built ([#41](https://github.com/tusharsaxena/ConsumableMaster/issues/41)) | The optional on-screen macro bar — 75 of the addon's 101 schema rows (99 on WoW Forever) live here |
 | **Profiles** | none (`options-ui-§13` exemption) | AceDBOptions' create / switch / copy / reset / delete and the scope choices, drawn by AceConfigDialog. No schema rows and no Defaults button. Every setting on the four pages above is in the profile, so a switch moves all of it ([profiles.md](./profiles.md)) |
 
 ### The General page's Master controls tab
@@ -357,15 +357,29 @@ Augment Rune; then the three that are set once per tier and left.
 |---|---|---|
 | 1-5 | **Food** · **Drink** · **Healing Potion** · **Mana Potion** · **Healthstone** | Per-category priority list, add-by-ID, and the discovered/added/blocked/pinned sets |
 | 6-7 | **AIO Health** · **AIO Mana** | The two composite buckets, which draw their members from the tabs above |
-| 8-12 | **Flask** · **Combat Potion** · **Stat Food** · **Weapon Enchant** · **Augment Rune** | Spec-aware categories — the same per-category surface, resolved against the spec named in the Stat Priority banner |
-| 13-15 | **Vantus Rune** · **Bloodlust** · **Battle Rez** | Remaining categories, same surface |
+| 8-11 | **Flask** · **Combat Potion** · **Stat Food** · **Weapon Enchant** | Spec-aware categories — the same per-category surface, resolved against the spec named in the Stat Priority banner |
+| 12 | **Poison** | The rogue poison tab (issue #47); its shape is the client's model, below |
+| 13-16 | **Augment Rune** · **Vantus Rune** · **Bloodlust** · **Battle Rez** | Remaining categories, same surface |
 
 That is Retail's strip. The run in `settings/Panel.lua` names every client's categories and is
-filtered by `KCM.Categories.BY_KEY`, so WoW Forever's fifteen tabs are **Food** · **Drink** ·
+filtered by `KCM.Categories.BY_KEY`, so WoW Forever's sixteen tabs are **Food** · **Drink** ·
 **Healing Potion** · **Mana Potion** · **Healthstone** · **Bandage**, then **AIO Health** ·
 **AIO Mana**, then **Flask** · **Elixir** · **Combat Potion** · **Protection Potion** · **Stat Food** ·
-**Scroll** · **Weapon Enchant**: each Forever-only category beside its nearest kin, and no Vantus,
+**Scroll** · **Weapon Enchant** · **Poison**: each Forever-only category beside its nearest kin, and no Vantus,
 Augment Rune, Bloodlust or Battle Rez tab.
+
+**The Poison tab is per client** (`settings/CategoryPoison.lua`, which also declares the tab's rows
+for the running model only). On **WoW Forever** it is a single-category tab with one row more under
+**Macro**: two dropdowns, *Main hand poison* and *Off hand poison*, over the five vanilla families
+(the `categories.POISON.mainHand` / `offHand` rows), and a line saying how a hand picks. The priority
+list below is the ranks the hands pick from, and its legend is the per-hand one (*picked (MH/OH) in
+macro*) without Weapon Enchant's affinity line, because a poison fits any weapon. On **Retail** the
+file draws the whole tab, in the composite tabs' shape: **Macro** (the drag icon, a sentence on what
+the macro casts and the *known / not known* key), then **Lethal** and **Non-lethal**, each its own
+draggable list of the poison spells with an **In macro** check box per row (the
+`categories.POISON.lethal` / `nonLethal` order rows and the `enabled` flag map), then **Reset
+category…**, which puts the model's rows back to the shipped values (and, on Forever, clears the
+list's own edits as every single tab's reset does).
 
 Tabs are labeled with each category's `displayName`, never its `shortName`: `shortName` exists for
 the macro bar's 32px buttons, where "Brez" and "Rune" are the only thing that fits, and a tab reading
@@ -455,6 +469,15 @@ is what let `Bar` through.
 ### The Stat Priority page
 
 One tab, **Priority**, under the spec banner.
+
+**The page's shape is per client** (issue #48). It reads `SpecHelper.STATS` (`core/SpecHelper.lua`,
+picked once by `KCM.PerClient`) and never asks which client it is on. On **Retail** it is the primary
+dropdown and the four secondaries below. On **WoW Forever** there is no primary dropdown: a **Stats**
+section holds ONE draggable list over all seventeen Forever stats (Strength, Agility, Intellect,
+Stamina, Spirit, Attack Power, Spell Damage, Fire/Frost/Shadow Spell Damage, Healing, Hit Chance,
+Critical Strike, Armor, Maximum Health, Maximum Mana, Mana per 5 sec), the shipped order first and the
+excluded stats in the dimmed tail. Rows, glyphs, drag and the boundary are the same widget and the same
+rules as Retail's secondary list; a write stores `{ ranked = { ... } }`.
 
 - **Primary stat** — one dropdown spanning **both** columns. It used to be a half-cell paired with an
   invisible one, which is `wide` written out by hand.
@@ -616,9 +639,10 @@ Two different paths, and the difference is what a row shape can express.
 `settings/Panel.lua` and appended to by the page files. One row is simultaneously three things: the
 widget on its page, the `/cm list|get|set|reset <path>` CLI entry (`settings/Slash.lua` hands the
 whole array to LibKa0s-Slash-1.0 as `allRows`), and the validator applied on write by the
-`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **98**: 75 `macroBar.*` rows on the Macro Bar page, 15 on the
-General page (7 in its Master controls block and the 8 `skin.*` rows), 7 on the Macros page and 1 on
-the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven
+`SetAndRefresh` → LibKa0s-Schema-1.0 seam (`Helpers.schema`). There are **101** on Retail (**99** on WoW Forever): 75 `macroBar.*` rows on the Macro Bar page, 15 on the
+General page (7 in its Master controls block and the 8 `skin.*` rows), 10 on the Macros page on Retail
+(8 on Forever: no `categories.BATTLE_REZ.mouseover`, and the Poison tab's 2 rows from
+`settings/CategoryPoison.lua` instead of 3) and 1 on the Stat Priority page. The eight `skin.*` rows are `skipRender`: the library's Skin tab draws seven
 of them and nothing draws `skin.pickerSeen`. Ten more
 are drawn by bespoke controls rather than by the row engine: the whole-value `order` and
 `map` rows (the bar's slot order and visibility, stat priority, each composite's flags and section

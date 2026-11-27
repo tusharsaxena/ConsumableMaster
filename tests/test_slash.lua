@@ -107,14 +107,14 @@ test("/cm priority add accepts a spell sentinel (s:ID)", function(t)
     t.truthy(found, "spell entry added via s: syntax")
 end)
 
-test("/cm stat primary sets the current spec's primary stat", function(t)
+h.retailTest("/cm stat primary sets the current spec's primary stat", function(t)
     local KCM = load()
     KCM:OnSlashCommand("stat primary INT")
     local _, _, key = KCM.SpecHelper.GetCurrent()   -- "7_263"
     t.eq(KCM.db.profile.statPriority[key].primary, "INT", "primary set for current spec")
 end)
 
-test("/cm stat primary resolves a CLASS:SPEC token", function(t)
+h.retailTest("/cm stat primary resolves a CLASS:SPEC token", function(t)
     local KCM = load()
     KCM:OnSlashCommand("stat primary STR SHAMAN:ENHANCEMENT")   -- 7:263
     t.eq(KCM.db.profile.statPriority["7_263"].primary, "STR", "CLASS:SPEC token resolved")
@@ -234,7 +234,7 @@ test("/cm help prints the help table", function(t)
     end
 end)
 
-test("/cm lower-cases only the verb, leaving arguments alone", function(t)
+h.retailTest("/cm lower-cases only the verb, leaving arguments alone", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "VERSION")
     t.truthy(text:find("v" .. tostring(KCM.VERSION), 1, true), "an upper-case verb still dispatches")
@@ -520,7 +520,7 @@ end)
 -- /cm stat
 -- ---------------------------------------------------------------------------
 
-test("/cm stat with no sub-verb prints the stat help", function(t)
+h.retailTest("/cm stat with no sub-verb prints the stat help", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "stat")
     for _, verb in ipairs({ "list", "primary", "secondary", "reset" }) do
@@ -529,7 +529,7 @@ test("/cm stat with no sub-verb prints the stat help", function(t)
     t.truthy(text:find("CLASS:SPEC", 1, true), "the spec-key syntax is explained")
 end)
 
-test("/cm stat list prints the resolved priority for the current spec", function(t)
+h.retailTest("/cm stat list prints the resolved priority for the current spec", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "stat list")
     local p = KCM.SpecHelper.GetStatPriority("7_263")
@@ -537,14 +537,14 @@ test("/cm stat list prints the resolved priority for the current spec", function
     t.truthy(text:find("secondary:", 1, true), "secondary list is shown")
 end)
 
-test("/cm stat primary rejects a stat that is not a primary", function(t)
+h.retailTest("/cm stat primary rejects a stat that is not a primary", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "stat primary CRIT")
     t.truthy(text:find("Usage: /cm stat primary", 1, true), "CRIT is a secondary stat, not a primary")
     t.eq(KCM.db.profile.statPriority["7_263"], nil, "nothing is written")
 end)
 
-test("/cm stat secondary stores an ordered, deduplicated list", function(t)
+h.retailTest("/cm stat secondary stores an ordered, deduplicated list", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "stat secondary HASTE,CRIT,HASTE")
     t.eqList(KCM.db.profile.statPriority["7_263"].secondary, { "HASTE", "CRIT" },
@@ -552,14 +552,14 @@ test("/cm stat secondary stores an ordered, deduplicated list", function(t)
     t.truthy(text:find("HASTE, CRIT", 1, true), "the stored order is echoed back")
 end)
 
-test("/cm stat secondary rejects the whole list if any stat is unknown", function(t)
+h.retailTest("/cm stat secondary rejects the whole list if any stat is unknown", function(t)
     local KCM, mock = load()
     local text = say(KCM, mock, "stat secondary CRIT,BOGUS")
     t.truthy(text:find("Unknown secondary stat(s): BOGUS", 1, true), "names the offender")
     t.eq(KCM.db.profile.statPriority["7_263"], nil, "and writes nothing at all")
 end)
 
-test("/cm stat secondary preserves the existing primary", function(t)
+h.retailTest("/cm stat secondary preserves the existing primary", function(t)
     local KCM = load()
     KCM:OnSlashCommand("stat primary AGI")
     KCM:OnSlashCommand("stat secondary CRIT")
@@ -567,7 +567,7 @@ test("/cm stat secondary preserves the existing primary", function(t)
         "editing one half of the override does not blank the other")
 end)
 
-test("/cm stat reset drops the override and falls back to the seed", function(t)
+h.retailTest("/cm stat reset drops the override and falls back to the seed", function(t)
     local KCM, mock = load()
     KCM:OnSlashCommand("stat primary STR")
     local text = say(KCM, mock, "stat reset")
@@ -843,7 +843,7 @@ test("/cm dump pick on a composite renders both sections with on/off tags", func
     t.truthy(text:find("(no pick)", 1, true), "and a ref with nothing owned resolves to (no pick)")
 end)
 
-test("/cm dump pick on a spec-aware category prints the spec context first", function(t)
+h.retailTest("/cm dump pick on a spec-aware category prints the spec context first", function(t)
     local KCM, mock = load()
     local _, _, specKey, specName = KCM.SpecHelper.GetCurrent()
     local text = report(KCM, mock, "dump pick flask")

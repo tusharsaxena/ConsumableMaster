@@ -105,6 +105,9 @@ read_globals = {
     -- Namespaced client tables
     "C_Spell", "C_Item", "C_Container", "C_TooltipInfo", "C_Timer",
     "C_AddOns", "C_TradeSkillUI", "C_SettingsUtil", "C_CVar",
+    -- Retail's poison macro reads the player's own poison buffs, out of combat and
+    -- through pcall (modules/Poison.lua, issue #47).
+    "C_UnitAuras",
     -- The seed probe (core/SeedProbe.lua, core/SeedProbeStore.lua): the merchant and
     -- auction-house reads, the zone and the client build.
     "C_MerchantFrame", "C_AuctionHouse", "C_Map", "GetMerchantNumItems", "GetMerchantItemID",

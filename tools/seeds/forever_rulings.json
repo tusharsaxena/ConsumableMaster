@@ -1,4 +1,1936 @@
 {
+  "BANDAGE:1251": {
+    "reason": "behind 2581 (Heavy Linen Bandage) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:14529": {
+    "reason": "behind 14530 (Heavy Runecloth Bandage) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:14530": {
+    "reason": "top tier of band 40-49 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (vendor), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "BANDAGE:19307": {
+    "reason": "behind 14530 (Heavy Runecloth Bandage) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:23684": {
+    "reason": "behind 14530 (Heavy Runecloth Bandage) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:2581": {
+    "reason": "top tier of band 1-9 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "BANDAGE:3530": {
+    "reason": "behind 3531 (Heavy Wool Bandage) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:3531": {
+    "reason": "top tier of band 10-19 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "BANDAGE:6450": {
+    "reason": "behind 6451 (Heavy Silk Bandage) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:6451": {
+    "reason": "top tier of band 20-29 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "BANDAGE:8544": {
+    "reason": "behind 8545 (Heavy Mageweave Bandage) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "BANDAGE:8545": {
+    "reason": "top tier of band 30-39 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:13442": {
+    "reason": "top tier of band 40-49, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:20008": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:2459": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:250932": {
+    "reason": "top tier of band 1-9, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250933": {
+    "reason": "top tier of band 10-19, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250934": {
+    "reason": "top tier of band 20-29, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250935": {
+    "reason": "top tier of band 30-39, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250936": {
+    "reason": "top tier of band 40-49, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250937": {
+    "reason": "top tier of band 50-60, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250938": {
+    "reason": "top tier of band 1-9, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250939": {
+    "reason": "top tier of band 10-19, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250940": {
+    "reason": "top tier of band 20-29, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250941": {
+    "reason": "top tier of band 30-39, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250942": {
+    "reason": "top tier of band 40-49, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250943": {
+    "reason": "top tier of band 50-60, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250944": {
+    "reason": "top tier of band 1-9, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250945": {
+    "reason": "top tier of band 10-19, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250946": {
+    "reason": "top tier of band 20-29, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250947": {
+    "reason": "top tier of band 30-39, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250948": {
+    "reason": "top tier of band 40-49, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250949": {
+    "reason": "top tier of band 50-60, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "CMBT_POT:250950": {
+    "reason": "review 2026-11-27: no stat buff, a bleed-spreading utility potion (the stat reader misread its Nature damage as nature spell power); Defaults_CombatPot.lua seeds no utility potion",
+    "ruling": "reject"
+  },
+  "CMBT_POT:250953": {
+    "reason": "review 2026-11-27: no stat buff, a fire-damage cone (the stat reader misread its Fire damage as fire spell power); Defaults_CombatPot.lua seeds no utility potion",
+    "ruling": "reject"
+  },
+  "CMBT_POT:288898": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:3387": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:3823": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:5634": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:6372": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:9030": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "CMBT_POT:9172": {
+    "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
+    "ruling": "reject"
+  },
+  "DRINK:1179": {
+    "reason": "top tier of band 1-9 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, object, quest, vendor), AH, probe (ah, vendor))",
+    "ruling": "accept"
+  },
+  "DRINK:1205": {
+    "reason": "top tier of band 10-19 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, object, quest, vendor), AH, probe (ah, vendor))",
+    "ruling": "accept"
+  },
+  "DRINK:13724": {
+    "reason": "top tier of band 40-49 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, vendor), AH)",
+    "ruling": "accept"
+  },
+  "DRINK:1401": {
+    "reason": "behind 1179 (Ice Cold Milk) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:159": {
+    "reason": "behind 1179 (Ice Cold Milk) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:1645": {
+    "reason": "top tier of band 30-39 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah, vendor))",
+    "ruling": "accept"
+  },
+  "DRINK:1708": {
+    "reason": "top tier of band 20-29 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah, vendor))",
+    "ruling": "accept"
+  },
+  "DRINK:17404": {
+    "reason": "behind 1179 (Ice Cold Milk) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:18300": {
+    "reason": "behind 8079 (Conjured Crystal Water) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:19299": {
+    "reason": "behind 1205 (Melon Juice) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:19300": {
+    "reason": "behind 1645 (Moonberry Juice) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:19301": {
+    "reason": "behind 8079 (Conjured Crystal Water) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:20031": {
+    "reason": "behind 8079 (Conjured Crystal Water) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:21215": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:252027": {
+    "reason": "behind 1179 (Ice Cold Milk) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:252031": {
+    "reason": "behind 1179 (Ice Cold Milk) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:262433": {
+    "reason": "behind 8079 (Conjured Crystal Water) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:3448": {
+    "reason": "behind 1179 (Ice Cold Milk) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:4791": {
+    "reason": "behind 1708 (Sweet Nectar) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:8079": {
+    "reason": "top tier of band 50-60 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (vendor), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "DRINK:8766": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "DRINK:9451": {
+    "reason": "behind 1205 (Melon Juice) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:10592": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:12820": {
+    "reason": "top tier of band 40-49, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop), AH)",
+    "ruling": "accept"
+  },
+  "ELIXIR:13445": {
+    "reason": "top tier of band 40-49, stat DEF on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:13447": {
+    "reason": "behind 9179 (Elixir of Greater Intellect) in band 30-39, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:13452": {
+    "reason": "top tier of band 40-49, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, quest, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:13453": {
+    "reason": "top tier of band 40-49, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:13454": {
+    "reason": "top tier of band 40-49, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:17708": {
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:18294": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:20004": {
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:20007": {
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:21546": {
+    "reason": "top tier of band 40-49, stat SP_HOLY on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:217398": {
+    "reason": "behind 250342 (Lesser Arcane Elixir) in band 20-29, stat SP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:2454": {
+    "reason": "behind 6662 (Elixir of Giant Growth) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:2457": {
+    "reason": "top tier of band 1-9, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:2458": {
+    "reason": "top tier of band 1-9, stat HP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:246948": {
+    "reason": "behind 12820 (Winterfall Firewater) in band 40-49, stat AP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:247754": {
+    "reason": "top tier of band 1-9, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:247755": {
+    "reason": "top tier of band 1-9, stat DMG on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250327": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:250328": {
+    "reason": "top tier of band 50-60, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250329": {
+    "reason": "top tier of band 50-60, stat HP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250330": {
+    "reason": "top tier of band 1-9, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250331": {
+    "reason": "top tier of band 20-29, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250332": {
+    "reason": "top tier of band 40-49, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250333": {
+    "reason": "top tier of band 50-60, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250334": {
+    "reason": "top tier of band 40-49, stat HP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250335": {
+    "reason": "behind 250329 (Elixir of the Phalanx) in band 50-60, stat HP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:250336": {
+    "reason": "behind 250341 (Greater Mageblood Elixir) in band 50-60, stat MP5: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:250337": {
+    "reason": "top tier of band 50-60, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250338": {
+    "reason": "top tier of band 50-60, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250339": {
+    "reason": "top tier of band 1-9, stat MP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250340": {
+    "reason": "top tier of band 20-29, stat MP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250341": {
+    "reason": "top tier of band 50-60, stat MP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250342": {
+    "reason": "top tier of band 20-29, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250343": {
+    "reason": "top tier of band 50-60, stat SP_NATURE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250344": {
+    "reason": "top tier of band 1-9, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250345": {
+    "reason": "top tier of band 20-29, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250346": {
+    "reason": "top tier of band 40-49, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250347": {
+    "reason": "behind 250338 (Elixir of Sages) in band 50-60, stat SPI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:250348": {
+    "reason": "behind 250338 (Elixir of Sages) in band 50-60, stat SPI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:250349": {
+    "reason": "behind 13453 (Elixir of Brute Force) in band 40-49, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:250350": {
+    "reason": "behind 250351 (Elixir of the Grizzly) in band 50-60, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:250351": {
+    "reason": "top tier of band 50-60, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250353": {
+    "reason": "top tier of band 20-29, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:250354": {
+    "reason": "top tier of band 40-49, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:289082": {
+    "reason": "percent / haste buff: Forever's stat parser cannot weigh it (core/TooltipCache.lua); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:289083": {
+    "reason": "behind 247755 (Elixir of Minor Force) in band 1-9, stat DMG: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:289084": {
+    "reason": "behind 250330 (Minor Cleric's Elixir) in band 1-9, stat HEAL: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:289086": {
+    "reason": "percent / haste buff: Forever's stat parser cannot weigh it (core/TooltipCache.lua); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:289087": {
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:289321": {
+    "reason": "behind 250339 (Minor Mageblood Elixir) in band 1-9, stat MP5: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:289329": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:289334": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:3382": {
+    "reason": "top tier of band 1-9, stat HP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3383": {
+    "reason": "top tier of band 10-19, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3388": {
+    "reason": "top tier of band 10-19, stat HP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3389": {
+    "reason": "top tier of band 10-19, stat DEF on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3390": {
+    "reason": "top tier of band 10-19, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3391": {
+    "reason": "top tier of band 20-29, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3825": {
+    "reason": "top tier of band 20-29, stat HP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3826": {
+    "reason": "top tier of band 20-29, stat HP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:3828": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:5996": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:5997": {
+    "reason": "top tier of band 1-9, stat DEF on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:6373": {
+    "reason": "top tier of band 10-19, stat SP_FIRE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:6662": {
+    "reason": "top tier of band 1-9, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:8827": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:8949": {
+    "reason": "top tier of band 20-29, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:8951": {
+    "reason": "top tier of band 20-29, stat DEF on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:9088": {
+    "reason": "top tier of band 30-39, stat RESIST on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:9154": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:9155": {
+    "reason": "top tier of band 30-39, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:9179": {
+    "reason": "top tier of band 30-39, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:9187": {
+    "reason": "top tier of band 30-39, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "ELIXIR:9197": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:9206": {
+    "reason": "behind 13453 (Elixir of Brute Force) in band 40-49, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "ELIXIR:9224": {
+    "reason": "attack power against demons only: situational, not a default",
+    "ruling": "reject"
+  },
+  "ELIXIR:9233": {
+    "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
+    "ruling": "reject"
+  },
+  "ELIXIR:9264": {
+    "reason": "top tier of band 40-49, stat SP_SHADOW on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "FLASK:13506": {
+    "reason": "turns the drinker to stone: a utility flask, not a combat one (Defaults_Flask.lua header)",
+    "ruling": "reject"
+  },
+  "FLASK:13510": {
+    "reason": "top tier of band 50-60, stat HP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "FLASK:13511": {
+    "reason": "top tier of band 50-60, stat MANA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "FLASK:13512": {
+    "reason": "top tier of band 50-60, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "FLASK:13513": {
+    "reason": "top tier of band 50-60, stat RESIST on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "FOOD:11109": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:11415": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:11444": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:117": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:12238": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:1326": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:13546": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:13724": {
+    "reason": "top tier of band 40-49 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, vendor), AH)",
+    "ruling": "accept"
+  },
+  "FOOD:13755": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:13810": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:13893": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:16166": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:16167": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:16168": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:16169": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:16170": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:16171": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:1707": {
+    "reason": "top tier of band 20-29 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "FOOD:17119": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:17344": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:17406": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:17407": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:17408": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:18255": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:18632": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:18633": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:18635": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19223": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19224": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19225": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19301": {
+    "reason": "behind 22895 (Conjured Cinnamon Roll) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19304": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19305": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19306": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19994": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19995": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:19996": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:20031": {
+    "reason": "behind 22895 (Conjured Cinnamon Roll) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:2070": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:21030": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:21031": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:21033": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:21215": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:21235": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:21552": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:22324": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:2287": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:22895": {
+    "reason": "top tier of band 50-60 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (vendor), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "FOOD:23160": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:248613": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252022": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252023": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252026": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252028": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252029": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252030": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:252032": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:262433": {
+    "reason": "behind 22895 (Conjured Cinnamon Roll) in band 50-60: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:267474": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:2679": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278117": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278118": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278119": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278120": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278121": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278122": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:278265": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:3448": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:3770": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:3771": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:3927": {
+    "reason": "top tier of band 30-39 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "FOOD:414": {
+    "reason": "top tier of band 1-9 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, object, quest, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "FOOD:422": {
+    "reason": "top tier of band 10-19 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, quest, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "FOOD:4536": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4537": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4538": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4539": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4540": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4541": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4542": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4544": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4599": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4601": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4602": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4604": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4605": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4606": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4607": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4608": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:4656": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:5057": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:5066": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:5473": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:5478": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:6299": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:6807": {
+    "reason": "behind 1707 (Stormwind Brie) in band 20-29: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:7097": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:7228": {
+    "reason": "behind 422 (Dwarven Mild) in band 10-19: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:8932": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:8948": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:8950": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:8952": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:8953": {
+    "reason": "behind 13724 (Enriched Manna Biscuit) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:961": {
+    "reason": "behind 414 (Dalaran Sharp) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "FOOD:9681": {
+    "reason": "behind 3927 (Fine Aged Cheddar) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:118": {
+    "reason": "behind 2456 (Minor Rejuvenation Potion) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:12190": {
+    "reason": "puts the drinker to sleep: utility, not a direct heal or mana restore (Defaults_HPPot.lua header)",
+    "ruling": "reject"
+  },
+  "HP_POT:13446": {
+    "reason": "top tier of band 40-49 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, quest, recipe, vendor), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "HP_POT:1710": {
+    "reason": "top tier of band 20-29 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, recipe, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "HP_POT:18253": {
+    "reason": "top tier of band 50-60 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "HP_POT:23579": {
+    "reason": "behind 13446 (Major Healing Potion) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:241650": {
+    "reason": "a heal with a drawback (the drinker suffers part of it back over time): the header seeds a direct heal, so the band's plain potion is the one seeded",
+    "ruling": "reject"
+  },
+  "HP_POT:2456": {
+    "reason": "top tier of band 1-9 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "HP_POT:247239": {
+    "reason": "a heal with a drawback (the drinker suffers part of it back over time): the header seeds a direct heal, so the band's plain potion is the one seeded",
+    "ruling": "reject"
+  },
+  "HP_POT:247240": {
+    "reason": "a heal with a drawback (the drinker suffers part of it back over time): the header seeds a direct heal, so the band's plain potion is the one seeded",
+    "ruling": "reject"
+  },
+  "HP_POT:247241": {
+    "reason": "a heal with a drawback (the drinker suffers part of it back over time): the header seeds a direct heal, so the band's plain potion is the one seeded",
+    "ruling": "reject"
+  },
+  "HP_POT:247242": {
+    "reason": "a heal with a drawback (the drinker suffers part of it back over time): the header seeds a direct heal, so the band's plain potion is the one seeded",
+    "ruling": "reject"
+  },
+  "HP_POT:274935": {
+    "reason": "behind 3928 (Superior Healing Potion) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:288896": {
+    "reason": "behind 2456 (Minor Rejuvenation Potion) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:3928": {
+    "reason": "top tier of band 30-39 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, quest, recipe, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "HP_POT:4596": {
+    "reason": "a heal with a drawback (the drinker suffers part of it back over time): the header seeds a direct heal, so the band's plain potion is the one seeded",
+    "ruling": "reject"
+  },
+  "HP_POT:858": {
+    "reason": "behind 2456 (Minor Rejuvenation Potion) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:9144": {
+    "reason": "behind 3928 (Superior Healing Potion) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "HP_POT:929": {
+    "reason": "top tier of band 10-19 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, quest, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "HS:19004": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19005": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19006": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19007": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19008": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19009": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19010": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19011": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19012": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:19013": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:5509": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:5510": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:5511": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:5512": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "HS:9421": {
+    "reason": "every vanilla rank and its Improved Healthstone variants: HS matches on HEALTHSTONE_IDS alone, so a rank left out is never discovered (VANTUS precedent, 2026-11-15)",
+    "ruling": "accept"
+  },
+  "MP_POT:12190": {
+    "reason": "puts the drinker to sleep: utility, not a direct heal or mana restore (Defaults_HPPot.lua header)",
+    "ruling": "reject"
+  },
+  "MP_POT:13443": {
+    "reason": "behind 13444 (Major Mana Potion) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:13444": {
+    "reason": "top tier of band 40-49 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, quest, recipe, vendor), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "MP_POT:18253": {
+    "reason": "top tier of band 50-60 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "MP_POT:23578": {
+    "reason": "behind 13444 (Major Mana Potion) in band 40-49: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:2455": {
+    "reason": "top tier of band 1-9 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, quest, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "MP_POT:2456": {
+    "reason": "behind 2455 (Minor Mana Potion) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:274935": {
+    "reason": "behind 9144 (Wildvine Potion) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:288897": {
+    "reason": "behind 2455 (Minor Mana Potion) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:3087": {
+    "reason": "behind 2455 (Minor Mana Potion) in band 1-9: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:3385": {
+    "reason": "top tier of band 10-19 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "MP_POT:3827": {
+    "reason": "top tier of band 20-29 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "MP_POT:6149": {
+    "reason": "behind 9144 (Wildvine Potion) in band 30-39: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "MP_POT:9144": {
+    "reason": "top tier of band 30-39 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:13456": {
+    "reason": "top tier of band 40-49, school FROST on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:13457": {
+    "reason": "top tier of band 40-49, school FIRE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:13458": {
+    "reason": "top tier of band 40-49, school NATURE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:13459": {
+    "reason": "top tier of band 40-49, school SHADOW on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:13461": {
+    "reason": "top tier of band 40-49, school ARCANE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:6048": {
+    "reason": "top tier of band 10-19, school SHADOW on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:6049": {
+    "reason": "top tier of band 20-29, school FIRE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:6050": {
+    "reason": "top tier of band 20-29, school FROST on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:6051": {
+    "reason": "top tier of band 10-19, school HOLY on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "PROT_POT:6052": {
+    "reason": "top tier of band 20-29, school NATURE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "SCROLL:10305": {
+    "reason": "top tier of band 40-49, stat ARMOR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:10306": {
+    "reason": "top tier of band 40-49, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:10307": {
+    "reason": "top tier of band 50-60, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:10308": {
+    "reason": "top tier of band 50-60, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:10309": {
+    "reason": "top tier of band 50-60, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:10310": {
+    "reason": "top tier of band 50-60, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:1180": {
+    "reason": "top tier of band 1-9, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, quest, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:1181": {
+    "reason": "top tier of band 1-9, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:1477": {
+    "reason": "top tier of band 20-29, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:1478": {
+    "reason": "top tier of band 10-19, stat ARMOR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:1711": {
+    "reason": "top tier of band 20-29, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:1712": {
+    "reason": "top tier of band 10-19, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:213564": {
+    "reason": "no stat buff (a mana restore, run speed, language): not a stat scroll (Defaults_Scroll.lua header)",
+    "ruling": "reject"
+  },
+  "SCROLL:215257": {
+    "reason": "no stat buff (a mana restore, run speed, language): not a stat scroll (Defaults_Scroll.lua header)",
+    "ruling": "reject"
+  },
+  "SCROLL:2289": {
+    "reason": "top tier of band 20-29, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:2290": {
+    "reason": "behind 277493 (Scroll of Cat Familiar) in band 20-29, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "SCROLL:275069": {
+    "reason": "behind 955 (Scroll of Intellect) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "SCROLL:277483": {
+    "reason": "top tier of band 10-19, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:277493": {
+    "reason": "top tier of band 20-29, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:289088": {
+    "reason": "behind 1180 (Scroll of Stamina) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "SCROLL:289330": {
+    "reason": "no stat buff (a mana restore, run speed, language): not a stat scroll (Defaults_Scroll.lua header)",
+    "ruling": "reject"
+  },
+  "SCROLL:3012": {
+    "reason": "top tier of band 10-19, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:3013": {
+    "reason": "top tier of band 1-9, stat ARMOR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:4419": {
+    "reason": "top tier of band 30-39, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:4421": {
+    "reason": "top tier of band 30-39, stat ARMOR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:4422": {
+    "reason": "top tier of band 30-39, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:4424": {
+    "reason": "top tier of band 30-39, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:4425": {
+    "reason": "top tier of band 40-49, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:4426": {
+    "reason": "top tier of band 40-49, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, object, vendor), AH)",
+    "ruling": "accept"
+  },
+  "SCROLL:954": {
+    "reason": "top tier of band 10-19, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "SCROLL:955": {
+    "reason": "top tier of band 1-9, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, quest, vendor), AH, probe (ah))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:1017": {
+    "reason": "top tier of band 10-19, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (object, quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:1082": {
+    "reason": "top tier of band 1-9, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:10841": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:11584": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:12209": {
+    "reason": "behind 1017 (Seasoned Wolf Kabob) in band 10-19, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:12210": {
+    "reason": "top tier of band 10-19, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:12212": {
+    "reason": "top tier of band 30-39, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:12213": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:12214": {
+    "reason": "behind 3665 (Curiously Tasty Omelet) in band 10-19, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:12215": {
+    "reason": "behind 6038 (Giant Clam Scorcho) in band 20-29, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:12216": {
+    "reason": "behind 4457 (Barbecued Buzzard Wing) in band 20-29, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:12218": {
+    "reason": "top tier of band 30-39, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:12224": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:13851": {
+    "reason": "behind 3728 (Tasty Lion Steak) in band 20-29, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:13927": {
+    "reason": "behind 13932 (Poached Sunscale Salmon) in band 30-39, stat AP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:13928": {
+    "reason": "top tier of band 30-39, stat CRIT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:13929": {
+    "reason": "behind 13928 (Grilled Squid) in band 30-39, stat CRIT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:13930": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:13931": {
+    "reason": "behind 21217 (Sagefish Delight) in band 30-39, stat SP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:13932": {
+    "reason": "top tier of band 30-39, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:13933": {
+    "reason": "top tier of band 40-49, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:13934": {
+    "reason": "top tier of band 40-49, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:13935": {
+    "reason": "behind 13933 (Lobster Stew) in band 40-49, stat SP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:16766": {
+    "reason": "behind 12218 (Monster Omelet) in band 30-39, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:16971": {
+    "reason": "behind 250068 (Savory Turtle Stew) in band 40-49, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:17197": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:17198": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:17222": {
+    "reason": "behind 12218 (Monster Omelet) in band 30-39, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:18045": {
+    "reason": "behind 12212 (Jungle Stew) in band 30-39, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:18254": {
+    "reason": "top tier of band 30-39, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:20074": {
+    "reason": "behind 3728 (Tasty Lion Steak) in band 20-29, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:20452": {
+    "reason": "top tier of band 40-49, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:20516": {
+    "reason": "behind 250068 (Savory Turtle Stew) in band 40-49, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:21023": {
+    "reason": "behind 250068 (Savory Turtle Stew) in band 40-49, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:21072": {
+    "reason": "top tier of band 10-19, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:21217": {
+    "reason": "top tier of band 30-39, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:21254": {
+    "reason": "behind 250068 (Savory Turtle Stew) in band 40-49, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:249865": {
+    "reason": "behind 249866 (Royal Tea) in band 1-9, stat HEAL: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:249866": {
+    "reason": "top tier of band 1-9, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249867": {
+    "reason": "top tier of band 10-19, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249868": {
+    "reason": "top tier of band 20-29, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249869": {
+    "reason": "top tier of band 30-39, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249870": {
+    "reason": "top tier of band 40-49, stat HEAL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249871": {
+    "reason": "behind 249872 (Slimy Smoothie) in band 1-9, stat SPI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:249872": {
+    "reason": "top tier of band 1-9, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249873": {
+    "reason": "top tier of band 10-19, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249874": {
+    "reason": "top tier of band 20-29, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249875": {
+    "reason": "top tier of band 30-39, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:249876": {
+    "reason": "top tier of band 40-49, stat SPI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:250065": {
+    "reason": "top tier of band 30-39, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:250067": {
+    "reason": "top tier of band 40-49, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:250068": {
+    "reason": "top tier of band 40-49, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:250069": {
+    "reason": "top tier of band 40-49, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:250070": {
+    "reason": "behind 20452 (Smoked Desert Dumplings) in band 40-49, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250071": {
+    "reason": "behind 20452 (Smoked Desert Dumplings) in band 40-49, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250072": {
+    "reason": "behind 250069 (Flank au Poivre) in band 40-49, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250073": {
+    "reason": "behind 4457 (Barbecued Buzzard Wing) in band 20-29, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250074": {
+    "reason": "top tier of band 20-29, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:250075": {
+    "reason": "behind 250067 (Bat Hachee) in band 40-49, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250076": {
+    "reason": "behind 18254 (Runn Tum Tuber Surprise) in band 30-39, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250077": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250078": {
+    "reason": "behind 6038 (Giant Clam Scorcho) in band 20-29, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250079": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250080": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:250081": {
+    "reason": "behind 250068 (Savory Turtle Stew) in band 40-49, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:263509": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:263512": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:267341": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:2680": {
+    "reason": "behind 2684 (Coyote Steak) in band 1-9, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:2681": {
+    "reason": "behind 724 (Goretusk Liver Pie) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:2682": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:2683": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:2684": {
+    "reason": "top tier of band 1-9, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:2685": {
+    "reason": "top tier of band 10-19, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:2687": {
+    "reason": "behind 724 (Goretusk Liver Pie) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:268912": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:268913": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:274971": {
+    "reason": "top tier of band 20-29, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:274976": {
+    "reason": "behind 250074 (Bear Brisket) in band 20-29, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:286152": {
+    "reason": "top tier of band 30-39, stat ARMOR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:2888": {
+    "reason": "behind 724 (Goretusk Liver Pie) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3220": {
+    "reason": "behind 724 (Goretusk Liver Pie) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3662": {
+    "reason": "behind 2684 (Coyote Steak) in band 1-9, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3663": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3664": {
+    "reason": "behind 1017 (Seasoned Wolf Kabob) in band 10-19, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3665": {
+    "reason": "top tier of band 10-19, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:3666": {
+    "reason": "behind 3665 (Curiously Tasty Omelet) in band 10-19, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3726": {
+    "reason": "behind 724 (Goretusk Liver Pie) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3727": {
+    "reason": "behind 1017 (Seasoned Wolf Kabob) in band 10-19, stat AGI: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:3728": {
+    "reason": "top tier of band 20-29, stat AGI on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:3729": {
+    "reason": "behind 3665 (Curiously Tasty Omelet) in band 10-19, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:4457": {
+    "reason": "top tier of band 20-29, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:4592": {
+    "reason": "top tier of band 1-9, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, object, recipe, vendor), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:4593": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:4594": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5095": {
+    "reason": "top tier of band 1-9, stat SP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:5472": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5474": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5476": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5477": {
+    "reason": "behind 1082 (Redridge Goulash) in band 1-9, stat INT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5479": {
+    "reason": "top tier of band 1-9, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:5480": {
+    "reason": "behind 2685 (Succulent Pork Ribs) in band 10-19, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5525": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5526": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:5527": {
+    "reason": "behind 3665 (Curiously Tasty Omelet) in band 10-19, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:6038": {
+    "reason": "top tier of band 20-29, stat STA on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:6290": {
+    "reason": "behind 4592 (Longjaw Mud Snapper) in band 1-9, stat AP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:6316": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:6887": {
+    "reason": "behind 21217 (Sagefish Delight) in band 30-39, stat SP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:6888": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:6890": {
+    "reason": "behind 724 (Goretusk Liver Pie) in band 1-9, stat STR: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:724": {
+    "reason": "top tier of band 1-9, stat STR on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:733": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:7806": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:7807": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:7808": {
+    "reason": "behind 5479 (Crispy Lizard Tail) in band 1-9, stat STA: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:787": {
+    "reason": "behind 4592 (Longjaw Mud Snapper) in band 1-9, stat AP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "STAT_FOOD:8364": {
+    "reason": "top tier of band 20-29, stat AP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop, object, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "STAT_FOOD:8957": {
+    "reason": "Well Fed with no combat stat (zone movement speed, fishing skill): it would score 0 for every spec",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:12404": {
+    "reason": "top tier of band 30-39, kind SHARP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:12643": {
+    "reason": "top tier of band 30-39, kind BLUNT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:18262": {
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:20744": {
+    "reason": "top tier of band 1-9, kind SPELL_OIL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:20745": {
+    "reason": "top tier of band 20-29, kind MANA_OIL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:20748": {
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:20749": {
+    "reason": "behind 20750 (Wizard Oil) in band 40-49, kind SPELL_OIL: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:20750": {
+    "reason": "top tier of band 40-49, kind SPELL_OIL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:23122": {
+    "reason": "works against undead only: situational, not a default",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:23123": {
+    "reason": "works against undead only: situational, not a default",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:232611": {
+    "reason": "behind 20750 (Wizard Oil) in band 40-49, kind SPELL_OIL: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:2862": {
+    "reason": "behind 2863 (Coarse Sharpening Stone) in band 1-9, kind SHARP: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:2863": {
+    "reason": "top tier of band 1-9, kind SHARP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:2871": {
+    "reason": "top tier of band 10-19, kind SHARP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:3239": {
+    "reason": "behind 3240 (Coarse Weightstone) in band 1-9, kind BLUNT: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
+    "ruling": "reject"
+  },
+  "WPN_ENCH:3240": {
+    "reason": "top tier of band 1-9, kind BLUNT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (quest), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:3241": {
+    "reason": "top tier of band 10-19, kind BLUNT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:3824": {
+    "reason": "top tier of band 20-29, kind OTHER on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:3829": {
+    "reason": "top tier of band 30-39, kind OTHER on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (container, drop, recipe), AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:7964": {
+    "reason": "top tier of band 20-29, kind SHARP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
+  "WPN_ENCH:7965": {
+    "reason": "top tier of band 20-29, kind BLUNT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: AH, probe (ah), DB2 (crafted))",
+    "ruling": "accept"
+  },
   "shipped:unnamed:CLASSIFIER_HS:224464": {
     "reason": "HEALTHSTONE_IDS is one table for both clients; 224464 is Retail's Demonic Healthstone and matches nothing on Forever, where 5512 (Minor Healthstone on this build) is the one discovered (Defaults_Healthstone.lua, Forever note)",
     "ruling": "keep"

@@ -298,7 +298,7 @@ Total.
 - Defaults: every seeded secondary list is ordered, valid, and duplicate-free
 - Defaults: a seeded spec resolves through SpecHelper without falling back
 
-### test_disabled.lua (21)
+### test_disabled.lua (23)
 
 - Disabled 1: enabled, the addon registers a non-empty set
 - Disabled 3: the registration set is EMPTY, by count and by name
@@ -321,6 +321,8 @@ Total.
 - Disabled 10b: the same, with the holds taken in the other order
 - Disabled 10c: the perf harness takes its hold on this very latch
 - Disabled 10d: a profile that arrives disabled stands the addon down
+- Disabled 11: an uncached panel row hydrates while disabled, and the set stays EMPTY
+- Disabled 11b: enabled, a panel row requests nothing on its own
 
 ### test_diagnostics.lua (16)
 
@@ -350,20 +352,24 @@ Total.
 - EnvSetup: Meta never reads the bare GetAddOnMetadata global
 - EnvSetup: Notes comes through the seam, not a hardcoded folder name
 
-### test_forever.lua (39)
+### test_forever.lua (43)
 
-- Forever: the category list is exactly its fifteen keys
+- Forever: the category list is exactly its sixteen keys
 - Forever: an empty macro's icon is the note Forever ships, never Retail's cooking pot
 - Retail: an empty macro's icon stays the cooking pot
-- Retail: the category list is exactly its fifteen keys
+- Retail: the category list is exactly its sixteen keys
 - Degraded: without the library the categories and seeds are Retail's
-- Forever: every row declares only known client tokens, and ALL keeps all nineteen
+- Forever: every row declares only known client tokens, and ALL keeps all twenty
 - Forever: a Retail-only category has no bucket, slot, tab, schema row, verb or macro
 - Retail: a Forever-only category has no bucket, slot, tab, schema row, verb or macro
 - Forever: the four new categories have buckets, slots and tabs beside their kin
-- Forever: every seed list is empty by decision
-- Forever: no Retail item ID is a candidate, so every candidate comes from the bags
-- Forever: with no stat-priority seed a spec ranks by its class's primary stat
+- Forever: every item category seeds its own list
+- Forever: a Retail-only category's list stays empty there
+- Forever: every seeded candidate is a Forever seed, never Retail's list
+- Forever: the healthstone whitelist is Forever's own, every vanilla rank
+- Forever: the healthstone ranks sort by ilvl, Major first, never by Retail's preference
+- Retail: the healthstone whitelist is Retail's own
+- Forever: an unseeded spec ranks by its class's primary stat alone
 - Forever: elixirs, scrolls and bandages classify by their subclass
 - Forever: a draught is matched like a potion
 - Forever: a protection potion is PROT_POT and never a combat potion
@@ -386,19 +392,55 @@ Total.
 - TooltipCache: Forever's stone, weightstone and oil wording sets the Forever flag and its value
 - TooltipCache: a poison is never read as a weapon enhancement
 - TooltipCache: Retail's weapon wording sets no Forever flag
-- Forever: subclass-8 stones and oils are weapon enchants; poisons and a weapon chain (6) are not
+- Forever: subclass-8 stones and oils are weapon enchants, poisons are POISON, a weapon chain (6) is neither
 - Retail: Forever's stone wording is no weapon enchant and the weapon chain still is
 - Forever: stones and weightstones rank by their 'by N', oils by their 'up to N'
 - Retail: a WPN_ENCH score and its explanation are unchanged without the Forever value
 - Forever: a Retail profile's Vantus data loads, is not read, and survives a return to Retail
 
-### test_itemsetup.lua (5)
+### test_poison.lua (27)
+
+- Poison: the category exists on both clients, with its own model on each
+- Forever: every seeded rank has a family the dropdowns offer
+- Forever: a discovered rank the seed does not name takes its family from its name
+- Forever: the poison wording sets the Forever flag and the chance
+- Forever: a poison classifies as POISON and never as a weapon enchant
+- Retail: no item is ever a poison, whatever its tooltip says
+- Forever: the ranks of a family rank by required level
+- Forever: each hand takes the best owned, usable rank of its family
+- Forever: the macro applies each hand's pick, in Weapon Enchant's shape
+- Forever: a character with no poison gets the empty-state macro
+- Forever: the bag scan files a poison it was never seeded
+- Retail: a non-rogue gets the empty-state macro
+- Retail: the macro casts the first missing poison, lethal first, then goes idle
+- Retail: Dragon-Tempered Blades keeps two of each kind
+- Retail: the order and the In macro flags decide what is wanted
+- Retail: no aura is read in combat, and the macro keeps its last answer
+- Retail: a secret or raising aura read leaves the macro as it is
+- Retail: the player's aura event rebuilds the macro only when its next cast moved
+- Poison: the aura and talent events are Retail's alone
+- Poison: each client registers its own model's rows and none of the other's
+- Forever: a hand's family is written through its row, and an unknown one is refused
+- Retail: a lethal order is normalized to its members
+- Poison: the tab draws on both clients
+- Retail: a talent change that grants Dragon-Tempered Blades rebuilds toward two of each
+- Retail: /cm priority poison refuses the item-list edits the spell model ignores
+- Poison: /cm priority poison list reports the model's own picks on both clients
+- Forever: /cm priority poison still edits the rank list
+
+### test_itemsetup.lua (11)
 
 - ItemSetup: KCM.Item.ItemIDFromLink reads the id out of a full item link
 - ItemSetup: it reads a bare itemString too
 - ItemSetup: a non-link string and a non-string both answer nil
 - ItemSetup: a SPELL link is not mistaken for an item
 - ItemSetup: the degraded stub answers exactly what the library does
+- ItemSetup: stood down, an uncached id is requested and the panel repaints on the callback
+- ItemSetup: the request is one-shot per id
+- ItemSetup: standing, HydrateItem requests nothing (GET_ITEM_INFO_RECEIVED owns it)
+- ItemSetup: HydrateItem ignores a nil or non-numeric id
+- ItemSetup: with no library, HydrateItem is inert and does not raise
+- ItemSetup: an item row with an uncached name asks HydrateItem for it
 
 ### test_events.lua (30)
 
@@ -1585,6 +1627,40 @@ Total.
 - Slash: an unknown sub-verb still names itself in lowercase
 - Slash: the sub-command vocabulary IS the library's, published at the seam
 
+### test_statpriority.lua (31)
+
+- Forever: the stat model is one ranked list over Forever's stats
+- Retail: the stat model is the primary and the four secondaries, unchanged
+- Degraded: without the library the stat model is Retail's
+- Forever: every class ships a ranked order of real, distinct stats
+- Forever: each class's order leads with its role's stat
+- Forever: a ranked override wins and is cleaned on read
+- Forever: a Retail-shaped override reads as none, takes the seed, and writes nothing
+- Retail: a ranked entry is no override there, and the Retail resolver is unchanged
+- Forever: the statPriority row keeps ranked entries and drops the Retail shape on a write
+- Retail: the statPriority row still drops an entry with no primary
+- Retail: stat weights and stat-category scores are exactly what they were
+- Forever: a ranked stat weighs RANK_BASE^(N - k), and an unranked one nothing
+- Forever: one place up outweighs any amount; within a stat the bigger amount wins
+- Forever: Stat Food, Flask and Combat Potion rank a ranked stat above item level
+- Forever: a penalty subtracts, and the explanation still adds up
+- Forever: a spell still outranks every item under a long ranked list
+- Forever: item level and quality still break a tie a long ranked list rounds away
+- Forever: Weapon Enhancement still ranks by the stone's or oil's value
+- Retail: a score tie still goes to the lower id, whatever the item level
+- Forever: Stat Food ranks by the shipped order once a spec resolves
+- TooltipCache (Forever): vanilla wording reads every Forever stat
+- TooltipCache (Forever): a protection potion's school and a fishing buff are no stat
+- TooltipCache (Forever): holy, nature and arcane spell damage are no SP; fire, frost, shadow keep their tag
+- TooltipCache (Retail): Forever's wording reads exactly as it did before #48
+- Forever: the page draws one row per Forever stat, the shipped order first
+- Forever: the page draws no primary-stat dropdown
+- Retail: the page still draws its primary-stat dropdown
+- Forever: unticking and re-ticking a stat writes the ranked list
+- Forever: the split runs over Forever's stats
+- Forever: /cm stat order writes the ranked list; primary and secondary are absent
+- Retail: /cm stat has no order verb
+
 ### test_spechelper.lua (16)
 
 - SpecHelper.MakeKey joins classID_specID, nil on missing parts
@@ -1816,11 +1892,12 @@ Total.
 | test_debugcoverage.lua | 19 |
 | test_docmap.lua | 1 |
 | test_defaults.lua | 28 |
-| test_disabled.lua | 21 |
+| test_disabled.lua | 23 |
 | test_diagnostics.lua | 16 |
 | test_envsetup.lua | 6 |
-| test_forever.lua | 39 |
-| test_itemsetup.lua | 5 |
+| test_forever.lua | 43 |
+| test_poison.lua | 27 |
+| test_itemsetup.lua | 11 |
 | test_events.lua | 30 |
 | test_harness.lua | 10 |
 | test_id.lua | 8 |
@@ -1874,6 +1951,7 @@ Total.
 | test_slash_report.lua | 12 |
 | test_slash_store.lua | 25 |
 | test_slashsetup.lua | 26 |
+| test_statpriority.lua | 31 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1889,4 +1967,4 @@ Total.
 | test_skin_switch.lua | 49 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1527** |
+| **Total** | **1597** |

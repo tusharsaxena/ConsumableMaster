@@ -230,6 +230,7 @@ local PURE_LAYER_OMITS = {
     ["settings/Category.lua"]    = true,
     ["settings/CategoryAddByID.lua"] = true,
     ["settings/CategoryComposite.lua"] = true,
+    ["settings/CategoryPoison.lua"] = true,
     ["settings/Slash.lua"]       = true,
     -- The frame layer: every one of these builds real widgets at load, which is
     -- what tests/test_macrobar.lua and tests/test_widgets.lua drive deliberately
@@ -486,7 +487,7 @@ end
 -- A case that pins RETAIL's content -- a Retail-only category, a Retail seed
 -- list, the Retail tab strip or slot order -- registered so it runs as Retail
 -- under BOTH kit profiles (L.withClient). Under the forever profile those
--- categories are absent and those seeds empty by decision, which the WoW Forever
+-- categories are absent and the seeds are Forever's own lists, which the WoW Forever
 -- cases (tests/test_forever.lua) pin instead; this keeps Retail's behavior
 -- pinned, unchanged, on every run.
 function KCM_TEST.retailTest(name, fn, skipReason)
@@ -537,6 +538,8 @@ local SUITES = {
     -- The WoW Forever port, step 1: the category gate, the empty seeds and the four
     -- Forever-only categories, each case on the client it names (clients-§6).
     "test_forever",
+    -- The rogue poison category (issue #47): Forever's per-hand items, Retail's spells.
+    "test_poison",
     "test_itemsetup",
     "test_events",
     "test_harness",
@@ -600,6 +603,8 @@ local SUITES = {
     "test_slash_report",
     "test_slash_store",
     "test_slashsetup",
+    -- Issue #48: the stat priority per client -- its shape, seeds, scoring, parser, page and verbs.
+    "test_statpriority",
     "test_spechelper",
     "test_surface_parity",
     "test_tooltipcache",

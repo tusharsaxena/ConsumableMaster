@@ -377,7 +377,7 @@ local function ser(v)
     return "{" .. table.concat(parts, ",") .. "}"
 end
 
-test("Settings: the Stat Priority Defaults button drops only the viewed spec's override", function(t)
+h.retailTest("Settings: the Stat Priority Defaults button drops only the viewed spec's override", function(t)
     local KCM = loader.loadFullAddon()
     local UI  = KCM.Settings.Helpers.instance
     KCM.Options._viewedSpec, KCM.Options._viewedSpecAuto = "8_262", false

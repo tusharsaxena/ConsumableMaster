@@ -1,7 +1,7 @@
 -- tests/test_forever.lua -- the WoW Forever port, step 1 (docs/superpowers/specs/
 -- 2026-11-08-forever-port-design.md): which categories exist on which client, the
--- empty-by-decision Forever seeds, the four Forever-only categories and Forever's
--- three new consumable subclasses.
+-- Forever seeds (issue #46: the top tier per band, each list Forever's own), the four
+-- Forever-only categories and Forever's three new consumable subclasses.
 --
 -- Every case names its client and runs as that client under BOTH kit profiles
 -- (h.loader.withClient), so the retail profile proves Forever's shape and the
@@ -18,11 +18,11 @@ local function asRetail(fn) return function(t) h.loader.withClient("retail", fun
 
 local RETAIL_KEYS = {
     "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "VANTUS", "FLASK", "CMBT_POT", "STAT_FOOD",
-    "WPN_ENCH", "AUG_RUNE", "BLOODLUST", "BATTLE_REZ", "HP_AIO", "MP_AIO",
+    "WPN_ENCH", "POISON", "AUG_RUNE", "BLOODLUST", "BATTLE_REZ", "HP_AIO", "MP_AIO",
 }
 local FOREVER_KEYS = {
     "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE", "FLASK", "ELIXIR", "CMBT_POT",
-    "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH", "HP_AIO", "MP_AIO",
+    "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH", "POISON", "HP_AIO", "MP_AIO",
 }
 local RETAIL_ONLY  = { "VANTUS", "AUG_RUNE", "BLOODLUST", "BATTLE_REZ" }
 local FOREVER_ONLY = { "ELIXIR", "BANDAGE", "SCROLL", "PROT_POT" }
@@ -42,9 +42,9 @@ end
 -- The category gate (clients-§4)
 -- ---------------------------------------------------------------------------
 
-test("Forever: the category list is exactly its fifteen keys", asForever(function(t)
+test("Forever: the category list is exactly its sixteen keys", asForever(function(t)
     local KCM = h.loader.loadPure()
-    t.eqList(listKeys(KCM), FOREVER_KEYS, "Forever's fifteen, in LIST order")
+    t.eqList(listKeys(KCM), FOREVER_KEYS, "Forever's sixteen, in LIST order")
     for _, key in ipairs(RETAIL_ONLY) do
         t.eq(KCM.Categories.Get(key), nil, key .. " is not registered on Forever")
     end
@@ -62,9 +62,9 @@ test("Retail: an empty macro's icon stays the cooking pot", asRetail(function(t)
     if KCM.MacroDisplay then t.eq(KCM.MacroDisplay.FALLBACK_ICON, 7704166, "the bar's fallback follows") end
 end))
 
-test("Retail: the category list is exactly its fifteen keys", asRetail(function(t)
+test("Retail: the category list is exactly its sixteen keys", asRetail(function(t)
     local KCM = h.loader.loadPure()
-    t.eqList(listKeys(KCM), RETAIL_KEYS, "Retail's fifteen, unchanged by the port")
+    t.eqList(listKeys(KCM), RETAIL_KEYS, "Retail's sixteen: the port's fifteen and the poison category")
     for _, key in ipairs(FOREVER_ONLY) do
         t.eq(KCM.Categories.Get(key), nil, key .. " is not registered on Retail")
     end
@@ -74,14 +74,14 @@ test("Degraded: without the library the categories and seeds are Retail's", func
     -- Compat's stub answers as Retail (core/Compat.lua): the addon shipped Retail-only, so that
     -- is the build a degraded install was already running, on either kit profile.
     local KCM = h.loader.loadPureDegraded()
-    t.eqList(listKeys(KCM), RETAIL_KEYS, "Retail's fifteen")
+    t.eqList(listKeys(KCM), RETAIL_KEYS, "Retail's sixteen")
     t.eq(KCM.SEED_CLIENT, "retail", "the seed selection reads Retail's lists")
     t.truthy(#KCM.SEED.FOOD > 0, "and they are Retail's, not empty")
 end)
 
-test("Forever: every row declares only known client tokens, and ALL keeps all nineteen", asForever(function(t)
+test("Forever: every row declares only known client tokens, and ALL keeps all twenty", asForever(function(t)
     local KCM = h.loader.loadPure()
-    t.eq(#KCM.Categories.ALL, 19, "fifteen Retail rows plus Forever's four")
+    t.eq(#KCM.Categories.ALL, 20, "sixteen Retail rows plus Forever's four")
     for _, row in ipairs(KCM.Categories.ALL) do
         for _, token in ipairs(row.clients or {}) do
             t.truthy(token == "retail" or token == "forever", row.key .. " names a known client")
@@ -110,7 +110,7 @@ test("Forever: a Retail-only category has no bucket, slot, tab, schema row, verb
         end
         t.eq(KCM.Settings.Helpers.FindSchema("categories.BATTLE_REZ.mouseover"), nil,
             "Battle Rez's mouseover row is not registered")
-        t.eq(d.macroBar.perRow, 15, "one row of Forever's fifteen")
+        t.eq(d.macroBar.perRow, 16, "one row of Forever's sixteen")
         KCM.Pipeline.Recompute("test")
         for _, key in ipairs(RETAIL_ONLY) do
             t.eq(mock.macros["KCM_" .. key], nil, key .. ": no macro written")
@@ -146,7 +146,7 @@ test("Forever: the four new categories have buckets, slots and tabs beside their
     local d = KCM.dbDefaults.profile
     t.eqList(d.macroBar.order, {
         "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE", "HP_AIO", "MP_AIO",
-        "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH",
+        "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH", "POISON",
     }, "the slot order")
     t.truthy(d.categories.ELIXIR.bySpec and d.categories.SCROLL.bySpec, "elixir and scroll are per spec")
     t.truthy(d.categories.BANDAGE.added and d.categories.PROT_POT.added, "bandage and protection potion are not")
@@ -165,44 +165,83 @@ end))
 -- The seed lists (clients-§5)
 -- ---------------------------------------------------------------------------
 
-test("Forever: every seed list is empty by decision", asForever(function(t)
+-- Issue #46 lifted the 2026-11-08 "empty by decision" ruling: every Forever item category seeds the
+-- top tier per ~10-level band, chosen from Forever's own DB2 and offline stores
+-- (docs/seed-research/2026-11-27-forever/).
+test("Forever: every item category seeds its own list", asForever(function(t)
     local KCM = h.loader.loadPure()
     t.eq(KCM.SEED_CLIENT, "forever", "Forever's lists are the ones chosen")
-    local n = 0
-    for name, list in pairs(KCM.SEED) do
-        n = n + 1
-        t.eq(next(list), nil, name .. " is empty on Forever")
-    end
-    -- Thirteen item lists, the stat priorities and the class gate. The four Forever-only
-    -- categories ship no seed file: the Selector reads a missing list as empty.
-    t.eq(n, 15, "every seed table is declared, the stat priorities and class gate included")
-end))
-
-test("Forever: no Retail item ID is a candidate, so every candidate comes from the bags", asForever(function(t)
-    local KCM = h.loader.loadPure()
-    local retail
-    h.loader.withClient("retail", function() retail = h.loader.loadPure().SEED end)
-    local retailIds = {}
-    for name, list in pairs(retail) do
-        if name ~= "STAT_PRIORITY" and name ~= "CLASS_GATE" then
-            for _, id in ipairs(list) do retailIds[id] = true end
-        end
-    end
-    t.truthy(next(retailIds), "the Retail seeds are not empty")
     for _, row in ipairs(KCM.Categories.LIST) do
         if not row.composite then
+            local seed = KCM.SEED[row.key]
+            t.truthy(seed and #seed > 0, row.key .. " seeds at least one item on Forever")
+            for _, id in ipairs(seed or {}) do
+                t.truthy(KCM.ID.IsItem(id), row.key .. ": " .. tostring(id) .. " is an item")
+            end
+        end
+    end
+    local n = 0
+    for _ in pairs(KCM.SEED) do n = n + 1 end
+    -- Eighteen item lists (the four Forever-only categories ship a seed file each, and POISON,
+    -- issue #47), the poison families, the stat priorities and the class gate.
+    t.eq(n, 21, "every seed table is declared, the stat priorities and class gate included")
+end))
+
+test("Forever: a Retail-only category's list stays empty there", asForever(function(t)
+    local KCM = h.loader.loadPure()
+    for _, key in ipairs(RETAIL_ONLY) do
+        t.eq(next(KCM.SEED[key]), nil, key .. " seeds nothing on Forever")
+    end
+end))
+
+test("Forever: every seeded candidate is a Forever seed, never Retail's list", asForever(function(t)
+    local KCM = h.loader.loadPure()
+    for _, row in ipairs(KCM.Categories.LIST) do
+        if not row.composite then
+            local own = {}
+            for _, id in ipairs(KCM.SEED[row.key]) do own[id] = true end
             for _, id in ipairs(KCM.Selector.BuildCandidateSet(row.key) or {}) do
-                t.falsy(retailIds[id], row.key .. ": " .. tostring(id) .. " is a Retail seed")
+                t.truthy(own[id], row.key .. ": " .. tostring(id) .. " is in Forever's own seed")
             end
         end
     end
 end))
 
-test("Forever: with no stat-priority seed a spec ranks by its class's primary stat", asForever(function(t)
+test("Forever: the healthstone whitelist is Forever's own, every vanilla rank", asForever(function(t)
+    local C = h.loader.loadPure().Classifier
+    for _, id in ipairs({ 5512, 19004, 19005, 5511, 19006, 19007, 5509, 19008, 19009,
+                          5510, 19010, 19011, 9421, 19012, 19013 }) do
+        t.truthy(C.Match("HS", id), tostring(id) .. " is a Forever healthstone")
+    end
+    t.falsy(C.Match("HS", 224464), "Retail's Demonic Healthstone is no Forever item")
+end))
+
+-- Retail's preference table names 5512, which on Forever is the Minor rank: Forever has no preference,
+-- so its ranks sort by ilvl and the Major outranks the Minor.
+test("Forever: the healthstone ranks sort by ilvl, Major first, never by Retail's preference", asForever(function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5512, { subType = "Potion", quality = 1, ilvl = 10 })
+    mock.setItem(5509, { subType = "Potion", quality = 1, ilvl = 34 })
+    mock.setItem(9421, { subType = "Potion", quality = 1, ilvl = 58 })
+    t.eqList(R.SortCandidates("HS", { 5512, 5509, 9421 }, nil, nil), { 9421, 5509, 5512 },
+        "Major, then Healthstone, then Minor")
+    t.eq(R.Score("HS", 5512, nil, nil), 10, "ilvl alone, no Retail preference for 5512")
+    t.eq(R.Explain("HS", 9421, nil).score, R.Score("HS", 9421, nil, nil), "Explain matches the scorer")
+end))
+
+test("Retail: the healthstone whitelist is Retail's own", asRetail(function(t)
+    local C = h.loader.loadPure().Classifier
+    t.truthy(C.Match("HS", 224464) and C.Match("HS", 5512), "Retail's two stones")
+    t.falsy(C.Match("HS", 9421), "vanilla's Major Healthstone is Forever's rank, not Retail's")
+end))
+
+test("Forever: an unseeded spec ranks by its class's primary stat alone", asForever(function(t)
     local KCM = h.loader.loadPure()
-    local p = KCM.SpecHelper.GetStatPriority("4_259")
-    t.eq(p.primary, "AGI", "a rogue's primary stat is Agility")
-    t.eqList(p.secondary, {}, "and there is no secondary order")
+    local p = KCM.SpecHelper.GetStatPriority("4_259")   -- a Retail rogue spec id: no Forever seed
+    t.eqList(p.ranked, { "AGI" }, "a rogue's primary stat is Agility, and nothing else is ranked")
+    t.eq(p.primary, nil, "the ranked shape names no primary")
 end))
 
 -- ---------------------------------------------------------------------------
@@ -365,13 +404,13 @@ test("Retail: a Well Fed flag with no stat token classifies as before", asRetail
     t.eqList(C.MatchAny(9303), { "FOOD" }, "Retail reads the stat tokens alone")
 end))
 
-test("TooltipCache: Retail's forward stat wording still reads its amount", function(t)
+h.retailTest("TooltipCache: Retail's forward stat wording still reads its amount", function(t)
     local TC, mock = newTC()
     local e = parse(TC, mock, 9110, { "Some Flask", "Use: Increases your Mastery by 935 for 1 hour." })
     t.eq(e.statBuffs[1] and e.statBuffs[1].amount, 935, "the forward form, untouched")
 end)
 
-test("TooltipCache: a no-stat scroll or elixir keeps its value", function(t)
+h.retailTest("TooltipCache: a no-stat scroll or elixir keeps its value", function(t)
     local TC, mock = newTC()
     local s = parse(TC, mock, 9102, { "Scroll of Protection IV", "Use: Increases armor by 240 for 30 min." })
     t.falsy(s.hasStatBuff, "armor is not a stat token")
@@ -549,7 +588,7 @@ test("TooltipCache: Retail's weapon wording sets no Forever flag", function(t)
     t.eq(e.weaponEnhanceValue, nil, "nor its value")
 end)
 
-test("Forever: subclass-8 stones and oils are weapon enchants; poisons and a weapon chain (6) are not",
+test("Forever: subclass-8 stones and oils are weapon enchants, poisons are POISON, a weapon chain (6) is neither",
     asForever(function(t)
         local rows = parsedRows(STONES)
         for _, r in ipairs(parsedRows(WEIGHTSTONES)) do rows[#rows + 1] = r end
@@ -565,7 +604,7 @@ test("Forever: subclass-8 stones and oils are weapon enchants; poisons and a wea
         end
         for _, r in ipairs(poisons) do
             item(mock, r.id, 8, r.tt)
-            t.eqList(C.MatchAny(r.id), {}, r.name .. " is held out (rogue-only)")
+            t.eqList(C.MatchAny(r.id), { "POISON" }, r.name .. " is held out of WPN_ENCH: it is a poison")
         end
         item(mock, 6041, 6, chain.tt)
         t.eqList(C.MatchAny(6041), {}, "Steel Weapon Chain: subclass 6 is Permanent, never WPN_ENCH")

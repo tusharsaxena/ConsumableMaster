@@ -83,6 +83,16 @@ local FOOD_RULES = KCM.PerClient({
     forever = { wellFedIsStat = true },
 })
 
+-- POISON's rule, picked once by client: `vanillaWording` admits a subclass-8 item whose Use: line
+-- coats a weapon with poison (tt.isVanillaPoison), WoW Forever's rogue poisons (issue #47). Retail's
+-- table is empty: its poisons are class spells (defaults/Defaults_Poison.lua), so its matcher admits
+-- nothing and the bag scan files no item there.
+local SC_OTHER = 8
+local POISON_RULES = KCM.PerClient({
+    retail  = {},
+    forever = { vanillaWording = true },
+})
+
 local function wellFedStat(tt)
     return FOOD_RULES.wellFedIsStat == true and tt and tt.isWellFed == true
 end
@@ -94,10 +104,34 @@ local SUBCLASS_ONLY = { FLASK = true, ELIXIR = true, SCROLL = true, BANDAGE = tr
 
 -- Healthstones look like potions subtype-wise but are always warlock-only.
 -- Kept as a whitelist rather than a rule so classification stays O(1).
-local HEALTHSTONE_IDS = {
-    [5512]   = true,  -- Classic healthstone (legacy fallback)
-    [224464] = true,  -- Modern healthstone (auto-scales with warlock level)
-}
+-- One list per client (clients-§5, issue #46): Retail's modern stone is no
+-- Forever item, and Forever's vanilla ranks (Minor to Major, each with its two
+-- Improved Healthstone variants) are no Retail stone. HS matches on this
+-- whitelist alone, so Forever's list carries every rank, not only the seeded
+-- top tier per band. tools/seeds/seeds.py writes Forever's block with the seed.
+local HEALTHSTONE_IDS = KCM.PerClient({
+    retail = {
+        [5512]   = true,  -- Classic healthstone (legacy fallback)
+        [224464] = true,  -- Modern healthstone (auto-scales with warlock level)
+    },
+    forever = {
+        [5509] = true,  -- Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [5510] = true,  -- Greater Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [5511] = true,  -- Lesser Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [5512] = true,  -- Minor Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [9421] = true,  -- Major Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19004] = true,  -- Minor Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19005] = true,  -- Minor Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19006] = true,  -- Lesser Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19007] = true,  -- Lesser Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19008] = true,  -- Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19009] = true,  -- Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19010] = true,  -- Greater Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19011] = true,  -- Greater Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19012] = true,  -- Major Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+        [19013] = true,  -- Major Healthstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: DB2 (crafted)
+    },
+})
 
 -- Vantus runes share a generic subType, so match by itemID like healthstones.
 -- One universal rune per raid tier; keep in sync with Defaults_Vantus.lua.
@@ -214,6 +248,11 @@ local matchers = {
         return (tt and tt.isWeaponEnhance == true)
             or (rules.vanillaWording == true and tt and tt.isVanillaWeaponEnhance == true)
             or WEAPON_ENHANCE_SUBCLASSES[sub] == true
+    end,
+    -- WoW Forever's rogue poisons (POISON_RULES above); never on Retail.
+    POISON = function(_, tt, sub)
+        return POISON_RULES.vanillaWording == true and sub == SC_OTHER
+            and tt and tt.isVanillaPoison == true
     end,
     AUG_RUNE = function(_, tt)
         return tt and tt.isAugmentRune == true

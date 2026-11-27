@@ -265,6 +265,20 @@ class FlagTest(unittest.TestCase):
         flags = seeds.flags_for("forever", fx.build(), fx.lists("forever"))
         self.assertFalse([f for f in flags if f["kind"] == "unmatched"])
 
+    def test_a_forever_poison_must_be_a_subclass_8_consumable(self):
+        # Issue #47: Forever ships its poison ranks, so FIT holds them to the class they report.
+        from types import SimpleNamespace
+        b = SimpleNamespace(specs={}, spell_names={}, items={
+            6947: {"name": "Instant Poison", "class": 0, "sub": 8},
+            3775: {"name": "Crippling Poison", "class": 0, "sub": 1},
+        })
+        recs = [{"id": 6947, "kind": "item", "comment": "Instant Poison", "line": 1},
+                {"id": 3775, "kind": "item", "comment": "Crippling Poison", "line": 2}]
+        lists = [{"list": "POISON", "file": Path("/repo/defaults/Defaults_Poison.lua"), "records": recs,
+                  "named": True}]
+        keys = {f["key"] for f in seeds.flags_for("forever", b, lists)}
+        self.assertEqual(keys, {"shipped:misfiled:POISON:3775"})
+
 
 class CandidateTest(unittest.TestCase):
     def setUp(self):
@@ -290,8 +304,12 @@ class CandidateTest(unittest.TestCase):
         twin = next(c for c in self.cands if c["key"] == "FLASK:101")
         self.assertIn("same name as shipped 100", twin["notes"])
 
-    def test_forever_proposes_nothing(self):
-        self.assertEqual(seeds.candidates_for("forever", self.b, self.fx.lists("forever")), ([], []))
+    def test_forever_reads_its_own_rules_not_retails(self):
+        cands, _unplaced = seeds.candidates_for("forever", self.b, self.fx.lists("forever"))
+        keys = [c["key"] for c in cands]
+        self.assertIn("FLASK:500", keys, "Forever's window is not Retail's current expansion")
+        self.assertFalse([k for k in keys if k.startswith("STAT_PRIORITY:")], "no spec candidates on Forever")
+        self.assertTrue(all(c.get("group") for c in cands if c["list"] == "FLASK"), "each carries its band group")
 
     def test_the_coverage_gate_fails_loudly_when_a_rule_finds_none_of_its_own(self):
         tables = dict(TABLES)
@@ -405,6 +423,267 @@ class StatusTest(unittest.TestCase):
             self.assertEqual(seeds.status_line("1.2.4", found), "NEW 1.2.4 (last ruled 1.2.3, 2026-02-01-retail)")
 
 
+# ---------------------------------------------------------------------------
+# WoW Forever (issue #46): its own rules, evidence, and the top tier per band
+# ---------------------------------------------------------------------------
+
+# Items: 10/11 two band-1-9 heal potions (11 the higher tier), 12 a band-10-19 one, 13 a heal potion no
+# evidence records (a DB2 ghost), 20/21 fire and frost protection potions, 30/31 agility and strength
+# elixirs, 40 a sharpening stone, 41 a poison (another category's), 50 a conjured healthstone, 60 a
+# bandage, 70 a meal whose Well Fed buff names Stamina, 999 a sword the evidence also names.
+FOREVER_TABLES = {
+    "Item": ("ID,ClassID,SubclassID,CraftingQualityID\n"
+             "10,0,1,0\n11,0,1,0\n12,0,1,0\n13,0,1,0\n14,0,1,0\n15,0,1,0\n20,0,1,0\n21,0,1,0\n30,0,2,0\n31,0,2,0\n40,0,8,0\n"
+             "41,0,8,0\n50,0,8,0\n60,0,7,0\n70,0,5,0\n999,2,7,0\n"),
+    "ItemSparse": ("ID,Display_lang,ExpansionID,OverallQualityID,ItemLevel,RequiredLevel\n"
+                   "10,Minor Healing Potion,0,1,5,1\n11,Lesser Healing Potion,0,1,13,3\n"
+                   "12,Healing Potion,0,1,22,12\n13,Ghost Healing Potion,0,1,30,15\n"
+                   "14,Drop-Only Healing Potion,0,1,30,1\n15,Battleground Healing Draught,0,1,30,5\n"
+                   "20,Fire Protection Potion,0,1,38,0\n21,Frost Protection Potion,0,1,38,0\n"
+                   "30,Elixir of Lesser Agility,0,1,15,5\n31,Elixir of Ogre's Strength,0,1,20,5\n"
+                   "40,Rough Sharpening Stone,0,1,5,1\n41,Instant Poison,0,1,20,20\n"
+                   "50,Minor Healthstone,0,1,1,1\n60,Linen Bandage,0,1,5,0\n70,Roasted Boar Meat,0,1,15,5\n"
+                   "999,Worn Shortsword,0,1,2,1\n"),
+    "ItemXItemEffect": ("ID,ItemEffectID,ItemID\n"
+                        "1,1,10\n2,2,11\n3,3,12\n4,4,13\n14,14,14\n15,15,15\n5,5,20\n6,6,21\n7,7,30\n8,8,31\n9,9,40\n10,10,41\n"
+                        "11,11,50\n12,12,60\n13,13,70\n"),
+    "ItemEffect": ("ID,SpellID\n"
+                   "1,100\n2,101\n3,102\n4,103\n14,104\n15,105\n5,200\n6,201\n7,300\n8,301\n9,400\n10,401\n11,500\n12,600\n"
+                   "13,700\n"),
+    "SpellName": "ID,Name_lang\n100,Healing\n700,Food\n6201,Create Healthstone (Minor)\n",
+    "Spell": ("ID,Description_lang\n"
+              "105,Restores $s1 health. This item may only be used in PvP Battlegrounds.\n"
+              "300,Increases your Agility by $s1 for $d.\n301,Increases your Strength by $s1 for $d.\n"
+              "400,Increase sharp weapon damage by $s1 for 30 minutes.\n401,Coats a weapon with poison.\n"
+              "700,\"Restores $s1 health over $d. If you spend at least 10 seconds eating you will become well fed "
+              "and gain $s2 Stamina and Spirit for 15 min.\"\n"),
+    "SpellEffect": ("ID,SpellID,DifficultyID,Effect,EffectAura,EffectMiscValue_0,EffectTriggerSpell,"
+                    "EffectBasePointsF,EffectItemType\n"
+                    "1,100,0,10,0,0,0,70,0\n15,104,0,10,0,0,0,500,0\n16,105,0,10,0,0,0,500,0\n2,101,0,10,0,0,0,140,0\n3,102,0,10,0,0,0,280,0\n4,103,0,10,0,0,0,999,0\n"
+                    "5,200,0,6,69,4,0,1950,0\n6,201,0,6,69,16,0,1950,0\n7,300,0,6,29,1,0,15,0\n"
+                    "8,301,0,6,29,0,0,8,0\n9,400,0,54,0,0,0,2,0\n10,401,0,54,0,0,0,0,0\n11,500,0,10,0,0,0,100,0\n"
+                    "12,600,0,6,8,0,0,66,0\n13,700,0,6,20,0,0,61,0\n14,6201,0,24,0,0,0,0,50\n"),
+    "SpellMisc": "ID,SpellID,DifficultyID,DurationIndex\n1,300,0,9\n",
+    "SpellDuration": "ID,Duration\n9,3600000\n",
+}
+
+FOREVER_SEEDS = """local _, NS = ...
+KCM.SEED.HP_POT = KCM.PerClient({
+    retail = {},
+    forever = {
+    },
+})
+KCM.SEED.PROT_POT = KCM.PerClient({
+    retail = {},
+    forever = {
+    },
+})
+KCM.SEED.ELIXIR = KCM.PerClient({
+    retail = {},
+    forever = {
+    },
+})
+KCM.SEED.WPN_ENCH = KCM.PerClient({
+    retail = {},
+    forever = {
+    },
+})
+KCM.SEED.HS = KCM.PerClient({
+    retail = {
+        5512,  -- Healthstone
+    },
+    forever = {
+    },
+})
+KCM.SEED.BANDAGE = KCM.PerClient({
+    retail = {},
+    forever = {
+    },
+})
+KCM.SEED.STAT_FOOD = KCM.PerClient({
+    retail = {},
+    forever = {
+    },
+})
+"""
+
+FOREVER_CLASSIFIER = """local HEALTHSTONE_IDS = KCM.PerClient({
+    retail = {
+        [5512]   = true,  -- Classic healthstone (legacy fallback)
+        [224464] = true,  -- Modern healthstone
+    },
+    forever = {
+    },
+})
+"""
+
+FOREVER_EVIDENCE = ("#source\tfdb\tForeverDB test fixture\n#source\tah\tAuctionator test fixture\n"
+                    "#source\tprobe\tprobe test fixture\n"
+                    "10\tfdb\tvendor\n11\tah\tseen\n14\tfdb\tdrop\n15\tfdb\tvendor\n12\tfdb\tdrop\n12\tfdb\tquest\n20\tfdb\tvendor\n21\tprobe\tseen\n"
+                    "30\tfdb\tvendor\n31\tah\tseen\n40\tfdb\tvendor\n41\tfdb\tvendor\n60\tfdb\tvendor\n70\tfdb\tvendor\n"
+                    "999\tfdb\tvendor\n")
+
+
+class ForeverFixture:
+    def __init__(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.defaults = root / "defaults"
+        self.defaults.mkdir()
+        (self.defaults / "Defaults_Forever.lua").write_bytes(crlf(FOREVER_SEEDS))
+        self.categories = self.defaults / "Categories.lua"
+        self.categories.write_bytes(crlf('KCM.Categories.LIST = {\n    {\n        key = "HS",\n    },\n}\n'))
+        (root / "core").mkdir()
+        self.classifier = root / "core" / "Classifier.lua"
+        self.classifier.write_bytes(crlf(FOREVER_CLASSIFIER))
+        raw = root / "raw"
+        raw.mkdir()
+        for name, body in FOREVER_TABLES.items():
+            with gzip.open(raw / ("%s.csv.gz" % name), "wt", encoding="utf-8", newline="") as fh:
+                fh.write(body)
+        self.tables = {name: raw / ("%s.csv.gz" % name) for name in FOREVER_TABLES}
+        self.evidence_tsv = root / "evidence.tsv"
+        self.evidence_tsv.write_text(FOREVER_EVIDENCE, encoding="utf-8")
+        self.b = seeds.Build(self.tables)
+        self.evidence = seeds.build_evidence([self.evidence_tsv], self.b)
+        seeds.attach_evidence(self.b, self.evidence)
+        self.lists = seeds.checked_lists("forever", self.defaults, self.classifier, self.categories)
+
+    def cleanup(self):
+        self.tmp.cleanup()
+
+
+class ForeverEvidenceTest(unittest.TestCase):
+    def setUp(self):
+        self.fx = ForeverFixture()
+
+    def tearDown(self):
+        self.fx.cleanup()
+
+    def test_evidence_keeps_only_the_builds_consumables(self):
+        items = self.fx.evidence["items"]
+        self.assertEqual(items["12"], ["fdb:drop", "fdb:quest"])
+        self.assertNotIn("999", items, "a sword is not frozen into a consumable bundle")
+        self.assertEqual(set(self.fx.evidence["sources"]), {"fdb", "ah", "probe"})
+
+    def test_a_tsv_row_needs_a_declared_source_and_a_known_kind(self):
+        bad = Path(self.fx.tmp.name) / "bad.tsv"
+        for body in ("10\tfdb\tvendor\n", "#source\tfdb\tx\n10\tfdb\tstolen\n", "#source\tfdb\tx\nten\tfdb\tvendor\n"):
+            bad.write_text(body, encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                seeds.read_evidence_tsv(bad)
+
+    def test_the_label_names_each_source_once(self):
+        self.assertEqual(seeds.evidence_label(["ah:seen", "fdb:drop", "fdb:vendor", "probe:seen"]),
+                         "ForeverDB (drop, vendor), AH, probe")
+        self.assertEqual(seeds.evidence_label(["db2:crafted"]), "DB2 (crafted)")
+
+
+class ForeverRuleTest(unittest.TestCase):
+    def setUp(self):
+        self.fx = ForeverFixture()
+        self.cands, self.unplaced = seeds.candidates_for("forever", self.fx.b, self.fx.lists)
+        self.by = {c["key"]: c for c in self.cands}
+
+    def tearDown(self):
+        self.fx.cleanup()
+
+    def test_each_list_takes_its_own_subclass_and_a_sourced_item(self):
+        self.assertEqual(sorted(self.by), sorted([
+            "HP_POT:10", "HP_POT:11", "HP_POT:12", "HP_POT:14", "PROT_POT:20", "PROT_POT:21", "ELIXIR:30", "ELIXIR:31",
+            "WPN_ENCH:40", "HS:50", "BANDAGE:60", "STAT_FOOD:70"]))
+        ghosts = seeds.ghosts_for("forever", self.fx.b, self.fx.lists)
+        self.assertEqual([(g["list"], g["id"], g["why"]) for g in ghosts],
+                         [("HP_POT", 13, "no source"), ("HP_POT", 15, "restricted")],
+                         "a DB2 ghost and a battleground-only draught are reported, not proposed")
+
+    def test_a_poison_is_no_weapon_enchant_and_a_conjured_stone_is_a_healthstone(self):
+        self.assertNotIn("WPN_ENCH:41", self.by, "the Rogue poison category owns poisons")
+        self.assertIn("db2:crafted", self.by["HS:50"]["evidence"])
+        self.assertIn("every rank: the whitelist is HS's only matcher", self.by["HS:50"]["notes"])
+
+    def test_the_top_tier_of_each_band_and_group_is_marked(self):
+        self.assertIn("top of band 1-9 (3)", self.by["HP_POT:11"]["notes"])
+        self.assertIn("2 of 3 in band 1-9, behind 11", self.by["HP_POT:10"]["notes"])
+        self.assertIn("3 of 3 in band 1-9, behind 11", self.by["HP_POT:14"]["notes"],
+                      "a drop-only item ranks after one a vendor or the AH has, whatever its item level")
+        self.assertIn("top of band 10-19 (1)", self.by["HP_POT:12"]["notes"])
+        self.assertEqual(self.by["PROT_POT:20"]["group"], "band 20-29, school FIRE", "level 0: ten under its item level")
+        self.assertEqual(self.by["PROT_POT:21"]["group"], "band 20-29, school FROST")
+        self.assertEqual(self.by["ELIXIR:30"]["group"], "band 1-9, stat AGI")
+        self.assertEqual(self.by["ELIXIR:31"]["group"], "band 1-9, stat STR")
+        self.assertEqual(self.by["WPN_ENCH:40"]["group"], "band 1-9, kind SHARP")
+        self.assertEqual(self.by["STAT_FOOD:70"]["group"], "band 1-9, stat STA", "the stat after 'well fed'")
+
+    def test_a_level_0_item_bands_by_its_skill_or_item_level(self):
+        self.assertEqual(seeds.effective_level({"req": 0, "skill": 225, "ilvl": 1}), 45, "Heavy Runecloth Bandage")
+        self.assertEqual(seeds.effective_level({"req": 0, "skill": 0, "ilvl": 35}), 25)
+        self.assertEqual(seeds.effective_level({"req": 12, "skill": 0, "ilvl": 22}), 12)
+
+    def test_levels_band_by_ten_and_the_last_band_runs_to_sixty(self):
+        self.assertEqual([seeds.level_band(n) for n in (0, 9, 10, 19, 49, 50, 60)],
+                         ["1-9", "1-9", "10-19", "10-19", "40-49", "50-60", "50-60"])
+
+    def test_the_stat_reader_takes_the_school_before_plain_spell_damage(self):
+        self.assertEqual(seeds.forever_stat("Increases fire spell damage by up to 40 for 30 min."), "SP_FIRE")
+        self.assertEqual(seeds.forever_stat("Increases spell damage by up to 35 for 30 min."), "SP")
+        self.assertEqual(seeds.forever_stat("Increases ranged attack power by 60."), "RAP")
+        self.assertEqual(seeds.forever_stat("Allows the imbiber to see invisible."), None)
+        self.assertEqual(seeds.forever_stat("Increases damage done by magical spells and effects by up to $s1."), "SP",
+                         "Flask of Supreme Power is spell power, not a flat damage bonus")
+        self.assertEqual(seeds.forever_stat("Increases damage done by $s1% for $d."), "DMG")
+        self.assertEqual(seeds.forever_stat("Increases the player's maximum Mana by $s1 for $d."), "MANA")
+
+    def test_a_school_reads_as_spell_power_only_when_the_item_increases_it(self):
+        # Vanilla's and Forever's two wordings of a school elixir.
+        self.assertEqual(seeds.forever_stat("Increases spell fire damage by up to $s1 for $d."), "SP_FIRE")
+        self.assertEqual(seeds.forever_stat("Drink to increase nature spell damage by up to $s1."), "SP_NATURE")
+        self.assertEqual(seeds.forever_stat("Increases spell Holy damage by up to $s1 for $d."), "SP_HOLY")
+        # A potion that deals a school's damage buffs no stat (Dragonfire Potion, Potion of Venomous
+        # Blood): it is no school's spell-power potion.
+        self.assertIsNone(seeds.forever_stat("Unleash a belch of dragonfire, dealing $s1 Fire damage instantly "
+                                             "in a narrow cone in front of you."))
+        self.assertIsNone(seeds.forever_stat("Gain $U doses of Venomous Blood. Whenever you suffer Bleed damage, "
+                                             "one dose is spread to a nearby enemy. Venomous Blood deals $s1 "
+                                             "Nature damage."))
+
+
+class ForeverClassifierTest(unittest.TestCase):
+    def setUp(self):
+        self.fx = ForeverFixture()
+
+    def tearDown(self):
+        self.fx.cleanup()
+
+    def test_a_per_client_whitelist_answers_each_client_its_own_block(self):
+        tables = seeds.classifier_tables(FOREVER_CLASSIFIER)
+        self.assertEqual([r["id"] for r in tables["HEALTHSTONE_IDS"]["retail"]["records"]], [5512, 224464])
+        self.assertEqual(tables["HEALTHSTONE_IDS"]["forever"]["records"], [])
+        hs = next(lst for lst in self.fx.lists if lst["list"] == "CLASSIFIER_HS")
+        self.assertEqual(hs["records"], [], "Forever reads its own block, not Retail's")
+
+    def test_apply_writes_the_seed_the_whitelist_and_the_evidence(self):
+        doc = seeds.derive_doc("forever", self.fx.b, self.fx.lists, "1.60.1", "2026-11-27")
+        rulings = {k: {"ruling": "reject", "reason": "r"} for k in seeds.all_keys(doc)}
+        for key in ("HS:50", "HP_POT:12"):
+            rulings[key] = {"ruling": "accept", "reason": "r"}
+        changes = seeds.apply_bundle(doc, rulings, "2026-11-27", self.fx.defaults, self.fx.classifier)
+        self.assertEqual(sorted(changes), ["HEALTHSTONE_IDS: +50", "HP_POT forever: +12", "HS forever: +50"])
+        seed = (self.fx.defaults / "Defaults_Forever.lua").read_bytes().decode("utf-8")
+        self.assertIn("        12,  -- Healing Potion; added from the 2026-11-27 wago.tools validation (1.60.1); "
+                      "Evidence: ForeverDB (drop, quest)\r\n", seed)
+        classifier = self.fx.classifier.read_bytes().decode("utf-8")
+        self.assertIn("    forever = {\r\n        [50] = true,  -- Minor Healthstone; added from the 2026-11-27", classifier)
+        self.assertIn("[224464] = true", classifier, "Retail's block is untouched")
+        self.assertEqual(classifier.count("\r\n"), classifier.count("\n"))
+        self.assertEqual(seeds.apply_bundle(doc, rulings, "2026-11-27", self.fx.defaults, self.fx.classifier), [])
+
+    def test_the_diff_reports_the_ghosts(self):
+        doc = seeds.derive_doc("forever", self.fx.b, self.fx.lists, "1.60.1", "2026-11-27")
+        self.assertIn("## DB2-only items left out of the window — 1", seeds.format_diff(doc))
+        self.assertIn("- HP_POT `13` Ghost Healing Potion (required level 15)", seeds.format_diff(doc))
+
+
 class RepoTest(unittest.TestCase):
     def test_every_real_seed_file_reads(self):
         lists = seeds.read_seed_lists()
@@ -412,8 +691,21 @@ class RepoTest(unittest.TestCase):
         for want in ("FLASK", "FOOD", "STAT_FOOD", "CMBT_POT", "HP_POT", "MP_POT", "DRINK", "AUG_RUNE", "VANTUS",
                      "WPN_ENCH", "HS", "BLOODLUST", "BATTLE_REZ", "CLASS_GATE", "STAT_PRIORITY"):
             self.assertIn(want, names)
-        self.assertTrue(all(b["records"] for b in lists["retail"]), "a Retail list read as empty")
-        self.assertTrue(all(not b["records"] for b in lists["forever"]), "Forever's lists are empty by decision")
+        clients = seeds.category_clients()
+        served = [b for b in lists["retail"] if "retail" in clients.get(b["name"], {"retail"})]
+        self.assertTrue(all(b["records"] for b in served), "a Retail list read as empty")
+        # Issue #46 lifted the 2026-11-08 "empty by decision" ruling: every Forever item category seeds.
+        forever = {b["name"]: b for b in lists["forever"]}
+        for want in ("FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE", "FLASK", "ELIXIR", "CMBT_POT",
+                     "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH"):
+            self.assertTrue(forever.get(want) and forever[want]["records"], "Forever's %s seeds nothing" % want)
+        # Forever also ships its own stat priorities (issue #48) and every poison rank (issue #47).
+        self.assertTrue(forever.get("STAT_PRIORITY") and forever["STAT_PRIORITY"]["records"],
+                        "Forever ships its stat priorities")
+        for name in ("POISON", "POISON_FAMILY"):
+            self.assertEqual(len(forever.get(name, {}).get("records", [])), 20,
+                             name + ": every rank of the five families")
+            self.assertTrue(all(r["kind"] == "item" for r in forever[name]["records"]), name + " ships items")
 
     def test_the_newest_bundle_of_each_flavor_is_fully_ruled(self):
         for flavor in seeds.PRODUCTS:

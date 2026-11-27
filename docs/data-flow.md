@@ -44,9 +44,12 @@ event ──▶ bus:SendMessage(KCM.MSG.RECOMPUTE, reason)
             │      KCM.Debug("Calc", "skipped writes (disabled): reason=%s", reason)
             │                                                -- macros keep last-written body
             │  bus:SendMessage(KCM.MSG.PANEL_REFRESH)    -- always: panel rebuild
-            │                                            -- (options receiver debounces;
-            │                                            -- still hydrates [Loading]
-            │                                            -- rows while addon is off)
+            │                                            -- (options receiver debounces).
+            │                                            -- No recompute runs while the
+            │                                            -- addon is stood down: there a
+            │                                            -- [Loading] row hydrates itself
+            │                                            -- (KCM.HydrateItem, one-shot
+            │                                            -- LoadItem per id, #40)
             ▼
           per-category:
               Selector.GetEffectivePriority(catKey, specKey, scoreCache)
@@ -92,7 +95,7 @@ for _, cat in ipairs(KCM.Categories.LIST) do
 end
 ```
 
-A bad scorer in one category can no longer break the other fourteen macros. The `pcall` cost is negligible (15 per recompute — one per `Categories.LIST` row — and recompute fires at most once per frame).
+A bad scorer in one category can no longer break the other fifteen macros. The `pcall` cost is negligible (16 per recompute — one per `Categories.LIST` row — and recompute fires at most once per frame).
 
 ## Score cache — H-4
 
@@ -116,19 +119,21 @@ Tooltip / bag / spec state can shift between events. A persistent cache would se
 
 ## Events
 
-Declared in `KCM.EVENTS` and wired in `OnEnable` (`core/ConsumableMaster.lua`), fourteen in all. The recompute-driving handlers publish `KCM.MSG.RECOMPUTE` onto the bus rather than calling the pipeline directly — the pipeline's own subscriber turns that into `RequestRecompute` (shown below as the effect):
+Declared in `KCM.EVENTS` and wired in `OnEnable` (`core/ConsumableMaster.lua`), sixteen in all. Two of them carry a `clients` field, `{ "retail" }`, and are gated at registration (`KCM.ClientEvents`, clients-§4), so WoW Forever registers fourteen. The recompute-driving handlers publish `KCM.MSG.RECOMPUTE` onto the bus rather than calling the pipeline directly — the pipeline's own subscriber turns that into `RequestRecompute` (shown below as the effect):
 
 | Event | Handler | What it does |
 |-------|---------|--------------|
 | `PLAYER_ENTERING_WORLD` | `OnPlayerEnteringWorld` | Run `discoverAndSweep` (published as `Pipeline.DiscoverAndSweep`): `runAutoDiscovery`, then `Selector.SweepStaleDiscovered(time())`. Then publish `RECOMPUTE` → `RequestRecompute`. Sweep runs after discovery so bumped timestamps are seen, and before recompute so the cleaned-up set feeds the first pick. Finally `MacroBar.Update()`, which builds / re-shows the macro bar (a no-op if the user switched it off). |
 | `BAG_UPDATE_DELAYED` | `OnBagUpdateDelayed` | `runAutoDiscovery` + publish `RECOMPUTE`. |
 | `PLAYER_SPECIALIZATION_CHANGED` | `OnSpecChanged` | Player only: a groupmate's respec (any `unit` other than `"player"`; a nil unit passes) is ignored. `runAutoDiscovery("spec_changed")` first, because discovery is filed per spec and the new spec's buckets have not seen what is already in bags; then publish `RECOMPUTE`, plus `SPEC_CHANGED` so the Stat Priority page retracks. |
-| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes — then `MacroBar.FlushPending()`, which applies any macro-bar build / relayout / restyle deferred because slots are protected frames. A settings-category registration parked in combat is not replayed here: `LibKa0s-Options-1.0` parks and replays it on its own frame, whatever the stand-down state. |
+| `PLAYER_REGEN_ENABLED` | `OnRegenEnabled` | `MacroManager.FlushPending()` — applies queued combat-deferred writes — then, when `KCM.Poison.AuraChanged()` says Retail's poison macro's next cast moved while its auras could not be read, publish `RECOMPUTE` (`"regen_poison"`); then `MacroBar.FlushPending()`, which applies any macro-bar build / relayout / restyle deferred because slots are protected frames. A settings-category registration parked in combat is not replayed here: `LibKa0s-Options-1.0` parks and replays it on its own frame, whatever the stand-down state. |
 | `GET_ITEM_INFO_RECEIVED` | `OnItemInfoReceived` | `TooltipCache.Invalidate(id)`, then the seed probe's re-capture hook (`KCM.SeedProbe.OnItemInfoReceived`, which queues the id only when a probe is waiting on it), then split: bag items → `discoverOne` + publish `RECOMPUTE`; non-bag items → publish `PANEL_REFRESH` only (which the options layer debounces into a rebuild). See [GIIR bag/non-bag split](#giir-bagnon-bag-split). |
 | `LEARNED_SPELL_IN_SKILL_LINE` | `OnLearnedSpell` | Publish `RECOMPUTE` (`"learned_spell"`). Closes the window where `spellNameFor()` returned nil because the spell book hadn't hydrated yet, but the spell becomes known later in the same session without a spec change or bag event. |
 | `PLAYER_EQUIPMENT_CHANGED` | `OnEquipmentChanged` | Ignored except for slot 16 (main hand) / 17 (off hand); on a main-hand or off-hand swap, publish `RECOMPUTE` (`"equip"`) so `KCM_WPN_ENCH` re-derives each hand's weapon-type affinity (`core/WeaponSlots.lua`) and re-picks per hand. |
 | `ADDON_RESTRICTION_STATE_CHANGED` | `OnRestrictionChanged` | Acts only on a lift (`state == 0`) of a non-combat restriction type; type `0`, combat, is left to `PLAYER_REGEN_ENABLED`. `MacroManager.MarkAllStale()` owes every stored macro one write past the fingerprint early-out, then publish `RECOMPUTE` (`"restriction_lifted"`). The write is what makes the client re-resolve a `#showtooltip` icon left blank by a `/reload` or relog mid-key. |
 | `SPELL_UPDATE_COOLDOWN`, `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` | `MacroBar.RefreshCooldowns()`, gated on the bar being enabled — slots and their flyout entries alike. Bar-only and cheap: these exist to catch the *start* of a cooldown, since the `Cooldown` frame animates itself once set. Repainting a `Cooldown` is unprotected, so unlike flyout *content* this works mid-fight — provided the swipe is set from a duration object, because the spell cooldown numbers themselves go secret in combat (`MacroBarButton.ApplyCooldown`; see [midnight-quirks.md](./midnight-quirks.md#secret-values)). No pipeline involvement. |
+| `UNIT_AURA` (Retail only) | `OnUnitAura` | Player only: any other unit returns at once. Publish `RECOMPUTE` (`"unit_aura"`) only when `KCM.Poison.AuraChanged()` says the poison macro's next cast moved since it was last built (a poison applied or worn off); every other aura change costs a handful of out-of-combat `GetPlayerAuraBySpellID` reads and no pass. In combat it reads nothing. |
+| `TRAIT_CONFIG_UPDATED` (Retail only) | `OnTalentsChanged` | A talent loadout was saved: publish `RECOMPUTE` (`"talents"`), since Dragon-Tempered Blades and the talented poisons change what the poison macro may cast. |
 | `MERCHANT_SHOW`, `MERCHANT_CLOSED`, `AUCTION_HOUSE_SHOW`, `AUCTION_HOUSE_CLOSED` | `OnProbeEvent` | The seed probe's window flags (`KCM.SeedProbe.OnEvent`, `core/SeedProbe.lua`); `AUCTION_HOUSE_SHOW` also starts an armed `/cm probe seed auction` scan. No pipeline involvement ([seed-probe.md](./seed-probe.md)). |
 
 **Standing back up** (`standUp`, `core/LifecycleSetup.lua`) runs the same discovery pass and stale sweep, `Pipeline.DiscoverAndSweep("stand_up")`, before its `RequestRecompute("stand_up")`. `BAG_UPDATE_DELAYED` was unregistered while the addon was down and `PLAYER_ENTERING_WORLD` does not fire again on a re-enable, so without it a consumable looted while disabled would not be a candidate until the next bag update.

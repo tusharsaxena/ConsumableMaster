@@ -182,13 +182,18 @@ defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
 defaults\Defaults_Drink.lua
 defaults\Defaults_StatFood.lua
+defaults\Defaults_Scroll.lua
 defaults\Defaults_HPPot.lua
 defaults\Defaults_MPPot.lua
 defaults\Defaults_Healthstone.lua
+defaults\Defaults_Bandage.lua
 defaults\Defaults_CombatPot.lua
+defaults\Defaults_ProtPot.lua
 defaults\Defaults_Flask.lua
+defaults\Defaults_Elixir.lua
 defaults\Defaults_Vantus.lua
 defaults\Defaults_WpnEnch.lua
+defaults\Defaults_Poison.lua
 defaults\Defaults_AugRune.lua
 defaults\Defaults_Bloodlust.lua
 defaults\Defaults_BattleRez.lua
@@ -197,6 +202,9 @@ defaults\Defaults_BattleRez.lua
 # Position within this group is conventional, not load-bearing.
 modules\Ranker.lua
 modules\Selector.lua
+# Poison.lua -- the rogue poison category's two models (issue #47). After Selector.lua by
+# convention; it reaches the Selector and MacroManager at call time only.
+modules\Poison.lua
 modules\MacroManager.lua
 modules\MacroBarFlyout.lua
 modules\MacroBarButton.lua
@@ -260,6 +268,10 @@ settings\CategoryAddByID.lua
 # Category.lua (#43). AFTER Category.lua for the same reason as the line above:
 # it takes KCM.Settings.MacrosPage's helpers as file-scope locals.
 settings\CategoryComposite.lua
+# settings/CategoryPoison.lua -- the Poison tab's per-client half (issue #47): Forever's
+# family dropdowns above the priority list, Retail's Lethal and Non-lethal lists. AFTER
+# Category.lua for the same reason: it takes KCM.Settings.MacrosPage's helpers as locals.
+settings\CategoryPoison.lua
 # The /cm dispatcher (CM-47). Last in this block because it is the one settings
 # file nothing else here reads: it consumes core\SlashCommands.lua's published
 # verb table and publishes KCM:OnSlashCommand, which AceConsole resolves by name

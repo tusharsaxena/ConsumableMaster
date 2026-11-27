@@ -101,7 +101,9 @@ test("classifier: MP_POT matches mana potions without a stat buff", function(t)
 end)
 
 -- ---- HS: hard-coded itemIDs 5512 & 224464 regardless of tt ----------------
-test("classifier: HS matches hard-coded healthstone IDs regardless of item data", function(t)
+-- Retail's whitelist: HEALTHSTONE_IDS is one list per client (issue #46); tests/test_forever.lua pins
+-- Forever's.
+h.retailTest("classifier: HS matches hard-coded healthstone IDs regardless of item data", function(t)
     local KCM  = h.loader.loadPure()
     local mock = h.loader.mock
     local C    = KCM.Classifier

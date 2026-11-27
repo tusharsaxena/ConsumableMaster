@@ -517,6 +517,10 @@ local VALUE_ROWS = {
     { "categories.MP_AIO.orderInCombat",    "order", "macros"       },
     { "categories.MP_AIO.orderOutOfCombat", "order", "macros"       },
     { "categories.BATTLE_REZ.mouseover",    "bool",  "macros"       },
+    -- Retail's poison lists (issue #47; settings/CategoryPoison.lua declares the running model's).
+    { "categories.POISON.lethal",           "order", "macros"       },
+    { "categories.POISON.nonLethal",        "order", "macros"       },
+    { "categories.POISON.enabled",          "map",   "macros"       },
     { "macroBar.order",                     "order", "macrobar"     },
     { "macroBar.shown",                     "map",   "macrobar"     },
 }
@@ -540,9 +544,10 @@ h.retailTest("schema: stat priority, the composite sections, slot order and visi
             t.eq(ser(def and def.default), ser(defaultAt(KCM, want[1])),
                 want[1] .. "'s default is the shipped one")
         end
-        t.eq(#KCM.Settings.Schema, 98,
+        t.eq(#KCM.Settings.Schema, 101,
             "the 68 rows there were, plus these ten, plus the Minimap button row, plus the Skin tab's eight, "
-            .. "plus the macro bar's three HUD style companions, plus its eight color and shadow ones")
+            .. "plus the macro bar's three HUD style companions, plus its eight color and shadow ones, "
+            .. "plus Retail's three poison rows")
     end)
 
 test("schema: an order row normalizes to its member set and never stores the caller's table", function(t)
@@ -574,7 +579,7 @@ test("schema: a flag map keeps its members' booleans, drops strangers and refuse
             "the bar's visibility map is keyed by category")
     end)
 
-test("schema: statPriority keeps well-formed overrides and repairs their lists", function(t)
+h.retailTest("schema: statPriority keeps well-formed overrides and repairs their lists", function(t)
     local KCM = h.loader.loadFullAddon()
     local H = KCM.Settings.Helpers
     local def = H.FindSchema("statPriority")
@@ -669,6 +674,10 @@ local STORED_GUARD = {
     "categories.MP_AIO.enabled | map | {DRINK=true,MP_POT=true} | nil | nil | nil | ",
     "categories.MP_AIO.orderInCombat | order | {1=MP_POT} | nil | nil | nil | ",
     "categories.MP_AIO.orderOutOfCombat | order | {1=DRINK} | nil | nil | nil | ",
+    -- Retail's poison rows (issue #47).
+    "categories.POISON.enabled | map | {} | nil | nil | nil | ",
+    "categories.POISON.lethal | order | {1=DEADLY,2=AMPLIFYING,3=INSTANT,4=WOUND} | nil | nil | nil | ",
+    "categories.POISON.nonLethal | order | {1=ATROPHIC,2=NUMBING,3=CRIPPLING} | nil | nil | nil | ",
     "enabled | bool | true | nil | nil | nil | ",
     "global.minimap.shown | bool | true | nil | nil | nil | ",
     "macroBar.alpha | number | 1 | 0.1 | 1 | 0.05 | ",
@@ -724,10 +733,10 @@ local STORED_GUARD = {
     "macroBar.labelShadow | bool | false | nil | nil | nil | ",
     "macroBar.labelText | string | SHORT | nil | nil | nil | AUTO,FULL,SHORT",
     "macroBar.locked | bool | false | nil | nil | nil | ",
-    "macroBar.order | order | {1=FOOD,10=STAT_FOOD,11=WPN_ENCH,12=AUG_RUNE,13=VANTUS,14=BLOODLUST,15=BATTLE_REZ,2=DRINK,3=HP_POT,4=MP_POT,5=HS,6=HP_AIO,7=MP_AIO,8=FLASK,9=CMBT_POT} | nil | nil | nil | ",
+    "macroBar.order | order | {1=FOOD,10=STAT_FOOD,11=WPN_ENCH,12=POISON,13=AUG_RUNE,14=VANTUS,15=BLOODLUST,16=BATTLE_REZ,2=DRINK,3=HP_POT,4=MP_POT,5=HS,6=HP_AIO,7=MP_AIO,8=FLASK,9=CMBT_POT} | nil | nil | nil | ",
     "macroBar.orientation | string | HORIZONTAL | nil | nil | nil | HORIZONTAL,VERTICAL",
     "macroBar.padding | number | 4 | 0 | 24 | 1 | ",
-    "macroBar.perRow | number | 15 | 1 | 15 | 1 | ",
+    "macroBar.perRow | number | 16 | 1 | 16 | 1 | ",
     "macroBar.scale | number | 1 | 0.5 | 2 | 0.05 | ",
     "macroBar.showCount | bool | true | nil | nil | nil | ",
     "macroBar.showGCD | bool | false | nil | nil | nil | ",

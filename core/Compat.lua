@@ -106,7 +106,7 @@ end
 -- and true when the client's token is in the list. defaults/Categories.lua gates every category row
 -- through it, once, at load. Without the library the stub answers as Retail, for ClientKey's reason
 -- above: nil and "both" admit, and a list admits when it names "retail" or "both". So a degraded
--- install keeps the fifteen Retail categories and never grows the Forever-only four.
+-- install keeps the sixteen Retail categories and never grows the Forever-only four.
 Compat.ForClient = CompatLib and CompatLib.ForClient or function(clients)
     if clients == nil or clients == "both" then return true end
     if type(clients) ~= "table" then return false end
