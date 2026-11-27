@@ -94,6 +94,9 @@ local function itemDisplayName(itemID)
     end
     local n = KCM.Compat.GetItemInfo(itemID)
     if n then return n end
+    -- Uncached. While the addon runs, GET_ITEM_INFO_RECEIVED repaints the panel; while it is
+    -- stood down, HydrateItem asks once and repaints on its own callback (core/ItemSetup.lua, #40).
+    if KCM.HydrateItem then KCM.HydrateItem(itemID) end
     return "[Loading]"
 end
 

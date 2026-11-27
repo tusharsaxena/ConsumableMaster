@@ -49,3 +49,90 @@ test("ItemSetup: the degraded stub answers exactly what the library does", funct
     t.eq(KCM.Item.ItemIDFromLink("not a link"), nil)
     t.eq(KCM.Item.ItemIDFromLink(211804), nil)
 end)
+
+-- ---------------------------------------------------------------------------
+-- The disabled-state hydration (#40)
+-- ---------------------------------------------------------------------------
+--
+-- While the addon is stood down the panel survives but GET_ITEM_INFO_RECEIVED does not, so an
+-- uncached row would stay `[Loading]` until re-enable. KCM.HydrateItem asks LibKa0s-Item's
+-- LoadItem once per id and repaints the panel on the one-shot callback. It registers nothing,
+-- which is what keeps the stand-down total; tests/test_disabled.lua holds that half.
+
+--- The pure layer, stood down or not by fiat, with the request API and the panel refresh spied.
+local function hydrateRig(stoodDown, degraded)
+    local KCM = degraded and h.loader.loadPureDegraded() or h.loader.loadPure()
+    KCM.IsStoodDown = function() return stoodDown end
+    local rig = { requests = {}, refreshes = 0 }
+    _G.C_Item.RequestLoadItemDataByID = function(id) rig.requests[#rig.requests + 1] = id end
+    KCM.Options = KCM.Options or {}
+    KCM.Options.RequestRefresh = function() rig.refreshes = rig.refreshes + 1 end
+    return KCM, rig
+end
+
+-- red under: KCM.HydrateItem missing, or not calling LoadItem.
+test("ItemSetup: stood down, an uncached id is requested and the panel repaints on the callback",
+    function(t)
+        local KCM, rig = hydrateRig(true)
+        t.eq(type(KCM.HydrateItem), "function", "the seam publishes HydrateItem")
+        KCM.HydrateItem(211804)
+        t.eqList(rig.requests, { 211804 }, "one request through C_Item.RequestLoadItemDataByID")
+        t.eq(rig.refreshes, 1, "the one-shot callback asked the panel for its debounced repaint")
+    end)
+
+-- red under: no per-id memory, so every repaint of a still-uncached row re-requests and the
+-- callback's own repaint loops every 0.4 s for an id the server never answers.
+test("ItemSetup: the request is one-shot per id", function(t)
+    local KCM, rig = hydrateRig(true)
+    KCM.HydrateItem(211804)
+    KCM.HydrateItem(211804)
+    KCM.HydrateItem(212241)
+    t.eqList(rig.requests, { 211804, 212241 }, "a second ask for the same id requests nothing")
+    t.eq(rig.refreshes, 2, "and arms no second callback")
+end)
+
+-- red under: dropping the stood-down guard, which would put a second request path beside the
+-- tuned GET_ITEM_INFO_RECEIVED one while the addon runs.
+test("ItemSetup: standing, HydrateItem requests nothing (GET_ITEM_INFO_RECEIVED owns it)", function(t)
+    local KCM, rig = hydrateRig(false)
+    KCM.HydrateItem(211804)
+    t.eq(#rig.requests, 0, "no request while the pipeline is up")
+    t.eq(rig.refreshes, 0)
+end)
+
+test("ItemSetup: HydrateItem ignores a nil or non-numeric id", function(t)
+    local KCM, rig = hydrateRig(true)
+    KCM.HydrateItem(nil)
+    KCM.HydrateItem("item:1")
+    t.eq(#rig.requests, 0)
+end)
+
+test("ItemSetup: with no library, HydrateItem is inert and does not raise", function(t)
+    -- The degraded seam carries no LoadItem, and a row on that install shows `[Loading]` as it
+    -- did before #40 rather than growing a host copy of the library's request.
+    local KCM, rig = hydrateRig(true, true)
+    t.eq(type(KCM.HydrateItem), "function", "the seam still publishes it")
+    KCM.HydrateItem(211804)
+    t.eq(#rig.requests, 0)
+    t.eq(rig.refreshes, 0)
+end)
+
+-- red under: the item row's `[Loading]` fallback not asking for the hydration.
+test("ItemSetup: an item row with an uncached name asks HydrateItem for it", function(t)
+    local KCM = h.loader.wearKa0s(h.loader.loadPure())
+    local asked = {}
+    KCM.HydrateItem = function(id) asked[#asked + 1] = id end
+    local buildWidget = dofile((_G.KCM_TEST_ROOT or ".") .. "/tests/skin_widget_support.lua")
+    local w, _, cleanup = buildWidget(KCM, "modules/KCMItemRow.lua", "KCMItemRow")
+    local ok, err = pcall(function()
+        w:OnAcquire()
+        w:SetCustomData({ itemID = 987654 })      -- in no mock table: uncached
+        t.eqList(asked, { 987654 }, "the uncached row asked once")
+        h.loader.mock.items[987655] = { name = "Cached Thing", classID = 0, subClassID = 1 }
+        w:SetCustomData({ itemID = 987655 })
+        t.eqList(asked, { 987654 }, "a cached row asks nothing")
+    end)
+    h.loader.mock.items[987655] = nil
+    cleanup()
+    t.truthy(ok, tostring(err))
+end)

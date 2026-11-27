@@ -663,3 +663,43 @@ test("Disabled 10d: a profile that arrives disabled stands the addon down", func
     t.truthy(count(registrations()) > 0, "and switching back stood it up")
     t.falsy(H.Get("enabled") == false, "on a profile that is enabled")
 end)
+
+-- ---------------------------------------------------------------------------
+-- 11. The panel hydrates its own rows, and registers nothing doing it (#40)
+-- ---------------------------------------------------------------------------
+--
+-- red under: KCM.HydrateItem registering GET_ITEM_INFO_RECEIVED (or any message) to learn when
+-- the data lands. The owner's ruling is a one-shot LoadItem callback precisely so this count
+-- stays zero; a hydration that re-registered would be a survivor the stand-down never sees.
+
+test("Disabled 11: an uncached panel row hydrates while disabled, and the set stays EMPTY",
+    function(t)
+        local KCM, H = build()
+        H.SetAndRefresh("enabled", false)
+        t.eq(count(registrations()), 0, "down")
+
+        local requests, repaints = {}, 0
+        _G.C_Item.RequestLoadItemDataByID = function(id) requests[#requests + 1] = id end
+        local realRepaint = H.RefreshAllPanels
+        H.RefreshAllPanels = function(...) repaints = repaints + 1; return realRepaint(...) end
+        local ok, err = pcall(function()
+            KCM.HydrateItem(424242)
+            t.eqList(requests, { 424242 }, "the row's id was requested")
+            t.truthy(repaints >= 1, "and the panel repainted on the callback")
+            t.eq(count(registrations()), 0,
+                "with nothing registered to learn of it: " .. table.concat(registrations(), ", "))
+        end)
+        H.RefreshAllPanels = realRepaint
+        _G.C_Item.RequestLoadItemDataByID = nil
+        t.truthy(ok, tostring(err))
+    end)
+
+test("Disabled 11b: enabled, a panel row requests nothing on its own", function(t)
+    -- The pipeline's GET_ITEM_INFO_RECEIVED path owns hydration while the addon runs.
+    local KCM = build()
+    local requests = 0
+    _G.C_Item.RequestLoadItemDataByID = function() requests = requests + 1 end
+    KCM.HydrateItem(424243)
+    _G.C_Item.RequestLoadItemDataByID = nil
+    t.eq(requests, 0)
+end)
