@@ -16,7 +16,7 @@
 -- gets is derived.
 --
 -- What is NOT here: defaults/Categories.lua (the category REGISTRY — keys,
--- labels, macro names, the `targeted` flag) and the fifteen defaults/Defaults_*
+-- labels, macro names, the `targeted` flag) and the sixteen defaults/Defaults_*
 -- files (the shipped item/spell seed lists). Those describe what the addon
 -- knows about the game; this file describes what a fresh profile looks like.
 
@@ -89,7 +89,7 @@ local CATEGORY_BUCKETS = {
 -- Mirrors the cosmetic settings-tab order in KCM.Settings.macroOrder
 -- (settings/Panel.lua), which loads much later, so tests/test_macrobar.lua
 -- asserts the two never drift. Filtered by BY_KEY below, so Retail's order is
--- exactly the fifteen it always was, and Forever's puts each of its four
+-- its fifteen plus POISON beside WPN_ENCH, and Forever's puts each of its four
 -- categories beside its nearest kin.
 local SLOT_ORDER = {
     "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE",
@@ -231,7 +231,7 @@ KCM.dbDefaults = {
             alpha    = 1.0,
             -- Grid. `perRow` counts buttons along the axis `orientation` fills
             -- first (row for HORIZONTAL, column for VERTICAL); one row of every
-            -- managed macro, so the category count: fifteen on either client.
+            -- managed macro, so the category count: sixteen on either client.
             -- Derived since the WoW Forever port moved this file after
             -- defaults/Categories.lua; tests/test_macrobar.lua still pins it.
             buttonSize  = 36,

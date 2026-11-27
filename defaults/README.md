@@ -27,6 +27,7 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 | `Defaults_Flask.lua`          | `KCM.SEED.FLASK`     | Flasks / Alchemist's Concoctions                             |
 | `Defaults_Vantus.lua`         | `KCM.SEED.VANTUS`    | Per-raid Vantus (Versatility) runes                          |
 | `Defaults_WpnEnch.lua`        | `KCM.SEED.WPN_ENCH`  | Weapon oils / whetstones / weightstones (per-hand)           |
+| `Defaults_Poison.lua`         | `KCM.SEED.POISON` (+ `POISON_FAMILY`, `KCM.POISON_MODEL`) | Rogue poisons: Forever's item ranks per family, Retail's poison spells |
 | `Defaults_AugRune.lua`        | `KCM.SEED.AUG_RUNE`  | Augment runes (primary stat; reusable ones break ties)       |
 | `Defaults_Bloodlust.lua`      | `KCM.SEED.BLOODLUST`, `KCM.SEED.CLASS_GATE` | Raid haste (spell forms per class, then drums as the item fallback); seed-plus-user-added only, no Classifier matcher; IDs unverified, sourced from wikis pending in-game confirmation |
 | `Defaults_BattleRez.lua`      | `KCM.SEED.BATTLE_REZ` | Combat resurrection (spell forms per class, then Emergency Soul Link as the item fallback); seed-plus-user-added only, no Classifier matcher; IDs unverified, sourced from wikis pending in-game confirmation |

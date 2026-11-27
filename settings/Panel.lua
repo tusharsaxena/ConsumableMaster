@@ -68,7 +68,7 @@ KCM.Settings.order = KCM.Settings.order or {
 --
 -- The run below names every client's categories; the strip is THIS client's,
 -- filtered once here by KCM.Categories.BY_KEY (clients-§4), so Retail's is the
--- fifteen it always was and WoW Forever's places bandage, elixir, protection
+-- fifteen it always was plus Poison beside Weapon Enchant, and WoW Forever's places bandage, elixir, protection
 -- potion and scroll beside their nearest kin. A category absent on the client
 -- gets no tab: it is never registered and then hidden.
 if not KCM.Settings.macroOrder then

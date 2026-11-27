@@ -62,6 +62,17 @@ Composites compose other categories' picks via `[combat]` / `[nocombat]` macro c
 
 See [schema.md](./schema.md#composite-bucket-shape) for the composite bucket shape and [macro-manager.md](./macro-manager.md#composite-body-assembly) for the body-assembly detail.
 
+## Add a category whose model differs per client
+
+POISON (issue #47) is the worked example: one key on both clients, with the pick made differently on each. Keep it one row with no `clients`, and make the model **data** chosen once at load, never a client branch in feature code (clients-§3, §5):
+
+1. Declare the model as a per-client table in the category's seed file, through `KCM.PerClient` (`KCM.POISON_MODEL` in `defaults/Defaults_Poison.lua`). Keep it out of `KCM.SEED`, which `tools/seeds/seeds.py` reads as id lists.
+2. Give the bucket a per-client shape the same way in `defaults/Profile.lua`'s `CATEGORY_BUCKETS` (`KCM.PerClient({ retail = {...}, forever = {...} })`).
+3. Route the row through its own module with a flag (`poison = true`): `Pipeline.RecomputeOne`, `Selector.ListAvailable` and the Macros tab dispatch on it. The module reads the model's `kind` and nothing else about the client.
+4. Declare only the running model's schema rows, at load, in the tab's own settings file (`settings/CategoryPoison.lua`), so no client registers a row it cannot use (clients-§4).
+5. An event only one model needs carries a `clients` field in `KCM.EVENTS`; `KCM.ClientEvents` gates it at registration.
+6. Test each model under its client with `h.loader.withClient` (`tests/test_poison.lua`), and give each client its own smoke checks.
+
 ## Refresh seed item IDs after a patch
 
 The full procedure (sources, in-game `/run` snippet for batch ID dump, common pitfalls) lives in [defaults/README.md](../defaults/README.md). High-level summary: collect candidate IDs (in-game vendors first, then Method.gg / wiki cross-check), verify each in-game with `/cm dump item <id>` (or record them in bulk with the seed probe, `/cm probe seed`, [seed-probe.md](./seed-probe.md)), update the relevant `defaults/Defaults_*.lua` file, then run the [Discovery checks](./smoke-tests.md#discovery) of the smoke suite.

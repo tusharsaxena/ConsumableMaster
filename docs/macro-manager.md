@@ -60,6 +60,14 @@ Each hand contributes an **application pair** — `/use item:<id>` puts the enha
 
 Dual-wielding a bladed and a blunt weapon legitimately yields two *different* enhancements (whetstone + weightstone) in one body. Both pairs are unconditional — there are no `[combat]` conditionals here, unlike the composites.
 
+WoW Forever's **POISON** writes the same body through the same function (issue #47), reused rather than forked: `KCM.Poison.PickForHand(16 | 17)` hands it each hand's pick, chosen by the hand's poison family instead of by weapon affinity (`modules/Poison.lua`).
+
+## Retail's poison body
+
+`SetPoisonMacro(cat, pick, idle)` writes Retail's POISON macro. `pick` is the poison spell `KCM.Poison.NextCast()` chose — the first wanted poison whose buff is missing — and goes through `SetMacro`, so the body is an ordinary spell pick (`#showtooltip` + `/cast <Poison>`). With no pick, `idle = true` (every wanted poison is up) writes the category's `idleText` (`[CM] all poisons applied`), and `idle = false` (the character knows none, as any non-rogue) its `emptyText`. Both no-pick bodies are `/run` lines with the empty-state icon.
+
+In combat the poison recompute reads no aura: it re-says the last answer it built, so a forced rewrite (`MarkAllStale`) still queues this macro with the others, and before any answer it leaves the macro alone. A poison that fell off mid-fight is caught by `OnRegenEnabled`, which asks `KCM.Poison.AuraChanged()` and requests one pass when the next cast moved.
+
 ## Composite body assembly
 
 `SetCompositeMacro` resolves picks via `Selector.PickBestForCategory(refKey, nil, scoreCache)` for each enabled sub-cat in the configured order. The body has two halves:

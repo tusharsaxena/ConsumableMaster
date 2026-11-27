@@ -4,7 +4,7 @@ Orient-yourself map for **Ka0s Consumable Master**. This file is the high-level 
 
 ## Overview
 
-Fifteen account-wide global macros per client (on Retail `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`, `KCM_HP_AIO`, `KCM_MP_AIO`; on WoW Forever the four Retail-only ones give way to `KCM_ELIXIR`, `KCM_SCROLL`, `KCM_BANDAGE` and `KCM_PROT_POT`, [Per-client features](#per-client-features)) whose bodies auto-rewrite to point at the best consumable currently in your bags. Thirteen macros run a per-category scorer; two are composites that compose other categories' picks via combat conditionals. Identified by name, never by slot — coexists with every other macro in the user's account-wide pool.
+Sixteen account-wide global macros per client (on Retail `KCM_FOOD`, `KCM_DRINK`, `KCM_HP_POT`, `KCM_MP_POT`, `KCM_HS`, `KCM_VANTUS`, `KCM_FLASK`, `KCM_CMBT_POT`, `KCM_STAT_FOOD`, `KCM_WPN_ENCH`, `KCM_POISON`, `KCM_AUG_RUNE`, `KCM_BLOODLUST`, `KCM_BATTLE_REZ`, `KCM_HP_AIO`, `KCM_MP_AIO`; on WoW Forever the four Retail-only ones give way to `KCM_ELIXIR`, `KCM_SCROLL`, `KCM_BANDAGE` and `KCM_PROT_POT`, [Per-client features](#per-client-features)) whose bodies auto-rewrite to point at the best consumable currently in your bags. Fourteen macros run a per-category scorer; two are composites that compose other categories' picks via combat conditionals. Identified by name, never by slot — coexists with every other macro in the user's account-wide pool.
 
 Those macros are also hosted on a **CM-only macro bar** (on by default) — one secure slot per category, each with a hover flyout listing every currently-usable candidate in that category. It is the addon's only protected-frame surface; see [macro-bar.md](./macro-bar.md).
 
@@ -18,7 +18,7 @@ Those macros are also hosted on a **CM-only macro bar** (on by default) — one 
 | Folder | Holds |
 |--------|-------|
 | `core/` | Namespace, AceAddon entry (`ConsumableMaster.lua`) + recompute pipeline, Bus, Compat, Constants, State, Database, Debug, the skin seam (SkinSetup), the pure engine (SpecHelper, TooltipCache, BagScanner, Classifier, WeaponSlots), the macro bar's pure halves (MacroDisplay, MacroBarModel, MacroBarLayout), the `/cm dump` targets (SlashDump), the slash **verb bodies** (SlashCommands) and the diagnostics report's sections (Diagnostics) — the dispatcher itself is `settings/Slash.lua` |
-| `modules/` | Ranker, Selector, MacroManager, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
+| `modules/` | Ranker, Selector, Poison (the rogue poison models), MacroManager, the macro bar (MacroBar, MacroBarButton, MacroBarFlyout), the `KCM*` AceGUI widgets |
 | `defaults/` | Seed itemID lists + the category table (data, not code) |
 | `settings/` | Options panel + its five pages (General, Macros, Stat Priority, Macro Bar, Profiles) |
 | `locales/` | `enUS.lua` (`KCM.L`) — English only |
@@ -94,13 +94,27 @@ row: it is never registered and then hidden.
 
 | Category | Client | Gated in |
 |---|---|---|
-| FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, HP_AIO, MP_AIO | both | — (no declaration) |
+| FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH, POISON, HP_AIO, MP_AIO | both | — (no declaration) |
+| POISON's model: items per weapon hand (Forever), spells by missing buff (Retail) | per client | `defaults/Defaults_Poison.lua` (`KCM.POISON_MODEL`, a per-client table picked by `KCM.PerClient`) |
+| POISON's schema rows: `mainHand` / `offHand` (Forever), `lethal` / `nonLethal` / `enabled` (Retail) | per client | `settings/CategoryPoison.lua` (declared for the running model only) |
+| `UNIT_AURA`, `TRAIT_CONFIG_UPDATED` (the poison macro's rebuilds) | Retail | `core/ConsumableMaster.lua` (`KCM.EVENTS`' `clients` field, gated by `KCM.ClientEvents`) |
 | VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ (and BATTLE_REZ's `mouseover` row) | Retail | `defaults/Categories.lua` (`clients = { "retail" }`) |
 | ELIXIR, SCROLL, BANDAGE, PROT_POT | WoW Forever | `defaults/Categories.lua` (`clients = { "forever" }`) |
 | The Macros strip's tab order | per client | `settings/Panel.lua` (`KCM.Settings.macroOrder`, filtered by `BY_KEY`) |
 | The macro bar's default slot order | per client | `defaults/Profile.lua` (`SLOT_ORDER`, filtered by `BY_KEY`) |
 
 Every other module, page, verb, launcher entry and event registration serves both clients.
+
+**POISON is one category with a model per client** (issue #47, owner rulings 2026-11-27). Two keys
+were the alternative, and were not taken: the macro, the tab, the slot and the slash name are one
+thing a player meets on either client, and only how the pick is made differs. So the row carries no
+`clients` and the *model* is data, `KCM.POISON_MODEL`, chosen once at load like the seed lists
+(clients-§5), with the profile bucket picked the same way (`defaults/Profile.lua`). `modules/Poison.lua`
+reads the model's `kind` and never asks which client it is on (clients-§3's per-client table, not a
+client branch). WoW Forever's `hands` model picks a family per weapon hand and writes the Weapon
+Enchant body; Retail's `spells` model casts the first wanted poison whose buff is missing, reading
+auras out of combat only and through `pcall` and `KCM.Compat.IsSecret`. A non-rogue's macro is the
+empty-state line on both: there is no class gate.
 
 **Seed data is two lists per file** (clients-§5). Each `defaults/Defaults_*.lua` hands a
 `{ retail = …, forever = … }` pair to `KCM.PerClient` (`core/Compat.lua`), which answers the running
@@ -226,6 +240,8 @@ Every client event this addon listens to is declared in one place — the `KCM.E
 | `BAG_UPDATE_COOLDOWN` | `OnCooldownUpdate` | The same repaint, from the item-cooldown side |
 | `MERCHANT_SHOW` / `MERCHANT_CLOSED` | `OnProbeEvent` | The seed probe's merchant-open flag (`core/SeedProbe.lua`), which `/cm probe seed vendor` checks. One assignment per event; nothing else runs |
 | `AUCTION_HOUSE_SHOW` / `AUCTION_HOUSE_CLOSED` | `OnProbeEvent` | The seed probe's auction-house-open flag. `AUCTION_HOUSE_SHOW` also starts an armed `/cm probe seed auction` scan, and `AUCTION_HOUSE_CLOSED` ends one in flight |
+| `UNIT_AURA` (Retail only) | `OnUnitAura` | The player's own auras moved: rebuild Retail's poison macro when its next cast changed (`KCM.Poison.AuraChanged`, out of combat only); another unit returns at once |
+| `TRAIT_CONFIG_UPDATED` (Retail only) | `OnTalentsChanged` | A talent loadout was saved: recompute, since Dragon-Tempered Blades and the talented poisons change what the poison macro may cast |
 | `ADDON_RESTRICTION_STATE_CHANGED` | `OnRestrictionChanged` | A non-combat addon restriction lifted (an encounter, a key or a match ended; type `0`, combat, is left to `PLAYER_REGEN_ENABLED`): `MacroManager.MarkAllStale` owes every macro one write, then a coalesced recompute writes them, identical bodies included. The write is what makes the client re-resolve a `#showtooltip` icon, which a `/reload` or relog mid-key left blank on the action bar until the next `/reload` |
 
 Internal control flow that crosses a feature boundary does **not** ride a client event — it rides the closed bus above.
@@ -410,8 +426,8 @@ The libraries are listed directly in `ConsumableMaster.toc` under `# Libraries` 
 2. `# Locales` — `locales/enUS.lua`
 3. `# Core` — `Namespace.lua` (names `NS` and `KCM.VERSION`) → `LifecycleSetup.lua` (the `LibKa0s-Lifecycle-1.0` latch; **load-bearing position** — `PerfSetup.lua` takes the instance as `descriptor.lifecycle` at load) → `PerfSetup.lua` (`performance-§1`: ahead of every file taking `local Perf = NS.Perf` as a load-time upvalue) → `MediaSetup.lua` (the `LibKa0s-Media-1.0` seam; **load-bearing position** — `DebugLogSetup.lua` resolves the console font eagerly at load, so the seam has to be published first) → `ConsumableMaster.lua` (AceAddon promotion + DB + pipeline) → `Bus.lua` → `Constants.lua` → `CoreSetup.lua` → `SkinSetup.lua` (the `LibKa0s-Skin-1.0` seam; **load-bearing position** — it registers the skin owner at file load, so the EllesmereUI provider can offer it before EllesmereUI dispatches its skins, and every file that builds a frame, `settings/General.lua` among them, which reads the Skin tab's option lists at load, comes after it) → `Compat.lua` → `EnvSetup.lua` (the `LibKa0s-Env-1.0` seam; position conventional — nothing resolves at load and both callers are in `settings/`) → `ItemSetup.lua` (the `LibKa0s-Item-1.0` seam; anywhere after the libs block and before `settings/Category.lua`, its only caller) → `LauncherSetup.lua` (the `LibKa0s-Launcher-1.0` seam; position conventional — it resolves the library at load and nothing else, and `Register()` runs from `KCM:OnInitialize` once AceDB has built `db.global.minimap`) → `State.lua` → `DebugLogSetup.lua` (`debug-logging-§1`: the console seam, after the printer and the flag, before every sink caller) → `Database.lua` → `Debug.lua` → `SpecHelper` → `TooltipCache` → `WeaponSlots` → `BagScanner` → `Classifier` → `MacroDisplay` → `MacroBarModel` → `MacroBarLayout` → `SlashDump` → `SlashCommands` → `Diagnostics` (the diagnostics report's sections, asked for at run time) → `SeedProbeStore` → `SeedProbe` (the seed probe; after `CoreSetup.lua` because `SeedProbe.lua` takes the printer at load, and `SeedProbeStore.lua` first because it opens `KCM.SeedProbe`)
 4. `# Defaults` — `Categories.lua` (filtered to this client's rows), then `Profile.lua` (`KCM.dbDefaults`; **load-bearing position**, it builds the buckets, `perRow` and the slot order from `KCM.Categories.BY_KEY`), then `Defaults_*.lua`
-5. `# Modules` — `Ranker` → `Selector` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
-6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab`, the panel bootstrap and `KCM.Options.Register`) → `PanelRows.lua` (the type rules and `Helpers.AddRows`; after `Panel.lua`, whose write seam it reads at load, and before every page, which declares its rows at load) → `About.lua` → `OptionsShim.lua` (the run-time `KCM.Options` surface: `Refresh` / `RequestRefresh` / `Open`, the refresh debounce and the bus receivers; after `Panel.lua`, whose `Helpers`, `optionsUI` and panel-unavailable notice it takes as file-scope locals) → `General.lua` → `MacroBar.lua` → `MacroBarSlots.lua` → `StatPriority.lua` → `Category.lua` → `CategoryAddByID.lua` (the Add-by-ID line) → `CategoryComposite.lua` (the composite tabs; both after Category.lua, whose `KCM.Settings.MacrosPage` helpers they take as file-scope locals) → `Slash.lua` → `Profiles.lua` (last, as the Profiles page is last in the sidebar)
+5. `# Modules` — `Ranker` → `Selector` → `Poison` → `MacroManager` → the macro bar (`MacroBarFlyout` → `MacroBarButton` → `MacroBar`, in that order: the container builds slots that own flyouts) → AceGUI widgets (`KCMIconButton` → `KCMScoreButton` → `KCMMacroDragIcon` → `KCMItemRow`)
+6. `# Settings` — `OptionsSetup.lua` (must come first — the `LibKa0s-Options-1.0` seam; creates `KCM.Settings.Helpers` and publishes `KCM.Settings.optionsUI`) → `Panel.lua` (the schema half, `RegisterTab`, the panel bootstrap and `KCM.Options.Register`) → `PanelRows.lua` (the type rules and `Helpers.AddRows`; after `Panel.lua`, whose write seam it reads at load, and before every page, which declares its rows at load) → `About.lua` → `OptionsShim.lua` (the run-time `KCM.Options` surface: `Refresh` / `RequestRefresh` / `Open`, the refresh debounce and the bus receivers; after `Panel.lua`, whose `Helpers`, `optionsUI` and panel-unavailable notice it takes as file-scope locals) → `General.lua` → `MacroBar.lua` → `MacroBarSlots.lua` → `StatPriority.lua` → `Category.lua` → `CategoryAddByID.lua` (the Add-by-ID line) → `CategoryComposite.lua` (the composite tabs) → `CategoryPoison.lua` (the Poison tab's per-client half; all three after Category.lua, whose `KCM.Settings.MacrosPage` helpers they take as file-scope locals) → `Slash.lua` → `Profiles.lua` (last, as the Profiles page is last in the sidebar)
 
 Event handlers and `Pipeline` functions are *defined* while `core/ConsumableMaster.lua` loads but only *called* from `OnEnable` / Ace event dispatch, which runs after every file has loaded — so the bodies can freely reference modules that load later.
 
