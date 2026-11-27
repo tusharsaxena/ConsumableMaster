@@ -109,7 +109,9 @@ lists seed the **top tier per ~10-level band** (per stat, school or weapon kind)
 own DB2 and offline stores (owner ruling 2026-11-27, issue #46, which lifted the 2026-11-08 "empty by
 decision" ruling; [defaults/README.md](../defaults/README.md#wow-forevers-lists)); the bag scan finds
 every other tier. The Healthstone whitelist in `core/Classifier.lua` (`HEALTHSTONE_IDS`) is one list
-per client: Retail's two stones, and every vanilla rank on Forever.
+per client: Retail's two stones, and every vanilla rank on Forever. The Ranker's healthstone preference
+follows (`modules/Ranker.lua`, `HEALTHSTONE_PREFERENCE`): Retail's modern-over-legacy table names
+5512, which is vanilla's Minor rank, so Forever has none and its ranks sort by ilvl alone.
 
 **Per-client tables in the Classifier.** `core/Classifier.lua` picks two subclass lists the same way:
 the subclasses that read as a Potion (Retail: 1; Forever: 1 and Draught 13) and the ones that are a

@@ -216,6 +216,21 @@ test("Forever: the healthstone whitelist is Forever's own, every vanilla rank", 
     t.falsy(C.Match("HS", 224464), "Retail's Demonic Healthstone is no Forever item")
 end))
 
+-- Retail's preference table names 5512, which on Forever is the Minor rank: Forever has no preference,
+-- so its ranks sort by ilvl and the Major outranks the Minor.
+test("Forever: the healthstone ranks sort by ilvl, Major first, never by Retail's preference", asForever(function(t)
+    local KCM  = h.loader.loadPure()
+    local mock = h.loader.mock
+    local R    = KCM.Ranker
+    mock.setItem(5512, { subType = "Potion", quality = 1, ilvl = 10 })
+    mock.setItem(5509, { subType = "Potion", quality = 1, ilvl = 34 })
+    mock.setItem(9421, { subType = "Potion", quality = 1, ilvl = 58 })
+    t.eqList(R.SortCandidates("HS", { 5512, 5509, 9421 }, nil, nil), { 9421, 5509, 5512 },
+        "Major, then Healthstone, then Minor")
+    t.eq(R.Score("HS", 5512, nil, nil), 10, "ilvl alone, no Retail preference for 5512")
+    t.eq(R.Explain("HS", 9421, nil).score, R.Score("HS", 9421, nil, nil), "Explain matches the scorer")
+end))
+
 test("Retail: the healthstone whitelist is Retail's own", asRetail(function(t)
     local C = h.loader.loadPure().Classifier
     t.truthy(C.Match("HS", 224464) and C.Match("HS", 5512), "Retail's two stones")

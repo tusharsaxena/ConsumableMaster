@@ -28,10 +28,18 @@ local R = KCM.Ranker
 -- Constants
 -- ---------------------------------------------------------------------------
 
-local HEALTHSTONE_PREFERENCE = {
-    [224464] = 1000,  -- Modern auto-leveling
-    [5512]   = 100,   -- Legacy fallback
-}
+-- Healthstones rank per client (clients-§5, issue #46). Retail: a preference table, modern over
+-- legacy, ilvl breaking ties. WoW Forever has no preference: 5512 is vanilla's MINOR rank there, so
+-- Retail's table would put Minor above Major. Forever's ranks climb in ilvl (10, 22, 34, 46, 58), so
+-- ilvl alone orders them. (Their tooltip reads "Instantly restores N life.", which no heal pattern
+-- reads, so the heal is no signal; an Improved variant ties its base rank.)
+local HEALTHSTONE_PREFERENCE = KCM.PerClient({
+    retail  = {
+        [224464] = 1000,  -- Modern auto-leveling
+        [5512]   = 100,   -- Legacy fallback
+    },
+    forever = {},
+})
 
 local CONJURED_BONUS = 1e6
 local PCT_WEIGHT     = 1e4  -- makes %-based food outrank flat-value food
