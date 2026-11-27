@@ -103,7 +103,7 @@ rows and cannot drift (ConsumableMaster#44). `dump` keeps its own keyed table an
 | Verb | Table | Shape | Sub-verbs |
 |---|---|---|---|
 | `priority` | `PRIORITY_COMMANDS` (`core/SlashCommands.lua`) | `<cat> <sub> [args]` | `list`, `add`, `remove`, `up`, `down`, `reset` |
-| `stat` | `STAT_COMMANDS` (same file) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` |
+| `stat` | `STAT_COMMANDS` (same file; filtered at load from `STAT_COMMAND_ROWS` by each row's `clients`) | `<sub> [args]` | `list`, `primary`, `secondary`, `reset` on Retail; `list`, `order`, `reset` on WoW Forever |
 | `aio` | `AIO_COMMANDS` (same file) | `<key> <sub> [args]` | `list`, `toggle`, `up`, `down`, `reset` |
 | `bar` | `BAR_COMMANDS` (same file) | `<sub>` | `on`, `off`, `lock`, `unlock`, `reset` |
 | `dump` | `DUMP_TARGETS` / `DUMP_ORDER` (`core/SlashDump.lua`) | `<target> [args]` | `categories`, `statpriority`, `bags`, `item`, `pick`, `events` |

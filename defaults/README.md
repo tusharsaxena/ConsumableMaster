@@ -2,7 +2,7 @@
 
 One file here is not seed data: `Profile.lua` holds `KCM.dbDefaults`, the AceDB defaults tree, and is the single declaration site for every shipped default value (`savedvariables-§2`) — schema rows, page fallbacks and migrations read through it rather than restating a literal.
 
-Everything else in this folder is **seed data**, not persistent user state. Files here are evaluated at addon load and written into `KCM.SEED.*` constants. Each file declares **two lists**, `retail` and `forever`, and hands them to `KCM.PerClient` (`core/Compat.lua`), which answers the running client's once at load (clients-§5). WoW Forever's lists are **empty by decision** for now (step 2, owner ruling 2026-11-08): every Forever candidate comes from the bag scan, and a Forever spec ranks by its class's primary stat. `Categories.lua` declares which categories each client has (`clients`), and `Profile.lua`, which loads right after it, builds its buckets from that client's set. The runtime candidate set for each category is computed as:
+Everything else in this folder is **seed data**, not persistent user state. Files here are evaluated at addon load and written into `KCM.SEED.*` constants. Each file declares **two lists**, `retail` and `forever`, and hands them to `KCM.PerClient` (`core/Compat.lua`), which answers the running client's once at load (clients-§5). WoW Forever's item lists are **empty by decision** for now (step 2, owner ruling 2026-11-08): every Forever candidate comes from the bag scan. Its `STAT_PRIORITY` is its own (issue #48): one `ranked` list per class. `Categories.lua` declares which categories each client has (`clients`), and `Profile.lua`, which loads right after it, builds its buckets from that client's set. The runtime candidate set for each category is computed as:
 
 ```
 candidates = SEED ∪ db.added ∪ db.discovered − db.blocked
@@ -16,7 +16,7 @@ That means **updating a defaults file is a free upgrade for every user** — whe
 | ----------------------------- | -------------------- | ------------------------------------------------------------ |
 | `Profile.lua`                 | `KCM.dbDefaults`     | The AceDB defaults tree: `global.schemaVersion` (shipped as `0`, the pre-migration floor: a real version there would be stripped by AceDB at logout and backfilled onto legacy accounts, `savedvariables-§1`), `profile.enabled`, the per-category buckets, `statPriority` / `macroState` and the whole `macroBar` table |
 | `Categories.lua`              | `KCM.Categories`     | Metadata (macro name, spec-awareness, ranker/classifier key, `clients`); composite rows for HP_AIO / MP_AIO. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (no seed file: bag scan only) |
-| `Defaults_StatPriority.lua`   | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` |
+| `Defaults_StatPriority.lua`   | `KCM.SEED.STAT_PRIORITY` | Primary + ordered secondary stats per `<classID>_<specID>` (Retail); a `ranked` list per Forever class |
 | `Defaults_Food.lua`           | `KCM.SEED.FOOD`      | Basic Well Fed food (non-stat); may include spell sentinels (e.g. Recuperate) |
 | `Defaults_Drink.lua`          | `KCM.SEED.DRINK`     | Mana-recovery drinks                                         |
 | `Defaults_StatFood.lua`       | `KCM.SEED.STAT_FOOD` | Cooked stat meals (feasts excluded)                          |

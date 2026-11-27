@@ -99,15 +99,30 @@ row: it is never registered and then hidden.
 | ELIXIR, SCROLL, BANDAGE, PROT_POT | WoW Forever | `defaults/Categories.lua` (`clients = { "forever" }`) |
 | The Macros strip's tab order | per client | `settings/Panel.lua` (`KCM.Settings.macroOrder`, filtered by `BY_KEY`) |
 | The macro bar's default slot order | per client | `defaults/Profile.lua` (`SLOT_ORDER`, filtered by `BY_KEY`) |
+| `/cm stat primary`, `/cm stat secondary` | Retail | `core/SlashCommands.lua` (`STAT_COMMAND_ROWS`, `clients = { "retail" }`, through `Compat.ForClient`) |
+| `/cm stat order` | WoW Forever | `core/SlashCommands.lua` (`STAT_COMMAND_ROWS`, `clients = { "forever" }`) |
+| The Stat Priority page's shape (Retail: primary dropdown + four secondaries; Forever: one ranked list) | per client | `core/SpecHelper.lua` (`SpecHelper.STATS`, picked once by `KCM.PerClient`); `settings/StatPriority.lua` reads it |
+
+**The stat priority is per client** (issue #48, owner ruling 2026-11-27). `SpecHelper.STATS` is the
+running client's stat model, picked once by `KCM.PerClient`: Retail's `{ primary, secondary }` shape over
+Crit/Haste/Mastery/Versatility, unchanged, or Forever's `{ ranked }` shape, one ordered list over
+STR, AGI, INT, STA, SPI, AP, SP, FIRE_SP, FROST_SP, SHADOW_SP, HEAL, HIT, CRIT, ARMOR, HEALTH, MANA and
+MANA_REGEN. The Ranker scores a ranked stat `RANK_BASE^(N - k) × amount` (`RANK_BASE` 1e4, above any
+vanilla amount, so one place up outweighs any amount) and, on Stat Food, Flask and Combat Potion, adds
+the stat tier so a ranked stat beats item level. Retail's weights, scores and explanations do not move.
+`core/TooltipCache.lua` picks its stat parser the same way: Retail's tokens, or Forever's vanilla-wording
+reader. A Retail-shaped override stored on Forever before #48 reads as no override (the spec takes its
+shipped Forever order) and is dropped by the row's normalizer on the next write, never on read.
 
 Every other module, page, verb, launcher entry and event registration serves both clients.
 
 **Seed data is two lists per file** (clients-§5). Each `defaults/Defaults_*.lua` hands a
 `{ retail = …, forever = … }` pair to `KCM.PerClient` (`core/Compat.lua`), which answers the running
-client's list once at load; nothing that reads `KCM.SEED` asks which client it is on. Forever's lists,
-`STAT_PRIORITY` and `CLASS_GATE` included, are **empty by decision** (step 2, owner ruling 2026-11-08),
-so on Forever every candidate comes from the bag scan and a spec ranks by its class's primary stat
-(`core/SpecHelper.lua`'s fallback). The Healthstone whitelist in `core/Classifier.lua` and the
+client's list once at load; nothing that reads `KCM.SEED` asks which client it is on. Forever's item
+lists and `CLASS_GATE` are **empty by decision** (step 2, owner ruling 2026-11-08), so on Forever every
+candidate comes from the bag scan. Its `STAT_PRIORITY` is its own since issue #48: a ranked order for
+each of the nine classes (one spec each, ids 1482–1491), with the rationale per class in the file's
+header; an unseeded spec ranks by its class's primary stat alone. The Healthstone whitelist in `core/Classifier.lua` and the
 Ranker's preference table still name 5512, vanilla's Minor Healthstone.
 
 **Per-client tables in the Classifier.** `core/Classifier.lua` picks two subclass lists the same way:
@@ -117,7 +132,8 @@ reports Item Enhancement 6 as "Permanent", the Light Armor Kit in the owner's du
 into fields only the Forever paths use ([forever-quirks.md](./forever-quirks.md#wow-forevers-consumable-subclasses)).
 
 The headless suite runs under both kit profiles (clients-§6). A case that pins Retail's content runs
-as Retail under both (`h.retailTest`), `tests/test_forever.lua` pins each client's set on both, and the
+as Retail under both (`h.retailTest`), `tests/test_forever.lua` pins each client's set on both,
+`tests/test_statpriority.lua` pins each client's stat priority (shape, seeds, scoring, parser, page, verbs), and the
 kit's `test_client_globals` suite checks the tracked source against both clients' API sets.
 
 ## Settings Schema
@@ -152,7 +168,7 @@ The sets pass all three of the rule's tests, and "id sets" is one of the rule's 
 
 None of these is a registry, because the player never adds or removes a member. Each is a preference or a list over a fixed set of shipped keys, so `architecture-§5` wants each one as a row. Since 2026-09-12 each is one ([#35](https://github.com/tusharsaxena/ConsumableMaster/issues/35)). A writer builds the whole value and hands it to `KCM.Schema:Set`, or to `KCM.Schema:SetMany` for a batch. The helper validates it, normalizes it, stores it and logs it at one path.
 
-- `statPriority` (type `map`, declared in `settings/StatPriority.lua`): every spec's override in one map keyed by spec. Its normalizer keeps a `<classID>_<specID>` key, a real primary and the secondaries deduplicated, which is exactly what `SpecHelper.GetStatPriority` reads. The writers are `/cm stat primary|secondary|reset`, the Stat Priority page's list, dropdown and Defaults, and Reset all priorities. Each builds the map with `SpecHelper.WithStatPriority`. `/cm get|list|reset` reach the row. `/cm set` refuses it and names `/cm stat`.
+- `statPriority` (type `map`, declared in `settings/StatPriority.lua`): every spec's override in one map keyed by spec. Its normalizer keeps a `<classID>_<specID>` key, a real primary and the secondaries deduplicated on Retail, or a cleaned `ranked` list on WoW Forever, which is exactly what `SpecHelper.GetStatPriority` reads. The writers are `/cm stat primary|secondary|reset` (`/cm stat order|reset` on Forever), the Stat Priority page's list, dropdown and Defaults, and Reset all priorities. Each builds the map with `SpecHelper.WithStatPriority`. `/cm get|list|reset` reach the row. `/cm set` refuses it and names `/cm stat`.
 - `categories.<KEY>.enabled` (type `map`, a flag map over the composite's own sub-categories) and `.orderInCombat` / `.orderOutOfCombat` (type `order`, over each section's shipped members), for each composite. `settings/Category.lua` generates them from `KCM.Categories.LIST`. The writers are `/cm aio toggle|up|down|reset` and the composite tab's In macro checkbox, drag and reset popup. The drag goes through `Selector.MoveCompositeRef`, which splices a copy with the pure `Selector.SpliceOrder` and writes it through the helper.
 - `macroBar.order` (type `order`) and `macroBar.shown` (type `map`, a flag map), the Macro Bar page's Buttons tab. The writers are a drag on the bar (`MacroBar.SwapSlots`), the Buttons tab's draggable list (a drag there splices the shown group and writes the order; a tick writes the shown map and then the order, as one batch; both refused in combat, `settings/MacroBar.lua`), Reset slot order and the page's Defaults. `MacroBarModel.Order()` repairs a stored order on read and writes nothing.
 - `categories.BATTLE_REZ.mouseover` (type `bool`), generated for every `targeted` category. The writer is the tab's Cast on mouseover checkbox.
@@ -627,7 +643,7 @@ HUD size, the reserved `/cm skin` verb, the v5 step and the faces below.
 
 Things that are true today, understood, and not bugs. Each is either a ratified deviation with its own register row below, or a consequence of a client rule this addon cannot argue with.
 
-- **Retail and WoW Forever** (Interface 120105, 16001), one codebase. The categories differ per client ([Per-client features](#per-client-features)); no Classic flavor. Forever ships no seed lists yet (step 2), and its stat-priority ranking is the class's primary stat until it does.
+- **Retail and WoW Forever** (Interface 120105, 16001), one codebase. The categories differ per client ([Per-client features](#per-client-features)); no Classic flavor. Forever ships no item seed lists yet (step 2); its stat priority is one ranked list per class over Forever's own stats (issue #48).
 - **A slot order saved on one client loses the other client's categories when it is next written.** `macroBar.order` is normalized on write (`core/MacroBarModel.lua`), so a profile carried from Retail to WoW Forever and reordered there drops VANTUS and the other Retail-only slots; back on Retail they are appended at the end. The buckets themselves are untouched. Saved variables live per client folder, so this needs a hand-copied profile.
 - **English clients only, for tooltip magnitudes.** Category and weapon-affinity detection are locale-independent (numeric `classID` / `subClassID`), but `core/TooltipCache.lua` reads heal / mana / stat magnitudes, the `Augment Rune` marker and the weapon-application effect out of English tooltip text. Ratified below against `localization-§4`; reasoning in [scope.md](./scope.md).
 - **A flyout cannot auto-close mid-combat.** The idle auto-close is a `C_Timer`, and there is no timer inside the secure environment, so a flyout opened as combat starts stays open until the hover state changes or combat ends. It deliberately stands down rather than attempting a hide the client would refuse ([macro-bar.md](./macro-bar.md#closing)).

@@ -241,7 +241,7 @@ Three CLI namespaces cover the list-shaped state. The per-category priority list
 | Verb namespace | Verbs | Notes |
 |----------------|-------|-------|
 | `/cm priority <cat>` | `list / add / remove / up / down / reset` | `<id>` accepts `12345` (item) or `s:5512` (spell sentinel via `KCM.ID.AsSpell`). Composite categories rejected — use `/cm aio`. |
-| `/cm stat` | `list / primary / secondary / reset [<specKey>]` | `<specKey>` is canonical `<classID>_<specID>` or friendly `CLASS:SPEC` (e.g. `SHAMAN:ENHANCEMENT`); defaults to current spec. |
+| `/cm stat` | `list / primary / secondary / reset [<specKey>]` on Retail; `list / order / reset [<specKey>]` on WoW Forever | `<specKey>` is canonical `<classID>_<specID>` or friendly `CLASS:SPEC` (e.g. `SHAMAN:ENHANCEMENT`); defaults to current spec. |
 | `/cm aio <key>` | `list / toggle / up / down / reset` | Sub-categories are locked to their section, so `up` / `down` infer the section from where the ref appears. |
 
 All three namespaces dispatch through the library's `FindCommand` (via `KCM.SlashCommands.FindCommand`) against an ordered `*_COMMANDS` table; help is rendered from the same table by `lib.CommandRows`. Adding a verb = one row.
