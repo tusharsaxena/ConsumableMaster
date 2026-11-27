@@ -7,7 +7,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 - **Account-wide consumable macros** — thirteen single-pick categories per client plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot. Both clients: FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (owner ruling 2026-11-08; [ARCHITECTURE.md → Per-client features](./ARCHITECTURE.md#per-client-features)).
 - **Retail Midnight and WoW Forever** (Interface 120105, 16001), from one codebase. Forever's item seed lists are empty by decision for now, so every Forever pick comes from the bag scan; its stat priorities are its own (one ranked list per class, issue #48). English only.
 - **Auto-rewriting macro bodies** based on bag contents, spec, and a per-category scorer.
-- **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH (and ELIXIR / SCROLL on WoW Forever) against per-spec stat priority (primary + ordered secondary on Retail; one ranked list over Forever's stats on WoW Forever).
+- **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH (and ELIXIR / SCROLL on WoW Forever) against per-spec stat priority (primary + ordered secondary on Retail; one ranked list over Forever's stats on WoW Forever, where WPN_ENCH ranks by the stone's or oil's own value instead).
 - **Spell entries** (e.g. Recuperate as a Food entry) via opaque-numeric IDs (positive = item, negative = spell sentinel).
 - **Settings panel** integrated into Blizzard's AddOns settings + matching `/cm` slash CLI for every panel-shaped operation.
 - **Auto-discovery** from bag scans, bounded by a 30-day stale-discovered sweep.

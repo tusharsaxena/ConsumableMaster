@@ -78,8 +78,9 @@ local PRIMARY_WEIGHT = 1000
 -- 2,000 armor and 2,000 mana, the smallest a 0.5% hit), so ONE position outweighs
 -- any amount: the player's order is the lever, and within one stat the bigger
 -- amount wins. No conversion between stats is attempted (out of scope). A double
--- keeps about four positions of distinction in one sum, which only matters for
--- two items whose top stats and amounts tie exactly.
+-- keeps about four positions of distinction in one sum, and near the top of a long
+-- list the score is past SPELL_SCORE and past where an ilvl still adds to it, so
+-- SortCandidates sorts spells first and breaks a tie on ilvl + quality itself.
 local RANK_BASE = 1e4
 
 -- WoW Forever's ELIXIR and SCROLL: an item whose stat the spec weighs (any
@@ -288,6 +289,18 @@ local function rankedStatParts(tt, specPriority)
     return stat, tier
 end
 
+-- WPN_ENCH's stat term. A ranked (Forever) priority weighs nothing here: #48's
+-- ruling moved Stat Food, Elixir, Scroll and Flask onto the player's order, not
+-- weapon enhancements, and the vanilla parser reads a wizard oil's "spell damage
+-- and healing" as SP and HEAL -- weighted, every oil would bury every sharpening
+-- stone for a class whose order names SP at all. So Forever's stones and oils keep
+-- ranking by their own value (ENHANCE_VALUE_WEIGHT), as before #48. Retail's term
+-- is the stat score, unchanged.
+local function weaponStatScore(tt, specPriority)
+    if specPriority and specPriority.ranked then return 0 end
+    return scoreByStatPriority(tt, specPriority)
+end
+
 -- ---------------------------------------------------------------------------
 -- Per-category scorers
 -- ---------------------------------------------------------------------------
@@ -356,7 +369,7 @@ local scorers = {
     end,
     WPN_ENCH = function(itemID, ctx, scoreCache)
         local quality, ilvl, tt = itemFields(itemID, scoreCache)
-        return scoreByStatPriority(tt, ctx and ctx.specPriority)
+        return weaponStatScore(tt, ctx and ctx.specPriority)
              + (tt.weaponEnhanceValue or 0) * ENHANCE_VALUE_WEIGHT
              + ilvl
              + quality * QUALITY_WEIGHT
@@ -479,16 +492,41 @@ end
 -- Returns two values:
 --   1. sorted array of itemIDs (highest score first)
 --   2. parallel array of { id, score } rows — handy for debug dumps
+-- A ranked (WoW Forever) score can reach RANK_BASE^16 x amount, so two guarantees the
+-- magnitudes alone gave Retail need saying out loud there (issue #48 review):
+--   * a spell sorts above every item. SPELL_SCORE (1e9) is below a ranked score
+--     a few places up the list, so the sentinel alone no longer keeps it on top.
+--   * item level and quality still break a tie. Past ~1e16 a double cannot add an
+--     ilvl to the stat score, so two items with the same buffs score the same; the
+--     row carries ilvl + quality (`base`) to order them. Rounding is monotonic, so
+--     this only orders what the sum already tied and never inverts it.
+-- A Retail priority has no `ranked`: `base` is 0 and every item scores below the
+-- sentinel, so the order there is exactly score, then id, as before.
+local function sortRow(catKey, id, ctx, scoreCache, ranked)
+    local row = { id = id, score = R.Score(catKey, id, ctx, scoreCache), base = 0 }
+    row.spell = KCM.ID and KCM.ID.IsSpell(id) or false
+    if ranked and not row.spell then
+        local quality, ilvl = itemFields(id, scoreCache)
+        row.base = ilvl + quality * QUALITY_WEIGHT
+    end
+    return row
+end
+
+local function sortRowBefore(a, b)
+    if a.spell ~= b.spell then return a.spell end
+    if a.score ~= b.score then return a.score > b.score end
+    if a.base ~= b.base then return a.base > b.base end
+    return a.id < b.id
+end
+
 function R.SortCandidates(catKey, itemIDs, ctx, scoreCache)
     ctx = R.BuildContext(catKey, itemIDs, ctx, scoreCache)
+    local ranked = ctx and ctx.specPriority and ctx.specPriority.ranked ~= nil
     local rows = {}
     for _, id in ipairs(itemIDs or {}) do
-        table.insert(rows, { id = id, score = R.Score(catKey, id, ctx, scoreCache) })
+        table.insert(rows, sortRow(catKey, id, ctx, scoreCache, ranked))
     end
-    table.sort(rows, function(a, b)
-        if a.score == b.score then return a.id < b.id end
-        return a.score > b.score
-    end)
+    table.sort(rows, sortRowBefore)
     local ids = {}
     for i, row in ipairs(rows) do ids[i] = row.id end
     return ids, rows
@@ -677,10 +715,17 @@ local function explainStatCategory(result, f)
 end
 registerExplainer({ "STAT_FOOD", "CMBT_POT", "FLASK" }, explainStatCategory)
 
--- WPN_ENCH: the stat buffs, plus Forever's stone or oil value when the tooltip
--- carries one. Without it (every Retail tooltip) this is explainStatBuffs exactly.
+-- WPN_ENCH: the stat buffs (none under a ranked priority, weaponStatScore), plus
+-- Forever's stone or oil value when the tooltip carries one. Without it (every
+-- Retail tooltip) this is explainStatBuffs exactly.
 local function explainWeaponEnhance(result, f)
-    local score, summary = explainStatBuffs(result, f)
+    local score, summary
+    if f.ctx and f.ctx.specPriority and f.ctx.specPriority.ranked then
+        -- weaponStatScore: a ranked priority weighs no stat here.
+        score, summary = f.ilvl + f.qualityScore, "Ranks by the stone's or oil's value; ilvl + quality break ties."
+    else
+        score, summary = explainStatBuffs(result, f)
+    end
     local value = f.tt.weaponEnhanceValue or 0
     if value > 0 then
         local contrib = value * ENHANCE_VALUE_WEIGHT

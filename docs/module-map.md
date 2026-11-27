@@ -188,9 +188,10 @@ core/DebugLogSetup.lua  The addon's half of LibKa0s-DebugLog-1.0: resolves the
 
 modules/Ranker.lua  Pure scorers per category. Spec-aware scorers weight stats
                    against { primary, secondary[] } (Retail) or { ranked[] }
-                   (Forever: RANK_BASE^(N-k) x amount) from SpecHelper. Spell
-                   entries short-circuit to a fixed SPELL_SCORE above any
-                   item. HP_POT / MP_POT apply an immediate-pot bonus that
+                   (Forever: RANK_BASE^(N-k) x amount; WPN_ENCH weighs no
+                   stat there) from SpecHelper. Spell entries short-circuit
+                   to a fixed SPELL_SCORE, and SortCandidates sorts them above
+                   every item and breaks a ranked score tie on ilvl + quality. HP_POT / MP_POT apply an immediate-pot bonus that
                    HOT candidates only earn when their amount beats the
                    best-immediate in the set by >20%.
 

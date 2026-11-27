@@ -109,7 +109,12 @@ Crit/Haste/Mastery/Versatility, unchanged, or Forever's `{ ranked }` shape, one 
 STR, AGI, INT, STA, SPI, AP, SP, FIRE_SP, FROST_SP, SHADOW_SP, HEAL, HIT, CRIT, ARMOR, HEALTH, MANA and
 MANA_REGEN. The Ranker scores a ranked stat `RANK_BASE^(N - k) × amount` (`RANK_BASE` 1e4, above any
 vanilla amount, so one place up outweighs any amount) and, on Stat Food, Flask and Combat Potion, adds
-the stat tier so a ranked stat beats item level. Retail's weights, scores and explanations do not move.
+the stat tier so a ranked stat beats item level. Near the top of a long list a ranked score passes
+`SPELL_SCORE` and the precision a double has left for an ilvl, so `Ranker.SortCandidates` sorts spells
+first and breaks an equal score on ilvl + quality itself (Retail, whose scores stay below both, sorts
+exactly as before). Weapon Enhancement is outside the ruling and weighs no stat under a ranked
+priority: Forever's stones and oils keep ranking by their own value. Retail's weights, scores and
+explanations do not move.
 `core/TooltipCache.lua` picks its stat parser the same way: Retail's tokens, or Forever's vanilla-wording
 reader. A Retail-shaped override stored on Forever before #48 reads as no override (the spec takes its
 shipped Forever order) and is dropped by the row's normalizer on the next write, never on read.

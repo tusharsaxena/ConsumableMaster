@@ -248,6 +248,63 @@ test("Forever: a penalty subtracts, and the explanation still adds up", asForeve
     t.eq(ex.signals[2].note, "amount -5 x weight 1", "the penalty is a signal, printed with %g")
 end))
 
+-- A ranked score at the top of a long list is ~1e4^16 x amount: far past SPELL_SCORE (1e9), and
+-- far past where a double can still add an ilvl to it. Order must not depend on either.
+test("Forever: a spell still outranks every item under a long ranked list", asForever(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local R = KCM.Ranker
+    local ctx = { specPriority = { ranked = FOREVER_STATS } }
+    item(mock, 9551, 5, stats(buff("STR", 30)), 60)
+    item(mock, 9552, 3, stats(buff("STR", 75)), 60)
+    t.truthy(R.Score("STAT_FOOD", 9551, ctx) > 1e9, "the item's ranked score is past the spell sentinel")
+    t.eqList(R.SortCandidates("STAT_FOOD", { 9551, -433 }, ctx), { -433, 9551 }, "the spell first, all the same")
+    t.eqList(R.SortCandidates("FLASK", { 9552, -433, 9551 }, ctx), { -433, 9552, 9551 },
+        "the spell first, then the items by their stat")
+end))
+
+test("Forever: item level and quality still break a tie a long ranked list rounds away", asForever(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local R = KCM.Ranker
+    local ctx = { specPriority = { ranked = FOREVER_STATS } }
+    -- The same buff, the higher-ilvl food on the higher id, so an id tie-break would invert them.
+    mock.setItem(9561, { classID = 0, subClassID = 5, tt = stats(buff("STR", 6)), ilvl = 20, quality = 1 })
+    mock.setItem(9562, { classID = 0, subClassID = 5, tt = stats(buff("STR", 6)), ilvl = 45, quality = 1 })
+    t.eq(R.Score("STAT_FOOD", 9561, ctx), R.Score("STAT_FOOD", 9562, ctx), "the two scores round to one")
+    t.eqList(R.SortCandidates("STAT_FOOD", { 9561, 9562 }, ctx), { 9562, 9561 }, "the higher item level first")
+    mock.setItem(9563, { classID = 0, subClassID = 2, tt = stats(buff("AGI", 8)), ilvl = 30, quality = 1 })
+    mock.setItem(9564, { classID = 0, subClassID = 2, tt = stats(buff("AGI", 8)), ilvl = 30, quality = 2 })
+    t.eqList(R.SortCandidates("ELIXIR", { 9563, 9564 }, ctx), { 9564, 9563 }, "the better quality first")
+end))
+
+-- WPN_ENCH is outside #48's ruling (Stat Food, Elixir, Scroll, Flask): on Forever it keeps
+-- ranking by the stone's or oil's own value. The vanilla parser now reads an oil's "spell damage
+-- and healing" as SP and HEAL, and a ranked weight on them would put a wizard oil over every
+-- sharpening stone for any class that ranks SP at all -- a Paladin's or a Shaman's seed does.
+test("Forever: Weapon Enhancement still ranks by the stone's or oil's value", asForever(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local R = KCM.Ranker
+    local ctx = { specPriority = KCM.SpecHelper.GetStatPriority("2_1486") }   -- Paladin ranks SP and HEAL
+    local oil = stats(buff("SP", 8), buff("HEAL", 8))
+    oil.weaponEnhanceValue = 8                                                -- Minor Wizard Oil
+    item(mock, 9581, 8, oil, 5)
+    item(mock, 9582, 8, { weaponEnhanceValue = 12 }, 45)                       -- a sharpening stone
+    t.eqList(R.SortCandidates("WPN_ENCH", { 9581, 9582 }, ctx), { 9582, 9581 }, "the stronger stone first")
+    t.eq(R.Score("WPN_ENCH", 9581, ctx), 8 * 1e3 + 5 + 100, "the oil's value, ilvl and quality, no stat weight")
+    local ex = R.Explain("WPN_ENCH", 9581, ctx)
+    t.eq(ex.score, R.Score("WPN_ENCH", 9581, ctx), "the explanation adds up")
+end))
+
+test("Retail: a score tie still goes to the lower id, whatever the item level", asRetail(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local R = KCM.Ranker
+    local ctx = { specPriority = { primary = "AGI", secondary = { "CRIT" } } }
+    -- 10 x 1000 + ilvl 200 + quality 3 x 100 = 10,500 = 10 x 1000 + ilvl 400 + quality 1 x 100.
+    mock.setItem(9571, { classID = 0, subClassID = 5, tt = stats(buff("AGI", 10)), ilvl = 200, quality = 3 })
+    mock.setItem(9572, { classID = 0, subClassID = 5, tt = stats(buff("AGI", 10)), ilvl = 400, quality = 1 })
+    t.eq(R.Score("STAT_FOOD", 9571, ctx), R.Score("STAT_FOOD", 9572, ctx), "a true tie")
+    t.eqList(R.SortCandidates("STAT_FOOD", { 9572, 9571 }, ctx), { 9571, 9572 }, "the lower id, as before #48")
+end))
+
 test("Forever: Stat Food ranks by the shipped order once a spec resolves", asForever(function(t)
     local KCM, mock = h.loader.loadPure(), h.loader.mock
     local R = KCM.Ranker
