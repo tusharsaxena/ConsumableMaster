@@ -45,9 +45,6 @@ KCM.SEED.ELIXIR = KCM.PerClient({
         13452,  -- Elixir of the Mongoose; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (container, quest, recipe), AH, DB2 (crafted)
         13453,  -- Elixir of Brute Force; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
         13454,  -- Greater Arcane Elixir; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (container, recipe), AH, DB2 (crafted)
-        17708,  -- Elixir of Frost Power; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), DB2 (crafted)
-        20004,  -- Major Troll's Blood Elixir; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), DB2 (crafted)
-        20007,  -- Mageblood Elixir; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), DB2 (crafted)
         21546,  -- Elixir of Holy Power; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
         247754,  -- Minor Arcane Elixir; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: AH, probe (ah), DB2 (crafted)
         247755,  -- Elixir of Minor Force; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: AH, probe (ah), DB2 (crafted)
@@ -71,6 +68,5 @@ KCM.SEED.ELIXIR = KCM.PerClient({
         250351,  -- Elixir of the Grizzly; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
         250353,  -- Elixir of Lesser Intellect; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
         250354,  -- Elixir of Intellect; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
-        289087,  -- Elixir of Endless Opportunity; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (drop)
     },
 })

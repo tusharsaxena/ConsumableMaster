@@ -284,20 +284,20 @@
     "ruling": "accept"
   },
   "ELIXIR:17708": {
-    "reason": "top tier of band 20-29, stat SP_FROST on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "ELIXIR:18294": {
     "reason": "a utility elixir or draught (breathing, detection, size, experience): no combat stat (Defaults_Elixir.lua header)",
     "ruling": "reject"
   },
   "ELIXIR:20004": {
-    "reason": "top tier of band 50-60, stat HP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "ELIXIR:20007": {
-    "reason": "top tier of band 40-49, stat MP5 on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "ELIXIR:21546": {
     "reason": "top tier of band 40-49, stat SP_HOLY on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
@@ -456,8 +456,8 @@
     "ruling": "reject"
   },
   "ELIXIR:289087": {
-    "reason": "top tier of band 1-9, stat CRIT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop))",
-    "ruling": "accept"
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "ELIXIR:289321": {
     "reason": "behind 250339 (Minor Mageblood Elixir) in band 1-9, stat MP5: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
@@ -1856,8 +1856,8 @@
     "ruling": "accept"
   },
   "WPN_ENCH:18262": {
-    "reason": "top tier of band 50-60, kind SHARP on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "WPN_ENCH:20744": {
     "reason": "top tier of band 1-9, kind SPELL_OIL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted))",
@@ -1868,8 +1868,8 @@
     "ruling": "accept"
   },
   "WPN_ENCH:20748": {
-    "reason": "top tier of band 40-49, kind MANA_OIL on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "owner ruling 2026-11-27: ForeverDB is the only evidence (no vendor, AH or probe sighting); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "WPN_ENCH:20749": {
     "reason": "behind 20750 (Wizard Oil) in band 40-49, kind SPELL_OIL: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",

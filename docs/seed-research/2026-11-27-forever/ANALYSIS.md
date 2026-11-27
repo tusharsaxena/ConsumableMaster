@@ -101,8 +101,8 @@ level, the bigger effect and the better source.
 - **Eight picks rest on ForeverDB alone**, with no vendor, auction-house or probe sighting: Elixir of
   Frost Power, Major Troll's Blood Elixir, Mageblood Elixir, Elemental Sharpening Stone and Brilliant
   Mana Oil (a recipe ForeverDB records), and three "Endless" elixirs (Intellect, Rapidity, Opportunity;
-  level 1, a drop). A seed a player never owns costs nothing but a not-owned row, so they stay;
-  FOREVER-24 shows whether each one classifies.
+  level 1, a drop). They were first kept, as a not-owned row costs nothing; the owner ruled on
+  2026-11-27 to drop them (see Review fixes).
 - **Mage conjured food and water** (Conjured Bread to Sweet Roll, Conjured Water to Sparkling Water) are
   among the DB2-only items: no store records them, because they are conjured and never traded, and DB2's
   create-item effect counts for healthstones alone. If the owner wants them seeded like Retail's Conjured
@@ -139,4 +139,12 @@ level, the bigger effect and the better source.
   Elixir of Endless Rapidity (289086) grant a percent buff, and Rapidity's is haste, which is not in
   Forever's stat set. Forever's stat parser cannot weigh either (`core/TooltipCache.lua`), so both are
   rejected in `tools/seeds/forever_rulings.json` and dropped from `Defaults_Elixir.lua`; the bags
-  still find them. Elixir of Endless Opportunity (289087) stays, because Forever's CRIT is a percent stat.
+  still find them.
+- **ForeverDB-only picks dropped (owner ruling 2026-11-27).** The six remaining picks whose only
+  evidence is ForeverDB (no vendor, auction-house or probe sighting) are rejected in
+  `tools/seeds/forever_rulings.json` and dropped from the seed: Elixir of Frost Power (17708), Major
+  Troll's Blood Elixir (20004), Mageblood Elixir (20007) and Elixir of Endless Opportunity (289087)
+  from `Defaults_Elixir.lua`, Elemental Sharpening Stone (18262) and Brilliant Mana Oil (20748) from
+  `Defaults_WpnEnch.lua`. With 289082 and 289086 above, that is all eight. Conjured Crystal Water
+  (8079) and Conjured Cinnamon Roll (22895) stay: ForeverDB records a vendor for them. The bags
+  still find every dropped item.

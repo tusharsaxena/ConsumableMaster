@@ -50,10 +50,8 @@ KCM.SEED.WPN_ENCH = KCM.PerClient({
         7965,  -- Solid Weightstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: AH, probe (ah), DB2 (crafted)
         12404,  -- Dense Sharpening Stone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (container), AH, DB2 (crafted)
         12643,  -- Dense Weightstone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: AH, DB2 (crafted)
-        18262,  -- Elemental Sharpening Stone; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), DB2 (crafted)
         20744,  -- Minor Wizard Oil; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
         20745,  -- Minor Mana Oil; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
-        20748,  -- Brilliant Mana Oil; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), DB2 (crafted)
         20750,  -- Wizard Oil; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
     },
 })
