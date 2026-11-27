@@ -486,7 +486,7 @@ end
 -- A case that pins RETAIL's content -- a Retail-only category, a Retail seed
 -- list, the Retail tab strip or slot order -- registered so it runs as Retail
 -- under BOTH kit profiles (L.withClient). Under the forever profile those
--- categories are absent and those seeds empty by decision, which the WoW Forever
+-- categories are absent and the seeds are Forever's own lists, which the WoW Forever
 -- cases (tests/test_forever.lua) pin instead; this keeps Retail's behavior
 -- pinned, unchanged, on every run.
 function KCM_TEST.retailTest(name, fn, skipReason)

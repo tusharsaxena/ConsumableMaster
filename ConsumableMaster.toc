@@ -182,11 +182,15 @@ defaults\Defaults_StatPriority.lua
 defaults\Defaults_Food.lua
 defaults\Defaults_Drink.lua
 defaults\Defaults_StatFood.lua
+defaults\Defaults_Scroll.lua
 defaults\Defaults_HPPot.lua
 defaults\Defaults_MPPot.lua
 defaults\Defaults_Healthstone.lua
+defaults\Defaults_Bandage.lua
 defaults\Defaults_CombatPot.lua
+defaults\Defaults_ProtPot.lua
 defaults\Defaults_Flask.lua
+defaults\Defaults_Elixir.lua
 defaults\Defaults_Vantus.lua
 defaults\Defaults_WpnEnch.lua
 defaults\Defaults_AugRune.lua
