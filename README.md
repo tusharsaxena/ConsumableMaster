@@ -4,9 +4,9 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1522944)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1596%2F1596_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1597%2F1597_passing-green)
 
-Supports Retail and WoW Forever. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: thirteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
+Supports Retail and WoW Forever. Consumable Master is an auto-managed consumable macro addon. It keeps a fixed set of account-wide macros pointed at the best consumable in your bags: fourteen categories, plus two combo macros that switch depending on whether you're fighting. You set up your food, flask and potion macros once, and you never rebuild them again.
 
 Loot something better, change spec, reload or drop out of combat, and each macro re-points at your current best pick. Usually that's an item. Where a class ability does the job (Recuperate, for one), it's the spell. The macros are account-wide, so one set covers every character you have. The addon finds them by name rather than by slot, so you can shuffle them around your macro list and they'll keep working next to macros of your own.
 

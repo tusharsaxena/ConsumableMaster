@@ -404,6 +404,22 @@ test("TooltipCache (Forever): a protection potion's school and a fishing buff ar
         "", "a drink's restore is no mana regen")
 end))
 
+test("TooltipCache (Forever): holy, nature and arcane spell damage are no SP; fire, frost, shadow keep their tag",
+    asForever(function(t)
+    local TC, mock = newTC()
+    local expect = {
+        ["Use: Increases spell Holy damage by up to 30 for 30 min."]              = "",
+        ["Use: Drink to increase nature spell damage by up to 55."]              = "",
+        ["Use: Increases spell arcane damage by up to 20 for 30 min."]           = "",
+        ["Use: Increases spell fire damage by up to 10 for 30 min."]             = "FIRE_SP=10",
+        ["Use: Increases spell frost damage by up to 15 for 30 min."]            = "FROST_SP=15",
+        ["Use: Drink to increase shadow spell damage by up to 40."]              = "SHADOW_SP=40",
+    }
+    for line, want in pairs(expect) do
+        t.eq(buffsOf(parse(TC, mock, { "Some Consumable", line })), want, line:sub(1, 60))
+    end
+end))
+
 test("TooltipCache (Retail): Forever's wording reads exactly as it did before #48", asRetail(function(t)
     local TC, mock = newTC()
     local expect = {

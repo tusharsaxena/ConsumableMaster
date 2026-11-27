@@ -293,8 +293,10 @@ local MANA_REGEN_FORMS = {
 -- the school-agnostic "spell damage" token cannot also read it: "spell fire
 -- damage" and "fire spell damage" and "damage done by Fire spells" all become
 -- "fire-spell-damage". A protection potion's "3250 fire damage" names no spell and
--- is left alone.
-local SPELL_SCHOOLS = { "fire", "frost", "shadow" }
+-- is left alone. Holy, nature and arcane are rewritten too, but no token reads
+-- them: an Elixir of Holy or Nature Power must not pass as school-agnostic SP and
+-- outrank the school a caster actually uses (C4 review, 2026-11-27).
+local SPELL_SCHOOLS = { "fire", "frost", "shadow", "holy", "nature", "arcane" }
 
 local function vanillaLine(line)
     local low = line:lower():gsub("spell (%a+) damage", "%1 spell damage")

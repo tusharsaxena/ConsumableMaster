@@ -1627,7 +1627,7 @@ Total.
 - Slash: an unknown sub-verb still names itself in lowercase
 - Slash: the sub-command vocabulary IS the library's, published at the seam
 
-### test_statpriority.lua (30)
+### test_statpriority.lua (31)
 
 - Forever: the stat model is one ranked list over Forever's stats
 - Retail: the stat model is the primary and the four secondaries, unchanged
@@ -1651,6 +1651,7 @@ Total.
 - Forever: Stat Food ranks by the shipped order once a spec resolves
 - TooltipCache (Forever): vanilla wording reads every Forever stat
 - TooltipCache (Forever): a protection potion's school and a fishing buff are no stat
+- TooltipCache (Forever): holy, nature and arcane spell damage are no SP; fire, frost, shadow keep their tag
 - TooltipCache (Retail): Forever's wording reads exactly as it did before #48
 - Forever: the page draws one row per Forever stat, the shipped order first
 - Forever: the page draws no primary-stat dropdown
@@ -1950,7 +1951,7 @@ Total.
 | test_slash_report.lua | 12 |
 | test_slash_store.lua | 25 |
 | test_slashsetup.lua | 26 |
-| test_statpriority.lua | 30 |
+| test_statpriority.lua | 31 |
 | test_spechelper.lua | 16 |
 | test_surface_parity.lua | 8 |
 | test_tooltipcache.lua | 24 |
@@ -1966,4 +1967,4 @@ Total.
 | test_skin_switch.lua | 49 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1596** |
+| **Total** | **1597** |

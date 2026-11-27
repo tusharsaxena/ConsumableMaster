@@ -51,8 +51,10 @@ local CLASS_PRIMARY_FALLBACK = {
 --                          ONE school's spell damage ("Increases spell fire damage
 --                          by up to 10"). Kept apart from SP on purpose: Elixir of
 --                          Fire Power is worth nothing to a frost mage, so folding it
---                          into SP would rank it for every caster. Only the three
---                          schools vanilla consumables grant.
+--                          into SP would rank it for every caster. Holy, nature
+--                          and arcane spell damage are recognized by the parser but
+--                          carry no weight (no stat here reads them), so they never
+--                          pass as SP.
 --   HEAL                   healing done by spells ("Healing Power", "Spell Healing")
 --   HIT CRIT               hit and critical strike chance (percent amounts)
 --   ARMOR                  armor (Elixir of Defense, Scroll of Protection, Stoneshield)

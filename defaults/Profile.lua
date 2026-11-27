@@ -16,7 +16,7 @@
 -- gets is derived.
 --
 -- What is NOT here: defaults/Categories.lua (the category REGISTRY — keys,
--- labels, macro names, the `targeted` flag) and the sixteen defaults/Defaults_*
+-- labels, macro names, the `targeted` flag) and the defaults/Defaults_*
 -- files (the shipped item/spell seed lists). Those describe what the addon
 -- knows about the game; this file describes what a fresh profile looks like.
 

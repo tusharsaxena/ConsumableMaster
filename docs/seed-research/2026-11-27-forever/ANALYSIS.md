@@ -135,3 +135,8 @@ level, the bigger effect and the better source.
 - **Healthstone rank order.** Retail's Ranker preference table gives 5512 a +100 bonus, and on Forever
   5512 is the Minor rank, so a Minor stone would outrank a Major one. `modules/Ranker.lua` now picks
   that table per client; Forever has no preference, and its ranks sort by item level (10 to 58).
+- **Two Endless elixirs rejected (integrated review C4).** Elixir of Endless Intellect (289082) and
+  Elixir of Endless Rapidity (289086) grant a percent buff, and Rapidity's is haste, which is not in
+  Forever's stat set. Forever's stat parser cannot weigh either (`core/TooltipCache.lua`), so both are
+  rejected in `tools/seeds/forever_rulings.json` and dropped from `Defaults_Elixir.lua`; the bags
+  still find them. Elixir of Endless Opportunity (289087) stays, because Forever's CRIT is a percent stat.

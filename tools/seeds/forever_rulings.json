@@ -440,8 +440,8 @@
     "ruling": "accept"
   },
   "ELIXIR:289082": {
-    "reason": "top tier of band 1-9, stat INT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop))",
-    "ruling": "accept"
+    "reason": "percent / haste buff: Forever's stat parser cannot weigh it (core/TooltipCache.lua); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "ELIXIR:289083": {
     "reason": "behind 247755 (Elixir of Minor Force) in band 1-9, stat DMG: one per group, top tier per band (owner ruling 2026-11-27); auto-discovery takes it from the bags",
@@ -452,8 +452,8 @@
     "ruling": "reject"
   },
   "ELIXIR:289086": {
-    "reason": "top tier of band 1-9, stat HASTE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop))",
-    "ruling": "accept"
+    "reason": "percent / haste buff: Forever's stat parser cannot weigh it (core/TooltipCache.lua); auto-discovery takes it from the bags",
+    "ruling": "reject"
   },
   "ELIXIR:289087": {
     "reason": "top tier of band 1-9, stat CRIT on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (drop))",

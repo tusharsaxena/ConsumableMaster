@@ -71,8 +71,6 @@ KCM.SEED.ELIXIR = KCM.PerClient({
         250351,  -- Elixir of the Grizzly; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
         250353,  -- Elixir of Lesser Intellect; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, probe (ah), DB2 (crafted)
         250354,  -- Elixir of Intellect; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
-        289082,  -- Elixir of Endless Intellect; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (drop)
-        289086,  -- Elixir of Endless Rapidity; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (drop)
         289087,  -- Elixir of Endless Opportunity; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (drop)
     },
 })
