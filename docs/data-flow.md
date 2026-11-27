@@ -44,9 +44,12 @@ event ──▶ bus:SendMessage(KCM.MSG.RECOMPUTE, reason)
             │      KCM.Debug("Calc", "skipped writes (disabled): reason=%s", reason)
             │                                                -- macros keep last-written body
             │  bus:SendMessage(KCM.MSG.PANEL_REFRESH)    -- always: panel rebuild
-            │                                            -- (options receiver debounces;
-            │                                            -- still hydrates [Loading]
-            │                                            -- rows while addon is off)
+            │                                            -- (options receiver debounces).
+            │                                            -- No recompute runs while the
+            │                                            -- addon is stood down: there a
+            │                                            -- [Loading] row hydrates itself
+            │                                            -- (KCM.HydrateItem, one-shot
+            │                                            -- LoadItem per id, #40)
             ▼
           per-category:
               Selector.GetEffectivePriority(catKey, specKey, scoreCache)
