@@ -42,7 +42,7 @@ test("SpecHelper.GetCurrent returns classID-only when no spec is chosen", functi
     t.eq(name, nil, "no name")
 end)
 
-test("SpecHelper.GetStatPriority honors a user override", function(t)
+h.retailTest("SpecHelper.GetStatPriority honors a user override", function(t)
     local KCM = load()
     KCM.db.profile.statPriority = KCM.db.profile.statPriority or {}
     KCM.db.profile.statPriority["99_1"] = { primary = "INT", secondary = { "CRIT", "HASTE" } }
@@ -51,7 +51,7 @@ test("SpecHelper.GetStatPriority honors a user override", function(t)
     t.eqList(p.secondary, { "CRIT", "HASTE" }, "override secondary")
 end)
 
-test("SpecHelper.GetStatPriority falls back to class primary, never nil", function(t)
+h.retailTest("SpecHelper.GetStatPriority falls back to class primary, never nil", function(t)
     local KCM = load()
     local S = KCM.SpecHelper
     -- unknown spec for a known class -> class-primary fallback, empty secondary
@@ -64,7 +64,7 @@ test("SpecHelper.GetStatPriority falls back to class primary, never nil", functi
     t.eq(type(S.GetStatPriority(nil)), "table", "nil key still returns a table")
 end)
 
-test("SpecHelper.GetStatPriority returns a well-formed seed default for a real spec", function(t)
+h.retailTest("SpecHelper.GetStatPriority returns a well-formed seed default for a real spec", function(t)
     local KCM = load()
     local p = KCM.SpecHelper.GetStatPriority("7_263")   -- Enhancement
     local primaryOK = (p.primary == "STR" or p.primary == "AGI" or p.primary == "INT")
@@ -118,7 +118,7 @@ h.retailTest("SpecHelper.GetStatPriority ignores a user row that names no primar
     t.eq(got.primary, seeded.primary, "falls through to the seed rather than returning a nil primary")
 end)
 
-test("SpecHelper.GetStatPriority defaults a user override's secondary list to empty", function(t)
+h.retailTest("SpecHelper.GetStatPriority defaults a user override's secondary list to empty", function(t)
     local KCM = h.loader.loadPure()
     KCM.db.profile.statPriority["7_263"] = { primary = "AGI" }
     local got = KCM.SpecHelper.GetStatPriority("7_263")
@@ -126,7 +126,7 @@ test("SpecHelper.GetStatPriority defaults a user override's secondary list to em
     t.eqList(got.secondary, {}, "and the missing secondary list is an empty table, never nil")
 end)
 
-test("SpecHelper.GetStatPriority falls back on class primary for an unseeded spec", function(t)
+h.retailTest("SpecHelper.GetStatPriority falls back on class primary for an unseeded spec", function(t)
     local KCM = h.loader.loadPure()
     -- classID 8 is Mage; a spec id that does not exist forces the class fallback.
     local got = KCM.SpecHelper.GetStatPriority("8_99999")
@@ -134,7 +134,7 @@ test("SpecHelper.GetStatPriority falls back on class primary for an unseeded spe
     t.eqList(got.secondary, {}, "with no secondary guidance")
 end)
 
-test("SpecHelper.GetStatPriority never returns nil, even for a malformed key", function(t)
+h.retailTest("SpecHelper.GetStatPriority never returns nil, even for a malformed key", function(t)
     local KCM = h.loader.loadPure()
     for _, key in ipairs({ "not_a_key", "", "999_1" }) do
         local got = KCM.SpecHelper.GetStatPriority(key)

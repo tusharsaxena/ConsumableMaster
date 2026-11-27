@@ -367,7 +367,7 @@ h.retailTest("Defaults: stat priority seeds every playable spec", function(t)
     end
 end)
 
-test("Defaults: every seeded spec names a primary stat the Ranker weights", function(t)
+h.retailTest("Defaults: every seeded spec names a primary stat the Ranker weights", function(t)
     local KCM = h.loader.loadPure()
     for key, row in pairs(KCM.SEED.STAT_PRIORITY) do
         t.truthy(VALID_PRIMARY[row.primary],
@@ -375,7 +375,7 @@ test("Defaults: every seeded spec names a primary stat the Ranker weights", func
     end
 end)
 
-test("Defaults: every seeded secondary list is ordered, valid, and duplicate-free", function(t)
+h.retailTest("Defaults: every seeded secondary list is ordered, valid, and duplicate-free", function(t)
     local KCM = h.loader.loadPure()
     for key, row in pairs(KCM.SEED.STAT_PRIORITY) do
         t.truthy(row.secondary, key .. " has a secondary list")

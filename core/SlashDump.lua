@@ -325,6 +325,11 @@ local function sayPickSpecContext(out, cat, catKey)
     end
     local ctx = { specPriority = KCM.SpecHelper.GetStatPriority(specKey) }
     out(("%s for spec %s (%s)"):format(catKey, specName or "?", specKey))
+    if ctx.specPriority.ranked then
+        -- WoW Forever's one ranked list (core/SpecHelper.lua SpecHelper.STATS).
+        out(("  ranked=%s"):format(table.concat(ctx.specPriority.ranked, ">")))
+        return ctx
+    end
     out(("  primary=%s  secondary=%s"):format(
         tostring(ctx.specPriority.primary),
         table.concat(ctx.specPriority.secondary or {}, ">")))

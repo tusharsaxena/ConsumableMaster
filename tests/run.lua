@@ -600,6 +600,8 @@ local SUITES = {
     "test_slash_report",
     "test_slash_store",
     "test_slashsetup",
+    -- Issue #48: the stat priority per client -- its shape, seeds, scoring, parser, page and verbs.
+    "test_statpriority",
     "test_spechelper",
     "test_surface_parity",
     "test_tooltipcache",

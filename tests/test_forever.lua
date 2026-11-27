@@ -171,7 +171,8 @@ test("Forever: every seed list is empty by decision", asForever(function(t)
     local n = 0
     for name, list in pairs(KCM.SEED) do
         n = n + 1
-        t.eq(next(list), nil, name .. " is empty on Forever")
+        -- The stat priorities are Forever's own since issue #48 (tests/test_statpriority.lua).
+        if name ~= "STAT_PRIORITY" then t.eq(next(list), nil, name .. " is empty on Forever") end
     end
     -- Thirteen item lists, the stat priorities and the class gate. The four Forever-only
     -- categories ship no seed file: the Selector reads a missing list as empty.
@@ -198,11 +199,11 @@ test("Forever: no Retail item ID is a candidate, so every candidate comes from t
     end
 end))
 
-test("Forever: with no stat-priority seed a spec ranks by its class's primary stat", asForever(function(t)
+test("Forever: an unseeded spec ranks by its class's primary stat alone", asForever(function(t)
     local KCM = h.loader.loadPure()
-    local p = KCM.SpecHelper.GetStatPriority("4_259")
-    t.eq(p.primary, "AGI", "a rogue's primary stat is Agility")
-    t.eqList(p.secondary, {}, "and there is no secondary order")
+    local p = KCM.SpecHelper.GetStatPriority("4_259")   -- a Retail rogue spec id: no Forever seed
+    t.eqList(p.ranked, { "AGI" }, "a rogue's primary stat is Agility, and nothing else is ranked")
+    t.eq(p.primary, nil, "the ranked shape names no primary")
 end))
 
 -- ---------------------------------------------------------------------------
@@ -365,13 +366,13 @@ test("Retail: a Well Fed flag with no stat token classifies as before", asRetail
     t.eqList(C.MatchAny(9303), { "FOOD" }, "Retail reads the stat tokens alone")
 end))
 
-test("TooltipCache: Retail's forward stat wording still reads its amount", function(t)
+h.retailTest("TooltipCache: Retail's forward stat wording still reads its amount", function(t)
     local TC, mock = newTC()
     local e = parse(TC, mock, 9110, { "Some Flask", "Use: Increases your Mastery by 935 for 1 hour." })
     t.eq(e.statBuffs[1] and e.statBuffs[1].amount, 935, "the forward form, untouched")
 end)
 
-test("TooltipCache: a no-stat scroll or elixir keeps its value", function(t)
+h.retailTest("TooltipCache: a no-stat scroll or elixir keeps its value", function(t)
     local TC, mock = newTC()
     local s = parse(TC, mock, 9102, { "Scroll of Protection IV", "Use: Increases armor by 240 for 30 min." })
     t.falsy(s.hasStatBuff, "armor is not a stat token")

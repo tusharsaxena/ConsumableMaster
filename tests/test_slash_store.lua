@@ -50,7 +50,7 @@ local function ser(v)
     return "{" .. table.concat(parts, ",") .. "}"
 end
 
-test("/cm stat primary, secondary and reset leave exactly the stored map they always did", function(t)
+h.retailTest("/cm stat primary, secondary and reset leave exactly the stored map they always did", function(t)
     local KCM = load()
     local other = { primary = "INT", secondary = { "MASTERY" } }
     KCM.db.profile.statPriority = { ["8_262"] = CopyTable(other) }
@@ -193,7 +193,7 @@ test("/cm set on a flag map merges the pairs given over the stored map", functio
 end)
 
 -- red under: any of these verbs writing its field directly again.
-test("every /cm stat and /cm aio write goes through the schema helper", function(t)
+h.retailTest("every /cm stat and /cm aio write goes through the schema helper", function(t)
     local KCM = load()
     local paths = recordSets(KCM)
     KCM:OnSlashCommand("stat primary AGI")
