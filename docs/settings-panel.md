@@ -45,9 +45,9 @@ asserts the Profiles page draws **no** strip, rather than merely skipping it.
 
 The **Macros** page is why the strip exists here at all. Every macro category used to be its own
 `RegisterCanvasLayoutSubcategory` entry — fifteen rows in the AddOns sidebar for fifteen variations on
-one surface, and eighteen sub-pages in all. They are one page with fifteen tabs now, and the sidebar
+one surface, and eighteen sub-pages in all. They are one page with a tab per category now (sixteen on either client since the poison category), and the sidebar
 is down to five entries, the Profiles page among them. The strip is **generated** from `KCM.Categories.LIST` in
-`KCM.Settings.macroOrder`, exactly as the fifteen builders were: a sixteenth category is a row in
+`KCM.Settings.macroOrder`, exactly as the fifteen builders were: a new category is a row in
 `Categories.LIST` plus a key in `macroOrder`, and it gets a tab for free. There is no hand-written tab
 list, for the reason `options-ui-§13` gives against one — a list declared apart from the data goes
 stale the first time a category is renamed and nothing says so.

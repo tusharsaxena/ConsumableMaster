@@ -354,7 +354,9 @@ end
 -- renders through the `pick` dump target, inside this same report.
 local function priorityList(cat, _rest)
     KCM.DebugLog.Report("Priority", ("priority %s list"):format(cat.key:lower()), function(out)
-        if cat.composite then
+        -- A composite, and the poison category (it picks per hand or per missing
+        -- buff, not the list's first owned entry), report through the pick dump.
+        if cat.composite or cat.poison then
             return KCM.SlashDump.TARGETS.pick.run(cat.key:lower(), out)
         end
         if not (KCM.Selector and KCM.Selector.GetEffectivePriority) then
@@ -373,10 +375,21 @@ local function priorityList(cat, _rest)
     end)
 end
 
+-- Retail's poison category is two ordered spell lists (modules/Poison.lua's `spells`
+-- model), not an item list: an add, block or pin would land in a bucket nothing reads.
+local function isPoisonSpells(cat)
+    return cat.poison and KCM.Poison and KCM.Poison.Model and KCM.Poison.Model() == "spells"
+end
+
 local function rejectComposite(cat, verb)
     if cat.composite then
         say(("%s is a composite category — use `/cm aio %s %s` instead.")
             :format(cat.key, cat.key:lower(), verb))
+        return true
+    end
+    if isPoisonSpells(cat) then
+        say(("%s orders spells, not items — use the Poison tab, or `/cm set categories.POISON.lethal`"
+            .. " / `nonLethal` / `enabled`."):format(cat.key))
         return true
     end
     return false

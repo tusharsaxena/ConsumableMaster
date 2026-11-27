@@ -368,3 +368,66 @@ test("Poison: the tab draws on both clients", function(t)
         end)
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- Review fixes (POISON-RV)
+-- ---------------------------------------------------------------------------
+
+local function slashReport(KCM, mock, line)
+    local D = KCM.DebugLog.instance
+    local from = #D.buffer
+    mock.output = {}
+    KCM:OnSlashCommand(line)
+    local text = {}
+    for i = from + 1, #D.buffer do text[#text + 1] = D.buffer[i] end
+    return table.concat(text, "\n"), table.concat(mock.output, "\n")
+end
+
+test("Retail: a talent change that grants Dragon-Tempered Blades rebuilds toward two of each", asRetail(function(t)
+    local KCM, mock = h.loader.loadPure(), h.loader.mock
+    local up = retailRogue(mock, { 315584, 2823, 3408 })
+    up[2823], up[3408] = true, true
+    KCM.Pipeline.Recompute("test")
+    t.truthy((body(mock) or ""):find("all poisons applied", 1, true), "one of each is up: idle")
+    mock.setSpell(381801, { name = "Dragon-Tempered Blades", known = true })
+    local asked = 0
+    local real = KCM.Pipeline.RequestRecompute
+    KCM.Pipeline.RequestRecompute = function(...) asked = asked + 1; return real(...) end
+    KCM:OnTalentsChanged("TRAIT_CONFIG_UPDATED")
+    KCM.Pipeline.RequestRecompute = real
+    t.truthy(asked >= 1, "the talent event asks for a pass")
+    KCM.Pipeline.Recompute("talents")
+    t.eq(body(mock), "#showtooltip\n/cast Instant Poison", "the second lethal is now wanted")
+end))
+
+test("Retail: /cm priority poison refuses the item-list edits the spell model ignores", asRetail(function(t)
+    local KCM, mock = h.loader.loadFullAddon(), h.loader.mock
+    local b = KCM.db.profile.categories.POISON
+    for _, line in ipairs({ "priority poison add 6947", "priority poison remove s:2823",
+            "priority poison up s:2823", "priority poison down s:2823", "priority poison reset" }) do
+        local _, chat = slashReport(KCM, mock, line)
+        t.truthy(chat:find("categories.POISON.lethal", 1, true), line .. ": points at the order rows")
+    end
+    t.eq(next(b.added), nil, "nothing was added")
+    t.eq(next(b.blocked), nil, "nothing was blocked")
+    t.eq(next(b.pins), nil, "nothing was pinned")
+end))
+
+test("Poison: /cm priority poison list reports the model's own picks on both clients", function(t)
+    for _, client in ipairs({ "retail", "forever" }) do
+        h.loader.withClient(client, function()
+            local KCM, mock = h.loader.loadFullAddon(), h.loader.mock
+            local text = slashReport(KCM, mock, "priority poison list")
+            t.truthy(text:find("poison model:", 1, true), client .. ": the poison lines")
+            t.falsy(text:find("<-- pick", 1, true), client .. ": no single list pick is claimed")
+        end)
+    end
+end)
+
+test("Forever: /cm priority poison still edits the rank list", asForever(function(t)
+    local KCM, mock = h.loader.loadFullAddon(), h.loader.mock
+    slashReport(KCM, mock, "priority poison add 99020")
+    t.truthy(KCM.db.profile.categories.POISON.added[99020] or
+        (function() for _, v in ipairs(KCM.db.profile.categories.POISON.added) do if v == 99020 then return true end end end)(),
+        "the item list is real on Forever")
+end))

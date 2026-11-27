@@ -254,9 +254,9 @@ local function runMacroPass(reason)
     local rewrote, skipped, total, held, failed = 0, 0, 0, 0, 0
     for _, cat in ipairs(KCM.Categories.LIST) do
         -- Isolate each category so one bad scorer can't break the other
-        -- fourteen macros. One pcall per category per recompute (15 per
+        -- fifteen macros. One pcall per category per recompute (16 per
         -- frame at peak — `KCM.Categories.LIST` in defaults/Categories.lua
-        -- carries 13 consumable categories plus HP_AIO and MP_AIO) is cheap.
+        -- carries 14 single categories plus HP_AIO and MP_AIO) is cheap.
         total = total + 1
         local ok, res = pcall(P.RecomputeOne, cat.key, scoreCache, reason)
         if not ok then

@@ -993,7 +993,7 @@ end
 
 --- The empty state, drawn as CONTENT INSIDE the page rather than as a branch that
 --- skips the strip (options-ui-§13, contract step 2.5). Unreachable in the shipped
---- configuration -- KCM.Categories.LIST is a constant of fifteen and macroTabs maps
+--- configuration -- KCM.Categories.LIST is a constant of sixteen and macroTabs maps
 --- every entry -- but "unreachable today" is not the same as "cannot render
 --- strip-less", and the guard it replaces was the second kind.
 local function renderNoCategories(ctx)
