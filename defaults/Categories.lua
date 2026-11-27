@@ -203,6 +203,25 @@ KCM.Categories.LIST = {
         classifier  = "WPN_ENCH",
         emptyText   = emptyMacro("no weapon enchant for this spec"),
     },
+    -- Rogue poisons (issue #47), on both clients, with one model per client
+    -- (KCM.POISON_MODEL, defaults/Defaults_Poison.lua): WoW Forever's poison
+    -- items, a family per weapon hand; Retail's poison spells, the first chosen
+    -- one whose buff is missing. `poison` routes the pipeline, the flyout and
+    -- the tab through modules/Poison.lua. Present for every class: a non-rogue
+    -- has no poison, so the macro is the empty-state line (owner ruling
+    -- 2026-11-27). `idleText` is Retail's body while every wanted poison is up.
+    {
+        key         = "POISON",
+        macroName   = "KCM_POISON",
+        displayName = "Poison",
+        shortName   = "Poison",
+        specAware   = false,
+        poison      = true,
+        rankerKey   = "POISON",
+        classifier  = "POISON",
+        emptyText   = emptyMacro("no poison available"),
+        idleText    = emptyMacro("all poisons applied"),
+    },
     {
         key         = "AUG_RUNE",
         clients     = { "retail" },

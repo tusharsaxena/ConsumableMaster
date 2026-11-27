@@ -390,6 +390,12 @@ local function isAvailable(id)
     return itemOwned(id)
 end
 
+--- Owned and usable (an item) or castable (a spell): the one availability rule, published for
+--- modules/Poison.lua, whose per-hand and per-buff picks walk the same priority list.
+function S.IsAvailable(id)
+    return isAvailable(id)
+end
+
 -- Enhancements that fit either equipped weapon, in rank order without repeats.
 -- The affinities the two weapon slots ask for right now, as a set. A slot that
 -- holds nothing enhanceable contributes nothing, so an empty set means "no
@@ -451,6 +457,10 @@ function S.ListAvailable(catKey, specKey, scoreCache)
             end
         end
         return out
+    end
+
+    if cat.poison and KCM.Poison and KCM.Poison.ListAvailable then
+        return KCM.Poison.ListAvailable(scoreCache)
     end
 
     if cat.perHand then

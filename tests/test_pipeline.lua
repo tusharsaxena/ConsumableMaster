@@ -125,6 +125,8 @@ test("Pipeline.Recompute writes one macro per registered category", function(t)
     KCM.MacroManager.SetMacro = function(name) written[name] = true; return "created" end
     KCM.MacroManager.SetCompositeMacro = function(cat) written[cat.macroName] = true; return "created" end
     KCM.MacroManager.SetWeaponEnchantMacro = function(cat) written[cat.macroName] = true; return "created" end
+    -- Retail's poison macro is written through its own writer (modules/Poison.lua).
+    KCM.MacroManager.SetPoisonMacro = function(cat) written[cat.macroName] = true; return "created" end
 
     KCM.Pipeline.Recompute("test")
     for _, cat in ipairs(KCM.Categories.LIST) do

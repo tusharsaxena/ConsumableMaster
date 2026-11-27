@@ -16,7 +16,7 @@
 -- gets is derived.
 --
 -- What is NOT here: defaults/Categories.lua (the category REGISTRY — keys,
--- labels, macro names, the `targeted` flag) and the fifteen defaults/Defaults_*
+-- labels, macro names, the `targeted` flag) and the sixteen defaults/Defaults_*
 -- files (the shipped item/spell seed lists). Those describe what the addon
 -- knows about the game; this file describes what a fresh profile looks like.
 
@@ -47,6 +47,24 @@ local CATEGORY_BUCKETS = {
     WPN_ENCH  = { bySpec = {} },
     ELIXIR    = { bySpec = {} },
     SCROLL    = { bySpec = {} },
+    -- Rogue poisons (issue #47): one key, one bucket shape per client, picked once like the seed
+    -- lists (clients-§5). WoW Forever: the family each weapon hand takes (defaults/Defaults_Poison.lua's
+    -- `families`), over the usual item bucket. Retail: the order the macro tries the lethal and the
+    -- non-lethal poisons in, and which of them it may cast at all (`enabled`, a flag map that reads
+    -- unset as on, as a composite's does).
+    POISON    = KCM.PerClient({
+        retail  = {
+            added = {}, blocked = {}, pins = {}, discovered = {},
+            lethal    = { "DEADLY", "AMPLIFYING", "INSTANT", "WOUND" },
+            nonLethal = { "ATROPHIC", "NUMBING", "CRIPPLING" },
+            enabled   = {},
+        },
+        forever = {
+            added = {}, blocked = {}, pins = {}, discovered = {},
+            mainHand = "INSTANT",
+            offHand  = "DEADLY",
+        },
+    }),
     -- Composite categories. No item buckets (added/blocked/pins/
     -- discovered) — picks come from the underlying single categories
     -- at recompute time. `enabled[ref]` toggles a sub-category in/out
@@ -71,12 +89,12 @@ local CATEGORY_BUCKETS = {
 -- Mirrors the cosmetic settings-tab order in KCM.Settings.macroOrder
 -- (settings/Panel.lua), which loads much later, so tests/test_macrobar.lua
 -- asserts the two never drift. Filtered by BY_KEY below, so Retail's order is
--- exactly the fifteen it always was, and Forever's puts each of its four
+-- its fifteen plus POISON beside WPN_ENCH, and Forever's puts each of its four
 -- categories beside its nearest kin.
 local SLOT_ORDER = {
     "FOOD", "DRINK", "HP_POT", "MP_POT", "HS", "BANDAGE",
     "HP_AIO", "MP_AIO",
-    "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH",
+    "FLASK", "ELIXIR", "CMBT_POT", "PROT_POT", "STAT_FOOD", "SCROLL", "WPN_ENCH", "POISON",
     "AUG_RUNE", "VANTUS",
     "BLOODLUST", "BATTLE_REZ",
 }
@@ -213,7 +231,7 @@ KCM.dbDefaults = {
             alpha    = 1.0,
             -- Grid. `perRow` counts buttons along the axis `orientation` fills
             -- first (row for HORIZONTAL, column for VERTICAL); one row of every
-            -- managed macro, so the category count: fifteen on either client.
+            -- managed macro, so the category count: sixteen on either client.
             -- Derived since the WoW Forever port moved this file after
             -- defaults/Categories.lua; tests/test_macrobar.lua still pins it.
             buttonSize  = 36,

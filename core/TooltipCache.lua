@@ -34,6 +34,9 @@
 --   isVanillaWeaponEnhance         -- a Forever stone, weightstone or oil Use: line
 --                                     (never a poison); read by WPN_ENCH on Forever only
 --   weaponEnhanceValue             -- its "by N" (stones) or "by up to N" (oils)
+--   isVanillaPoison                -- a Forever rogue poison's Use: line ("Coats a weapon
+--                                     with poison ..."); read by POISON on Forever only
+--   poisonChance                   -- its "Each strike has a N% chance" N
 --   A bandage's "Heals N damage over X sec." is a flat heal: healValue and
 --   healOverSec, like a heal-over-time potion's.
 --   minLevel                       -- required player level (0 if none)
@@ -602,6 +605,21 @@ local function parseVanillaWeaponEnhance(txt, result)
     end
 end
 
+-- WoW Forever's rogue poisons, the items commit 1e1e019 keeps out of WPN_ENCH (above):
+-- consumable subclass 8, worded verbatim (the owner's capture, build 70862)
+--   "Use: Coats a weapon with poison that lasts for 30 minutes.
+--    Each strike has a 20% chance of poisoning the enemy ..."
+-- in ONE tooltip line, the two sentences joined by a line break. Sets isVanillaPoison, the
+-- Forever-path flag POISON's matcher reads on Forever alone (core/Classifier.lua), and
+-- poisonChance. Retail ships no poison item, and none of its fields move.
+local function parseVanillaPoison(txt, result)
+    local low = txt:lower()
+    if low:sub(1, 4) ~= "use:" or not low:find("coats a weapon with poison", 1, true) then return end
+    result.isVanillaPoison = true
+    local chance = low:match("(%d+)%% chance")
+    if chance then result.poisonChance = tonumber(chance) end
+end
+
 local function parseLines(lines)
     local result = { statBuffs = {} }
     for _, line in ipairs(lines) do
@@ -622,6 +640,7 @@ local function parseLines(lines)
             parseWeaponEnhance(txt, result)
             parseWeaponWords(txt, result)
             parseVanillaWeaponEnhance(txt, result)
+            parseVanillaPoison(txt, result)
             parseAbsorb(txt, result)
             parseEffectValue(txt, result)
             parseDuration(txt, result)
@@ -631,14 +650,21 @@ local function parseLines(lines)
     return result
 end
 
+-- A heal or a mana restore, flat, averaged or %-based: one half of the effect
+-- test below, apart so that test stays under the complexity cap.
+local function hasRestore(p)
+    return p.healValue ~= nil or p.healValueAvg ~= nil or p.healPct ~= nil
+        or p.manaValue ~= nil or p.manaValueAvg ~= nil or p.manaPct ~= nil
+end
+
 -- Whether a parsed tooltip carries any recognizable consumable effect. Used
 -- to tell a fully-loaded tooltip from one still missing its "Use:" line.
 local function hasParsedEffect(p)
     return p.hasStatBuff == true
-        or p.healValue ~= nil or p.healValueAvg ~= nil or p.healPct ~= nil
-        or p.manaValue ~= nil or p.manaValueAvg ~= nil or p.manaPct ~= nil
+        or hasRestore(p)
         or (p.buffDurationSec or 0) > 0
         or p.isWeaponEnhance == true
+        or p.isVanillaPoison == true
         or p.absorbValue ~= nil
         or p.isAugmentRune == true
         or p.isConjured == true

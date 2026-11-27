@@ -159,8 +159,8 @@ test("Disabled 1: enabled, the addon registers a non-empty set", function(t)
     -- pair added there is checked here unasked. The count is pinned too, so a
     -- list that quietly shrinks is a failure here rather than a smaller set
     -- silently passing step 3.
-    t.eq(#KCM.EVENTS, 14, "KCM.EVENTS declares the fourteen client events")
-    for _, pair in ipairs(KCM.EVENTS) do
+    t.eq(#KCM.EVENTS, 16, "KCM.EVENTS declares the sixteen client events")
+    for _, pair in ipairs(KCM.ClientEvents()) do
         local e = "event:" .. pair[1]
         t.truthy(names[e], e .. " is registered while enabled")
     end

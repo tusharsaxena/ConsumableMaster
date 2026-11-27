@@ -95,7 +95,7 @@ end
 local function assertOthersBound(t, KCM, mock, ok, err, label)
     t.truthy(ok, label .. ": OnEnable raised nothing (" .. tostring(err) .. ")")
     local bound = registeredOn(mock, KCM)
-    for _, pair in ipairs(KCM.EVENTS or {}) do
+    for _, pair in ipairs(KCM.ClientEvents()) do
         if pair[1] ~= RETIRED then
             t.truthy(bound[pair[1]], label .. ": " .. pair[1] .. " is still registered")
         end
@@ -105,7 +105,9 @@ end
 
 test("a retired event name leaves the other thirteen bound", function(t)
     local KCM, mock, ok, err = enableWithRetired(false)
-    t.eq(#(KCM.EVENTS or {}), 14, "KCM.EVENTS holds the fourteen pairs")
+    t.eq(#(KCM.EVENTS or {}), 16, "KCM.EVENTS holds the sixteen pairs")
+    t.eq(#KCM.ClientEvents(), KCM.SEED_CLIENT == "retail" and 16 or 14,
+        "Retail registers all sixteen; WoW Forever leaves out the two Retail-only poison events")
     assertOthersBound(t, KCM, mock, ok, err, "IsEventValid present")
     t.falsy(registeredOn(mock, KCM)[RETIRED], "the retired name is not registered")
 end)
@@ -168,7 +170,7 @@ test("/cm dump events lists every event and names the rejected one", function(t)
     local lines = {}
     for i = from + 1, #D.buffer do lines[#lines + 1] = D.buffer[i] end
     local text = table.concat(lines, "\n")
-    for _, pair in ipairs(KCM.EVENTS or {}) do
+    for _, pair in ipairs(KCM.ClientEvents()) do
         t.truthy(text:find(pair[1], 1, true), pair[1] .. " is listed")
     end
     t.truthy(text:find(RETIRED .. "  rejected", 1, true), "the retired name reads rejected")
