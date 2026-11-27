@@ -39,7 +39,7 @@ level, the bigger effect and the better source.
 
 ## What was accepted
 
-214 of 483 candidates, the top of each group once the header rules were applied:
+212 of 483 candidates, the top of each group once the header rules were applied:
 
 | List | Candidates | Accepted | Rejected: header rule | Rejected: behind the band's pick |
 | --- | --- | --- | --- | --- |
@@ -51,7 +51,7 @@ level, the bigger effect and the better source.
 | `BANDAGE` | 12 | 5 | 0 | 7 |
 | `FLASK` | 5 | 4 | 1 | 0 |
 | `ELIXIR` | 80 | 54 | 12 | 14 |
-| `CMBT_POT` | 30 | 21 | 9 | 0 |
+| `CMBT_POT` | 30 | 19 | 11 | 0 |
 | `PROT_POT` | 10 | 10 | 0 | 0 |
 | `STAT_FOOD` | 119 | 41 | 9 | 69 |
 | `SCROLL` | 31 | 25 | 3 | 3 |
@@ -68,7 +68,8 @@ level, the bigger effect and the better source.
   VANTUS precedent of 2026-11-15. `HEALTHSTONE_IDS` is now one list per client, and `apply` wrote the
   same 15 into its Forever block.
 - **Combat potions:** Forever's own Frenzy (attack power), Spellblasting (spell damage) and Mender's
-  (healing) ladders, one per band, Mighty Rage Potion, Dragonfire Potion and Potion of Venomous Blood.
+  (healing) ladders, one per band, and Mighty Rage Potion. Dragonfire Potion and Potion of Venomous
+  Blood were accepted at first and rejected in review (below).
 - **Elixirs, scrolls, stat food:** one per stat per band, which is why these lists are the long ones.
 - **Protection potions:** all ten: Holy and Shadow at 10-19, Fire, Frost and Nature at 20-29, and the
   five Greater ones at 40-49.
@@ -94,7 +95,7 @@ level, the bigger effect and the better source.
 - **CMBT_POT is grouped per stat.** The owner's ruling named `STAT_FOOD`, `ELIXIR`, `SCROLL` and `FLASK`
   as the stat-keyed lists. `CMBT_POT` is spec-aware like them, and one potion per band would have handed
   every band to the Mender's (healing) potion, so Claude grouped it per stat too. Grouping it per band
-  alone would keep six of its 21.
+  alone would keep six of its 19.
 - **WPN_ENCH is grouped per weapon kind,** for the same reason: the per-hand picker needs a stone for a
   blade, a weightstone for a mace and an oil for a caster.
 - **Eight picks rest on ForeverDB alone**, with no vendor, auction-house or probe sighting: Elixir of
@@ -121,3 +122,16 @@ level, the bigger effect and the better source.
   once one is sold or traded they enter the `FLASK` window.
 - This bundle replays only at the revision before its `apply`: once the accepts ship, a re-derivation
   differs by design.
+
+## Review fixes (2026-11-27, before merge)
+
+- **Two combat potions rejected.** Dragonfire Potion (250953, a fire-damage cone) and Potion of
+  Venomous Blood (250950, spreads a bleed) buff no stat. The stat reader took their "Fire damage" and
+  "Nature damage" for school spell power, so each topped a one-item SP_FIRE / SP_NATURE group and was
+  accepted. `Defaults_CombatPot.lua` seeds no utility potion, so both are now rejected in
+  `tools/seeds/forever_rulings.json` and dropped from the seed. `forever_stat` now reads a school
+  only after an increase verb ("Increases spell fire damage"), with a test. `candidates.json` and
+  `SOURCES.md` stay as derived: their group notes for these two show the misread.
+- **Healthstone rank order.** Retail's Ranker preference table gives 5512 a +100 bonus, and on Forever
+  5512 is the Minor rank, so a Minor stone would outrank a Major one. `modules/Ranker.lua` now picks
+  that table per client; Forever has no preference, and its ranks sort by item level (10 to 58).

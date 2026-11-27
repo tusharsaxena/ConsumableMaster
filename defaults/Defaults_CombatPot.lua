@@ -58,7 +58,5 @@ KCM.SEED.CMBT_POT = KCM.PerClient({
         250947,  -- Greater Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: AH, probe (ah), DB2 (crafted)
         250948,  -- Superior Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
         250949,  -- Major Mender's Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
-        250950,  -- Potion of Venomous Blood; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
-        250953,  -- Dragonfire Potion; added from the 2026-11-27 wago.tools validation (1.60.1.71139); Evidence: ForeverDB (recipe), AH, DB2 (crafted)
     },
 })

@@ -620,6 +620,19 @@ class ForeverRuleTest(unittest.TestCase):
         self.assertEqual(seeds.forever_stat("Increases damage done by $s1% for $d."), "DMG")
         self.assertEqual(seeds.forever_stat("Increases the player's maximum Mana by $s1 for $d."), "MANA")
 
+    def test_a_school_reads_as_spell_power_only_when_the_item_increases_it(self):
+        # Vanilla's and Forever's two wordings of a school elixir.
+        self.assertEqual(seeds.forever_stat("Increases spell fire damage by up to $s1 for $d."), "SP_FIRE")
+        self.assertEqual(seeds.forever_stat("Drink to increase nature spell damage by up to $s1."), "SP_NATURE")
+        self.assertEqual(seeds.forever_stat("Increases spell Holy damage by up to $s1 for $d."), "SP_HOLY")
+        # A potion that deals a school's damage buffs no stat (Dragonfire Potion, Potion of Venomous
+        # Blood): it is no school's spell-power potion.
+        self.assertIsNone(seeds.forever_stat("Unleash a belch of dragonfire, dealing $s1 Fire damage instantly "
+                                             "in a narrow cone in front of you."))
+        self.assertIsNone(seeds.forever_stat("Gain $U doses of Venomous Blood. Whenever you suffer Bleed damage, "
+                                             "one dose is spread to a nearby enemy. Venomous Blood deals $s1 "
+                                             "Nature damage."))
+
 
 class ForeverClassifierTest(unittest.TestCase):
     def setUp(self):

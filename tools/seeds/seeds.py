@@ -826,9 +826,10 @@ def rules_for(flavor: str) -> dict:
 
 # The stat a Forever stat-keyed item buffs, in vanilla wording: the earliest of these in its use text
 # (after "well fed", for a meal) names its group. A school-specific spell-power line comes first so
-# "Increases fire spell damage" is not read as plain spell damage.
+# "Increases fire spell damage" is not read as plain spell damage. It needs the increase verb: a
+# potion that deals a school's damage ("dealing $s1 Fire damage", Dragonfire Potion) buffs no stat.
 FOREVER_STATS = (
-    (r"\b(fire|frost|shadow|nature|arcane|holy) (?:spell )?(?:damage|power)\b", None),
+    (r"\bincreas\w* (?:spell )?(fire|frost|shadow|nature|arcane|holy) (?:spell )?(?:damage|power)\b", None),
     (r"\branged attack power\b", "RAP"),
     (r"\battack power\b", "AP"),
     (r"spell damage|spell power|damage (?:and healing )?done by (?:magical )?spells|magical damage", "SP"),

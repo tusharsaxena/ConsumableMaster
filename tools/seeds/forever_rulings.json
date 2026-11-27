@@ -132,12 +132,12 @@
     "ruling": "accept"
   },
   "CMBT_POT:250950": {
-    "reason": "top tier of band 30-39, stat SP_NATURE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "review 2026-11-27: no stat buff, a bleed-spreading utility potion (the stat reader misread its Nature damage as nature spell power); Defaults_CombatPot.lua seeds no utility potion",
+    "ruling": "reject"
   },
   "CMBT_POT:250953": {
-    "reason": "top tier of band 30-39, stat SP_FIRE on WoW Forever (owner ruling 2026-11-27: top tier per band; Evidence: ForeverDB (recipe), AH, DB2 (crafted))",
-    "ruling": "accept"
+    "reason": "review 2026-11-27: no stat buff, a fire-damage cone (the stat reader misread its Fire damage as fire spell power); Defaults_CombatPot.lua seeds no utility potion",
+    "ruling": "reject"
   },
   "CMBT_POT:288898": {
     "reason": "a utility potion (speed, invisibility, immunity, cleanse), not a throughput one (Defaults_CombatPot.lua header)",
