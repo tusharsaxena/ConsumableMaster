@@ -77,7 +77,7 @@ The playbook for re-running the seed refresh when Blizzard adds new consumables 
    [https://warcraft.wiki.gg/wiki/Midnight_cooking_recipes](https://warcraft.wiki.gg/wiki/Midnight_cooking_recipes)
    Recipe-result names and categorization. Useful to cross-check what Method.gg lists and to catch items Method.gg omits.
 
-4. **archon.gg** — used for `Defaults_StatPriority.lua` (Mythic+ "this week" ranking). See the comment header inside that file for the exact URL pattern and refresh procedure.
+4. **archon.gg** — the method for `Defaults_StatPriority.lua` (Mythic+ "this week" ranking). See the comment header inside that file for the exact URL pattern and refresh procedure. The 2026-11-27 refresh used the CurseForge addon "Stat Priority" (Icy Veins data) instead, because archon.gg answered HTTP 403 (owner ruling, issue #48).
 
 5. **Wowhead / wowdb — manual browser only.** Both sites front their pages with Cloudflare and return HTTP 403 to WebFetch / curl. Open in a real browser if you need the item DB; do NOT waste time scripting against them.
 
