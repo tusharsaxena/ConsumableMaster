@@ -104,11 +104,12 @@ Every other module, page, verb, launcher entry and event registration serves bot
 
 **Seed data is two lists per file** (clients-§5). Each `defaults/Defaults_*.lua` hands a
 `{ retail = …, forever = … }` pair to `KCM.PerClient` (`core/Compat.lua`), which answers the running
-client's list once at load; nothing that reads `KCM.SEED` asks which client it is on. Forever's lists,
-`STAT_PRIORITY` and `CLASS_GATE` included, are **empty by decision** (step 2, owner ruling 2026-11-08),
-so on Forever every candidate comes from the bag scan and a spec ranks by its class's primary stat
-(`core/SpecHelper.lua`'s fallback). The Healthstone whitelist in `core/Classifier.lua` and the
-Ranker's preference table still name 5512, vanilla's Minor Healthstone.
+client's list once at load; nothing that reads `KCM.SEED` asks which client it is on. Forever's item
+lists seed the **top tier per ~10-level band** (per stat, school or weapon kind), built from Forever's
+own DB2 and offline stores (owner ruling 2026-11-27, issue #46, which lifted the 2026-11-08 "empty by
+decision" ruling; [defaults/README.md](../defaults/README.md#wow-forevers-lists)); the bag scan finds
+every other tier. The Healthstone whitelist in `core/Classifier.lua` (`HEALTHSTONE_IDS`) is one list
+per client: Retail's two stones, and every vanilla rank on Forever.
 
 **Per-client tables in the Classifier.** `core/Classifier.lua` picks two subclass lists the same way:
 the subclasses that read as a Potion (Retail: 1; Forever: 1 and Draught 13) and the ones that are a

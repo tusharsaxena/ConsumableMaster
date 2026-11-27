@@ -5,7 +5,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 ## In scope
 
 - **Account-wide consumable macros** — thirteen single-pick categories per client plus two combat-conditional composites (HP_AIO, MP_AIO). Identified by name, never by slot. Both clients: FOOD, DRINK, HP_POT, MP_POT, HS, FLASK, CMBT_POT, STAT_FOOD, WPN_ENCH. Retail only: VANTUS, AUG_RUNE, BLOODLUST, BATTLE_REZ. WoW Forever only: ELIXIR, SCROLL, BANDAGE, PROT_POT (owner ruling 2026-11-08; [ARCHITECTURE.md → Per-client features](./ARCHITECTURE.md#per-client-features)).
-- **Retail Midnight and WoW Forever** (Interface 120105, 16001), from one codebase. Forever's seed lists are empty by decision for now, so every Forever pick comes from the bag scan. English only.
+- **Retail Midnight and WoW Forever** (Interface 120105, 16001), from one codebase. Forever's seed lists carry the top tier per ~10-level band, built from Forever's own data (issue #46); the bag scan finds the rest. English only.
 - **Auto-rewriting macro bodies** based on bag contents, spec, and a per-category scorer.
 - **Spec-aware ranking** for FLASK / CMBT_POT / STAT_FOOD / WPN_ENCH (and ELIXIR / SCROLL on WoW Forever) against per-spec stat priority (primary + ordered secondary).
 - **Spell entries** (e.g. Recuperate as a Food entry) via opaque-numeric IDs (positive = item, negative = spell sentinel).

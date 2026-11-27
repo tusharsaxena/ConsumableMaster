@@ -32,7 +32,7 @@ Loot something better, change spec, reload or drop out of combat, and each macro
 
 If a better pick turns up while you're in combat, the macro updates the moment you leave it. WoW doesn't allow macro changes mid-fight.
 
-On **WoW Forever** the set is a little different, because vanilla Azeroth has no Vantus runes, augment runes, Bloodlust or battle resurrection. Those four macros don't exist there. Forever gets four of its own instead: <code>KCM_ELIXIR</code> (spec-aware, by your stat priority), <code>KCM_SCROLL</code> (spec-aware, the same way), <code>KCM_BANDAGE</code> (the biggest heal) and <code>KCM_PROT_POT</code> (protection potions, the biggest absorb). That's still thirteen categories plus the two combo macros. Forever ships no built-in item lists yet, so every pick there comes from what's in your bags.
+On **WoW Forever** the set is a little different, because vanilla Azeroth has no Vantus runes, augment runes, Bloodlust or battle resurrection. Those four macros don't exist there. Forever gets four of its own instead: <code>KCM_ELIXIR</code> (spec-aware, by your stat priority), <code>KCM_SCROLL</code> (spec-aware, the same way), <code>KCM_BANDAGE</code> (the biggest heal) and <code>KCM_PROT_POT</code> (protection potions, the biggest absorb). That's still thirteen categories plus the two combo macros. Forever ships its own built-in item lists, the best item of each level range (per stat, for the stat-based ones), so a macro has something to show before your bags are scanned; anything else you carry is found in your bags as usual.
 
 ## Screenshots
 

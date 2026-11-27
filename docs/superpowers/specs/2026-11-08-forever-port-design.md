@@ -38,7 +38,7 @@ with an in-game `/cm dump bags` and the auction house.
    schema row. It is not created and then hidden. Code that names a Retail-only key directly (the Bloodlust class
    gate, Vantus, augment-rune reusability, the battle-rez targeting) is reached only through its category, or is
    guarded so nothing runs on Forever.
-2. **Seed lists are per client, and Forever's are empty by decision** (clients-§5). `KCM.SEED.*` is chosen once,
+2. **Seed lists are per client, and Forever's are empty by decision** (clients-§5). *Lifted 2026-11-27 (issue #46): Forever's lists now seed the top tier per band from Forever's own data; see `docs/validate-seeds.md` and `defaults/README.md`.* `KCM.SEED.*` is chosen once,
    at load, by `ClientKey()`. Retail gets today's lists. Forever gets an empty table for every category, and an
    empty `STAT_PRIORITY`, each saying "empty by decision, step 2". No Retail item ID is a Forever candidate, so on
    Forever every candidate comes from the bag scan (the default logic).
