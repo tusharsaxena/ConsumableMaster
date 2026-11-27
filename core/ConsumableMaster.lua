@@ -316,9 +316,9 @@ function P.Recompute(reason)
     -- runs whenever a recompute does. While the addon is disabled no recompute
     -- arrives, though: the stand-down drops GET_ITEM_INFO_RECEIVED
     -- (UnregisterAllEvents, core/LifecycleSetup.lua) and the options bus
-    -- target's PANEL_REFRESH (settings/OptionsShim.lua). So item rows in a
-    -- panel opened in a fresh session while disabled stay `[Loading]` until
-    -- re-enable (docs/ARCHITECTURE.md, Known Limitations). Macros keep their
+    -- target's PANEL_REFRESH (settings/OptionsShim.lua). An item row in a
+    -- panel opened while disabled hydrates itself instead, through a one-shot
+    -- LoadItem (KCM.HydrateItem, core/ItemSetup.lua, #40). Macros keep their
     -- last-written body until standUp's RequestRecompute
     -- (core/LifecycleSetup.lua) runs on the off->on transition.
     if macrosEnabled() then

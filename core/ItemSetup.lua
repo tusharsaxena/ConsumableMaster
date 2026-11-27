@@ -5,15 +5,34 @@
 -- ONE PRIMITIVE, AND THAT IS THE WHOLE FILE
 -- ---------------------------------------------------------------------------
 --
--- This addon consumes exactly one of the major's four members, `ItemIDFromLink`. The other three
--- are pointedly absent rather than forgotten:
+-- This addon consumes two of the major's members: `ItemIDFromLink`, and `LoadItem` for the one
+-- case the pipeline cannot reach (below). The rest are pointedly absent rather than forgotten:
 --
 --   QualityFromLink / QualityLabel — this addon has no rarity concept at all. Its "quality" is the
 --     crafting-tier atlas out of C_TradeSkillUI; ITEM_QUALITY_COLORS and GetItemQualityColor
 --     appear nowhere in core/, modules/ or settings/.
---   LoadItem — hydration already runs implicitly through GetItemInfo plus a
---     GET_ITEM_INFO_RECEIVED handler split deliberately for the ~150-item burst on first panel
---     open (core/ConsumableMaster.lua). A second request path would duplicate a tuned one.
+--   BonusIDsFromLink — nothing here reads a link's bonus ids.
+--
+-- ---------------------------------------------------------------------------
+-- LoadItem, AND ONLY WHILE STOOD DOWN (#40)
+-- ---------------------------------------------------------------------------
+--
+-- While the addon RUNS, hydration is implicit: GetItemInfo plus a GET_ITEM_INFO_RECEIVED handler
+-- split deliberately for the ~150-item burst on first panel open (core/ConsumableMaster.lua). A
+-- second request path beside that would duplicate a tuned one, so KCM.HydrateItem does nothing
+-- then.
+--
+-- While it is STOOD DOWN the settings panel survives (setup, not a feature: slash-commands-§7)
+-- but that path does not: UnregisterAllEvents drops GET_ITEM_INFO_RECEIVED, and PANEL_REFRESH's
+-- subscription goes down with the options bus target. A panel opened in a fresh session would show
+-- `[Loading]` for every uncached row until re-enable. The owner ruled (2026-11-27, #40) that the
+-- panel hydrates its own rows then, through LoadItem: one RequestLoadItemDataByID and one
+-- C_Timer one-shot per uncached id, whose callback asks the panel for its debounced repaint. It
+-- registers NO event and subscribes to NO message, so the registration set stays empty and the
+-- stand-down stays total (tests/test_disabled.lua). An id is asked for once per session: a
+-- callback whose data still has not arrived does not re-ask, or a row the server never answers
+-- would repaint the panel every 0.4 s for as long as it is open. The guard is IsStoodDown rather
+-- than IsAddonDisabled, because the perf hold drops the same event and leaves the same panel.
 --
 -- What pointedly did NOT move is core/TooltipCache.lua. The major carries no resolver and no cache
 -- BY WRITTEN DESIGN — two addons in this collection disagree on purpose about what an uncached
@@ -43,3 +62,20 @@ KCM.Item = Item or {
         return tonumber(link:match("|?H?item:(%d+)"))
     end,
 }
+
+local requested = {}
+
+--- Ask the server for an uncached item a settings row is showing as `[Loading]`, and repaint the
+--- panel once it should have arrived. Only while stood down; inert with no library.
+---
+--- @param itemID number
+function KCM.HydrateItem(itemID)
+    if type(itemID) ~= "number" or requested[itemID] then return end
+    if not (KCM.IsStoodDown and KCM.IsStoodDown()) then return end
+    if not (Item and Item.LoadItem) then return end
+    requested[itemID] = true
+    Item.LoadItem(itemID, function()
+        local O = KCM.Options
+        if O and O.RequestRefresh then O.RequestRefresh() end
+    end)
+end
